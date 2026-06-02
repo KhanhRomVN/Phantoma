@@ -1,0 +1,1 @@
+export { ViewForensics } from './ViewForensics'

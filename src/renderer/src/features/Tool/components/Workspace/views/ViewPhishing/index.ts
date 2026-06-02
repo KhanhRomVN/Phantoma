@@ -1,0 +1,1 @@
+export { ViewPhishing } from './ViewPhishing'

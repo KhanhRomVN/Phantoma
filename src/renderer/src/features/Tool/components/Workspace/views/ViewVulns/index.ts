@@ -1,0 +1,1 @@
+export { ViewVulns } from './ViewVulns'

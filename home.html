@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PHANTOMA — Offensive Security Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<style>
+/* Aeonik via font-face approximation using Neue Haas Grotesk feel */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,300;1,9..40,400&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+/* Aeonik font face (self-hosted simulation using local font or fallback) */
+@font-face {
+  font-family: 'Aeonik';
+  font-weight: 100 900;
+  font-style: normal;
+  src: local('Aeonik'), local('Aeonik-Regular'),
+       url('https://fonts.gstatic.com/s/dmsan/v15/nwpHtKqkOwdO2aOIwhWudEWpx_zq_Xna.woff2') format('woff2');
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:       #06080c;
+  --bg2:      #0a0d13;
+  --bg3:      #0e1219;
+  --bg4:      #131820;
+  --surface:  #161c26;
+  --surface2: #1c2330;
+  --border:   rgba(255,255,255,.06);
+  --border2:  rgba(255,255,255,.1);
+  --text:     #e8edf5;
+  --text2:    #7a8699;
+  --text3:    #3e4a5e;
+  --accent:   #00e5ff;
+  --accent2:  #0099bb;
+  --red:      #ff2d55;
+  --green:    #00e5a0;
+  --amber:    #ffaa00;
+  --purple:   #a855f7;
+  --font: 'Aeonik', 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --glow-c: rgba(0,229,255,.12);
+  --glow-r: rgba(255,45,85,.1);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* NOISE OVERLAY */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: .4;
+}
+
+/* SCANLINES */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.03) 3px, rgba(0,0,0,.03) 6px);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ────────── UTILITY ────────── */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 20px;
+  border: 1px solid rgba(0,229,255,.25);
+  background: rgba(0,229,255,.06); color: var(--accent);
+}
+.tag.red   { border-color: rgba(255,45,85,.3); background: rgba(255,45,85,.07); color: var(--red); }
+.tag.green { border-color: rgba(0,229,160,.3); background: rgba(0,229,160,.07); color: var(--green); }
+.tag.amber { border-color: rgba(255,170,0,.3); background: rgba(255,170,0,.07); color: var(--amber); }
+.tag.purple{ border-color: rgba(168,85,247,.3); background: rgba(168,85,247,.08); color: var(--purple); }
+
+.mono { font-family: var(--mono); }
+.accent { color: var(--accent); }
+.red-t  { color: var(--red); }
+.green-t{ color: var(--green); }
+.amber-t{ color: var(--amber); }
+.dim    { color: var(--text2); }
+
+/* ────────── NAV ────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 64px;
+  background: rgba(6,8,12,.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+}
+.nav-inner {
+  display: flex; align-items: center; gap: 0;
+  width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 40px;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 18px; font-weight: 700; color: var(--text);
+  letter-spacing: -.01em; text-decoration: none;
+}
+.nav-logo-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, rgba(0,229,255,.2), rgba(0,229,255,.06));
+  border: 1px solid rgba(0,229,255,.3); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-logo-icon svg { width: 16px; height: 16px; }
+.nav-links {
+  display: flex; align-items: center; gap: 0; margin-left: 48px;
+}
+.nav-link {
+  font-size: 13.5px; font-weight: 500; color: var(--text2);
+  padding: 8px 16px; border-radius: 6px; text-decoration: none;
+  transition: color .15s, background .15s;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.nav-version {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px;
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font); font-size: 14px; font-weight: 600;
+  padding: 10px 22px; border-radius: 8px; cursor: pointer;
+  text-decoration: none; transition: all .2s; border: none;
+}
+.btn-primary {
+  background: var(--accent); color: #000;
+  box-shadow: 0 0 24px rgba(0,229,255,.25), 0 0 8px rgba(0,229,255,.15);
+}
+.btn-primary:hover {
+  background: #33eeff;
+  box-shadow: 0 0 32px rgba(0,229,255,.4), 0 0 12px rgba(0,229,255,.2);
+  transform: translateY(-1px);
+}
+.btn-ghost {
+  background: transparent; color: var(--text2);
+  border: 1px solid var(--border2);
+}
+.btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,.2); background: rgba(255,255,255,.04); }
+
+/* ────────── HERO ────────── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 120px 0 80px;
+  position: relative; overflow: hidden;
+}
+
+/* Big background glow */
+.hero-glow {
+  position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+  width: 900px; height: 600px;
+  background: radial-gradient(ellipse at center, rgba(0,229,255,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-glow-red {
+  position: absolute; bottom: 0; right: -200px;
+  width: 600px; height: 500px;
+  background: radial-gradient(ellipse at center, rgba(255,45,85,.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Grid bg */
+.hero-grid {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.hero-grid svg { width: 100%; height: 100%; opacity: .04; }
+
+.hero-content { position: relative; z-index: 2; }
+
+.hero-eyebrow {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 28px;
+}
+.hero-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse-dot 2s ease-in-out infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+.hero-title {
+  font-size: clamp(52px, 7vw, 96px);
+  font-weight: 800;
+  line-height: .95;
+  letter-spacing: -.03em;
+  margin-bottom: 28px;
+}
+.hero-title .line2 { color: var(--text2); font-weight: 300; }
+.hero-title .line3 {
+  background: linear-gradient(90deg, var(--accent), #0099ff 60%, var(--purple));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.hero-sub {
+  font-size: 18px; font-weight: 400; color: var(--text2); line-height: 1.6;
+  max-width: 520px; margin-bottom: 44px;
+}
+
+.hero-ctas { display: flex; align-items: center; gap: 14px; margin-bottom: 60px; }
+.btn-lg { font-size: 15px; padding: 13px 28px; border-radius: 10px; }
+
+.hero-stats {
+  display: flex; gap: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.hero-stat-num {
+  font-size: 28px; font-weight: 700; color: var(--text);
+  letter-spacing: -.02em; line-height: 1;
+}
+.hero-stat-num span { color: var(--accent); }
+.hero-stat-label { font-size: 12px; color: var(--text3); margin-top: 4px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+
+/* Terminal preview */
+.hero-terminal {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  width: 520px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,.6), 0 0 60px rgba(0,229,255,.05), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.term-titlebar {
+  height: 38px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 14px; gap: 7px;
+}
+.term-dot { width: 11px; height: 11px; border-radius: 50%; }
+.term-dot.r { background: #ff5f57; }
+.term-dot.y { background: #febc2e; }
+.term-dot.g { background: #28c840; }
+.term-name {
+  flex: 1; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--text3);
+}
+.term-body { padding: 18px 20px; font-family: var(--mono); font-size: 11.5px; line-height: 1.9; }
+.tl { display: flex; gap: 10px; }
+.ts { color: var(--text3); min-width: 52px; }
+.tc { min-width: 48px; font-weight: 700; text-align: right; }
+.tc.ok   { color: var(--green); }
+.tc.err  { color: var(--red); }
+.tc.warn { color: var(--amber); }
+.tc.info { color: var(--accent); }
+.tc.crit { color: var(--purple); }
+.tm { color: var(--text); word-break: break-all; }
+.tm .h-g { color: var(--green); }
+.tm .h-r { color: var(--red); }
+.tm .h-c { color: var(--accent); }
+.tm .h-a { color: var(--amber); }
+.tm .h-p { color: var(--purple); }
+.term-cursor { display: inline-block; width: 8px; height: 14px; background: var(--accent); animation: blink .9s step-end infinite; vertical-align: middle; margin-left: 2px; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ────────── SECTION BASE ────────── */
+section { padding: 100px 0; }
+.section-label {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .12em; color: var(--accent);
+  margin-bottom: 16px;
+}
+.section-title {
+  font-size: clamp(36px, 4vw, 56px); font-weight: 700;
+  letter-spacing: -.025em; line-height: 1.05;
+  margin-bottom: 20px;
+}
+.section-sub {
+  font-size: 17px; color: var(--text2); line-height: 1.65;
+  max-width: 540px;
+}
+
+/* ────────── MARQUEE TICKER ────────── */
+.ticker {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  height: 44px; overflow: hidden;
+  display: flex; align-items: center;
+}
+.ticker-inner {
+  display: flex; gap: 0; animation: marquee 28s linear infinite; white-space: nowrap;
+}
+@keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.ticker-item {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 0 32px; font-family: var(--mono); font-size: 11px;
+  color: var(--text3); letter-spacing: .05em;
+}
+.ticker-item .ti-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+/* ────────── MODULES GRID ────────── */
+.modules-section { background: var(--bg2); }
+.modules-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden; margin-top: 64px;
+}
+.module-card {
+  background: var(--bg3);
+  padding: 28px 28px 24px;
+  transition: background .2s;
+  cursor: default; position: relative; overflow: hidden;
+}
+.module-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,229,255,.3), transparent);
+  opacity: 0; transition: opacity .3s;
+}
+.module-card:hover { background: var(--bg4); }
+.module-card:hover::before { opacity: 1; }
+.mc-num {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  letter-spacing: .06em; margin-bottom: 12px;
+}
+.mc-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px; font-size: 18px;
+}
+.mc-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.mc-desc { font-size: 13px; color: var(--text2); line-height: 1.55; }
+.mc-badge {
+  display: inline-flex; margin-top: 14px;
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  padding: 3px 9px; border-radius: 4px; letter-spacing: .05em;
+}
+
+/* ────────── FEATURES BENTO ────────── */
+.bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; margin-top: 64px; }
+
+.bento-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px;
+  position: relative; overflow: hidden;
+  transition: border-color .2s, background .2s;
+}
+.bento-card:hover { border-color: var(--border2); background: var(--surface2); }
+
+.bc1 { grid-column: span 7; }
+.bc2 { grid-column: span 5; }
+.bc3 { grid-column: span 5; }
+.bc4 { grid-column: span 7; }
+.bc5 { grid-column: span 4; }
+.bc6 { grid-column: span 4; }
+.bc7 { grid-column: span 4; }
+
+.bento-icon { font-size: 28px; margin-bottom: 16px; }
+.bento-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; letter-spacing: -.01em; }
+.bento-desc { font-size: 14px; color: var(--text2); line-height: 1.6; }
+
+.bento-glow-c { box-shadow: inset 0 0 60px rgba(0,229,255,.04); }
+.bento-glow-r { box-shadow: inset 0 0 60px rgba(255,45,85,.04); }
+.bento-glow-p { box-shadow: inset 0 0 60px rgba(168,85,247,.04); }
+.bento-glow-g { box-shadow: inset 0 0 60px rgba(0,229,160,.04); }
+
+/* mini terminal in bento */
+.mini-term {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px;
+  font-family: var(--mono); font-size: 10.5px;
+  line-height: 1.85; margin-top: 16px; color: var(--text2);
+}
+.mini-term .mt-r { color: var(--red); }
+.mini-term .mt-g { color: var(--green); }
+.mini-term .mt-c { color: var(--accent); }
+.mini-term .mt-p { color: var(--purple); }
+.mini-term .mt-a { color: var(--amber); }
+
+/* severity badges in bento */
+.sev-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.sev-b {
+  padding: 4px 11px; border-radius: 5px; font-size: 11px; font-weight: 700;
+  font-family: var(--mono); letter-spacing: .04em;
+}
+.sev-crit { background: rgba(168,85,247,.15); color: var(--purple); border: 1px solid rgba(168,85,247,.3); }
+.sev-high { background: rgba(255,45,85,.12); color: var(--red); border: 1px solid rgba(255,45,85,.25); }
+.sev-med  { background: rgba(255,170,0,.1); color: var(--amber); border: 1px solid rgba(255,170,0,.25); }
+.sev-low  { background: rgba(0,229,255,.08); color: var(--accent); border: 1px solid rgba(0,229,255,.2); }
+
+/* comparison progress */
+.cvss-ring-wrap { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 4px; }
+.cvss-big { font-size: 42px; font-weight: 800; color: var(--red); letter-spacing: -.02em; }
+.cvss-label-s { font-size: 11px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+
+/* flow diagram */
+.flow { display: flex; align-items: center; gap: 0; margin-top: 18px; flex-wrap: wrap; gap: 6px; }
+.flow-step {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+  padding: 5px 12px; border-radius: 5px; letter-spacing: .04em;
+}
+.flow-arrow { color: var(--text3); font-size: 12px; }
+
+/* ────────── COMPARISON TABLE ────────── */
+.comparison-section { overflow: hidden; }
+.comparison-wrap { overflow-x: auto; margin-top: 64px; }
+.comparison-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+.comparison-table th {
+  padding: 14px 20px; text-align: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--text2);
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface);
+}
+.comparison-table th:first-child { text-align: left; }
+.comparison-table th.ph-col {
+  color: var(--accent);
+  background: rgba(0,229,255,.06);
+  border-left: 1px solid rgba(0,229,255,.2);
+  border-right: 1px solid rgba(0,229,255,.2);
+}
+.comparison-table td {
+  padding: 12px 20px; text-align: center;
+  font-size: 13.5px; color: var(--text2);
+  border-bottom: 1px solid var(--border);
+}
+.comparison-table td:first-child { text-align: left; color: var(--text); font-weight: 500; }
+.comparison-table td.ph-col {
+  background: rgba(0,229,255,.03);
+  border-left: 1px solid rgba(0,229,255,.1);
+  border-right: 1px solid rgba(0,229,255,.1);
+}
+.comparison-table tr:last-child td.ph-col { border-bottom: 1px solid rgba(0,229,255,.2); }
+.check-y { color: var(--green); font-size: 16px; }
+.check-n { color: var(--text3); font-size: 16px; }
+
+/* ────────── USE CASES ────────── */
+.usecases-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 64px;
+}
+.usecase-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px;
+  transition: border-color .2s, transform .2s;
+}
+.usecase-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.uc-icon { font-size: 24px; margin-bottom: 12px; }
+.uc-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.uc-desc { font-size: 13px; color: var(--text2); line-height: 1.55; }
+.uc-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 14px; }
+.uc-tag {
+  font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 3px;
+  background: var(--bg4); color: var(--text3); border: 1px solid var(--border);
+}
+
+/* ────────── TESTIMONIAL ────────── */
+.quote-section { background: var(--bg2); }
+.quotes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 64px; }
+.quote-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 28px;
+}
+.quote-text { font-size: 15px; color: var(--text2); line-height: 1.65; margin-bottom: 20px; font-style: italic; }
+.quote-author { font-size: 13px; font-weight: 700; color: var(--text); }
+.quote-role { font-size: 11.5px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+
+/* ────────── LIFECYCLE ────────── */
+.lifecycle-section { background: var(--bg2); }
+.lifecycle-flow {
+  display: flex; align-items: stretch; gap: 0; margin-top: 64px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+}
+.lc-step {
+  flex: 1; padding: 32px 24px; border-right: 1px solid var(--border);
+  position: relative; transition: background .2s;
+}
+.lc-step:last-child { border-right: none; }
+.lc-step:hover { background: var(--surface2); }
+.lc-num {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px;
+}
+.lc-icon { font-size: 22px; margin-bottom: 10px; }
+.lc-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.lc-desc { font-size: 11.5px; color: var(--text2); line-height: 1.5; }
+.lc-arrow {
+  position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px; background: var(--bg); border: 1px solid var(--border2);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--accent); z-index: 2;
+}
+
+/* ────────── CTA SECTION ────────── */
+.cta-section {
+  padding: 120px 0; text-align: center; position: relative; overflow: hidden;
+}
+.cta-glow {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 800px; height: 400px;
+  background: radial-gradient(ellipse, rgba(0,229,255,.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-title { font-size: clamp(40px, 5vw, 72px); font-weight: 800; letter-spacing: -.03em; margin-bottom: 20px; line-height: 1; }
+.cta-title .line-dim { color: var(--text3); font-weight: 300; }
+.cta-sub { font-size: 17px; color: var(--text2); margin-bottom: 44px; max-width: 480px; margin-left: auto; margin-right: auto; }
+.cta-btns { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.cta-note { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 20px; }
+
+/* ────────── FOOTER ────────── */
+footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 48px 0 32px;
+}
+.footer-inner {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 40px;
+  padding-bottom: 36px; border-bottom: 1px solid var(--border);
+}
+.footer-brand-name { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.footer-brand-desc { font-size: 13px; color: var(--text2); max-width: 260px; line-height: 1.6; }
+.footer-cols { display: flex; gap: 48px; }
+.footer-col-title { font-family: var(--mono); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text3); margin-bottom: 14px; }
+.footer-links { display: flex; flex-direction: column; gap: 8px; }
+.footer-link { font-size: 13.5px; color: var(--text2); text-decoration: none; transition: color .15s; }
+.footer-link:hover { color: var(--text); }
+.footer-bottom {
+  display: flex; align-items: center; justify-content: space-between; padding-top: 24px;
+  font-size: 12px; color: var(--text3);
+}
+.footer-bottom-left { font-family: var(--mono); }
+
+/* ────────── ANIMATIONS ────────── */
+.fade-up { opacity: 0; transform: translateY(24px); animation: fadeUp .6s ease forwards; }
+.fade-up.d1 { animation-delay: .1s; }
+.fade-up.d2 { animation-delay: .2s; }
+.fade-up.d3 { animation-delay: .3s; }
+.fade-up.d4 { animation-delay: .4s; }
+.fade-up.d5 { animation-delay: .5s; }
+.fade-up.d6 { animation-delay: .6s; }
+@keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+
+/* scroll reveal */
+.reveal { opacity: 0; transform: translateY(32px); transition: opacity .7s ease, transform .7s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ────────── RESPONSIVE ────────── */
+@media (max-width: 1100px) {
+  .hero-terminal { display: none; }
+  .hero-title { font-size: 64px; }
+}
+@media (max-width: 768px) {
+  .container { padding: 0 20px; }
+  .nav-links { display: none; }
+  .hero-title { font-size: 44px; }
+  .hero-stats { gap: 24px; flex-wrap: wrap; }
+  .modules-grid { grid-template-columns: 1fr; }
+  .bento { grid-template-columns: 1fr; }
+  .bc1,.bc2,.bc3,.bc4,.bc5,.bc6,.bc7 { grid-column: span 1; }
+  .comparison-table { font-size: 12px; }
+  .quotes-grid { grid-template-columns: 1fr; }
+  .lifecycle-flow { flex-direction: column; }
+  .lc-step { border-right: none; border-bottom: 1px solid var(--border); }
+  .footer-inner { flex-direction: column; }
+  .footer-cols { flex-wrap: wrap; gap: 28px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8">
+          <path d="M12 2L3 7v10l9 5 9-5V7z"/>
+          <path d="M12 12L3 7M12 12v10M12 12l9-5" opacity=".5"/>
+        </svg>
+      </div>
+      PHANTOMA
+    </a>
+    <div class="nav-links">
+      <a href="#modules" class="nav-link">Modules</a>
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#usecases" class="nav-link">Use Cases</a>
+      <a href="#compare" class="nav-link">Compare</a>
+      <a href="#lifecycle" class="nav-link">Lifecycle</a>
+    </div>
+    <div class="nav-right">
+      <span class="nav-version">v2.5.0</span>
+      <a href="#download" class="btn btn-primary" style="font-size:13px;padding:8px 18px">Download Free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow-red"></div>
+  <div class="hero-grid">
+    <svg viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs><pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M 60 0 L 0 0 0 60" fill="none" stroke="#00e5ff" stroke-width=".5"/></pattern></defs>
+      <rect width="100%" height="100%" fill="url(#grid)"/>
+    </svg>
+  </div>
+
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-eyebrow fade-up">
+        <div class="hero-dot"></div>
+        <span class="tag">Offensive Security Suite</span>
+        <span class="tag green">Free & Open Source</span>
+      </div>
+
+      <h1 class="hero-title fade-up d1">
+        <div>From OSINT</div>
+        <div class="line2">to Domain Admin</div>
+        <div class="line3">in one app.</div>
+      </h1>
+
+      <p class="hero-sub fade-up d2">
+        PHANTOMA replaces 10+ standalone tools with a single, terminal-native desktop suite. 17 modules. Real-time output. AI-guided attack paths.
+      </p>
+
+      <div class="hero-ctas fade-up d3">
+        <a href="#download" class="btn btn-primary btn-lg">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v8M4 7l4 5 4-5"/><path d="M2 14h12"/></svg>
+          Download for Free
+        </a>
+        <a href="#modules" class="btn btn-ghost btn-lg">Explore Modules →</a>
+      </div>
+
+      <div class="hero-stats fade-up d4">
+        <div>
+          <div class="hero-stat-num"><span>17</span></div>
+          <div class="hero-stat-label">Security Modules</div>
+        </div>
+        <div>
+          <div class="hero-stat-num"><span>10</span>+</div>
+          <div class="hero-stat-label">Tools Replaced</div>
+        </div>
+        <div>
+          <div class="hero-stat-num"><span>3</span></div>
+          <div class="hero-stat-label">Platforms</div>
+        </div>
+        <div>
+          <div class="hero-stat-num"><span>0</span></div>
+          <div class="hero-stat-label">Context Switching</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminal Preview -->
+  <div class="hero-terminal fade-up d5">
+    <div class="term-titlebar">
+      <div class="term-dot r"></div>
+      <div class="term-dot y"></div>
+      <div class="term-dot g"></div>
+      <div class="term-name">PHANTOMA — exploit console</div>
+    </div>
+    <div class="term-body">
+      <div class="tl"><span class="ts">09:30:01</span><span class="tc info">MSF</span><span class="tm">use exploit/multi/misc/log4shell_header_injection</span></div>
+      <div class="tl"><span class="ts">09:30:03</span><span class="tc info">MSF</span><span class="tm">set RHOSTS <span class="h-c">192.168.1.20</span> → <span class="h-g">OK</span></span></div>
+      <div class="tl"><span class="ts">09:30:05</span><span class="tc ok">RUN</span><span class="tm">Starting reverse handler on <span class="h-c">10.10.14.5:4444</span></span></div>
+      <div class="tl"><span class="ts">09:30:07</span><span class="tc ok">RUN</span><span class="tm">JNDI callback received from target</span></div>
+      <div class="tl"><span class="ts">09:30:08</span><span class="tc crit">SHELL</span><span class="tm"><span class="h-p">Meterpreter session opened!</span></span></div>
+      <div class="tl"><span class="ts">09:30:11</span><span class="tc crit">ROOT</span><span class="tm"><span class="h-p">★ UID=0 — Root shell obtained!</span></span></div>
+      <div class="tl"><span class="ts">09:30:12</span><span class="tc warn">PRIV</span><span class="tm">Attempting lateral movement → <span class="h-a">DC01</span></span></div>
+      <div class="tl"><span class="ts">09:30:18</span><span class="tc crit">DUMP</span><span class="tm"><span class="h-g">14 NTLM hashes extracted</span></span></div>
+      <div class="tl"><span class="ts">09:30:21</span><span class="tc crit">DA</span><span class="tm"><span class="h-r">DOMAIN ADMIN on CORP.LOCAL</span> 🎉</span></div>
+      <div class="tl"><span class="ts">09:30:22</span><span class="tc ok">AI</span><span class="tm">Generating attack report...<span class="term-cursor"></span></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TICKER ── -->
+<div class="ticker">
+  <div class="ticker-inner">
+    <!-- repeated twice for seamless loop -->
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--green)"></span>NMAP 7.95 INTEGRATION</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--red)"></span>LOG4SHELL · MS17-010 · CVE-2024-38812</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--accent)"></span>METASPLOIT FRAMEWORK</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--amber)"></span>HASHCAT GPU CRACKING · 14,823 MH/s</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--purple)"></span>AI-POWERED ATTACK PATHS</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--green)"></span>AWS · GCP · AZURE CLOUD AUDIT</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--accent)"></span>REAL-TIME PACKET CAPTURE</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--red)"></span>SQLi · XSS · SSTI · LFI · CMDi · XXE</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--amber)"></span>ELECTRON + REACT · WIN / MAC / LINUX</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--purple)"></span>PDF · DOCX · HTML REPORT EXPORT</span>
+    <!-- duplicate -->
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--green)"></span>NMAP 7.95 INTEGRATION</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--red)"></span>LOG4SHELL · MS17-010 · CVE-2024-38812</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--accent)"></span>METASPLOIT FRAMEWORK</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--amber)"></span>HASHCAT GPU CRACKING · 14,823 MH/s</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--purple)"></span>AI-POWERED ATTACK PATHS</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--green)"></span>AWS · GCP · AZURE CLOUD AUDIT</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--accent)"></span>REAL-TIME PACKET CAPTURE</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--red)"></span>SQLi · XSS · SSTI · LFI · CMDi · XXE</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--amber)"></span>ELECTRON + REACT · WIN / MAC / LINUX</span>
+    <span class="ticker-item"><span class="ti-dot" style="background:var(--purple)"></span>PDF · DOCX · HTML REPORT EXPORT</span>
+  </div>
+</div>
+
+<!-- ── MODULES ── -->
+<section class="modules-section" id="modules">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">17 Modules</div>
+      <h2 class="section-title">Every attack phase.<br/>One window.</h2>
+      <p class="section-sub">Each module is purpose-built for its stage of the offensive security lifecycle — no more juggling terminals, browser tabs, and scripts.</p>
+    </div>
+
+    <div class="modules-grid reveal">
+
+      <div class="module-card">
+        <div class="mc-num">01 / RECON</div>
+        <div class="mc-icon" style="background:rgba(0,229,255,.1)">🎯</div>
+        <div class="mc-title">Recon / OSINT</div>
+        <div class="mc-desc">IP mapping, DNS enumeration, subdomain brute-force, breach data lookup, Shodan integration, tech stack fingerprinting.</div>
+        <span class="mc-badge" style="background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2)">Passive + Active</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">02 / SCAN</div>
+        <div class="mc-icon" style="background:rgba(0,229,160,.1)">📡</div>
+        <div class="mc-title">Network Scanner</div>
+        <div class="mc-desc">Nmap-powered SYN/UDP/OS detection across CIDR ranges. Real-time log with animated vulnerability port tags.</div>
+        <span class="mc-badge" style="background:rgba(0,229,160,.08);color:var(--green);border:1px solid rgba(0,229,160,.2)">Nmap 7.95</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">03 / VULNS</div>
+        <div class="mc-icon" style="background:rgba(168,85,247,.1)">🛡️</div>
+        <div class="mc-title">Vulnerability Scanner</div>
+        <div class="mc-desc">CVSS 3.1 scoring, CVE details, PoC display, auto-exploit mode. 4-tier severity classification with one-click actions.</div>
+        <span class="mc-badge sev-crit">CVSS 3.1</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">04 / EXPLOIT</div>
+        <div class="mc-icon" style="background:rgba(255,45,85,.1)">⭐</div>
+        <div class="mc-title">Exploit Engine</div>
+        <div class="mc-desc">Exploit suggester, payload generator (Meterpreter/Shell/PS/Shellcode), MSF console integration, live reverse handler.</div>
+        <span class="mc-badge" style="background:rgba(255,45,85,.08);color:var(--red);border:1px solid rgba(255,45,85,.2)">MSF + Custom</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">05 / POST</div>
+        <div class="mc-icon" style="background:rgba(255,170,0,.1)">💻</div>
+        <div class="mc-title">Post-Exploitation</div>
+        <div class="mc-desc">File browser, process manager, Mimikatz/hashdump, Pass-the-Hash, SOCKS proxy, pivoting, persistence mechanisms.</div>
+        <span class="mc-badge" style="background:rgba(255,170,0,.08);color:var(--amber);border:1px solid rgba(255,170,0,.2)">Domain Admin</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">06 / FUZZ</div>
+        <div class="mc-icon" style="background:rgba(0,229,255,.1)">🔫</div>
+        <div class="mc-title">Intruder / Fuzzer</div>
+        <div class="mc-desc">4 attack modes: Sniper, Battering Ram, Pitchfork, Cluster Bomb. Request template with payload markers and adaptive throttle.</div>
+        <span class="mc-badge" style="background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2)">Burp-like</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">07 / WEBAPP</div>
+        <div class="mc-icon" style="background:rgba(168,85,247,.1)">🌐</div>
+        <div class="mc-title">Web App Scanner</div>
+        <div class="mc-desc">Spider, Repeater, Decoder, WAF detection. Active + passive scanning with full site map and endpoint analysis.</div>
+        <span class="mc-badge sev-crit">Active + Passive</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">08 / INJECT</div>
+        <div class="mc-icon" style="background:rgba(255,45,85,.1)">💉</div>
+        <div class="mc-title">SQLi / XSS / Injection</div>
+        <div class="mc-desc">7 injection types: SQLi, XSS, SSTI, LFI, CMDi, XXE, NoSQLi. SQLMap integration with interactive terminal and DB dump.</div>
+        <span class="mc-badge" style="background:rgba(255,45,85,.08);color:var(--red);border:1px solid rgba(255,45,85,.2)">7 Types</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">09 / FORENSICS</div>
+        <div class="mc-icon" style="background:rgba(0,229,255,.1)">🔬</div>
+        <div class="mc-title">Forensics</div>
+        <div class="mc-desc">Hex viewer with color-coded bytes, strings extraction, PCAP analysis, entropy scan, PE analysis, IOC extraction.</div>
+        <span class="mc-badge" style="background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2)">Binary Analysis</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">10 / MALWARE</div>
+        <div class="mc-icon" style="background:rgba(255,45,85,.1)">🦠</div>
+        <div class="mc-title">Malware Sandbox</div>
+        <div class="mc-desc">Process behavior tree, file system monitoring, C2 detection, API call monitor, YARA scanner with confidence scoring.</div>
+        <span class="mc-badge" style="background:rgba(255,45,85,.08);color:var(--red);border:1px solid rgba(255,45,85,.2)">Dynamic + Static</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">11 / SNIFFER</div>
+        <div class="mc-icon" style="background:rgba(0,229,160,.1)">📶</div>
+        <div class="mc-title">Network Sniffer</div>
+        <div class="mc-desc">Live packet capture, BPF filters, ARP spoofing, MITM, C2 beacon alerts, NTLM hash capture, PCAP export.</div>
+        <span class="mc-badge" style="background:rgba(0,229,160,.08);color:var(--green);border:1px solid rgba(0,229,160,.2)">Real-time</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">12 / CRACK</div>
+        <div class="mc-icon" style="background:rgba(255,170,0,.1)">🔑</div>
+        <div class="mc-title">Hash / Password Cracking</div>
+        <div class="mc-desc">Hashcat v6.2+ with GPU acceleration (14,823 MH/s). Auto hash ID, wordlist/rules/brute-force/combo attacks.</div>
+        <span class="mc-badge" style="background:rgba(255,170,0,.08);color:var(--amber);border:1px solid rgba(255,170,0,.2)">GPU Powered</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">13 / PHISHING</div>
+        <div class="mc-icon" style="background:rgba(255,45,85,.1)">🎣</div>
+        <div class="mc-title">Phishing / SE Toolkit</div>
+        <div class="mc-desc">Multi-campaign management, email template builder, clone site hosting, real-time credential harvesting table.</div>
+        <span class="mc-badge" style="background:rgba(255,45,85,.08);color:var(--red);border:1px solid rgba(255,45,85,.2)">GoPhish + Evilginx</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">14 / CLOUD</div>
+        <div class="mc-icon" style="background:rgba(0,229,255,.1)">☁️</div>
+        <div class="mc-title">Cloud Security</div>
+        <div class="mc-desc">AWS/GCP/Azure audit, Kubernetes cluster scanning, IAM enumeration, compliance scoring: CIS, PCI DSS, HIPAA.</div>
+        <span class="mc-badge" style="background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2)">AWS · GCP · Azure</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">15 / REPORT</div>
+        <div class="mc-icon" style="background:rgba(0,229,160,.1)">📄</div>
+        <div class="mc-title">Report Builder</div>
+        <div class="mc-desc">7 drag-reorderable sections, auto-fill from findings, live preview. Export as PDF, DOCX, or HTML with branding.</div>
+        <span class="mc-badge" style="background:rgba(0,229,160,.08);color:var(--green);border:1px solid rgba(0,229,160,.2)">PDF · DOCX · HTML</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">16 / AI</div>
+        <div class="mc-icon" style="background:rgba(168,85,247,.1)">🤖</div>
+        <div class="mc-title">AI Assistant</div>
+        <div class="mc-desc">Full engagement context: all findings, sessions, creds. Ask for attack paths, remediation, report sections, or CVE analysis.</div>
+        <span class="mc-badge sev-crit">GPT-4 · Claude · Custom</span>
+      </div>
+
+      <div class="module-card">
+        <div class="mc-num">17 / COLLAB</div>
+        <div class="mc-icon" style="background:rgba(0,229,255,.1)">👥</div>
+        <div class="mc-title">Collaboration</div>
+        <div class="mc-desc">Live operator presence, role management, real-time team chat, shared targets and sessions, activity log export.</div>
+        <span class="mc-badge" style="background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2)">Multi-operator</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── LIFECYCLE ── -->
+<section class="lifecycle-section" id="lifecycle">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Attack Lifecycle</div>
+      <h2 class="section-title">Every stage covered.<br/>Nothing left behind.</h2>
+    </div>
+
+    <div class="lifecycle-flow reveal">
+      <div class="lc-step">
+        <div class="lc-num">01</div>
+        <div class="lc-icon">🎯</div>
+        <div class="lc-title" style="color:var(--accent)">Recon</div>
+        <div class="lc-desc">OSINT, DNS, subdomains, breach data, tech stack</div>
+        <div class="lc-arrow">›</div>
+      </div>
+      <div class="lc-step">
+        <div class="lc-num">02</div>
+        <div class="lc-icon">📡</div>
+        <div class="lc-title" style="color:var(--green)">Scan</div>
+        <div class="lc-desc">Network map, open ports, OS fingerprint, services</div>
+        <div class="lc-arrow">›</div>
+      </div>
+      <div class="lc-step">
+        <div class="lc-num">03</div>
+        <div class="lc-icon">🛡️</div>
+        <div class="lc-title" style="color:var(--purple)">Vuln Detect</div>
+        <div class="lc-desc">CVE/CVSS analysis, PoC validation, severity ranking</div>
+        <div class="lc-arrow">›</div>
+      </div>
+      <div class="lc-step">
+        <div class="lc-num">04</div>
+        <div class="lc-icon">⭐</div>
+        <div class="lc-title" style="color:var(--red)">Exploit</div>
+        <div class="lc-desc">Payload generation, module launch, shell access</div>
+        <div class="lc-arrow">›</div>
+      </div>
+      <div class="lc-step">
+        <div class="lc-num">05</div>
+        <div class="lc-icon">💻</div>
+        <div class="lc-title" style="color:var(--amber)">Post-Exploit</div>
+        <div class="lc-desc">Privilege escalation, cred harvest, lateral movement</div>
+        <div class="lc-arrow">›</div>
+      </div>
+      <div class="lc-step">
+        <div class="lc-num">06</div>
+        <div class="lc-icon">📄</div>
+        <div class="lc-title" style="color:var(--green)">Report</div>
+        <div class="lc-desc">AI-generated findings, PDF/DOCX export, client delivery</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ── -->
+<section id="features">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Core Capabilities</div>
+      <h2 class="section-title">Built for the way<br/>red teams actually work.</h2>
+    </div>
+
+    <div class="bento reveal">
+
+      <!-- AI Assistant — wide -->
+      <div class="bento-card bc1 bento-glow-p">
+        <div class="bento-icon">🤖</div>
+        <div class="bento-title">AI-Guided Attack Paths</div>
+        <div class="bento-desc">PHANTOM-AI has full context: all scan results, open sessions, cracked credentials, and vulnerabilities. Ask natural-language questions and get expert-level tactical responses instantly.</div>
+        <div class="mini-term">
+          <div><span class="mt-c">Operator:</span> What's the best path to Domain Admin?</div>
+          <div><span class="mt-p">PHANTOM-AI:</span> Based on current findings:</div>
+          <div>  1. <span class="mt-g">Root on .20</span> via Log4Shell (done)</div>
+          <div>  2. PtH to DC using <span class="mt-a">admin:P@ssw0rd!</span></div>
+          <div>  3. <span class="mt-r">MS17-010 on DC01</span> → SYSTEM → DA ✓</div>
+        </div>
+      </div>
+
+      <!-- CVE scoring — narrow -->
+      <div class="bento-card bc2 bento-glow-r" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+        <div class="cvss-big">10.0</div>
+        <div class="cvss-label-s" style="margin-bottom:20px">CVSS 3.1 — Critical</div>
+        <div class="bento-title" style="font-size:16px">Log4Shell</div>
+        <div class="bento-desc" style="font-size:13px">CVE-2021-44228 — unauthenticated RCE via JNDI. Public PoC available. Actively exploited in the wild.</div>
+        <div class="sev-row" style="justify-content:center;margin-top:16px">
+          <span class="sev-b sev-crit">CRITICAL</span>
+          <span class="sev-b sev-high">HIGH ×7</span>
+          <span class="sev-b sev-med">MED ×12</span>
+          <span class="sev-b sev-low">LOW ×5</span>
+        </div>
+      </div>
+
+      <!-- Payload generator -->
+      <div class="bento-card bc3 bento-glow-c">
+        <div class="bento-icon">⚡</div>
+        <div class="bento-title">Payload Generator</div>
+        <div class="bento-desc">Generate encoded, staged or stageless payloads for any platform. Auto-migration and persistence built in.</div>
+        <div class="mini-term" style="margin-top:16px">
+          <div><span class="mt-c">Type:</span> Meterpreter/reverse_tcp</div>
+          <div><span class="mt-c">Encoder:</span> x64/xor_dynamic (5 iterations)</div>
+          <div><span class="mt-c">Format:</span> elf / exe / raw</div>
+          <div><span class="mt-a">→ Generating payload...</span></div>
+          <div><span class="mt-g">✓ payload_x64.elf (48.2 KB)</span></div>
+        </div>
+      </div>
+
+      <!-- Team collab -->
+      <div class="bento-card bc4 bento-glow-g">
+        <div class="bento-icon">👥</div>
+        <div class="bento-title">Real-Time Team Collaboration</div>
+        <div class="bento-desc">Multi-operator support with live presence indicators, shared targets and sessions, in-app team chat with per-operator color coding, and a full activity log.</div>
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:1;min-width:180px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+              <span style="font-size:12px;font-weight:700;color:var(--accent)">RedAlpha</span>
+              <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:var(--mono)">Lead</span>
+            </div>
+            <div style="font-size:11px;color:var(--text2)">Post-Exploit › Session #1</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:1;min-width:180px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--amber)"></div>
+              <span style="font-size:12px;font-weight:700;color:var(--amber)">ShadowX</span>
+              <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:var(--mono)">Member</span>
+            </div>
+            <div style="font-size:11px;color:var(--text2)">SQLi › Dumping corp_db</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:1;min-width:180px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--purple)"></div>
+              <span style="font-size:12px;font-weight:700;color:var(--purple)">GhostHunter</span>
+              <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:var(--mono)">Member</span>
+            </div>
+            <div style="font-size:11px;color:var(--text2)">Recon › 47 subdomains found</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report builder -->
+      <div class="bento-card bc5">
+        <div class="bento-icon">📄</div>
+        <div class="bento-title">Professional Reports</div>
+        <div class="bento-desc">Auto-populate from all findings. Export PDF, DOCX, HTML in seconds.</div>
+        <div class="flow" style="margin-top:14px">
+          <span class="flow-step" style="background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2)">Findings</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step" style="background:rgba(0,229,160,.08);color:var(--green);border:1px solid rgba(0,229,160,.2)">AI Fill</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step" style="background:rgba(168,85,247,.08);color:var(--purple);border:1px solid rgba(168,85,247,.2)">Export</span>
+        </div>
+      </div>
+
+      <!-- Cloud -->
+      <div class="bento-card bc6 bento-glow-c">
+        <div class="bento-icon">☁️</div>
+        <div class="bento-title">Cloud Audit</div>
+        <div class="bento-desc">Multi-cloud and Kubernetes scanning with compliance scoring against CIS, PCI DSS, and HIPAA.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:14px">
+          <div style="display:flex;justify-content:space-between;font-size:11.5px"><span class="dim">CIS AWS</span><span style="color:var(--red);font-family:var(--mono)">34%</span></div>
+          <div style="height:3px;background:var(--border2);border-radius:2px"><div style="width:34%;height:100%;background:var(--red);border-radius:2px"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:11.5px"><span class="dim">PCI DSS</span><span style="color:var(--amber);font-family:var(--mono)">58%</span></div>
+          <div style="height:3px;background:var(--border2);border-radius:2px"><div style="width:58%;height:100%;background:var(--amber);border-radius:2px"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:11.5px"><span class="dim">HIPAA</span><span style="color:var(--amber);font-family:var(--mono)">62%</span></div>
+          <div style="height:3px;background:var(--border2);border-radius:2px"><div style="width:62%;height:100%;background:var(--amber);border-radius:2px"></div></div>
+        </div>
+      </div>
+
+      <!-- GPU crack -->
+      <div class="bento-card bc7 bento-glow-r">
+        <div class="bento-icon">🔑</div>
+        <div class="bento-title">GPU Cracking</div>
+        <div class="bento-desc">14,823 MH/s on RTX 3090. NTLM, bcrypt, MD5, SHA-256 and more.</div>
+        <div class="mini-term" style="margin-top:14px">
+          <div><span class="mt-g">✓</span> <span class="mt-r">d7b5e5f4</span> → <span class="mt-g">P@ssw0rd!</span></div>
+          <div><span class="mt-g">✓</span> <span class="mt-r">5f4dbc1d</span> → <span class="mt-g">admin123</span></div>
+          <div><span class="mt-a">Speed: 14,823.3 MH/s</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── USE CASES ── -->
+<section id="usecases" style="background:var(--bg2);">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Use Cases</div>
+      <h2 class="section-title">Built for professionals.<br/>Ready for anything.</h2>
+    </div>
+
+    <div class="usecases-grid reveal">
+      <div class="usecase-card">
+        <div class="uc-icon">🏢</div>
+        <div class="uc-title">External Pentest</div>
+        <div class="uc-desc">Full external engagement from OSINT to initial access and exploitation of public-facing infrastructure.</div>
+        <div class="uc-tags">
+          <span class="uc-tag">Recon</span><span class="uc-tag">Scanner</span><span class="uc-tag">Vulns</span><span class="uc-tag">Exploit</span><span class="uc-tag">Web App</span><span class="uc-tag">SQLi</span>
+        </div>
+      </div>
+      <div class="usecase-card">
+        <div class="uc-icon">🏗️</div>
+        <div class="uc-title">Internal Pentest</div>
+        <div class="uc-desc">LAN-based assessments including AD attacks, credential harvesting, lateral movement, and pivoting.</div>
+        <div class="uc-tags">
+          <span class="uc-tag">Scanner</span><span class="uc-tag">Post-Exploit</span><span class="uc-tag">Sniffer</span><span class="uc-tag">Cracking</span><span class="uc-tag">Cloud</span>
+        </div>
+      </div>
+      <div class="usecase-card">
+        <div class="uc-icon">🔴</div>
+        <div class="uc-title">Red Team Operation</div>
+        <div class="uc-desc">Full adversary simulation with team collaboration, AI-guided attack chains, and complete lifecycle coverage.</div>
+        <div class="uc-tags">
+          <span class="uc-tag">All Modules</span><span class="uc-tag">Collab</span><span class="uc-tag">AI</span><span class="uc-tag">Phishing</span>
+        </div>
+      </div>
+      <div class="usecase-card">
+        <div class="uc-icon">🏆</div>
+        <div class="uc-title">CTF Competition</div>
+        <div class="uc-desc">Purpose-built modules for common CTF challenges: reverse engineering, hash cracking, web exploitation, forensics.</div>
+        <div class="uc-tags">
+          <span class="uc-tag">Forensics</span><span class="uc-tag">Cracking</span><span class="uc-tag">SQLi</span><span class="uc-tag">Exploit</span>
+        </div>
+      </div>
+      <div class="usecase-card">
+        <div class="uc-icon">🐛</div>
+        <div class="uc-title">Bug Bounty</div>
+        <div class="uc-desc">From recon to reporting with the Bug Bounty template. Efficient subdomain enumeration, web scanning, and writeup export.</div>
+        <div class="uc-tags">
+          <span class="uc-tag">Recon</span><span class="uc-tag">Web App</span><span class="uc-tag">SQLi</span><span class="uc-tag">Report</span>
+        </div>
+      </div>
+      <div class="usecase-card">
+        <div class="uc-icon">🦠</div>
+        <div class="uc-title">Malware Analysis</div>
+        <div class="uc-desc">Static and dynamic analysis with YARA scanning, process behavior trees, C2 traffic detection, and IOC extraction.</div>
+        <div class="uc-tags">
+          <span class="uc-tag">Forensics</span><span class="uc-tag">Malware Sandbox</span><span class="uc-tag">Sniffer</span>
+        </div>
+      </div>
+      <div class="usecase-card">
+        <div class="uc-icon">☁️</div>
+        <div class="uc-title">Cloud Security Audit</div>
+        <div class="uc-desc">Automated AWS/GCP/Azure misconfiguration detection with compliance scoring and exportable audit reports.</div>
+        <div class="uc-tags">
+          <span class="uc-tag">Cloud Security</span><span class="uc-tag">IAM Enum</span><span class="uc-tag">K8s Audit</span>
+        </div>
+      </div>
+      <div class="usecase-card">
+        <div class="uc-icon">🎭</div>
+        <div class="uc-title">Social Engineering</div>
+        <div class="uc-desc">End-to-end phishing campaigns with cloned login pages, email spoofing, and real-time credential harvesting.</div>
+        <div class="uc-tags">
+          <span class="uc-tag">Phishing Toolkit</span><span class="uc-tag">Evilginx</span><span class="uc-tag">GoPhish</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── COMPARISON ── -->
+<section id="compare" class="comparison-section">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Comparison</div>
+      <h2 class="section-title">One suite.<br/>Zero compromises.</h2>
+      <p class="section-sub">PHANTOMA replaces the fragmented toolchain that security teams have tolerated for years.</p>
+    </div>
+
+    <div class="comparison-wrap reveal">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th class="ph-col">PHANTOMA</th>
+            <th>Burp Suite</th>
+            <th>Metasploit</th>
+            <th>Nmap</th>
+            <th>Hashcat</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>All-in-one desktop app</td>
+            <td class="ph-col"><span class="check-y">✓</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+          </tr>
+          <tr>
+            <td>GUI + Terminal hybrid</td>
+            <td class="ph-col"><span class="check-y">✓</span></td>
+            <td><span class="check-y">✓</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+          </tr>
+          <tr>
+            <td>AI assistant built-in</td>
+            <td class="ph-col"><span class="check-y">✓</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+          </tr>
+          <tr>
+            <td>Team collaboration</td>
+            <td class="ph-col"><span class="check-y">✓</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+          </tr>
+          <tr>
+            <td>Cloud security audit</td>
+            <td class="ph-col"><span class="check-y">✓</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+          </tr>
+          <tr>
+            <td>Professional report builder</td>
+            <td class="ph-col"><span class="check-y">✓</span></td>
+            <td><span class="check-y">✓</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+          </tr>
+          <tr>
+            <td>Malware sandbox</td>
+            <td class="ph-col"><span class="check-y">✓</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+          </tr>
+          <tr>
+            <td>Phishing campaigns</td>
+            <td class="ph-col"><span class="check-y">✓</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-n">—</span></td>
+          </tr>
+          <tr>
+            <td>Free & open source</td>
+            <td class="ph-col"><span class="check-y">✓</span></td>
+            <td><span class="check-n">—</span></td>
+            <td><span class="check-y">✓</span></td>
+            <td><span class="check-y">✓</span></td>
+            <td><span class="check-y">✓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── QUOTES ── -->
+<section class="quote-section">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">From the Community</div>
+      <h2 class="section-title">Trusted by red teams<br/>worldwide.</h2>
+    </div>
+
+    <div class="quotes-grid reveal">
+      <div class="quote-card">
+        <div class="quote-text">"Finally a tool that doesn't make me switch terminals every 5 minutes. The AI attack path suggestions alone saved us hours on our last engagement."</div>
+        <div class="quote-author">@r00tshell</div>
+        <div class="quote-role">Senior Red Team Operator · FinSec Labs</div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-text">"The Report Builder auto-fill is insane. I went from 3 hours of writing findings to exporting a polished PDF in 20 minutes. Clients love the output."</div>
+        <div class="quote-author">@pentestprowl</div>
+        <div class="quote-role">Lead Penetration Tester · CyberEdge</div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-text">"Used it for my first HackTheBox Pro Lab run. The Forensics hex viewer and YARA sandbox helped me crack a custom implant challenge in hours, not days."</div>
+        <div class="quote-author">@void_hax</div>
+        <div class="quote-role">CTF Player · Top 200 Global</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta-section" id="download">
+  <div class="cta-glow"></div>
+  <div class="container" style="position:relative;z-index:2">
+    <div class="reveal">
+      <h2 class="cta-title">
+        <div>One suite.</div>
+        <div>Every stage.</div>
+        <div class="line-dim">Full compromise.</div>
+      </h2>
+      <p class="cta-sub">Download PHANTOMA free. Windows, macOS, and Linux. No license. No paywall. No compromise.</p>
+      <div class="cta-btns">
+        <a href="#" class="btn btn-primary btn-lg">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v8M4 7l4 5 4-5"/><path d="M2 14h12"/></svg>
+          Download for Windows
+        </a>
+        <a href="#" class="btn btn-ghost btn-lg">macOS</a>
+        <a href="#" class="btn btn-ghost btn-lg">Linux</a>
+      </div>
+      <div class="cta-note">v2.5.0 · Electron + React · MIT License · GitHub ★ 4,200+</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand-name">PHANTOMA</div>
+        <div class="footer-brand-desc">Offensive Security Suite v2.5.0. Built for red teams. Loved by researchers.</div>
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="tag" style="font-size:10px">Win</span>
+          <span class="tag" style="font-size:10px">macOS</span>
+          <span class="tag" style="font-size:10px">Linux</span>
+          <span class="tag green" style="font-size:10px">Free</span>
+        </div>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <div class="footer-col-title">Product</div>
+          <div class="footer-links">
+            <a href="#modules" class="footer-link">Modules</a>
+            <a href="#features" class="footer-link">Features</a>
+            <a href="#compare" class="footer-link">Compare</a>
+            <a href="#download" class="footer-link">Download</a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Resources</div>
+          <div class="footer-links">
+            <a href="#" class="footer-link">Documentation</a>
+            <a href="#" class="footer-link">Changelog</a>
+            <a href="#" class="footer-link">GitHub</a>
+            <a href="#" class="footer-link">Discord</a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Legal</div>
+          <div class="footer-links">
+            <a href="#" class="footer-link">License (MIT)</a>
+            <a href="#" class="footer-link">Terms of Use</a>
+            <a href="#" class="footer-link">Responsible Use</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-bottom-left">© 2026 PHANTOMA — Offensive Security Suite</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text3)">Built for those who break things to make them stronger.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+reveals.forEach(el => observer.observe(el));
+
+// Stagger module cards on reveal
+const moduleCards = document.querySelectorAll('.module-card');
+moduleCards.forEach((card, i) => {
+  card.style.opacity = '0';
+  card.style.transform = 'translateY(20px)';
+  card.style.transition = `opacity .5s ease ${(i % 6) * 0.07}s, transform .5s ease ${(i % 6) * 0.07}s`;
+});
+const modulesGrid = document.querySelector('.modules-grid');
+const moduleObserver = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting) {
+    moduleCards.forEach(card => {
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    });
+    moduleObserver.disconnect();
+  }
+}, { threshold: 0.05 });
+if (modulesGrid) moduleObserver.observe(modulesGrid);
+
+// Smooth active nav highlight
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-link');
+const navObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(link => link.style.color = '');
+      const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+      if (active) active.style.color = 'var(--accent)';
+    }
+  });
+}, { threshold: 0.5 });
+sections.forEach(s => navObserver.observe(s));
+</script>
+</body>
+</html>

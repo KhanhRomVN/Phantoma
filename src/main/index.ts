@@ -1,0 +1,1867 @@
+import { app, BrowserWindow, ipcMain, protocol, net, session } from 'electron';
+import { electronApp, optimizer } from '@electron-toolkit/utils';
+import { exec as execAsync } from 'child_process';
+import { promisify } from 'util';
+const exec = promisify(execAsync);
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'media',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+]);
+import { windowManager } from './core/window';
+import { setupEventHandlers } from './core/events';
+import { ProxyManager } from './proxy/ProxyManager';
+import { getCachedHeaders } from './proxy/headerCache';
+import { mediaCache } from './proxy/mediaCache';
+import { SingletonWSManager } from './server/SingletonWSManager';
+import {
+  createGenericWebWindow,
+  closeAllGenericWebWindows,
+  GenericWebWindowOptions,
+} from './features/generic-web';
+import { cdpManager } from './features/cdpManager';
+import { findAvailablePort } from './utils/net';
+import { userAppStore, UserApp } from './store/apps';
+import { scanInstalledApps } from './utils/app-scanner';
+import { spawn, ChildProcess, execSync } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as dns from 'dns';
+import * as zlib from 'zlib';
+import { handleInspectorRequest } from './features/inspector';
+
+// Mobile utilities
+import {
+  checkADBAvailability,
+  detectAllEmulators,
+  getEmulatorDetails,
+  isAppInstalled,
+  getInstalledPackages,
+  resolveEmulatorSerial,
+} from './utils/mobile-detector';
+import {
+  installFridaServer,
+  startFridaServer,
+  stopFridaServer,
+  isFridaRunning,
+  injectSSLBypass,
+  injectCustomScript,
+  listRunningProcesses,
+  isFridaServerInstalled,
+  injectLocalSSLBypass,
+  ensurePtraceScope,
+} from './utils/frida-manager';
+import {
+  configureEmulatorProxy,
+  clearEmulatorProxy,
+  setupCompleteProxy,
+  installAPK,
+  uninstallApp,
+  launchApp,
+  stopApp,
+  setupProxyCertificate,
+  getProxyCACertPath,
+} from './utils/mobile-proxy-config';
+import {
+  getAllProfiles,
+  getProfileById,
+  createProfile,
+  updateProfile,
+  deleteProfile,
+  GenymotionProfile,
+} from './utils/genymotion-profiles';
+import {
+  isGenymotionInstalled,
+  isWaydroidInstalled,
+  listGenymotionVMs,
+  stopGenymotionVM,
+  stopWaydroid,
+  launchGenymotionWithProfile,
+  launchWaydroidWithConfig,
+  getInstallInstructions,
+} from './utils/emulator-launcher';
+
+// Fix EAI_AGAIN DNS errors by preferring IPv4
+try {
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch (e) {
+  // Ignore errors
+}
+
+// Ignore all certificate errors globally (fixes Proxy CA issues)
+app.commandLine.appendSwitch('ignore-certificate-errors');
+app.commandLine.appendSwitch('allow-insecure-localhost', 'true');
+
+// Fix GPU errors on some Linux distributions
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+
+// Global certificate error handler
+app.on('certificate-error', (event, _webContents, _url, _error, _certificate, callback) => {
+  // On certificate error we disable default behaviour (stop loading the page)
+  // and we then say "it is all fine - true" to the callback
+  event.preventDefault();
+  callback(true);
+});
+
+const proxyManager = new ProxyManager();
+const wsManager = SingletonWSManager.getInstance();
+let activeChildProcess: ChildProcess | null = null;
+let activeProxyUrl: string | null = null;
+
+// This method will be called when Electron has finished
+// initialization and is ready to create browser windows.
+// Some APIs can only be used after this event occurs.
+app.whenReady().then(async () => {
+  // Initialize WS Server
+  await wsManager.initialize();
+
+  // Clear media cache for a fresh session
+  mediaCache.clear();
+
+  // Set app user model id for windows
+  electronApp.setAppUserModelId('com.electron');
+
+  // Default open or close DevTools by F12 in development
+  // and ignore CommandOrControl + R in production.
+  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+  app.on('browser-window-created', (_, window) => {
+    optimizer.watchWindowShortcuts(window);
+
+    // CRITICAL: Only set window for Phantoma Inspector (main window)
+    // The main window is always the FIRST window created
+    // Do NOT set for Claude Web or other target app windows!
+    const allWindows = BrowserWindow.getAllWindows();
+    const isMainWindow = allWindows.length === 1;
+
+    if (isMainWindow) {
+      proxyManager.setMainWindow(window);
+      wsManager.setWindow(window);
+      cdpManager.setMainWindow(window);
+      // Create a default session so intercept works before any app is launched
+      proxyManager.createSession('default').catch(() => {});
+    }
+  });
+
+  // Register 'media' protocol for serving local and remote files (bypassing CORS/CORP)
+  protocol.handle('media', async (request) => {
+    const requestId = `media-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const mainWindow = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
+
+    try {
+      // 1. Extract and normalize the URL
+      // Remove media:// prefix
+      let target = request.url.replace(/^media:\/\/+/i, '');
+
+      // Handle mangled prefix (e.g., https// -> https://)
+      target = target.replace(/^(https?)\/+/i, '$1://');
+
+      // Parse as URL to handle query parameters cleanly
+      let actualUrl = target;
+      let cachedRequestId = '';
+      let refererOverride = '';
+      let originOverride = '';
+      try {
+        const parsed = new URL(target);
+        refererOverride = parsed.searchParams.get('_referer') || '';
+        originOverride = parsed.searchParams.get('_origin') || '';
+        cachedRequestId = parsed.searchParams.get('_requestId') || '';
+
+        // Remove Phantoma-specific parameters
+        parsed.searchParams.delete('_referer');
+        parsed.searchParams.delete('_origin');
+        parsed.searchParams.delete('_requestId');
+        actualUrl = parsed.toString();
+      } catch (e) {
+        // Fallback for non-URL targets (like local file paths)
+        actualUrl = target.startsWith('http')
+          ? target
+          : `file://${target.startsWith('/') ? '' : '/'}${target}`;
+      }
+
+      console.log(`[Protocol Media] Normalized: ${actualUrl} (Cached ID: ${cachedRequestId})`);
+
+      // 2. Check Disk Cache first if we have a requestId
+      if (cachedRequestId) {
+        const cachedMedia = mediaCache.get(cachedRequestId);
+        if (cachedMedia) {
+          console.log(`[Protocol Media] Serving from disk cache: ${cachedRequestId}`);
+          const cleanHeaders = new Headers();
+          cleanHeaders.set('content-type', cachedMedia.contentType);
+          cleanHeaders.set('access-control-allow-origin', '*');
+          cleanHeaders.set('x-phantoma-cached', 'true');
+          cleanHeaders.set('x-phantoma-size', cachedMedia.buffer.length.toString());
+
+          return new Response(cachedMedia.buffer, {
+            status: 200,
+            headers: cleanHeaders,
+          });
+        }
+      }
+
+      // Log request to inspector
+      if (mainWindow) {
+        mainWindow.webContents.send('proxy:request', {
+          id: requestId,
+          url: request.url,
+          method: request.method,
+          headers: request.headers,
+          timestamp: Date.now(),
+          isIntercepted: false,
+        });
+      }
+
+      const fetchHeaders = new Headers();
+      // Only forward essential headers to avoid conflicts with net.fetch internal logic
+      const headersToForward = [
+        'user-agent',
+        'referer',
+        'cookie',
+        'authorization',
+        'range',
+        'accept',
+        'accept-language',
+      ];
+      // 1. Use original headers if we have a requestId
+      if (cachedRequestId) {
+        const cached = getCachedHeaders(cachedRequestId);
+        if (cached) {
+          console.log(`[Protocol Media] Using cached headers for ${cachedRequestId}`);
+          Object.entries(cached).forEach(([key, value]) => {
+            // Forward everything except Host and a few sensitive ones that might conflict
+            const k = key.toLowerCase();
+            if (
+              !['host', 'connection', 'content-length', 'upgrade-insecure-requests'].includes(k)
+            ) {
+              fetchHeaders.set(key, value);
+            }
+          });
+        }
+      }
+
+      // 2. Overlay with current request headers from browser
+      request.headers.forEach((value, key) => {
+        if (headersToForward.includes(key.toLowerCase())) {
+          fetchHeaders.set(key, value);
+        }
+      });
+
+      // Apply overrides if provided (critical for HLS segments in separate windows)
+      if (refererOverride) fetchHeaders.set('referer', refererOverride);
+      if (originOverride) fetchHeaders.set('origin', originOverride);
+
+      const response = await net.fetch(actualUrl, {
+        method: request.method,
+        headers: fetchHeaders,
+        bypassCustomProtocolHandlers: true,
+      });
+
+      // Extract headers for logging
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+
+      // Log response to inspector
+      if (mainWindow) {
+        mainWindow.webContents.send('proxy:response', {
+          id: requestId,
+          url: request.url,
+          statusCode: response.status,
+          headers: responseHeaders,
+          timestamp: Date.now(),
+        });
+      }
+
+      if (!response.ok && response.status !== 304) {
+        console.error(`[Protocol Media] Upstream error ${response.status} for ${actualUrl}`);
+        // If it's a 4xx or 5xx from the server, we might want to return it as is but it's often better to know it's upstream
+      }
+
+      // 3. Create a response with stripped restrictive headers to fix CORS/CORP/COEP/COOP
+      const cleanHeaders = new Headers(response.headers);
+      const headersToRemove = [
+        'cross-origin-resource-policy',
+        'content-security-policy',
+        'cross-origin-embedder-policy',
+        'cross-origin-opener-policy',
+      ];
+      headersToRemove.forEach((h) => cleanHeaders.delete(h));
+      cleanHeaders.set('access-control-allow-origin', '*');
+
+      const buffer = await response.arrayBuffer();
+      const bufferObj = Buffer.from(buffer);
+
+      // 4. Save to Disk Cache if it's a media segment and we have a requestId
+      if (cachedRequestId && response.ok) {
+        // Save ALL media to cache unconditionally
+        const fileName = actualUrl.split('/').pop()?.split('?')[0] || 'file.bin';
+        mediaCache.save(
+          cachedRequestId,
+          bufferObj,
+          responseHeaders['content-type'] || 'application/octet-stream',
+          fileName,
+        );
+        cleanHeaders.set('x-phantoma-cached', 'saved');
+        cleanHeaders.set('x-phantoma-size', bufferObj.length.toString());
+      }
+
+      if (mainWindow) {
+        const contentType = responseHeaders['content-type'] || '';
+        const isBinary = !contentType.includes('text') && !contentType.includes('json');
+        const bodyContent = isBinary ? bufferObj.toString('base64') : bufferObj.toString('utf8');
+
+        mainWindow.webContents.send('proxy:response-body', {
+          id: requestId,
+          body: bodyContent,
+          size: `${(buffer.byteLength / 1024).toFixed(1)} KB`,
+          isBinary,
+          contentType,
+        });
+      }
+
+      return new Response(buffer, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: cleanHeaders,
+      });
+    } catch (error: any) {
+      console.error(`[Protocol Media] Load Error for ${request.url}:`, error);
+
+      if (mainWindow) {
+        mainWindow.webContents.send('proxy:response', {
+          id: requestId,
+          url: request.url,
+          statusCode: 500,
+          headers: {},
+          timestamp: Date.now(),
+        });
+      }
+
+      return new Response(`Media Load Error: ${error.message}`, { status: 500 });
+    }
+  });
+
+  // Setup IPC event handlers
+  setupEventHandlers();
+
+  // Proxy IPC
+  ipcMain.handle('proxy:create-session', async (_, appId: string) => {
+    return await proxyManager.createSession(appId);
+  });
+
+  // Inspector Request Handler
+  ipcMain.handle('inspector:send-request', async (_, payload) => {
+    return await handleInspectorRequest(payload);
+  });
+
+  ipcMain.handle('inspector:fetch-wasm', async (_, url: string) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
+      const arrayBuffer = await response.arrayBuffer();
+      let buffer = Buffer.from(arrayBuffer);
+
+      // Check for GZIP magic bytes (0x1f, 0x8b)
+      if (buffer.length > 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
+        try {
+          console.log('[WASM Fetch] Detected GZIP signature, decompressing...');
+          buffer = zlib.gunzipSync(buffer);
+        } catch (decompressionError) {
+          console.error('[WASM Fetch] Decompression failed:', decompressionError);
+          // Continue with original buffer if decompression fails, might be just coincidence?
+          // But usually gunzipSync throws if invalid.
+        }
+      }
+
+      // Return as Uint8Array (serializable)
+      return new Uint8Array(buffer);
+    } catch (error: any) {
+      console.error('Failed to fetch WASM:', error);
+      throw new Error(error.message);
+    }
+  });
+
+  // Deprecated/Modified: 'proxy:start' might not be needed if we use create-session.
+  // But for compatibility with existing tests or flows, we can keep it or alias it.
+  ipcMain.handle('proxy:start', async () => {
+    // This old signature is likely obsolete.
+    // Let's assume frontend now calls 'proxy:create-session'
+    return true;
+  });
+
+  ipcMain.handle('proxy:set-intercept', async (_, enabled: boolean, appId: string) => {
+    console.log(`[IPC] proxy:set-intercept enabled=${enabled} appId="${appId}"`);
+    const result = appId
+      ? proxyManager.setIntercept(appId, enabled)
+      : proxyManager.setInterceptAll(enabled);
+    console.log(`[IPC] proxy:set-intercept result=${result}`);
+    return result;
+  });
+
+  ipcMain.handle('proxy:set-breakpoint-rules', async (_, rules) => {
+    proxyManager.setBreakpointRules(rules);
+    return true;
+  });
+
+  ipcMain.handle('proxy:resolve-breakpoint', async (_, requestId: string, edited: any) => {
+    return proxyManager.resolveBreakpoint(requestId, edited);
+  });
+
+  ipcMain.handle('proxy:forward-request', async (_, id: string) => {
+    return proxyManager.forwardRequest(id);
+  });
+
+  ipcMain.handle('proxy:drop-request', async (_, id: string) => {
+    return proxyManager.dropRequest(id);
+  });
+
+  ipcMain.handle('proxy:stop', async () => {
+    console.log('[IPC] proxy:stop called');
+    await proxyManager.stopAll();
+    closeAllGenericWebWindows();
+    if (activeChildProcess) {
+      console.log('[IPC] Killing active child process');
+      activeChildProcess.kill();
+      activeChildProcess = null;
+    }
+    if (activeProxyUrl) {
+      console.log(`[IPC] Purging processes with proxy ${activeProxyUrl}`);
+      exec(`pkill -f -- "--proxy-server=${activeProxyUrl}"`);
+      activeProxyUrl = null;
+    }
+    console.log('[IPC] proxy:stop completed');
+    return true;
+  });
+
+  ipcMain.handle('proxy:stop-session', async (_, appId: string) => {
+    console.log(`[IPC] proxy:stop-session called for "${appId}"`);
+    await proxyManager.stopSession(appId);
+    console.log(`[IPC] proxy:stop-session completed for "${appId}"`);
+    return true;
+  });
+
+  ipcMain.handle('app:terminate', async () => {
+    closeAllGenericWebWindows();
+    if (activeChildProcess) {
+      activeChildProcess.kill();
+      activeChildProcess = null;
+    }
+    if (activeProxyUrl) {
+      exec(`pkill -f -- "--proxy-server=${activeProxyUrl}"`);
+      activeProxyUrl = null;
+    }
+    return true;
+  });
+
+  // Helper to launch browser
+  const launchBrowser = (url: string, profileName: string, proxyUrl: string) => {
+    activeProxyUrl = proxyUrl;
+    const userDataDir = path.join(app.getPath('userData'), 'profiles', profileName);
+    fs.mkdirSync(userDataDir, { recursive: true });
+
+    // Find browser (Linux)
+    const browsers = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
+    let executable = '';
+    for (const b of browsers) {
+      try {
+        execSync(`which ${b}`);
+        executable = b;
+        break;
+      } catch {
+        continue;
+      }
+    }
+
+    if (!executable) {
+      return false;
+    }
+
+    const child = spawn(
+      executable,
+      [
+        '--proxy-server=' + proxyUrl,
+        '--ignore-certificate-errors',
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-http2',
+        '--disable-quic',
+        `--user-data-dir=${userDataDir}`,
+        url,
+      ],
+      {
+        detached: true,
+        stdio: 'ignore',
+      },
+    );
+    activeChildProcess = child;
+    console.log(`[LaunchBrowser] Spawned browser PID: ${child.pid}, profile: ${profileName}, proxy: ${proxyUrl}`);
+
+    child.on('exit', (code, signal) => {
+      console.log(`[LaunchBrowser] Browser exited: PID=${child.pid}, code=${code}, signal=${signal}, profile=${profileName}`);
+      if (activeChildProcess === child) {
+        activeChildProcess = null;
+        activeProxyUrl = null;
+        // Notify renderer that the browser was closed
+        const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
+        if (win) {
+          console.log(`[LaunchBrowser] Sending app:process-exit for "${profileName}"`);
+          win.webContents.send('app:process-exit', profileName);
+        } else {
+          console.log('[LaunchBrowser] No main window found to send exit event');
+        }
+      } else {
+        console.log('[LaunchBrowser] activeChildProcess !== child, not sending exit event');
+      }
+    });
+
+    child.unref();
+    return true;
+  };
+
+  // App Launcher IPC
+  ipcMain.handle(
+    'app:launch',
+    async (
+      _,
+      appName: string,
+      proxyUrl: string,
+      customUrl?: string,
+      forceMode?: 'browser' | 'electron' | 'native',
+    ) => {
+      if (appName === 'vscode') {
+        activeProxyUrl = proxyUrl;
+        const debugPort = await findAvailablePort(9222);
+
+        // Inject proxy settings for VSCode Extension Host (Node.js)
+        const env = { ...process.env };
+        if (proxyUrl) {
+          env.http_proxy = proxyUrl;
+          env.https_proxy = proxyUrl;
+          env.HTTP_PROXY = proxyUrl;
+          env.HTTPS_PROXY = proxyUrl;
+          env.all_proxy = proxyUrl;
+          env.ALL_PROXY = proxyUrl;
+          env.no_proxy = '';
+          env.NO_PROXY = '';
+
+          // CRITICAL: Force Node.js (Extension Host) to accept self-signed certificates
+          env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+          console.log(`[Launch] VSCode Proxy Env Injected: ${proxyUrl}`);
+        }
+
+        console.log(`[Launch] VSCode Debug Port: ${debugPort}`);
+
+        // Using 'code' command assuming it's in PATH
+        const child = spawn(
+          'code',
+          [
+            '--wait',
+            '--new-window',
+            '--proxy-server=' + proxyUrl,
+            '--ignore-certificate-errors',
+            `--remote-debugging-port=${debugPort}`,
+            '.',
+          ],
+          {
+            detached: true,
+            stdio: 'ignore',
+            shell: true, // For Windows/Linux compatibility with command resolution
+            env, // Pass the modified environment
+          },
+        );
+        activeChildProcess = child;
+
+        child.on('exit', () => {
+          if (activeChildProcess === child) {
+            activeChildProcess = null;
+            activeProxyUrl = null;
+            // Notify renderer that the process was closed
+            const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
+            if (win) {
+              win.webContents.send('app:process-exit', appName);
+            }
+          }
+        });
+
+        child.unref();
+
+        // Connect CDP after short delay to let VSCode start
+        setTimeout(async () => {
+          try {
+            await cdpManager.connect(debugPort);
+          } catch (e) {
+            console.error('[Launch] Failed to connect CDP:', e);
+          }
+        }, 3000);
+
+        return true;
+      }
+
+      if (appName === 'antigravity') {
+        activeProxyUrl = proxyUrl;
+        // Create a clean environment by copying process.env and removing Electron-specific variables
+        const env = { ...process.env };
+        delete env.ELECTRON_RUN_AS_NODE;
+        delete env.ELECTRON_NO_ATTACH_CONSOLE;
+        delete env.ELECTRON_EXEC_PATH;
+        delete env.ATOM_SHELL_INTERNAL_RUN_AS_NODE; // often used by Electron
+
+        // Inject proxy settings for Node.js Extension Host
+        if (proxyUrl) {
+          env.http_proxy = proxyUrl;
+          env.https_proxy = proxyUrl;
+          env.HTTP_PROXY = proxyUrl;
+          env.HTTPS_PROXY = proxyUrl;
+          env.all_proxy = proxyUrl;
+          env.ALL_PROXY = proxyUrl;
+          env.no_proxy = 'localhost,127.0.0.1';
+          env.NO_PROXY = 'localhost,127.0.0.1';
+
+          // CRITICAL: Force Node.js to accept the self-signed proxy certificate
+          env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+          console.log(`[Launch] Antigravity Proxy: ${proxyUrl}`);
+        }
+
+        const args = [
+          '--wait',
+          '--new-window',
+          '--verbose', // Add verbose flag for better debugging
+          '--proxy-server=' + proxyUrl,
+          '--ignore-certificate-errors',
+          '--disable-http2',
+          '.',
+        ];
+
+        // Using absolute path to ensure we find the executable
+        const child = spawn('/usr/bin/antigravity', args, {
+          detached: true,
+          stdio: ['ignore', 'pipe', 'pipe'], // Capture stdio for debugging
+          shell: false, // execute directly
+          env, // Use the sanitized environment
+        });
+        activeChildProcess = child;
+
+        console.log(`[Launch] Antigravity PID: ${child.pid}`);
+
+        // Inject SSL Bypass if PID exists
+        if (child.pid) {
+          // Add small delay to let process initialize
+          setTimeout(() => {
+            console.log('[Launch] Injecting Deep SSL Bypass...');
+            injectLocalSSLBypass(child.pid!, (msg) => console.log(`[SSL Bypass] ${msg}`));
+          }, 2000);
+        }
+
+        if (child.stdout) {
+          child.stdout.on('data', () => {});
+        }
+
+        if (child.stderr) {
+          child.stderr.on('data', (data) => {
+            console.error(`[Antigravity stderr]: ${data}`);
+          });
+        }
+
+        child.on('error', (err) => {
+          console.error('[Antigravity] Failed to start process:', err);
+        });
+
+        child.on('exit', () => {
+          if (activeChildProcess === child) {
+            activeChildProcess = null;
+            activeProxyUrl = null;
+          }
+        });
+
+        child.unref();
+        return true;
+      }
+
+      // All Websites - launch browser with Google as default start page
+      if (appName === '__all_websites__') {
+        return launchBrowser('https://google.com', appName, proxyUrl);
+      }
+
+      // App Configurations Map for Electron Mode
+      const electronApps: Record<string, { url: string; options?: GenericWebWindowOptions }> = {
+        'claude-web': { url: 'https://claude.ai' },
+        'deepseek-electron': {
+          url: 'https://chat.deepseek.com',
+          options: { clearSession: true, useCloudflareBypass: true },
+        },
+        'mistral-electron': { url: 'https://console.mistral.ai/build/playground' },
+        'kimi-electron': { url: 'https://www.kimi.com/' },
+        'chatgpt-electron': { url: 'https://chatgpt.com', options: { useCloudflareBypass: true } },
+        'qwen-electron': { url: 'https://chat.qwen.ai/' },
+        'grok-electron': { url: 'https://grok.com/' },
+        'groq-electron': {
+          url: customUrl || 'https://console.groq.com/playground',
+        },
+        'cohere-electron': { url: 'https://dashboard.cohere.com/playground/chat' },
+        'perplexity-electron': { url: 'https://www.perplexity.ai/' },
+        'phind-electron': { url: 'https://www.phind.com/' },
+        'gemini-electron': { url: 'https://gemini.google.com/app?hl=vi' },
+        'duckduckgo-electron': {
+          url: 'https://duckduckgo.com/?q=DuckDuckGo+AI+Chat&ia=chat&duckai=1',
+        },
+        'context7-electron': { url: 'https://context7.com/chat' },
+        'askcodi-electron': { url: 'https://www.askcodi.com/chat' },
+        'deepseek-r1-together-electron': {
+          url: 'https://api.together.ai/playground/deepseek-ai/DeepSeek-R1-0528-tput',
+        },
+        'zai-electron': {
+          url: 'https://chat.z.ai/',
+          options: { clearSession: true }, // Ensure fresh login for Zai
+        },
+        'huggingface-electron': { url: 'https://huggingface.co/chat/' },
+        'poe-electron': { url: 'https://poe.com/' },
+        'elicit-electron': { url: 'https://elicit.com/' },
+        'lmarena-electron': { url: 'https://lmarena.ai/vi/c/new?mode=direct' },
+      };
+
+      if (electronApps[appName]) {
+        // If forced to browser, check if we have a web mapping or just launch URL
+        if (forceMode === 'browser') {
+          const url = electronApps[appName].url;
+          return launchBrowser(url, appName, proxyUrl);
+        }
+
+        activeProxyUrl = proxyUrl;
+        const config = electronApps[appName];
+        const win = await createGenericWebWindow(appName, config.url, proxyUrl, config.options);
+        return !!win;
+      }
+
+      // Web Apps
+      const webApps: Record<string, string> = {
+        'deepseek-browser': 'https://chat.deepseek.com',
+        'chatgpt-browser': 'https://chatgpt.com',
+        'google-aistudio': 'https://aistudio.google.com/prompts/new_chat',
+        'gemini-browser': 'https://gemini.google.com/app?hl=vi',
+        'kimi-browser': 'https://www.kimi.com/',
+        'duckduckgo-browser': 'https://duckduckgo.com/?q=DuckDuckGo+AI+Chat&ia=chat&duckai=1',
+        'qwen-browser': 'https://chat.qwen.ai/',
+        'groq-browser': 'https://console.groq.com/playground',
+        'grok-browser': 'https://grok.com/',
+        'cohere-browser': 'https://dashboard.cohere.com/playground/chat',
+        'mistral-browser': 'https://console.mistral.ai/build/playground',
+        'perplexity-browser': 'https://www.perplexity.ai/',
+        'phind-browser': 'https://www.phind.com/',
+        'context7-browser': 'https://context7.com/chat',
+        'askcodi-browser': 'https://www.askcodi.com/chat',
+        'deepseek-r1-together-browser':
+          'https://api.together.ai/playground/deepseek-ai/DeepSeek-R1-0528-tput',
+        'zai-browser': 'https://chat.z.ai/',
+        'huggingface-browser': 'https://huggingface.co/chat/',
+        'poe-browser': 'https://poe.com/',
+        'elicit-browser': 'https://elicit.com/',
+        'lmarena-browser': 'https://lmarena.ai/vi/c/new?mode=direct',
+      };
+
+      if (webApps[appName]) {
+        // If forced to electron, try to launch as generic window
+        if (forceMode === 'electron') {
+          activeProxyUrl = proxyUrl;
+          const win = await createGenericWebWindow(appName, webApps[appName], proxyUrl, {
+            useCloudflareBypass: true, // reasonable default
+          });
+          return !!win;
+        }
+        return launchBrowser(webApps[appName], appName, proxyUrl);
+      }
+
+      // Check User Apps
+      const userApp = userAppStore.getAppById(appName);
+      if (userApp) {
+        if (userApp.platform === 'web' && userApp.url) {
+          // Use forceMode if provided, otherwise default to userApp.mode
+          const modeToUse = forceMode || userApp.mode;
+
+          if (modeToUse === 'browser') {
+            return launchBrowser(userApp.url, userApp.id, proxyUrl);
+          } else if (modeToUse === 'electron') {
+            activeProxyUrl = proxyUrl;
+            const win = await createGenericWebWindow(userApp.id, userApp.url, proxyUrl, {
+              title: userApp.name,
+              // Add logical defaults for user apps if needed, e.g. CF bypass
+              useCloudflareBypass: true, // often needed for modern AI sites
+            });
+            return !!win;
+          }
+        } else if (
+          userApp.platform === 'pc' &&
+          userApp.mode === 'native' &&
+          userApp.executablePath
+        ) {
+          // Launch Native App with Proxy Environment Variables
+          const env = { ...process.env };
+
+          // Inject proxy settings for native apps
+          if (proxyUrl) {
+            env.http_proxy = proxyUrl;
+            env.https_proxy = proxyUrl;
+            env.HTTP_PROXY = proxyUrl;
+            env.HTTPS_PROXY = proxyUrl;
+            env.all_proxy = proxyUrl;
+            env.ALL_PROXY = proxyUrl;
+            // Allow localhost to go through proxy (Phantoma handles avoiding loops)
+            env.no_proxy = '';
+            env.NO_PROXY = '';
+
+            // CRITICAL: Force Node.js to accept the self-signed proxy certificate
+            env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+            console.log(`[Launch] Native App: ${userApp.name}`);
+            console.log(`[Launch] Exec: ${userApp.executablePath}`);
+            console.log(
+              `[Launch] Proxy Env: http_proxy=${env.http_proxy}, https_proxy=${env.https_proxy}, NODE_TLS_REJECT_UNAUTHORIZED=${env.NODE_TLS_REJECT_UNAUTHORIZED}`,
+            );
+          }
+
+          // CDP Support for Native Apps
+          const debugPort = await findAvailablePort(9222);
+          const args: string[] = [];
+
+          // Only append CDP arg if it's likely an Electron/Chrome app
+          // For shell scripts, we hope they forward "$@" or we rely on env vars if possible (but CDP requires flag)
+          // We will append it to args passed to spawn
+          args.push(`--remote-debugging-port=${debugPort}`);
+
+          console.log(`[Launch] Native App CDP Port: ${debugPort}`);
+
+          // Record existing PIDs to avoid injecting into the IDE/current instances
+          let initialPids: string[] = [];
+          if (userApp.name.toLowerCase().includes('antigravity')) {
+            try {
+              initialPids = execSync('pgrep -f antigravity')
+                .toString()
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean);
+            } catch (e) {
+              // No processes running yet
+            }
+          }
+
+          const child = spawn(userApp.executablePath, args, {
+            detached: true,
+            stdio: 'ignore', // Capture stdio if debugging needed, but usually ignore for detached
+            env, // Inject modified environment
+          });
+          child.unref();
+
+          // Connect CDP
+          setTimeout(async () => {
+            try {
+              await cdpManager.connect(debugPort);
+            } catch (e) {
+              console.error('[Launch] Failed to connect CDP for Native App:', e);
+            }
+          }, 5000); // 5s delay for native app startup
+
+          // Inject SSL Bypass for Antigravity (Generic Native Launcher)
+          if (userApp.name.toLowerCase().includes('antigravity')) {
+            const injectedPids = new Set<string>();
+            const startTime = Date.now();
+            const POLL_DURATION = 60000; // Poll for 60 seconds to catch delayed extension host
+            const POLL_INTERVAL = 1000;
+
+            const pollAndInject = async () => {
+              if (Date.now() - startTime > POLL_DURATION) {
+                console.log('[Launch] Finished polling for new Antigravity processes.');
+                return;
+              }
+
+              try {
+                // Ensure we have permission to attach
+                await ensurePtraceScope((msg) => console.log(`[Launch] ${msg}`));
+
+                // Find all current antigravity pids using pgrep -f to catch variations
+                let currentPids: string[] = [];
+                try {
+                  const { stdout } = await exec('pgrep -f antigravity');
+                  currentPids = stdout.trim().split(/\s+/).filter(Boolean);
+                } catch (e) {
+                  // Ignore errors
+                }
+
+                // Filter out the PIDs that were already running (IDE instances) AND already injected
+                const newPids = currentPids.filter(
+                  (pid) => !initialPids.includes(pid) && !injectedPids.has(pid),
+                );
+
+                if (newPids.length > 0) {
+                  for (const pid of newPids) {
+                    const pidNum = parseInt(pid, 10);
+                    try {
+                      const { stdout: comm } = await exec(`ps -p ${pidNum} -o comm=`);
+                      const procName = comm.trim().toLowerCase();
+
+                      if (
+                        procName.includes('antigravi') ||
+                        procName.includes('electron') ||
+                        procName.includes('chrome')
+                      ) {
+                        console.log(
+                          `[Launch] New PID detected: ${pidNum} (${procName}). Attempting injection...`,
+                        );
+                        injectedPids.add(pid);
+                        injectLocalSSLBypass(pidNum, (msg: string) => {
+                          console.log(`[SSL Bypass ${pidNum}] ${msg}`);
+                        });
+                      }
+                    } catch (e) {
+                      // Ignore errors
+                    }
+                  }
+                }
+              } catch (e) {
+                console.error('[Launch] Polling error:', e);
+              }
+
+              setTimeout(pollAndInject, POLL_INTERVAL);
+            };
+
+            console.log('[Launch] Starting persistent PID polling (15s)...');
+            setTimeout(pollAndInject, 500);
+          }
+
+          return true;
+        } else if (userApp.platform === 'android') {
+          // Launch Mobile App
+          let serial = userApp.emulatorSerial;
+
+          // If no package name is present, we treat this as "Launch Emulator" (Genymotion VM)
+          if (!userApp.packageName) {
+            if (serial) {
+              const vmName = serial;
+              // Check if VM is running
+              const emulators = await detectAllEmulators();
+
+              const isRunning = emulators.some((e) => {
+                const storedName = vmName.toLowerCase();
+                const runningName = e.name.toLowerCase();
+                const runningSerial = e.serial.toLowerCase();
+                const runningId = (e.id || '').toLowerCase();
+
+                // 1. Exact match (serial, name, or ID)
+                if (
+                  runningName === storedName ||
+                  runningSerial === storedName ||
+                  runningId === storedName
+                ) {
+                  return true;
+                }
+
+                // 2. Fuzzy match: check if one contains the other (e.g. "moto x" in "motorola moto x")
+                // EXCEPTION: Do not fuzzy match if storedName is a UUID (length 36, contains dashes) to prevent false positives
+                const isStoredUUID =
+                  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                    storedName,
+                  );
+
+                if (
+                  !isStoredUUID &&
+                  (storedName.includes(runningName) || runningName.includes(storedName))
+                ) {
+                  return true;
+                }
+
+                return false;
+              });
+
+              if (isRunning) {
+                return true;
+              } else {
+                return false;
+              }
+            }
+            return false;
+          }
+
+          // Mobile App Launch (requires packageName)
+          // If no serial assigned, find any running emulator
+          if (!serial) {
+            const emulators = await detectAllEmulators();
+            if (emulators.length > 0) {
+              serial = emulators[0].serial;
+            }
+          }
+
+          if (!serial) {
+            console.error('No running emulator found');
+            return false;
+          }
+
+          // Resolve to actual ADB serial if it's a name or stale IP
+          const resolvedSerial = await resolveEmulatorSerial(serial, userApp.name);
+          if (resolvedSerial) {
+            serial = resolvedSerial;
+          }
+
+          // Configure absolute proxy (http://127.0.0.1:8081 -> host/port)
+          try {
+            const url = new URL(proxyUrl);
+            const host = url.hostname;
+            const port = parseInt(url.port);
+
+            // Auto-configure proxy when launching app
+            await configureEmulatorProxy(serial, host, port);
+          } catch (e) {
+            console.error('Failed to configure proxy for mobile app', e);
+          }
+
+          // Launch the app
+          return await launchApp(serial, userApp.packageName);
+        } else if (userApp.platform === 'cli' && userApp.executablePath) {
+          // Launch CLI Command in a Terminal Emulator (Linux)
+          const env = { ...process.env };
+
+          if (proxyUrl) {
+            env.http_proxy = proxyUrl;
+            env.https_proxy = proxyUrl;
+            env.HTTP_PROXY = proxyUrl;
+            env.HTTPS_PROXY = proxyUrl;
+            env.all_proxy = proxyUrl;
+            env.ALL_PROXY = proxyUrl;
+            env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+          }
+
+          // Try to find a terminal emulator
+          const terminals = ['gnome-terminal', 'konsole', 'xterm', 'kitty', 'alacritty'];
+          let terminal = '';
+          for (const t of terminals) {
+            try {
+              execSync(`which ${t}`);
+              terminal = t;
+              break;
+            } catch {
+              continue;
+            }
+          }
+
+          if (terminal) {
+            let cmd = '';
+            if (terminal === 'gnome-terminal') {
+              cmd = `gnome-terminal -- sh -c "${userApp.executablePath}; exec bash"`;
+            } else if (terminal === 'konsole') {
+              cmd = `konsole -e sh -c "${userApp.executablePath}; exec bash"`;
+            } else {
+              // xterm and others
+              cmd = `${terminal} -e "sh -c '${userApp.executablePath}; exec bash'"`;
+            }
+
+            console.log(`[Launch] Spawning Terminal: ${cmd}`);
+            spawn(cmd, [], {
+              detached: true,
+              shell: true,
+              env,
+            });
+            return true;
+          } else {
+            // Fallback to background spawn if no terminal found
+            const child = spawn(userApp.executablePath, [], {
+              detached: true,
+              stdio: 'ignore',
+              shell: true,
+              env,
+            });
+            child.unref();
+            return true;
+          }
+        }
+      }
+
+      return false;
+    },
+  );
+
+  // WebSocket Port IPC
+  ipcMain.handle('ws:get-port', () => {
+    return wsManager.getPort();
+  });
+
+  ipcMain.handle('ws:send', (_, message: any) => {
+    wsManager.sendToClients(message);
+    return true;
+  });
+
+  ipcMain.handle('app:get-memory-usage', () => {
+    return process.memoryUsage();
+  });
+
+  // Media Cache IPC
+  ipcMain.handle('media:get-cache-manifest', () => {
+    return mediaCache.getManifest();
+  });
+
+  // Session Management IPC
+  ipcMain.handle('session:clear-data', async (_, appId: string) => {
+    try {
+      const partition = `persist:${appId}`;
+      const ses = session.fromPartition(partition);
+      await ses.clearStorageData();
+      await ses.clearCache();
+      console.log(`[Session] Data cleared for app: ${appId} (partition: ${partition})`);
+      return true;
+    } catch (e: any) {
+      console.error(`[Session] Failed to clear data for ${appId}:`, e);
+      throw e;
+    }
+  });
+
+  ipcMain.handle('session:get-info', async (_, appId: string) => {
+    try {
+      const partition = `persist:${appId}`;
+      const ses = session.fromPartition(partition);
+      const cookies = await ses.cookies.get({});
+
+      // Get storage size if possible (simple estimation)
+      const storagePath = ses.getStoragePath();
+      let storageSize = 0;
+      if (storagePath && fs.existsSync(storagePath)) {
+        const stats = fs.statSync(storagePath);
+        storageSize = stats.size;
+        // Note: fs.stat on a directory doesn't give recursive size easily,
+        // but it's a start.
+      }
+
+      return {
+        cookieCount: cookies.length,
+        storagePath: storagePath,
+        storageSize: storageSize,
+        partition: partition,
+        cookies: cookies.map((c: any) => ({
+          name: c.name,
+          domain: c.domain,
+          path: c.path,
+          secure: c.secure,
+          httpOnly: c.httpOnly,
+          expirationDate: c.expirationDate,
+        })),
+      };
+    } catch (e: any) {
+      console.error(`[Session] Failed to get info for ${appId}:`, e);
+      throw e;
+    }
+  });
+
+  // User Apps IPC
+  ipcMain.handle('apps:get-all', () => {
+    return userAppStore.getAllApps();
+  });
+
+  ipcMain.handle('apps:create', (_, appData: Omit<UserApp, 'id' | 'createdAt'>) => {
+    return userAppStore.addApp(appData);
+  });
+
+  ipcMain.handle('apps:delete', (_, id: string) => {
+    return userAppStore.deleteApp(id);
+  });
+
+  ipcMain.handle('apps:scan-pc', async () => {
+    return await scanInstalledApps();
+  });
+
+  // ===== File System & Shell IPC Handlers =====
+  ipcMain.handle('fs:read-file', async (_, filePath: string) => {
+    try {
+      if (!fs.existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
+      return fs.readFileSync(filePath, 'utf-8');
+    } catch (e: any) {
+      throw new Error(`Failed to read file: ${e.message}`);
+    }
+  });
+
+  ipcMain.handle('fs:write-file', async (_, filePath: string, content: string) => {
+    try {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(filePath, content, 'utf-8');
+      return true;
+    } catch (e: any) {
+      throw new Error(`Failed to write file: ${e.message}`);
+    }
+  });
+
+  ipcMain.handle('fs:list-dir', async (_, dirPath: string) => {
+    try {
+      const files = fs.readdirSync(dirPath);
+      return files.map((file) => {
+        const fullPath = path.join(dirPath, file);
+        const stats = fs.statSync(fullPath);
+        return {
+          name: file,
+          path: fullPath,
+          isDirectory: stats.isDirectory(),
+          size: stats.size,
+          mtime: stats.mtimeMs,
+        };
+      });
+    } catch (e: any) {
+      throw new Error(`Failed to list directory: ${e.message}`);
+    }
+  });
+
+  // Certificate Installation IPC
+  ipcMain.handle('cert:install-system-ca', async () => {
+    try {
+      const caPath = path.join(process.cwd(), '.http-mitm-proxy', 'certs', 'ca.pem');
+      const destPath = '/usr/local/share/ca-certificates/phantoma.crt';
+
+      if (!fs.existsSync(caPath)) {
+        throw new Error('CA certificate not found. Please start the proxy first.');
+      }
+
+      // Detect if pkexec or sudo is available (Linux)
+      // We'll use a complex command to copy and update
+      const command = `pkexec sh -c "cp '${caPath}' '${destPath}' && update-ca-certificates"`;
+
+      console.log(`[Cert] Executing installation: ${command}`);
+
+      return new Promise((resolve, reject) => {
+        execAsync(command, (error, stdout, stderr) => {
+          if (error) {
+            console.error('[Cert] Installation failed:', error);
+            console.error('[Cert] stderr:', stderr);
+            reject(new Error(`Installation failed: ${stderr || error.message}`));
+            return;
+          }
+          console.log('[Cert] Installation successful:', stdout);
+          resolve(true);
+        });
+      });
+    } catch (e: any) {
+      console.error('[Cert] Error installing CA:', e);
+      throw e;
+    }
+  });
+
+  ipcMain.handle('fs:delete', async (_, targetPath: string) => {
+    try {
+      if (!fs.existsSync(targetPath)) return false;
+      const stat = fs.statSync(targetPath);
+      if (stat.isDirectory()) {
+        fs.rmSync(targetPath, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(targetPath);
+      }
+      return true;
+    } catch (e: any) {
+      throw new Error(`Failed to delete: ${e.message}`);
+    }
+  });
+
+  ipcMain.handle('shell:exec', async (_, command: string, cwd?: string) => {
+    return new Promise((resolve) => {
+      execAsync(command, { cwd: cwd || process.cwd() }, (error, stdout, stderr) => {
+        if (error) {
+          resolve({ success: false, error: error.message, stderr, stdout });
+        } else {
+          resolve({ success: true, stdout, stderr });
+        }
+      });
+    });
+  });
+
+  // ===== Mobile IPC Handlers =====
+
+  // Mobile System Check
+  ipcMain.handle('mobile:check-adb', async () => {
+    return await checkADBAvailability();
+  });
+
+  ipcMain.handle('mobile:check-tools', async () => {
+    const [genymotion, waydroid, adb] = await Promise.all([
+      isGenymotionInstalled(),
+      isWaydroidInstalled(),
+      checkADBAvailability(),
+    ]);
+
+    return {
+      genymotion,
+      waydroid,
+      adb: adb.available,
+      adbVersion: adb.version,
+      installInstructions: getInstallInstructions(),
+    };
+  });
+
+  // Wireless Connection
+  ipcMain.handle('mobile:connect-wireless', async (_, ip: string, port: string) => {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+
+    try {
+      const { stdout } = await execAsync(`adb connect ${ip}:${port}`);
+      return { success: true, message: stdout.trim() };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  });
+
+  // Enable Wireless ADB for USB Device
+  ipcMain.handle('mobile:enable-wireless-adb', async (_, serial: string) => {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+
+    try {
+      // Enable TCP/IP mode on port 5555
+      console.log(`[ADB Wireless] Enabling wireless mode for ${serial}`);
+      const { stdout: tcpipOutput } = await execAsync(`adb -s "${serial}" tcpip 5555`);
+      console.log(`[ADB Wireless] tcpip output:`, tcpipOutput.trim());
+
+      // Wait longer for device to restart in tcpip mode and reconnect
+      console.log('[ADB Wireless] Waiting for device to reconnect...');
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // Retry logic for getting IP address (device needs time to reconnect)
+      let ip = '';
+      let retries = 3;
+
+      for (let i = 0; i < retries; i++) {
+        try {
+          console.log(`[ADB Wireless] Attempt ${i + 1}/${retries} to get IP...`);
+
+          // Try first method
+          try {
+            const { stdout: ipOutput } = await execAsync(
+              `adb -s "${serial}" shell ip -f inet addr show wlan0 | grep -o 'inet [0-9.]*' | cut -d' ' -f2`,
+              { timeout: 5000 },
+            );
+            ip = ipOutput.trim();
+            if (ip) {
+              console.log(`[ADB Wireless] Device IP (method 1): ${ip}`);
+              break;
+            }
+          } catch (err) {
+            console.log(`[ADB Wireless] Method 1 failed, trying alternative...`);
+          }
+
+          // Try alternative method
+          try {
+            const { stdout: altIpOutput } = await execAsync(
+              `adb -s "${serial}" shell "ip addr show wlan0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1"`,
+              { timeout: 5000 },
+            );
+            ip = altIpOutput.trim();
+            if (ip) {
+              console.log(`[ADB Wireless] Device IP (method 2): ${ip}`);
+              break;
+            }
+          } catch (err) {
+            console.log(`[ADB Wireless] Method 2 also failed`);
+          }
+
+          // If no IP yet and not last retry, wait before next attempt
+          if (!ip && i < retries - 1) {
+            console.log('[ADB Wireless] Waiting 2s before retry...');
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          }
+        } catch (e) {
+          console.error(`[ADB Wireless] Retry ${i + 1} error:`, e);
+        }
+      }
+
+      if (ip) {
+        console.log(`[ADB Wireless] Successfully retrieved IP: ${ip}`);
+        return {
+          success: true,
+          ip,
+          port: '5555',
+          message: `Wireless ADB enabled successfully at ${ip}:5555`,
+        };
+      } else {
+        // Could not get IP after all retries
+        return {
+          success: true,
+          message:
+            'Wireless ADB enabled on port 5555, but could not retrieve IP address.\nDevice may need more time to reconnect. Check WiFi connection.',
+        };
+      }
+    } catch (e: any) {
+      console.error('[ADB Wireless] Error:', e);
+      return { success: false, error: e.message || 'Failed to enable wireless ADB' };
+    }
+  });
+
+  ipcMain.handle('mobile:disconnect', async (_, serial: string) => {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+
+    try {
+      await execAsync(`adb disconnect ${serial}`);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // Emulator Detection
+  ipcMain.handle('mobile:detect-emulators', async () => {
+    return await detectAllEmulators();
+  });
+
+  ipcMain.handle('mobile:get-emulator-details', async (_, serial: string) => {
+    return await getEmulatorDetails(serial);
+  });
+
+  // Emulator Launch
+  ipcMain.handle('mobile:list-genymotion-vms', async () => {
+    return await listGenymotionVMs();
+  });
+
+  ipcMain.handle(
+    'mobile:launch-genymotion',
+    async (_, profileId: string, proxyHost?: string, proxyPort?: number) => {
+      const profile = getProfileById(profileId);
+      if (!profile) {
+        return { success: false, error: 'Profile not found' };
+      }
+
+      return await launchGenymotionWithProfile(profile, { proxyHost, proxyPort }, (status) => {
+        // Send progress updates to renderer
+        const win = windowManager.getMainWindow();
+        if (win) {
+          win.webContents.send('mobile:launch-progress', status);
+        }
+      });
+    },
+  );
+
+  ipcMain.handle('mobile:launch-waydroid', async (_, proxyHost?: string, proxyPort?: number) => {
+    return await launchWaydroidWithConfig({ proxyHost, proxyPort }, (status) => {
+      const win = windowManager.getMainWindow();
+      if (win) {
+        win.webContents.send('mobile:launch-progress', status);
+      }
+    });
+  });
+
+  // Frida IPC
+  // Frida IPC
+  ipcMain.handle('mobile:check-frida', async (_, serial: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    if (!resolvedSerial) return 'not_installed';
+
+    // Check if running first
+    const running = await isFridaRunning(resolvedSerial);
+    if (running) return 'running';
+
+    // Check if installed
+    const installed = await isFridaServerInstalled(resolvedSerial);
+    if (installed) return 'installed';
+
+    return 'not_installed';
+  });
+
+  ipcMain.handle('mobile:install-frida', async (_, serial: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    if (!resolvedSerial) {
+      console.error(`Could not resolve emulator serial from: ${serial}`);
+      return false;
+    }
+
+    const details = await getEmulatorDetails(resolvedSerial);
+    // Note: getEmulatorDetails returns arch from getprop ro.product.cpu.abi
+    // FRIDA_DOWNLOAD_URLS keys: arm, arm64, x86, x86_64.
+    // We should map standard ABI strings to Frida keys.
+    let fridaArch = 'x86'; // default fallback
+
+    if (details) {
+      if (details.architecture.includes('arm64')) fridaArch = 'arm64';
+      else if (details.architecture.includes('arm')) fridaArch = 'arm';
+      else if (details.architecture.includes('x86_64')) fridaArch = 'x86_64';
+      else if (details.architecture.includes('x86')) fridaArch = 'x86';
+    }
+
+    const win = windowManager.getMainWindow();
+    return await installFridaServer(resolvedSerial, fridaArch, (status) => {
+      if (win) win.webContents.send('mobile:frida-progress', status);
+    });
+  });
+
+  ipcMain.handle('mobile:start-frida', async (_, serial: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    if (!resolvedSerial) return false;
+    return await startFridaServer(resolvedSerial);
+  });
+
+  ipcMain.handle('mobile:inject-ssl-bypass', async (_, serial: string, packageName: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    if (!resolvedSerial) return false;
+
+    const win = windowManager.getMainWindow();
+    return await injectSSLBypass(resolvedSerial, packageName, (msg) => {
+      if (win) win.webContents.send('mobile:frida-log', msg);
+    });
+  });
+
+  ipcMain.handle('mobile:stop-frida', async (_, serial: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    if (!resolvedSerial) return false;
+    return await stopFridaServer(resolvedSerial);
+  });
+
+  ipcMain.handle(
+    'mobile:inject-custom-script',
+    async (_, serial: string, packageName: string, script: string) => {
+      const resolvedSerial = await resolveEmulatorSerial(serial);
+      if (!resolvedSerial) return false;
+
+      return await injectCustomScript(resolvedSerial, packageName, script, (log) => {
+        const win = windowManager.getMainWindow();
+        if (win) {
+          win.webContents.send('mobile:frida-log', log);
+        }
+      });
+    },
+  );
+
+  ipcMain.handle('mobile:list-processes', async (_, serial: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    if (!resolvedSerial) return [];
+    return await listRunningProcesses(resolvedSerial);
+  });
+
+  ipcMain.handle(
+    'mobile:stop-emulator',
+    async (_, vmName: string, type: 'genymotion' | 'waydroid') => {
+      if (type === 'genymotion') {
+        return await stopGenymotionVM(vmName);
+      } else {
+        return await stopWaydroid();
+      }
+    },
+  );
+
+  // Proxy Configuration
+  ipcMain.handle(
+    'mobile:configure-proxy',
+    async (_, serial: string, proxyHost: string, proxyPort: number, fallbackName?: string) => {
+      console.log(`[Proxy] Configure request for serial: "${serial}", fallback: "${fallbackName}"`);
+      const resolvedSerial = await resolveEmulatorSerial(serial, fallbackName);
+      console.log(`[Proxy] Resolved serial: "${resolvedSerial}"`);
+      return await configureEmulatorProxy(resolvedSerial || serial, proxyHost, proxyPort);
+    },
+  );
+
+  ipcMain.handle('mobile:clear-proxy', async (_, serial: string, fallbackName?: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial, fallbackName);
+    return await clearEmulatorProxy(resolvedSerial || serial);
+  });
+
+  ipcMain.handle(
+    'mobile:setup-complete-proxy',
+    async (_, serial: string, proxyHost: string, proxyPort: number, fallbackName?: string) => {
+      console.log(
+        `[Proxy] Setup complete request for serial: "${serial}", fallback: "${fallbackName}"`,
+      );
+      const resolvedSerial = await resolveEmulatorSerial(serial, fallbackName);
+      console.log(`[Proxy] Resolved serial: "${resolvedSerial}"`);
+      return await setupCompleteProxy(resolvedSerial || serial, proxyHost, proxyPort, (status) => {
+        const win = windowManager.getMainWindow();
+        if (win) {
+          win.webContents.send('mobile:proxy-progress', status);
+        }
+      });
+    },
+  );
+
+  ipcMain.handle('mobile:install-ca-cert', async (_, serial: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    if (!resolvedSerial) return false;
+
+    try {
+      const caPath = getProxyCACertPath();
+      const win = windowManager.getMainWindow();
+
+      return await setupProxyCertificate(resolvedSerial, caPath, (status) => {
+        if (win) win.webContents.send('mobile:install-cert-progress', status);
+      });
+    } catch (e) {
+      console.error('Failed to install CA cert:', e);
+      return false;
+    }
+  });
+
+  // App Management
+  ipcMain.handle('mobile:install-apk', async (_, serial: string, apkPath: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    return await installAPK(resolvedSerial || serial, apkPath, (status) => {
+      const win = windowManager.getMainWindow();
+      if (win) {
+        win.webContents.send('mobile:install-progress', status);
+      }
+    });
+  });
+
+  ipcMain.handle('mobile:uninstall-app', async (_, serial: string, packageName: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    return await uninstallApp(resolvedSerial || serial, packageName);
+  });
+
+  ipcMain.handle('mobile:launch-app', async (_, serial: string, packageName: string) => {
+    const resolvedSerial = await resolveEmulatorSerial(serial);
+    return await launchApp(resolvedSerial || serial, packageName);
+  });
+
+  ipcMain.handle('mobile:stop-app', async (_, serial: string, packageName: string) => {
+    return await stopApp(serial, packageName);
+  });
+
+  ipcMain.handle('mobile:check-app-installed', async (_, serial: string, packageName: string) => {
+    return await isAppInstalled(serial, packageName);
+  });
+
+  ipcMain.handle('mobile:list-packages', async (_, serial: string) => {
+    return await getInstalledPackages(serial);
+  });
+
+  // Profile Management
+  ipcMain.handle('mobile:get-profiles', async () => {
+    return getAllProfiles();
+  });
+
+  ipcMain.handle('mobile:get-profile', async (_, profileId: string) => {
+    return getProfileById(profileId);
+  });
+
+  ipcMain.handle(
+    'mobile:create-profile',
+    async (_, profileData: Omit<GenymotionProfile, 'id' | 'createdAt' | 'updatedAt'>) => {
+      return createProfile(profileData);
+    },
+  );
+
+  ipcMain.handle(
+    'mobile:update-profile',
+    async (_, profileId: string, updates: Partial<GenymotionProfile>) => {
+      return updateProfile(profileId, updates);
+    },
+  );
+
+  ipcMain.handle('mobile:delete-profile', async (_, profileId: string) => {
+    return deleteProfile(profileId);
+  });
+
+  // Logcat streaming
+  let activeLogcatProcess: ChildProcess | null = null;
+  let lastLogcatRequestTime = 0;
+
+  ipcMain.handle('mobile:start-logcat', async (_, serial: string) => {
+    const requestTime = Date.now();
+    lastLogcatRequestTime = requestTime;
+
+    try {
+      console.log(`[Logcat] ========== START REQUEST ==========`);
+      console.log(`[Logcat] Input serial: "${serial}" (ID: ${requestTime})`);
+
+      const resolvedSerial = await resolveEmulatorSerial(serial);
+      console.log('[Logcat] Resolved serial from input:', resolvedSerial);
+
+      // Check if this request is still the latest one
+      if (lastLogcatRequestTime !== requestTime) {
+        console.log(`[Logcat] Request ID ${requestTime} is obsolete. Aborting start.`);
+        return false;
+      }
+
+      if (!resolvedSerial) {
+        console.error('[Logcat] ERROR: Could not resolve emulator serial!');
+        console.error(`[Logcat] Input was: "${serial}"`);
+        throw new Error('Emulator serial not found');
+      }
+
+      // Stop any existing logcat process immediately before spawning a new one
+      if (activeLogcatProcess) {
+        console.log('[Logcat] Stopping existing logcat process');
+        try {
+          activeLogcatProcess.kill();
+        } catch (e) {
+          // ignore
+        }
+        activeLogcatProcess = null;
+      }
+
+      // Start logcat process
+      console.log('[Logcat] Starting adb logcat for:', resolvedSerial);
+      console.log('[Logcat] Command: adb -s', resolvedSerial, 'logcat -v time');
+
+      activeLogcatProcess = spawn('adb', ['-s', resolvedSerial, 'logcat', '-v', 'time'], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+
+      console.log('[Logcat] Process spawned, PID:', activeLogcatProcess.pid);
+
+      let logcatBuffer = '';
+      let lineCount = 0;
+
+      // Stream stdout to renderer
+      if (activeLogcatProcess.stdout) {
+        activeLogcatProcess.stdout.on('data', (data) => {
+          logcatBuffer += data.toString();
+
+          let lineEnd = logcatBuffer.indexOf('\n');
+          while (lineEnd !== -1) {
+            const line = logcatBuffer.substring(0, lineEnd).trim();
+            logcatBuffer = logcatBuffer.substring(lineEnd + 1);
+
+            if (line) {
+              lineCount++;
+              if (lineCount <= 5) {
+                console.log(`[Logcat] Line ${lineCount}:`, line.substring(0, 100));
+              }
+
+              const win = windowManager.getMainWindow();
+              if (win && !win.isDestroyed()) {
+                win.webContents.send('mobile:logcat-output', line);
+                if (lineCount === 1) {
+                  console.log('[Logcat] First line sent to renderer successfully');
+                }
+              } else {
+                console.error('[Logcat] ERROR: Main window not available!');
+              }
+            }
+
+            lineEnd = logcatBuffer.indexOf('\n');
+          }
+        });
+        console.log('[Logcat] stdout listener attached');
+      } else {
+        console.error('[Logcat] ERROR: Process stdout is null!');
+      }
+
+      if (activeLogcatProcess.stderr) {
+        activeLogcatProcess.stderr.on('data', (data) => {
+          console.error('[Logcat Error]', data.toString());
+        });
+      }
+
+      activeLogcatProcess.on('exit', (code) => {
+        console.log('[Logcat] Process exited with code:', code);
+        if (activeLogcatProcess?.pid === code) {
+          // Check purely illustrative, actually pid is not code
+          activeLogcatProcess = null;
+        }
+        // Just clear it if it's this process
+        activeLogcatProcess = null;
+      });
+
+      activeLogcatProcess.on('error', (err) => {
+        console.error('[Logcat] Process error:', err);
+      });
+
+      console.log('[Logcat] ========== START COMPLETE ==========');
+      return true;
+    } catch (e) {
+      console.error('[Logcat] Failed to start:', e);
+      return false;
+    }
+  });
+
+  ipcMain.handle('mobile:stop-logcat', async () => {
+    if (activeLogcatProcess) {
+      activeLogcatProcess.kill();
+      activeLogcatProcess = null;
+    }
+    return true;
+  });
+
+  // ── TLS Scanner ──────────────────────────────────────────────────────────
+  ipcMain.handle('tls:scan', async (_, host: string) => {
+    const tls = await import('tls');
+    return new Promise((resolve) => {
+      const result: Record<string, any> = {};
+      const socket = tls.connect(443, host, { servername: host, rejectUnauthorized: false }, () => {
+        result.protocol = socket.getProtocol();
+        result.cipher = socket.getCipher();
+        const cert = socket.getPeerCertificate(false);
+        if (cert) {
+          result.cert = {
+            subject: cert.subject,
+            issuer: cert.issuer,
+            valid_from: cert.valid_from,
+            valid_to: cert.valid_to,
+            bits: (cert as any).bits,
+            fingerprint: cert.fingerprint,
+            fingerprint256: cert.fingerprint256,
+            serialNumber: cert.serialNumber,
+            subjectaltname: (cert as any).subjectaltname,
+            infoAccess: (cert as any).infoAccess ? JSON.stringify((cert as any).infoAccess) : undefined,
+            ext_key_usage: (cert as any).ext_key_usage,
+          };
+          result.selfSigned = cert.subject?.CN === cert.issuer?.CN && cert.subject?.O === cert.issuer?.O;
+        }
+        socket.destroy();
+        resolve(result);
+      });
+      socket.on('error', (err) => resolve({ error: err.message }));
+      socket.setTimeout(6000, () => { socket.destroy(); resolve({ error: 'timeout' }); });
+    });
+  });
+
+  // Create main window
+  windowManager.createMainWindow();
+
+  app.on('activate', () => {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (BrowserWindow.getAllWindows().length === 0) {
+      windowManager.createMainWindow();
+    }
+  });
+});
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+// explicit with Cmd + Q.
+const cleanup = async () => {
+  await proxyManager.stopAll();
+  closeAllGenericWebWindows();
+  if (activeChildProcess) {
+    activeChildProcess.kill();
+    activeChildProcess = null;
+  }
+  if (activeProxyUrl) {
+    // Attempt to kill VS Code launched with this specific proxy
+    try {
+      execSync(`pkill -f -- "--proxy-server=${activeProxyUrl}"`);
+    } catch (e: any) {
+      // pkill returns exit code 1 if no matched processes are found, which is fine
+      if (e.status !== 1) {
+        console.error('Failed to pkill VS Code during cleanup:', e);
+      }
+    }
+    activeProxyUrl = null;
+  }
+};
+
+app.on('before-quit', () => {
+  cleanup();
+});
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+app.on('window-all-closed', () => {
+  cleanup();
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
