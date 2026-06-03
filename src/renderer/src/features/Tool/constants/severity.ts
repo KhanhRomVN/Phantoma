@@ -1,4 +1,4 @@
-import { SeverityLevel } from '../types/phantom'
+import { SeverityLevel } from '../types/types'
 
 export const SEVERITY_CLASS: Record<SeverityLevel, string> = {
   CRITICAL: 'bg-purple-500/15 text-purple-400 border border-purple-500/30',

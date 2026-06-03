@@ -1,1 +1,0 @@
-export { ViewReport } from './ViewReport'

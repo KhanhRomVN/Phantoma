@@ -1,4 +1,4 @@
-import { NavModuleConfig } from '../types/phantom'
+import { NavModuleConfig } from '../types/types'
 
 export const NAV_MODULES: NavModuleConfig[] = [
   { id: 'recon',    title: 'Recon / OSINT',          activeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' },
