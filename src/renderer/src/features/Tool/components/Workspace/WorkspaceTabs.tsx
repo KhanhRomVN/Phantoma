@@ -21,23 +21,23 @@ export function WorkspaceTabs({ module, activeTab, onTabChange }: WorkspaceTabsP
   const activeClass = ACTIVE_TAB_CLASS[module] ?? 'text-cyan-400 border-cyan-400 bg-cyan-500/5'
 
   return (
-    <div className="flex border-b border-zinc-800 bg-zinc-950 shrink-0 overflow-x-auto">
+    <div className="flex border-b border-[#1e2535] bg-[#0f1319] shrink-0 overflow-x-auto [&::-webkit-scrollbar]:h-0">
       {tabs.map((tab) => (
         <button
           key={tab}
           onClick={() => onTabChange(tab)}
           className={cn(
-            'h-9 px-3.5 flex items-center text-[11.5px] font-medium border-b-2 whitespace-nowrap cursor-pointer border-r border-zinc-800 transition-all',
+            'h-9 px-3.5 flex items-center text-[11.5px] font-medium border-b-2 whitespace-nowrap cursor-pointer border-r border-[#1e2535] transition-all',
             activeTab === tab
               ? activeClass
-              : 'border-b-transparent text-zinc-500 hover:text-zinc-300',
+              : 'border-b-transparent text-[#6b7a96] hover:text-[#c5cfe0] hover:bg-[#161b26]',
           )}
         >
           {tab}
         </button>
       ))}
-      <button className="h-9 px-3.5 flex items-center text-[11.5px] font-medium border-b-2 border-b-transparent text-purple-400 cursor-pointer ml-auto">
-        + Module
+      <button className="h-9 px-3.5 flex items-center text-[11.5px] font-medium border-b-2 border-b-purple-400 text-purple-400 cursor-pointer ml-auto bg-purple-500/8 hover:bg-purple-500/12 transition-all">
+        + Tab
       </button>
     </div>
   )

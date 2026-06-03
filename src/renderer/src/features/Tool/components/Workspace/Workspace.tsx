@@ -45,6 +45,7 @@ function ViewRouter({ module }: { module: PhantomModule }) {
     case 'report':    return <ViewReport />
     case 'ai':        return <ViewAI />
     case 'collab':    return <ViewCollab />
+    case 'settings':  return <ViewStub title="Settings" description="Configuration & preferences" />
     default:          return <ViewStub title={module} />
   }
 }

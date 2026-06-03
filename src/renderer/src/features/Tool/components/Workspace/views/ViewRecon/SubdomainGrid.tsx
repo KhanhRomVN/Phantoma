@@ -8,22 +8,18 @@ export function SubdomainGrid() {
         <div
           key={s.sub}
           className={cn(
-            'bg-zinc-950 border rounded p-2',
-            s.risk === 'high' ? 'border-red-500/20' : 'border-zinc-800',
+            'bg-[#161b26] border rounded p-2',
+            s.risk === 'high' ? 'border-red-500/20' : 'border-[#1e2535]',
           )}
         >
-          <div className="text-[9.5px] text-zinc-600">Status</div>
-          <div className={cn(
-            'text-[10.5px] font-mono',
-            s.status === 200 ? 'text-green-400'
-            : s.status >= 300 && s.status < 400 ? 'text-amber-400'
-            : 'text-zinc-500',
-          )}>
-            {s.status}
+          <div className="text-[9px] text-[#3d4a61]">
+            {s.status === 200 ? '200 OK' : s.status === 301 ? '301 Redirect' : s.status === 403 ? '403 Forbidden' : '404 Not Found'}
           </div>
           <div className={cn(
-            'text-[11px] truncate',
-            s.risk === 'high' ? 'text-red-400' : 'text-zinc-300',
+            'text-[11px] font-mono truncate mt-0.5',
+            s.risk === 'high'   ? 'text-red-400'
+            : s.status === 404  ? 'text-[#6b7a96]'
+            : 'text-[#c5cfe0]',
           )}>
             {s.sub.split('.')[0]}.…
           </div>

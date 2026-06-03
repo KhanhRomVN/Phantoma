@@ -10,12 +10,13 @@ interface PanelBoxProps {
 
 export function PanelBox({ title, badge, children, className, style }: PanelBoxProps) {
   return (
-    <div className={cn('flex flex-col bg-zinc-900 overflow-hidden', className)} style={style}>
-      <div className="flex items-center gap-2 px-3 h-8 border-b border-zinc-800 bg-zinc-950 shrink-0">
-        <span className="text-[10.5px] font-bold text-zinc-400 uppercase tracking-wider flex-1">{title}</span>
+    <div className={cn('flex flex-col bg-[#141924] overflow-hidden', className)} style={style}>
+      {/* pbox-hdr */}
+      <div className="flex items-center gap-2 px-3 h-8 border-b border-[#1e2535] bg-[#0f1319] shrink-0 sticky top-0 z-[2]">
+        <span className="text-[10.5px] font-bold text-[#6b7a96] uppercase tracking-[0.08em] flex-1">{title}</span>
         {badge}
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-thumb]:bg-[#252e42]">
         {children}
       </div>
     </div>

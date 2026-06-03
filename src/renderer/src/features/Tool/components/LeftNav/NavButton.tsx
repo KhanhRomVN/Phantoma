@@ -20,12 +20,12 @@ export function NavButton({ module, title, isActive, activeClass, dotColor, onCl
         'relative w-9 h-9 rounded-lg border flex items-center justify-center transition-all shrink-0',
         isActive
           ? activeClass
-          : 'border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800',
+          : 'border-transparent text-[#6b7a96] hover:text-[#c5cfe0] hover:bg-[#161b26] hover:border-[#1e2535]',
       )}
     >
       <NavIcon module={module} />
       {dotColor && !isActive && (
-        <span className={cn('absolute top-1 right-1 w-1.5 h-1.5 rounded-full border border-zinc-900', dotColor)} />
+        <span className={cn('absolute top-1 right-1 w-1.5 h-1.5 rounded-full border border-[#0f1319]', dotColor)} />
       )}
     </button>
   )

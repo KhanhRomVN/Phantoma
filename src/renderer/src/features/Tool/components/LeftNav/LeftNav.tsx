@@ -8,35 +8,40 @@ interface LeftNavProps {
   onSelect: (m: PhantomModule) => void
 }
 
+const SEP_AFTER = new Set<PhantomModule>(['sqli', 'phishing'])
+
+const Sep = () => <div className="w-7 h-px bg-[#1e2535] my-1 shrink-0" />
+
 export function LeftNav({ active, onSelect }: LeftNavProps) {
   return (
-    <div className="w-12 shrink-0 bg-zinc-950 border-r border-zinc-800 flex flex-col items-center py-2 gap-1 z-10">
+    <div className="w-[52px] shrink-0 bg-[#0f1319] border-r border-[#1e2535] flex flex-col items-center py-2 gap-0.5 z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
       <NavLogo />
-      <div className="w-7 h-px bg-zinc-800 my-0.5 shrink-0" />
+      <Sep />
 
       {NAV_MODULES.map((item) => (
-        <NavButton
-          key={item.id}
-          module={item.id}
-          title={item.title}
-          isActive={active === item.id}
-          activeClass={item.activeClass}
-          dotColor={item.dotColor}
-          onClick={() => onSelect(item.id)}
-        />
+        <>
+          <NavButton
+            key={item.id}
+            module={item.id}
+            title={item.title}
+            isActive={active === item.id}
+            activeClass={item.activeClass}
+            dotColor={item.dotColor}
+            onClick={() => onSelect(item.id)}
+          />
+          {SEP_AFTER.has(item.id) && <Sep key={`sep-${item.id}`} />}
+        </>
       ))}
 
       <div className="mt-auto flex flex-col items-center gap-1">
-        <div className="w-7 h-px bg-zinc-800 my-0.5" />
-        <button
-          className="w-9 h-9 rounded-lg border border-transparent text-amber-400 hover:bg-amber-500/10 flex items-center justify-center transition-all"
+        <Sep />
+        <NavButton
+          module={'settings' as PhantomModule}
           title="Settings"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
-            <circle cx="8" cy="8" r="2"/>
-            <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4"/>
-          </svg>
-        </button>
+          isActive={active === 'settings'}
+          activeClass="bg-amber-500/10 text-amber-400 border-amber-500/30"
+          onClick={() => onSelect('settings' as PhantomModule)}
+        />
       </div>
     </div>
   )

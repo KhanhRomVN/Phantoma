@@ -1,9 +1,15 @@
 import { KVRow } from '../ui/KVRow'
 
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <div className="text-[9.5px] font-bold text-[#3d4a61] uppercase tracking-[0.09em] pb-[5px] border-b border-[#1e2535] mb-[6px]">
+    {children}
+  </div>
+)
+
 export function TargetInfo() {
   return (
     <div className="mb-4">
-      <div className="text-[9.5px] font-bold text-zinc-600 uppercase tracking-wider pb-1 border-b border-zinc-800 mb-2">Selected Target</div>
+      <SectionTitle>Selected Target</SectionTitle>
       <KVRow label="Hostname"   value="target.corp.local"    valueColor="text-cyan-400" />
       <KVRow label="IP Address" value="203.0.113.47" />
       <KVRow label="Status"     value="Online"               valueColor="text-green-400" />

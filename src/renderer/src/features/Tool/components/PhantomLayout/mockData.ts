@@ -2,7 +2,7 @@
 
 export const mockTargets = [
   { id: '1', label: '192.168.1.0/24', badge: 'LAN', badgeColor: 'green' as const, icon: 'network' },
-  { id: '2', label: 'target.corp.local', badge: '7 vulns', badgeColor: 'red' as const, icon: 'globe' },
+  { id: '2', label: 'target.corp.local', badge: '27 vulns', badgeColor: 'red' as const, icon: 'globe' },
   { id: '3', label: '10.0.0.50', badge: 'scanning', badgeColor: 'amber' as const, icon: 'lock' },
   { id: '4', label: 'api.vuln-demo.io', badge: 'CRIT', badgeColor: 'red' as const, icon: 'server' },
 ];

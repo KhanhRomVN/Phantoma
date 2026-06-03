@@ -12,7 +12,7 @@ export default function PhantomLayout() {
   const { activeModule, setActiveModule } = usePhantomModule('recon')
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-zinc-950 font-mono text-xs">
+    <div className="phantom flex h-full w-full overflow-hidden bg-phantom-bg font-mono text-xs text-phantom-text">
       <LeftNav active={activeModule} onSelect={setActiveModule} />
       <div className="flex flex-1 min-w-0 overflow-hidden">
         <PhantomSidebar />
