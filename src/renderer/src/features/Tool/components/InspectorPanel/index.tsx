@@ -1,5 +1,5 @@
 import { cn } from '../../../../shared/lib/utils'
-import { KVRow, ProgressBar, ActionButton } from '../../../../../core/components/common/ui'
+import { KVRow, ProgressBar, ActionButton } from '../../../../core/components/ui'
 import { mockScanProgress } from '../../data/mockData'
 
 // ─── Shared ──────────────────────────────────────────────────────────────────

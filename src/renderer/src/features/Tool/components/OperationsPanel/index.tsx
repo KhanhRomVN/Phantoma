@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { cn } from '../../../../shared/lib/utils'
-import { Badge, SectionLabel, PulseIndicator } from '../../../../../core/components/common/ui'
+import { Badge, SectionLabel, PulseIndicator } from '../../../../core/components/ui'
 import { BadgeColor } from '../../types/types'
 import { mockTargets, mockWordlists, mockCVEs } from '../../data/mockData'
 

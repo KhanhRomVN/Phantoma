@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { cn } from '../../../../../shared/lib/utils'
-import { Badge, ToolbarButton, LogLine, ProgressBar, PulseIndicator } from '../../../../../../core/components/common/ui'
+import { Badge, ToolbarButton, LogLine, ProgressBar, PulseIndicator } from '../../../../../core/components/ui'
 import { MockHost, PortStatus } from '../../../types/types'
 import { mockHosts, mockScanLogs } from '../../../data/mockData'
 

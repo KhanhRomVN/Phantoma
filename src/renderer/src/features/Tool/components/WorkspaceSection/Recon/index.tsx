@@ -1,5 +1,5 @@
 import { cn } from '../../../../../shared/lib/utils'
-import { Badge, KVRow, ToolbarButton } from '../../../../../../core/components/common/ui'
+import { Badge, KVRow, ToolbarButton } from '../../../../../core/components/ui'
 import { mockSubdomains } from '../../../data/mockData'
 
 // ─── SubdomainGrid ───────────────────────────────────────────────────────────

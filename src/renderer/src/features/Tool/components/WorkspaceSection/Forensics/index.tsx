@@ -1,5 +1,5 @@
 import { cn } from '../../../../../shared/lib/utils'
-import { ToolbarButton, KVRow } from '../../../../../../core/components/common/ui'
+import { ToolbarButton, KVRow } from '../../../../../core/components/ui'
 
 // ─── HexViewer ───────────────────────────────────────────────────────────────
 

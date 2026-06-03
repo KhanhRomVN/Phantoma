@@ -1,5 +1,5 @@
 import { cn } from '../../../../../shared/lib/utils'
-import { Badge, KVRow, ProgressBar, ToolbarButton } from '../../../../../../core/components/common/ui'
+import { Badge, KVRow, ProgressBar, ToolbarButton } from '../../../../../core/components/ui'
 import { mockIntruderResults } from '../../../data/mockData'
 
 // ─── RequestTemplate ─────────────────────────────────────────────────────────
