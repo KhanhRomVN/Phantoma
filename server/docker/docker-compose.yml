@@ -1,0 +1,27 @@
+services:
+  # Tự động update image hàng ngày lúc 3:00 AM
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_SCHEDULE=0 0 3 * * *
+      - WATCHTOWER_CLEANUP=true
+      - DOCKER_API_VERSION=1.44
+    restart: unless-stopped
+
+  # Nmap - network scanner
+  nmap:
+    image: alpine:3.19
+    container_name: nmap
+    command: sh -c "apk add --no-cache nmap nmap-scripts && sleep infinity"
+    restart: unless-stopped
+
+  # Nikto - web vulnerability scanner
+  nikto:
+    image: securecodebox/nikto:latest
+    container_name: nikto
+    entrypoint: /bin/sh
+    command: ["-c", "sleep 86400d"]
+    restart: unless-stopped

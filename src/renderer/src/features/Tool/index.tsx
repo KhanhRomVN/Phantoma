@@ -1,8 +1,8 @@
 import { useActiveModule } from './hooks/useActiveModule'
-import { useActiveTarget } from './hooks/useActiveTarget'
 import { ModuleBar } from './components/ModuleBar'
 import { Workspace } from './components/WorkspaceSection'
 import { IntelPanel } from './components/IntelPanel'
+import { useActiveTarget } from './hooks/useActiveTarget'
 
 /**
  * Tool Feature — Offensive Security Suite shell
@@ -11,18 +11,13 @@ import { IntelPanel } from './components/IntelPanel'
  */
 export default function ToolFeature() {
   const { activeModule, setActiveModule } = useActiveModule('recon')
-  const { targets, activeTarget, activeSubTarget, switchTarget, switchSubTarget } = useActiveTarget()
+  const { activeSubTarget } = useActiveTarget()
 
   return (
     <div className="phantom flex h-full w-full overflow-hidden bg-phantom-bg font-mono text-xs text-phantom-text">
       <ModuleBar
         active={activeModule}
         onSelect={setActiveModule}
-        targets={targets}
-        activeTarget={activeTarget}
-        activeSubTarget={activeSubTarget}
-        onSwitchTarget={switchTarget}
-        onSwitchSubTarget={switchSubTarget}
       />
       <div className="flex flex-1 min-w-0 overflow-hidden">
         <Workspace module={activeModule} subTarget={activeSubTarget} />

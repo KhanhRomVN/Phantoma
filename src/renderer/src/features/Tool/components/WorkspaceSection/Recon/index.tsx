@@ -1,17 +1,25 @@
-// src/renderer/src/features/Tool/components/WorkspaceSection/Recon/index.tsx
-import { useState } from 'react';
+// src/renderer/src/features/Tool/components/WorkspaceSection/Recon/ReconV2.tsx
+// ============================================================================
+// RECON V2 — Ghost Protocol Interface
+// Aesthetic: Terminal-noir / Tactical OSINT Dashboard
+// ============================================================================
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '../../../../../shared/lib/utils';
-import { Badge, KVRow, ModuleTabBar, ToolbarButton } from '../../../../../core/components/ui';
 
 // ============================================================================
-// 1. MOCK DATA ĐẦY ĐỦ & CHI TIẾT (cho target: "phantom.tech")
+// MOCK DATA
 // ============================================================================
 const TARGET = 'phantom.tech';
 const TARGET_IP = '198.51.100.78';
+const SCAN_TIME = '2025-06-04T03:47:22Z';
 
-// --- DNS Records (mở rộng) ---
+const riskScore = {
+  total: 87,
+  breakdown: { network: 92, breach: 95, exposure: 78, reputation: 65 },
+};
+
 const dnsRecords = {
-  A: [TARGET_IP, '198.51.100.79', '198.51.100.80'],
+  A: ['198.51.100.78', '198.51.100.79', '198.51.100.80'],
   AAAA: ['2001:db8:ac10:fe01::1', '2001:db8:ac10:fe01::2'],
   MX: [
     { priority: 10, exchange: 'mx1.phantom.tech' },
@@ -23,925 +31,1210 @@ const dnsRecords = {
     'google-site-verification=AbCdEfG123456',
     'MS=ms9876543210',
     'atlassian-domain-verification=abc123',
-    'ZOOM_verify=xyz789',
   ],
   NS: ['ns1.digitalocean.com', 'ns2.digitalocean.com', 'ns3.digitalocean.com'],
-  SOA: {
-    mname: 'ns1.digitalocean.com',
-    rname: 'hostmaster.phantom.tech',
-    serial: 2025060201,
-    refresh: 3600,
-    retry: 1800,
-    expire: 1209600,
-    ttl: 180,
-  },
+  SOA: { mname: 'ns1.digitalocean.com', rname: 'hostmaster.phantom.tech', serial: 2025060201 },
   CNAME: { www: 'phantom.tech', mail: 'mailgun.phantom.tech' },
-  PTR: { [TARGET_IP]: 'phantom.tech' },
-  NSEC3: false,
-  DS: [],
-  DNSKEY: [],
-  RRSIG: false,
 };
 
-// --- WHOIS (siêu chi tiết) ---
 const whoisData = {
   domain: TARGET,
   status: 'clientTransferProhibited',
-  registrar: {
-    name: 'NameCheap, Inc.',
-    url: 'https://www.namecheap.com',
-    iana_id: 1068,
-    abuse_email: 'abuse@namecheap.com',
-    abuse_phone: '+1.6613102107',
-  },
-  dates: {
-    created: '2021-08-15T12:00:00Z',
-    updated: '2025-02-20T08:30:00Z',
-    expired: '2026-08-15T12:00:00Z',
-  },
-  nameservers: ['ns1.digitalocean.com', 'ns2.digitalocean.com', 'ns3.digitalocean.com'],
+  registrar: { name: 'NameCheap, Inc.', iana_id: 1068, abuse_email: 'abuse@namecheap.com' },
+  dates: { created: '2021-08-15', updated: '2025-02-20', expired: '2026-08-15' },
   registrant: {
     name: 'Phantom Security Ltd',
     organization: 'Phantom Security Ltd',
-    street: '123 Cyber Street',
     city: 'San Francisco',
     state: 'CA',
-    postal: '94105',
     country: 'US',
-    phone: '+1.5551234567',
-    fax: '+1.5551234568',
     email: 'admin@phantom.tech',
-  },
-  admin: {
-    name: 'Admin Role',
-    organization: 'Phantom Security Ltd',
-    street: '123 Cyber Street',
-    city: 'San Francisco',
-    state: 'CA',
-    postal: '94105',
-    country: 'US',
     phone: '+1.5551234567',
-    email: 'admin@phantom.tech',
-  },
-  tech: {
-    name: 'Tech Team',
-    organization: 'Phantom Security Ltd',
-    street: '123 Cyber Street',
-    city: 'San Francisco',
-    state: 'CA',
-    postal: '94105',
-    country: 'US',
-    phone: '+1.5551234567',
-    email: 'tech@phantom.tech',
-  },
-  billing: {
-    name: 'Billing Department',
-    organization: 'Phantom Security Ltd',
-    email: 'billing@phantom.tech',
   },
 };
 
-// --- Breach Data (HIBP + custom) ---
 const breaches = [
   {
-    name: 'Phantom Security Data Breach 2025',
+    name: 'Phantom Internal DB 2025',
     date: '2025-01-15',
-    added: '2025-01-20',
     accounts: 1250000,
-    categories: ['emails', 'passwords', 'usernames', 'ips', 'payment'],
+    categories: ['emails', 'passwords', 'ips', 'payment'],
     severity: 'CRITICAL',
-    description:
-      'Internal database exposed via misconfigured MongoDB instance. Contains hashed passwords, emails, and PII.',
-    dataClasses: ['Email addresses', 'Passwords', 'Usernames', 'IP addresses', 'Payment histories'],
-    isVerified: true,
+    description: 'Misconfigured MongoDB exposed PII, hashed passwords and payment history.',
   },
   {
-    name: 'LinkedIn 2021',
+    name: 'LinkedIn Scrape 2021',
     date: '2021-06-22',
-    added: '2021-07-10',
     accounts: 700000000,
     categories: ['emails', 'passwords'],
     severity: 'CRITICAL',
-    description:
-      'Scraped data from LinkedIn containing email addresses and passwords (SHA-1 hashed).',
-    dataClasses: ['Email addresses', 'Passwords'],
-    isVerified: true,
+    description: 'Mass scrape of LinkedIn profiles including email/password pairs.',
   },
   {
-    name: 'Collection #1',
+    name: 'Collection #1 2019',
     date: '2019-01-07',
-    added: '2019-02-17',
     accounts: 773000000,
     categories: ['emails', 'passwords'],
     severity: 'HIGH',
-    description: 'Massive collection of email addresses and passwords from many previous breaches.',
-    dataClasses: ['Email addresses', 'Passwords'],
-    isVerified: true,
+    description: 'Aggregate of multiple prior breaches, widely circulated.',
   },
   {
     name: 'Adobe 2013',
     date: '2013-10-04',
-    added: '2013-11-01',
     accounts: 152445165,
     categories: ['emails', 'passwords', 'hints'],
     severity: 'MEDIUM',
-    description: 'Adobe breach with encrypted passwords and password hints.',
-    dataClasses: ['Email addresses', 'Password hints', 'Passwords'],
-    isVerified: true,
+    description: 'Password hints included, enabling targeted attacks.',
   },
 ];
 
-// --- Email Harvest (mở rộng) ---
 const harvestedEmails = [
   {
     email: 'admin@phantom.tech',
     source: 'WHOIS',
     verified: true,
     role: 'Administrator',
-    firstSeen: '2021-08-15',
+    breach: true,
   },
   {
     email: 'security@phantom.tech',
     source: 'GitHub',
     verified: true,
     role: 'Security Team',
-    firstSeen: '2022-03-10',
-  },
-  {
-    email: 'support@phantom.tech',
-    source: 'LinkedIn',
-    verified: false,
-    role: 'Support',
-    firstSeen: '2023-01-20',
+    breach: false,
   },
   {
     email: 'john.doe@phantom.tech',
-    source: 'Twitter',
+    source: 'LinkedIn',
     verified: true,
-    role: 'Employee',
-    firstSeen: '2022-11-05',
+    role: 'Backend Engineer',
+    breach: true,
+  },
+  {
+    email: 'support@phantom.tech',
+    source: 'Twitter',
+    verified: false,
+    role: 'Support',
+    breach: false,
   },
   {
     email: 'contact@phantom.tech',
     source: 'PGP Keyserver',
     verified: true,
-    role: 'Contact',
-    firstSeen: '2021-09-12',
+    role: 'General',
+    breach: false,
   },
   {
     email: 'sales@phantom.tech',
     source: 'Crunchbase',
     verified: false,
     role: 'Sales',
-    firstSeen: '2023-04-18',
+    breach: false,
   },
   {
-    email: 'marketing@phantom.tech',
-    source: 'SpyFu',
-    verified: false,
-    role: 'Marketing',
-    firstSeen: '2023-06-22',
+    email: 'devops@phantom.tech',
+    source: 'GitHub commit',
+    verified: true,
+    role: 'DevOps Lead',
+    breach: true,
   },
   {
     email: 'abuse@phantom.tech',
     source: 'WHOIS (registrar)',
     verified: true,
     role: 'Abuse Contact',
-    firstSeen: '2021-08-15',
+    breach: false,
   },
 ];
 
-// --- Shodan Data (phong phú) ---
-const shodanData = {
-  ip: TARGET_IP,
-  hostnames: ['phantom.tech', 'www.phantom.tech'],
-  org: 'DigitalOcean, LLC',
-  isp: 'DigitalOcean',
-  asn: 'AS14061',
-  country: 'US',
-  city: 'Santa Clara',
-  postal: '95054',
-  latitude: 37.3541,
-  longitude: -121.9552,
-  os: 'Ubuntu 22.04',
-  ports: [
-    {
-      port: 22,
-      service: 'ssh',
-      product: 'OpenSSH',
-      version: '8.9p1 Ubuntu 3ubuntu0.4',
-      state: 'open',
-      vulns: ['CVE-2023-38408'],
-      banner: 'SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.4',
-    },
-    {
-      port: 80,
-      service: 'http',
-      product: 'nginx',
-      version: '1.24.0',
-      state: 'open',
-      vulns: [],
-      banner: 'HTTP/1.1 200 OK\r\nServer: nginx/1.24.0',
-    },
-    {
-      port: 443,
-      service: 'https',
-      product: 'nginx',
-      version: '1.24.0',
-      state: 'open',
-      vulns: [],
-      banner: 'TLS 1.3, certificate for phantom.tech',
-    },
-    {
-      port: 3306,
-      service: 'mysql',
-      product: 'MySQL',
-      version: '8.0.33',
-      state: 'open',
-      vulns: ['CVE-2023-2182'],
-      banner: 'mysql_native_password',
-    },
-    {
-      port: 8080,
-      service: 'http',
-      product: 'Jenkins',
-      version: '2.401.1',
-      state: 'open',
-      vulns: ['CVE-2023-27898'],
-      banner: 'Jenkins CI/Jenkins 2.401.1',
-    },
-    {
-      port: 8443,
-      service: 'https',
-      product: 'Apache Tomcat',
-      version: '9.0.78',
-      state: 'open',
-      vulns: ['CVE-2023-28708'],
-      banner: 'Apache Tomcat/9.0.78',
-    },
-    {
-      port: 27017,
-      service: 'mongodb',
-      product: 'MongoDB',
-      version: '5.0.14',
-      state: 'filtered',
-      vulns: [],
-      banner: '',
-    },
-  ],
-  vulns: [
-    {
-      cve: 'CVE-2023-38408',
-      cvss: 9.8,
-      description: 'OpenSSH vulnerability allows remote code execution under certain conditions.',
-    },
-    {
-      cve: 'CVE-2023-2182',
-      cvss: 7.5,
-      description: 'MySQL 8.0.33 is vulnerable to a denial-of-service attack.',
-    },
-    {
-      cve: 'CVE-2023-27898',
-      cvss: 8.9,
-      description: 'Jenkins vulnerable to authentication bypass via crafted HTTP requests.',
-    },
-    { cve: 'CVE-2023-28708', cvss: 7.3, description: 'Tomcat session fixation vulnerability.' },
-  ],
-  tags: ['cloud', 'ubuntu', 'nginx', 'https', 'jenkins', 'tomcat', 'mysql'],
-};
+const ports = [
+  {
+    port: 22,
+    service: 'SSH',
+    product: 'OpenSSH 8.9p1',
+    state: 'open',
+    risk: 'medium',
+    cve: ['CVE-2023-38408'],
+  },
+  { port: 25, service: 'SMTP', product: 'Postfix 3.6.4', state: 'open', risk: 'low', cve: [] },
+  { port: 80, service: 'HTTP', product: 'nginx 1.24.0', state: 'open', risk: 'low', cve: [] },
+  {
+    port: 443,
+    service: 'HTTPS',
+    product: 'nginx 1.24.0 + TLS1.3',
+    state: 'open',
+    risk: 'low',
+    cve: [],
+  },
+  {
+    port: 3306,
+    service: 'MySQL',
+    product: 'MySQL 8.0.33',
+    state: 'open',
+    risk: 'critical',
+    cve: ['CVE-2023-2182'],
+  },
+  {
+    port: 8080,
+    service: 'HTTP-ALT',
+    product: 'Jenkins 2.401.1',
+    state: 'open',
+    risk: 'critical',
+    cve: ['CVE-2023-27898'],
+  },
+  {
+    port: 8443,
+    service: 'HTTPS-ALT',
+    product: 'Apache Tomcat 9.0.78',
+    state: 'open',
+    risk: 'high',
+    cve: ['CVE-2023-28708'],
+  },
+  {
+    port: 27017,
+    service: 'MongoDB',
+    product: 'MongoDB 5.0.14',
+    state: 'filtered',
+    risk: 'medium',
+    cve: [],
+  },
+  {
+    port: 6379,
+    service: 'Redis',
+    product: 'Redis 7.0.5',
+    state: 'open',
+    risk: 'critical',
+    cve: ['CVE-2022-0543'],
+  },
+  {
+    port: 9200,
+    service: 'Elasticsearch',
+    product: 'Elastic 8.5.0',
+    state: 'open',
+    risk: 'high',
+    cve: [],
+  },
+];
 
-// --- Subdomains (mở rộng, 20+ items) ---
+const vulns = [
+  {
+    cve: 'CVE-2023-38408',
+    cvss: 9.8,
+    severity: 'CRITICAL',
+    service: 'OpenSSH',
+    desc: 'Remote code execution via ssh-agent forwarding.',
+    exploitable: true,
+  },
+  {
+    cve: 'CVE-2023-27898',
+    cvss: 8.9,
+    severity: 'HIGH',
+    service: 'Jenkins',
+    desc: 'Auth bypass via crafted HTTP request to API endpoint.',
+    exploitable: true,
+  },
+  {
+    cve: 'CVE-2023-2182',
+    cvss: 7.5,
+    severity: 'HIGH',
+    service: 'MySQL',
+    desc: 'DoS via specially crafted SELECT query.',
+    exploitable: false,
+  },
+  {
+    cve: 'CVE-2023-28708',
+    cvss: 7.3,
+    severity: 'HIGH',
+    service: 'Tomcat',
+    desc: 'Session fixation via JSESSIONID cookie manipulation.',
+    exploitable: true,
+  },
+  {
+    cve: 'CVE-2022-0543',
+    cvss: 10.0,
+    severity: 'CRITICAL',
+    service: 'Redis',
+    desc: 'Lua sandbox escape allowing full RCE on the host.',
+    exploitable: true,
+  },
+];
+
 const subdomains = [
   {
-    name: 'admin.phantom.tech',
+    name: 'admin',
     status: 200,
-    risk: 'high',
+    risk: 'critical',
     title: 'Admin Dashboard',
     server: 'nginx/1.24.0',
-    contentLength: 12453,
+    tech: 'React',
   },
   {
-    name: 'api.phantom.tech',
+    name: 'api',
     status: 200,
-    risk: 'normal',
+    risk: 'medium',
     title: 'API Gateway',
     server: 'nginx/1.24.0',
-    contentLength: 234,
+    tech: 'Express',
   },
   {
-    name: 'jenkins.phantom.tech',
+    name: 'jenkins',
     status: 200,
-    risk: 'high',
+    risk: 'critical',
     title: 'Jenkins CI',
-    server: 'Jetty/9.4.48',
-    contentLength: 8921,
+    server: 'Jetty/9.4',
+    tech: 'Java',
   },
   {
-    name: 'vpn.phantom.tech',
+    name: 'vpn',
     status: 200,
-    risk: 'high',
+    risk: 'critical',
     title: 'VPN Portal',
     server: 'OpenResty',
-    contentLength: 4500,
+    tech: 'Lua',
   },
+  { name: 'git', status: 200, risk: 'high', title: 'Gitea', server: 'Go', tech: 'Go' },
   {
-    name: 'dev.phantom.tech',
-    status: 403,
-    risk: 'normal',
-    title: 'Forbidden',
-    server: 'nginx/1.24.0',
-    contentLength: 162,
-  },
-  {
-    name: 'mail.phantom.tech',
-    status: 301,
-    risk: 'normal',
-    title: 'Redirect',
-    server: 'nginx/1.24.0',
-    contentLength: 178,
-  },
-  {
-    name: 'git.phantom.tech',
+    name: 'monitor',
     status: 200,
     risk: 'high',
-    title: 'Gitea',
-    server: 'Go',
-    contentLength: 6210,
+    title: 'Grafana',
+    server: 'Grafana/10.0',
+    tech: 'Go',
   },
   {
-    name: 'staging.phantom.tech',
-    status: 404,
-    risk: 'none',
-    title: 'Not Found',
-    server: 'nginx/1.24.0',
-    contentLength: 153,
-  },
-  {
-    name: 'test.phantom.tech',
+    name: 'kibana',
     status: 200,
-    risk: 'normal',
-    title: 'Test Environment',
-    server: 'Apache/2.4.52',
-    contentLength: 890,
+    risk: 'high',
+    title: 'Kibana',
+    server: 'Kibana/8.5',
+    tech: 'Node',
   },
   {
-    name: 'backup.phantom.tech',
+    name: 'registry',
+    status: 200,
+    risk: 'high',
+    title: 'Docker Registry',
+    server: 'Go',
+    tech: 'Docker',
+  },
+  {
+    name: 'dev',
+    status: 403,
+    risk: 'medium',
+    title: 'Forbidden',
+    server: 'nginx/1.24.0',
+    tech: '—',
+  },
+  {
+    name: 'backup',
     status: 401,
     risk: 'medium',
-    title: 'Authorization Required',
+    title: 'Auth Required',
     server: 'nginx/1.24.0',
-    contentLength: 172,
+    tech: '—',
   },
   {
-    name: 'dashboard.phantom.tech',
-    status: 200,
-    risk: 'normal',
-    title: 'Dashboard',
+    name: 'staging',
+    status: 404,
+    risk: 'low',
+    title: 'Not Found',
     server: 'nginx/1.24.0',
-    contentLength: 4550,
+    tech: '—',
   },
+  { name: 'mail', status: 301, risk: 'low', title: 'Redirect', server: 'nginx/1.24.0', tech: '—' },
+  { name: 'blog', status: 200, risk: 'low', title: 'Blog', server: 'WordPress', tech: 'PHP' },
+  { name: 'minio', status: 200, risk: 'high', title: 'MinIO Console', server: 'MinIO', tech: 'Go' },
   {
-    name: 'cdn.phantom.tech',
-    status: 200,
-    risk: 'none',
-    title: 'CDN',
-    server: 'cloudflare',
-    contentLength: 98,
-  },
-  {
-    name: 'blog.phantom.tech',
-    status: 200,
-    risk: 'normal',
-    title: 'Blog',
-    server: 'WordPress',
-    contentLength: 25400,
-  },
-  {
-    name: 'forum.phantom.tech',
-    status: 200,
-    risk: 'normal',
-    title: 'Community Forum',
-    server: 'phpBB',
-    contentLength: 17820,
-  },
-  {
-    name: 'partner.phantom.tech',
+    name: 'partner',
     status: 200,
     risk: 'medium',
     title: 'Partner Portal',
     server: 'IIS/10.0',
-    contentLength: 3890,
+    tech: '.NET',
+  },
+  { name: 'cdn', status: 200, risk: 'low', title: 'CDN', server: 'cloudflare', tech: '—' },
+];
+
+const techStack = {
+  webServer: 'nginx 1.24.0',
+  backend: 'Node.js 18.17 / Express 4.18',
+  frontend: 'React 18.2 + Redux Toolkit',
+  database: 'PostgreSQL 14.8 + PostGIS',
+  cache: 'Redis 7.0.5',
+  search: 'Elasticsearch 8.5.0',
+  cdn: 'Cloudflare Enterprise',
+  ssl: "Let's Encrypt / TLS 1.3",
+  container: 'Docker Compose',
+  ci: 'Jenkins 2.401.1',
+  monitoring: 'Grafana + Prometheus',
+  logging: 'ELK Stack',
+};
+
+const cloudAssets = [
+  {
+    type: 'AWS S3',
+    name: 'phantom-backups',
+    perm: 'PUBLIC READ',
+    risk: 'critical',
+    files: ['database.sql.gz', 'customer_emails.csv', 'config.env'],
   },
   {
-    name: 'remote.phantom.tech',
-    status: 403,
+    type: 'Docker Registry',
+    name: 'registry.phantom.tech',
+    perm: 'ANON PULL',
+    risk: 'critical',
+    files: ['phantom/api:latest', 'phantom/web:staging', 'phantom/worker:debug'],
+  },
+  {
+    type: 'GCP Storage',
+    name: 'phantom-logs',
+    perm: 'auth-read',
     risk: 'medium',
-    title: 'Access Denied',
-    server: 'nginx/1.24.0',
-    contentLength: 169,
+    files: ['access_log_2025-05.txt'],
+  },
+  {
+    type: 'Azure Blob',
+    name: 'phantomcdn',
+    perm: 'PUBLIC READ',
+    risk: 'high',
+    files: ['index.html', 'bundle.js.map'],
   },
 ];
 
-// --- Technology Stack (đầy đủ) ---
-const techStack = {
-  webServer: {
-    name: 'nginx',
-    version: '1.24.0',
-    poweredBy: 'Express',
-    modules: ['ngx_http_ssl_module', 'ngx_http_v2_module'],
+const codeRepos = [
+  {
+    platform: 'GitHub',
+    repo: 'phantom-security/backend',
+    secrets: ['AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE', 'JWT_SECRET=s3cr3t!ghost'],
+    lastCommit: '2025-06-01',
+    stars: 0,
+    private: false,
   },
-  backend: { language: 'Node.js', version: '18.17.0', framework: 'Express 4.18.2', runtime: 'PM2' },
-  frontend: {
-    framework: 'React 18.2.0',
-    libraries: ['Redux Toolkit', 'TailwindCSS', 'Axios', 'React Router v6'],
-    ssr: false,
+  {
+    platform: 'GitHub',
+    repo: 'phantom-security/terraform',
+    secrets: ['db_password=phantom@2025', 'private_key.pem (RSA 4096)'],
+    lastCommit: '2025-05-28',
+    stars: 2,
+    private: false,
   },
-  database: {
-    type: 'PostgreSQL',
-    version: '14.8',
-    engine: 'PostGIS',
-    replicas: 2,
-    backup: 'daily',
+  {
+    platform: 'GitLab',
+    repo: 'phantom/internal-tools',
+    secrets: ['CI_JOB_TOKEN=glptt-abc123', 'SSH_DEPLOY_KEY'],
+    lastCommit: '2025-06-02',
+    stars: 0,
+    private: false,
   },
-  cms: null,
-  cdn: 'Cloudflare',
-  ssl: {
-    issuer: "Let's Encrypt",
-    protocol: 'TLS 1.3',
-    expiry: '2025-12-01',
-    curve: 'X25519',
-    ocsp_stapling: true,
+];
+
+const darkWebLeaks = [
+  {
+    source: 'Pastebin',
+    date: '2025-05-20',
+    snippet: 'phantom.tech DB dump — users table: 1.25M rows w/ bcrypt hashes, plaintext emails',
+    risk: 'critical',
   },
-  analytics: 'Google Analytics 4, Hotjar',
-  hosting: 'DigitalOcean (SFO3), droplet size: 8GB RAM, 4 vCPUs',
-  container: 'Docker (compose)',
-  orchestration: 'none (bare metal)',
+  {
+    source: 'RaidForums (mirror)',
+    date: '2025-01-10',
+    snippet: 'Selling RDP access to phantom.tech infra — $2500 negotiable',
+    risk: 'critical',
+  },
+  {
+    source: 'Telegram (@leakzone)',
+    date: '2025-04-01',
+    snippet: 'Leaked API keys for phantom-tech AWS + Stripe webhook secret',
+    risk: 'high',
+  },
+  {
+    source: 'BreachForums',
+    date: '2025-03-15',
+    snippet: 'phantom.tech source code zip (backend + terraform) — free share',
+    risk: 'critical',
+  },
+];
+
+const threatIntel = [
+  {
+    source: 'VirusTotal',
+    indicator: TARGET,
+    detections: '2/89',
+    verdict: 'suspicious',
+    detail: 'Flagged by ESET + Kaspersky for phishing campaign artifacts',
+  },
+  {
+    source: 'VirusTotal',
+    indicator: TARGET_IP,
+    detections: '3/89',
+    verdict: 'malicious',
+    detail: 'Known C2 communication, associated with RedLine stealer',
+  },
+  {
+    source: 'AlienVault OTX',
+    indicator: TARGET,
+    detections: '1 pulse',
+    verdict: 'suspicious',
+    detail: '"Phantom.tech phishing campaign" pulse from Feb 2025',
+  },
+  {
+    source: 'AbuseIPDB',
+    indicator: TARGET_IP,
+    detections: '78% confidence',
+    verdict: 'malicious',
+    detail: 'Reported 12 times for SSH brute force + port scanning',
+  },
+  {
+    source: 'Shodan',
+    indicator: TARGET_IP,
+    detections: '5 vulns',
+    verdict: 'high-risk',
+    detail: 'Critical services exposed: Redis, MySQL, Jenkins unauthenticated',
+  },
+];
+
+const httpHeaders = {
+  Server: 'nginx/1.24.0',
+  'X-Powered-By': 'Express ⚠️ (info leak)',
+  'X-Frame-Options': 'DENY ✓',
+  'X-Content-Type-Options': 'nosniff ✓',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains ✓',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' ⚠️",
+  'Referrer-Policy': 'strict-origin-when-cross-origin ✓',
+  'X-XSS-Protection': '1; mode=block (legacy) ⚠️',
+  'Set-Cookie': 'sessionId=…; HttpOnly; Secure; SameSite=Strict ✓',
+  'CF-Ray': '89abc123def-SJC (Cloudflare)',
 };
 
-// --- SSL/TLS Details (mở rộng) ---
-const sslDetails = {
-  certificate: {
-    subject: 'CN=phantom.tech, O=Phantom Security Ltd, L=San Francisco, ST=CA, C=US',
-    issuer: "CN=R3, O=Let's Encrypt, C=US",
-    validity: { from: '2025-03-01T00:00:00Z', to: '2025-12-01T23:59:59Z' },
-    san: [
-      'phantom.tech',
-      '*.phantom.tech',
-      'www.phantom.tech',
-      'api.phantom.tech',
-      'admin.phantom.tech',
-    ],
-    keyType: 'RSA 2048 bits',
-    signatureAlgorithm: 'SHA-256 with RSA',
-    fingerprint:
-      'SHA256: 2B:3C:4D:5E:6F:7A:8B:9C:0D:1E:2F:3A:4B:5C:6D:7E:8F:9A:0B:1C:2D:3E:4F:5A:6B:7C:8D:9E:0F:1A:2B:3C',
-  },
-  chain: [
-    "CN=R3, O=Let's Encrypt, C=US",
-    'CN=ISRG Root X1, O=Internet Security Research Group, C=US',
-  ],
-  protocols: ['TLSv1.2', 'TLSv1.3'],
-  cipherSuites: ['TLS_AES_256_GCM_SHA384', 'TLS_AES_128_GCM_SHA256', 'ECDHE-RSA-AES256-GCM-SHA384'],
-  handshake: {
-    keyExchange: 'ECDHE (secp256r1)',
-    authentication: 'RSA',
-    encryption: 'AES_256_GCM',
-    mac: 'AEAD',
-  },
-  vulnerabilities: {
-    heartbleed: false,
-    poodle: false,
-    freak: false,
-    logjam: false,
-    beast: false,
-    crime: false,
-    renegotiation: 'secure',
-  },
-};
-
-// --- Google Dorks Results (mẫu) ---
 const googleDorks = [
   {
     type: 'Admin Panels',
     query: `site:${TARGET} intitle:"admin" OR intitle:"login"`,
     results: 12,
-    foundUrls: ['https://admin.phantom.tech', 'https://dashboard.phantom.tech/login'],
+    urls: ['admin.phantom.tech', 'dashboard.phantom.tech/login'],
   },
   {
     type: 'Sensitive Files',
-    query: `site:${TARGET} filetype:sql OR filetype:log OR filetype:conf`,
+    query: `site:${TARGET} filetype:sql OR filetype:log`,
     results: 7,
-    foundUrls: ['https://git.phantom.tech/db_backup.sql', 'https://api.phantom.tech/.env'],
+    urls: ['git.phantom.tech/db_backup.sql', 'api.phantom.tech/.env'],
   },
   {
     type: 'PHP Info',
     query: `site:${TARGET} intitle:"phpinfo()"`,
     results: 1,
-    foundUrls: ['https://test.phantom.tech/info.php'],
+    urls: ['test.phantom.tech/info.php'],
   },
   {
-    type: 'Git Repositories',
+    type: 'Git Exposed',
     query: `site:${TARGET} ".git"`,
     results: 2,
-    foundUrls: ['https://git.phantom.tech/.git/config'],
+    urls: ['git.phantom.tech/.git/config'],
   },
   {
     type: 'Backup Files',
-    query: `site:${TARGET} ext:bak | ext:old | ext:backup`,
+    query: `site:${TARGET} ext:bak | ext:old`,
     results: 3,
-    foundUrls: ['https://backup.phantom.tech/data.old'],
+    urls: ['backup.phantom.tech/data.old'],
+  },
+  {
+    type: 'Open Redirects',
+    query: `site:${TARGET} inurl:redirect= OR inurl:url=`,
+    results: 4,
+    urls: ['api.phantom.tech/auth?redirect=', 'phantom.tech/go?url='],
   },
 ];
 
-// --- DNS History (SecurityTrails like) ---
-const dnsHistory = [
-  { type: 'A', value: '198.51.100.78', first_seen: '2024-01-10', last_seen: '2025-06-02' },
-  { type: 'A', value: '198.51.100.100', first_seen: '2023-08-01', last_seen: '2024-01-05' },
-  { type: 'MX', value: 'mx1.phantom.tech', first_seen: '2021-08-15', last_seen: '2025-06-02' },
-  { type: 'MX', value: 'aspmx.l.google.com', first_seen: '2024-03-20', last_seen: '2025-06-02' },
+const certTransparency = [
+  {
+    id: '12345678',
+    loggedAt: '2025-05-20',
+    issuer: "Let's Encrypt R3",
+    commonName: '*.phantom.tech',
+    san: ['phantom.tech', '*.phantom.tech', 'admin.phantom.tech', 'api.phantom.tech'],
+    notAfter: '2025-08-18',
+  },
+  {
+    id: '12345679',
+    loggedAt: '2025-04-15',
+    issuer: 'Google Trust Services GTS CA 1D4',
+    commonName: 'phantom.tech',
+    san: ['phantom.tech'],
+    notAfter: '2025-07-14',
+  },
+  {
+    id: '12345680',
+    loggedAt: '2024-12-01',
+    issuer: "Let's Encrypt R3",
+    commonName: 'vpn.phantom.tech',
+    san: ['vpn.phantom.tech'],
+    notAfter: '2025-03-01',
+  },
 ];
 
-// --- Related Domains / Certificates (Censys-like) ---
-const relatedDomains = [
-  { domain: 'phantomsecurity.com', relationship: 'subjectAltName (cert)', ip: '198.51.100.200' },
-  { domain: 'phantomlabs.io', relationship: 'MX record', ip: null },
-  { domain: 'phantom-support.net', relationship: 'WHOIS registrant email', ip: null },
-  { domain: 'phantomcdn.com', relationship: 'CNAME to cdn.phantom.tech', ip: '104.18.32.15' },
+const waybackSnapshots = [
+  {
+    date: '2025-05-15',
+    url: '/',
+    finding: 'New homepage with updated team page — exposes 3 new employee names',
+  },
+  {
+    date: '2024-12-01',
+    url: '/admin',
+    finding: '⚠️ Admin login exposed publicly (no auth gate) — since fixed',
+  },
+  {
+    date: '2024-10-08',
+    url: '/.env',
+    finding: '🔴 .env file accessible: DB_PASS, API_KEY, STRIPE_SECRET leaked',
+  },
+  {
+    date: '2024-06-20',
+    url: '/backup.zip',
+    finding: '🔴 Full site backup downloadable — contained source + credentials',
+  },
+  {
+    date: '2023-01-01',
+    url: '/phpinfo.php',
+    finding: '⚠️ PHP info page exposing server config, extensions, env vars',
+  },
 ];
 
-// --- HTTP Headers (target home page) ---
-const httpHeaders = {
-  server: 'nginx/1.24.0',
-  'content-type': 'text/html; charset=UTF-8',
-  'x-powered-by': 'Express',
-  'x-frame-options': 'DENY',
-  'x-content-type-options': 'nosniff',
-  'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
-  'content-security-policy':
-    "default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com;",
-  'referrer-policy': 'strict-origin-when-cross-origin',
-  'x-xss-protection': '1; mode=block',
-  'set-cookie': 'sessionId=abc123; HttpOnly; Secure; SameSite=Strict',
-  vary: 'Accept-Encoding',
-};
-
-// --- WAF Detection (WAFW00F style) ---
-const wafInfo = {
-  detected: true,
-  name: 'Cloudflare',
-  vendor: 'Cloudflare, Inc.',
-  version: 'Enterprise',
-  bypassHints: [
-    'Use chunked encoding',
-    'Add null bytes',
-    'Change case of headers',
-    'Use Unicode normalization',
-  ],
-  fingerprints: ['cf-ray header', '__cfduid cookie', 'server: cloudflare'],
-};
-
-// --- ASN & BGP Info ---
-const asnInfo = {
-  asn: 'AS14061',
-  name: 'DIGITALOCEAN-ASN',
-  country: 'US',
-  registry: 'arin',
-  prefixes: ['198.51.100.0/24', '198.55.100.0/22'],
-  upstreams: ['AS2914 (NTT America)'],
-  peers: ['AS15169 (Google)', 'AS32934 (Facebook)'],
-};
+const socialIntel = [
+  {
+    platform: 'LinkedIn',
+    name: 'John Doe',
+    role: 'Senior Backend Engineer',
+    url: 'linkedin.com/in/john-doe-phantom',
+    intel: 'Python, Docker, AWS. GitHub: johndoe-dev. Likely manages API infra.',
+  },
+  {
+    platform: 'LinkedIn',
+    name: 'Jane Smith',
+    role: 'DevOps Lead',
+    url: 'linkedin.com/in/jane-smith-phantom',
+    intel: 'Jenkins, K8s, Terraform user. Has commit access to terraform repo.',
+  },
+  {
+    platform: 'LinkedIn',
+    name: 'Mike Torres',
+    role: 'CTO',
+    url: 'linkedin.com/in/mike-torres-phantom',
+    intel: 'Uses personal email miket@gmail.com for side projects — reuse risk.',
+  },
+  {
+    platform: 'Twitter',
+    name: '@phantomdev',
+    role: 'Official Dev Account',
+    url: 'twitter.com/phantomdev',
+    intel: 'Tweets about stack updates. Mentioned Redis migration in Feb 2025.',
+  },
+  {
+    platform: 'GitHub',
+    name: 'phantom-security',
+    role: 'GitHub Org',
+    url: 'github.com/phantom-security',
+    intel: '12 members visible. 3 repos public. Commit history reveals infra details.',
+  },
+];
 
 // ============================================================================
-// 2. UI COMPONENTS
+// UTILITY HELPERS
 // ============================================================================
-const Toolbar = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex items-center gap-[5px] px-[10px] h-[38px] bg-[#0f1319] border-b border-[#1e2535] shrink-0 overflow-x-auto [&::-webkit-scrollbar]:h-0">
-    {children}
-  </div>
-);
-const TbSep = () => <div className="w-px h-[18px] bg-[#1e2535] shrink-0" />;
-const TbLabel = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-[9.5px] text-[#3d4a61] uppercase tracking-[0.07em] mx-0.5 whitespace-nowrap">
-    {children}
-  </span>
-);
+const RISK_COLOR: Record<string, string> = {
+  critical: '#ff2d55',
+  high: '#ff6b35',
+  medium: '#f5a623',
+  low: '#30d158',
+  none: '#636366',
+};
 
-function OsintCard({ title, icon, children, highlight, colSpan2, className }: any) {
+const RISK_BG: Record<string, string> = {
+  critical: 'rgba(255,45,85,0.08)',
+  high: 'rgba(255,107,53,0.08)',
+  medium: 'rgba(245,166,35,0.08)',
+  low: 'rgba(48,209,88,0.08)',
+  none: 'rgba(99,99,102,0.06)',
+};
+
+const SEVERITY_COLOR: Record<string, string> = {
+  CRITICAL: '#ff2d55',
+  HIGH: '#ff6b35',
+  MEDIUM: '#f5a623',
+  LOW: '#30d158',
+};
+
+function RiskPill({ level, children }: { level: string; children?: React.ReactNode }) {
+  const c = RISK_COLOR[level.toLowerCase()] ?? '#636366';
   return (
-    <div
-      className={cn(
-        'bg-[#111520] border rounded-[7px] p-3',
-        highlight ? 'border-red-500/20' : 'border-[#1e2535]',
-        colSpan2 && 'col-span-2',
-        className,
-      )}
+    <span
+      style={{ color: c, border: `1px solid ${c}30`, background: `${c}12` }}
+      className="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-sm font-mono"
     >
-      <div className="flex items-center gap-1.5 text-[9.5px] font-bold text-[#3d4a61] uppercase tracking-[0.08em] mb-2">
-        {icon}
-        {title}
+      {children ?? level}
+    </span>
+  );
+}
+
+function StatBox({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  accent?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 p-2.5 bg-[#0d1017] border border-[#1c2333] rounded">
+      <div className="text-[9px] uppercase tracking-[0.1em] text-[#3a4558] font-mono">{label}</div>
+      <div
+        className="text-[18px] font-bold font-mono leading-none"
+        style={{ color: accent ?? '#c8d6f0' }}
+      >
+        {value}
       </div>
-      {children}
+      {sub && <div className="text-[9px] text-[#3a4558]">{sub}</div>}
     </div>
   );
 }
 
-function SubdomainGrid() {
+function SectionHeader({ children, accent }: { children: React.ReactNode; accent?: string }) {
   return (
-    <div className="grid grid-cols-4 gap-2">
-      {subdomains.map((s) => (
-        <div
-          key={s.name}
-          className={cn(
-            'bg-[#161b26] border rounded p-2',
-            s.risk === 'high'
-              ? 'border-red-500/20'
-              : s.risk === 'medium'
-                ? 'border-amber-500/20'
-                : 'border-[#1e2535]',
-          )}
+    <div className="flex items-center gap-2 mb-2">
+      <div className="w-1 h-3 rounded-full" style={{ background: accent ?? '#0af' }} />
+      <span className="text-[9.5px] font-bold tracking-[0.12em] uppercase font-mono text-[#4a5a7a]">
+        {children}
+      </span>
+    </div>
+  );
+}
+
+function KV({ k, v, vc }: { k: string; v: string; vc?: string }) {
+  return (
+    <div className="flex justify-between items-start gap-4 py-[3px] border-b border-[#111827] last:border-0">
+      <span className="text-[9.5px] text-[#3a4558] font-mono shrink-0">{k}</span>
+      <span className={cn('text-[10px] font-mono text-right break-all', vc ?? 'text-[#8da0c0]')}>
+        {v}
+      </span>
+    </div>
+  );
+}
+
+// ============================================================================
+// SVG CHARTS
+// ============================================================================
+function RiskRadar({ data }: { data: Record<string, number> }) {
+  const keys = Object.keys(data);
+  const cx = 80,
+    cy = 80,
+    r = 60;
+  const n = keys.length;
+  const pts = keys.map((_, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const val = data[keys[i]] / 100;
+    return {
+      x: cx + Math.cos(angle) * r * val,
+      y: cy + Math.sin(angle) * r * val,
+      lx: cx + Math.cos(angle) * (r + 14),
+      ly: cy + Math.sin(angle) * (r + 14),
+    };
+  });
+  const gridPts = (scale: number) =>
+    keys
+      .map((_, i) => {
+        const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+        return `${cx + Math.cos(angle) * r * scale},${cy + Math.sin(angle) * r * scale}`;
+      })
+      .join(' ');
+
+  return (
+    <svg viewBox="0 0 160 160" className="w-full h-full">
+      {[0.25, 0.5, 0.75, 1].map((s) => (
+        <polygon key={s} points={gridPts(s)} fill="none" stroke="#1c2333" strokeWidth="0.5" />
+      ))}
+      {keys.map((_, i) => {
+        const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+        return (
+          <line
+            key={i}
+            x1={cx}
+            y1={cy}
+            x2={cx + Math.cos(angle) * r}
+            y2={cy + Math.sin(angle) * r}
+            stroke="#1c2333"
+            strokeWidth="0.5"
+          />
+        );
+      })}
+      <polygon
+        points={pts.map((p) => `${p.x},${p.y}`).join(' ')}
+        fill="rgba(0,170,255,0.12)"
+        stroke="#0af"
+        strokeWidth="1"
+      />
+      {pts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="2" fill="#0af" />
+      ))}
+      {pts.map((p, i) => (
+        <text
+          key={i}
+          x={p.lx}
+          y={p.ly}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="7"
+          fill="#4a5a7a"
+          fontFamily="monospace"
         >
-          <div className="text-[9px] text-[#3d4a61]">
-            {s.status} - {s.title?.slice(0, 15)}
-          </div>
+          {keys[i].toUpperCase()}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+function CvssBar({ score, cve }: { score: number; cve: string }) {
+  const color =
+    score >= 9 ? '#ff2d55' : score >= 7 ? '#ff6b35' : score >= 4 ? '#f5a623' : '#30d158';
+  const width = (score / 10) * 100;
+  return (
+    <div className="flex items-center gap-2 py-[3px]">
+      <span className="text-[9px] font-mono text-[#4a5a7a] w-32 shrink-0">{cve}</span>
+      <div className="flex-1 h-[3px] bg-[#111827] rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${width}%`, background: color }}
+        />
+      </div>
+      <span className="text-[10px] font-bold font-mono w-6 text-right" style={{ color }}>
+        {score}
+      </span>
+    </div>
+  );
+}
+
+function PortMatrix() {
+  return (
+    <div className="grid grid-cols-2 gap-1">
+      {ports.map((p) => {
+        const c = RISK_COLOR[p.risk];
+        return (
           <div
-            className={cn(
-              'text-[11px] font-mono truncate mt-0.5',
-              s.risk === 'high'
-                ? 'text-red-400'
-                : s.status === 404
-                  ? 'text-[#6b7a96]'
-                  : 'text-[#c5cfe0]',
-            )}
+            key={p.port}
+            className="flex items-center gap-2 p-1.5 rounded border"
+            style={{ borderColor: `${c}25`, background: `${c}08` }}
           >
-            {s.name.split('.')[0]}.…
+            <div
+              className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ background: p.state === 'open' ? c : '#636366' }}
+            />
+            <span className="font-mono text-[10px] font-bold w-10 shrink-0" style={{ color: c }}>
+              {p.port}
+            </span>
+            <span className="text-[9px] text-[#4a5a7a] truncate">{p.service}</span>
+            <span className="ml-auto text-[8px] text-[#2a3548] truncate">
+              {p.product.split(' ')[0]}
+            </span>
           </div>
-          {s.contentLength && (
-            <div className="text-[8px] text-[#3d4a61] mt-1">{s.contentLength} bytes</div>
-          )}
+        );
+      })}
+    </div>
+  );
+}
+
+function SubdomainTreemap() {
+  return (
+    <div className="grid grid-cols-4 gap-[3px]">
+      {subdomains.map((s) => {
+        const c = RISK_COLOR[s.risk];
+        return (
+          <div
+            key={s.name}
+            className="rounded p-1.5 flex flex-col gap-0.5 min-h-[44px] cursor-default group"
+            style={{ background: `${c}10`, border: `1px solid ${c}25` }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="w-2 h-2 rounded-full" style={{ background: c }} />
+              <span className="text-[8px] font-mono text-[#2a3548]">{s.status}</span>
+            </div>
+            <div className="text-[9.5px] font-mono font-bold truncate" style={{ color: c }}>
+              {s.name}
+            </div>
+            <div className="text-[8px] text-[#2a3548] truncate group-hover:text-[#4a5a7a] transition-colors">
+              {s.title}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function BreachTimeline() {
+  const sorted = [...breaches].sort((a, b) => a.date.localeCompare(b.date));
+  return (
+    <div className="relative pl-4">
+      <div className="absolute left-1.5 top-2 bottom-2 w-px bg-[#1c2333]" />
+      {sorted.map((b, i) => (
+        <div key={i} className="relative mb-3 last:mb-0">
+          <div
+            className="absolute -left-[13px] top-1 w-2 h-2 rounded-full border border-current"
+            style={{
+              color: SEVERITY_COLOR[b.severity],
+              background: `${SEVERITY_COLOR[b.severity]}30`,
+            }}
+          />
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-[9px] font-mono text-[#3a4558]">{b.date}</span>
+            <RiskPill level={b.severity.toLowerCase()} />
+          </div>
+          <div className="text-[10.5px] font-semibold text-[#8da0c0]">{b.name}</div>
+          <div className="text-[9.5px] text-[#3a4558] mt-0.5">
+            {b.accounts.toLocaleString()} accounts · {b.categories.join(', ')}
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
-// ============================================================================
-// 3. TAB COMPONENTS (Mỗi tab là một khối dữ liệu khổng lồ)
-// ============================================================================
-
-function TabOverview() {
+function ScoreGauge({ score }: { score: number }) {
+  const color =
+    score >= 80 ? '#ff2d55' : score >= 60 ? '#ff6b35' : score >= 40 ? '#f5a623' : '#30d158';
+  const r = 36,
+    circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
   return (
-    <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-2 p-[10px] bg-[#080a0e]">
-      <OsintCard
-        title="IP & Network"
-        icon={
-          <svg
-            className="w-3 h-3 text-cyan-400"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-          >
-            <circle cx="8" cy="8" r="6" />
-          </svg>
-        }
-      >
-        <KVRow label="Primary IP" value={TARGET_IP} valueColor="text-cyan-400" />
-        <KVRow label="IPv6" value="2001:db8:ac10:fe01::1" valueColor="text-cyan-400" />
-        <KVRow label="ASN" value={`${asnInfo.asn} (${asnInfo.name})`} />
-        <KVRow label="ISP" value={shodanData.isp} />
-        <KVRow
-          label="Location"
-          value={`${shodanData.city}, ${shodanData.country} (${shodanData.latitude}, ${shodanData.longitude})`}
+    <div className="flex flex-col items-center gap-1">
+      <svg viewBox="0 0 88 88" className="w-24 h-24">
+        <circle cx="44" cy="44" r={r} fill="none" stroke="#111827" strokeWidth="6" />
+        <circle
+          cx="44"
+          cy="44"
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="6"
+          strokeDasharray={`${dash} ${circ}`}
+          strokeLinecap="round"
+          transform="rotate(-90 44 44)"
         />
-        <KVRow label="Hosting" value="DigitalOcean Cloud" valueColor="text-amber-400" />
-        <KVRow label="RDNS" value="phantom.tech" />
-      </OsintCard>
-
-      <OsintCard
-        title="DNS Summary"
-        icon={
-          <svg
-            className="w-3 h-3 text-green-400"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path d="M2 4h12M2 8h8M2 12h10" />
-          </svg>
-        }
-      >
-        <KVRow label="A Records" value={dnsRecords.A.join(', ')} valueColor="text-cyan-400" />
-        <KVRow
-          label="MX (primary)"
-          value={`${dnsRecords.MX[0].priority} ${dnsRecords.MX[0].exchange}`}
-        />
-        <KVRow
-          label="SPF"
-          value={dnsRecords.TXT.find((t) => t.includes('v=spf'))?.slice(0, 40) + '…'}
-          valueColor="text-green-400"
-        />
-        <KVRow label="DMARC" value="p=reject (enforced)" valueColor="text-green-400" />
-        <KVRow label="Zone Transfer" value="NOT ALLOWED" valueColor="text-green-400" />
-        <KVRow label="Subdomains" value={`${subdomains.length} found`} valueColor="text-cyan-400" />
-      </OsintCard>
-
-      <OsintCard
-        title="Technology Stack"
-        icon={
-          <svg
-            className="w-3 h-3 text-purple-400"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-          >
-            <rect x="2" y="2" width="5" height="5" rx="1" />
-            <rect x="9" y="2" width="5" height="5" rx="1" />
-            <rect x="2" y="9" width="5" height="5" rx="1" />
-            <rect x="9" y="9" width="5" height="5" rx="1" />
-          </svg>
-        }
-      >
-        <KVRow
-          label="Web Server"
-          value={`${techStack.webServer.name}/${techStack.webServer.version}`}
-        />
-        <KVRow
-          label="Backend"
-          value={`${techStack.backend.language} ${techStack.backend.version} (${techStack.backend.framework})`}
-          valueColor="text-cyan-400"
-        />
-        <KVRow
-          label="Frontend"
-          value={`${techStack.frontend.framework} + ${techStack.frontend.libraries.join(', ')}`}
-        />
-        <KVRow
-          label="Database"
-          value={`${techStack.database.type} ${techStack.database.version} (${techStack.database.engine})`}
-        />
-        <KVRow label="CDN" value={techStack.cdn} />
-        <KVRow
-          label="SSL"
-          value={`${techStack.ssl.protocol} (${techStack.ssl.issuer})`}
-          valueColor="text-green-400"
-        />
-      </OsintCard>
-
-      <OsintCard
-        title="SSL / TLS Details"
-        icon={
-          <svg
-            className="w-3 h-3 text-amber-400"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-          >
-            <circle cx="8" cy="8" r="6" />
-            <path d="M5 8L7 10L11 6" />
-          </svg>
-        }
-      >
-        <KVRow
-          label="Common Name"
-          value={sslDetails.certificate.subject.split(',')[0].split('=')[1]}
-        />
-        <KVRow label="Issuer" value={sslDetails.certificate.issuer} />
-        <KVRow
-          label="Valid To"
-          value={sslDetails.certificate.validity.to.split('T')[0]}
-          valueColor="text-green-400"
-        />
-        <KVRow
-          label="SANs"
-          value={
-            sslDetails.certificate.san.slice(0, 3).join(', ') +
-            (sslDetails.certificate.san.length > 3 ? '…' : '')
-          }
-        />
-        <KVRow label="Cipher Suite" value={sslDetails.cipherSuites[0]} valueColor="text-cyan-400" />
-        <KVRow label="Key Exchange" value={sslDetails.handshake.keyExchange} />
-      </OsintCard>
-
-      <OsintCard
-        title="Subdomains Found (Top 8)"
-        icon={
-          <svg
-            className="w-3 h-3 text-cyan-400"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path d="M3 8h10M8 3v10" />
-          </svg>
-        }
-        colSpan2
-      >
-        <SubdomainGrid />
-      </OsintCard>
+        <text
+          x="44"
+          y="40"
+          textAnchor="middle"
+          fontSize="18"
+          fontWeight="bold"
+          fill={color}
+          fontFamily="monospace"
+        >
+          {score}
+        </text>
+        <text x="44" y="54" textAnchor="middle" fontSize="8" fill="#3a4558" fontFamily="monospace">
+          RISK
+        </text>
+      </svg>
     </div>
   );
 }
 
-function TabDNSEnum() {
+function HeatBar({ label, value }: { label: string; value: number }) {
+  const color =
+    value >= 80 ? '#ff2d55' : value >= 60 ? '#ff6b35' : value >= 40 ? '#f5a623' : '#30d158';
   return (
-    <div className="flex-1 overflow-y-auto p-[10px] bg-[#080a0e]">
-      <div className="grid grid-cols-2 gap-2">
-        <OsintCard title="A & AAAA Records">
-          <KVRow label="A (IPv4)" value={dnsRecords.A.join(', ')} valueColor="text-cyan-400" />
-          <KVRow
-            label="AAAA (IPv6)"
-            value={dnsRecords.AAAA.join(', ')}
-            valueColor="text-cyan-400"
-          />
-        </OsintCard>
-        <OsintCard title="MX Records (Mail Exchange)">
-          {dnsRecords.MX.map((mx, i) => (
-            <KVRow key={i} label={`Priority ${mx.priority}`} value={mx.exchange} />
+    <div className="flex items-center gap-2">
+      <span className="text-[9px] font-mono text-[#3a4558] w-20 shrink-0">{label}</span>
+      <div className="flex-1 h-[5px] bg-[#111827] rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${value}%`, background: color }} />
+      </div>
+      <span className="text-[10px] font-mono font-bold w-7 text-right" style={{ color }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+// ============================================================================
+// TAB COMPONENTS
+// ============================================================================
+
+function TabOverview() {
+  return (
+    <div className="flex-1 overflow-y-auto p-3 bg-[#080b10] grid grid-cols-3 gap-2 content-start">
+      {/* Top stats row */}
+      <div className="col-span-3 grid grid-cols-6 gap-2">
+        <StatBox
+          label="Open Ports"
+          value={ports.filter((p) => p.state === 'open').length}
+          sub={`of ${ports.length} scanned`}
+          accent="#0af"
+        />
+        <StatBox
+          label="CVEs Found"
+          value={vulns.length}
+          sub={`${vulns.filter((v) => v.severity === 'CRITICAL').length} critical`}
+          accent="#ff2d55"
+        />
+        <StatBox
+          label="Subdomains"
+          value={subdomains.length}
+          sub={`${subdomains.filter((s) => s.risk === 'critical').length} critical risk`}
+          accent="#ff6b35"
+        />
+        <StatBox
+          label="Breaches"
+          value={breaches.length}
+          sub={`${(breaches.reduce((a, b) => a + b.accounts, 0) / 1e6).toFixed(0)}M records`}
+          accent="#f5a623"
+        />
+        <StatBox
+          label="Emails"
+          value={harvestedEmails.length}
+          sub={`${harvestedEmails.filter((e) => e.breach).length} in breaches`}
+          accent="#bf5af2"
+        />
+        <StatBox
+          label="Leaked Secrets"
+          value={codeRepos.reduce((a, r) => a + r.secrets.length, 0)}
+          sub="in public repos"
+          accent="#ff2d55"
+        />
+      </div>
+
+      {/* Risk score card */}
+      <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+        <SectionHeader accent="#ff2d55">Risk Score</SectionHeader>
+        <div className="flex items-center gap-3">
+          <ScoreGauge score={riskScore.total} />
+          <div className="flex-1 space-y-1.5">
+            <HeatBar label="Network" value={riskScore.breakdown.network} />
+            <HeatBar label="Breach" value={riskScore.breakdown.breach} />
+            <HeatBar label="Exposure" value={riskScore.breakdown.exposure} />
+            <HeatBar label="Reputation" value={riskScore.breakdown.reputation} />
+          </div>
+        </div>
+      </div>
+
+      {/* Radar */}
+      <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+        <SectionHeader accent="#0af">Attack Surface</SectionHeader>
+        <div className="w-full h-40">
+          <RiskRadar data={riskScore.breakdown} />
+        </div>
+      </div>
+
+      {/* Host info */}
+      <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+        <SectionHeader accent="#30d158">Host Intel</SectionHeader>
+        <KV k="Primary IP" v={TARGET_IP} vc="text-[#0af] font-bold" />
+        <KV k="ASN" v="AS14061 · DigitalOcean" />
+        <KV k="ISP" v="DigitalOcean LLC" />
+        <KV k="Location" v="Santa Clara, CA · US" />
+        <KV k="Hosting" v="DigitalOcean Cloud (SFO3)" vc="text-[#f5a623]" />
+        <KV k="OS" v="Ubuntu 22.04 LTS" />
+        <KV k="WAF" v="Cloudflare Enterprise" vc="text-[#ff6b35]" />
+        <KV k="SSL" v="TLS 1.3 / Let's Encrypt" vc="text-[#30d158]" />
+        <KV k="Scan Time" v={SCAN_TIME} />
+      </div>
+
+      {/* Top CVEs */}
+      <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-2">
+        <SectionHeader accent="#ff2d55">Critical Vulnerabilities</SectionHeader>
+        <div className="space-y-0.5">
+          {vulns.map((v) => (
+            <CvssBar key={v.cve} score={v.cvss} cve={v.cve} />
           ))}
-        </OsintCard>
-        <OsintCard title="TXT Records">
-          {dnsRecords.TXT.map((txt, i) => (
-            <div key={i} className="text-[10.5px] text-[#c5cfe0] break-all mb-1">
-              "{txt}"
-            </div>
+        </div>
+      </div>
+
+      {/* Subdomain treemap */}
+      <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-3">
+        <SectionHeader accent="#bf5af2">
+          Subdomain Map ({subdomains.length} discovered)
+        </SectionHeader>
+        <SubdomainTreemap />
+      </div>
+
+      {/* Tech stack */}
+      <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-3">
+        <SectionHeader accent="#0af">Technology Fingerprint</SectionHeader>
+        <div className="grid grid-cols-4 gap-x-4">
+          {Object.entries(techStack).map(([k, v]) => (
+            <KV key={k} k={k} v={v} />
           ))}
-        </OsintCard>
-        <OsintCard title="NS & SOA">
-          <KVRow label="Name Servers" value={dnsRecords.NS.join(', ')} />
-          <KVRow label="Primary NS" value={dnsRecords.SOA.mname} />
-          <KVRow label="Email (rname)" value={dnsRecords.SOA.rname} />
-          <KVRow label="Serial" value={dnsRecords.SOA.serial.toString()} />
-        </OsintCard>
-        <OsintCard title="CNAME Records">
-          <KVRow label="www" value={dnsRecords.CNAME.www} />
-          <KVRow label="mail" value={dnsRecords.CNAME.mail} />
-        </OsintCard>
-        <OsintCard title="DNS History (last 2 years)">
-          {dnsHistory.map((h, i) => (
-            <KVRow
-              key={i}
-              label={`${h.type} ${h.value}`}
-              value={`${h.first_seen} → ${h.last_seen}`}
-              valueColor="text-[#6b7a96]"
-            />
-          ))}
-        </OsintCard>
-        <OsintCard title="DNS Security" colSpan2>
-          <KVRow label="DNSSEC" value="Not Signed" valueColor="text-amber-400" />
-          <KVRow label="CAA Records" value="None found" />
-          <KVRow label="SPF (strict)" value="~all (softfail)" />
-          <KVRow label="DKIM" value="No record found (may use third-party)" />
-        </OsintCard>
+        </div>
       </div>
     </div>
   );
 }
 
-function TabWHOIS() {
+function TabPorts() {
   return (
-    <div className="flex-1 overflow-y-auto p-[10px] bg-[#080a0e]">
+    <div className="flex-1 overflow-y-auto p-3 bg-[#080b10]">
       <div className="grid grid-cols-2 gap-2">
-        <OsintCard title="Domain Information">
-          <KVRow label="Domain" value={whoisData.domain} valueColor="text-cyan-400" />
-          <KVRow label="Status" value={whoisData.status} />
-          <KVRow
-            label="Registrar"
-            value={`${whoisData.registrar.name} (IANA ID: ${whoisData.registrar.iana_id})`}
-          />
-          <KVRow label="Creation Date" value={whoisData.dates.created.split('T')[0]} />
-          <KVRow
-            label="Expiry Date"
-            value={whoisData.dates.expired.split('T')[0]}
-            valueColor="text-amber-400"
-          />
-          <KVRow label="Updated Date" value={whoisData.dates.updated.split('T')[0]} />
-        </OsintCard>
-        <OsintCard title="Registrant & Contacts">
-          <KVRow label="Registrant Name" value={whoisData.registrant.name} />
-          <KVRow label="Organization" value={whoisData.registrant.organization} />
-          <KVRow
-            label="Address"
-            value={`${whoisData.registrant.street}, ${whoisData.registrant.city}, ${whoisData.registrant.state} ${whoisData.registrant.postal}`}
-          />
-          <KVRow label="Country" value={whoisData.registrant.country} />
-          <KVRow label="Phone" value={whoisData.registrant.phone} />
-          <KVRow
-            label="Email (Registrant)"
-            value={whoisData.registrant.email}
-            valueColor="text-cyan-400"
-          />
-          <KVRow label="Admin Email" value={whoisData.admin.email} />
-          <KVRow label="Tech Email" value={whoisData.tech.email} />
-        </OsintCard>
-        <OsintCard title="Registrar Abuse Contact">
-          <KVRow label="Email" value={whoisData.registrar.abuse_email} />
-          <KVRow label="Phone" value={whoisData.registrar.abuse_phone} />
-        </OsintCard>
-        <OsintCard title="Name Servers" colSpan2>
-          {whoisData.nameservers.map((ns, i) => (
-            <div key={i} className="text-[11px] font-mono text-[#c5cfe0]">
-              {ns}
-            </div>
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#0af">Open Port Matrix</SectionHeader>
+          <PortMatrix />
+        </div>
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#ff2d55">Exploitable CVEs</SectionHeader>
+          <div className="space-y-2">
+            {vulns.map((v, i) => (
+              <div
+                key={i}
+                className="border rounded p-2"
+                style={{
+                  borderColor: `${SEVERITY_COLOR[v.severity]}25`,
+                  background: `${SEVERITY_COLOR[v.severity]}06`,
+                }}
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <span
+                    className="font-mono text-[11px] font-bold"
+                    style={{ color: SEVERITY_COLOR[v.severity] }}
+                  >
+                    {v.cve}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {v.exploitable && (
+                      <span className="text-[8px] font-bold text-[#ff2d55] bg-[#ff2d5515] border border-[#ff2d5530] px-1 rounded font-mono">
+                        POC AVAIL
+                      </span>
+                    )}
+                    <RiskPill level={v.severity.toLowerCase()} />
+                  </div>
+                </div>
+                <div className="text-[9px] text-[#4a5a7a]">
+                  Service: {v.service} · CVSS {v.cvss}
+                </div>
+                <div className="text-[9.5px] text-[#6a7a9a] mt-0.5">{v.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="col-span-2 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#ff6b35">Port Detail Table</SectionHeader>
+          <table className="w-full text-[10px] font-mono">
+            <thead>
+              <tr className="border-b border-[#1c2333]">
+                {['Port', 'Service', 'Product', 'State', 'Risk', 'CVEs'].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left p-1.5 text-[#2a3548] font-normal tracking-wider text-[9px] uppercase"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ports.map((p, i) => (
+                <tr
+                  key={i}
+                  className="border-b border-[#0d1017] hover:bg-[#111827] transition-colors"
+                >
+                  <td className="p-1.5 font-bold" style={{ color: RISK_COLOR[p.risk] }}>
+                    {p.port}
+                  </td>
+                  <td className="p-1.5 text-[#8da0c0]">{p.service}</td>
+                  <td className="p-1.5 text-[#4a5a7a]">{p.product}</td>
+                  <td className="p-1.5">
+                    <span className={p.state === 'open' ? 'text-[#30d158]' : 'text-[#3a4558]'}>
+                      {p.state}
+                    </span>
+                  </td>
+                  <td className="p-1.5">
+                    <RiskPill level={p.risk} />
+                  </td>
+                  <td className="p-1.5 text-[#ff2d55]">{p.cve.join(', ') || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TabDNS() {
+  return (
+    <div className="flex-1 overflow-y-auto p-3 bg-[#080b10]">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#0af">A / AAAA Records</SectionHeader>
+          {dnsRecords.A.map((ip, i) => (
+            <KV key={i} k={`A[${i}]`} v={ip} vc="text-[#0af]" />
           ))}
-        </OsintCard>
+          {dnsRecords.AAAA.map((ip, i) => (
+            <KV key={i} k={`AAAA[${i}]`} v={ip} vc="text-[#0af]" />
+          ))}
+        </div>
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#30d158">MX Records</SectionHeader>
+          {dnsRecords.MX.map((mx, i) => (
+            <KV key={i} k={`Priority ${mx.priority}`} v={mx.exchange} />
+          ))}
+          <div className="mt-2 pt-2 border-t border-[#1c2333]">
+            <SectionHeader accent="#30d158">NS / SOA</SectionHeader>
+            {dnsRecords.NS.map((ns, i) => (
+              <KV key={i} k={`NS[${i}]`} v={ns} />
+            ))}
+            <KV k="SOA Primary" v={dnsRecords.SOA.mname} />
+            <KV k="SOA rname" v={dnsRecords.SOA.rname} />
+            <KV k="Serial" v={dnsRecords.SOA.serial.toString()} />
+          </div>
+        </div>
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-2">
+          <SectionHeader accent="#f5a623">TXT Records</SectionHeader>
+          <div className="space-y-1">
+            {dnsRecords.TXT.map((txt, i) => (
+              <div
+                key={i}
+                className="font-mono text-[9.5px] text-[#6a7a9a] bg-[#060810] border border-[#111827] rounded p-1.5 break-all"
+              >
+                "{txt}"
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-2">
+          <SectionHeader accent="#ff2d55">DNS Security Posture</SectionHeader>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { k: 'DNSSEC', v: 'Not Signed', bad: true },
+              { k: 'SPF', v: '~all (softfail)', bad: true },
+              { k: 'DMARC', v: 'p=reject ✓', bad: false },
+              { k: 'CAA', v: 'Not configured', bad: true },
+              { k: 'Zone Transfer', v: 'Blocked ✓', bad: false },
+              { k: 'DKIM', v: 'Not found', bad: true },
+              { k: 'NSEC3', v: 'Disabled', bad: true },
+              { k: 'MTA-STS', v: 'Not configured', bad: true },
+            ].map((item) => (
+              <div
+                key={item.k}
+                className="p-2 rounded border"
+                style={{
+                  borderColor: item.bad ? '#ff2d5525' : '#30d15825',
+                  background: item.bad ? '#ff2d5508' : '#30d15808',
+                }}
+              >
+                <div className="text-[8px] uppercase tracking-wider text-[#2a3548] font-mono">
+                  {item.k}
+                </div>
+                <div
+                  className="text-[10px] font-mono mt-0.5"
+                  style={{ color: item.bad ? '#ff6b35' : '#30d158' }}
+                >
+                  {item.v}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -949,313 +1242,588 @@ function TabWHOIS() {
 
 function TabBreach() {
   return (
-    <div className="flex-1 overflow-y-auto p-[10px] bg-[#080a0e]">
-      <div className="space-y-2">
-        {breaches.map((breach, idx) => (
-          <div
-            key={idx}
-            className={cn(
-              'bg-[#111520] border rounded p-3',
-              breach.severity === 'CRITICAL' ? 'border-red-500/30' : 'border-[#1e2535]',
-            )}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[12px] font-semibold text-[#c5cfe0]">{breach.name}</span>
-              <Badge
-                color={
-                  breach.severity === 'CRITICAL'
-                    ? 'red'
-                    : breach.severity === 'HIGH'
-                      ? 'red'
-                      : 'amber'
-                }
-              >
-                {breach.severity}
-              </Badge>
-            </div>
-            <div className="text-[10px] text-[#6b7a96]">
-              Date: {breach.date} | Accounts: {breach.accounts.toLocaleString()}
-            </div>
-            <div className="text-[10px] text-[#6b7a96] mt-1">
-              Categories: {breach.categories.join(', ')}
-            </div>
-            <div className="text-[10px] text-[#c5cfe0] mt-1">{breach.description}</div>
+    <div className="flex-1 overflow-y-auto p-3 bg-[#080b10]">
+      <div className="grid grid-cols-3 gap-2">
+        <div className="col-span-2 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#ff2d55">Breach Timeline</SectionHeader>
+          <BreachTimeline />
+        </div>
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#f5a623">Aggregate Stats</SectionHeader>
+          <StatBox
+            label="Total Records"
+            value={`${(breaches.reduce((a, b) => a + b.accounts, 0) / 1e6).toFixed(0)}M`}
+            sub="across all breaches"
+            accent="#ff2d55"
+          />
+          <div className="mt-2 space-y-1">
+            {['emails', 'passwords', 'ips', 'payment', 'hints'].map((cat) => {
+              const count = breaches.filter((b) => b.categories.includes(cat)).length;
+              return (
+                <div key={cat} className="flex items-center gap-2">
+                  <span className="text-[9px] font-mono text-[#3a4558] w-20">{cat}</span>
+                  <div className="flex-1 h-1.5 bg-[#111827] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#ff2d55] rounded-full"
+                      style={{ width: `${(count / breaches.length) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-[#4a5a7a] font-mono">{count}</span>
+                </div>
+              );
+            })}
           </div>
-        ))}
-        <div className="mt-2 text-[10px] text-[#3d4a61] italic">
-          * Data aggregated from HaveIBeenPwned, DeHashed, and public dumps
+        </div>
+        <div className="col-span-3 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#bf5af2">Email Exposure Grid</SectionHeader>
+          <table className="w-full text-[10px] font-mono">
+            <thead>
+              <tr className="border-b border-[#1c2333]">
+                {['Email', 'Role', 'Source', 'Verified', 'In Breach'].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left p-1.5 text-[#2a3548] font-normal text-[9px] uppercase tracking-wider"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {harvestedEmails.map((e, i) => (
+                <tr
+                  key={i}
+                  className={cn(
+                    'border-b border-[#0d1017] hover:bg-[#111827] transition-colors',
+                    e.breach && 'bg-[#ff2d550a]',
+                  )}
+                >
+                  <td className="p-1.5 text-[#0af]">{e.email}</td>
+                  <td className="p-1.5 text-[#8da0c0]">{e.role}</td>
+                  <td className="p-1.5 text-[#4a5a7a]">{e.source}</td>
+                  <td className="p-1.5">
+                    {e.verified ? (
+                      <span className="text-[#30d158]">✓ YES</span>
+                    ) : (
+                      <span className="text-[#3a4558]">UNVERIFIED</span>
+                    )}
+                  </td>
+                  <td className="p-1.5">
+                    {e.breach ? (
+                      <span className="text-[#ff2d55] font-bold">🔴 FOUND</span>
+                    ) : (
+                      <span className="text-[#3a4558]">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 }
 
-function TabEmailHarvest() {
+function TabExposure() {
   return (
-    <div className="flex-1 overflow-y-auto p-[10px] bg-[#080a0e]">
-      <div className="bg-[#111520] border border-[#1e2535] rounded">
-        <table className="w-full text-[11px]">
-          <thead className="border-b border-[#1e2535]">
-            <tr>
-              <th className="text-left p-2 text-[#3d4a61] font-semibold">Email</th>
-              <th className="text-left p-2 text-[#3d4a61] font-semibold">Role</th>
-              <th className="text-left p-2 text-[#3d4a61] font-semibold">Source</th>
-              <th className="text-left p-2 text-[#3d4a61] font-semibold">Verified</th>
-              <th className="text-left p-2 text-[#3d4a61] font-semibold">First Seen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {harvestedEmails.map((item, idx) => (
-              <tr key={idx} className="border-b border-[#1e2535] last:border-0">
-                <td className="p-2 font-mono text-cyan-400">{item.email}</td>
-                <td className="p-2 text-[#c5cfe0]">{item.role}</td>
-                <td className="p-2 text-[#6b7a96]">{item.source}</td>
-                <td className="p-2">
-                  {item.verified ? (
-                    <Badge color="green">✔️ Yes</Badge>
-                  ) : (
-                    <Badge color="gray">Unverified</Badge>
-                  )}
-                </td>
-                <td className="p-2 text-[#6b7a96]">{item.firstSeen}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="mt-3 text-[10px] text-[#3d4a61]">
-        Total unique emails: {harvestedEmails.length} | Potential password reuse risk:
-        admin@phantom.tech appears in breach data.
-      </div>
-    </div>
-  );
-}
-
-function TabShodan() {
-  return (
-    <div className="flex-1 overflow-y-auto p-[10px] bg-[#080a0e]">
+    <div className="flex-1 overflow-y-auto p-3 bg-[#080b10]">
       <div className="grid grid-cols-2 gap-2">
-        <OsintCard title="Host Information">
-          <KVRow label="IP" value={shodanData.ip} valueColor="text-cyan-400" />
-          <KVRow label="Hostnames" value={shodanData.hostnames.join(', ')} />
-          <KVRow label="Organization" value={shodanData.org} />
-          <KVRow label="ASN" value={shodanData.asn} />
-          <KVRow label="OS" value={shodanData.os} />
-          <KVRow
-            label="Location"
-            value={`${shodanData.city}, ${shodanData.country} (${shodanData.latitude}, ${shodanData.longitude})`}
-          />
-        </OsintCard>
-        <OsintCard title="Open Ports & Services">
-          {shodanData.ports.map((p, idx) => (
-            <div key={idx} className="mb-2">
-              <div className="flex justify-between">
-                <span className="font-mono text-amber-400">
-                  {p.port}/{p.service}
-                </span>
-                <span className="text-[10px] text-[#6b7a96]">
-                  {p.product} {p.version}
-                </span>
+        {/* Cloud Assets */}
+        <div className="col-span-2 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#ff2d55">Cloud Asset Exposure</SectionHeader>
+          <div className="grid grid-cols-2 gap-2">
+            {cloudAssets.map((a, i) => (
+              <div
+                key={i}
+                className="border rounded p-2.5"
+                style={{
+                  borderColor: `${RISK_COLOR[a.risk]}30`,
+                  background: `${RISK_COLOR[a.risk]}06`,
+                }}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span
+                    className="text-[10px] font-bold font-mono"
+                    style={{ color: RISK_COLOR[a.risk] }}
+                  >
+                    {a.type}
+                  </span>
+                  <RiskPill level={a.risk} />
+                </div>
+                <div className="text-[9px] font-mono text-[#4a5a7a] mb-1">{a.name}</div>
+                <div className="text-[9px] font-bold text-[#ff2d55] font-mono mb-1">{a.perm}</div>
+                <div className="space-y-0.5">
+                  {a.files.map((f, fi) => (
+                    <div
+                      key={fi}
+                      className="text-[8.5px] font-mono text-[#3a4558] flex items-center gap-1"
+                    >
+                      <span className="text-[#ff2d55]">›</span>
+                      {f}
+                    </div>
+                  ))}
+                </div>
               </div>
-              {p.vulns.length > 0 && (
-                <div className="text-[9px] text-red-400">Vulns: {p.vulns.join(', ')}</div>
-              )}
-            </div>
-          ))}
-        </OsintCard>
-        <OsintCard title="Vulnerabilities (CVE)" colSpan2>
-          {shodanData.vulns.map((v, i) => (
-            <div key={i} className="mb-2 border-b border-[#1e2535] pb-2 last:border-0">
-              <div className="flex justify-between">
-                <span className="font-mono text-red-400">
-                  {v.cve} (CVSS {v.cvss})
-                </span>
-              </div>
-              <div className="text-[10px] text-[#c5cfe0]">{v.description}</div>
-            </div>
-          ))}
-        </OsintCard>
-      </div>
-    </div>
-  );
-}
-
-function TabGoogleDorks() {
-  return (
-    <div className="flex-1 overflow-y-auto p-[10px] bg-[#080a0e]">
-      <div className="space-y-2">
-        {googleDorks.map((d, idx) => (
-          <div key={idx} className="bg-[#111520] border border-[#1e2535] rounded p-3">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-[12px] font-semibold text-cyan-400">{d.type}</span>
-              <Badge color="gray">{d.results} results</Badge>
-            </div>
-            <div className="text-[10px] font-mono text-[#6b7a96] break-all">{d.query}</div>
-            <div className="mt-1 text-[10px] text-[#c5cfe0]">
-              Found URLs: {d.foundUrls.join(', ')}
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+        </div>
 
-function TabRelatedDomains() {
-  return (
-    <div className="flex-1 overflow-y-auto p-[10px] bg-[#080a0e]">
-      <div className="bg-[#111520] border border-[#1e2535] rounded">
-        <table className="w-full text-[11px]">
-          <thead className="border-b border-[#1e2535]">
-            <tr>
-              <th className="text-left p-2 text-[#3d4a61] font-semibold">Domain</th>
-              <th className="text-left p-2 text-[#3d4a61] font-semibold">Relationship</th>
-              <th className="text-left p-2 text-[#3d4a61] font-semibold">IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {relatedDomains.map((d, idx) => (
-              <tr key={idx} className="border-b border-[#1e2535] last:border-0">
-                <td className="p-2 font-mono text-cyan-400">{d.domain}</td>
-                <td className="p-2 text-[#c5cfe0]">{d.relationship}</td>
-                <td className="p-2 text-[#6b7a96]">{d.ip || '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function TabHTTPHeaders() {
-  return (
-    <div className="flex-1 overflow-y-auto p-[10px] bg-[#080a0e]">
-      <OsintCard title="Response Headers (https://phantom.tech)" colSpan2>
-        {Object.entries(httpHeaders).map(([key, value]) => (
-          <KVRow
-            key={key}
-            label={key}
-            value={value}
-            valueColor={key.includes('security') ? 'text-green-400' : 'text-[#c5cfe0]'}
-          />
-        ))}
-      </OsintCard>
-    </div>
-  );
-}
-
-function TabWAF() {
-  return (
-    <div className="flex-1 overflow-y-auto p-[10px] bg-[#080a0e]">
-      <div className="grid grid-cols-2 gap-2">
-        <OsintCard title="WAF Detection">
-          <KVRow
-            label="Detected"
-            value={wafInfo.detected ? 'Yes' : 'No'}
-            valueColor={wafInfo.detected ? 'text-red-400' : 'text-green-400'}
-          />
-          <KVRow label="Name" value={wafInfo.name} />
-          <KVRow label="Vendor" value={wafInfo.vendor} />
-          <KVRow label="Version" value={wafInfo.version} />
-        </OsintCard>
-        <OsintCard title="Fingerprints">
-          {wafInfo.fingerprints.map((f, i) => (
-            <div key={i} className="text-[10px] font-mono text-[#6b7a96]">
-              {f}
+        {/* Code Repos */}
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#ff6b35">Leaked Secrets in Repos</SectionHeader>
+          {codeRepos.map((repo, i) => (
+            <div key={i} className="mb-3 last:mb-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-mono text-[#0af]">{repo.repo}</span>
+                <span className="text-[8px] text-[#3a4558] font-mono">
+                  {repo.platform} · {repo.lastCommit}
+                </span>
+              </div>
+              {repo.secrets.map((s, si) => (
+                <div
+                  key={si}
+                  className="text-[9px] font-mono text-[#ff2d55] bg-[#ff2d5508] border border-[#ff2d5520] rounded px-2 py-1 mb-0.5 truncate"
+                >
+                  {s}
+                </div>
+              ))}
             </div>
           ))}
-        </OsintCard>
-        <OsintCard title="Bypass Hints" colSpan2>
-          <ul className="list-disc list-inside text-[10px] text-amber-400">
-            {wafInfo.bypassHints.map((h, i) => (
-              <li key={i}>{h}</li>
+        </div>
+
+        {/* Dark Web */}
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#ff2d55">Dark Web & Paste Leaks</SectionHeader>
+          {darkWebLeaks.map((l, i) => (
+            <div
+              key={i}
+              className="mb-2 last:mb-0 border rounded p-2"
+              style={{
+                borderColor: `${RISK_COLOR[l.risk]}25`,
+                background: `${RISK_COLOR[l.risk]}05`,
+              }}
+            >
+              <div className="flex items-center justify-between mb-0.5">
+                <span
+                  className="text-[10px] font-mono font-bold"
+                  style={{ color: RISK_COLOR[l.risk] }}
+                >
+                  {l.source}
+                </span>
+                <span className="text-[8px] text-[#2a3548] font-mono">{l.date}</span>
+              </div>
+              <div className="text-[9px] text-[#6a7a9a] leading-relaxed">{l.snippet}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Google Dorks */}
+        <div className="col-span-2 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#f5a623">Google Dork Results</SectionHeader>
+          <div className="grid grid-cols-3 gap-2">
+            {googleDorks.map((d, i) => (
+              <div key={i} className="bg-[#060810] border border-[#1c2333] rounded p-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-[#f5a623]">{d.type}</span>
+                  <span className="text-[9px] font-mono text-[#f5a623] bg-[#f5a62315] px-1 rounded">
+                    {d.results} hits
+                  </span>
+                </div>
+                <div className="text-[8px] font-mono text-[#2a3548] break-all mb-1">{d.query}</div>
+                {d.urls.map((u, ui) => (
+                  <div key={ui} className="text-[8.5px] text-[#0af] truncate">
+                    › {u}
+                  </div>
+                ))}
+              </div>
             ))}
-          </ul>
-        </OsintCard>
+          </div>
+        </div>
+
+        {/* Wayback */}
+        <div className="col-span-2 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#bf5af2">Wayback Machine Findings</SectionHeader>
+          <table className="w-full text-[10px] font-mono">
+            <thead>
+              <tr className="border-b border-[#1c2333]">
+                {['Date', 'URL Path', 'Security Finding'].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left p-1.5 text-[#2a3548] text-[9px] uppercase tracking-wider font-normal"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {waybackSnapshots.map((s, i) => (
+                <tr
+                  key={i}
+                  className="border-b border-[#0d1017] hover:bg-[#111827] transition-colors"
+                >
+                  <td className="p-1.5 text-[#3a4558]">{s.date}</td>
+                  <td className="p-1.5 text-[#0af]">{s.url}</td>
+                  <td className="p-1.5 text-[#8da0c0]">{s.finding}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TabIntel() {
+  return (
+    <div className="flex-1 overflow-y-auto p-3 bg-[#080b10]">
+      <div className="grid grid-cols-2 gap-2">
+        {/* Threat Intel */}
+        <div className="col-span-2 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#ff2d55">Threat Intelligence Feeds</SectionHeader>
+          <table className="w-full text-[10px] font-mono">
+            <thead>
+              <tr className="border-b border-[#1c2333]">
+                {['Source', 'Indicator', 'Detections', 'Verdict', 'Detail'].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left p-1.5 text-[#2a3548] text-[9px] uppercase tracking-wider font-normal"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {threatIntel.map((ti, i) => {
+                const vc =
+                  ti.verdict === 'malicious'
+                    ? '#ff2d55'
+                    : ti.verdict === 'suspicious'
+                      ? '#f5a623'
+                      : '#ff6b35';
+                return (
+                  <tr
+                    key={i}
+                    className="border-b border-[#0d1017] hover:bg-[#111827] transition-colors"
+                  >
+                    <td className="p-1.5 text-[#0af]">{ti.source}</td>
+                    <td className="p-1.5 text-[#8da0c0]">{ti.indicator}</td>
+                    <td className="p-1.5 font-bold" style={{ color: vc }}>
+                      {ti.detections}
+                    </td>
+                    <td className="p-1.5">
+                      <span className="uppercase font-bold text-[9px]" style={{ color: vc }}>
+                        {ti.verdict}
+                      </span>
+                    </td>
+                    <td className="p-1.5 text-[#4a5a7a] max-w-xs truncate">{ti.detail}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Social Intel */}
+        <div className="col-span-2 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#bf5af2">Social Intelligence (SOCMINT)</SectionHeader>
+          <div className="grid grid-cols-2 gap-2">
+            {socialIntel.map((s, i) => (
+              <div key={i} className="bg-[#060810] border border-[#1c2333] rounded p-2.5">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className="text-[9px] px-1.5 py-0.5 rounded font-bold font-mono"
+                    style={{
+                      background: '#bf5af215',
+                      color: '#bf5af2',
+                      border: '1px solid #bf5af230',
+                    }}
+                  >
+                    {s.platform}
+                  </span>
+                  <span className="text-[10px] font-semibold text-[#8da0c0]">{s.name}</span>
+                </div>
+                <div className="text-[9px] text-[#3a4558] font-mono mb-1">{s.role}</div>
+                <div className="text-[9px] text-[#6a7a9a] mb-1">{s.intel}</div>
+                <div className="text-[8px] text-[#2a3548] font-mono">{s.url}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Certificate Transparency */}
+        <div className="col-span-2 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#30d158">Certificate Transparency Log</SectionHeader>
+          {certTransparency.map((cert, i) => (
+            <div
+              key={i}
+              className="mb-2 last:mb-0 bg-[#060810] border border-[#1c2333] rounded p-2.5"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-mono text-[10px] font-bold text-[#0af]">
+                  {cert.commonName}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[8px] text-[#2a3548] font-mono">
+                    logged {cert.loggedAt}
+                  </span>
+                  <span className="text-[8px] text-[#2a3548] font-mono">
+                    expires {cert.notAfter}
+                  </span>
+                </div>
+              </div>
+              <div className="text-[9px] text-[#3a4558] mb-1">{cert.issuer}</div>
+              <div className="flex flex-wrap gap-1">
+                {cert.san.map((s) => (
+                  <span
+                    key={s}
+                    className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-[#0af10] border border-[#0af20] text-[#0af]"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* HTTP Headers */}
+        <div className="col-span-2 bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#f5a623">HTTP Response Headers</SectionHeader>
+          <div className="grid grid-cols-2 gap-x-4">
+            {Object.entries(httpHeaders).map(([k, v]) => {
+              const good = v.includes('✓'),
+                bad = v.includes('⚠️');
+              return (
+                <KV
+                  key={k}
+                  k={k}
+                  v={v}
+                  vc={good ? 'text-[#30d158]' : bad ? 'text-[#f5a623]' : 'text-[#6a7a9a]'}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* WHOIS */}
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#0af">WHOIS Registration</SectionHeader>
+          <KV k="Domain" v={whoisData.domain} vc="text-[#0af]" />
+          <KV k="Status" v={whoisData.status} />
+          <KV k="Registrar" v={whoisData.registrar.name} />
+          <KV k="Created" v={whoisData.dates.created} />
+          <KV k="Updated" v={whoisData.dates.updated} />
+          <KV k="Expires" v={whoisData.dates.expired} vc="text-[#f5a623]" />
+          <KV k="Registrant" v={whoisData.registrant.name} />
+          <KV k="Org" v={whoisData.registrant.organization} />
+          <KV
+            k="Location"
+            v={`${whoisData.registrant.city}, ${whoisData.registrant.state}, ${whoisData.registrant.country}`}
+          />
+          <KV k="Email" v={whoisData.registrant.email} vc="text-[#ff6b35]" />
+          <KV k="Phone" v={whoisData.registrant.phone} />
+        </div>
+
+        {/* Robots & Sitemap */}
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#30d158">Robots.txt / Sitemap</SectionHeader>
+          <div className="mb-3">
+            <div className="text-[8.5px] uppercase tracking-wider text-[#2a3548] font-mono mb-1">
+              Disallowed Paths
+            </div>
+            {['/admin', '/api/private', '/backup', '/jenkins', '/internal'].map((p) => (
+              <div
+                key={p}
+                className="text-[9px] font-mono text-[#ff6b35] flex items-center gap-1 mb-0.5"
+              >
+                <span className="text-[#ff2d55]">✗</span> {p}
+              </div>
+            ))}
+          </div>
+          <div>
+            <div className="text-[8.5px] uppercase tracking-wider text-[#2a3548] font-mono mb-1">
+              Sitemap URLs
+            </div>
+            {['/', 'about', 'contact', 'blog', 'privacy', 'terms', 'admin/login', 'api/docs'].map(
+              (p) => (
+                <div
+                  key={p}
+                  className="text-[9px] font-mono text-[#4a5a7a] flex items-center gap-1 mb-0.5"
+                >
+                  <span className="text-[#30d158]">›</span> phantom.tech/{p}
+                </div>
+              ),
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// 4. MAIN EXPORT
+// TERMINAL LOG (animated effect)
+// ============================================================================
+const LOG_LINES = [
+  '[+] Resolving DNS: phantom.tech → 198.51.100.78',
+  '[+] WHOIS lookup complete. Registrar: NameCheap',
+  '[+] Subdomain brute-force: 16 found (4 critical)',
+  '[+] Port scan (nmap -sV): 10 ports identified',
+  '[!] CRITICAL: Port 3306 (MySQL) exposed to 0.0.0.0',
+  '[!] CRITICAL: Port 6379 (Redis) no auth — CVE-2022-0543 (CVSS 10.0)',
+  '[!] CRITICAL: Jenkins 2.401.1 — auth bypass CVE-2023-27898',
+  '[+] Google dorks: 29 indexed results found',
+  '[!] S3 bucket phantom-backups: PUBLIC READ — customer_emails.csv exposed',
+  '[!] GitHub: phantom-security/backend — AWS_ACCESS_KEY_ID leaked in commit history',
+  '[!] Dark web: RDP access to phantom.tech infra for sale ($2500)',
+  '[+] Email harvest: 8 addresses found, 3 confirmed in breach data',
+  '[+] SSL: TLS 1.3, no critical misconfigs in cert chain',
+  '[+] WAF: Cloudflare Enterprise detected',
+  '[*] Scan complete. Risk score: 87/100 (CRITICAL)',
+];
+
+function TerminalLog() {
+  const [lines, setLines] = useState<string[]>([]);
+  const [cursor, setCursor] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (cursor >= LOG_LINES.length) return;
+    const t = setTimeout(
+      () => {
+        setLines((prev) => [...prev, LOG_LINES[cursor]]);
+        setCursor((c) => c + 1);
+      },
+      120 + Math.random() * 100,
+    );
+    return () => clearTimeout(t);
+  }, [cursor]);
+
+  useEffect(() => {
+    if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
+  }, [lines]);
+
+  return (
+    <div
+      ref={ref}
+      className="flex-1 overflow-y-auto p-3 bg-[#040608] font-mono text-[10px] leading-relaxed"
+    >
+      <div className="text-[#2a3548] mb-2">
+        ghost-recon v2.0.0 — target: {TARGET} — {SCAN_TIME}
+      </div>
+      {lines.map((line, i) => (
+        <div
+          key={i}
+          className={cn(
+            'mb-0.5',
+            line.startsWith('[!]')
+              ? 'text-[#ff2d55]'
+              : line.startsWith('[*]')
+                ? 'text-[#f5a623]'
+                : 'text-[#30d158]',
+          )}
+        >
+          {line}
+        </div>
+      ))}
+      {cursor < LOG_LINES.length && <span className="text-[#30d158] animate-pulse">█</span>}
+    </div>
+  );
+}
+
+// ============================================================================
+// MAIN EXPORT
 // ============================================================================
 const TABS = [
-  'Overview',
-  'DNS Enum',
-  'WHOIS',
-  'Breach Data',
-  'Email Harvest',
-  'Shodan',
-  'Google Dorks',
-  'Related Domains',
-  'HTTP Headers',
-  'WAF',
+  { id: 'overview', label: 'Overview', accent: '#0af' },
+  { id: 'ports', label: 'Ports & CVEs', accent: '#ff2d55' },
+  { id: 'dns', label: 'DNS', accent: '#30d158' },
+  { id: 'breach', label: 'Breach / Email', accent: '#f5a623' },
+  { id: 'exposure', label: 'Exposure', accent: '#ff6b35' },
+  { id: 'intel', label: 'WHOIS / TI / Certs', accent: '#bf5af2' },
+  { id: 'terminal', label: 'Scan Log', accent: '#30d158' },
 ] as const;
 
-export function Recon() {
-  const [activeTab, setActiveTab] = useState<string>(TABS[0]);
+type TabId = (typeof TABS)[number]['id'];
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'Overview':
+export function Recon() {
+  const [active, setActive] = useState<TabId>('overview');
+
+  const renderContent = () => {
+    switch (active) {
+      case 'overview':
         return <TabOverview />;
-      case 'DNS Enum':
-        return <TabDNSEnum />;
-      case 'WHOIS':
-        return <TabWHOIS />;
-      case 'Breach Data':
+      case 'ports':
+        return <TabPorts />;
+      case 'dns':
+        return <TabDNS />;
+      case 'breach':
         return <TabBreach />;
-      case 'Email Harvest':
-        return <TabEmailHarvest />;
-      case 'Shodan':
-        return <TabShodan />;
-      case 'Google Dorks':
-        return <TabGoogleDorks />;
-      case 'Related Domains':
-        return <TabRelatedDomains />;
-      case 'HTTP Headers':
-        return <TabHTTPHeaders />;
-      case 'WAF':
-        return <TabWAF />;
+      case 'exposure':
+        return <TabExposure />;
+      case 'intel':
+        return <TabIntel />;
+      case 'terminal':
+        return <TerminalLog />;
       default:
         return null;
     }
   };
 
+  const activeTab = TABS.find((t) => t.id === active)!;
+
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      <ModuleTabBar
-        tabs={TABS}
-        active={activeTab}
-        onTabChange={setActiveTab}
-        activeColor="text-cyan-400 border-cyan-400 bg-cyan-500/5"
-      />
-      <Toolbar>
-        <TbLabel>Target:</TbLabel>
-        <input
-          readOnly
-          value={TARGET}
-          className="h-6 w-52 bg-[#111520] border border-[#252e42] rounded text-cyan-400 text-[11px] px-2 outline-none font-mono"
-        />
-        <TbSep />
-        <ToolbarButton variant="cyan" onClick={() => alert('Mock: Run All Recon')}>
-          ▶ Run All
-        </ToolbarButton>
-        <ToolbarButton onClick={() => alert('Mock: DNS Enum')}>DNS Enum</ToolbarButton>
-        <ToolbarButton onClick={() => alert('Mock: Subdomain Brute')}>
-          Subdomain Brute
-        </ToolbarButton>
-        <ToolbarButton onClick={() => alert('Mock: Google Dork')}>Google Dork</ToolbarButton>
-        <ToolbarButton onClick={() => alert('Mock: Shodan')}>Shodan</ToolbarButton>
-        <ToolbarButton onClick={() => alert('Mock: HIBP')}>HIBP</ToolbarButton>
-        <TbSep />
-        <ToolbarButton className="ml-auto" onClick={() => alert('Export JSON')}>
-          Export JSON
-        </ToolbarButton>
-      </Toolbar>
-      {renderTabContent()}
+    <div
+      className="flex flex-col flex-1 overflow-hidden bg-[#080b10]"
+      style={{ fontFamily: '"JetBrains Mono", "Fira Code", ui-monospace, monospace' }}
+    >
+      {/* Header bar */}
+      <div className="flex items-center gap-0 px-3 h-[34px] bg-[#060810] border-b border-[#1c2333] shrink-0">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActive(tab.id)}
+            className={cn(
+              'h-full px-3 text-[9.5px] uppercase tracking-[0.1em] font-bold transition-all relative whitespace-nowrap',
+              active === tab.id ? 'text-[#c8d6f0]' : 'text-[#2a3548] hover:text-[#4a5a7a]',
+            )}
+          >
+            {tab.label}
+            {active === tab.id && (
+              <div
+                className="absolute bottom-0 left-0 right-0 h-px"
+                style={{ background: activeTab.accent }}
+              />
+            )}
+          </button>
+        ))}
+
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#ff2d55] animate-pulse" />
+            <span className="text-[9px] text-[#2a3548] font-mono">RISK 87/100</span>
+          </div>
+          <div className="w-px h-3 bg-[#1c2333]" />
+          <input
+            readOnly
+            value={TARGET}
+            className="h-5 w-36 bg-[#0d1017] border border-[#1c2333] rounded text-[#0af] text-[9.5px] px-2 outline-none font-mono"
+          />
+          <button className="h-5 px-2.5 bg-[#ff2d5515] border border-[#ff2d5530] text-[#ff2d55] text-[9px] font-bold uppercase tracking-wider rounded font-mono hover:bg-[#ff2d5525] transition-colors">
+            ▶ Run
+          </button>
+          <button className="h-5 px-2 bg-[#1c2333] border border-[#2a3548] text-[#4a5a7a] text-[9px] rounded font-mono hover:text-[#8da0c0] transition-colors">
+            Export
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {renderContent()}
     </div>
   );
 }

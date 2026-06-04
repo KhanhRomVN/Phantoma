@@ -2,7 +2,7 @@ import { cn } from '../../../../shared/lib/utils';
 import { NavModuleConfig, PhantomModule } from '../../types/types';
 import { useState as _useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import type { PhantomTarget, SubTarget } from '../../types/types';
+import { Settings as SettingsIcon, Crosshair as CrosshairIcon } from 'lucide-react';
 
 const NAV_MODULES: NavModuleConfig[] = [
   {
@@ -94,7 +94,7 @@ const NAV_MODULES: NavModuleConfig[] = [
 function NavLogo() {
   return (
     <div
-      className="w-9 h-9 rounded-lg border border-[#0099cc] bg-cyan-500/5 flex items-center justify-center mb-2 cursor-pointer shrink-0"
+      className="w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
       title="PHANTOM v2.5.0"
     >
       <svg
@@ -295,12 +295,9 @@ function NavIcon({ module }: { module: PhantomModule }) {
         </svg>
       );
     case 'settings':
-      return (
-        <svg {...p}>
-          <circle cx="8" cy="8" r="2" />
-          <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4" />
-        </svg>
-      );
+      return <SettingsIcon className="w-4 h-4" strokeWidth={1.3} />;
+    case 'target':
+      return <CrosshairIcon className="w-4 h-4" strokeWidth={1.3} />;
     default:
       return null;
   }
@@ -362,257 +359,25 @@ function NavButton({
   );
 }
 
-// ─── TargetSwitcher overlay ──────────────────────────────────────────────────
-
-const TYPE_ICON: Record<string, string> = {
-  website: '🌐',
-  server: '🖥',
-  app: '📱',
-  api: '⚡',
-  domain: '🔗',
-  network: '🔀',
-  device: '📡',
-};
-
-const RISK_COLOR = (score?: number) => {
-  if (!score) return 'text-[#6b7a96]';
-  if (score >= 80) return 'text-red-400';
-  if (score >= 50) return 'text-amber-400';
-  return 'text-green-400';
-};
-
-const STATUS_DOT: Record<string, string> = {
-  active: 'bg-cyan-400',
-  scanning: 'bg-amber-400 animate-pulse',
-  done: 'bg-green-400',
-  idle: 'bg-[#3d4a61]',
-  offline: 'bg-red-400',
-};
-
-function TargetSwitcherPanel({
-  targets,
-  activeTarget,
-  activeSubTarget,
-  onSwitchTarget,
-  onSwitchSubTarget,
-  onClose,
-}: {
-  targets: PhantomTarget[];
-  activeTarget: PhantomTarget;
-  activeSubTarget: SubTarget;
-  onSwitchTarget: (id: string) => void;
-  onSwitchSubTarget: (id: string) => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="absolute left-[52px] top-0 z-50 w-[320px] h-full bg-[#0d1117] border-r border-[#252e42] flex flex-col shadow-xl shadow-black/50 overflow-hidden">
-      {/* header */}
-      <div className="flex items-center gap-2 px-3 h-[52px] bg-[#0f1319] border-b border-[#252e42] shrink-0">
-        <svg
-          className="w-4 h-4 text-cyan-400 shrink-0"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        >
-          <circle cx="8" cy="8" r="5" />
-          <path d="M8 3v1M8 12v1M3 8h1M12 8h1" />
-          <circle cx="8" cy="8" r="1.5" fill="currentColor" />
-        </svg>
-        <span className="font-[Rajdhani,sans-serif] text-[13px] font-bold tracking-wider text-[#c5cfe0] uppercase flex-1">
-          Target Switcher
-        </span>
-        <button
-          onClick={onClose}
-          className="text-[#3d4a61] hover:text-[#c5cfe0] transition-colors text-lg leading-none"
-        >
-          ×
-        </button>
-      </div>
-
-      {/* target group list */}
-      <div className="flex-1 overflow-y-auto p-2 [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-thumb]:bg-[#252e42]">
-        {targets.map((tg) => (
-          <div key={tg.id} className="mb-3">
-            {/* group header */}
-            <button
-              onClick={() => onSwitchTarget(tg.id)}
-              className={cn(
-                'w-full flex items-center gap-2 px-2 py-2 rounded-md border transition-all text-left',
-                tg.id === activeTarget.id
-                  ? 'bg-cyan-500/8 border-cyan-500/25 text-cyan-400'
-                  : 'border-transparent text-[#c5cfe0] hover:bg-[#161b26] hover:border-[#1e2535]',
-              )}
-            >
-              <div
-                className={cn(
-                  'w-1.5 h-1.5 rounded-full shrink-0',
-                  tg.status === 'active'
-                    ? 'bg-green-400'
-                    : tg.status === 'paused'
-                      ? 'bg-amber-400'
-                      : 'bg-[#3d4a61]',
-                )}
-              />
-              <span className="text-[11px] font-semibold flex-1">{tg.name}</span>
-              <span className="text-[9px] text-[#3d4a61]">{tg.subTargets.length} targets</span>
-            </button>
-
-            {/* sub-targets — only show for active group */}
-            {tg.id === activeTarget.id && (
-              <div className="ml-3 mt-1 space-y-0.5 border-l border-[#1e2535] pl-2">
-                {tg.subTargets.map((st) => (
-                  <button
-                    key={st.id}
-                    onClick={() => onSwitchSubTarget(st.id)}
-                    className={cn(
-                      'w-full flex items-center gap-2 px-2 py-[5px] rounded border transition-all text-left',
-                      st.id === activeSubTarget.id
-                        ? 'bg-cyan-500/8 border-cyan-500/20 text-cyan-400'
-                        : 'border-transparent text-[#c5cfe0] hover:bg-[#161b26] hover:border-[#1e2535]',
-                    )}
-                  >
-                    <div
-                      className={cn('w-1.5 h-1.5 rounded-full shrink-0', STATUS_DOT[st.status])}
-                    />
-                    <span className="text-[9.5px] shrink-0 opacity-60">{TYPE_ICON[st.type]}</span>
-                    <span className="text-[11px] flex-1 truncate">{st.name}</span>
-                    {st.riskScore !== undefined && (
-                      <span className={cn('text-[9px] font-bold', RISK_COLOR(st.riskScore))}>
-                        {st.riskScore}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* add new target */}
-        <button className="w-full mt-1 px-2.5 py-2 rounded border border-dashed border-[#252e42] text-[10.5px] text-[#3d4a61] hover:border-cyan-500/40 hover:text-cyan-400 transition-all flex items-center justify-center gap-1.5">
-          <span>+</span> New Target Group
-        </button>
-      </div>
-
-      {/* active sub-target summary */}
-      <div className="px-3 py-2 border-t border-[#252e42] bg-[#0f1319] shrink-0">
-        <div className="text-[9px] text-[#3d4a61] uppercase tracking-widest mb-1">Active</div>
-        <div className="flex items-center gap-2">
-          <span className="text-[9.5px]">{TYPE_ICON[activeSubTarget.type]}</span>
-          <span className="text-[11px] font-semibold text-cyan-400 truncate">
-            {activeSubTarget.name}
-          </span>
-          <span
-            className={cn('ml-auto text-[9px] font-bold', RISK_COLOR(activeSubTarget.riskScore))}
-          >
-            {activeSubTarget.riskScore !== undefined ? `Risk ${activeSubTarget.riskScore}` : ''}
-          </span>
-        </div>
-        <div className="text-[10px] text-[#6b7a96] font-mono mt-0.5 truncate">
-          {activeSubTarget.address}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── DashboardButton ─────────────────────────────────────────────────────────
-
-function DashboardButton({
-  isOpen,
-  activeTarget,
-  onClick,
-}: {
-  isOpen: boolean;
-  activeTarget: PhantomTarget;
-  onClick: () => void;
-}) {
-  const [hovered, setHovered] = _useState(false);
-  const ref = useRef<HTMLButtonElement>(null);
-
-  return (
-    <>
-      <button
-        ref={ref}
-        onClick={onClick}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className={cn(
-          'relative w-9 h-9 rounded-lg border flex items-center justify-center transition-all shrink-0',
-          isOpen
-            ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
-            : 'border-transparent text-[#6b7a96] hover:text-[#c5cfe0] hover:bg-[#161b26] hover:border-[#1e2535]',
-        )}
-      >
-        <svg
-          className="w-4 h-4"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.3"
-        >
-          <circle cx="8" cy="8" r="5" />
-          <path d="M8 3v1M8 12v1M3 8h1M12 8h1" />
-          <circle cx="8" cy="8" r="1.5" fill="currentColor" />
-        </svg>
-        <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-400 border border-[#0f1319]" />
-      </button>
-
-      {hovered && (
-        <TooltipPortal anchorRef={ref}>
-          <div className="text-[11px] font-medium text-[#c5cfe0] font-[Rajdhani,sans-serif] tracking-wide">
-            Target Switcher
-          </div>
-          <div className="text-[10px] text-cyan-400 mt-0.5 max-w-[160px] truncate">
-            {activeTarget.name}
-          </div>
-        </TooltipPortal>
-      )}
-    </>
-  );
-}
-
 // ─── ModuleBar (main export) ─────────────────────────────────────────────────
-
-const SEP_AFTER = new Set<PhantomModule>(['dashboard', 'sqli', 'phishing', 'c2']);
-const Sep = () => <div className="w-7 h-px bg-[#1e2535] my-1 shrink-0" />;
 
 export function ModuleBar({
   active,
   onSelect,
-  targets,
-  activeTarget,
-  activeSubTarget,
-  onSwitchTarget,
-  onSwitchSubTarget,
 }: {
   active: PhantomModule;
   onSelect: (m: PhantomModule) => void;
-  targets: PhantomTarget[];
-  activeTarget: PhantomTarget;
-  activeSubTarget: SubTarget;
-  onSwitchTarget: (id: string) => void;
-  onSwitchSubTarget: (id: string) => void;
 }) {
-  const [switcherOpen, setSwitcherOpen] = _useState(false);
-
   return (
     <div className="relative">
-      <div className="w-[52px] shrink-0 bg-[#0f1319] border-r border-[#1e2535] flex flex-col items-center py-2 gap-0.5 z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0 h-full">
-        <NavLogo />
-        <Sep />
+      <div className="w-[52px] shrink-0 bg-[#0f1319] border-r border-[#1e2535] flex flex-col items-center z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0 h-full">
+        <div className="w-full h-[37px] flex items-center justify-center shrink-0">
+          <NavLogo />
+        </div>
+        <div className="w-full h-px bg-[#1e2535] shrink-0" />
 
-        {/* Dashboard / Target Switcher button — top of nav */}
-        <DashboardButton
-          isOpen={switcherOpen}
-          activeTarget={activeTarget}
-          onClick={() => setSwitcherOpen((o) => !o)}
-        />
-        <Sep />
-
-        {NAV_MODULES.map((item) => (
-          <>
+        <div className="flex flex-col items-center gap-0.5 w-full px-1.5 py-1.5">
+          {NAV_MODULES.map((item) => (
             <NavButton
               key={item.id}
               module={item.id}
@@ -620,44 +385,27 @@ export function ModuleBar({
               isActive={active === item.id}
               activeClass={item.activeClass}
               dotColor={item.dotColor}
-              onClick={() => {
-                onSelect(item.id);
-                setSwitcherOpen(false);
-              }}
+              onClick={() => onSelect(item.id)}
             />
-            {SEP_AFTER.has(item.id) && <Sep key={`sep-${item.id}`} />}
-          </>
-        ))}
-        <div className="mt-auto flex flex-col items-center gap-1">
-          <Sep />
+          ))}
+        </div>
+        <div className="mt-auto flex flex-col items-center gap-1 pb-2">
+          <NavButton
+            module={'target' as PhantomModule}
+            title="Target Manager"
+            isActive={active === 'target'}
+            activeClass="bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
+            onClick={() => onSelect('target' as PhantomModule)}
+          />
           <NavButton
             module={'settings' as PhantomModule}
             title="Settings"
             isActive={active === 'settings'}
             activeClass="bg-amber-500/10 text-amber-400 border-amber-500/30"
-            onClick={() => {
-              onSelect('settings' as PhantomModule);
-              setSwitcherOpen(false);
-            }}
+            onClick={() => onSelect('settings' as PhantomModule)}
           />
         </div>
       </div>
-
-      {/* Target Switcher overlay panel */}
-      {switcherOpen && (
-        <TargetSwitcherPanel
-          targets={targets}
-          activeTarget={activeTarget}
-          activeSubTarget={activeSubTarget}
-          onSwitchTarget={(id) => {
-            onSwitchTarget(id);
-          }}
-          onSwitchSubTarget={(id) => {
-            onSwitchSubTarget(id);
-          }}
-          onClose={() => setSwitcherOpen(false)}
-        />
-      )}
     </div>
   );
 }

@@ -20,7 +20,9 @@ import { Report } from './Report';
 import { Collab } from './Collab';
 import { C2 } from './C2';
 import { ViewDashboard } from './Dashboard';
-import { Settings, Stub } from './Stub';
+import { Stub } from './Stub';
+import { Setting } from './Setting';
+import { TargetManager } from './Target';
 
 // ─── Module title map (local, lightweight) ───────────────────────────────────
 
@@ -44,6 +46,7 @@ const MODULE_TITLE: Record<string, string> = {
   collab: 'Collaboration',
   c2: 'C2 / Operations',
   settings: 'Settings',
+  target: 'Target Manager',
 };
 
 // ─── StatusBar ───────────────────────────────────────────────────────────────
@@ -166,7 +169,9 @@ function ViewRouter({ module }: { module: PhantomModule }) {
     case 'c2':
       return <C2 />;
     case 'settings':
-      return <Settings />;
+      return <Setting />;
+    case 'target':
+      return <TargetManager />;
     default:
       return <Stub title={module} />;
   }

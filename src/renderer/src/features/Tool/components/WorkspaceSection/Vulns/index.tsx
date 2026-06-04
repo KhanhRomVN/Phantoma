@@ -1,5 +1,9 @@
 // src/renderer/src/features/Tool/components/WorkspaceSection/Vulns/index.tsx
-import { useState } from 'react';
+// ============================================================================
+// GHOST PROTOCOL — VULNERABILITY INTELLIGENCE DASHBOARD
+// Aesthetic: Terminal-noir · Tactical Security Panel
+// ============================================================================
+import { useState, useMemo } from 'react';
 import { cn } from '../../../../../shared/lib/utils';
 import {
   Badge,
@@ -11,10 +15,11 @@ import {
 } from '../../../../../core/components/ui';
 
 // ============================================================================
-// 1. MOCK DATA CHI TIẾT
+// 1. TYPES & MOCK DATA
 // ============================================================================
 
 type SeverityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+type Exploitability = 'EASY' | 'MODERATE' | 'HARD';
 
 interface Vulnerability {
   id: string;
@@ -24,32 +29,37 @@ interface Vulnerability {
   cvss: number;
   description: string;
   target: string;
+  port: number;
   component: string;
   impact: string;
   remediation: string;
-  references?: string[];
-  exploitability: 'EASY' | 'MODERATE' | 'HARD';
+  references: string[];
+  exploitability: Exploitability;
   published: string;
   inTheWild: boolean;
-  epss: number; // Exploit Prediction Scoring System
-  vector: string; // CVSS vector
+  epss: number;
+  vector: string;
+  category: string;
+  hasMetasploit: boolean;
+  hasPOC: boolean;
+  patchAvailable: boolean;
 }
 
-// Mock vulnerabilities – đa dạng, thực tế
 const mockVulns: Vulnerability[] = [
   {
     id: '1',
-    name: 'Log4Shell — Remote Code Execution',
+    name: 'Log4Shell — JNDI Remote Code Execution',
     cve: 'CVE-2021-44228',
     severity: 'CRITICAL',
     cvss: 10.0,
     description:
-      'Unauthenticated RCE via JNDI injection in Apache Log4j 2.x. Exploitable via any log-controlled user input. Widespread impact.',
-    target: '192.168.1.20:8080',
+      'Unauthenticated RCE via JNDI injection in Apache Log4j 2.x. Exploitable via any log-controlled user input such as User-Agent, X-Forwarded-For, or username fields.',
+    target: '192.168.1.20',
+    port: 8080,
     component: 'Apache Log4j 2.14.1',
-    impact: 'Complete system compromise, data exfiltration, ransomware deployment',
+    impact: 'Complete system compromise, persistent backdoor, lateral movement, data exfiltration',
     remediation:
-      'Upgrade Log4j to version 2.17.0 or later, remove JNDI lookup class, set LOG4J_FORMAT_MSG_NO_LOOKUPS=true',
+      'Upgrade Log4j to ≥ 2.17.0. Set LOG4J_FORMAT_MSG_NO_LOOKUPS=true as interim mitigation. Remove JndiLookup class from classpath.',
     references: [
       'https://nvd.nist.gov/vuln/detail/CVE-2021-44228',
       'https://www.lunasec.io/docs/blog/log4j-zero-day/',
@@ -59,421 +69,907 @@ const mockVulns: Vulnerability[] = [
     inTheWild: true,
     epss: 0.974,
     vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H',
+    category: 'RCE',
+    hasMetasploit: true,
+    hasPOC: true,
+    patchAvailable: true,
   },
   {
     id: '2',
-    name: 'EternalBlue — SMB Remote Code Execution',
+    name: 'EternalBlue — SMBv1 Remote Code Execution',
     cve: 'MS17-010',
     severity: 'CRITICAL',
     cvss: 9.8,
     description:
-      'SMBv1 vulnerability allowing unauthenticated remote code execution. Used in WannaCry and NotPetya ransomware campaigns.',
-    target: '192.168.1.10:445',
+      'SMBv1 buffer overflow allowing unauthenticated RCE as SYSTEM. Exploited by WannaCry & NotPetya. Self-propagating worm vector.',
+    target: '192.168.1.10',
+    port: 445,
     component: 'Windows SMBv1 (srv.sys)',
-    impact: 'Remote code execution as SYSTEM, wormable across networks',
-    remediation: 'Install security update KB4013389, disable SMBv1 via Group Policy or PowerShell',
-    references: [
-      'https://msrc.microsoft.com/update-guide/vulnerability/MS17-010',
-      'https://www.cisa.gov/known-exploited-vulnerabilities-catalog',
-    ],
+    impact: 'Remote code execution as SYSTEM, wormable lateral movement across flat networks',
+    remediation:
+      'Apply KB4013389. Disable SMBv1 via: Set-SmbServerConfiguration -EnableSMB1Protocol $false. Block port 445 at perimeter.',
+    references: ['https://msrc.microsoft.com/update-guide/vulnerability/MS17-010'],
     exploitability: 'EASY',
     published: '2017-03-14',
     inTheWild: true,
     epss: 0.987,
     vector: 'CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+    category: 'RCE',
+    hasMetasploit: true,
+    hasPOC: true,
+    patchAvailable: true,
   },
   {
     id: '3',
-    name: 'SQL Injection — Login Bypass',
-    cve: 'CWE-89',
-    severity: 'HIGH',
-    cvss: 8.1,
+    name: 'Redis — Unauthenticated RCE via Lua Sandbox Escape',
+    cve: 'CVE-2022-0543',
+    severity: 'CRITICAL',
+    cvss: 10.0,
     description:
-      'Unsanitized user input in /api/v1/login parameter "username". Classic UNION-based SQLi confirmed. DB: MySQL 5.7.',
-    target: 'target.corp.local/api/v1/login',
-    component: 'PHP 7.4.33 + MySQL 5.7',
-    impact: 'Authentication bypass, sensitive data disclosure (user credentials, PII)',
+      'Debian/Ubuntu Redis packages expose a Lua sandbox escape. Attacker with ability to run EVAL commands can escape the sandbox and execute arbitrary code on the host OS.',
+    target: '192.168.1.20',
+    port: 6379,
+    component: 'Redis 7.0.5 (Debian)',
+    impact: 'Full host RCE as redis user, privilege escalation via SUID binaries',
     remediation:
-      'Use parameterized queries/prepared statements, implement input validation, apply least privilege DB user',
-    references: [
-      'https://owasp.org/www-community/attacks/SQL_Injection',
-      'https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html',
-    ],
+      'Upgrade redis-server package. Require authentication (requirepass). Bind to 127.0.0.1 only. Use protected-mode yes.',
+    references: ['https://nvd.nist.gov/vuln/detail/CVE-2022-0543'],
     exploitability: 'EASY',
-    published: '2024-02-01',
+    published: '2022-02-18',
     inTheWild: true,
-    epss: 0.82,
-    vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N',
+    epss: 0.961,
+    vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H',
+    category: 'RCE',
+    hasMetasploit: true,
+    hasPOC: true,
+    patchAvailable: true,
   },
   {
     id: '4',
-    name: 'Stored XSS — Admin Comment',
-    cve: 'CWE-79',
-    severity: 'HIGH',
-    cvss: 7.5,
+    name: 'Jenkins — Unauthenticated Authentication Bypass',
+    cve: 'CVE-2023-27898',
+    severity: 'CRITICAL',
+    cvss: 9.1,
     description:
-      'Stored cross-site scripting in the blog comment field. JavaScript injected here executes in admin context. No CSP.',
-    target: 'target.corp.local/blog',
-    component: 'WordPress 5.9.3',
-    impact: 'Session hijacking, credential theft, defacement, malware distribution',
+      'Jenkins 2.401.1 allows unauthenticated attackers to read arbitrary files and execute code via crafted HTTP requests to the Stapler routing layer.',
+    target: '192.168.1.20',
+    port: 8080,
+    component: 'Jenkins 2.401.1',
+    impact: 'Pipeline compromise, source code exfiltration, supply chain attack vector',
     remediation:
-      'Encode output, implement CSP, use HTML sanitizers (HTMLPurifier), upgrade WordPress',
-    exploitability: 'MODERATE',
-    published: '2024-03-10',
+      'Upgrade to Jenkins 2.401.2 or 2.414.1 LTS. Enable matrix-based security. Restrict to localhost + VPN.',
+    references: ['https://www.jenkins.io/security/advisory/2023-06-14/'],
+    exploitability: 'EASY',
+    published: '2023-06-21',
     inTheWild: true,
-    epss: 0.65,
-    vector: 'CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N',
+    epss: 0.962,
+    vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N',
+    category: 'Auth Bypass',
+    hasMetasploit: false,
+    hasPOC: true,
+    patchAvailable: true,
   },
   {
     id: '5',
-    name: 'Insecure Direct Object Reference (IDOR)',
-    cve: 'CWE-639',
-    severity: 'MEDIUM',
-    cvss: 5.4,
-    description:
-      'Sequential user IDs exposed at /api/v1/users/{id}. No authorization check. Authenticated users can view any profile.',
-    target: 'api.target.corp.local',
-    component: 'REST API (Node.js + Express)',
-    impact: "Information disclosure (other users' personal data, email, role)",
-    remediation:
-      'Implement proper access control checks (user → resource ownership), use UUIDs instead of sequential IDs',
-    exploitability: 'EASY',
-    published: '2024-04-22',
-    inTheWild: false,
-    epss: 0.42,
-    vector: 'CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N',
-  },
-  {
-    id: '6',
-    name: 'Default Credentials — Jenkins',
-    cve: 'CWE-521',
-    severity: 'MEDIUM',
-    cvss: 6.2,
-    description:
-      'Jenkins instance accessible with default admin:admin credentials. Full pipeline access, build configuration, code deployment.',
-    target: 'jenkins.target.corp.local',
-    component: 'Jenkins 2.375',
-    impact: 'Unauthorized access to CI/CD pipeline, source code exposure, supply chain compromise',
-    remediation:
-      'Change default credentials, enforce strong password policy, enable MFA, restrict network access',
-    exploitability: 'EASY',
-    published: '2024-01-05',
-    inTheWild: true,
-    epss: 0.71,
-    vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N',
-  },
-  {
-    id: '7',
-    name: 'OpenSSH Pre-Auth Remote Code Execution',
+    name: 'OpenSSH — Pre-Auth Remote Code Execution',
     cve: 'CVE-2023-38408',
     severity: 'CRITICAL',
     cvss: 9.8,
     description:
-      'OpenSSH 8.9p1 Ubuntu 3ubuntu0.4 vulnerable to RCE via forwarded agent socket. Unauthenticated attacker can execute arbitrary code.',
-    target: '192.168.1.20:22',
+      'OpenSSH ssh-agent forwarding vulnerable to RCE. Malicious server can inject agent responses when victim connects via forwarded agent socket.',
+    target: '192.168.1.20',
+    port: 22,
     component: 'OpenSSH 8.9p1',
-    impact: 'Full remote code execution, privilege escalation to root',
+    impact: 'Full RCE on client machine that has ssh-agent forwarding enabled, credential theft',
     remediation:
-      'Upgrade openssh-server to version 8.9p1-3ubuntu0.5 or later, disable ssh-agent forwarding',
+      'Upgrade openssh-server ≥ 8.9p1-3ubuntu0.5. Disable ForwardAgent in ssh_config. Use ProxyJump instead.',
+    references: ['https://www.qualys.com/2023/07/19/cve-2023-38408/'],
     exploitability: 'MODERATE',
     published: '2023-07-19',
     inTheWild: true,
     epss: 0.93,
     vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+    category: 'RCE',
+    hasMetasploit: false,
+    hasPOC: true,
+    patchAvailable: true,
   },
   {
-    id: '8',
-    name: 'MySQL Anonymous Authentication',
-    cve: 'CWE-284',
-    severity: 'MEDIUM',
-    cvss: 5.8,
+    id: '6',
+    name: 'SQL Injection — Login Authentication Bypass',
+    cve: 'CWE-89',
+    severity: 'HIGH',
+    cvss: 8.1,
     description:
-      'MySQL 8.0.33 allows anonymous login with empty password. Attacker can query database without credentials.',
-    target: '192.168.1.20:3306',
-    component: 'MySQL 8.0.33',
-    impact: 'Unauthorized data access, information disclosure',
-    remediation: "Remove anonymous users: DELETE FROM mysql.user WHERE User=''; FLUSH PRIVILEGES;",
+      "UNION-based SQLi confirmed in /api/v1/login parameter 'username'. DB fingerprinted as MySQL 5.7. Full authentication bypass via ' OR '1'='1 payload.",
+    target: 'target.corp.local',
+    port: 443,
+    component: 'PHP 7.4.33 + MySQL 5.7',
+    impact: 'Authentication bypass, full database read, user credential extraction',
+    remediation:
+      'Use PDO prepared statements. Implement input validation. Apply principle of least privilege on DB user.',
+    references: ['https://owasp.org/www-community/attacks/SQL_Injection'],
     exploitability: 'EASY',
-    published: '2024-02-10',
-    inTheWild: false,
-    epss: 0.38,
-    vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N',
+    published: '2024-02-01',
+    inTheWild: true,
+    epss: 0.82,
+    vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N',
+    category: 'Injection',
+    hasMetasploit: false,
+    hasPOC: false,
+    patchAvailable: false,
   },
   {
-    id: '9',
-    name: 'BusyBox Telnetd RCE',
+    id: '7',
+    name: 'BusyBox telnetd — Remote Code Execution',
     cve: 'CVE-2022-30065',
     severity: 'HIGH',
     cvss: 8.9,
     description:
-      'BusyBox telnetd 1.33.2 vulnerable to RCE via specially crafted packet. Device running telnetd exposed to LAN.',
-    target: '192.168.1.30:23',
+      'BusyBox telnetd 1.33.2 vulnerable to heap overflow via specially crafted telnet option sequence. Unauthenticated RCE on affected IoT device.',
+    target: '192.168.1.30',
+    port: 23,
     component: 'BusyBox telnetd 1.33.2',
-    impact: 'Remote code execution as root on embedded device',
-    remediation: 'Disable telnet service, use SSH instead, upgrade busybox to >= 1.34.0',
+    impact: 'Remote code execution as root on embedded device, persistent implant',
+    remediation:
+      'Disable telnet, use SSH instead. Upgrade busybox to ≥ 1.34.0. Block port 23 at perimeter.',
+    references: ['https://nvd.nist.gov/vuln/detail/CVE-2022-30065'],
     exploitability: 'MODERATE',
     published: '2022-06-21',
     inTheWild: true,
     epss: 0.77,
     vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+    category: 'RCE',
+    hasMetasploit: false,
+    hasPOC: true,
+    patchAvailable: true,
+  },
+  {
+    id: '8',
+    name: 'Stored XSS — WordPress Admin Comment Field',
+    cve: 'CWE-79',
+    severity: 'HIGH',
+    cvss: 7.5,
+    description:
+      'Stored XSS in blog comment field. Injected JS executes in admin context on /wp-admin/edit-comments.php. No CSP header present. WordPress 5.9.3.',
+    target: 'target.corp.local',
+    port: 443,
+    component: 'WordPress 5.9.3',
+    impact: 'Admin session hijacking, credential theft, WordPress backdoor installation',
+    remediation:
+      'Upgrade WordPress. Implement strict CSP. Use HTMLPurifier for input sanitization. Output encode all user data.',
+    references: ['https://owasp.org/www-community/attacks/xss/'],
+    exploitability: 'MODERATE',
+    published: '2024-03-10',
+    inTheWild: true,
+    epss: 0.65,
+    vector: 'CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N',
+    category: 'XSS',
+    hasMetasploit: false,
+    hasPOC: false,
+    patchAvailable: true,
+  },
+  {
+    id: '9',
+    name: 'Default Credentials — Jenkins CI/CD',
+    cve: 'CWE-521',
+    severity: 'MEDIUM',
+    cvss: 6.2,
+    description:
+      'Jenkins accessible with factory-default admin:admin credentials. Full build configuration, pipeline read/write, plugin installation, code deployment access.',
+    target: 'jenkins.target.corp.local',
+    port: 8080,
+    component: 'Jenkins 2.375',
+    impact: 'Unauthorized CI/CD access, source code exposure, supply chain compromise vector',
+    remediation:
+      'Force credential rotation. Enable RBAC + MFA. Restrict Jenkins to internal network. Audit installed plugins.',
+    references: [],
+    exploitability: 'EASY',
+    published: '2024-01-05',
+    inTheWild: true,
+    epss: 0.71,
+    vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N',
+    category: 'Credential',
+    hasMetasploit: false,
+    hasPOC: false,
+    patchAvailable: false,
   },
   {
     id: '10',
-    name: 'Jenkins Authentication Bypass',
-    cve: 'CVE-2023-27898',
-    severity: 'CRITICAL',
-    cvss: 9.1,
+    name: 'IDOR — User Profile Data Exposure',
+    cve: 'CWE-639',
+    severity: 'MEDIUM',
+    cvss: 5.4,
     description:
-      'Jenkins 2.401.1 allows unauthenticated attackers to read arbitrary files and execute code via crafted HTTP requests.',
-    target: '192.168.1.20:8080',
-    component: 'Jenkins 2.401.1',
-    impact: 'Information disclosure, remote code execution, build pipeline compromise',
-    remediation: 'Upgrade Jenkins to version 2.401.2 or 2.414.1 LTS',
+      'Sequential user IDs at /api/v1/users/{id}. No ownership check — any authenticated user can access any other user record. Confirmed on IDs 1–50000.',
+    target: 'api.target.corp.local',
+    port: 443,
+    component: 'Node.js + Express REST API',
+    impact: 'Mass enumeration of PII (email, phone, role, address) for all registered users',
+    remediation:
+      'Enforce ownership checks server-side. Replace sequential IDs with UUIDs. Implement rate limiting on enumerable endpoints.',
+    references: ['https://owasp.org/www-project-web-security-testing-guide/'],
     exploitability: 'EASY',
-    published: '2023-06-21',
-    inTheWild: true,
-    epss: 0.96,
-    vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N',
+    published: '2024-04-22',
+    inTheWild: false,
+    epss: 0.42,
+    vector: 'CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N',
+    category: 'IDOR',
+    hasMetasploit: false,
+    hasPOC: false,
+    patchAvailable: false,
+  },
+  {
+    id: '11',
+    name: 'MySQL Anonymous Login Enabled',
+    cve: 'CWE-284',
+    severity: 'MEDIUM',
+    cvss: 5.8,
+    description:
+      'MySQL 8.0.33 allows anonymous login with empty password. Attacker can enumerate databases and query accessible tables without credentials.',
+    target: '192.168.1.20',
+    port: 3306,
+    component: 'MySQL 8.0.33',
+    impact: 'Unauthorized database read access, schema enumeration, information disclosure',
+    remediation:
+      "DELETE FROM mysql.user WHERE User=''; FLUSH PRIVILEGES; Enable require_secure_transport.",
+    references: [],
+    exploitability: 'EASY',
+    published: '2024-02-10',
+    inTheWild: false,
+    epss: 0.38,
+    vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N',
+    category: 'Credential',
+    hasMetasploit: false,
+    hasPOC: false,
+    patchAvailable: false,
+  },
+  {
+    id: '12',
+    name: 'Elasticsearch — Unauthenticated Data Access',
+    cve: 'CWE-306',
+    severity: 'LOW',
+    cvss: 3.7,
+    description:
+      'Elasticsearch 8.5.0 running without X-Pack security. All indices accessible via HTTP REST API without authentication from internal network.',
+    target: '192.168.1.20',
+    port: 9200,
+    component: 'Elasticsearch 8.5.0',
+    impact: 'Index enumeration, full data read from all indices on internal network',
+    remediation:
+      'Enable X-Pack Security. Set xpack.security.enabled: true. Bind to localhost or VPN interface only.',
+    references: [],
+    exploitability: 'EASY',
+    published: '2024-03-01',
+    inTheWild: false,
+    epss: 0.18,
+    vector: 'CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N',
+    category: 'Auth Missing',
+    hasMetasploit: false,
+    hasPOC: false,
+    patchAvailable: false,
   },
 ];
 
-// CVE Search mock results
 const cveSearchResults = [
   {
     cve: 'CVE-2024-38812',
-    description: 'Apache Tomcat request smuggling',
+    description: 'Apache Tomcat HTTP/2 request smuggling allows backend bypass',
     published: '2024-05-15',
     cvss: 7.5,
     severity: 'HIGH' as SeverityLevel,
-    affectedProduct: 'Tomcat 9.0.80',
+    product: 'Tomcat 9.0.80',
+    epss: 0.44,
   },
   {
     cve: 'CVE-2024-21413',
-    description: 'Microsoft Outlook RCE via email preview',
+    description: 'Microsoft Outlook MSHTML RCE via malicious email link preview',
     published: '2024-02-13',
     cvss: 9.8,
     severity: 'CRITICAL' as SeverityLevel,
-    affectedProduct: 'Outlook 2016',
+    product: 'Outlook 2016+',
+    epss: 0.71,
   },
   {
     cve: 'CVE-2024-3400',
-    description: 'Palo Alto GlobalProtect command injection',
+    description: 'Palo Alto GlobalProtect OS command injection via crafted session ID',
     published: '2024-04-12',
     cvss: 10.0,
     severity: 'CRITICAL' as SeverityLevel,
-    affectedProduct: 'PAN-OS 11.0',
+    product: 'PAN-OS 11.0',
+    epss: 0.97,
+  },
+  {
+    cve: 'CVE-2024-6387',
+    description: 'OpenSSH regreSSHion — race condition in sigalrm handler allows RCE',
+    published: '2024-07-01',
+    cvss: 8.1,
+    severity: 'HIGH' as SeverityLevel,
+    product: 'OpenSSH < 9.8',
+    epss: 0.88,
+  },
+  {
+    cve: 'CVE-2024-23897',
+    description: 'Jenkins CLI path traversal arbitrary file read via args4j',
+    published: '2024-01-24',
+    cvss: 9.8,
+    severity: 'CRITICAL' as SeverityLevel,
+    product: 'Jenkins < 2.442',
+    epss: 0.95,
   },
 ];
 
-// Reports mock data
 const reports = [
   {
     id: 'RPT-001',
-    name: 'Executive Summary - CyberCorp',
+    name: 'Executive Summary — CyberCorp Q2',
     date: '2025-05-20',
     findings: 27,
     critical: 3,
     high: 7,
     medium: 12,
     low: 5,
+    status: 'Final',
   },
   {
     id: 'RPT-002',
-    name: 'Technical Appendix - Full Scan Results',
+    name: 'Full Technical Appendix — Internal Scan',
     date: '2025-05-15',
     findings: 142,
     critical: 8,
     high: 23,
     medium: 45,
     low: 66,
+    status: 'Draft',
   },
   {
     id: 'RPT-003',
-    name: 'Remediation Roadmap',
+    name: 'Remediation Roadmap — Priority Matrix',
     date: '2025-05-10',
     findings: 27,
     critical: 3,
     high: 7,
     medium: 12,
     low: 5,
+    status: 'Final',
+  },
+  {
+    id: 'RPT-004',
+    name: 'Red Team Assessment — Network Segment B',
+    date: '2025-04-28',
+    findings: 54,
+    critical: 11,
+    high: 18,
+    medium: 16,
+    low: 9,
+    status: 'Final',
   },
 ];
 
 // ============================================================================
-// 2. UI COMPONENTS
+// 2. DESIGN TOKENS
+// ============================================================================
+const SEV_COLOR: Record<SeverityLevel, string> = {
+  CRITICAL: '#c084fc',
+  HIGH: '#ff3b5c',
+  MEDIUM: '#ffaa00',
+  LOW: '#00d4ff',
+};
+const SEV_BG: Record<SeverityLevel, string> = {
+  CRITICAL: 'rgba(192,132,252,0.08)',
+  HIGH: 'rgba(255,59,92,0.08)',
+  MEDIUM: 'rgba(255,170,0,0.08)',
+  LOW: 'rgba(0,212,255,0.08)',
+};
+const SEV_STROKE: Record<SeverityLevel, string> = {
+  CRITICAL: '#c084fc',
+  HIGH: '#ff3b5c',
+  MEDIUM: '#ffaa00',
+  LOW: '#00d4ff',
+};
+const CAT_COLOR: Record<string, string> = {
+  RCE: '#ff3b5c',
+  Injection: '#ff6b35',
+  XSS: '#f5a623',
+  'Auth Bypass': '#c084fc',
+  Credential: '#00d4ff',
+  IDOR: '#30d158',
+  'Auth Missing': '#4a9eff',
+};
+
+// ============================================================================
+// 3. SHARED SMALL COMPONENTS
 // ============================================================================
 
-const CIRCUMFERENCE = 163.4;
-
-const CVSS_COLOR = (score: number) => {
-  if (score >= 9) return 'text-purple-400';
-  if (score >= 7) return 'text-red-400';
-  if (score >= 4) return 'text-amber-400';
-  return 'text-cyan-400';
-};
-
-const CVSS_STROKE = (score: number) => {
-  if (score >= 9) return '#a855f7';
-  if (score >= 7) return '#ff3b5c';
-  if (score >= 4) return '#ffaa00';
-  return '#00d4ff';
-};
-
-function CvssRing({ score, severity }: { score: number; severity: SeverityLevel }) {
-  const offset = CIRCUMFERENCE - (score / 10) * CIRCUMFERENCE;
+function SectionDivider({ label, accent = '#3d4a61' }: { label: string; accent?: string }) {
   return (
-    <div className="flex flex-col items-center mb-4">
-      <div className="relative w-16 h-16 flex items-center justify-center mb-1">
-        <svg className="absolute inset-0" width="64" height="64" viewBox="0 0 64 64">
-          <circle cx="32" cy="32" r="26" fill="none" stroke="#252e42" strokeWidth="5" />
-          <circle
-            cx="32"
-            cy="32"
-            r="26"
-            fill="none"
-            stroke={CVSS_STROKE(score)}
-            strokeWidth="5"
-            strokeDasharray={CIRCUMFERENCE}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            transform="rotate(-90 32 32)"
-          />
-        </svg>
-        <span className={cn('text-xl font-bold', CVSS_COLOR(score))}>{score}</span>
-      </div>
-      <div className="text-[9.5px] text-[#6b7a96]">CVSS 3.1 — {severity}</div>
+    <div className="flex items-center gap-1.5 mb-1.5">
+      <div className="w-0.5 h-3 rounded-full" style={{ background: accent }} />
+      <span
+        className="text-[8.5px] font-bold tracking-[0.14em] uppercase font-mono"
+        style={{ color: accent }}
+      >
+        {label}
+      </span>
+      <div
+        className="flex-1 h-px"
+        style={{ background: `linear-gradient(to right, ${accent}40, transparent)` }}
+      />
     </div>
   );
 }
 
-function VulnCard({
-  vuln,
-  selected,
+function MiniPill({ color, children }: { color: string; children: React.ReactNode }) {
+  return (
+    <span
+      className="inline-flex items-center text-[8px] font-bold font-mono px-1.5 py-px rounded-sm tracking-wider uppercase"
+      style={{ color, border: `1px solid ${color}35`, background: `${color}10` }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function TogglePill({
+  label,
+  active,
+  color,
+  count,
   onClick,
 }: {
-  vuln: Vulnerability;
-  selected?: boolean;
-  onClick?: () => void;
+  label: SeverityLevel;
+  active: boolean;
+  color: string;
+  count: number;
+  onClick: () => void;
 }) {
-  const barColor =
-    vuln.cvss >= 9
-      ? 'bg-purple-400'
-      : vuln.cvss >= 7
-        ? 'bg-red-400'
-        : vuln.cvss >= 4
-          ? 'bg-amber-400'
-          : 'bg-cyan-400';
   return (
-    <div
+    <button
       onClick={onClick}
-      className={cn(
-        'bg-[#111520] border rounded-md p-2.5 mb-2 cursor-pointer transition-all',
-        selected ? 'border-cyan-500/30 bg-cyan-500/4' : 'border-[#1e2535] hover:border-[#252e42]',
-      )}
+      className="flex items-center gap-1 px-2 py-1 rounded-sm text-[9px] font-bold font-mono uppercase tracking-wider transition-all"
+      style={{
+        background: active ? `${color}15` : 'transparent',
+        border: `1px solid ${active ? color + '50' : '#1e2535'}`,
+        color: active ? color : '#3d4a61',
+      }}
     >
-      <div className="flex items-center gap-2 mb-1.5">
-        <SeverityPill level={vuln.severity} />
-        <span className="text-[12px] font-semibold text-[#c5cfe0] flex-1 min-w-0 truncate">
-          {vuln.name}
-        </span>
-        <span className="text-[10px] text-[#6b7a96] shrink-0 font-mono">{vuln.cve}</span>
-      </div>
-      <p className="text-[10.5px] text-[#6b7a96] leading-relaxed mb-1.5 line-clamp-2">
-        {vuln.description}
-      </p>
-      <div className="flex items-center gap-2 text-[10px] text-[#3d4a61]">
-        <span className="truncate">{vuln.target}</span>
-        <span>·</span>
-        <span className="truncate">{vuln.component}</span>
-        <div
-          className="flex-1 h-[3px] bg-[#252e42] rounded overflow-hidden ml-2 shrink-0"
-          style={{ minWidth: 40 }}
+      <span
+        className="w-1.5 h-1.5 rounded-full shrink-0"
+        style={{ background: active ? color : '#252e42' }}
+      />
+      {label}
+      <span
+        className="ml-0.5 px-1 rounded-sm"
+        style={{ background: active ? `${color}20` : '#111520', color: active ? color : '#3d4a61' }}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+// ============================================================================
+// 4. SVG CHARTS
+// ============================================================================
+
+function CvssGauge({ score, severity }: { score: number; severity: SeverityLevel }) {
+  const c = SEV_STROKE[severity];
+  const r = 30,
+    circ = 2 * Math.PI * r;
+  const dash = (score / 10) * circ;
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <svg viewBox="0 0 72 72" className="w-[68px] h-[68px]">
+        <circle cx="36" cy="36" r={r} fill="none" stroke="#151d2e" strokeWidth="7" />
+        <circle
+          cx="36"
+          cy="36"
+          r={r}
+          fill="none"
+          stroke={c}
+          strokeWidth="7"
+          strokeDasharray={`${dash} ${circ}`}
+          strokeLinecap="round"
+          transform="rotate(-90 36 36)"
+          style={{ filter: `drop-shadow(0 0 5px ${c}90)` }}
+        />
+        <text
+          x="36"
+          y="32"
+          textAnchor="middle"
+          fontSize="14"
+          fontWeight="bold"
+          fill={c}
+          fontFamily="monospace"
         >
-          <div
-            className={cn('h-full rounded', barColor)}
-            style={{ width: `${(vuln.cvss / 10) * 100}%` }}
+          {score}
+        </text>
+        <text x="36" y="44" textAnchor="middle" fontSize="6" fill="#3d4a61" fontFamily="monospace">
+          CVSS 3.1
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+function EpssBar({ value }: { value: number }) {
+  const pct = value * 100;
+  const color = pct >= 80 ? '#ff3b5c' : pct >= 50 ? '#ffaa00' : pct >= 20 ? '#00d4ff' : '#30d158';
+  return (
+    <div className="flex items-center gap-1.5">
+      <div
+        className="flex-1 h-[4px] rounded-full overflow-hidden"
+        style={{ background: '#151d2e' }}
+      >
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${pct}%`,
+            background: `linear-gradient(to right, ${color}80, ${color})`,
+            boxShadow: `0 0 6px ${color}60`,
+          }}
+        />
+      </div>
+      <span className="text-[9px] font-bold font-mono w-9 text-right" style={{ color }}>
+        {pct.toFixed(1)}%
+      </span>
+    </div>
+  );
+}
+
+function SeverityDonut({ vulns }: { vulns: Vulnerability[] }) {
+  const counts = {
+    CRITICAL: vulns.filter((v) => v.severity === 'CRITICAL').length,
+    HIGH: vulns.filter((v) => v.severity === 'HIGH').length,
+    MEDIUM: vulns.filter((v) => v.severity === 'MEDIUM').length,
+    LOW: vulns.filter((v) => v.severity === 'LOW').length,
+  };
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const r = 32,
+    circ = 2 * Math.PI * r;
+  let offset = 0;
+  const segs = (Object.keys(counts) as SeverityLevel[]).map((sev) => {
+    const dash = (counts[sev] / total) * circ;
+    const seg = { sev, count: counts[sev], dash, offset };
+    offset += dash + 1.5; // small gap
+    return seg;
+  });
+  return (
+    <div className="flex items-center gap-3">
+      <svg viewBox="0 0 80 80" className="w-16 h-16 shrink-0">
+        {segs.map((s) => (
+          <circle
+            key={s.sev}
+            cx="40"
+            cy="40"
+            r={r}
+            fill="none"
+            stroke={SEV_COLOR[s.sev]}
+            strokeWidth="9"
+            strokeDasharray={`${s.dash} ${circ}`}
+            strokeDashoffset={-s.offset}
+            transform="rotate(-90 40 40)"
+            strokeLinecap="butt"
           />
-        </div>
-        <span className={cn('font-bold shrink-0', CVSS_COLOR(vuln.cvss))}>{vuln.cvss}</span>
+        ))}
+        <text
+          x="40"
+          y="37"
+          textAnchor="middle"
+          fontSize="12"
+          fontWeight="bold"
+          fill="#c5cfe0"
+          fontFamily="monospace"
+        >
+          {total}
+        </text>
+        <text
+          x="40"
+          y="48"
+          textAnchor="middle"
+          fontSize="5.5"
+          fill="#3d4a61"
+          fontFamily="monospace"
+        >
+          TOTAL
+        </text>
+      </svg>
+      <div className="flex flex-col gap-0.5">
+        {(Object.keys(counts) as SeverityLevel[]).map((sev) => (
+          <div key={sev} className="flex items-center gap-1.5">
+            <div
+              className="w-1.5 h-1.5 rounded-sm shrink-0"
+              style={{ background: SEV_COLOR[sev] }}
+            />
+            <span className="text-[8.5px] font-mono w-14" style={{ color: SEV_COLOR[sev] }}>
+              {sev}
+            </span>
+            <span className="text-[9px] font-bold font-mono" style={{ color: SEV_COLOR[sev] }}>
+              {counts[sev]}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <div className="text-[9.5px] font-bold text-[#3d4a61] uppercase tracking-[0.09em] pb-[5px] border-b border-[#1e2535] mb-[6px]">
-    {children}
-  </div>
-);
-
-function VulnDetails({ vuln }: { vuln: Vulnerability }) {
+function CategoryBar({ vulns }: { vulns: Vulnerability[] }) {
+  const cats = useMemo(() => {
+    const m: Record<string, number> = {};
+    vulns.forEach((v) => {
+      m[v.category] = (m[v.category] ?? 0) + 1;
+    });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  }, [vulns]);
+  const max = cats[0]?.[1] ?? 1;
   return (
-    <div className="flex flex-col bg-[#141924] overflow-hidden w-[35%]">
-      <div className="flex items-center px-3 h-8 border-b border-[#1e2535] bg-[#0f1319] shrink-0">
-        <span className="text-[10.5px] font-bold text-[#6b7a96] uppercase tracking-[0.08em]">
-          Details
-        </span>
-      </div>
-      <div className="flex-1 overflow-y-auto p-3">
-        <CvssRing score={vuln.cvss} severity={vuln.severity} />
+    <div className="space-y-[5px]">
+      {cats.map(([cat, count]) => {
+        const c = CAT_COLOR[cat] ?? '#4a5a7a';
+        return (
+          <div key={cat} className="flex items-center gap-2">
+            <span className="text-[8.5px] font-mono w-20 shrink-0" style={{ color: c }}>
+              {cat}
+            </span>
+            <div
+              className="flex-1 h-[4px] rounded-full overflow-hidden"
+              style={{ background: '#151d2e' }}
+            >
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${(count / max) * 100}%`, background: c }}
+              />
+            </div>
+            <span className="text-[8.5px] font-mono w-4 text-right" style={{ color: c }}>
+              {count}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
-        <div className="mb-3">
-          <SectionTitle>Identifiers</SectionTitle>
-          <KVRow label="CVE ID" value={vuln.cve} valueColor="text-cyan-400" />
-          <KVRow label="CVSS Vector" value={vuln.vector} valueColor="text-[#6b7a96]" />
-          <KVRow label="EPSS" value={`${(vuln.epss * 100).toFixed(1)}% (exploit probability)`} />
+function EpssScatterPlot({ vulns }: { vulns: Vulnerability[] }) {
+  const W = 220,
+    H = 90;
+  const px = (v: Vulnerability) => v.epss * (W - 16) + 8;
+  const py = (v: Vulnerability) => H - (v.cvss / 10) * (H - 16) - 8;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full">
+      {/* grid */}
+      {[0.25, 0.5, 0.75].map((x) => (
+        <line
+          key={x}
+          x1={x * (W - 16) + 8}
+          y1="4"
+          x2={x * (W - 16) + 8}
+          y2={H - 4}
+          stroke="#151d2e"
+          strokeWidth="0.5"
+        />
+      ))}
+      {[3, 5, 7, 9].map((y) => {
+        const yy = H - (y / 10) * (H - 16) - 8;
+        return (
+          <line key={y} x1="8" y1={yy} x2={W - 8} y2={yy} stroke="#151d2e" strokeWidth="0.5" />
+        );
+      })}
+      {/* axis labels */}
+      <text
+        x={W / 2}
+        y={H - 1}
+        textAnchor="middle"
+        fontSize="5"
+        fill="#252e42"
+        fontFamily="monospace"
+      >
+        EPSS →
+      </text>
+      <text
+        x="3"
+        y={H / 2}
+        textAnchor="middle"
+        fontSize="5"
+        fill="#252e42"
+        fontFamily="monospace"
+        transform={`rotate(-90, 3, ${H / 2})`}
+      >
+        CVSS
+      </text>
+      {/* dots */}
+      {vulns.map((v) => (
+        <g key={v.id}>
+          <circle
+            cx={px(v)}
+            cy={py(v)}
+            r="3.5"
+            fill={`${SEV_COLOR[v.severity]}30`}
+            stroke={SEV_COLOR[v.severity]}
+            strokeWidth="0.8"
+            style={{ filter: `drop-shadow(0 0 3px ${SEV_COLOR[v.severity]}80)` }}
+          />
+          {v.hasMetasploit && <circle cx={px(v)} cy={py(v)} r="1.5" fill={SEV_COLOR[v.severity]} />}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+// ============================================================================
+// 5. VULN DETAIL PANEL
+// ============================================================================
+
+function VulnDetailPanel({ vuln }: { vuln: Vulnerability }) {
+  return (
+    <div
+      className="flex flex-col bg-[#0c1018] overflow-hidden"
+      style={{ width: '34%', minWidth: 260, borderLeft: '1px solid #1e2535' }}
+    >
+      {/* Panel header */}
+      <div
+        className="flex items-center justify-between px-3 h-8 shrink-0"
+        style={{ background: '#0a0e16', borderBottom: '1px solid #1e2535' }}
+      >
+        <span className="text-[9px] font-bold tracking-[0.12em] uppercase font-mono text-[#3d4a61]">
+          Vuln Detail
+        </span>
+        <MiniPill color={SEV_COLOR[vuln.severity]}>{vuln.severity}</MiniPill>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 py-2.5 space-y-3">
+        {/* CVSS gauge + name */}
+        <div className="flex items-start gap-3">
+          <CvssGauge score={vuln.cvss} severity={vuln.severity} />
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-bold leading-tight mb-1" style={{ color: '#c5cfe0' }}>
+              {vuln.name}
+            </div>
+            <div className="text-[9px] font-mono mb-1" style={{ color: '#00d4ff' }}>
+              {vuln.cve}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {vuln.hasMetasploit && <MiniPill color="#c084fc">MSF</MiniPill>}
+              {vuln.hasPOC && <MiniPill color="#ff3b5c">POC</MiniPill>}
+              {vuln.inTheWild && <MiniPill color="#ff6b35">In Wild</MiniPill>}
+              {vuln.patchAvailable && <MiniPill color="#30d158">Patch</MiniPill>}
+            </div>
+          </div>
+        </div>
+
+        {/* EPSS */}
+        <div>
+          <SectionDivider label="Exploit Probability (EPSS)" accent="#3d4a61" />
+          <EpssBar value={vuln.epss} />
+          <div className="text-[8px] font-mono mt-0.5" style={{ color: '#252e42' }}>
+            {vuln.epss >= 0.9
+              ? 'Very High — exploitation very likely in 30 days'
+              : vuln.epss >= 0.5
+                ? 'High — active exploitation expected'
+                : 'Moderate — monitor closely'}
+          </div>
+        </div>
+
+        {/* Identifiers */}
+        <div>
+          <SectionDivider label="Identifiers" accent="#3d4a61" />
+          <KVRow label="CVE" value={vuln.cve} valueColor="text-cyan-400" />
+          <KVRow label="Category" value={vuln.category} />
           <KVRow label="Published" value={vuln.published} />
           <KVRow
             label="In the wild"
-            value={vuln.inTheWild ? 'YES — Active exploitation' : 'No known active exploitation'}
+            value={vuln.inTheWild ? '✓ Active exploitation' : '✗ Not observed'}
             valueColor={vuln.inTheWild ? 'text-red-400' : 'text-green-400'}
           />
           <KVRow
             label="Exploitability"
             value={vuln.exploitability}
-            valueColor={vuln.exploitability === 'EASY' ? 'text-red-400' : 'text-amber-400'}
+            valueColor={
+              vuln.exploitability === 'EASY'
+                ? 'text-red-400'
+                : vuln.exploitability === 'MODERATE'
+                  ? 'text-amber-400'
+                  : 'text-green-400'
+            }
           />
         </div>
 
-        <div className="mb-3">
-          <SectionTitle>Affected Assets</SectionTitle>
-          <KVRow label="Target" value={vuln.target} />
+        {/* Target */}
+        <div>
+          <SectionDivider label="Target" accent="#3d4a61" />
+          <KVRow label="Host" value={vuln.target} />
+          <KVRow label="Port" value={`${vuln.port}`} />
           <KVRow label="Component" value={vuln.component} />
         </div>
 
-        <div className="mb-3">
-          <SectionTitle>Impact</SectionTitle>
-          <div className="text-[10.5px] text-[#c5cfe0] mb-2">{vuln.impact}</div>
-        </div>
-
-        <div className="mb-3">
-          <SectionTitle>Remediation</SectionTitle>
-          <div className="text-[10.5px] text-green-400 mb-2">{vuln.remediation}</div>
-        </div>
-
-        <div className="mb-3">
-          <SectionTitle>References</SectionTitle>
-          {(vuln.references ?? []).map((ref, i) => (
-            <div key={i} className="text-[10px] text-cyan-400 mb-1 truncate">
-              {ref}
-            </div>
-          ))}
-        </div>
-
+        {/* CVSS Vector */}
         <div>
-          <SectionTitle>Actions</SectionTitle>
-          <ActionButton variant="red">
-            <span className="opacity-40 text-xs mr-1">›</span> Launch Exploit Module
-          </ActionButton>
-          <ActionButton variant="cyan">
-            <span className="opacity-40 text-xs mr-1">›</span> Open in Metasploit
-          </ActionButton>
-          <ActionButton variant="purple">
-            <span className="opacity-40 text-xs mr-1">›</span> Send to Post-Exploit
-          </ActionButton>
-          <ActionButton>
-            <span className="opacity-40 text-xs mr-1">›</span> Add to Report
-          </ActionButton>
+          <SectionDivider label="CVSS Vector" accent="#3d4a61" />
+          <div
+            className="text-[8px] font-mono break-all leading-relaxed p-1.5 rounded"
+            style={{ background: '#0a0e16', border: '1px solid #1e2535', color: '#3d4a61' }}
+          >
+            {vuln.vector}
+          </div>
+        </div>
+
+        {/* Impact */}
+        <div>
+          <SectionDivider label="Impact" accent="#ff3b5c" />
+          <p className="text-[9.5px] leading-relaxed" style={{ color: '#c5cfe0' }}>
+            {vuln.impact}
+          </p>
+        </div>
+
+        {/* Remediation */}
+        <div>
+          <SectionDivider label="Remediation" accent="#30d158" />
+          <p className="text-[9.5px] leading-relaxed" style={{ color: '#30d158' }}>
+            {vuln.remediation}
+          </p>
+        </div>
+
+        {/* References */}
+        {vuln.references.length > 0 && (
+          <div>
+            <SectionDivider label="References" accent="#3d4a61" />
+            {vuln.references.map((ref, i) => (
+              <div
+                key={i}
+                className="text-[8.5px] font-mono truncate mb-0.5"
+                style={{ color: '#00d4ff' }}
+              >
+                › {ref}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div>
+          <SectionDivider label="Actions" accent="#3d4a61" />
+          <div className="grid grid-cols-2 gap-1">
+            {[
+              {
+                label: '▶ Launch Exploit',
+                variant: 'red' as const,
+                enabled: vuln.hasMetasploit || vuln.hasPOC,
+              },
+              { label: '⬡ Open Metasploit', variant: 'cyan' as const, enabled: vuln.hasMetasploit },
+              { label: '⊕ Post-Exploit', variant: 'purple' as const, enabled: true },
+              { label: '+ Add to Report', variant: undefined, enabled: true },
+            ].map((a, i) => (
+              <button
+                key={i}
+                disabled={!a.enabled}
+                className="py-1.5 rounded text-[8.5px] font-bold font-mono uppercase tracking-wider transition-all disabled:opacity-30"
+                style={{
+                  background: a.enabled
+                    ? a.variant === 'red'
+                      ? 'rgba(255,59,92,0.12)'
+                      : a.variant === 'cyan'
+                        ? 'rgba(0,212,255,0.10)'
+                        : a.variant === 'purple'
+                          ? 'rgba(192,132,252,0.10)'
+                          : 'rgba(255,255,255,0.04)'
+                    : 'transparent',
+                  border: `1px solid ${a.enabled ? (a.variant === 'red' ? 'rgba(255,59,92,0.35)' : a.variant === 'cyan' ? 'rgba(0,212,255,0.30)' : a.variant === 'purple' ? 'rgba(192,132,252,0.30)' : 'rgba(255,255,255,0.10)') : '#1e2535'}`,
+                  color: a.enabled
+                    ? a.variant === 'red'
+                      ? '#ff3b5c'
+                      : a.variant === 'cyan'
+                        ? '#00d4ff'
+                        : a.variant === 'purple'
+                          ? '#c084fc'
+                          : '#6b7a96'
+                    : '#252e42',
+                }}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -481,147 +977,338 @@ function VulnDetails({ vuln }: { vuln: Vulnerability }) {
 }
 
 // ============================================================================
-// 3. TAB COMPONENTS
+// 6. VULN LIST ITEM
 // ============================================================================
 
-function TabVulnerabilities({
-  vulns,
-  selectedId,
-  onSelect,
+function VulnListItem({
+  vuln,
+  selected,
+  onClick,
 }: {
-  vulns: Vulnerability[];
-  selectedId: string;
-  onSelect: (id: string) => void;
+  vuln: Vulnerability;
+  selected: boolean;
+  onClick: () => void;
 }) {
-  const [severityFilter, setSeverityFilter] = useState<Record<SeverityLevel, boolean>>({
+  const c = SEV_COLOR[vuln.severity];
+  const catC = CAT_COLOR[vuln.category] ?? '#4a5a7a';
+  return (
+    <div
+      onClick={onClick}
+      className="group flex items-start gap-2.5 px-2.5 py-2 cursor-pointer transition-all"
+      style={{
+        borderBottom: '1px solid #0f1319',
+        background: selected ? `${c}08` : 'transparent',
+        borderLeft: `2px solid ${selected ? c : 'transparent'}`,
+      }}
+    >
+      {/* Left: severity indicator */}
+      <div className="flex flex-col items-center gap-1 pt-0.5 shrink-0">
+        <div
+          className="w-2 h-2 rounded-sm"
+          style={{ background: c, boxShadow: selected ? `0 0 6px ${c}` : undefined }}
+        />
+        <div
+          className="text-[7px] font-mono font-bold"
+          style={{
+            color: vuln.cvss >= 9 ? c : '#252e42',
+            writingMode: 'vertical-rl' as const,
+            transform: 'rotate(180deg)',
+          }}
+        >
+          {vuln.cvss}
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span
+            className="text-[10.5px] font-semibold truncate"
+            style={{ color: selected ? '#e8f0ff' : '#8da0c0' }}
+          >
+            {vuln.name}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-[8.5px] font-mono" style={{ color: '#00d4ff' }}>
+            {vuln.cve}
+          </span>
+          <span className="text-[#1e2535]">·</span>
+          <span className="text-[8px] font-mono truncate" style={{ color: catC }}>
+            {vuln.category}
+          </span>
+          <span className="text-[#1e2535]">·</span>
+          <span className="text-[8px] font-mono truncate" style={{ color: '#252e42' }}>
+            {vuln.target}:{vuln.port}
+          </span>
+        </div>
+        {/* Progress bar: EPSS */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[7.5px] font-mono w-8 shrink-0" style={{ color: '#252e42' }}>
+            EPSS
+          </span>
+          <div
+            className="flex-1 h-[2px] rounded-full overflow-hidden"
+            style={{ background: '#0f1319' }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${vuln.epss * 100}%`, background: c }}
+            />
+          </div>
+          <div className="flex items-center gap-1 ml-1">
+            {vuln.hasMetasploit && (
+              <span className="text-[7px] font-mono" style={{ color: '#c084fc' }}>
+                MSF
+              </span>
+            )}
+            {vuln.inTheWild && (
+              <span className="text-[7px] font-mono" style={{ color: '#ff3b5c' }}>
+                WILD
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 7. TABS
+// ============================================================================
+
+function TabVulnerabilities({ vulns }: { vulns: Vulnerability[] }) {
+  const [selectedId, setSelectedId] = useState(vulns[0].id);
+  const [filters, setFilters] = useState<Record<SeverityLevel, boolean>>({
     CRITICAL: true,
     HIGH: true,
     MEDIUM: true,
     LOW: true,
   });
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'cvss' | 'epss' | 'severity'>('cvss');
 
-  const toggleFilter = (sev: SeverityLevel) => {
-    setSeverityFilter((prev) => ({ ...prev, [sev]: !prev[sev] }));
-  };
+  const counts = useMemo(
+    () => ({
+      CRITICAL: vulns.filter((v) => v.severity === 'CRITICAL').length,
+      HIGH: vulns.filter((v) => v.severity === 'HIGH').length,
+      MEDIUM: vulns.filter((v) => v.severity === 'MEDIUM').length,
+      LOW: vulns.filter((v) => v.severity === 'LOW').length,
+    }),
+    [vulns],
+  );
 
-  const filteredVulns = vulns.filter((v) => severityFilter[v.severity]);
+  const filtered = useMemo(() => {
+    return vulns
+      .filter((v) => filters[v.severity])
+      .filter(
+        (v) =>
+          !search ||
+          v.name.toLowerCase().includes(search.toLowerCase()) ||
+          v.cve.toLowerCase().includes(search.toLowerCase()) ||
+          v.target.includes(search),
+      )
+      .sort((a, b) =>
+        sortBy === 'cvss' ? b.cvss - a.cvss : sortBy === 'epss' ? b.epss - a.epss : 0,
+      );
+  }, [vulns, filters, search, sortBy]);
+
+  const selected = vulns.find((v) => v.id === selectedId) ?? vulns[0];
 
   return (
-    <div className="flex flex-1 overflow-hidden gap-px bg-[#1e2535]">
-      <div className="flex flex-col bg-[#141924] overflow-hidden w-[65%]">
-        <div className="flex items-center gap-2 px-3 h-8 border-b border-[#1e2535] bg-[#0f1319] shrink-0">
-          <span className="text-[10.5px] font-bold text-[#6b7a96] uppercase tracking-[0.08em] flex-1">
-            Vulnerabilities
-          </span>
-          <Badge color="red">{filteredVulns.length} total</Badge>
+    <div className="flex flex-1 overflow-hidden">
+      {/* Left: stats + list */}
+      <div className="flex flex-col overflow-hidden" style={{ flex: 1 }}>
+        {/* Stats strip */}
+        <div
+          className="flex items-stretch gap-px shrink-0"
+          style={{ background: '#0a0e16', borderBottom: '1px solid #1e2535' }}
+        >
+          {/* Donut */}
+          <div className="px-3 py-2">
+            <SeverityDonut vulns={vulns} />
+          </div>
+          {/* Separator */}
+          <div className="w-px bg-[#1e2535]" />
+          {/* Category bars */}
+          <div className="flex-1 px-3 py-2">
+            <div
+              className="text-[8px] font-mono mb-1.5 tracking-[0.1em]"
+              style={{ color: '#252e42' }}
+            >
+              CATEGORY BREAKDOWN
+            </div>
+            <CategoryBar vulns={vulns} />
+          </div>
+          {/* Separator */}
+          <div className="w-px bg-[#1e2535]" />
+          {/* EPSS scatter */}
+          <div className="px-3 py-2" style={{ width: 240 }}>
+            <div
+              className="text-[8px] font-mono mb-1.5 tracking-[0.1em]"
+              style={{ color: '#252e42' }}
+            >
+              EPSS vs CVSS
+            </div>
+            <div className="h-20">
+              <EpssScatterPlot vulns={vulns} />
+            </div>
+          </div>
         </div>
-        <div className="flex gap-1 px-3 py-1.5 bg-[#0f1319] border-b border-[#1e2535] shrink-0">
-          <button
-            onClick={() => toggleFilter('CRITICAL')}
-            className={cn(
-              'px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all',
-              severityFilter.CRITICAL
-                ? 'border-purple-500/40 bg-purple-500/15 text-purple-400'
-                : 'border-[#252e42] bg-transparent text-[#6b7a96]',
-            )}
-          >
-            CRITICAL (3)
-          </button>
-          <button
-            onClick={() => toggleFilter('HIGH')}
-            className={cn(
-              'px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all',
-              severityFilter.HIGH
-                ? 'border-red-500/40 bg-red-500/12 text-red-400'
-                : 'border-[#252e42] bg-transparent text-[#6b7a96]',
-            )}
-          >
-            HIGH (7)
-          </button>
-          <button
-            onClick={() => toggleFilter('MEDIUM')}
-            className={cn(
-              'px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all',
-              severityFilter.MEDIUM
-                ? 'border-amber-500/40 bg-amber-500/12 text-amber-400'
-                : 'border-[#252e42] bg-transparent text-[#6b7a96]',
-            )}
-          >
-            MEDIUM (12)
-          </button>
-          <button
-            onClick={() => toggleFilter('LOW')}
-            className={cn(
-              'px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all',
-              severityFilter.LOW
-                ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400'
-                : 'border-[#252e42] bg-transparent text-[#6b7a96]',
-            )}
-          >
-            LOW (5)
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2">
-          {filteredVulns.map((v) => (
-            <VulnCard
-              key={v.id}
-              vuln={v}
-              selected={v.id === selectedId}
-              onClick={() => onSelect(v.id)}
+
+        {/* Filter + search bar */}
+        <div
+          className="flex items-center gap-1.5 px-2 py-1.5 shrink-0"
+          style={{ background: '#0a0e16', borderBottom: '1px solid #1e2535' }}
+        >
+          {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as SeverityLevel[]).map((sev) => (
+            <TogglePill
+              key={sev}
+              label={sev}
+              active={filters[sev]}
+              color={SEV_COLOR[sev]}
+              count={counts[sev]}
+              onClick={() => setFilters((prev) => ({ ...prev, [sev]: !prev[sev] }))}
             />
           ))}
+          <div className="flex-1" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search CVE / host / name..."
+            className="h-6 w-44 bg-[#111520] border border-[#1e2535] rounded text-[9.5px] px-2 outline-none font-mono"
+            style={{ color: '#8da0c0' }}
+          />
+          <div className="flex gap-0.5">
+            {(['cvss', 'epss', 'severity'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSortBy(s)}
+                className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase font-bold transition-all"
+                style={{
+                  background: sortBy === s ? '#1e2535' : 'transparent',
+                  border: `1px solid ${sortBy === s ? '#252e42' : 'transparent'}`,
+                  color: sortBy === s ? '#8da0c0' : '#252e42',
+                }}
+              >
+                ↓{s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto" style={{ background: '#0e131e' }}>
+          {filtered.length === 0 ? (
+            <div
+              className="flex items-center justify-center h-20 text-[10px] font-mono"
+              style={{ color: '#252e42' }}
+            >
+              No vulnerabilities match current filters
+            </div>
+          ) : (
+            filtered.map((v) => (
+              <VulnListItem
+                key={v.id}
+                vuln={v}
+                selected={v.id === selectedId}
+                onClick={() => setSelectedId(v.id)}
+              />
+            ))
+          )}
         </div>
       </div>
-      <VulnDetails vuln={vulns.find((v) => v.id === selectedId) ?? vulns[0]} />
+
+      {/* Right: detail panel */}
+      <VulnDetailPanel vuln={selected} />
     </div>
   );
 }
 
 function TabCVESearch() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const filteredResults = cveSearchResults.filter(
-    (r) =>
-      r.cve.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.description.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const [query, setQuery] = useState('');
+  const results =
+    query.length >= 2
+      ? cveSearchResults.filter(
+          (r) =>
+            r.cve.toLowerCase().includes(query.toLowerCase()) ||
+            r.description.toLowerCase().includes(query.toLowerCase()) ||
+            r.product.toLowerCase().includes(query.toLowerCase()),
+        )
+      : cveSearchResults;
+
   return (
-    <div className="flex-1 overflow-y-auto p-3 bg-[#080a0e]">
-      <div className="mb-3 flex gap-2">
+    <div className="flex-1 overflow-y-auto p-3" style={{ background: '#080a0e' }}>
+      {/* Search bar */}
+      <div className="flex gap-2 mb-3">
         <input
-          type="text"
-          placeholder="Search CVE ID or description..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 h-8 bg-[#111520] border border-[#252e42] rounded text-[11px] px-3 text-[#c5cfe0] focus:border-cyan-500/50 outline-none"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search CVE ID, description, or product..."
+          className="flex-1 h-8 bg-[#111520] border border-[#1e2535] rounded text-[11px] px-3 outline-none font-mono"
+          style={{ color: '#c5cfe0' }}
         />
         <ToolbarButton variant="cyan">Search NVD</ToolbarButton>
+        <ToolbarButton>EPSS Lookup</ToolbarButton>
       </div>
+
+      {/* Results */}
       <div className="space-y-2">
-        {filteredResults.map((cve, i) => (
-          <div key={i} className="bg-[#111520] border border-[#1e2535] rounded p-3">
-            <div className="flex justify-between items-center mb-1">
-              <span className="font-mono text-cyan-400 text-[12px] font-bold">{cve.cve}</span>
-              <SeverityPill level={cve.severity} />
+        {results.map((r, i) => {
+          const c = SEV_COLOR[r.severity];
+          return (
+            <div
+              key={i}
+              className="rounded-md overflow-hidden"
+              style={{ background: '#111520', border: `1px solid #1e2535` }}
+            >
+              {/* Header row */}
+              <div
+                className="flex items-center gap-3 px-3 py-2"
+                style={{ background: '#0e1320', borderBottom: '1px solid #1a2030' }}
+              >
+                <span className="font-mono text-[11.5px] font-bold" style={{ color: '#00d4ff' }}>
+                  {r.cve}
+                </span>
+                <div className="w-px h-3 bg-[#1e2535]" />
+                <span className="text-[9px] font-mono" style={{ color: '#3d4a61' }}>
+                  {r.product}
+                </span>
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="text-[8.5px] font-mono" style={{ color: '#252e42' }}>
+                    Published {r.published}
+                  </span>
+                  <MiniPill color={c}>{r.severity}</MiniPill>
+                  <div
+                    className="text-[10px] font-bold font-mono px-1.5 py-px rounded"
+                    style={{ background: `${c}15`, color: c, border: `1px solid ${c}30` }}
+                  >
+                    {r.cvss}
+                  </div>
+                </div>
+              </div>
+              {/* Body */}
+              <div className="px-3 py-2">
+                <p className="text-[10.5px] mb-2" style={{ color: '#8da0c0' }}>
+                  {r.description}
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <span className="text-[8.5px] font-mono" style={{ color: '#252e42' }}>
+                      EPSS
+                    </span>
+                    <EpssBar value={r.epss} />
+                  </div>
+                  <ActionButton variant="cyan" size="sm">
+                    Fetch Exploit
+                  </ActionButton>
+                  <ActionButton size="sm">Add to Workspace</ActionButton>
+                </div>
+              </div>
             </div>
-            <div className="text-[11px] text-[#c5cfe0] mb-1">{cve.description}</div>
-            <div className="flex gap-3 text-[10px] text-[#6b7a96]">
-              <span>Published: {cve.published}</span>
-              <span>CVSS: {cve.cvss}</span>
-              <span>Product: {cve.affectedProduct}</span>
-            </div>
-            <div className="mt-2">
-              <ActionButton variant="cyan" size="sm">
-                Fetch Exploit
-              </ActionButton>
-              <ActionButton size="sm" className="ml-2">
-                Add to Workspace
-              </ActionButton>
-            </div>
-          </div>
-        ))}
-        {filteredResults.length === 0 && (
-          <div className="text-center text-[#6b7a96] py-8">No CVEs found</div>
-        )}
+          );
+        })}
       </div>
     </div>
   );
@@ -629,108 +1316,211 @@ function TabCVESearch() {
 
 function TabReports() {
   return (
-    <div className="flex-1 overflow-y-auto p-3 bg-[#080a0e]">
+    <div className="flex-1 overflow-y-auto p-3" style={{ background: '#080a0e' }}>
       <div className="grid grid-cols-2 gap-2">
-        {reports.map((report) => (
-          <div key={report.id} className="bg-[#111520] border border-[#1e2535] rounded p-3">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-[12px] font-semibold text-cyan-400">{report.name}</span>
-              <Badge color="gray">{report.date}</Badge>
+        {reports.map((report) => {
+          const total = report.critical + report.high + report.medium + report.low;
+          const bars = [
+            { label: 'CRITICAL', val: report.critical, color: SEV_COLOR.CRITICAL },
+            { label: 'HIGH', val: report.high, color: SEV_COLOR.HIGH },
+            { label: 'MEDIUM', val: report.medium, color: SEV_COLOR.MEDIUM },
+            { label: 'LOW', val: report.low, color: SEV_COLOR.LOW },
+          ];
+          return (
+            <div
+              key={report.id}
+              className="rounded-md overflow-hidden"
+              style={{ background: '#111520', border: '1px solid #1e2535' }}
+            >
+              {/* Header */}
+              <div
+                className="flex items-center gap-2 px-3 py-2"
+                style={{ background: '#0e1320', borderBottom: '1px solid #1a2030' }}
+              >
+                <span className="text-[9px] font-mono" style={{ color: '#3d4a61' }}>
+                  {report.id}
+                </span>
+                <span
+                  className="text-[11px] font-semibold flex-1 min-w-0 truncate"
+                  style={{ color: '#00d4ff' }}
+                >
+                  {report.name}
+                </span>
+                <span
+                  className="text-[8px] font-bold font-mono px-1.5 py-px rounded"
+                  style={{
+                    background:
+                      report.status === 'Final' ? 'rgba(48,209,88,0.12)' : 'rgba(255,170,0,0.12)',
+                    color: report.status === 'Final' ? '#30d158' : '#ffaa00',
+                    border: `1px solid ${report.status === 'Final' ? 'rgba(48,209,88,0.3)' : 'rgba(255,170,0,0.3)'}`,
+                  }}
+                >
+                  {report.status}
+                </span>
+                <span className="text-[8.5px] font-mono" style={{ color: '#252e42' }}>
+                  {report.date}
+                </span>
+              </div>
+
+              {/* Stacked bar */}
+              <div className="px-3 pt-2.5 pb-1">
+                <div className="flex rounded-full overflow-hidden h-[6px] mb-2">
+                  {bars.map((b) => (
+                    <div
+                      key={b.label}
+                      style={{ flex: b.val, background: b.color, opacity: b.val === 0 ? 0 : 1 }}
+                    />
+                  ))}
+                </div>
+                <div className="grid grid-cols-4 gap-1">
+                  {bars.map((b) => (
+                    <div key={b.label} className="text-center">
+                      <div className="text-[13px] font-bold font-mono" style={{ color: b.color }}>
+                        {b.val}
+                      </div>
+                      <div className="text-[7.5px] font-mono" style={{ color: '#252e42' }}>
+                        {b.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div
+                className="flex items-center gap-2 px-3 py-2"
+                style={{ borderTop: '1px solid #1a2030' }}
+              >
+                <span className="text-[9px] font-mono" style={{ color: '#3d4a61' }}>
+                  {total} findings
+                </span>
+                <div className="flex-1" />
+                <ActionButton size="sm" variant="cyan">
+                  View
+                </ActionButton>
+                <ActionButton size="sm">PDF</ActionButton>
+                <ActionButton size="sm">DOCX</ActionButton>
+              </div>
             </div>
-            <div className="grid grid-cols-4 gap-1 mb-3">
-              <div className="text-center">
-                <div className="text-red-400 font-bold">{report.critical}</div>
-                <div className="text-[9px] text-[#6b7a96]">Critical</div>
-              </div>
-              <div className="text-center">
-                <div className="text-red-400 font-bold">{report.high}</div>
-                <div className="text-[9px] text-[#6b7a96]">High</div>
-              </div>
-              <div className="text-center">
-                <div className="text-amber-400 font-bold">{report.medium}</div>
-                <div className="text-[9px] text-[#6b7a96]">Medium</div>
-              </div>
-              <div className="text-center">
-                <div className="text-cyan-400 font-bold">{report.low}</div>
-                <div className="text-[9px] text-[#6b7a96]">Low</div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <ActionButton size="sm" variant="cyan">
-                View
-              </ActionButton>
-              <ActionButton size="sm">Export PDF</ActionButton>
-              <ActionButton size="sm">Export DOCX</ActionButton>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function TabExploitSuggestions() {
-  const exploitSuggestions = mockVulns
-    .filter((v) => v.exploitability === 'EASY' && v.inTheWild)
-    .map((v) => ({ ...v, hasMetasploit: ['CVE-2021-44228', 'MS17-010'].includes(v.cve) }));
+function TabExploitSuggestions({ vulns }: { vulns: Vulnerability[] }) {
+  const suggestions = useMemo(
+    () => [...vulns].filter((v) => v.inTheWild).sort((a, b) => b.epss - a.epss),
+    [vulns],
+  );
 
   return (
-    <div className="flex-1 overflow-y-auto p-3 bg-[#080a0e]">
-      <div className="mb-2 text-[10px] text-[#3d4a61]">
-        Prioritized exploit suggestions based on EPSS, in-the-wild status, and exploitability.
+    <div className="flex-1 overflow-y-auto p-3" style={{ background: '#080a0e' }}>
+      {/* Priority legend */}
+      <div
+        className="flex items-center gap-3 px-3 py-2 rounded-md mb-2 text-[9px] font-mono"
+        style={{ background: '#0e1320', border: '1px solid #1e2535', color: '#3d4a61' }}
+      >
+        <span>⊙ Sorted by EPSS (exploit probability)</span>
+        <div className="w-px h-3 bg-[#1e2535]" />
+        <span style={{ color: '#c084fc' }}>● MSF = Metasploit module available</span>
+        <div className="w-px h-3 bg-[#1e2535]" />
+        <span style={{ color: '#ff3b5c' }}>● POC = Public proof-of-concept</span>
       </div>
-      {exploitSuggestions.map((v, i) => (
-        <div key={i} className="bg-[#111520] border border-[#1e2535] rounded p-3 mb-2">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <SeverityPill level={v.severity} />
-              <span className="font-mono text-cyan-400 text-[11px]">{v.cve}</span>
-              {v.hasMetasploit && <Badge color="green">Metasploit</Badge>}
+
+      <div className="space-y-1.5">
+        {suggestions.map((v, i) => {
+          const c = SEV_COLOR[v.severity];
+          return (
+            <div
+              key={v.id}
+              className="rounded-md overflow-hidden flex"
+              style={{ background: '#111520', border: `1px solid #1e2535` }}
+            >
+              {/* Rank strip */}
+              <div
+                className="flex items-center justify-center font-mono text-[10px] font-bold w-7 shrink-0"
+                style={{ background: `${c}08`, borderRight: `1px solid ${c}20`, color: c }}
+              >
+                {i + 1}
+              </div>
+              {/* Body */}
+              <div className="flex-1 px-2.5 py-2 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <MiniPill color={c}>{v.severity}</MiniPill>
+                  <span className="font-mono text-[9px]" style={{ color: '#00d4ff' }}>
+                    {v.cve}
+                  </span>
+                  {v.hasMetasploit && <MiniPill color="#c084fc">MSF</MiniPill>}
+                  {v.hasPOC && <MiniPill color="#ff3b5c">POC</MiniPill>}
+                  <span className="ml-auto text-[8.5px] font-mono" style={{ color: '#252e42' }}>
+                    {v.target}:{v.port}
+                  </span>
+                </div>
+                <div
+                  className="text-[10px] font-semibold mb-1.5 truncate"
+                  style={{ color: '#8da0c0' }}
+                >
+                  {v.name}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[8px] font-mono shrink-0" style={{ color: '#252e42' }}>
+                    EPSS
+                  </span>
+                  <div className="flex-1">
+                    <EpssBar value={v.epss} />
+                  </div>
+                  <span
+                    className="text-[8px] font-mono shrink-0"
+                    style={{ color: v.exploitability === 'EASY' ? '#ff3b5c' : '#ffaa00' }}
+                  >
+                    {v.exploitability}
+                  </span>
+                </div>
+              </div>
+              {/* Actions */}
+              <div
+                className="flex flex-col justify-center gap-1 px-2 shrink-0"
+                style={{ borderLeft: '1px solid #1a2030' }}
+              >
+                <button
+                  className="px-2 py-1 rounded text-[8px] font-bold font-mono uppercase"
+                  style={{
+                    background: 'rgba(255,59,92,0.12)',
+                    border: '1px solid rgba(255,59,92,0.30)',
+                    color: '#ff3b5c',
+                  }}
+                >
+                  Launch
+                </button>
+                <button
+                  className="px-2 py-1 rounded text-[8px] font-bold font-mono uppercase"
+                  style={{
+                    background: 'rgba(0,212,255,0.08)',
+                    border: '1px solid rgba(0,212,255,0.20)',
+                    color: '#00d4ff',
+                  }}
+                >
+                  Details
+                </button>
+              </div>
             </div>
-            <div className="flex gap-1">
-              <ActionButton size="sm" variant="red">
-                Launch
-              </ActionButton>
-            </div>
-          </div>
-          <div className="text-[11px] text-[#c5cfe0] mt-1">{v.name}</div>
-          <div className="flex gap-3 mt-1 text-[9px] text-[#6b7a96]">
-            <span>EPSS: {(v.epss * 100).toFixed(1)}%</span>
-            <span>In wild: {v.inTheWild ? 'Yes' : 'No'}</span>
-            <span>Target: {v.target}</span>
-          </div>
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 // ============================================================================
-// 4. MAIN EXPORT
+// 8. MAIN EXPORT
 // ============================================================================
 
 const TABS = ['Vulnerabilities', 'CVE Search', 'Reports', 'Exploit Suggestions'] as const;
 
 export function Vulns() {
-  const [selectedId, setSelectedId] = useState(mockVulns[0].id);
   const [activeTab, setActiveTab] = useState<string>(TABS[0]);
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'Vulnerabilities':
-        return (
-          <TabVulnerabilities vulns={mockVulns} selectedId={selectedId} onSelect={setSelectedId} />
-        );
-      case 'CVE Search':
-        return <TabCVESearch />;
-      case 'Reports':
-        return <TabReports />;
-      case 'Exploit Suggestions':
-        return <TabExploitSuggestions />;
-      default:
-        return null;
-    }
-  };
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -740,14 +1530,22 @@ export function Vulns() {
         onTabChange={setActiveTab}
         activeColor="text-red-400 border-red-400 bg-red-500/5"
       />
-      <div className="shrink-0">
-        <div className="flex items-center gap-[5px] px-[10px] h-[38px] bg-[#0f1319] border-b border-[#1e2535] overflow-x-auto">
-          <ToolbarButton variant="cyan">Auto-Exploit</ToolbarButton>
-          <ToolbarButton>Generate Report</ToolbarButton>
-          <ToolbarButton className="ml-auto">Export CSV</ToolbarButton>
-        </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-[5px] px-[10px] h-[38px] bg-[#0f1319] border-b border-[#1e2535] shrink-0">
+        <ToolbarButton variant="cyan">Auto-Exploit</ToolbarButton>
+        <ToolbarButton>Generate Report</ToolbarButton>
+        <div className="w-px h-4 bg-[#1e2535] mx-1" />
+        <ToolbarButton>Import Nessus XML</ToolbarButton>
+        <ToolbarButton>Import OpenVAS</ToolbarButton>
+        <ToolbarButton className="ml-auto">Export CSV</ToolbarButton>
+        <ToolbarButton>Export JSON</ToolbarButton>
       </div>
-      {renderTabContent()}
+
+      {activeTab === 'Vulnerabilities' && <TabVulnerabilities vulns={mockVulns} />}
+      {activeTab === 'CVE Search' && <TabCVESearch />}
+      {activeTab === 'Reports' && <TabReports />}
+      {activeTab === 'Exploit Suggestions' && <TabExploitSuggestions vulns={mockVulns} />}
     </div>
   );
 }
