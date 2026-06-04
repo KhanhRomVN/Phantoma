@@ -14,17 +14,22 @@ const VARIANT_CLASS: Record<ToolbarButtonVariant, string> = {
 interface ToolbarButtonProps {
   children: React.ReactNode
   variant?: ToolbarButtonVariant
+  size?: 'sm' | 'md'
   onClick?: () => void
+  disabled?: boolean
   className?: string
+  active?: boolean
 }
 
-export function ToolbarButton({ children, variant = 'default', onClick, className }: ToolbarButtonProps) {
+export function ToolbarButton({ children, variant = 'default', size = 'md', onClick, disabled, className, active }: ToolbarButtonProps) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        'h-[26px] px-[9px] rounded border text-[10px] font-semibold transition-all whitespace-nowrap shrink-0 flex items-center gap-[5px]',
-        VARIANT_CLASS[variant],
+        'rounded border font-semibold transition-all whitespace-nowrap shrink-0 flex items-center gap-[5px]',
+        size === 'sm' ? 'h-[22px] px-[7px] text-[9.5px]' : 'h-[26px] px-[9px] text-[10px]',
+        disabled ? 'opacity-40 cursor-not-allowed' : active ? VARIANT_CLASS[variant] : VARIANT_CLASS[variant],
         className,
       )}
     >

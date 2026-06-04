@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phantoma — Layout Wireframe</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      background: #080a0e;
+      color: #c5cfe0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── helpers ── */
+    .label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      width: 100%;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      padding: 4px;
+      line-height: 1.5;
+    }
+    .label-vertical {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+    }
+
+    /* ── root shell ── */
+    .shell {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════════
+       ModuleBar  —  52 px wide, full height, left edge
+    ══════════════════════════════════════════════════ */
+    .module-bar {
+      width: 52px;
+      flex-shrink: 0;
+      background: #1a2035;      /* distinct blue-dark */
+      border-right: 1px solid #252e42;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+    }
+    .module-bar .label { color: #7b9dd4; font-size: 9px; }
+
+    /* icon stubs inside ModuleBar */
+    .module-bar-icons {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      padding: 8px 0;
+      width: 100%;
+    }
+    .icon-stub {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #252e42;
+      flex-shrink: 0;
+    }
+    .icon-stub.active {
+      background: #0e3a4a;
+      outline: 1px solid #0099cc55;
+    }
+    .icon-stub.logo {
+      background: #0e3a4a;
+      outline: 1px solid #0099cc88;
+      margin-bottom: 4px;
+    }
+    .sep-h {
+      width: 28px;
+      height: 1px;
+      background: #252e42;
+      flex-shrink: 0;
+      margin: 2px 0;
+    }
+
+    /* ══════════════════════════════════════════════════
+       Main column  —  everything right of ModuleBar
+    ══════════════════════════════════════════════════ */
+    .main-col {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════════
+       OperationsPanel  —  272 px wide
+    ══════════════════════════════════════════════════ */
+    .operations-panel {
+      width: 272px;
+      flex-shrink: 0;
+      background: #141924;       /* mid dark */
+      border-right: 1px solid #252e42;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* header strip */
+    .op-header {
+      height: 52px;
+      background: #0f1319;
+      border-bottom: 1px solid #252e42;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 12px;
+    }
+    .op-header .title { font-weight: 700; letter-spacing: 0.1em; color: #c5cfe0; text-transform: uppercase; }
+    .op-header .sub   { font-size: 9px; color: #3d4a61; margin-top: 2px; }
+
+    /* tab strip */
+    .op-tabs {
+      height: 32px;
+      display: flex;
+      border-bottom: 1px solid #252e42;
+      flex-shrink: 0;
+    }
+    .op-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: #6b7a96;
+      border-bottom: 2px solid transparent;
+    }
+    .op-tab.active { color: #22d3ee; border-bottom-color: #22d3ee; background: rgba(34,211,238,0.04); }
+
+    /* body */
+    .op-body {
+      flex: 1;
+      overflow-y: auto;
+      background: #141924;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .op-body .label { color: #4a6080; font-size: 10px; }
+
+    /* ══════════════════════════════════════════════════
+       Center column  —  Workspace + Statusbar
+    ══════════════════════════════════════════════════ */
+    .center-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── WorkspaceSection ── */
+    .workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #0d1117;       /* lightest — main content bg */
+    }
+
+    /* topbar */
+    .workspace-topbar {
+      height: 38px;
+      background: #0f1319;
+      border-bottom: 1px solid #252e42;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+    }
+    .workspace-topbar .breadcrumb {
+      font-size: 11px;
+      color: #6b7a96;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .workspace-topbar .breadcrumb span.active { color: #c5cfe0; }
+    .workspace-topbar .breadcrumb span.target { color: #22d3ee; }
+    .workspace-topbar .meta {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 9.5px;
+      color: #6b7a96;
+    }
+
+    /* content area */
+    .workspace-content {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .workspace-content .label { color: #2e3e54; font-size: 13px; }
+
+    /* statusbar */
+    .statusbar {
+      height: 22px;
+      background: #0f1319;
+      border-top: 1px solid #252e42;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 12px;
+    }
+    .statusbar span { font-size: 9px; color: #3d4a61; white-space: nowrap; }
+    .statusbar span.val { color: #6b7a96; }
+    .statusbar span.green { color: #34d399; }
+    .statusbar span.red   { color: #f87171; }
+    .statusbar span.amber { color: #fbbf24; }
+    .statusbar span.cyan  { color: #22d3ee; }
+    .statusbar .sep-v {
+      width: 1px; height: 12px;
+      background: #1e2535;
+      flex-shrink: 0;
+    }
+    .statusbar .time {
+      margin-left: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      color: #6b7a96;
+    }
+
+    /* ══════════════════════════════════════════════════
+       InspectorPanel  —  300 px wide
+    ══════════════════════════════════════════════════ */
+    .inspector-panel {
+      width: 300px;
+      flex-shrink: 0;
+      background: #141924;
+      border-left: 1px solid #252e42;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .inspector-header {
+      height: 38px;
+      background: #0f1319;
+      border-bottom: 1px solid #252e42;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+    }
+    .inspector-header .title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #c5cfe0;
+      flex: 1;
+    }
+
+    .inspector-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .inspector-body .label { color: #4a6080; font-size: 10px; }
+
+    /* ══════════════════════════════════════════════════
+       Annotation overlay — dimension labels
+    ══════════════════════════════════════════════════ */
+    .dim-badge {
+      position: absolute;
+      background: rgba(8,10,14,0.85);
+      border: 1px solid #252e42;
+      border-radius: 3px;
+      font-size: 9px;
+      color: #3d4a61;
+      padding: 1px 5px;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* scrollbar cosmetics */
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-thumb { background: #252e42; border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ═══════════════════════════════════════
+       1. ModuleBar  (52 px, left sidebar)
+  ═══════════════════════════════════════ -->
+  <aside class="module-bar">
+    <div class="module-bar-icons">
+      <!-- Logo -->
+      <div class="icon-stub logo"></div>
+      <div class="sep-h"></div>
+
+      <!-- active module stub -->
+      <div class="icon-stub active"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="sep-h"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="sep-h"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+      <div class="icon-stub"></div>
+
+      <!-- spacer + settings at bottom -->
+      <div style="flex:1"></div>
+      <div class="sep-h"></div>
+      <div class="icon-stub"></div>
+    </div>
+    <div style="position:absolute;writing-mode:vertical-rl;transform:rotate(180deg);bottom:50%;left:0;width:52px;display:flex;justify-content:center;">
+      <span style="font-size:9px;color:#2a3a55;letter-spacing:.1em;text-transform:uppercase;font-weight:700;">ModuleBar</span>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════
+       Main content (right of ModuleBar)
+  ═══════════════════════════════════════ -->
+  <div class="main-col">
+
+    <!-- ─── OperationsPanel (272 px) ─── -->
+    <!-- REMOVED: Sessions/Arsenal/Vault moved to C2 module in ModuleBar -->
+
+    <!-- ─── Center: Workspace + StatusBar ─── -->
+    <div class="center-col">
+
+      <!-- WorkspaceSection -->
+      <div class="workspace">
+
+        <!-- Topbar -->
+        <div class="workspace-topbar">
+          <span class="breadcrumb">
+            PHANTOM / <span class="active">Recon / OSINT</span> / <span class="target">target.corp.local</span>
+            <span style="color:#3d4a61;font-size:10px;"> (192.168.1.10)</span>
+          </span>
+          <div class="meta">
+            <span style="color:#34d399">● Session Active</span>
+            <span style="border:1px solid #252e42;border-radius:3px;padding:1px 6px;">TUN0: 10.10.14.5</span>
+            <span>3 sessions</span>
+          </div>
+        </div>
+
+        <!-- Content area -->
+        <div class="workspace-content">
+          <div class="label" style="flex-direction:column;gap:6px;">
+            <span>WorkspaceSection</span>
+            <span style="font-size:9px;color:#1e2d3d;text-transform:none;letter-spacing:0;">(Topbar + ViewRouter + StatusBar)</span>
+          </div>
+        </div>
+
+        <!-- StatusBar -->
+        <div class="statusbar">
+          <span>Module: <span class="val">Recon / OSINT</span></span>
+          <div class="sep-v"></div>
+          <span>Target: <span class="val">target.corp.local</span></span>
+          <div class="sep-v"></div>
+          <span>Type: <span class="cyan">domain</span></span>
+          <div class="sep-v"></div>
+          <span>Sessions: <span class="green">3 active</span></span>
+          <div class="sep-v"></div>
+          <span>Vulns: <span class="red">27</span></span>
+          <div class="sep-v"></div>
+          <span>Creds: <span class="green">14 cracked</span></span>
+          <div class="sep-v"></div>
+          <span>Phishing: <span class="amber">11 harvested</span></span>
+          <div class="sep-v"></div>
+          <span>Tunnel: <span class="green">TUN0 UP</span></span>
+          <span class="time">2026-06-04 · 09:41:22</span>
+        </div>
+      </div>
+      <!-- /WorkspaceSection -->
+
+    </div>
+    <!-- /center-col -->
+
+    <!-- ─── InspectorPanel (300 px) ─── -->
+    <aside class="inspector-panel">
+      <div class="inspector-header">
+        <span class="title">Inspector</span>
+        <span style="font-size:10px;color:#3d4a61;">⋯</span>
+      </div>
+      <div class="inspector-body">
+        <div class="label">InspectorPanel</div>
+      </div>
+    </aside>
+
+  </div>
+  <!-- /main-col -->
+
+</div>
+<!-- /shell -->
+
+</body>
+</html>

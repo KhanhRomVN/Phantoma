@@ -178,3 +178,50 @@ export const mockScanProgress = [
   { label: 'SQLi/XSS Fuzz', pct: 34, color: 'amber' as const },
   { label: 'Brute Force', pct: 0, color: 'gray' as const },
 ];
+
+// ─── Mock Target Groups ───────────────────────────────────────────────────────
+
+import type { PhantomTarget } from '../types/types'
+
+export const mockTargetGroups: PhantomTarget[] = [
+  {
+    id: 'tg-1',
+    name: 'Corp Internal Pentest',
+    description: 'Q3 2026 — internal red team engagement',
+    createdAt: '2026-06-01',
+    status: 'active',
+    subTargets: [
+      { id: 'st-1', name: 'target.corp.local', type: 'domain',  address: 'target.corp.local', status: 'scanning', riskScore: 94, tags: ['AD', 'SMB'] },
+      { id: 'st-2', name: 'DC01',              type: 'server',  address: '192.168.1.10',      status: 'active',   riskScore: 87, tags: ['Windows', 'DC'] },
+      { id: 'st-3', name: 'Web01',             type: 'website', address: '192.168.1.20',      status: 'done',     riskScore: 72, tags: ['nginx', 'PHP'] },
+      { id: 'st-4', name: 'Mobile App',        type: 'app',     address: 'com.corp.mobileapp', status: 'idle',    riskScore: 45, tags: ['Android'] },
+      { id: 'st-5', name: 'API Gateway',       type: 'api',     address: 'api.corp.local',    status: 'active',   riskScore: 68, tags: ['REST', 'JWT'] },
+      { id: 'st-6', name: 'LAN Segment',       type: 'network', address: '192.168.1.0/24',    status: 'done',     riskScore: 55, tags: ['LAN'] },
+    ],
+  },
+  {
+    id: 'tg-2',
+    name: 'External Attack Surface',
+    description: 'Bug bounty scope — phantom.tech',
+    createdAt: '2026-05-28',
+    status: 'active',
+    subTargets: [
+      { id: 'st-7',  name: 'phantom.tech',         type: 'website', address: 'https://phantom.tech',        status: 'scanning', riskScore: 61 },
+      { id: 'st-8',  name: 'api.phantom.tech',      type: 'api',     address: 'https://api.phantom.tech',    status: 'active',   riskScore: 78 },
+      { id: 'st-9',  name: 'admin.phantom.tech',    type: 'website', address: 'https://admin.phantom.tech',  status: 'active',   riskScore: 88, tags: ['AdminPanel'] },
+      { id: 'st-10', name: 'jenkins.phantom.tech',  type: 'server',  address: 'https://jenkins.phantom.tech',status: 'done',     riskScore: 91, tags: ['CI/CD'] },
+    ],
+  },
+  {
+    id: 'tg-3',
+    name: 'IoT Device Audit',
+    description: 'Factory floor — embedded devices',
+    createdAt: '2026-06-03',
+    status: 'paused',
+    subTargets: [
+      { id: 'st-11', name: 'PLC-01', type: 'device', address: '10.0.10.5',  status: 'idle', riskScore: 35 },
+      { id: 'st-12', name: 'PLC-02', type: 'device', address: '10.0.10.6',  status: 'idle', riskScore: 35 },
+      { id: 'st-13', name: 'HMI-A',  type: 'device', address: '10.0.10.20', status: 'idle', riskScore: 50 },
+    ],
+  },
+]

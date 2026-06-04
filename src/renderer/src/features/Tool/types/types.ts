@@ -2,7 +2,8 @@ export type PhantomModule =
   | 'recon' | 'scanner' | 'vulns' | 'exploit' | 'post'
   | 'intruder' | 'webapp' | 'sqli' | 'forensics' | 'malware'
   | 'sniffer' | 'cracking' | 'phishing' | 'cloud' | 'report'
-  | 'ai' | 'collab' | 'settings'
+  | 'collab' | 'settings' | 'dashboard'
+  | 'c2'
 
 export type BadgeColor = 'green' | 'red' | 'amber' | 'cyan' | 'purple' | 'gray'
 export type PortStatus = 'open' | 'filtered' | 'vuln'
@@ -17,3 +18,26 @@ export type MockVuln      = { id: string; severity: SeverityLevel; name: string;
 export type MockIntruderResult = { num: string; username: string; password: string; status: number; length: number; time: string; hit: boolean }
 export type MockScanLog   = { ts: string; tag: string; tagColor: string; msg: string }
 export type MockSubdomain = { sub: string; status: number; risk: 'high' | 'normal' | 'none' }
+
+// ─── Target Group / SubTarget ─────────────────────────────────────────────────
+
+export type SubTargetType = 'website' | 'server' | 'app' | 'api' | 'domain' | 'network' | 'device'
+
+export type SubTarget = {
+  id: string
+  name: string
+  type: SubTargetType
+  address: string          // IP, domain, or URL
+  status: 'active' | 'idle' | 'scanning' | 'done' | 'offline'
+  riskScore?: number       // 0–100
+  tags?: string[]
+}
+
+export type PhantomTarget = {
+  id: string
+  name: string             // e.g. "Corp Internal Pentest Q3"
+  description?: string
+  createdAt: string
+  status: 'active' | 'paused' | 'done'
+  subTargets: SubTarget[]
+}

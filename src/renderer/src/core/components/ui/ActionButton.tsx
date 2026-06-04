@@ -14,16 +14,20 @@ const VARIANT_CLASS: Record<ActionButtonVariant, string> = {
 interface ActionButtonProps {
   children: React.ReactNode
   variant?: ActionButtonVariant
+  size?: 'sm' | 'md'
   onClick?: () => void
   className?: string
 }
 
-export function ActionButton({ children, variant = 'default', onClick, className }: ActionButtonProps) {
+export function ActionButton({ children, variant = 'default', size = 'md', onClick, className }: ActionButtonProps) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-2.5 py-1.5 rounded border border-[#252e42] bg-[#161b26] text-[#c5cfe0] text-[10.5px] font-semibold flex items-center gap-2 mb-1.5 transition-all',
+        'text-left rounded border border-[#252e42] bg-[#161b26] text-[#c5cfe0] font-semibold flex items-center gap-2 transition-all',
+        size === 'sm'
+          ? 'px-2 py-1 text-[10px]'
+          : 'w-full px-2.5 py-1.5 text-[10.5px] mb-1.5',
         VARIANT_CLASS[variant],
         className,
       )}
