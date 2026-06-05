@@ -355,6 +355,23 @@ app.whenReady().then(async () => {
   // Setup IPC event handlers
   setupEventHandlers();
 
+  // Phantoma internal fetch — bypass proxy, dùng electron net module
+  // Renderer gọi: window.api.invoke('phantoma:fetch', url, method, body)
+  ipcMain.handle('phantoma:fetch', async (_, url: string, method: string, body?: string) => {
+    try {
+      const response = await net.fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: body ?? undefined,
+        bypassCustomProtocolHandlers: true,
+      });
+      const text = await response.text();
+      return { ok: response.ok, status: response.status, body: text };
+    } catch (e: any) {
+      return { ok: false, status: 0, body: '', error: e?.message ?? String(e) };
+    }
+  });
+
   // Proxy IPC
   ipcMain.handle('proxy:create-session', async (_, appId: string) => {
     return await proxyManager.createSession(appId);

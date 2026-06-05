@@ -1,5 +1,5 @@
 services:
-  # Tự động update image hàng ngày lúc 3:00 AM
+  # ── Auto-update ────────────────────────────────────────────────────────────
   watchtower:
     image: containrrr/watchtower:1.7.1
     container_name: watchtower
@@ -11,17 +11,61 @@ services:
       - DOCKER_API_VERSION=1.44
     restart: unless-stopped
 
-  # Nmap - network scanner
+  # ── Tầng 1: RustScan — full 65k port discovery (3-5 sec) ──────────────────
+  rustscan:
+    image: rustscan/rustscan:latest
+    container_name: rustscan
+    entrypoint: /bin/sh
+    command: ["-c", "sleep infinity"]
+    restart: unless-stopped
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+
+  # ── Tầng 1: Masscan — fast SYN scan backup ────────────────────────────────
+  masscan:
+    image: alpine:3.19
+    container_name: masscan
+    command: sh -c "apk add --no-cache masscan && sleep infinity"
+    restart: unless-stopped
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+
+  # ── Tầng 2: Nmap — deep service/version/script/CVE scan ──────────────────
   nmap:
     image: alpine:3.19
     container_name: nmap
     command: sh -c "apk add --no-cache nmap nmap-scripts && sleep infinity"
     restart: unless-stopped
 
-  # Nikto - web vulnerability scanner
+  # ── Tầng 4: Nuclei — CVE template scanner ─────────────────────────────────
+  nuclei:
+    image: projectdiscovery/nuclei:latest
+    container_name: nuclei
+    entrypoint: /bin/sh
+    command: ["-c", "sleep infinity"]
+    restart: unless-stopped
+
+  # ── Tầng 4: Nikto — web vulnerability scanner ─────────────────────────────
   nikto:
     image: securecodebox/nikto:latest
     container_name: nikto
     entrypoint: /bin/sh
     command: ["-c", "sleep 86400d"]
+    restart: unless-stopped
+
+  # ── Tầng 4: Searchsploit — exploit database search ────────────────────────
+  searchsploit:
+    image: kalilinux/kali-rolling:latest
+    container_name: searchsploit
+    command: bash -c "apt-get update && apt-get install -y exploitdb && sleep infinity"
+    restart: unless-stopped
+
+  # ── Tầng 4: Metasploit — exploitation framework ──────────────────────────
+  metasploit:
+    image: metasploitframework/metasploit-framework:latest
+    container_name: metasploit
+    entrypoint: /bin/sh
+    command: ["-c", "sleep infinity"]
     restart: unless-stopped

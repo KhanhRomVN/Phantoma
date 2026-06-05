@@ -11,6 +11,11 @@ const NAV_MODULES: NavModuleConfig[] = [
     activeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
   },
   {
+    id: 'osint',
+    title: 'OSINT',
+    activeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+  },
+  {
     id: 'recon',
     title: 'Reconnaissance',
     activeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
@@ -166,6 +171,14 @@ function NavIcon({ module }: { module: PhantomModule }) {
           <rect x="9" y="1" width="6" height="6" rx="1" />
           <rect x="1" y="9" width="6" height="6" rx="1" />
           <rect x="9" y="9" width="6" height="6" rx="1" />
+        </svg>
+      );
+    case 'osint':
+      return (
+        <svg {...p}>
+          <circle cx="8" cy="8" r="6" />
+          <path d="M14 14l-2-2" />
+          <circle cx="8" cy="8" r="2" fill="currentColor" opacity="0.5" />
         </svg>
       );
     case 'recon':

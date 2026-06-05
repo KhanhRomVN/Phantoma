@@ -27,6 +27,10 @@ func CheckDependencies(cfg *config.Config) bool {
 	containers := []string{
 		cfg.NmapContainer,
 		cfg.NiktoContainer,
+		cfg.RustScanContainer,
+		cfg.NucleiContainer,
+		cfg.SearchsploitContainer,
+		cfg.MetasploitContainer,
 	}
 
 	allOK := true

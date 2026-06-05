@@ -2,7 +2,7 @@ export type PhantomModule =
   | 'recon' | 'scanner' | 'vulns' | 'exploit' | 'post'
   | 'intruder' | 'webapp' | 'sqli' | 'forensics' | 'malware'
   | 'sniffer' | 'cracking' | 'phishing' | 'cloud' | 'report'
-  | 'collab' | 'settings' | 'dashboard' | 'target'
+  | 'collab' | 'settings' | 'dashboard' | 'target' | 'osint'
   | 'c2'
 
 export type BadgeColor = 'green' | 'red' | 'amber' | 'cyan' | 'purple' | 'gray'

@@ -8,20 +8,28 @@ import (
 // Config holds all application configuration.
 // Values are loaded from environment variables with sensible defaults.
 type Config struct {
-	Port           string
-	Env            string
-	DockerHost     string
-	NmapContainer  string
-	NiktoContainer string
+	Port                  string
+	Env                   string
+	DockerHost            string
+	NmapContainer         string
+	NiktoContainer        string
+	RustScanContainer     string
+	NucleiContainer       string
+	SearchsploitContainer string
+	MetasploitContainer   string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:           getEnv("PORT", "8080"),
-		Env:            getEnv("ENV", "development"),
-		DockerHost:     getEnv("DOCKER_HOST", "unix:///var/run/docker.sock"),
-		NmapContainer:  getEnv("NMAP_CONTAINER", "nmap"),
-		NiktoContainer: getEnv("NIKTO_CONTAINER", "nikto"),
+		Port:                  getEnv("PORT", "8080"),
+		Env:                   getEnv("ENV", "development"),
+		DockerHost:            getEnv("DOCKER_HOST", "unix:///var/run/docker.sock"),
+		NmapContainer:         getEnv("NMAP_CONTAINER", "nmap"),
+		NiktoContainer:        getEnv("NIKTO_CONTAINER", "nikto"),
+		RustScanContainer:     getEnv("RUSTSCAN_CONTAINER", "rustscan"),
+		NucleiContainer:       getEnv("NUCLEI_CONTAINER", "nuclei"),
+		SearchsploitContainer: getEnv("SEARCHSPLOIT_CONTAINER", "searchsploit"),
+		MetasploitContainer:   getEnv("METASPLOIT_CONTAINER", "metasploit"),
 	}
 
 	if err := cfg.validate(); err != nil {
