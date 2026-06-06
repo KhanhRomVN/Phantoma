@@ -1,0 +1,88 @@
+{
+  "target": "phantoma.com",
+  "targetIp": "104.18.32.11",
+  "scanTime": "2024-01-15T10:30:00Z",
+  "dnsRecords": {
+    "A": ["104.18.32.11", "104.18.33.11"],
+    "AAAA": ["2606:4700::6812:200b", "2606:4700::6812:210b"],
+    "MX": [
+      { "priority": 10, "exchange": "mail.phantoma.com" },
+      { "priority": 20, "exchange": "backup.phantoma.com" }
+    ],
+    "NS": ["ns1.phantoma.com", "ns2.phantoma.com", "ns3.phantoma.com"],
+    "SOA": {
+      "mname": "ns1.phantoma.com",
+      "rname": "admin.phantoma.com",
+      "serial": 2024010101,
+      "refresh": 3600,
+      "retry": 1800,
+      "expire": 1209600,
+      "minimum": 3600
+    },
+    "TXT": [
+      "v=spf1 include:_spf.google.com ~all",
+      "v=DMARC1; p=reject; rua=mailto:dmarc@phantoma.com",
+      "google-site-verification=abc123def456"
+    ],
+    "CNAME": {
+      "www": "phantoma.com",
+      "mail": "mail.phantoma.com"
+    },
+    "SRV": [
+      {
+        "service": "_sip._tcp",
+        "priority": 10,
+        "weight": 60,
+        "port": 5060,
+        "target": "sip.phantoma.com"
+      }
+    ],
+    "PTR": ["mail.phantoma.com"],
+    "CAA": [
+      { "flag": 0, "tag": "issue", "value": "letsencrypt.org" }
+    ]
+  },
+  "ports": [],
+  "vulns": [],
+  "subdomains": [],
+  "techStack": {
+    "frontend": [],
+    "backend": [],
+    "database": [],
+    "hosting": []
+  },
+  "riskScore": {
+    "total": 0,
+    "breakdown": {
+      "network": 0,
+      "breach": 0,
+      "exposure": 0,
+      "reputation": 0
+    }
+  },
+  "whoisData": {
+    "domain": "phantoma.com",
+    "registrar": "",
+    "creationDate": "",
+    "expirationDate": "",
+    "nameServers": [],
+    "dnssec": ""
+  },
+  "breaches": [],
+  "harvestedEmails": [],
+  "cloudAssets": [],
+  "codeRepos": [],
+  "darkWebLeaks": [],
+  "googleDorks": [],
+  "waybackSnapshots": [],
+  "threatIntel": [],
+  "socialIntel": {},
+  "certTransparency": [],
+  "httpHeaders": {},
+  "infrastructure": {
+    "cdn": "",
+    "waf": "",
+    "ipRanges": [],
+    "asn": ""
+  }
+}

@@ -130,12 +130,12 @@ function WorkspaceTopbar({ module, subTarget }: { module: PhantomModule; subTarg
 
 // ─── ViewRouter ──────────────────────────────────────────────────────────────
 
-function ViewRouter({ module }: { module: PhantomModule }) {
+function ViewRouter({ module, activeSubItem }: { module: PhantomModule; activeSubItem?: string | null }) {
   switch (module) {
     case 'dashboard':
       return <ViewDashboard />;
     case 'recon':
-      return <Recon />;
+      return <Recon activeSubItem={activeSubItem} />;
     case 'scanner':
       return <Scanner />;
     case 'vulns':
@@ -179,12 +179,12 @@ function ViewRouter({ module }: { module: PhantomModule }) {
 
 // ─── Workspace (main export) ─────────────────────────────────────────────────
 
-export function Workspace({ module, subTarget }: { module: PhantomModule; subTarget: SubTarget }) {
+export function Workspace({ module, subTarget, activeSubItem }: { module: PhantomModule; subTarget: SubTarget; activeSubItem?: string | null }) {
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
       <WorkspaceTopbar module={module} subTarget={subTarget} />
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <ViewRouter module={module} />
+      <div className="flex-1 overflow-hidden flex flex-col bg-[#0f1319]">
+        <ViewRouter module={module} activeSubItem={activeSubItem} />
       </div>
       <StatusBar module={module} subTarget={subTarget} />
     </div>

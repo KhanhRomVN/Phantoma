@@ -179,6 +179,52 @@ export const mockScanProgress = [
   { label: 'Brute Force', pct: 0, color: 'gray' as const },
 ];
 
+// ─── Module Badges and Progress (mock data for ModuleBar) ────────────────────
+
+import type { PhantomModule, BadgeColor } from '../types/types';
+
+export const moduleBadges: { moduleId: PhantomModule; badgeText: string; badgeColor: BadgeColor }[] = [
+  { moduleId: 'dashboard', badgeText: 'Live', badgeColor: 'green' },
+  { moduleId: 'recon', badgeText: '3 hosts', badgeColor: 'cyan' },
+  { moduleId: 'scanner', badgeText: '24 ports', badgeColor: 'cyan' },
+  { moduleId: 'vulns', badgeText: '8 vulns', badgeColor: 'red' },
+  { moduleId: 'exploit', badgeText: '2 ready', badgeColor: 'amber' },
+  { moduleId: 'post', badgeText: '1 session', badgeColor: 'green' },
+  { moduleId: 'intruder', badgeText: '12k req', badgeColor: 'purple' },
+  { moduleId: 'webapp', badgeText: 'XSS', badgeColor: 'red' },
+  { moduleId: 'sqli', badgeText: '2 blind', badgeColor: 'amber' },
+  { moduleId: 'forensics', badgeText: '4 logs', badgeColor: 'cyan' },
+  { moduleId: 'malware', badgeText: 'detected', badgeColor: 'red' },
+  { moduleId: 'sniffer', badgeText: 'active', badgeColor: 'green' },
+  { moduleId: 'cracking', badgeText: '45%', badgeColor: 'amber' },
+  { moduleId: 'phishing', badgeText: '3 sent', badgeColor: 'purple' },
+  { moduleId: 'cloud', badgeText: 'AWS', badgeColor: 'cyan' },
+  { moduleId: 'report', badgeText: 'draft', badgeColor: 'gray' },
+  { moduleId: 'collab', badgeText: '2 users', badgeColor: 'green' },
+  { moduleId: 'c2', badgeText: 'beacon', badgeColor: 'red' },
+];
+
+export const moduleProgress: { moduleId: PhantomModule; progress: number; color?: string }[] = [
+  { moduleId: 'dashboard', progress: 100, color: 'green' },
+  { moduleId: 'recon', progress: 100, color: 'green' },
+  { moduleId: 'scanner', progress: 100, color: 'green' },
+  { moduleId: 'vulns', progress: 78, color: 'cyan' },
+  { moduleId: 'exploit', progress: 34, color: 'amber' },
+  { moduleId: 'post', progress: 12, color: 'cyan' },
+  { moduleId: 'intruder', progress: 56, color: 'purple' },
+  { moduleId: 'webapp', progress: 23, color: 'amber' },
+  { moduleId: 'sqli', progress: 45, color: 'amber' },
+  { moduleId: 'forensics', progress: 89, color: 'cyan' },
+  { moduleId: 'malware', progress: 67, color: 'red' },
+  { moduleId: 'sniffer', progress: 100, color: 'green' },
+  { moduleId: 'cracking', progress: 45, color: 'amber' },
+  { moduleId: 'phishing', progress: 30, color: 'purple' },
+  { moduleId: 'cloud', progress: 0, color: 'gray' },
+  { moduleId: 'report', progress: 20, color: 'gray' },
+  { moduleId: 'collab', progress: 80, color: 'cyan' },
+  { moduleId: 'c2', progress: 55, color: 'red' },
+];
+
 // ─── Mock Target Groups ───────────────────────────────────────────────────────
 
 import type { PhantomTarget } from '../types/types'

@@ -1,96 +1,113 @@
 // ============================================================================
-// RECON — Main entry point
-// Tab content is split into sub-folders, shared data/components in shared.tsx
+// RECON — Main entry point with sub-view routing
 // ============================================================================
 import { useState } from 'react';
-import { cn } from '../../../../../shared/lib/utils';
-import { TARGET } from './shared';
-import { TabOverview } from './Overview';
-import { TabPorts } from './Ports';
-import { TabDNS } from './DNS';
-import { TabBreach } from './Breach';
-import { TabExposure } from './Exposure';
-import { TabIntel } from './Intel';
-import { TerminalLog } from './Terminal';
+import DomainRecon from './Domain';
 
-const TABS = [
-  { id: 'overview',  label: 'Overview',          accent: '#0af'    },
-  { id: 'ports',     label: 'Ports & CVEs',       accent: '#ff2d55' },
-  { id: 'dns',       label: 'DNS',                accent: '#30d158' },
-  { id: 'breach',    label: 'Breach / Email',     accent: '#f5a623' },
-  { id: 'exposure',  label: 'Exposure',           accent: '#ff6b35' },
-  { id: 'intel',     label: 'WHOIS / TI / Certs', accent: '#bf5af2' },
-  { id: 'terminal',  label: 'Scan Log',           accent: '#30d158' },
-] as const;
+// import { IPServerPanel } from './IPServer/IPServerPanel';
+// import { IPServerTargetList } from './IPServer/IPServerTargetList';
+// import { ReconDataProvider as IPServerDataProvider } from './IPServer/ReconDataContext';
 
-type TabId = (typeof TABS)[number]['id'];
+// import { WebsitePanel } from './Website/WebsitePanel';
+// import { WebsiteTargetList } from './Website/WebsiteTargetList';
+// import { ReconDataProvider as WebsiteDataProvider } from './Website/ReconDataContext';
 
-export function Recon() {
-  const [active, setActive] = useState<TabId>('overview');
+// import { OrganizationPanel } from './Organization/OrganizationPanel';
+// import { OrganizationTargetList } from './Organization/OrganizationTargetList';
+// import { ReconDataProvider as OrganizationDataProvider } from './Organization/ReconDataContext';
 
-  const renderContent = () => {
-    switch (active) {
-      case 'overview':  return <TabOverview />;
-      case 'ports':     return <TabPorts />;
-      case 'dns':       return <TabDNS />;
-      case 'breach':    return <TabBreach />;
-      case 'exposure':  return <TabExposure />;
-      case 'intel':     return <TabIntel />;
-      case 'terminal':  return <TerminalLog />;
-      default:          return null;
-    }
-  };
+// import { PersonPanel } from './Person/PersonPanel';
+// import { PersonTargetList } from './Person/PersonTargetList';
+// import { ReconDataProvider as PersonDataProvider } from './Person/ReconDataContext';
 
-  const activeTab = TABS.find((t) => t.id === active)!;
+// import { SourceCodePanel } from './SourceCode/SourceCodePanel';
+// import { SourceCodeTargetList } from './SourceCode/SourceCodeTargetList';
+// import { ReconDataProvider as SourceCodeDataProvider } from './SourceCode/ReconDataContext';
+
+// import { ServerPanel } from './Test/ServerPanel';
+// import { ServerTargetList } from './Test/ServerTargetList';
+// import { ReconDataProvider as TestDataProvider } from './Test/ReconDataContext';
+
+interface ReconProps {
+  activeSubItem?: string | null;
+}
+
+// Map sub-item IDs to their components and providers (for future sub-items)
+const VIEW_CONFIG: Record<
+  string,
+  {
+    Panel: React.ComponentType<{ activeDomain: string }>;
+    TargetList: React.ComponentType<{
+      activeDomain: string;
+      onSelectDomain: (domain: string) => void;
+    }>;
+    DataProvider: React.ComponentType<{ children: React.ReactNode }>;
+  }
+> = {
+  // 'recon-ipserver': {
+  //   Panel: IPServerPanel,
+  //   TargetList: IPServerTargetList,
+  //   DataProvider: IPServerDataProvider,
+  // },
+  // 'recon-website': {
+  //   Panel: WebsitePanel,
+  //   TargetList: WebsiteTargetList,
+  //   DataProvider: WebsiteDataProvider,
+  // },
+  // 'recon-organization': {
+  //   Panel: OrganizationPanel,
+  //   TargetList: OrganizationTargetList,
+  //   DataProvider: OrganizationDataProvider,
+  // },
+  // 'recon-person': {
+  //   Panel: PersonPanel,
+  //   TargetList: PersonTargetList,
+  //   DataProvider: PersonDataProvider,
+  // },
+  // 'recon-sourcecode': {
+  //   Panel: SourceCodePanel,
+  //   TargetList: SourceCodeTargetList,
+  //   DataProvider: SourceCodeDataProvider,
+  // },
+  // 'recon-test': {
+  //   Panel: ServerPanel,
+  //   TargetList: ServerTargetList,
+  //   DataProvider: TestDataProvider,
+  // },
+};
+
+// Views that should show the target list (left sidebar)
+const TARGET_LIST_VIEWS = new Set(Object.keys(VIEW_CONFIG));
+
+export function Recon({ activeSubItem }: ReconProps) {
+  // For domain recon (default or explicitly selected), render the new unified component
+  const isDomainRecon = !activeSubItem || activeSubItem === 'recon-domain';
+
+  if (isDomainRecon) {
+    return <DomainRecon />;
+  }
+
+  // For other sub-items (when uncommented), use the old pattern
+  const showTargetList = TARGET_LIST_VIEWS.has(activeSubItem);
+  const config = VIEW_CONFIG[activeSubItem];
+
+  if (!config) {
+    return <div className="flex-1 flex items-center justify-center text-[#2a3548]">Module not implemented</div>;
+  }
+
+  const [activeDomain, setActiveDomain] = useState<string>('phantom.tech');
+  const { Panel, TargetList, DataProvider } = config;
 
   return (
-    <div
-      className="flex flex-col flex-1 overflow-hidden bg-[#080b10]"
-      style={{ fontFamily: '"JetBrains Mono", "Fira Code", ui-monospace, monospace' }}
-    >
-      {/* Header bar */}
-      <div className="flex items-center gap-0 px-3 h-[34px] bg-[#060810] border-b border-[#1c2333] shrink-0">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActive(tab.id)}
-            className={cn(
-              'h-full px-3 text-[9.5px] uppercase tracking-[0.1em] font-bold transition-all relative whitespace-nowrap',
-              active === tab.id ? 'text-[#c8d6f0]' : 'text-[#2a3548] hover:text-[#4a5a7a]',
-            )}
-          >
-            {tab.label}
-            {active === tab.id && (
-              <div
-                className="absolute bottom-0 left-0 right-0 h-px"
-                style={{ background: activeTab.accent }}
-              />
-            )}
-          </button>
-        ))}
-
-        <div className="ml-auto flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#ff2d55] animate-pulse" />
-            <span className="text-[9px] text-[#2a3548] font-mono">RISK 87/100</span>
-          </div>
-          <div className="w-px h-3 bg-[#1c2333]" />
-          <input
-            readOnly
-            value={TARGET}
-            className="h-5 w-36 bg-[#0d1017] border border-[#1c2333] rounded text-[#0af] text-[9.5px] px-2 outline-none font-mono"
-          />
-          <button className="h-5 px-2.5 bg-[#ff2d5515] border border-[#ff2d5530] text-[#ff2d55] text-[9px] font-bold uppercase tracking-wider rounded font-mono hover:bg-[#ff2d5525] transition-colors">
-            ▶ Run
-          </button>
-          <button className="h-5 px-2 bg-[#1c2333] border border-[#2a3548] text-[#4a5a7a] text-[9px] rounded font-mono hover:text-[#8da0c0] transition-colors">
-            Export
-          </button>
-        </div>
+    <div className="flex flex-1 overflow-hidden bg-[#080b10]">
+      {showTargetList && (
+        <TargetList activeDomain={activeDomain} onSelectDomain={setActiveDomain} />
+      )}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <DataProvider>
+          <Panel activeDomain={activeDomain} />
+        </DataProvider>
       </div>
-
-      {/* Content */}
-      {renderContent()}
     </div>
   );
 }

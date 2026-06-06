@@ -10,7 +10,21 @@ export type PortStatus = 'open' | 'filtered' | 'vuln'
 export type SeverityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 
 export type ScanProgress = { label: string; pct: number; color: BadgeColor | 'gray' }
-export type NavModuleConfig = { id: PhantomModule; title: string; activeClass: string; dotColor?: string }
+
+export type SubMenuItem = {
+  id: string;
+  title: string;
+  disabled?: boolean;
+  onClick?: () => void;
+}
+
+export type NavModuleConfig = { 
+  id: PhantomModule; 
+  title: string; 
+  activeClass: string; 
+  dotColor?: string;
+  children?: SubMenuItem[];
+}
 
 export type MockTarget    = { id: string; label: string; badge: string; badgeColor: BadgeColor; icon: string }
 export type MockHost      = { ip: string; hostname: string; os: string; ports: { number: string; status: PortStatus }[] }
