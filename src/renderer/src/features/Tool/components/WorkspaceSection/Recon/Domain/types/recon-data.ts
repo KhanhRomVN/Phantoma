@@ -91,6 +91,7 @@ export interface ReconData {
   techStack: TechStack;
   riskScore: RiskScore;
   whoisData: WhoisData;
+  identityRecords?: IdentityRecords;
   breaches: Breach[];
   harvestedEmails: string[];
   cloudAssets: CloudAsset[];
