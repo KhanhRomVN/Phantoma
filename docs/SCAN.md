@@ -44,7 +44,6 @@ SCAN/
 ├── Website/                     ← Quét web (directory fuzz, vuln scan, SSL test)
 │   ├── index.tsx
 │   └── ...
-└── Shared/                      (constants, utils, logging)
 ```
 
 ### 🎯 3 Mục Tiêu Quét Chủ Động

@@ -20,6 +20,16 @@ const NAV_MODULES: NavModuleConfig[] = [
       { id: 'recon-sourcecode', title: 'Source Code', disabled: false },
     ],
   },
+  {
+    id: 'scanner',
+    title: 'Scanner',
+    activeClass: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+    children: [
+      { id: 'scan-domain', title: 'Domain', disabled: false },
+      { id: 'scan-network', title: 'Network', disabled: false },
+      { id: 'scan-website', title: 'Website', disabled: false },
+    ],
+  },
 ];
 
 // ─── NavLogo ─────────────────────────────────────────────────────────────────
@@ -293,8 +303,8 @@ export function ModuleBar({
     onSubItemSelect?.(subItem.id);
   };
 
-  const reconItem = NAV_MODULES.find((m) => m.id === 'recon');
-  const isReconActive = active === 'recon';
+  const modulesWithChildren = NAV_MODULES.filter((m) => m.children && m.children.length > 0);
+  const activeModuleWithChildren = modulesWithChildren.find((m) => m.id === active);
 
   return (
     <div className="relative">
@@ -316,16 +326,16 @@ export function ModuleBar({
                 dotColor={item.dotColor}
                 onClick={() => onSelect(item.id)}
               />
-              {item.id === 'recon' && isReconActive && reconItem?.children && (
+              {item.id === active && activeModuleWithChildren?.id === item.id && item.children && (
                 <div className="relative mt-1">
-                  {reconItem.children.map((child, index) => (
+                  {item.children.map((child, index) => (
                     <SubMenuItemButton
                       key={child.id}
                       item={child}
                       isActive={child.id === activeSubItem}
                       isFirst={index === 0}
-                      isLast={index === reconItem.children!.length - 1}
-                      onSelect={() => handleSubItemClick(reconItem, child)}
+                      isLast={index === item.children!.length - 1}
+                      onSelect={() => handleSubItemClick(item, child)}
                     />
                   ))}
                 </div>

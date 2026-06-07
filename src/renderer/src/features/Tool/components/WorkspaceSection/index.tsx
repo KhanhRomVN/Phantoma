@@ -5,6 +5,7 @@ import { useLiveClock } from '../../hooks/useLiveClock';
 
 import { Recon } from './Intel';
 import { Dashboard } from './Dashboard';
+import { Scan } from './Scan';
 
 // ─── Module title map (local, lightweight) ───────────────────────────────────
 
@@ -124,6 +125,8 @@ function ViewRouter({
       return <Dashboard />;
     case 'recon':
       return <Recon activeSubItem={activeSubItem} />;
+    case 'scanner':
+      return <Scan activeSubItem={activeSubItem} />;
     default:
       return <Dashboard />;
   }
