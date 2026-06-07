@@ -2,16 +2,45 @@
   "target": "phantoma@gmail.com",
   "queryType": "email",
   "scanTime": "2026-06-06T08:31:07Z",
-  "scanDuration": 8942,
+  "scanDuration": 10932,
   "confidence": 0.91,
-  "totalHits": 263,
+  "totalHits": 1523,
   "identityInfo": {
     "fullName": "Nguyen Phan Thoma",
-    "alias": ["phantoma", "phantoma1337", "phantoma_sec", "p.nguyen", "thoma.nguyen"],
-    "username": ["phantoma", "phantoma_sec", "thoma_nguyen"],
+    "alias": [
+      "phantoma",
+      "phantoma1337",
+      "phantoma_sec",
+      "p.nguyen",
+      "thoma.nguyen",
+      "th0ma_osint",
+      "phant0ma",
+      "thoma_phan",
+      "phan_sec",
+      "npt_osint",
+      "t.nguyen",
+      "thoma_ng"
+    ],
+    "username": [
+      "phantoma",
+      "phantoma_sec",
+      "thoma_nguyen",
+      "phantoma1337",
+      "th0ma_osint",
+      "phan_sec",
+      "npt_osint"
+    ],
     "nickname": "Phan",
     "avatar": "https://lh3.googleusercontent.com/a/phantoma_avatar",
-    "possibleRealNames": ["Phan Nguyen Thoma", "Thoma Nguyen", "Nguyen Phan Thoma", "Phan Thoma"],
+    "possibleRealNames": [
+      "Phan Nguyen Thoma",
+      "Thoma Nguyen",
+      "Nguyen Phan Thoma",
+      "Phan Thoma",
+      "Thoma Phan",
+      "Nguyen Thoma",
+      "Thoma N. Phan"
+    ],
     "estimatedAge": 28,
     "gender": "male",
     "nationality": "Vietnamese",
@@ -28,28 +57,36 @@
       "contact@phantoma.com",
       "admin@phantoma.com",
       "phan.nguyen@phantoma.com",
-      "thoma.nguyen@wearehackerone.com"
+      "thoma.nguyen@wearehackerone.com",
+      "phantoma_sec@outlook.com",
+      "phantoma@tutanota.com",
+      "thoma.phan@yahoo.com",
+      "phantoma@riseup.net",
+      "npt@duck.com"
     ],
-    "phoneNumber": ["+84 90 123 45 67", "+84 28 1234 5678"],
-    "address": "123 Le Loi Street, District 1, Ho Chi Minh City, Vietnam",
+    "phoneNumber": [
+      "+84 90 123 45 67",
+      "+84 28 1234 5678",
+      "+1 650 555 1234 (Google Voice)",
+      "+84 93 987 6543"
+    ],
+    "address": [
+      "123 Le Loi Street, District 1, Ho Chi Minh City, Vietnam",
+      "45 Nguyen Hue Boulevard, District 1, Ho Chi Minh City, Vietnam",
+      "789 Cach Mang Thang Tam, District 3, Ho Chi Minh City, Vietnam (previous)"
+    ],
     "messengerAccounts": [
-      {
-        "platform": "Google Chat",
-        "username": "phantoma@gmail.com"
-      },
-      {
-        "platform": "Telegram",
-        "username": "@phantoma_sec",
-        "id": 987654321
-      },
-      {
-        "platform": "Discord",
-        "username": "phantoma#1234"
-      },
-      {
-        "platform": "Matrix",
-        "username": "@phantoma:matrix.org"
-      }
+      { "platform": "Google Chat", "username": "phantoma@gmail.com" },
+      { "platform": "Telegram", "username": "@phantoma_sec", "id": 987654321 },
+      { "platform": "Discord", "username": "phantoma#1234" },
+      { "platform": "Matrix", "username": "@phantoma:matrix.org" },
+      { "platform": "Signal", "username": "+84901234567" },
+      { "platform": "ICQ", "username": "722345678" },
+      { "platform": "AIM (archived)", "username": "phantomaosint" },
+      { "platform": "Yahoo Messenger (archived)", "username": "phantoma_sec" },
+      { "platform": "Skype", "username": "live:phantoma_sec" },
+      { "platform": "WeChat", "username": "phantoma_osint" },
+      { "platform": "Line", "username": "phantoma.sec" }
     ]
   },
   "socialMedia": {
@@ -167,36 +204,116 @@
     },
     "codechef": null,
     "codeforces": null,
-    "telegram": {
-      "username": "@phantoma_sec"
-    },
-    "discord": {
-      "username": "phantoma#1234"
-    },
-    "matrix": {
-      "username": "@phantoma:matrix.org"
-    },
+    "telegram": { "username": "@phantoma_sec" },
+    "discord": { "username": "phantoma#1234" },
+    "matrix": { "username": "@phantoma:matrix.org" },
     "keybase": {
       "username": "phantoma",
       "proofs": ["twitter", "github", "reddit"]
     },
+    "mastodon": {
+      "url": "https://infosec.exchange/@phantoma_sec",
+      "username": "@phantoma_sec@infosec.exchange",
+      "followers": 230
+    },
+    "flickr": {
+      "url": "https://flickr.com/people/phantoma_sec",
+      "username": "phantoma_sec",
+      "photos": 120
+    },
+    "tiktok": {
+      "url": "https://tiktok.com/@phantoma_sec",
+      "username": "phantoma_sec",
+      "followers": 1200,
+      "videos": 15
+    },
+    "pinterest": {
+      "url": "https://pinterest.com/phantoma_osint",
+      "username": "phantoma_osint",
+      "boards": 12
+    },
+    "goodreads": {
+      "url": "https://goodreads.com/phantoma",
+      "username": "phantoma",
+      "books": 45
+    },
+    "letterboxd": {
+      "url": "https://letterboxd.com/phantoma_sec",
+      "username": "phantoma_sec"
+    },
+    "myanimelist": {
+      "url": "https://myanimelist.net/profile/phantoma",
+      "username": "phantoma"
+    },
+    "anilist": {
+      "url": "https://anilist.co/user/phantoma",
+      "username": "phantoma"
+    },
+    "trakt": {
+      "url": "https://trakt.tv/users/phantoma_sec",
+      "username": "phantoma_sec"
+    },
+    "vimeo": {
+      "url": "https://vimeo.com/phantoma",
+      "username": "phantoma"
+    },
+    "dribbble": {
+      "url": "https://dribbble.com/phantoma",
+      "username": "phantoma"
+    },
+    "behance": {
+      "url": "https://behance.net/phantoma",
+      "username": "phantoma"
+    },
+    "steam": {
+      "url": "https://steamcommunity.com/id/phantoma",
+      "username": "phantoma",
+      "note": "Likely collision (gamer) but email pattern overlap"
+    },
+    "twitch": {
+      "url": "https://twitch.tv/phantoma",
+      "username": "phantoma",
+      "note": "Gaming channel, possible collision"
+    },
+    "okcupid": null,
+    "bumble": null,
+    "hinge": null,
+    "couchsurfing": {
+      "url": "https://couchsurfing.com/people/phantoma_sec",
+      "username": "phantoma_sec"
+    },
+    "meetup": {
+      "url": "https://meetup.com/members/phantoma",
+      "username": "phantoma"
+    },
     "other": [
-      {
-        "platform": "Lobste.rs",
-        "url": "https://lobste.rs/~phantoma",
-        "username": "phantoma"
-      },
+      { "platform": "Lobste.rs", "url": "https://lobste.rs/~phantoma", "username": "phantoma" },
       {
         "platform": "Product Hunt",
         "url": "https://www.producthunt.com/@phantoma",
         "username": "phantoma"
-      }
+      },
+      {
+        "platform": "Indie Hackers",
+        "url": "https://indiehackers.com/phantoma",
+        "username": "phantoma"
+      },
+      {
+        "platform": "Hacker News",
+        "url": "https://news.ycombinator.com/user?id=phantoma",
+        "username": "phantoma"
+      },
+      { "platform": "SlideShare", "url": "https://slideshare.net/phantoma", "username": "phantoma" }
     ]
   },
   "technicalFootprint": {
     "github": "https://github.com/phantoma",
     "gitlab": "https://gitlab.com/phantoma",
     "bitbucket": null,
+    "sourceforge": "https://sourceforge.net/u/phantoma/profile/",
+    "dockerhub": "https://hub.docker.com/u/phantoma",
+    "npm": "https://www.npmjs.com/~phantoma",
+    "pypi": "https://pypi.org/user/phantoma/",
     "stackoverflow": "https://stackoverflow.com/users/12345678/phantoma",
     "publicKeys": [
       {
@@ -208,7 +325,7 @@
       },
       {
         "type": "SSH",
-        "keyId": "SHA256:xyz...",
+        "keyId": "SHA256:abc123...",
         "source": "GitHub"
       }
     ],
@@ -258,12 +375,7 @@
       "Redis"
     ],
     "repositoryContributions": [
-      {
-        "repo": "phantoma/recon-core",
-        "contributions": 1204,
-        "language": "Go",
-        "stars": 2300
-      },
+      { "repo": "phantoma/recon-core", "contributions": 1204, "language": "Go", "stars": 2300 },
       {
         "repo": "phantoma/OSINT-Framework",
         "contributions": 856,
@@ -282,12 +394,7 @@
         "language": "Markdown",
         "stars": 45000
       },
-      {
-        "repo": "assetnote/wordlists",
-        "contributions": 8,
-        "language": "Text",
-        "stars": 1500
-      }
+      { "repo": "assetnote/wordlists", "contributions": 8, "language": "Text", "stars": 1500 }
     ],
     "toolsPublished": [
       {
@@ -318,31 +425,13 @@
         "role": "Speaker",
         "topic": "Automating OSINT at Scale"
       },
-      {
-        "name": "Vietnam Security Summit 2024",
-        "role": "Attendee & CTF Participant"
-      },
-      {
-        "name": "DEF CON 31 (2023)",
-        "role": "Village volunteer - Recon Village"
-      }
+      { "name": "Vietnam Security Summit 2024", "role": "Attendee & CTF Participant" },
+      { "name": "DEF CON 31 (2023)", "role": "Village volunteer - Recon Village" }
     ],
     "ctfResults": [
-      {
-        "ctf": "HackerOne H1-702 2024",
-        "rank": 12,
-        "team": "VietSec"
-      },
-      {
-        "ctf": "BSides SF CTF 2023",
-        "rank": 7,
-        "team": "solo"
-      },
-      {
-        "ctf": "CTFZone 2022",
-        "rank": 3,
-        "team": "0xPhantoma"
-      }
+      { "ctf": "HackerOne H1-702 2024", "rank": 12, "team": "VietSec" },
+      { "ctf": "BSides SF CTF 2023", "rank": 7, "team": "solo" },
+      { "ctf": "CTFZone 2022", "rank": 3, "team": "0xPhantoma" }
     ]
   },
   "leakExposure": {
@@ -390,6 +479,45 @@
         "severity": "MEDIUM",
         "hashType": "Bcrypt",
         "detail": "Email only (no password) leaked via third-party app authorization."
+      },
+      {
+        "source": "Facebook Breach 2019 (phone numbers)",
+        "date": "2019-04-01",
+        "phone": "+84901234567",
+        "email": "phantoma@gmail.com",
+        "severity": "LOW",
+        "detail": "Phone number and email associated with Facebook profile."
+      },
+      {
+        "source": "Dubsmash Breach 2019",
+        "date": "2019-02-01",
+        "email": "phantoma@gmail.com",
+        "severity": "LOW",
+        "hashType": "Bcrypt",
+        "detail": "Email exposed."
+      },
+      {
+        "source": "Zynga Breach 2019",
+        "date": "2019-09-01",
+        "email": "phantoma@gmail.com",
+        "severity": "LOW",
+        "hashType": "SHA-1",
+        "detail": "Used on Zynga games (likely collision)."
+      },
+      {
+        "source": "Neopets Breach 2022",
+        "date": "2022-07-20",
+        "email": "phantoma@gmail.com",
+        "severity": "LOW",
+        "hashType": "Unknown",
+        "detail": "Found in Neopets dump."
+      },
+      {
+        "source": "CDEK (Russian shipping) Leak 2024",
+        "date": "2024-01-15",
+        "email": "phantoma@gmail.com",
+        "severity": "LOW",
+        "detail": "Email found in Russian shipping database (likely false positive)."
       }
     ],
     "credentialLeaks": [
@@ -409,7 +537,15 @@
         "validated": false
       }
     ],
-    "breachDatabase": ["HaveIBeenPwned", "IntelX", "DeHashed", "SnusBase", "LeakCheck"],
+    "breachDatabase": [
+      "HaveIBeenPwned",
+      "IntelX",
+      "DeHashed",
+      "SnusBase",
+      "LeakCheck",
+      "RaidForums archives",
+      "XSS.is dumps"
+    ],
     "pastebinLeaks": [
       {
         "url": "https://pastebin.com/raw/phantoma_dump",
@@ -512,8 +648,88 @@
       "note": "Gaming channel unrelated"
     },
     { "service": "Instagram", "confirmed": true, "url": "https://instagram.com/phantoma" },
-    { "service": "Flickr", "confirmed": false, "url": "https://flickr.com/people/phantoma" },
-    { "service": "Last.fm", "confirmed": false, "url": "https://last.fm/user/phantoma" }
+    { "service": "Flickr", "confirmed": true, "url": "https://flickr.com/people/phantoma_sec" },
+    { "service": "Last.fm", "confirmed": false, "url": "https://last.fm/user/phantoma" },
+    { "service": "Mastodon", "confirmed": true, "url": "https://infosec.exchange/@phantoma_sec" },
+    { "service": "TikTok", "confirmed": true, "url": "https://tiktok.com/@phantoma_sec" },
+    { "service": "Pinterest", "confirmed": true, "url": "https://pinterest.com/phantoma_osint" },
+    { "service": "Goodreads", "confirmed": true, "url": "https://goodreads.com/phantoma" },
+    { "service": "Letterboxd", "confirmed": true, "url": "https://letterboxd.com/phantoma_sec" },
+    {
+      "service": "MyAnimeList",
+      "confirmed": true,
+      "url": "https://myanimelist.net/profile/phantoma"
+    },
+    { "service": "AniList", "confirmed": true, "url": "https://anilist.co/user/phantoma" },
+    { "service": "Trakt", "confirmed": true, "url": "https://trakt.tv/users/phantoma_sec" },
+    { "service": "Vimeo", "confirmed": true, "url": "https://vimeo.com/phantoma" },
+    { "service": "Dribbble", "confirmed": true, "url": "https://dribbble.com/phantoma" },
+    { "service": "Behance", "confirmed": true, "url": "https://behance.net/phantoma" },
+    { "service": "SourceForge", "confirmed": true, "url": "https://sourceforge.net/u/phantoma" },
+    {
+      "service": "Hacker News",
+      "confirmed": true,
+      "url": "https://news.ycombinator.com/user?id=phantoma"
+    },
+    { "service": "Indie Hackers", "confirmed": true, "url": "https://indiehackers.com/phantoma" },
+    { "service": "Lobste.rs", "confirmed": true, "url": "https://lobste.rs/~phantoma" },
+    { "service": "Meetup", "confirmed": true, "url": "https://meetup.com/members/phantoma" },
+    {
+      "service": "Couchsurfing",
+      "confirmed": true,
+      "url": "https://couchsurfing.com/people/phantoma_sec"
+    },
+    { "service": "Codewars", "confirmed": true, "url": "https://www.codewars.com/users/phantoma" },
+    { "service": "TryHackMe", "confirmed": true, "url": "https://tryhackme.com/p/phantoma" },
+    {
+      "service": "HackTheBox",
+      "confirmed": true,
+      "url": "https://app.hackthebox.com/profile/phantoma"
+    },
+    {
+      "service": "LeetCode",
+      "confirmed": false,
+      "url": null,
+      "note": "Account found but email unverified"
+    },
+    { "service": "HackerRank", "confirmed": true, "url": "https://www.hackerrank.com/phantoma" },
+    {
+      "service": "Codecademy",
+      "confirmed": true,
+      "url": "https://www.codecademy.com/profiles/phantoma"
+    },
+    {
+      "service": "freeCodeCamp",
+      "confirmed": true,
+      "url": "https://forum.freecodecamp.org/u/phantoma"
+    },
+    { "service": "DevRant", "confirmed": true, "url": "https://devrant.com/users/phantoma" },
+    { "service": "Evernote", "confirmed": false, "note": "Possible account but not confirmed" },
+    { "service": "Pocket", "confirmed": false },
+    { "service": "Diigo", "confirmed": false },
+    { "service": "Instapaper", "confirmed": false },
+    { "service": "Bitbucket", "confirmed": false, "note": "No public account" },
+    { "service": "Disqus", "confirmed": true, "url": "https://disqus.com/by/phantoma_sec" },
+    { "service": "Grav", "confirmed": false },
+    {
+      "service": "Mozilla Add-ons",
+      "confirmed": true,
+      "url": "https://addons.mozilla.org/en-US/firefox/user/phantoma"
+    },
+    {
+      "service": "Chrome Web Store",
+      "confirmed": true,
+      "url": "https://chrome.google.com/webstore/developer/phantoma"
+    },
+    { "service": "Sourcehut", "confirmed": true, "url": "https://sr.ht/~phantoma" },
+    { "service": "Launchpad", "confirmed": true, "url": "https://launchpad.net/~phantoma" },
+    {
+      "service": "OpenStreetMap",
+      "confirmed": true,
+      "url": "https://www.openstreetmap.org/user/phantoma_sec"
+    },
+    { "service": "Wikipedia", "confirmed": false },
+    { "service": "Quora", "confirmed": true, "url": "https://www.quora.com/profile/Phantoma" }
   ],
   "noiseResults": [
     {
@@ -559,6 +775,30 @@
       "type": "ip_geolocation_conflict",
       "ip": "104.18.32.11",
       "note": "Cloudflare IP attributed to target's domains; not personal device."
+    },
+    {
+      "type": "collision",
+      "platform": "Etsy",
+      "username": "phantoma",
+      "note": "Shop selling handmade crafts, not target."
+    },
+    {
+      "type": "collision",
+      "platform": "Bandcamp",
+      "username": "phantoma",
+      "note": "Musician 'Phantoma' from UK, not related."
+    },
+    {
+      "type": "collision",
+      "platform": "SoundCloud",
+      "username": "phantoma",
+      "note": "Music producer with same handle, different email."
+    },
+    {
+      "type": "collision",
+      "platform": "Dribbble",
+      "username": "phantoma",
+      "note": "Designer 'phantoma' from India, not target."
     }
   ],
   "warnings": [

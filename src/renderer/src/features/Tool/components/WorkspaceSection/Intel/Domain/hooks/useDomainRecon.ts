@@ -3,11 +3,11 @@
  * Reuses the entity recon pattern from Person module.
  */
 import { useState, useMemo, useCallback } from 'react';
-import type { ReconResult } from '../../Person/types/recon-result';
-import type { ReconEntity } from '../../Person/types/entity';
-import type { DataPoint } from '../../Person/types/data-point';
-import type { SmartCategoryGroup } from '../../Person/types/smart-category';
-import { parseDomainReconResult } from '../engine/domain-parser';
+import type { ReconResult } from '../types/recon-result';
+import type { ReconEntity } from '../types/entity';
+import type { DataPoint } from '../types/data-point';
+import type { SmartCategoryGroup } from '../types/smart-category';
+import { parseDomainReconResult } from '../utils/domain-parser';
 
 interface UseDomainReconReturn {
   result: ReconResult | null;

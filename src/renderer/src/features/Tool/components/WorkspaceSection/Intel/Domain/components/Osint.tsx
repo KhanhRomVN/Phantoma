@@ -1,25 +1,17 @@
-import React from 'react';
-import type { DataPoint } from '../../Person/types/data-point';
-import type { SmartCategoryGroup } from '../../Person/types/smart-category';
-import { DataPointRow } from '../../Person/components/shared/DataPointRow';
-import { SectionHeader } from '../../Person/components/shared/SectionHeader';
-import { StatBox } from '../../Person/components/shared/StatBox';
+import { useMemo } from 'react';
+import type { DataPoint } from '../types/data-point';
+import type { SmartCategoryGroup } from '../types/smart-category';
+import { SectionHeader } from './shared/SectionHeader';
+import { StatBox } from './shared/StatBox';
+import { DataTable } from './shared/DataTable';
 
 interface OsintProps {
   dataPoints: DataPoint[];
   activeGroup: SmartCategoryGroup;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  google_dork: 'Google Dorks',
-  wayback_snapshot: 'Wayback Snapshots',
-  public_document: 'Public Documents',
-  file_metadata: 'File Metadata',
-  mobile_app: 'Mobile Apps',
-};
-
 export function Osint({ dataPoints, activeGroup }: OsintProps) {
-  const grouped = dataPoints.reduce(
+  const grouped = useMemo(() => dataPoints.reduce(
     (acc, dp) => {
       const key = dp.category;
       if (!acc[key]) acc[key] = [];
@@ -27,7 +19,7 @@ export function Osint({ dataPoints, activeGroup }: OsintProps) {
       return acc;
     },
     {} as Record<string, DataPoint[]>,
-  );
+  ), [dataPoints]);
 
   const waybackCount = (grouped.wayback_snapshot || []).length;
   const dorkCount = (grouped.google_dork || []).length;
@@ -50,21 +42,12 @@ export function Osint({ dataPoints, activeGroup }: OsintProps) {
         <StatBox label="Wayback" value={waybackCount} sub="snapshots" accent="#30d158" />
       </div>
 
-      <div className="space-y-3">
-        {Object.entries(grouped).map(([category, dps]) => (
-          <div key={category}>
-            <SectionHeader accent="#ff9f0a">
-              {CATEGORY_LABELS[category] || category.replace(/_/g, ' ')}
-              <span className="text-[10px] font-normal text-[#6a7a9a] ml-1">({dps.length})</span>
-            </SectionHeader>
-            <div className="space-y-1">
-              {dps.map((dp) => (
-                <DataPointRow key={dp.id} dataPoint={dp} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <SectionHeader accent="#ff9f0a">OSINT Findings</SectionHeader>
+      <DataTable
+        dataPoints={dataPoints}
+        columns={['value', 'category', 'confidence', 'source']}
+        maxRows={100}
+      />
     </div>
   );
 }

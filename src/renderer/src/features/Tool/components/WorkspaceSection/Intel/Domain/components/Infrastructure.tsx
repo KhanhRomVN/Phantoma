@@ -1,30 +1,17 @@
-import React from 'react';
-import type { DataPoint } from '../../Person/types/data-point';
-import type { SmartCategoryGroup } from '../../Person/types/smart-category';
-import { DataPointRow } from '../../Person/components/shared/DataPointRow';
-import { SectionHeader } from '../../Person/components/shared/SectionHeader';
-import { StatBox } from '../../Person/components/shared/StatBox';
+import { useMemo } from 'react';
+import type { DataPoint } from '../types/data-point';
+import type { SmartCategoryGroup } from '../types/smart-category';
+import { SectionHeader } from './shared/SectionHeader';
+import { StatBox } from './shared/StatBox';
+import { DataTable } from './shared/DataTable';
 
 interface InfrastructureProps {
   dataPoints: DataPoint[];
   activeGroup: SmartCategoryGroup;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  asn: 'ASN',
-  cidr_range: 'CIDR Ranges',
-  reverse_ip: 'Reverse IP',
-  hosting_provider: 'Hosting',
-  cloud_provider: 'Cloud',
-  geo_location: 'Geo Location',
-  bgp_prefix: 'BGP Prefixes',
-  peer_networks: 'Peer Networks',
-  ip_address: 'IP Addresses',
-  ipv6: 'IPv6 Addresses',
-};
-
 export function Infrastructure({ dataPoints, activeGroup }: InfrastructureProps) {
-  const grouped = dataPoints.reduce(
+  const grouped = useMemo(() => dataPoints.reduce(
     (acc, dp) => {
       const key = dp.category;
       if (!acc[key]) acc[key] = [];
@@ -32,7 +19,7 @@ export function Infrastructure({ dataPoints, activeGroup }: InfrastructureProps)
       return acc;
     },
     {} as Record<string, DataPoint[]>,
-  );
+  ), [dataPoints]);
 
   const ipCount = (grouped.ip_address || []).length;
   const asnCount = (grouped.asn || []).length;
@@ -59,21 +46,11 @@ export function Infrastructure({ dataPoints, activeGroup }: InfrastructureProps)
         <StatBox label="Total" value={dataPoints.length} sub="points" accent="#ff6b35" />
       </div>
 
-      <div className="space-y-3">
-        {Object.entries(grouped).map(([category, dps]) => (
-          <div key={category}>
-            <SectionHeader accent="#ff6b35">
-              {CATEGORY_LABELS[category] || category.replace(/_/g, ' ')}
-              <span className="text-[10px] font-normal text-[#6a7a9a] ml-1">({dps.length})</span>
-            </SectionHeader>
-            <div className="space-y-1">
-              {dps.map((dp) => (
-                <DataPointRow key={dp.id} dataPoint={dp} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <SectionHeader accent="#ff6b35">Infrastructure</SectionHeader>
+      <DataTable
+        dataPoints={dataPoints}
+        columns={['value', 'category', 'confidence', 'source', 'metadata']}
+      />
     </div>
   );
 }

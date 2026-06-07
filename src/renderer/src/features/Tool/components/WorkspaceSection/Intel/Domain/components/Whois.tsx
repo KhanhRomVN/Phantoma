@@ -1,33 +1,17 @@
-import React from 'react';
-import type { DataPoint } from '../../Person/types/data-point';
-import type { SmartCategoryGroup } from '../../Person/types/smart-category';
-import { DataPointRow } from '../../Person/components/shared/DataPointRow';
-import { SectionHeader } from '../../Person/components/shared/SectionHeader';
-import { StatBox } from '../../Person/components/shared/StatBox';
+import { useMemo } from 'react';
+import type { DataPoint } from '../types/data-point';
+import type { SmartCategoryGroup } from '../types/smart-category';
+import { SectionHeader } from './shared/SectionHeader';
+import { StatBox } from './shared/StatBox';
+import { DataTable } from './shared/DataTable';
 
 interface WhoisProps {
   dataPoints: DataPoint[];
   activeGroup: SmartCategoryGroup;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  whois_domain_name: 'Domain Name',
-  whois_registrar: 'Registrar',
-  whois_registry: 'Registry',
-  whois_creation_date: 'Created',
-  whois_expiration_date: 'Expires',
-  whois_updated_date: 'Updated',
-  whois_status: 'Status',
-  whois_nameserver: 'Nameservers',
-  whois_registrant: 'Registrant',
-  whois_admin_contact: 'Admin Contact',
-  whois_tech_contact: 'Tech Contact',
-  whois_raw: 'Raw WHOIS',
-  whois_historical: 'Historical Records',
-};
-
 export function Whois({ dataPoints, activeGroup }: WhoisProps) {
-  const grouped = dataPoints.reduce(
+  const grouped = useMemo(() => dataPoints.reduce(
     (acc, dp) => {
       const key = dp.category;
       if (!acc[key]) acc[key] = [];
@@ -35,7 +19,7 @@ export function Whois({ dataPoints, activeGroup }: WhoisProps) {
       return acc;
     },
     {} as Record<string, DataPoint[]>,
-  );
+  ), [dataPoints]);
 
   const verifiedCount = dataPoints.filter((dp) => dp.verificationStatus === 'verified').length;
   const historicalCount = dataPoints.filter((dp) => dp.category === 'whois_historical').length;
@@ -58,21 +42,8 @@ export function Whois({ dataPoints, activeGroup }: WhoisProps) {
         <StatBox label="Historical" value={historicalCount} sub="snapshots" accent="#f5a623" />
       </div>
 
-      <div className="space-y-3">
-        {Object.entries(grouped).map(([category, dps]) => (
-          <div key={category}>
-            <SectionHeader accent="#af52de">
-              {CATEGORY_LABELS[category] || category.replace('whois_', '').replace(/_/g, ' ')}
-              <span className="text-[10px] font-normal text-[#6a7a9a] ml-1">({dps.length})</span>
-            </SectionHeader>
-            <div className="space-y-1">
-              {dps.map((dp) => (
-                <DataPointRow key={dp.id} dataPoint={dp} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <SectionHeader accent="#af52de">WHOIS Records</SectionHeader>
+      <DataTable dataPoints={dataPoints} columns={['value', 'confidence', 'source']} />
     </div>
   );
 }

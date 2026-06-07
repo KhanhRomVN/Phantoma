@@ -1,27 +1,17 @@
-import type { DataPoint } from '../../Person/types/data-point';
-import type { SmartCategoryGroup } from '../../Person/types/smart-category';
-import { DataPointRow } from '../../Person/components/shared/DataPointRow';
-import { SectionHeader } from '../../Person/components/shared/SectionHeader';
-import { StatBox } from '../../Person/components/shared/StatBox';
+import { useMemo } from 'react';
+import type { DataPoint } from '../types/data-point';
+import type { SmartCategoryGroup } from '../types/smart-category';
+import { SectionHeader } from './shared/SectionHeader';
+import { StatBox } from './shared/StatBox';
+import { DataTable } from './shared/DataTable';
 
 interface NetworkProps {
   dataPoints: DataPoint[];
   activeGroup: SmartCategoryGroup;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  open_port: 'Open Ports',
-  service_banner: 'Service Banners',
-  http_response: 'HTTP Responses',
-  ssl_certificate_chain: 'SSL Chain',
-  cors_header: 'CORS Headers',
-  security_header: 'Security Headers',
-  port: 'Ports',
-  service: 'Services',
-};
-
 export function Network({ dataPoints, activeGroup }: NetworkProps) {
-  const grouped = dataPoints.reduce(
+  const grouped = useMemo(() => dataPoints.reduce(
     (acc, dp) => {
       const key = dp.category;
       if (!acc[key]) acc[key] = [];
@@ -29,7 +19,7 @@ export function Network({ dataPoints, activeGroup }: NetworkProps) {
       return acc;
     },
     {} as Record<string, DataPoint[]>,
-  );
+  ), [dataPoints]);
 
   const openPortsCount = (grouped.open_port || []).length + (grouped.port || []).length;
   const serviceCount = (grouped.service || []).length + (grouped.service_banner || []).length;
@@ -52,21 +42,11 @@ export function Network({ dataPoints, activeGroup }: NetworkProps) {
         <StatBox label="Total" value={dataPoints.length} sub="findings" accent="#ff6b35" />
       </div>
 
-      <div className="space-y-3">
-        {Object.entries(grouped).map(([category, dps]) => (
-          <div key={category}>
-            <SectionHeader accent="#ff6b35">
-              {CATEGORY_LABELS[category] || category.replace(/_/g, ' ')}
-              <span className="text-[10px] font-normal text-[#6a7a9a] ml-1">({dps.length})</span>
-            </SectionHeader>
-            <div className="space-y-1">
-              {dps.map((dp) => (
-                <DataPointRow key={dp.id} dataPoint={dp} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <SectionHeader accent="#ff6b35">Network Scan</SectionHeader>
+      <DataTable
+        dataPoints={dataPoints}
+        columns={['value', 'category', 'confidence', 'source']}
+      />
     </div>
   );
 }

@@ -4,10 +4,6 @@ interface ReconProps {
   activeSubItem?: string | null;
 }
 
-import PersonRecon from './Person';
-import SourceCodeRecon from './SourceCode';
-import IPServerRecon from './IP';
-
 const VIEW_CONFIG: Record<
   string,
   {
@@ -18,23 +14,7 @@ const VIEW_CONFIG: Record<
     }>;
     DataProvider: React.ComponentType<{ children: React.ReactNode }>;
   }
-> = {
-  'recon-ip': {
-    Panel: () => <IPServerRecon />,
-    TargetList: () => null,
-    DataProvider: ({ children }) => <>{children}</>,
-  },
-  'recon-person': {
-    Panel: () => <PersonRecon />,
-    TargetList: () => null,
-    DataProvider: ({ children }) => <>{children}</>,
-  },
-  'recon-sourcecode': {
-    Panel: () => <SourceCodeRecon />,
-    TargetList: () => null,
-    DataProvider: ({ children }) => <>{children}</>,
-  },
-};
+> = {};
 
 const TARGET_LIST_VIEWS = new Set(Object.keys(VIEW_CONFIG));
 

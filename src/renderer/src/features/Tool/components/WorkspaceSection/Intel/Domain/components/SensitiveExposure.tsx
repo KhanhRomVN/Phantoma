@@ -1,33 +1,17 @@
-import type { DataPoint } from '../../Person/types/data-point';
-import type { SmartCategoryGroup } from '../../Person/types/smart-category';
-import { DataPointRow } from '../../Person/components/shared/DataPointRow';
-import { SectionHeader } from '../../Person/components/shared/SectionHeader';
-import { StatBox } from '../../Person/components/shared/StatBox';
+import { useMemo } from 'react';
+import type { DataPoint } from '../types/data-point';
+import type { SmartCategoryGroup } from '../types/smart-category';
+import { SectionHeader } from './shared/SectionHeader';
+import { StatBox } from './shared/StatBox';
+import { DataTable } from './shared/DataTable';
 
 interface SensitiveExposureProps {
   dataPoints: DataPoint[];
   activeGroup: SmartCategoryGroup;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  env_exposure: '.env Files',
-  git_exposure: 'Git Exposure',
-  backup_file: 'Backup Files',
-  config_file: 'Config Files',
-  exposed_api_key: 'API Keys',
-  exposed_secret_token: 'Secret Tokens',
-  firebase_config: 'Firebase Configs',
-  public_s3_bucket: 'Public S3 Buckets',
-  database_dump: 'Database Dumps',
-  log_file: 'Log Files',
-  source_code_exposure: 'Source Code',
-  debug_endpoint: 'Debug Endpoints',
-  admin_panel: 'Admin Panels',
-  phpinfo_exposure: 'PHP Info',
-};
-
 export function SensitiveExposure({ dataPoints, activeGroup }: SensitiveExposureProps) {
-  const grouped = dataPoints.reduce(
+  const grouped = useMemo(() => dataPoints.reduce(
     (acc, dp) => {
       const key = dp.category;
       if (!acc[key]) acc[key] = [];
@@ -35,7 +19,7 @@ export function SensitiveExposure({ dataPoints, activeGroup }: SensitiveExposure
       return acc;
     },
     {} as Record<string, DataPoint[]>,
-  );
+  ), [dataPoints]);
 
   const criticalCount = dataPoints.filter((dp) => dp.riskScore && dp.riskScore >= 75).length;
   const noiseCount = dataPoints.filter((dp) => dp.isNoise).length;
@@ -65,21 +49,12 @@ export function SensitiveExposure({ dataPoints, activeGroup }: SensitiveExposure
         <StatBox label="Noise" value={noiseCount} sub="false positive" accent="#f5a623" />
       </div>
 
-      <div className="space-y-3">
-        {Object.entries(grouped).map(([category, dps]) => (
-          <div key={category}>
-            <SectionHeader accent="#ff375f">
-              {CATEGORY_LABELS[category] || category.replace(/_/g, ' ')}
-              <span className="text-[10px] font-normal text-[#6a7a9a] ml-1">({dps.length})</span>
-            </SectionHeader>
-            <div className="space-y-1">
-              {dps.map((dp) => (
-                <DataPointRow key={dp.id} dataPoint={dp} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <SectionHeader accent="#ff375f">Sensitive Exposures</SectionHeader>
+      <DataTable
+        dataPoints={dataPoints}
+        columns={['value', 'category', 'confidence', 'risk']}
+        maxRows={100}
+      />
     </div>
   );
 }

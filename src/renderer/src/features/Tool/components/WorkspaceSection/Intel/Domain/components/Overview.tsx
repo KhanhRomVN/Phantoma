@@ -1,206 +1,127 @@
-import type { ReconData } from '../types/recon-data';
 import React from 'react';
+import type { ReconResult } from '../types/recon-result';
+import { StatBox } from './shared/StatBox';
+import { SectionHeader } from './shared/SectionHeader';
 
-// UI Components
-function SectionHeader({
-  accent = '#0af',
-  children,
-}: {
-  accent?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2 mb-2">
-      <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accent }} />
-      <h3 className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#c8d6f0] font-mono">
-        {children}
-      </h3>
-    </div>
-  );
+interface OverviewProps {
+  result: ReconResult;
+  onSelectEntity: (entityId: string) => void;
 }
 
-function StatBox({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  accent: string;
-}) {
-  return (
-    <div className="bg-[#0d1017] border border-[#1c2333] rounded p-2.5 flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-widest font-mono text-[#c8d6f0]">
-        {label}
-      </span>
-      <span className="text-[16px] font-bold font-mono leading-none" style={{ color: accent }}>
-        {value}
-      </span>
-      {sub && <span className="text-[9px] font-mono text-[#c8d6f0]">{sub}</span>}
-    </div>
-  );
-}
-
-export function Overview({ data }: { data: ReconData }) {
-  const totalBreachedAccounts = data.breaches.reduce((sum, b) => sum + b.accounts, 0);
-  const nameserverCount = (data.identityRecords?.nameservers || data.whoisData?.nameServers || [])
-    .length;
-  const dnsRecordCount = data.dnsRecords
-    ? (data.dnsRecords.A?.length || 0) +
-      (data.dnsRecords.AAAA?.length || 0) +
-      (data.dnsRecords.MX?.length || 0) +
-      (data.dnsRecords.NS?.length || 0) +
-      (data.dnsRecords.TXT?.length || 0) +
-      1 // SOA
-    : 0;
+export function Overview({ result, onSelectEntity }: OverviewProps) {
+  const totalDataPoints = result.allDataPoints.length;
+  const entityCount = result.entities.length;
+  const sourceCount = result.sources.length;
+  const noiseCount = result.allDataPoints.filter((dp) => dp.isNoise).length;
+  const highRiskEntities = result.entities.filter((e) => e.riskScore && e.riskScore >= 75).length;
 
   return (
     <div className="flex-1 overflow-y-auto p-3">
-      <div className="grid grid-cols-2 gap-2">
-        {/* Top stats row */}
-        <div className="col-span-2 grid grid-cols-4 gap-2 mb-1">
-          <StatBox
-            label="Subdomains"
-            value={data.subdomains.length}
-            sub="passive discovery"
-            accent="#0af"
-          />
-          <StatBox
-            label="DNS Records"
-            value={dnsRecordCount}
-            sub="total records"
-            accent="#30d158"
-          />
-          <StatBox
-            label="Breaches"
-            value={data.breaches.length}
-            sub={`${totalBreachedAccounts.toLocaleString()} accounts`}
-            accent="#ff2d55"
-          />
-          <StatBox label="Nameservers" value={nameserverCount} sub="NS records" accent="#f5a623" />
-        </div>
-
-        {/* Target Info Card */}
-        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-          <SectionHeader accent="#0af">Target Information</SectionHeader>
-          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              Domain
-            </span>
-            <span className="text-[12px] font-mono text-[#0af]">{data.target}</span>
-          </div>
-          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              IP Address
-            </span>
-            <span className="text-[12px] font-mono text-[#c8d6f0]">{data.targetIp}</span>
-          </div>
-          <div className="flex justify-between items-center py-1">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              Scan Time
-            </span>
-            <span className="text-[12px] font-mono text-[#c8d6f0]">
-              {new Date(data.scanTime).toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        {/* DNS Summary Card */}
-        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-          <SectionHeader accent="#30d158">DNS Summary</SectionHeader>
-          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              A Records
-            </span>
-            <span className="text-[12px] font-mono text-[#0af]">{data.dnsRecords.A.length}</span>
-          </div>
-          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              MX Records
-            </span>
-            <span className="text-[12px] font-mono text-[#c8d6f0]">
-              {data.dnsRecords.MX.length}
-            </span>
-          </div>
-          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              TXT Records
-            </span>
-            <span className="text-[12px] font-mono text-[#c8d6f0]">
-              {data.dnsRecords.TXT.length}
-            </span>
-          </div>
-          <div className="flex justify-between items-center py-1">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              DNSSEC
-            </span>
-            <span
-              className={`text-[12px] font-mono ${(data.identityRecords?.dnssec || data.whoisData?.dnssec) === 'unsigned' ? 'text-[#ff6b35]' : 'text-[#30d158]'}`}
-            >
-              {data.identityRecords?.dnssec || data.whoisData?.dnssec || 'N/A'}
-            </span>
-          </div>
-        </div>
-
-        {/* OSINT Summary Card */}
-        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-          <SectionHeader accent="#ff9f0a">OSINT Summary</SectionHeader>
-          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              Google Dorks
-            </span>
-            <span className="text-[12px] font-mono text-[#c8d6f0]">{data.googleDorks.length}</span>
-          </div>
-          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              Wayback Snapshots
-            </span>
-            <span className="text-[12px] font-mono text-[#c8d6f0]">
-              {data.waybackSnapshots.length}
-            </span>
-          </div>
-          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              CT Certificates
-            </span>
-            <span className="text-[12px] font-mono text-[#c8d6f0]">
-              {data.certTransparency.length}
-            </span>
-          </div>
-          <div className="flex justify-between items-center py-1">
-            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">
-              Emails Found
-            </span>
-            <span className="text-[12px] font-mono text-[#c8d6f0]">
-              {data.harvestedEmails.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Subdomain Highlights Card */}
-        {data.subdomains.length > 0 && (
-          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-2">
-            <SectionHeader accent="#0af">Subdomain Discovery (Passive)</SectionHeader>
-            <div className="flex flex-wrap gap-2">
-              {data.subdomains.slice(0, 10).map((sub, i) => (
-                <span
-                  key={i}
-                  className="text-[11px] font-mono text-[#0af] bg-[#0af10] px-2 py-0.5 rounded border border-[#0af30]"
-                >
-                  {sub.name}
-                </span>
-              ))}
-              {data.subdomains.length > 10 && (
-                <span className="text-[11px] font-mono text-[#c8d6f0]">
-                  +{data.subdomains.length - 10} more
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+      {/* Top stats row */}
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        <StatBox label="Data Points" value={totalDataPoints} sub="processed" accent="#0af" />
+        <StatBox label="Entities" value={entityCount} sub="identified" accent="#30d158" />
+        <StatBox label="Sources" value={sourceCount} sub="integrated" accent="#f5a623" />
+        <StatBox label="High Risk" value={highRiskEntities} sub="entities ≥75" accent={highRiskEntities > 0 ? '#ff2d55' : '#30d158'} />
       </div>
+
+      {/* Scan Info Card */}
+      <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 mb-3">
+        <SectionHeader accent="#0af">Target Information</SectionHeader>
+        <div className="flex justify-between items-center py-1 border-b border-[#111827]">
+          <span className="text-[11px] font-mono text-[#6a7a9a] uppercase tracking-wide">Domain</span>
+          <span className="text-[12px] font-mono text-[#0af]">{result.query.value}</span>
+        </div>
+        <div className="flex justify-between items-center py-1 border-b border-[#111827]">
+          <span className="text-[11px] font-mono text-[#6a7a9a] uppercase tracking-wide">Scan Duration</span>
+          <span className="text-[12px] font-mono text-[#c8d6f0]">{(result.scan.duration / 1000).toFixed(1)}s</span>
+        </div>
+        <div className="flex justify-between items-center py-1 border-b border-[#111827]">
+          <span className="text-[11px] font-mono text-[#6a7a9a] uppercase tracking-wide">Raw Hits</span>
+          <span className="text-[12px] font-mono text-[#c8d6f0]">{result.scan.totalRawHits.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between items-center py-1">
+          <span className="text-[11px] font-mono text-[#6a7a9a] uppercase tracking-wide">Confidence</span>
+          <span className="text-[12px] font-mono" style={{ color: result.overallConfidence >= 0.7 ? '#30d158' : '#f5a623' }}>
+            {Math.round(result.overallConfidence * 100)}%
+          </span>
+        </div>
+      </div>
+
+      {/* Entities Card */}
+      <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 mb-3">
+        <SectionHeader accent="#af52de">
+          Top Entities
+          <span className="text-[10px] font-normal text-[#6a7a9a] ml-1">({result.entities.length})</span>
+        </SectionHeader>
+        <div className="space-y-1">
+          {result.entities.slice(0, 5).map((entity) => (
+            <div
+              key={entity.id}
+              onClick={() => onSelectEntity(entity.id)}
+              className="flex items-center justify-between px-2 py-1.5 bg-[#0a0e14] border border-[#111827] rounded cursor-pointer hover:border-[#2a3548] transition-all"
+            >
+              <div>
+                <span className="text-[12px] font-mono text-[#c8d6f0]">{entity.displayName}</span>
+                <span className="text-[10px] font-mono text-[#3a4558] ml-2">{entity.summary}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-mono px-1 rounded bg-[#1c2333] text-[#6a7a9a]">
+                  {entity.relevance.toUpperCase()}
+                </span>
+                {entity.riskScore !== undefined && (
+                  <span
+                    className="text-[9px] font-mono px-1 rounded"
+                    style={{
+                      color: entity.riskScore >= 75 ? '#ff2d55' : entity.riskScore >= 50 ? '#f5a623' : '#30d158',
+                      backgroundColor: entity.riskScore >= 75 ? '#ff2d5515' : entity.riskScore >= 50 ? '#f5a62315' : '#30d15815',
+                    }}
+                  >
+                    R{entity.riskScore}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Category Breakdown */}
+      <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 mb-3">
+        <SectionHeader accent="#30d158">Category Breakdown</SectionHeader>
+        <div className="flex flex-wrap gap-2">
+          {result.activeCategoryGroups
+            .filter((g) => g.count > 0 && !['overview', 'timeline', 'raw', 'sources'].includes(g.id))
+            .map((group) => (
+              <span
+                key={group.id}
+                className="text-[11px] font-mono px-2 py-0.5 rounded border"
+                style={{ color: group.accent, borderColor: `${group.accent}30`, backgroundColor: `${group.accent}10` }}
+              >
+                {group.label} ({group.count})
+              </span>
+            ))}
+        </div>
+      </div>
+
+      {/* Warnings */}
+      {result.warnings.length > 0 && (
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#f5a623">Warnings ({result.warnings.length})</SectionHeader>
+          <div className="space-y-1">
+            {result.warnings.slice(0, 5).map((w, i) => (
+              <div key={i} className="text-[11px] font-mono text-[#f5a623] py-0.5">
+                ⚠ {w}
+              </div>
+            ))}
+            {result.warnings.length > 5 && (
+              <div className="text-[11px] font-mono text-[#6a7a9a] text-center">
+                +{result.warnings.length - 5} more warnings
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

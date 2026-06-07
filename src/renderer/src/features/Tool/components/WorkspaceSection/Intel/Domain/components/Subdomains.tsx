@@ -1,24 +1,17 @@
-import type { DataPoint } from '../../Person/types/data-point';
-import type { SmartCategoryGroup } from '../../Person/types/smart-category';
-import { DataPointRow } from '../../Person/components/shared/DataPointRow';
-import { SectionHeader } from '../../Person/components/shared/SectionHeader';
-import { StatBox } from '../../Person/components/shared/StatBox';
+import { useMemo } from 'react';
+import type { DataPoint } from '../types/data-point';
+import type { SmartCategoryGroup } from '../types/smart-category';
+import { SectionHeader } from './shared/SectionHeader';
+import { StatBox } from './shared/StatBox';
+import { DataTable } from './shared/DataTable';
 
 interface SubdomainsProps {
   dataPoints: DataPoint[];
   activeGroup: SmartCategoryGroup;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  subdomain: 'Active',
-  subdomain_takeover: 'Takeover Risk',
-  subdomain_wildcard: 'Wildcard',
-  subdomain_internal: 'Internal',
-  subdomain_cname: 'CNAME',
-};
-
 export function Subdomains({ dataPoints, activeGroup }: SubdomainsProps) {
-  const grouped = dataPoints.reduce(
+  const grouped = useMemo(() => dataPoints.reduce(
     (acc, dp) => {
       const key = dp.category;
       if (!acc[key]) acc[key] = [];
@@ -26,7 +19,7 @@ export function Subdomains({ dataPoints, activeGroup }: SubdomainsProps) {
       return acc;
     },
     {} as Record<string, DataPoint[]>,
-  );
+  ), [dataPoints]);
 
   const takeoverCount = dataPoints.filter((dp) => dp.category === 'subdomain_takeover').length;
   const resolvedCount = dataPoints.filter(
@@ -56,26 +49,12 @@ export function Subdomains({ dataPoints, activeGroup }: SubdomainsProps) {
         />
       </div>
 
-      <div className="space-y-3">
-        {Object.entries(grouped).map(([category, dps]) => (
-          <div key={category}>
-            <SectionHeader accent="#0a84ff">
-              {CATEGORY_LABELS[category] || category.replace(/_/g, ' ')}
-              <span className="text-[10px] font-normal text-[#6a7a9a] ml-1">({dps.length})</span>
-            </SectionHeader>
-            <div className="space-y-1">
-              {dps.slice(0, 100).map((dp) => (
-                <DataPointRow key={dp.id} dataPoint={dp} />
-              ))}
-              {dps.length > 100 && (
-                <div className="text-[11px] font-mono text-[#6a7a9a] text-center py-2">
-                  +{dps.length - 100} more subdomains
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      <SectionHeader accent="#0a84ff">Subdomains</SectionHeader>
+      <DataTable
+        dataPoints={dataPoints}
+        columns={['value', 'category', 'confidence', 'source', 'risk']}
+        maxRows={200}
+      />
     </div>
   );
 }

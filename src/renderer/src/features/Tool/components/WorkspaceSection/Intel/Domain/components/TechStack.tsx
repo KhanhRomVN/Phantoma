@@ -1,30 +1,17 @@
-import React from 'react';
-import type { DataPoint } from '../../Person/types/data-point';
-import type { SmartCategoryGroup } from '../../Person/types/smart-category';
-import { DataPointRow } from '../../Person/components/shared/DataPointRow';
-import { SectionHeader } from '../../Person/components/shared/SectionHeader';
-import { StatBox } from '../../Person/components/shared/StatBox';
+import { useMemo } from 'react';
+import type { DataPoint } from '../types/data-point';
+import type { SmartCategoryGroup } from '../types/smart-category';
+import { SectionHeader } from './shared/SectionHeader';
+import { StatBox } from './shared/StatBox';
+import { DataTable } from './shared/DataTable';
 
 interface TechStackProps {
   dataPoints: DataPoint[];
   activeGroup: SmartCategoryGroup;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  tech_framework: 'Frameworks',
-  tech_cms: 'CMS',
-  tech_server: 'Servers',
-  tech_cdn: 'CDN',
-  tech_analytics: 'Analytics',
-  tech_javascript: 'JavaScript',
-  tech_ssl: 'SSL/TLS',
-  tech_header: 'Headers',
-  tech_cookie: 'Cookies',
-  technology: 'Technologies',
-};
-
 export function TechStack({ dataPoints, activeGroup }: TechStackProps) {
-  const grouped = dataPoints.reduce(
+  const grouped = useMemo(() => dataPoints.reduce(
     (acc, dp) => {
       const key = dp.category;
       if (!acc[key]) acc[key] = [];
@@ -32,7 +19,7 @@ export function TechStack({ dataPoints, activeGroup }: TechStackProps) {
       return acc;
     },
     {} as Record<string, DataPoint[]>,
-  );
+  ), [dataPoints]);
 
   const uniqueTechs = new Set(dataPoints.map((dp) => dp.displayValue || dp.value)).size;
 
@@ -59,21 +46,11 @@ export function TechStack({ dataPoints, activeGroup }: TechStackProps) {
         />
       </div>
 
-      <div className="space-y-3">
-        {Object.entries(grouped).map(([category, dps]) => (
-          <div key={category}>
-            <SectionHeader accent="#64d2ff">
-              {CATEGORY_LABELS[category] || category.replace('tech_', '').replace(/_/g, ' ')}
-              <span className="text-[10px] font-normal text-[#6a7a9a] ml-1">({dps.length})</span>
-            </SectionHeader>
-            <div className="space-y-1">
-              {dps.map((dp) => (
-                <DataPointRow key={dp.id} dataPoint={dp} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <SectionHeader accent="#64d2ff">Technology Stack</SectionHeader>
+      <DataTable
+        dataPoints={dataPoints}
+        columns={['value', 'category', 'confidence', 'source', 'metadata']}
+      />
     </div>
   );
 }

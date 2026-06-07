@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { cn } from '../../../../../../shared/lib/utils';
 import { useDomainRecon } from './hooks/useDomainRecon';
 
-import { SourcesPanel } from '../Person/components/SourcesPanel';
-import { RawDataView } from '../Person/components/RawDataView';
-import { TimelineCluster } from '../Person/components/TimelineCluster';
-import { DataView } from '../Person/components/DataView';
-import { Overview } from '../Person/components/Overview';
-import { SectionHeader } from '../Person/components/shared/SectionHeader';
-import { ConfidenceBadge } from '../Person/components/shared/ConfidenceBadge';
+import { SourcesPanel } from './components/shared/SourcesPanel';
+import { RawDataView } from './components/shared/RawDataView';
+import { TimelineCluster } from './components/shared/TimelineCluster';
+import { DataView } from './components/shared/DataView';
+import { Overview } from './components/Overview';
+import { SectionHeader } from './components/shared/SectionHeader';
+import { ConfidenceBadge } from './components/shared/ConfidenceBadge';
 import { Whois } from './components/Whois';
 import { DnsRecords } from './components/DnsRecords';
 import { Subdomains } from './components/Subdomains';
@@ -23,38 +23,8 @@ import { Network } from './components/Network';
 import { People } from './components/People';
 import { Log } from './components/Log';
 
-// Import realistic mock data
-import realisticMockData from './data/phantoma-com.json';
-
-import {
-  Globe,
-  LayoutDashboard,
-  Users,
-  Clock,
-  FileCode,
-  FileClock,
-  Database,
-  ChevronDown,
-  Fingerprint,
-  Map as MapIcon,
-  ShieldCheck,
-  Network as NetworkIcon,
-  AlertTriangle,
-  Cpu,
-  Search as SearchIcon,
-  Mail,
-  MessageCircle,
-  Router,
-  FileJson,
-  User,
-  Share2,
-  Briefcase,
-  EyeOff,
-  Image as ImageIcon,
-  CreditCard,
-  Scale,
-  GitBranch,
-} from 'lucide-react';
+import { ChevronDown, Search as SearchIcon, FileClock } from 'lucide-react';
+import { getTabIcon } from './constants/icons';
 
 interface DomainSession {
   id: string;
@@ -75,43 +45,6 @@ const STATUS_META: Record<DomainStatus, { label: string; color: string; pulse?: 
   error: { label: 'ERROR', color: '#ff2d55' },
 };
 
-const ICON_MAP: Record<
-  string,
-  React.ComponentType<{ className?: string; style?: React.CSSProperties }>
-> = {
-  LayoutDashboard: LayoutDashboard,
-  Users: Users,
-  Clock: Clock,
-  FileCode: FileCode,
-  Database: Database,
-  Globe: Globe,
-  Fingerprint: Fingerprint,
-  Map: MapIcon,
-  ShieldCheck: ShieldCheck,
-  Network: NetworkIcon,
-  AlertTriangle: AlertTriangle,
-  Cpu: Cpu,
-  Search: SearchIcon,
-  Mail: Mail,
-  MessageCircle: MessageCircle,
-  Router: Router,
-  FileJson: FileJson,
-  User: User,
-  Share2: Share2,
-  Briefcase: Briefcase,
-  EyeOff: EyeOff,
-  Image: ImageIcon,
-  CreditCard: CreditCard,
-  Scale: Scale,
-  GitBranch: GitBranch,
-};
-
-const getTabIcon = (
-  iconName: string,
-): React.ComponentType<{ className?: string; style?: React.CSSProperties }> => {
-  return ICON_MAP[iconName] || Globe;
-};
-
 const DEFAULT_SESSIONS: DomainSession[] = [
   {
     id: 'sess-1',
@@ -123,9 +56,7 @@ const DEFAULT_SESSIONS: DomainSession[] = [
   },
 ];
 
-const DATA_CACHE: Record<string, Record<string, unknown>> = {
-  'phantoma.com': realisticMockData as unknown as Record<string, unknown>,
-};
+const DATA_CACHE: Record<string, Record<string, unknown>> = {};
 
 interface DomainReconProps {
   initialDomain?: string;
@@ -168,11 +99,21 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
   // Log panel state
   const [showLog, setShowLog] = useState(false);
 
-  // Load data when active domain changes
+  // Load data when active domain changes (lazy-loads mock JSON on first access)
   useEffect(() => {
     const cached = DATA_CACHE[activeDomain];
     if (cached) {
       loadData(cached);
+      return;
+    }
+    if (activeDomain === 'phantoma.com') {
+      import('./data/phantoma-com.json')
+        .then((mod) => {
+          const data = mod.default as unknown as Record<string, unknown>;
+          DATA_CACHE['phantoma.com'] = data;
+          loadData(data);
+        })
+        .catch((err) => console.error('Failed to load mock data:', err));
     }
   }, [activeDomain, loadData]);
 
@@ -225,6 +166,19 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
   };
 
   const activeGroup = categoryGroups.find((g) => g.id === activeTab);
+
+  // Search-filtered data points
+  const displayDataPoints = useMemo(() => {
+    if (!searchQuery.trim()) return filteredDataPoints;
+    const lower = searchQuery.toLowerCase();
+    return filteredDataPoints.filter(dp => {
+      const label = dp.label.toLowerCase();
+      const displayVal = (dp.displayValue || '').toLowerCase();
+      const val = String(dp.value || '').toLowerCase();
+      const source = dp.source.name.toLowerCase();
+      return label.includes(lower) || displayVal.includes(lower) || val.includes(lower) || source.includes(lower);
+    });
+  }, [filteredDataPoints, searchQuery]);
 
   // Render main content
   const renderContent = () => {
@@ -385,47 +339,47 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
         return <SourcesPanel sources={result.sources} />;
 
       case 'whois':
-        return <Whois dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <Whois dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'dns':
-        return <DnsRecords dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <DnsRecords dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'subdomains':
-        return <Subdomains dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <Subdomains dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'certificates':
-        return <SslTlsCerts dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <SslTlsCerts dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'infrastructure':
-        return <Infrastructure dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <Infrastructure dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'sensitive':
-        return <SensitiveExposure dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <SensitiveExposure dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'technology':
-        return <TechStack dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <TechStack dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'osint':
-        return <Osint dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <Osint dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'emails':
-        return <Emails dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <Emails dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'mentions':
-        return <Mentions dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <Mentions dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'network':
-        return <Network dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <Network dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       case 'people':
-        return <People dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+        return <People dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
 
       default:
         // Dynamic category tabs (fallback for unlisted tabs)
-        if (activeGroup && filteredDataPoints.length > 0) {
+        if (activeGroup && displayDataPoints.length > 0) {
           return (
             <DataView
-              dataPoints={filteredDataPoints}
+              dataPoints={displayDataPoints}
               activeGroup={activeGroup}
               entityName={selectedEntity?.displayName}
             />
