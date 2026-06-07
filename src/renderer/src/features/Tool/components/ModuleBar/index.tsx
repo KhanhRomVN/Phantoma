@@ -14,85 +14,12 @@ const NAV_MODULES: NavModuleConfig[] = [
     activeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
     children: [
       { id: 'recon-domain', title: 'Domain', disabled: false },
-      { id: 'recon-ipserver', title: 'IP / Server', disabled: false },
-      { id: 'recon-website', title: 'Website / Web App', disabled: false },
+      { id: 'recon-ip', title: 'IP', disabled: false },
       { id: 'recon-organization', title: 'Organization', disabled: false },
       { id: 'recon-person', title: 'Person', disabled: false },
       { id: 'recon-sourcecode', title: 'Source Code', disabled: false },
     ],
   },
-  {
-    id: 'scanner',
-    title: 'Port Scanner',
-    activeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-  },
-  {
-    id: 'vulns',
-    title: 'Vulnerabilities',
-    activeClass: 'bg-red-500/10 text-red-400 border-red-500/30',
-  },
-  { id: 'exploit', title: 'Exploit', activeClass: 'bg-red-500/10 text-red-400 border-red-500/30' },
-  {
-    id: 'post',
-    title: 'Post Exploitation',
-    activeClass: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  },
-  {
-    id: 'intruder',
-    title: 'Intruder',
-    activeClass: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-  },
-  {
-    id: 'webapp',
-    title: 'Web App',
-    activeClass: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  },
-  {
-    id: 'sqli',
-    title: 'SQL Injection',
-    activeClass: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-  },
-  {
-    id: 'forensics',
-    title: 'Forensics',
-    activeClass: 'bg-teal-500/10 text-teal-400 border-teal-500/30',
-  },
-  {
-    id: 'malware',
-    title: 'Malware Analysis',
-    activeClass: 'bg-red-500/10 text-red-400 border-red-500/30',
-  },
-  {
-    id: 'sniffer',
-    title: 'Sniffer',
-    activeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-  },
-  {
-    id: 'cracking',
-    title: 'Password Cracking',
-    activeClass: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  },
-  {
-    id: 'phishing',
-    title: 'Phishing',
-    activeClass: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
-  },
-  {
-    id: 'cloud',
-    title: 'Cloud Security',
-    activeClass: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
-  },
-  {
-    id: 'report',
-    title: 'Report',
-    activeClass: 'bg-green-500/10 text-green-400 border-green-500/30',
-  },
-  {
-    id: 'collab',
-    title: 'Collaboration',
-    activeClass: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
-  },
-  { id: 'c2', title: 'C2 / Ops', activeClass: 'bg-rose-500/10 text-rose-400 border-rose-500/30' },
 ];
 
 // ─── NavLogo ─────────────────────────────────────────────────────────────────
@@ -297,7 +224,7 @@ function NavButton({
       <div className="w-5 h-5 flex items-center justify-center shrink-0">
         <NavIcon module={module} />
       </div>
-      <span className="text-[11px] font-medium truncate flex-1 text-left">{title}</span>
+      <span className="text-[13px] font-medium truncate flex-1 text-left">{title}</span>
       {dotColor && !isActive && (
         <span className={cn('absolute top-2 right-2 w-1.5 h-1.5 rounded-full', dotColor)} />
       )}
@@ -305,7 +232,7 @@ function NavButton({
   );
 }
 
-// ─── SubMenuItemButton with tree line ───────────────────────────────────────
+// ─── SubMenuItemButton ──────────────────────────────────────────────────────
 function SubMenuItemButton({
   item,
   onSelect,
@@ -320,39 +247,31 @@ function SubMenuItemButton({
   isLast?: boolean;
 }) {
   return (
-    <div className="relative pl-5">
-      {/* Vertical line - only for non-last items, or connect through all */}
-      {!isLast && <div className="absolute left-[13px] top-0 bottom-0 w-px bg-[#2a3548]/40" />}
-
-      {/* Horizontal connector line */}
-      <div className="absolute left-[13px] top-1/2 w-3 h-px bg-[#2a3548]/40 -translate-y-1/2" />
-
-      <button
-        onClick={onSelect}
-        disabled={item.disabled}
+    <button
+      onClick={onSelect}
+      disabled={item.disabled}
+      className={cn(
+        'w-full flex items-center gap-2 pl-6 py-1.5 text-left transition-all duration-200 text-sm',
+        isActive && !item.disabled
+          ? 'text-white'
+          : item.disabled
+            ? 'text-[#3a4558] cursor-not-allowed opacity-50'
+            : 'text-[#6b7a96] hover:text-[#c5cfe0]',
+      )}
+    >
+      <span
         className={cn(
-          'w-full flex items-center gap-2 pl-3 py-1.5 text-left transition-all duration-200 text-sm bg-[#0d1017] relative',
+          'w-1.5 h-1.5 rounded-full shrink-0',
           isActive && !item.disabled
-            ? 'text-white'
+            ? 'bg-white ring-1 ring-white ring-opacity-50'
             : item.disabled
-              ? 'text-[#3a4558] cursor-not-allowed opacity-50'
-              : 'text-[#6b7a96] hover:text-[#c5cfe0]',
+              ? 'bg-[#3a4558]'
+              : 'bg-[#1e2535]',
         )}
-      >
-        <span
-          className={cn(
-            'w-1.5 h-1.5 rounded-full shrink-0 relative z-10',
-            isActive && !item.disabled
-              ? 'bg-white ring-1 ring-white ring-opacity-50'
-              : item.disabled
-                ? 'bg-[#3a4558]'
-                : 'bg-[#1e2535] group-hover:bg-[#6b7a96]',
-          )}
-        />
-        <span className="text-[10px]">{item.title}</span>
-        {item.disabled && <span className="ml-auto text-[8px] text-[#3a4558]">(soon)</span>}
-      </button>
-    </div>
+      />
+      <span className="text-[13px]">{item.title}</span>
+      {item.disabled && <span className="ml-auto text-[8px] text-[#3a4558]">(soon)</span>}
+    </button>
   );
 }
 
@@ -382,7 +301,7 @@ export function ModuleBar({
       <div className="w-[240px] shrink-0 bg-[#0f1319] border-r border-[#1e2535] flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0 h-full">
         <div className="w-full h-[37px] flex items-center px-3 shrink-0">
           <NavLogo />
-          <span className="ml-2 text-xs font-mono text-cyan-400">PHANTOM v2.5.0</span>
+<span className="ml-2 text-sm font-mono text-cyan-400">PHANTOM v2.5.0</span>
         </div>
         <div className="w-full h-px bg-[#1e2535] shrink-0" />
 

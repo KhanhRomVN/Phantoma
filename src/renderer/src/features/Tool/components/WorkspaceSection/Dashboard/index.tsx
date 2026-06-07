@@ -524,7 +524,7 @@ function TerminalFeed() {
 // ============================================================================
 // MAIN EXPORT
 // ============================================================================
-export function ViewDashboard() {
+export function Dashboard() {
   const [greeting, setGreeting] = useState('');
   useEffect(() => {
     const h = new Date().getHours();

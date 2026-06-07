@@ -1,0 +1,78 @@
+{
+  "target": "Phantoma",
+  "scanTime": "2024-01-15T10:30:00Z",
+  "companyInfo": {
+    "companyName": "Phantoma",
+    "legalName": "Phantoma Technologies Inc.",
+    "address": "548 Market St, San Francisco, CA 94104",
+    "phoneNumber": "+1 (415) 555-0123",
+    "email": "contact@phantoma.com",
+    "industry": "Cybersecurity & OSINT",
+    "subsidiaries": ["Phantoma Labs", "Phantoma Security"]
+  },
+  "digitalAssets": [
+    { "type": "domain", "name": "phantoma.com", "risk": "low" },
+    { "type": "subdomain", "name": "api.phantoma.com", "risk": "medium" },
+    { "type": "subdomain", "name": "admin.phantoma.com", "risk": "critical" },
+    { "type": "subdomain", "name": "dev.phantoma.com", "risk": "high" },
+    { "type": "mobileApp", "name": "Phantoma Recon", "risk": "low" },
+    { "type": "githubOrg", "name": "github.com/phantoma", "risk": "medium" },
+    { "type": "publicRepo", "name": "phantoma/recon-core", "risk": "medium" }
+  ],
+  "employeeIntel": [
+    {
+      "name": "John Doe",
+      "title": "CTO",
+      "email": "john.doe@phantoma.com",
+      "linkedin": "linkedin.com/in/johndoe",
+      "department": "Engineering"
+    },
+    {
+      "name": "Jane Smith",
+      "title": "Security Researcher",
+      "email": "jane.smith@phantoma.com",
+      "linkedin": "linkedin.com/in/janesmith",
+      "department": "Research"
+    },
+    {
+      "name": "Mike Johnson",
+      "title": "Lead Developer",
+      "email": "mike.johnson@phantoma.com",
+      "linkedin": null,
+      "department": "Engineering"
+    }
+  ],
+  "externalExposure": {
+    "dataBreach": [
+      {
+        "name": "Phantoma Dev Database Leak",
+        "date": "2023-08-15",
+        "recordsLeaked": 15000,
+        "exposedData": ["email", "password_hash", "api_keys"]
+      }
+    ],
+    "credentialLeak": [
+      {
+        "email": "john.doe@phantoma.com",
+        "source": "HaveIBeenPwned",
+        "date": "2023-12-01"
+      }
+    ],
+    "publicDocuments": [
+      "phantoma-security-whitepaper.pdf",
+      "api-documentation-v2.pdf"
+    ],
+    "pdfMetadata": [
+      {
+        "fileName": "phantoma-security-whitepaper.pdf",
+        "author": "Phantoma Security Team",
+        "creator": "Adobe InDesign 18.0",
+        "created": "2024-01-05T10:00:00Z",
+        "modified": "2024-01-05T12:00:00Z",
+        "title": "Phantoma Security Whitepaper 2024"
+      }
+    ],
+    "pressReleases": ["Phantoma Launches Recon Platform 2024"],
+    "conferenceTalks": ["DEF CON 31 - OSINT Automation"]
+  }
+}

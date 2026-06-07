@@ -3,26 +3,8 @@ import { PhantomModule, SubTarget } from '../../types/types';
 import { PulseIndicator } from '../../../../core/components/ui';
 import { useLiveClock } from '../../hooks/useLiveClock';
 
-import { Recon } from './Recon';
-import { Scanner } from './Scanner';
-import { Vulns } from './Vulns';
-import { Exploit } from './Exploit';
-import { PostExploit } from './PostExploit';
-import { Intruder } from './Intruder';
-import { Sqli } from './Sqli';
-import { Forensics } from './Forensics';
-import { Malware } from './Malware';
-import { Sniffer } from './Sniffer';
-import { Cracking } from './Cracking';
-import { Phishing } from './Phishing';
-import { Cloud } from './Cloud';
-import { Report } from './Report';
-import { Collab } from './Collab';
-import { C2 } from './C2';
-import { ViewDashboard } from './Dashboard';
-import { Stub } from './Stub';
-import { Setting } from './Setting';
-import { TargetManager } from './Target';
+import { Recon } from './Intel';
+import { Dashboard } from './Dashboard';
 
 // ─── Module title map (local, lightweight) ───────────────────────────────────
 
@@ -130,56 +112,34 @@ function WorkspaceTopbar({ module, subTarget }: { module: PhantomModule; subTarg
 
 // ─── ViewRouter ──────────────────────────────────────────────────────────────
 
-function ViewRouter({ module, activeSubItem }: { module: PhantomModule; activeSubItem?: string | null }) {
+function ViewRouter({
+  module,
+  activeSubItem,
+}: {
+  module: PhantomModule;
+  activeSubItem?: string | null;
+}) {
   switch (module) {
     case 'dashboard':
-      return <ViewDashboard />;
+      return <Dashboard />;
     case 'recon':
       return <Recon activeSubItem={activeSubItem} />;
-    case 'scanner':
-      return <Scanner />;
-    case 'vulns':
-      return <Vulns />;
-    case 'exploit':
-      return <Exploit />;
-    case 'post':
-      return <PostExploit />;
-    case 'intruder':
-      return <Intruder />;
-    case 'webapp':
-      return <Stub title="Web App Scanner" description="Spider, active scan, passive scan" />;
-    case 'sqli':
-      return <Sqli />;
-    case 'forensics':
-      return <Forensics />;
-    case 'malware':
-      return <Malware />;
-    case 'sniffer':
-      return <Sniffer />;
-    case 'cracking':
-      return <Cracking />;
-    case 'phishing':
-      return <Phishing />;
-    case 'cloud':
-      return <Cloud />;
-    case 'report':
-      return <Report />;
-    case 'collab':
-      return <Collab />;
-    case 'c2':
-      return <C2 />;
-    case 'settings':
-      return <Setting />;
-    case 'target':
-      return <TargetManager />;
     default:
-      return <Stub title={module} />;
+      return <Dashboard />;
   }
 }
 
 // ─── Workspace (main export) ─────────────────────────────────────────────────
 
-export function Workspace({ module, subTarget, activeSubItem }: { module: PhantomModule; subTarget: SubTarget; activeSubItem?: string | null }) {
+export function Workspace({
+  module,
+  subTarget,
+  activeSubItem,
+}: {
+  module: PhantomModule;
+  subTarget: SubTarget;
+  activeSubItem?: string | null;
+}) {
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
       <WorkspaceTopbar module={module} subTarget={subTarget} />
