@@ -26,119 +26,29 @@ function StatBox({ label, value, sub, accent }: { label: string; value: string |
   );
 }
 
-function RiskBadge({ risk }: { risk: string }) {
-  const config: Record<string, { color: string; label: string }> = {
-    critical: { color: '#ff2d55', label: 'CRITICAL' },
-    high: { color: '#ff6b35', label: 'HIGH' },
-    medium: { color: '#f5a623', label: 'MEDIUM' },
-    low: { color: '#30d158', label: 'LOW' },
-  };
-  const c = config[risk] || { color: '#4a5a7a', label: 'INFO' };
-  return (
-    <span className="text-[9px] font-bold font-mono uppercase px-1.5 py-0.5 rounded-sm" style={{ color: c.color, border: `1px solid ${c.color}40`, background: `${c.color}12` }}>
-      {c.label}
-    </span>
-  );
-}
-
-function ScoreGauge({ score, size = 80 }: { score: number; size?: number }) {
-  const percentage = Math.min(100, Math.max(0, score));
-  const color = percentage >= 70 ? '#ff2d55' : percentage >= 40 ? '#f5a623' : '#30d158';
-  const radius = size / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference * (1 - percentage / 100);
-
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle cx={radius} cy={radius} r={radius - 4} fill="none" stroke="#1c2333" strokeWidth="4" />
-        <circle
-          cx={radius}
-          cy={radius}
-          r={radius - 4}
-          fill="none"
-          stroke={color}
-          strokeWidth="4"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-[15px] font-bold font-mono" style={{ color }}>
-          {percentage}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function HeatBar({ label, value }: { label: string; value: number }) {
-  const percentage = Math.min(100, Math.max(0, value));
-  const color = percentage >= 70 ? '#ff2d55' : percentage >= 40 ? '#f5a623' : '#30d158';
-
-  return (
-    <div>
-      <div className="flex justify-between text-[10px] font-mono text-[#c8d6f0] mb-0.5">
-        <span>{label}</span>
-        <span>{percentage}%</span>
-      </div>
-      <div className="h-1 bg-[#1c2333] rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: color }} />
-      </div>
-    </div>
-  );
-}
-
-function CvssBar({ score, cve }: { score: number; cve?: string }) {
-  const percentage = (score / 10) * 100;
-  const severity = score >= 9 ? 'CRITICAL' : score >= 7 ? 'HIGH' : score >= 4 ? 'MEDIUM' : 'LOW';
-  const color = score >= 9 ? '#ff2d55' : score >= 7 ? '#ff6b35' : score >= 4 ? '#f5a623' : '#30d158';
-
-  return (
-    <div className="mb-2">
-      <div className="flex justify-between text-[10px] font-mono">
-        <span className="text-[#c8d6f0]">{cve || 'N/A'}</span>
-        <span className="text-[#c8d6f0]">{severity} ({score})</span>
-      </div>
-      <div className="h-1 bg-[#1c2333] rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: color }} />
-      </div>
-    </div>
-  );
-}
-
 export function TabOverview({ data }: { data: ReconData }) {
-  const openPortsCount = data.ports.filter((p) => p.state === 'open').length;
-  const criticalVulnsCount = data.vulns.filter((v) => v.severity?.toUpperCase() === 'CRITICAL').length;
-  const criticalSubdomainsCount = data.subdomains.filter((s) => s.risk === 'critical').length;
   const totalBreachedAccounts = data.breaches.reduce((sum, b) => sum + b.accounts, 0);
-  
+  const nameserverCount = (data.identityRecords?.nameservers || data.whoisData?.nameServers || []).length;
+  const dnsRecordCount = data.dnsRecords
+    ? (data.dnsRecords.A?.length || 0) +
+      (data.dnsRecords.AAAA?.length || 0) +
+      (data.dnsRecords.MX?.length || 0) +
+      (data.dnsRecords.NS?.length || 0) +
+      (data.dnsRecords.TXT?.length || 0) +
+      1 // SOA
+    : 0;
+
   return (
     <div className="flex-1 overflow-y-auto p-3">
       <div className="grid grid-cols-2 gap-2">
         {/* Top stats row */}
         <div className="col-span-2 grid grid-cols-4 gap-2 mb-1">
-          <StatBox label="Open Ports" value={openPortsCount} sub={`of ${data.ports.length} scanned`} accent="#0af" />
-          <StatBox label="Vulnerabilities" value={data.vulns.length} sub={`${criticalVulnsCount} critical`} accent="#ff2d55" />
-          <StatBox label="Subdomains" value={data.subdomains.length} sub={`${criticalSubdomainsCount} critical`} accent="#ff6b35" />
-          <StatBox label="Breached Accounts" value={`${(totalBreachedAccounts / 1e6).toFixed(1)}M`} sub="records exposed" accent="#f5a623" />
+          <StatBox label="Subdomains" value={data.subdomains.length} sub="passive discovery" accent="#0af" />
+          <StatBox label="DNS Records" value={dnsRecordCount} sub="total records" accent="#30d158" />
+          <StatBox label="Breaches" value={data.breaches.length} sub={`${totalBreachedAccounts.toLocaleString()} accounts`} accent="#ff2d55" />
+          <StatBox label="Nameservers" value={nameserverCount} sub="NS records" accent="#f5a623" />
         </div>
-        
-        {/* Risk Score Card */}
-        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-          <SectionHeader accent="#ff2d55">Risk Score</SectionHeader>
-          <div className="flex items-center gap-3">
-            <ScoreGauge score={data.riskScore.total} />
-            <div className="flex-1 space-y-1.5">
-              <HeatBar label="Network" value={data.riskScore.breakdown.network} />
-              <HeatBar label="Breach" value={data.riskScore.breakdown.breach} />
-              <HeatBar label="Exposure" value={data.riskScore.breakdown.exposure} />
-              <HeatBar label="Reputation" value={data.riskScore.breakdown.reputation} />
-            </div>
-          </div>
-        </div>
-        
+
         {/* Target Info Card */}
         <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
           <SectionHeader accent="#0af">Target Information</SectionHeader>
@@ -155,46 +65,67 @@ export function TabOverview({ data }: { data: ReconData }) {
             <span className="text-[12px] font-mono text-[#c8d6f0]">{new Date(data.scanTime).toLocaleString()}</span>
           </div>
         </div>
-        
-        {/* Critical Vulnerabilities Card */}
-        {data.vulns.filter(v => v.severity?.toUpperCase() === 'CRITICAL' || v.severity?.toUpperCase() === 'HIGH').length > 0 && (
+
+        {/* DNS Summary Card */}
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#30d158">DNS Summary</SectionHeader>
+          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
+            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">A Records</span>
+            <span className="text-[12px] font-mono text-[#0af]">{data.dnsRecords.A.length}</span>
+          </div>
+          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
+            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">MX Records</span>
+            <span className="text-[12px] font-mono text-[#c8d6f0]">{data.dnsRecords.MX.length}</span>
+          </div>
+          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
+            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">TXT Records</span>
+            <span className="text-[12px] font-mono text-[#c8d6f0]">{data.dnsRecords.TXT.length}</span>
+          </div>
+          <div className="flex justify-between items-center py-1">
+            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">DNSSEC</span>
+            <span className={`text-[12px] font-mono ${(data.identityRecords?.dnssec || data.whoisData?.dnssec) === 'unsigned' ? 'text-[#ff6b35]' : 'text-[#30d158]'}`}>
+              {data.identityRecords?.dnssec || data.whoisData?.dnssec || 'N/A'}
+            </span>
+          </div>
+        </div>
+
+        {/* OSINT Summary Card */}
+        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+          <SectionHeader accent="#ff9f0a">OSINT Summary</SectionHeader>
+          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
+            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">Google Dorks</span>
+            <span className="text-[12px] font-mono text-[#c8d6f0]">{data.googleDorks.length}</span>
+          </div>
+          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
+            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">Wayback Snapshots</span>
+            <span className="text-[12px] font-mono text-[#c8d6f0]">{data.waybackSnapshots.length}</span>
+          </div>
+          <div className="flex justify-between items-center py-1 border-b border-[#111827]">
+            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">CT Certificates</span>
+            <span className="text-[12px] font-mono text-[#c8d6f0]">{data.certTransparency.length}</span>
+          </div>
+          <div className="flex justify-between items-center py-1">
+            <span className="text-[11px] font-mono text-[#c8d6f0] uppercase tracking-wide">Emails Found</span>
+            <span className="text-[12px] font-mono text-[#c8d6f0]">{data.harvestedEmails.length}</span>
+          </div>
+        </div>
+
+        {/* Subdomain Highlights Card */}
+        {data.subdomains.length > 0 && (
           <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-2">
-            <SectionHeader accent="#ff2d55">Critical & High Vulnerabilities</SectionHeader>
-            <div className="space-y-0.5">
-              {data.vulns
-                .filter(v => v.severity?.toUpperCase() === 'CRITICAL' || v.severity?.toUpperCase() === 'HIGH')
-                .map((v, i) => (
-                  <div key={i} className="flex justify-between items-center py-1 border-b border-[#111827] last:border-0">
-                    <span className="text-[11px] font-mono text-[#ff6b35]">{v.name}</span>
-                    <RiskBadge risk={v.severity?.toLowerCase() || 'info'} />
-                  </div>
-                ))}
+            <SectionHeader accent="#0af">Subdomain Discovery (Passive)</SectionHeader>
+            <div className="flex flex-wrap gap-2">
+              {data.subdomains.slice(0, 10).map((sub, i) => (
+                <span key={i} className="text-[11px] font-mono text-[#0af] bg-[#0af10] px-2 py-0.5 rounded border border-[#0af30]">
+                  {sub.name}
+                </span>
+              ))}
+              {data.subdomains.length > 10 && (
+                <span className="text-[11px] font-mono text-[#c8d6f0]">+{data.subdomains.length - 10} more</span>
+              )}
             </div>
           </div>
         )}
-        
-        {/* Technology Stack Summary */}
-        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-2">
-          <SectionHeader accent="#30d158">Technology Stack Summary</SectionHeader>
-          <div className="grid grid-cols-4 gap-2">
-            <div>
-              <div className="text-[9px] uppercase text-[#c8d6f0] mb-1">Frontend</div>
-              <div className="text-[10px] text-[#c8d6f0]">{data.techStack.frontend.slice(0, 2).join(', ') || '—'}</div>
-            </div>
-            <div>
-              <div className="text-[9px] uppercase text-[#c8d6f0] mb-1">Backend</div>
-              <div className="text-[10px] text-[#c8d6f0]">{data.techStack.backend.slice(0, 2).join(', ') || '—'}</div>
-            </div>
-            <div>
-              <div className="text-[9px] uppercase text-[#c8d6f0] mb-1">Database</div>
-              <div className="text-[10px] text-[#c8d6f0]">{data.techStack.database.join(', ') || '—'}</div>
-            </div>
-            <div>
-              <div className="text-[9px] uppercase text-[#c8d6f0] mb-1">Hosting</div>
-              <div className="text-[10px] text-[#c8d6f0]">{data.techStack.hosting.join(', ') || '—'}</div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

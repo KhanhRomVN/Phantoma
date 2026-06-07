@@ -1,27 +1,11 @@
-// Subdomain Types for Subdomain component
+// Subdomain Types — INTEL Only (Passive Enumeration)
+// Sources: crt.sh, AlienVault OTX, SecurityTrails, DNSDB
 
-export type SubdomainCategory = 
-  | 'api' 
-  | 'admin' 
-  | 'dev' 
-  | 'staging' 
-  | 'vpn' 
-  | 'mail' 
-  | 'cdn' 
-  | 'internal' 
-  | 'wildcard' 
-  | 'orphan'
-  | 'other';
-
-export type SubdomainRisk = 'critical' | 'high' | 'medium' | 'low' | 'info';
+export type SubdomainSource = 'crt.sh' | 'alienvault' | 'securitytrails' | 'dnsdb';
 
 export interface Subdomain {
   name: string;
-  category: SubdomainCategory;
-  risk: SubdomainRisk;
+  source: SubdomainSource;
+  firstSeen?: string;
   resolvedIP?: string;
-  status?: 'active' | 'inactive' | 'resolved';
-  httpStatus?: number;
-  banner?: string;
-  tech?: string[];
 }

@@ -19,10 +19,14 @@ export function DomainSubdomain({ data }: { data: ReconData }) {
 
   const stats = useMemo(() => {
     const total = subdomains.length;
-    const active = subdomains.filter(s => s.status === 'active').length;
-    const critical = subdomains.filter(s => s.risk === 'critical').length;
-    const high = subdomains.filter(s => s.risk === 'high').length;
-    return { total, active, critical, high };
+    const resolved = subdomains.filter(s => s.resolvedIP).length;
+    const unresolved = total - resolved;
+    const sourceCounts: Record<string, number> = {};
+    subdomains.forEach(s => {
+      sourceCounts[s.source] = (sourceCounts[s.source] || 0) + 1;
+    });
+    const sources = Object.keys(sourceCounts).length;
+    return { total, resolved, unresolved, sources };
   }, [subdomains]);
 
   return (
@@ -30,10 +34,10 @@ export function DomainSubdomain({ data }: { data: ReconData }) {
       <div className="grid grid-cols-2 gap-2">
         {/* Stat boxes */}
         <div className="col-span-2 grid grid-cols-4 gap-2 mb-1">
-          <StatBox label="Total Subdomains" value={stats.total} sub="discovered" accent="#0af" />
-          <StatBox label="Active" value={stats.active} sub="responding" accent="#30d158" />
-          <StatBox label="Critical Risk" value={stats.critical} sub="needs attention" accent="#ff2d55" />
-          <StatBox label="High Risk" value={stats.high} sub="investigate" accent="#ff6b35" />
+          <StatBox label="Total Subdomains" value={stats.total} sub="passive discovery" accent="#0af" />
+          <StatBox label="Resolved IP" value={stats.resolved} sub="DNS resolved" accent="#30d158" />
+          <StatBox label="Unresolved" value={stats.unresolved} sub="no IP found" accent="#f5a623" />
+          <StatBox label="Sources" value={stats.sources} sub="data providers" accent="#bf5af2" />
         </div>
 
         {/* Subdomain table */}
@@ -43,14 +47,15 @@ export function DomainSubdomain({ data }: { data: ReconData }) {
               <thead>
                 <tr className="border-b border-[#1c2333] bg-[#0a0e14]">
                   <th className="text-left p-2 text-[#c8d6f0] font-normal tracking-wider text-[10px] uppercase">Subdomain</th>
-                  <th className="text-left p-2 text-[#c8d6f0] font-normal tracking-wider text-[10px] uppercase">IP</th>
-                  <th className="text-left p-2 text-[#c8d6f0] font-normal tracking-wider text-[10px] uppercase">HTTP</th>
+                  <th className="text-left p-2 text-[#c8d6f0] font-normal tracking-wider text-[10px] uppercase">Resolved IP</th>
+                  <th className="text-left p-2 text-[#c8d6f0] font-normal tracking-wider text-[10px] uppercase">Source</th>
+                  <th className="text-left p-2 text-[#c8d6f0] font-normal tracking-wider text-[10px] uppercase">First Seen</th>
                 </tr>
               </thead>
               <tbody>
                 {subdomains.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="p-4 text-center text-[11px] font-mono text-[#c8d6f0]">
+                    <td colSpan={4} className="p-4 text-center text-[11px] font-mono text-[#c8d6f0]">
                       No subdomains found
                     </td>
                   </tr>
@@ -60,12 +65,11 @@ export function DomainSubdomain({ data }: { data: ReconData }) {
                       <td className="p-2 font-mono text-[12px] text-[#0af]">{sub.name}</td>
                       <td className="p-2 text-[11px] text-[#c8d6f0]">{sub.resolvedIP || '—'}</td>
                       <td className="p-2">
-                        {sub.httpStatus ? (
-                          <span className={sub.httpStatus >= 400 ? 'text-[#ff6b35]' : 'text-[#30d158]'}>
-                            {sub.httpStatus}
-                          </span>
-                        ) : '—'}
+                        <span className="text-[10px] font-mono text-[#c8d6f0] bg-[#0a0e14] px-1.5 py-0.5 rounded border border-[#1c2333]">
+                          {sub.source}
+                        </span>
                       </td>
+                      <td className="p-2 text-[11px] text-[#c8d6f0]">{sub.firstSeen || '—'}</td>
                     </tr>
                   ))
                 )}

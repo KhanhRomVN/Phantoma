@@ -1,14 +1,14 @@
-// Infrastructure Types for Infrastructure component
+// Infrastructure Types — INTEL Only (Passive)
 
 export interface Infrastructure {
-  // Basic network
+  // Basic network (from passive DNS / WHOIS / IP-API)
   ipAddress?: string;
   ipv6?: string[];
   asn?: string;
   cidrRange?: string[];
   reverseIp?: string[];
-  
-  // Hosting & Cloud
+
+  // Hosting & Cloud (from WHOIS / IP-API)
   hostingProvider?: string;
   cloudProvider?: string;
   geoLocation?: {
@@ -17,13 +17,7 @@ export interface Infrastructure {
     latitude?: number;
     longitude?: number;
   };
-  
-  // Security & Proxy
-  cdn?: string;
-  waf?: string;
-  reverseProxy?: string;
-  loadBalancer?: string;
-  
-  // Legacy fields (keep for compatibility)
+
+  // IP ranges (from WHOIS / BGP)
   ipRanges?: string[];
 }

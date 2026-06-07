@@ -37,7 +37,7 @@ function StatBox({ label, value, sub, accent }: { label: string; value: string |
 
 export function DomainSensitiveExposure({ data }: { data: ReconData }) {
   const sensitive = data.sensitiveExposure || {};
-  
+
   const envExposure = sensitive.envExposure || [];
   const gitExposure = sensitive.gitExposure || [];
   const backupFiles = sensitive.backupFiles || [];
@@ -45,9 +45,9 @@ export function DomainSensitiveExposure({ data }: { data: ReconData }) {
   const apiKeys = sensitive.apiKeys || [];
   const secretTokens = sensitive.secretTokens || [];
   const logFiles = sensitive.logFiles || [];
-  
+
   const totalExposures = envExposure.length + gitExposure.length + backupFiles.length + configFiles.length + apiKeys.length + secretTokens.length + logFiles.length;
-  
+
   return (
     <div className="flex-1 overflow-y-auto p-3">
       <div className="grid grid-cols-2 gap-2">
@@ -58,7 +58,39 @@ export function DomainSensitiveExposure({ data }: { data: ReconData }) {
           <StatBox label="Backup Files" value={backupFiles.length} sub="data exposure" accent="#f5a623" />
           <StatBox label="Config Files" value={configFiles.length} sub="misconfigurations" accent="#0af" />
         </div>
-        
+
+        {/* Public S3 Bucket Card */}
+        {sensitive.publicS3Bucket && (
+          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-2">
+            <SectionHeader accent="#f5a623">Public S3 Bucket</SectionHeader>
+            <KV k="Bucket" v={sensitive.publicS3Bucket} vc="text-[#0af]" />
+          </div>
+        )}
+
+        {/* Source Code Exposure Card */}
+        {sensitive.sourceCodeExposure && (
+          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3 col-span-2">
+            <SectionHeader accent="#ff2d55">Source Code Exposure</SectionHeader>
+            <KV k="URL" v={sensitive.sourceCodeExposure} vc="text-[#ff6b35]" />
+          </div>
+        )}
+
+        {/* Firebase Config Card */}
+        {sensitive.firebaseConfig && (
+          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+            <SectionHeader accent="#f5a623">Firebase Config</SectionHeader>
+            <KV k="Config" v={sensitive.firebaseConfig} vc="text-[#c8d6f0]" />
+          </div>
+        )}
+
+        {/* Database Dump Card */}
+        {sensitive.databaseDump && (
+          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
+            <SectionHeader accent="#ff2d55">Database Dump</SectionHeader>
+            <KV k="URL" v={sensitive.databaseDump} vc="text-[#ff6b35]" />
+          </div>
+        )}
+
         {/* .env Exposure Card */}
         {envExposure.length > 0 && (
           <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
@@ -68,7 +100,7 @@ export function DomainSensitiveExposure({ data }: { data: ReconData }) {
             ))}
           </div>
         )}
-        
+
         {/* .git Exposure Card */}
         {gitExposure.length > 0 && (
           <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
@@ -78,7 +110,7 @@ export function DomainSensitiveExposure({ data }: { data: ReconData }) {
             ))}
           </div>
         )}
-        
+
         {/* API Keys Card */}
         {apiKeys.length > 0 && (
           <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
@@ -88,7 +120,7 @@ export function DomainSensitiveExposure({ data }: { data: ReconData }) {
             ))}
           </div>
         )}
-        
+
         {/* Secret Tokens Card */}
         {secretTokens.length > 0 && (
           <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
@@ -98,7 +130,7 @@ export function DomainSensitiveExposure({ data }: { data: ReconData }) {
             ))}
           </div>
         )}
-        
+
         {/* Backup Files Card */}
         {backupFiles.length > 0 && (
           <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
@@ -108,7 +140,7 @@ export function DomainSensitiveExposure({ data }: { data: ReconData }) {
             ))}
           </div>
         )}
-        
+
         {/* Config Files Card */}
         {configFiles.length > 0 && (
           <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
@@ -118,40 +150,7 @@ export function DomainSensitiveExposure({ data }: { data: ReconData }) {
             ))}
           </div>
         )}
-        
-        {/* Database Dump Card */}
-        {sensitive.databaseDump && (
-          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-            <SectionHeader accent="#ff2d55">Database Dump</SectionHeader>
-            <KV k="URL" v={sensitive.databaseDump} vc="text-[#ff6b35]" />
-          </div>
-        )}
-        
-        {/* Jenkins/Kibana Exposure Card */}
-        {(sensitive.jenkinsExposure || sensitive.kibanaExposure) && (
-          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-            <SectionHeader accent="#ff2d55">CI/CD & Monitoring Exposure</SectionHeader>
-            {sensitive.jenkinsExposure && <KV k="Jenkins" v={sensitive.jenkinsExposure} vc="text-[#ff6b35]" />}
-            {sensitive.kibanaExposure && <KV k="Kibana" v={sensitive.kibanaExposure} vc="text-[#ff6b35]" />}
-          </div>
-        )}
-        
-        {/* Public S3 Bucket Card */}
-        {sensitive.publicS3Bucket && (
-          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-            <SectionHeader accent="#f5a623">Public S3 Bucket</SectionHeader>
-            <KV k="Bucket" v={sensitive.publicS3Bucket} vc="text-[#0af]" />
-          </div>
-        )}
-        
-        {/* Firebase Config Card */}
-        {sensitive.firebaseConfig && (
-          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-            <SectionHeader accent="#f5a623">Firebase Config</SectionHeader>
-            <KV k="Config" v={sensitive.firebaseConfig} vc="text-[#c8d6f0]" />
-          </div>
-        )}
-        
+
         {/* Log Files Card */}
         {logFiles.length > 0 && (
           <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
@@ -159,14 +158,6 @@ export function DomainSensitiveExposure({ data }: { data: ReconData }) {
             {logFiles.map((log: string, i: number) => (
               <KV key={i} k={`Log ${i + 1}`} v={log} vc="text-[#c8d6f0]" />
             ))}
-          </div>
-        )}
-        
-        {/* Source Code Exposure Card */}
-        {sensitive.sourceCodeExposure && (
-          <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-            <SectionHeader accent="#ff2d55">Source Code Exposure</SectionHeader>
-            <KV k="URL" v={sensitive.sourceCodeExposure} vc="text-[#ff6b35]" />
           </div>
         )}
       </div>

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import DomainScan from './Domain';
+import NetworkScan from './Network';
+import WebsiteScan from './Website';
 
 interface ScanProps {
   activeSubItem?: string | null;
@@ -17,12 +19,12 @@ const VIEW_CONFIG: Record<
   }
 > = {
   'scan-network': {
-    Panel: () => <div className="flex-1 flex items-center justify-center text-[#2a3548]">Network Scan — Coming Soon</div>,
+    Panel: () => <NetworkScan />,
     TargetList: () => null,
     DataProvider: ({ children }) => <>{children}</>,
   },
   'scan-website': {
-    Panel: () => <div className="flex-1 flex items-center justify-center text-[#2a3548]">Website Scan — Coming Soon</div>,
+    Panel: () => <WebsiteScan />,
     TargetList: () => null,
     DataProvider: ({ children }) => <>{children}</>,
   },

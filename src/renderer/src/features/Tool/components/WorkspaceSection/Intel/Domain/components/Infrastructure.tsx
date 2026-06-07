@@ -38,11 +38,11 @@ function StatBox({ label, value, sub, accent }: { label: string; value: string |
 export function TabInfrastructure({ data }: { data: ReconData }) {
   const infra = data.infrastructure;
   const dns = data.dnsRecords;
-  
+
   // Get IPs from DNS records if not in infrastructure
   const ipAddress = infra.ipAddress || (dns.A && dns.A[0]) || data.targetIp;
   const ipv6List = infra.ipv6 || dns.AAAA || [];
-  
+
   return (
     <div className="flex-1 overflow-y-auto p-3">
       <div className="grid grid-cols-2 gap-2">
@@ -51,9 +51,9 @@ export function TabInfrastructure({ data }: { data: ReconData }) {
           <StatBox label="IPv4" value={ipAddress || 'N/A'} sub="primary" accent="#0af" />
           <StatBox label="IPv6" value={ipv6List.length} sub={`${ipv6List.length} addresses`} accent="#30d158" />
           <StatBox label="ASN" value={infra.asn?.split(' - ')[0] || 'N/A'} sub={infra.asn?.split(' - ')[1] || ''} accent="#f5a623" />
-          <StatBox label="CDN/WAF" value={infra.cdn || 'None'} sub={infra.waf ? 'WAF active' : 'No WAF'} accent="#ff6b35" />
+          <StatBox label="Hosting" value={infra.hostingProvider || 'N/A'} sub={infra.cloudProvider || ''} accent="#bf5af2" />
         </div>
-        
+
         {/* Network Card */}
         <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
           <SectionHeader accent="#0af">Network Information</SectionHeader>
@@ -63,7 +63,7 @@ export function TabInfrastructure({ data }: { data: ReconData }) {
           <KV k="Hosting Provider" v={infra.hostingProvider || 'N/A'} />
           <KV k="Cloud Provider" v={infra.cloudProvider || 'N/A'} />
         </div>
-        
+
         {/* Location Card */}
         <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
           <SectionHeader accent="#f5a623">Geo Location</SectionHeader>
@@ -79,16 +79,7 @@ export function TabInfrastructure({ data }: { data: ReconData }) {
             <KV k="Location" v="Unknown" />
           )}
         </div>
-        
-        {/* Security & Proxy Card */}
-        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
-          <SectionHeader accent="#ff2d55">Security & Proxy</SectionHeader>
-          <KV k="CDN" v={infra.cdn || 'None'} vc={infra.cdn ? 'text-[#0af]' : 'text-[#c8d6f0]'} />
-          <KV k="WAF" v={infra.waf || 'None'} vc={infra.waf ? 'text-[#ff6b35]' : 'text-[#c8d6f0]'} />
-          <KV k="Reverse Proxy" v={infra.reverseProxy || 'None'} />
-          <KV k="Load Balancer" v={infra.loadBalancer || 'None'} />
-        </div>
-        
+
         {/* IP Ranges & CIDR Card */}
         <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
           <SectionHeader accent="#30d158">IP Ranges</SectionHeader>
@@ -105,7 +96,7 @@ export function TabInfrastructure({ data }: { data: ReconData }) {
             <KV k="IP Ranges" v="None detected" />
           )}
         </div>
-        
+
         {/* Reverse IP Card */}
         <div className="bg-[#0d1017] border border-[#1c2333] rounded p-3">
           <SectionHeader accent="#bf5af2">Reverse IP Lookup</SectionHeader>

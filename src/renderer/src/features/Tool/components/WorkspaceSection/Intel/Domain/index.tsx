@@ -5,32 +5,23 @@ import { DomainIdentity } from './components/Identity';
 import { TabDNS } from './components/DNS';
 import { DomainSubdomain } from './components/Subdomain';
 import { TabInfrastructure } from './components/Infrastructure';
-import { DomainService } from './components/Service';
-import { DomainWebSurface } from './components/WebSurface';
-import { DomainTechnology } from './components/Technology';
-import { DomainVulnerability } from './components/Vulnerability';
 import { DomainSensitiveExposure } from './components/SensitiveExposure';
 import { DomainOSINT } from './components/OSINT';
 import { Log } from './components/Log';
 import { History } from './components/History';
 import { Search } from './components/Search';
-import { 
-  Activity, 
-  Fingerprint, 
-  Globe, 
-  Map, 
-  Network, 
-  Server, 
-  Chrome, 
-  Cpu, 
-  AlertTriangle, 
-  Shield, 
-  Bug, 
-  Terminal 
+import {
+  Activity,
+  Fingerprint,
+  Globe,
+  Map,
+  Network,
+  Shield,
+  Bug,
+  Terminal
 } from 'lucide-react';
 
-// Optional sample data - comment/uncomment the line below to use/preview sample data
-// To enable: remove the comment and ensure the JSON file exists
+// Optional sample data
 import sampleData from './data/phantoma-com.json';
 
 // Types
@@ -55,39 +46,29 @@ const DEFAULT_SESSIONS: DomainSession[] = [
     ip: '104.18.32.11',
     status: 'done',
     progress: 100,
-    riskScore: 58,
-    stats: { openPorts: 3, subdomains: 5, vulns: 2, breaches: 1, secrets: 1 },
+    stats: { subdomains: 5, breaches: 1, emails: 0, dorks: 3 },
   },
 ];
 
 // TODO: Replace with actual API call
 async function fetchReconData(domain: string): Promise<ReconData | null> {
-  console.log(`[DomainRecon] Fetching data for: ${domain}`);
+  console.log(`[DomainIntel] Fetching data for: ${domain}`);
 
-  // Check if sample data is available (via the imported variable)
-  // The variable 'sampleData' is declared above and will be undefined if import is commented
   try {
     // @ts-ignore - sampleData may be undefined if import is commented
     if (typeof sampleData !== 'undefined' && sampleData && sampleData.target === domain) {
-      console.log('[DomainRecon] Using sample data from phantoma-com.json');
+      console.log('[DomainIntel] Using sample data from phantoma-com.json');
       // @ts-ignore
       return sampleData;
     }
   } catch (e) {
-    // Sample data not available, continue to API
-    console.log('[DomainRecon] Sample data not available, using API');
+    console.log('[DomainIntel] Sample data not available, using API');
   }
 
-  // TODO: Implement real API call here
-  // Example:
-  // const response = await fetch(`/api/recon/domain/${domain}`);
-  // if (!response.ok) return null;
-  // return response.json();
-
-  // For now, return null (show placeholder)
-  console.log('[DomainRecon] No data source available, returning null');
+  console.log('[DomainIntel] No data source available, returning null');
   return null;
 }
+
 // ============================================================================
 // Data Context (internal)
 // ============================================================================
@@ -107,7 +88,7 @@ function useReconData() {
 }
 
 // ============================================================================
-// Tab Configuration
+// Tab Configuration — INTEL Only (Passive)
 // ============================================================================
 
 const SUB_TABS = [
@@ -116,10 +97,6 @@ const SUB_TABS = [
   { id: 'dns', label: 'Dns', accent: '#30d158' },
   { id: 'subdomain', label: 'Subdomain', accent: '#0a84ff' },
   { id: 'infrastructure', label: 'Infrastructure', accent: '#64d2ff' },
-  { id: 'service', label: 'Service', accent: '#32d74b' },
-  { id: 'websurface', label: 'Web Surface', accent: '#64d2ff' },
-  { id: 'technology', label: 'Technology', accent: '#5e5ce6' },
-  { id: 'vulnerability', label: 'Vulnerability', accent: '#ff375f' },
   { id: 'sensitive-exposure', label: 'Sensitive Exposure', accent: '#ff453a' },
   { id: 'osint', label: 'Osint', accent: '#ff9f0a' },
   { id: 'terminal', label: 'Log', accent: '#30d158' },
@@ -156,11 +133,11 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
   const [showTabsDropdown, setShowTabsDropdown] = useState(false);
   const [showRunSelectedDropdown, setShowRunSelectedDropdown] = useState(false);
   const [selectedTabs, setSelectedTabs] = useState<Set<SubTabId>>(new Set());
-  
+
   // State for search
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchMode, setIsSearchMode] = useState(false);
-  
+
   // State for history mode
   const [isHistoryMode, setIsHistoryMode] = useState(false);
   const [historyViewData, setHistoryViewData] = useState<ReconData | null>(null);
@@ -210,7 +187,7 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
       domain: d,
       status: 'queued',
       progress: 0,
-      stats: { openPorts: 0, subdomains: 0, vulns: 0, breaches: 0, secrets: 0 },
+      stats: { subdomains: 0, breaches: 0, emails: 0, dorks: 0 },
     };
     setSessions((prev) => [...prev, sess]);
     setNewDomain('');
@@ -219,10 +196,6 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
 
   const removeDomain = useCallback((id: string) => {
     setSessions((prev) => prev.filter((s) => s.id !== id));
-  }, []);
-
-  const runDomain = useCallback((domain: string) => {
-    console.log('Running full scan for:', domain);
   }, []);
 
   const handleContextMenu = (e: React.MouseEvent, sessionId: string) => {
@@ -250,35 +223,35 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
-  
+
   // Handlers
   const handleRunSelectedClick = () => setShowRunSelectedDropdown(!showRunSelectedDropdown);
-  
+
   const handleConfirmRunSelected = () => {
     console.log('Running selected tabs:', Array.from(selectedTabs));
     setShowRunSelectedDropdown(false);
   };
-  
+
   const handleOpenHistory = () => {
     setIsHistoryMode(true);
     setHistoryViewData(null);
   };
-  
+
   const handleSelectHistory = (historyReconData: ReconData) => {
     setHistoryViewData(historyReconData);
   };
-  
+
   const handleBackFromHistory = () => {
     setIsHistoryMode(false);
     setHistoryViewData(null);
   };
-  
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
     setIsSearchMode(value.trim().length > 0);
   };
-  
+
   const handleSearchResultClick = (tabId: string) => {
     setActiveSubTab(tabId as SubTabId);
     setIsSearchMode(false);
@@ -290,21 +263,21 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
     if (isSearchMode && searchQuery.trim()) {
       return <Search data={data} searchQuery={searchQuery} onResultClick={handleSearchResultClick} />;
     }
-    
+
     // History mode
     if (isHistoryMode) {
       return <History onSelectHistory={handleSelectHistory} onBack={handleBackFromHistory} />;
     }
-    
+
     // Viewing history data
     if (historyViewData) {
       return renderNormalContent(historyViewData);
     }
-    
+
     // Normal mode
     return renderNormalContent(data);
   };
-  
+
   // Helper function to get DNS record count
   const getDnsRecordCount = (reconData: ReconData | null): number => {
     if (!reconData?.dnsRecords) return 0;
@@ -346,14 +319,6 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
         return <DomainSubdomain data={reconData} />;
       case 'infrastructure':
         return <TabInfrastructure data={reconData} />;
-      case 'service':
-        return <DomainService data={reconData} />;
-      case 'websurface':
-        return <DomainWebSurface data={reconData} />;
-      case 'technology':
-        return <DomainTechnology data={reconData} />;
-      case 'vulnerability':
-        return <DomainVulnerability data={reconData} />;
       case 'sensitive-exposure':
         return <DomainSensitiveExposure data={reconData} />;
       case 'osint':
@@ -442,8 +407,8 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
                 )}
               >
                 {isActive && (
-                  <div 
-                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" 
+                  <div
+                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
                     style={{ background: meta.color }}
                   />
                 )}
@@ -469,31 +434,12 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
           >
             <button
               onClick={() => {
-                const session = sessions.find((s) => s.id === contextMenu.sessionId);
-                if (session) runDomain(session.domain);
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#0af] hover:bg-[#1c2333] transition-colors"
-            >
-              ▶ Run (Full Scan)
-            </button>
-            <button
-              onClick={() => {
                 handleOpenHistory();
                 setContextMenu(null);
               }}
               className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#30d158] hover:bg-[#1c2333] transition-colors"
             >
               📜 Open History
-            </button>
-            <button
-              onClick={() => {
-                handleRunSelectedClick();
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#ff9f0a] hover:bg-[#1c2333] transition-colors"
-            >
-              ✓ Run Selected
             </button>
             <div className="border-t border-[#1c2333] my-1" />
             <button
@@ -546,17 +492,13 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
                           case 'dns': return <Globe className="w-3.5 h-3.5" />;
                           case 'subdomain': return <Map className="w-3.5 h-3.5" />;
                           case 'infrastructure': return <Network className="w-3.5 h-3.5" />;
-                          case 'service': return <Server className="w-3.5 h-3.5" />;
-                          case 'websurface': return <Chrome className="w-3.5 h-3.5" />;
-                          case 'technology': return <Cpu className="w-3.5 h-3.5" />;
-                          case 'vulnerability': return <AlertTriangle className="w-3.5 h-3.5" />;
                           case 'sensitive-exposure': return <Shield className="w-3.5 h-3.5" />;
                           case 'osint': return <Bug className="w-3.5 h-3.5" />;
                           case 'terminal': return <Terminal className="w-3.5 h-3.5" />;
                           default: return <Activity className="w-3.5 h-3.5" />;
                         }
                       };
-                      
+
                       return (
                         <button
                           key={tab.id}

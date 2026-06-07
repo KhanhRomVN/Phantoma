@@ -1,0 +1,73 @@
+import { useState, useEffect, useRef } from 'react';
+import { cn } from '../../../../../../../shared/lib/utils';
+import type { NetworkAttackData } from '../types/network-attack';
+
+export function Log({ data }: { data: NetworkAttackData }) {
+  const [lines, setLines] = useState<string[]>([]);
+  const [cursor, setCursor] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Use attack log from data or generate default lines
+  const LOG_LINES = data.attackLog && data.attackLog.length > 0
+    ? data.attackLog
+    : [
+        `[*] Initializing attack framework v2.0.0`,
+        `[+] Target acquired: ${data.targetIp}`,
+        `[*] Loading exploit modules...`,
+        `[+] Port scan: ${data.openPorts.length} ports open (${data.openPorts.join(', ')})`,
+        `[+] SMB port 445 open — checking MS17-010...`,
+        `[+] EternalBlue: exploit compiled, sending payload...`,
+        `[*] Meterpreter session established on ${data.targetIp}:4444`,
+        `[+] SYSTEM shell obtained on ${data.targetIp}`,
+        `[*] Starting brute-force on SSH (port 22)...`,
+        `[+] Credentials found: 1 valid pair`,
+        `[*] Checking for Log4Shell on port 8080...`,
+        `[+] RCE confirmed via JNDI injection`,
+        `[*] Attack complete. Risk score: ${data.riskScore.total}/100`,
+      ];
+
+  useEffect(() => {
+    if (cursor >= LOG_LINES.length) return;
+    const t = setTimeout(
+      () => {
+        setLines((prev) => [...prev, LOG_LINES[cursor]]);
+        setCursor((c) => c + 1);
+      },
+      100 + Math.random() * 80,
+    );
+    return () => clearTimeout(t);
+  }, [cursor, data]);
+
+  useEffect(() => {
+    if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
+  }, [lines]);
+
+  return (
+    <div
+      ref={ref}
+      className="flex-1 overflow-y-auto p-3 font-mono text-[12px] leading-relaxed"
+    >
+      <div className="text-[#c8d6f0] mb-2">
+        phantoma-attack v2.0.0 — target: {data.targetIp} — {data.scanTime}
+      </div>
+      {lines.map((line, i) => (
+        <div
+          key={i}
+          className={cn(
+            'mb-0.5',
+            line.startsWith('[!]') || line.includes('FAILED')
+              ? 'text-[#ff2d55]'
+              : line.startsWith('[-]')
+                ? 'text-[#ff6b35]'
+                : line.startsWith('[*]')
+                  ? 'text-[#f5a623]'
+                  : 'text-[#30d158]',
+          )}
+        >
+          {line}
+        </div>
+      ))}
+      {cursor < LOG_LINES.length && <span className="text-[#30d158] animate-pulse">█</span>}
+    </div>
+  );
+}

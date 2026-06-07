@@ -15,7 +15,6 @@ const NAV_MODULES: NavModuleConfig[] = [
     children: [
       { id: 'recon-domain', title: 'Domain', disabled: false },
       { id: 'recon-ip', title: 'IP', disabled: false },
-      { id: 'recon-organization', title: 'Organization', disabled: false },
       { id: 'recon-person', title: 'Person', disabled: false },
       { id: 'recon-sourcecode', title: 'Source Code', disabled: false },
     ],
@@ -311,7 +310,7 @@ export function ModuleBar({
       <div className="w-[240px] shrink-0 bg-[#0f1319] border-r border-[#1e2535] flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0 h-full">
         <div className="w-full h-[37px] flex items-center px-3 shrink-0">
           <NavLogo />
-<span className="ml-2 text-sm font-mono text-cyan-400">PHANTOM v2.5.0</span>
+          <span className="ml-2 text-sm font-mono text-cyan-400">PHANTOM v2.5.0</span>
         </div>
         <div className="w-full h-px bg-[#1e2535] shrink-0" />
 

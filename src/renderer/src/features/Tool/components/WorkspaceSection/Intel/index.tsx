@@ -4,10 +4,9 @@ interface ReconProps {
   activeSubItem?: string | null;
 }
 
-import OrganizationRecon from './Organization';
 import PersonRecon from './Person';
 import SourceCodeRecon from './SourceCode';
-import IPServerRecon from './IPServer';
+import IPServerRecon from './IP';
 
 const VIEW_CONFIG: Record<
   string,
@@ -22,11 +21,6 @@ const VIEW_CONFIG: Record<
 > = {
   'recon-ip': {
     Panel: () => <IPServerRecon />,
-    TargetList: () => null,
-    DataProvider: ({ children }) => <>{children}</>,
-  },
-  'recon-organization': {
-    Panel: () => <OrganizationRecon />,
     TargetList: () => null,
     DataProvider: ({ children }) => <>{children}</>,
   },
