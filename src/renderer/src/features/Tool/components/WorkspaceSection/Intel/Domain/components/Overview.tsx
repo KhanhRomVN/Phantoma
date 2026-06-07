@@ -43,7 +43,7 @@ function StatBox({
   );
 }
 
-export function TabOsint({ data }: { data: ReconData }) {
+export function Overview({ data }: { data: ReconData }) {
   const totalBreachedAccounts = data.breaches.reduce((sum, b) => sum + b.accounts, 0);
   const nameserverCount = (data.identityRecords?.nameservers || data.whoisData?.nameServers || [])
     .length;

@@ -13,7 +13,7 @@ import { SectionHeader } from '../Person/components/shared/SectionHeader';
 import { ConfidenceBadge } from '../Person/components/shared/ConfidenceBadge';
 
 // Import realistic mock data
-import realisticMockData from './data/phantoma-ip-realistic.json';
+import realisticMockData from './data/104.18.32.11.json';
 
 interface IPSession {
   id: string;

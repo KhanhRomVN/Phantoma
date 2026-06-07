@@ -47,7 +47,7 @@ function classifyDomainDataPoints(dataPoints: DataPoint[]): NonNullable<ReconRes
     { id: 'osint', label: 'OSINT', icon: 'Search', accent: '#ff9f0a', priority: 8, description: 'Google dorks, Wayback Machine', categories: ['google_dork', 'wayback_snapshot', 'public_document', 'file_metadata', 'mobile_app'] },
     { id: 'emails', label: 'Emails', icon: 'Mail', accent: '#30d158', priority: 9, description: 'Email thu thập được', categories: ['harvested_email', 'email_pattern', 'catch_all_email', 'email'] },
     { id: 'people', label: 'People', icon: 'Users', accent: '#0a84ff', priority: 10, description: 'Nhân sự liên quan', categories: ['employee_name', 'employee_email', 'employee_position'] },
-    { id: 'mentions', label: 'Mentions', icon: 'MessageCircle', accent: '#f5a623', priority: 11, description: 'Đề cập trên Internet', categories: ['social_mention', 'news_mention', 'forum_mention'] },
+    { id: 'mentions', label: 'Mentions', icon: 'MessageCircle', accent: '#f5a623', priority: 11, description: 'Đề cập trên Internet', categories: ['social_mention', 'news_mention', 'forum_mention', 'internet_mention'] },
     { id: 'network', label: 'Network', icon: 'Router', accent: '#ff6b35', priority: 12, description: 'Port mở, services', categories: ['open_port', 'service_banner', 'http_response', 'ssl_certificate_chain', 'cors_header', 'security_header', 'port', 'service'] },
     { id: 'timeline', label: 'Timeline', icon: 'Clock', accent: '#5e5ce6', priority: 13, description: 'Dòng thời gian thay đổi', categories: [] },
     { id: 'raw', label: 'Raw / Noise', icon: 'FileJson', accent: '#6a7a9a', priority: 14, description: 'Dữ liệu thô, false positives', categories: ['other', 'unclassified'] },

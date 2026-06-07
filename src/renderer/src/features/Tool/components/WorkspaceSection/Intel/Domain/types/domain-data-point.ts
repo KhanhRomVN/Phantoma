@@ -113,4 +113,7 @@ export type DomainDataCategory =
   // Related domains
   | 'related_domain'
   | 'sibling_domain'
-  | 'parked_domain';
+  | 'parked_domain'
+  // Additional
+  | 'internet_mention'
+  | 'ipv6';

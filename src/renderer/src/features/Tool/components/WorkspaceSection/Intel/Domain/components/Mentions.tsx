@@ -13,6 +13,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   social_mention: 'Social Media',
   news_mention: 'News',
   forum_mention: 'Forums',
+  internet_mention: 'Internet Mentions',
 };
 
 export function Mentions({ dataPoints, activeGroup }: MentionsProps) {

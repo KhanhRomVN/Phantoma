@@ -7,17 +7,9 @@ import { TimelineCluster } from './components/TimelineCluster';
 import { RawDataView } from './components/RawDataView';
 import { SourcesPanel } from './components/SourcesPanel';
 import { Search } from './components/Search';
-import type { ReconResult } from './types/recon-result';
-import type { SmartCategoryGroup } from './types/smart-category';
 
 // Import realistic mock data
-import realisticMockData from './data/phantoma-name-realistic.json';
-
-import {
-  User, Mail, Share2, Cpu, AlertTriangle, Activity,
-  FileText, Filter, Search as SearchIcon, Plus, Trash2,
-  Play, ChevronDown, History, CheckSquare, LayoutDashboard,
-} from 'lucide-react';
+import realisticMockData from './data/Phantoma.json';
 
 interface PersonSession {
   id: string;
@@ -31,27 +23,48 @@ interface PersonSession {
 type PersonStatus = PersonSession['status'];
 
 const STATUS_META: Record<PersonStatus, { label: string; color: string; pulse?: boolean }> = {
-  idle:     { label: 'IDLE',     color: '#3a4558' },
-  queued:   { label: 'QUEUED',   color: '#f5a623', pulse: true },
-  scanning: { label: 'SCANNING', color: '#0af',    pulse: true },
-  done:     { label: 'DONE',     color: '#30d158' },
-  error:    { label: 'ERROR',    color: '#ff2d55' },
+  idle: { label: 'IDLE', color: '#3a4558' },
+  queued: { label: 'QUEUED', color: '#f5a623', pulse: true },
+  scanning: { label: 'SCANNING', color: '#0af', pulse: true },
+  done: { label: 'DONE', color: '#30d158' },
+  error: { label: 'ERROR', color: '#ff2d55' },
 };
 
 const QUERY_TYPE_META: Record<string, { label: string; color: string }> = {
-  name:     { label: 'NAME',  color: '#af52de' },
-  email:    { label: 'EMAIL', color: '#30d158' },
-  username: { label: 'USER',  color: '#0a84ff' },
+  name: { label: 'NAME', color: '#af52de' },
+  email: { label: 'EMAIL', color: '#30d158' },
+  username: { label: 'USER', color: '#0a84ff' },
 };
 
 const DEFAULT_SESSIONS: PersonSession[] = [
-  { id: 'sess-1', name: 'Phantoma', queryType: 'name', status: 'done', progress: 100, riskScore: 72 },
-  { id: 'sess-2', name: 'phantoma@gmail.com', queryType: 'email', status: 'done', progress: 100, riskScore: 44 },
-  { id: 'sess-3', name: 'phantoma_123', queryType: 'username', status: 'done', progress: 100, riskScore: 91 },
+  {
+    id: 'sess-1',
+    name: 'Phantoma',
+    queryType: 'name',
+    status: 'done',
+    progress: 100,
+    riskScore: 72,
+  },
+  {
+    id: 'sess-2',
+    name: 'phantoma@gmail.com',
+    queryType: 'email',
+    status: 'done',
+    progress: 100,
+    riskScore: 44,
+  },
+  {
+    id: 'sess-3',
+    name: 'phantoma_123',
+    queryType: 'username',
+    status: 'done',
+    progress: 100,
+    riskScore: 91,
+  },
 ];
 
 const DATA_CACHE: Record<string, Record<string, unknown>> = {
-  'Phantoma': realisticMockData as unknown as Record<string, unknown>,
+  Phantoma: realisticMockData as unknown as Record<string, unknown>,
 };
 
 interface PersonReconProps {
@@ -64,7 +77,11 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPerson, setNewPerson] = useState('');
   const [newQueryType, setNewQueryType] = useState<'name' | 'email' | 'username'>('name');
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; sessionId: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    sessionId: string;
+  } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Active person
@@ -122,7 +139,7 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
   const addPerson = useCallback(() => {
     const person = newPerson.trim();
     if (!person) return;
-    if (sessions.some(s => s.name === person)) return;
+    if (sessions.some((s) => s.name === person)) return;
     const sess: PersonSession = {
       id: `sess-${Date.now()}`,
       name: person,
@@ -130,13 +147,13 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
       status: 'queued',
       progress: 0,
     };
-    setSessions(prev => [...prev, sess]);
+    setSessions((prev) => [...prev, sess]);
     setNewPerson('');
     setShowAddForm(false);
   }, [newPerson, newQueryType, sessions]);
 
   const removePerson = useCallback((id: string) => {
-    setSessions(prev => prev.filter(s => s.id !== id));
+    setSessions((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
   const runScan = useCallback((person: string) => {
@@ -169,8 +186,8 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
     setSearchQuery('');
   };
 
-  const activeSession = sessions.find(s => s.name === activePerson);
-  const activeGroup = categoryGroups.find(g => g.id === activeTab);
+  const activeSession = sessions.find((s) => s.name === activePerson);
+  const activeGroup = categoryGroups.find((g) => g.id === activeTab);
 
   // Render main content based on current state
   const renderContent = () => {
@@ -238,15 +255,19 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
               {entities.length} entit{entities.length !== 1 ? 'ies' : 'y'} found
             </div>
             <div className="space-y-1">
-              {entities.map(entity => (
+              {entities.map((entity) => (
                 <div
                   key={entity.id}
                   onClick={() => selectEntity(entity.id)}
                   className="p-2 bg-[#0d1017] border border-[#1c2333] rounded cursor-pointer hover:border-[#2a3548] transition-all"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[12px] font-mono font-bold text-[#c8d6f0]">{entity.displayName}</span>
-                    <span className="text-[10px] font-mono text-[#6a7a9a]">{entity.dataPointCount} pts</span>
+                    <span className="text-[12px] font-mono font-bold text-[#c8d6f0]">
+                      {entity.displayName}
+                    </span>
+                    <span className="text-[10px] font-mono text-[#6a7a9a]">
+                      {entity.dataPointCount} pts
+                    </span>
                   </div>
                   <div className="text-[11px] font-mono text-[#6a7a9a]">{entity.summary}</div>
                   <div className="flex items-center gap-2 mt-1">
@@ -257,8 +278,18 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
                       <span
                         className="text-[9px] font-mono px-1 py-0.5 rounded"
                         style={{
-                          color: entity.riskScore >= 75 ? '#ff2d55' : entity.riskScore >= 50 ? '#f5a623' : '#30d158',
-                          backgroundColor: entity.riskScore >= 75 ? '#ff2d5515' : entity.riskScore >= 50 ? '#f5a62315' : '#30d15815',
+                          color:
+                            entity.riskScore >= 75
+                              ? '#ff2d55'
+                              : entity.riskScore >= 50
+                                ? '#f5a623'
+                                : '#30d158',
+                          backgroundColor:
+                            entity.riskScore >= 75
+                              ? '#ff2d5515'
+                              : entity.riskScore >= 50
+                                ? '#f5a62315'
+                                : '#30d15815',
                         }}
                       >
                         RISK {entity.riskScore}
@@ -274,11 +305,7 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
       case 'timeline':
         return (
           <TimelineCluster
-            dataPoints={
-              selectedEntity
-                ? selectedEntity.dataPoints
-                : result.allDataPoints
-            }
+            dataPoints={selectedEntity ? selectedEntity.dataPoints : result.allDataPoints}
           />
         );
 
@@ -287,7 +314,9 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
           <RawDataView
             dataPoints={
               selectedEntity
-                ? selectedEntity.dataPoints.filter(dp => dp.isNoise || dp.category === 'unclassified')
+                ? selectedEntity.dataPoints.filter(
+                    (dp) => dp.isNoise || dp.category === 'unclassified',
+                  )
                 : result.unassignedDataPoints
             }
             title="Raw & Unclassified Data"
@@ -303,7 +332,9 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
           <div className="flex-1 flex items-center justify-center flex-col gap-2 p-3">
             <span className="text-[24px] opacity-15">🔗</span>
             <span className="text-[12px] font-mono text-[#6a7a9a]">Entity relations view</span>
-            <span className="text-[10px] font-mono text-[#3a4558]">Select an entity to see its connections</span>
+            <span className="text-[10px] font-mono text-[#3a4558]">
+              Select an entity to see its connections
+            </span>
           </div>
         );
 
@@ -322,7 +353,7 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
     }
   };
 
-  const activeTabGroup = categoryGroups.find(g => g.id === activeTab);
+  const activeTabGroup = categoryGroups.find((g) => g.id === activeTab);
 
   return (
     <div className="flex flex-1 overflow-hidden bg-[#0f1319]">
@@ -339,7 +370,12 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
             title="Add target"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path
+                d="M7 1v12M1 7h12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </div>
@@ -351,10 +387,13 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
               autoFocus
               type="text"
               value={newPerson}
-              onChange={e => setNewPerson(e.target.value)}
-              onKeyDown={e => {
+              onChange={(e) => setNewPerson(e.target.value)}
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') addPerson();
-                if (e.key === 'Escape') { setShowAddForm(false); setNewPerson(''); }
+                if (e.key === 'Escape') {
+                  setShowAddForm(false);
+                  setNewPerson('');
+                }
               }}
               placeholder="Name / Email / Username"
               spellCheck={false}
@@ -362,7 +401,7 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
               style={{ caretColor: '#0af' }}
             />
             <div className="flex gap-1">
-              {(['name', 'email', 'username'] as const).map(qt => {
+              {(['name', 'email', 'username'] as const).map((qt) => {
                 const meta = QUERY_TYPE_META[qt];
                 return (
                   <button
@@ -392,7 +431,7 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
 
         {/* Session list */}
         <div className="overflow-y-auto p-2 space-y-1 shrink-0" style={{ maxHeight: '40%' }}>
-          {sessions.map(sess => {
+          {sessions.map((sess) => {
             const statusMeta = STATUS_META[sess.status];
             const qMeta = QUERY_TYPE_META[sess.queryType];
             const isActive = sess.name === activePerson;
@@ -400,7 +439,7 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
               <div
                 key={sess.id}
                 onClick={() => setActivePerson(sess.name)}
-                onContextMenu={e => handleContextMenu(e, sess.id)}
+                onContextMenu={(e) => handleContextMenu(e, sess.id)}
                 className={cn(
                   'p-2 rounded cursor-pointer transition-all relative',
                   isActive ? 'bg-[#0d1017]' : 'bg-[#0a0e14] hover:bg-[#111827]',
@@ -437,13 +476,25 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
                           className="h-full rounded-full"
                           style={{
                             width: `${sess.riskScore}%`,
-                            backgroundColor: sess.riskScore >= 75 ? '#ff2d55' : sess.riskScore >= 50 ? '#f5a623' : '#30d158',
+                            backgroundColor:
+                              sess.riskScore >= 75
+                                ? '#ff2d55'
+                                : sess.riskScore >= 50
+                                  ? '#f5a623'
+                                  : '#30d158',
                           }}
                         />
                       </div>
                       <span
                         className="text-[9px] font-mono shrink-0"
-                        style={{ color: sess.riskScore >= 75 ? '#ff2d55' : sess.riskScore >= 50 ? '#f5a623' : '#30d158' }}
+                        style={{
+                          color:
+                            sess.riskScore >= 75
+                              ? '#ff2d55'
+                              : sess.riskScore >= 50
+                                ? '#f5a623'
+                                : '#30d158',
+                        }}
                       >
                         {sess.riskScore}
                       </span>
@@ -463,26 +514,38 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
             style={{ top: contextMenu.y, left: contextMenu.x }}
           >
             <button
-              onClick={() => { const s = sessions.find(s => s.id === contextMenu.sessionId); if (s) runScan(s.name); setContextMenu(null); }}
+              onClick={() => {
+                const s = sessions.find((s) => s.id === contextMenu.sessionId);
+                if (s) runScan(s.name);
+                setContextMenu(null);
+              }}
               className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#0af] hover:bg-[#1c2333] transition-colors"
             >
               ▶ Run (Full Scan)
             </button>
             <button
-              onClick={() => { setContextMenu(null); }}
+              onClick={() => {
+                setContextMenu(null);
+              }}
               className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#30d158] hover:bg-[#1c2333] transition-colors"
             >
               📜 Open History
             </button>
             <button
-              onClick={() => { handleRunSelectedClick(); setContextMenu(null); }}
+              onClick={() => {
+                handleRunSelectedClick();
+                setContextMenu(null);
+              }}
               className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#ff9f0a] hover:bg-[#1c2333] transition-colors"
             >
               ✓ Run Selected
             </button>
             <div className="border-t border-[#1c2333] my-1" />
             <button
-              onClick={() => { removePerson(contextMenu.sessionId); setContextMenu(null); }}
+              onClick={() => {
+                removePerson(contextMenu.sessionId);
+                setContextMenu(null);
+              }}
               className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#ff2d55] hover:bg-[#1c2333] transition-colors"
             >
               ✕ Delete
@@ -505,7 +568,14 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
                   className="h-6 w-6 flex items-center justify-center bg-[#1c2333] border border-[#2a3548] text-[#c8d6f0] rounded hover:text-[#c8d6f0] hover:border-[#0af30] transition-colors"
                   title="Switch tab"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <circle cx="12" cy="6" r="2" />
                     <circle cx="12" cy="12" r="2" />
                     <circle cx="12" cy="18" r="2" />
@@ -513,30 +583,42 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
                 </button>
                 {showTabsDropdown && (
                   <div className="absolute right-0 top-8 z-50 w-52 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1">
-                    {categoryGroups.filter(g => g.isActive).map((group) => (
-                      <button
-                        key={group.id}
-                        onClick={() => { setActiveTab(group.id); setShowTabsDropdown(false); }}
-                        className={cn(
-                          'w-full flex items-center justify-between px-3 py-1.5 text-[12px] font-mono transition-colors',
-                          activeTab === group.id
-                            ? 'bg-[#0af15] text-[#0af]'
-                            : 'text-[#c8d6f0] hover:bg-[#1c2333]',
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span style={{ color: group.accent }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                          </span>
-                          <span>{group.label}</span>
-                        </div>
-                        {group.count > 0 && (
-                          <span className="text-[10px] text-[#6a7a9a]">({group.count})</span>
-                        )}
-                      </button>
-                    ))}
+                    {categoryGroups
+                      .filter((g) => g.isActive)
+                      .map((group) => (
+                        <button
+                          key={group.id}
+                          onClick={() => {
+                            setActiveTab(group.id);
+                            setShowTabsDropdown(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center justify-between px-3 py-1.5 text-[12px] font-mono transition-colors',
+                            activeTab === group.id
+                              ? 'bg-[#0af15] text-[#0af]'
+                              : 'text-[#c8d6f0] hover:bg-[#1c2333]',
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span style={{ color: group.accent }}>
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            </span>
+                            <span>{group.label}</span>
+                          </div>
+                          {group.count > 0 && (
+                            <span className="text-[10px] text-[#6a7a9a]">({group.count})</span>
+                          )}
+                        </button>
+                      ))}
                   </div>
                 )}
               </div>
@@ -546,14 +628,14 @@ export default function PersonRecon({ initialPerson = 'Phantoma' }: PersonReconP
           {/* Tab description */}
           {activeTabGroup && activeTabGroup.description && !isSearchMode && (
             <div className="px-3 py-1 bg-[#0a0e14] border-b border-[#1c2333] shrink-0">
-              <span className="text-[10px] font-mono text-[#3a4558]">{activeTabGroup.description}</span>
+              <span className="text-[10px] font-mono text-[#3a4558]">
+                {activeTabGroup.description}
+              </span>
             </div>
           )}
 
           {/* Main content area */}
-          <div className="flex-1 flex overflow-hidden">
-            {renderContent()}
-          </div>
+          <div className="flex-1 flex overflow-hidden">{renderContent()}</div>
         </div>
       </div>
     </div>

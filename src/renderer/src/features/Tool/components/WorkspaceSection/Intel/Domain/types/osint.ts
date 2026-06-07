@@ -59,3 +59,12 @@ export interface InternetMention {
   snippet: string;
   date?: string;
 }
+
+export interface CertTransparency {
+  issuer: string;
+  validFrom: string;
+  validTo: string;
+  domains: string[];
+  serialNumber?: string;
+  fingerprint?: string;
+}

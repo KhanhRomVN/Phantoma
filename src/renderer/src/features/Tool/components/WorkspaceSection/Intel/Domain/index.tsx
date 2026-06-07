@@ -20,6 +20,7 @@ import { Osint } from './components/Osint';
 import { Emails } from './components/Emails';
 import { Mentions } from './components/Mentions';
 import { Network } from './components/Network';
+import { People } from './components/People';
 import { Log } from './components/Log';
 
 // Import realistic mock data
@@ -415,6 +416,9 @@ export default function DomainRecon({ initialDomain = 'phantoma.com' }: DomainRe
 
       case 'network':
         return <Network dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
+
+      case 'people':
+        return <People dataPoints={filteredDataPoints} activeGroup={activeGroup!} />;
 
       default:
         // Dynamic category tabs (fallback for unlisted tabs)

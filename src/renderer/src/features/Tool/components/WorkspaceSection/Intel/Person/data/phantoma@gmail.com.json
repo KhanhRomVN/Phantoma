@@ -1,0 +1,572 @@
+{
+  "target": "phantoma@gmail.com",
+  "queryType": "email",
+  "scanTime": "2026-06-06T08:31:07Z",
+  "scanDuration": 8942,
+  "confidence": 0.91,
+  "totalHits": 263,
+  "identityInfo": {
+    "fullName": "Nguyen Phan Thoma",
+    "alias": ["phantoma", "phantoma1337", "phantoma_sec", "p.nguyen", "thoma.nguyen"],
+    "username": ["phantoma", "phantoma_sec", "thoma_nguyen"],
+    "nickname": "Phan",
+    "avatar": "https://lh3.googleusercontent.com/a/phantoma_avatar",
+    "possibleRealNames": ["Phan Nguyen Thoma", "Thoma Nguyen", "Nguyen Phan Thoma", "Phan Thoma"],
+    "estimatedAge": 28,
+    "gender": "male",
+    "nationality": "Vietnamese",
+    "language": ["Vietnamese", "English"],
+    "location": "Ho Chi Minh City, Vietnam",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "bio": "Security researcher, open-source tool developer. Focus on OSINT, web security, and automated reconnaissance.",
+    "notes": "Active in bug bounty platforms. Highly consistent handle across platforms. Real name inferred from leaked databases and social media cross-referencing."
+  },
+  "contactInfo": {
+    "email": [
+      "phantoma@gmail.com",
+      "phantoma@protonmail.com",
+      "contact@phantoma.com",
+      "admin@phantoma.com",
+      "phan.nguyen@phantoma.com",
+      "thoma.nguyen@wearehackerone.com"
+    ],
+    "phoneNumber": ["+84 90 123 45 67", "+84 28 1234 5678"],
+    "address": "123 Le Loi Street, District 1, Ho Chi Minh City, Vietnam",
+    "messengerAccounts": [
+      {
+        "platform": "Google Chat",
+        "username": "phantoma@gmail.com"
+      },
+      {
+        "platform": "Telegram",
+        "username": "@phantoma_sec",
+        "id": 987654321
+      },
+      {
+        "platform": "Discord",
+        "username": "phantoma#1234"
+      },
+      {
+        "platform": "Matrix",
+        "username": "@phantoma:matrix.org"
+      }
+    ]
+  },
+  "socialMedia": {
+    "twitter": {
+      "url": "https://twitter.com/phantoma_sec",
+      "username": "phantoma_sec",
+      "displayName": "Phan Thoma",
+      "bio": "Bug bounty hunter | OSINT enthusiast | #recon",
+      "followers": 4500,
+      "following": 320,
+      "tweets": 1890,
+      "joined": "2018-04-12",
+      "verified": false,
+      "location": "Vietnam",
+      "profileImage": "https://pbs.twimg.com/profile_images/phantoma_sec.jpg"
+    },
+    "linkedin": {
+      "url": "https://linkedin.com/in/phantoma",
+      "username": "phantoma",
+      "fullName": "Thoma Nguyen",
+      "headline": "Security Researcher & Bug Hunter at HackerOne",
+      "industry": "Computer & Network Security",
+      "location": "Vietnam",
+      "connections": 560,
+      "currentCompany": "Freelancer",
+      "education": "Ho Chi Minh City University of Technology",
+      "profileImage": "https://media.licdn.com/dms/image/phantoma"
+    },
+    "github": {
+      "url": "https://github.com/phantoma",
+      "username": "phantoma",
+      "name": "Phan Thoma",
+      "company": "@phantoma-inc",
+      "location": "Vietnam",
+      "email": "phantoma@gmail.com",
+      "publicRepos": 42,
+      "followers": 1200,
+      "following": 25,
+      "createdAt": "2016-02-20",
+      "bio": "Building open-source OSINT tools."
+    },
+    "facebook": {
+      "url": "https://facebook.com/phantoma.nguyen",
+      "username": "phantoma.nguyen",
+      "displayName": "Phan Thoma",
+      "friends": 850,
+      "privacy": "partially public",
+      "location": "Ho Chi Minh City, Vietnam",
+      "work": "Security Researcher at Phantoma Inc.",
+      "education": "Ho Chi Minh City University of Technology"
+    },
+    "instagram": {
+      "url": "https://instagram.com/phantoma",
+      "username": "phantoma",
+      "displayName": "Thoma",
+      "posts": 45,
+      "followers": 120,
+      "following": 200,
+      "private": false,
+      "bio": "life • code • security"
+    },
+    "reddit": {
+      "url": "https://reddit.com/user/phantoma_sec",
+      "username": "phantoma_sec",
+      "karma": 12000,
+      "created": "2017-09-10",
+      "activeIn": ["r/netsec", "r/bugbounty", "r/OSINT", "r/hacking"],
+      "verifiedEmail": true
+    },
+    "hackerone": {
+      "url": "https://hackerone.com/phantoma",
+      "username": "phantoma",
+      "reputation": 3500,
+      "signal": 4.2,
+      "impact": 25000,
+      "bugsFound": 45,
+      "activeSince": "2019-01-15"
+    },
+    "bugcrowd": {
+      "url": "https://bugcrowd.com/phantoma",
+      "username": "phantoma",
+      "points": 1800,
+      "kudos": 25
+    },
+    "stackoverflow": {
+      "url": "https://stackoverflow.com/users/12345678/phantoma",
+      "username": "phantoma",
+      "displayName": "phantoma",
+      "reputation": 4500,
+      "goldBadges": 5,
+      "topTags": ["python", "web-scraping", "dns", "security"]
+    },
+    "medium": {
+      "url": "https://medium.com/@phantoma",
+      "username": "phantoma",
+      "followers": 800,
+      "articles": 12,
+      "bio": "Sharing security research and OSINT techniques."
+    },
+    "youtube": {
+      "url": "https://youtube.com/@phantoma_sec",
+      "username": "phantoma_sec",
+      "subscribers": 3200,
+      "videos": 18,
+      "topics": ["OSINT tools", "bug bounty tips", "recon automation"]
+    },
+    "patreon": {
+      "url": "https://patreon.com/phantoma",
+      "username": "phantoma",
+      "supporters": 55
+    },
+    "devto": {
+      "url": "https://dev.to/phantoma",
+      "username": "phantoma"
+    },
+    "codechef": null,
+    "codeforces": null,
+    "telegram": {
+      "username": "@phantoma_sec"
+    },
+    "discord": {
+      "username": "phantoma#1234"
+    },
+    "matrix": {
+      "username": "@phantoma:matrix.org"
+    },
+    "keybase": {
+      "username": "phantoma",
+      "proofs": ["twitter", "github", "reddit"]
+    },
+    "other": [
+      {
+        "platform": "Lobste.rs",
+        "url": "https://lobste.rs/~phantoma",
+        "username": "phantoma"
+      },
+      {
+        "platform": "Product Hunt",
+        "url": "https://www.producthunt.com/@phantoma",
+        "username": "phantoma"
+      }
+    ]
+  },
+  "technicalFootprint": {
+    "github": "https://github.com/phantoma",
+    "gitlab": "https://gitlab.com/phantoma",
+    "bitbucket": null,
+    "stackoverflow": "https://stackoverflow.com/users/12345678/phantoma",
+    "publicKeys": [
+      {
+        "type": "PGP",
+        "keyId": "0xABCDEF1234567890",
+        "fingerprint": "ABCD EF01 2345 6789 ABCD EF01 2345 6789 ABCD EF01",
+        "created": "2019-05-01",
+        "source": "https://keys.openpgp.org"
+      },
+      {
+        "type": "SSH",
+        "keyId": "SHA256:xyz...",
+        "source": "GitHub"
+      }
+    ],
+    "domainOwnership": [
+      {
+        "domain": "phantoma.com",
+        "registrar": "Namecheap",
+        "registered": "2022-01-15",
+        "expires": "2027-01-15"
+      },
+      {
+        "domain": "phantoma.io",
+        "registrar": "Namecheap",
+        "registered": "2021-06-10",
+        "expires": "2026-06-10"
+      }
+    ],
+    "ipAddresses": [
+      {
+        "ip": "104.18.32.11",
+        "type": "CDN",
+        "associatedDomains": ["phantoma.com", "api.phantoma.com"]
+      },
+      {
+        "ip": "14.241.182.100",
+        "type": "residential",
+        "isp": "VNPT",
+        "city": "Ho Chi Minh City",
+        "note": "Linked via email leak in 2020 forum post"
+      }
+    ],
+    "hostingProviders": [
+      "Cloudflare",
+      "DigitalOcean (historical)",
+      "AWS (assumed via S3 bucket phantoma-assets)"
+    ],
+    "technologies": [
+      "Python",
+      "JavaScript",
+      "Go",
+      "Docker",
+      "Kubernetes",
+      "React",
+      "Next.js",
+      "GraphQL",
+      "PostgreSQL",
+      "Redis"
+    ],
+    "repositoryContributions": [
+      {
+        "repo": "phantoma/recon-core",
+        "contributions": 1204,
+        "language": "Go",
+        "stars": 2300
+      },
+      {
+        "repo": "phantoma/OSINT-Framework",
+        "contributions": 856,
+        "language": "Python",
+        "stars": 4100
+      },
+      {
+        "repo": "projectdiscovery/nuclei-templates",
+        "contributions": 45,
+        "language": "YAML",
+        "stars": 12000
+      },
+      {
+        "repo": "swisskyrepo/PayloadsAllTheThings",
+        "contributions": 12,
+        "language": "Markdown",
+        "stars": 45000
+      },
+      {
+        "repo": "assetnote/wordlists",
+        "contributions": 8,
+        "language": "Text",
+        "stars": 1500
+      }
+    ],
+    "toolsPublished": [
+      {
+        "name": "SubExtractor",
+        "url": "https://github.com/phantoma/SubExtractor",
+        "description": "Fast subdomain enumeration tool",
+        "language": "Go",
+        "stars": 850
+      },
+      {
+        "name": "EmailRecon",
+        "url": "https://github.com/phantoma/EmailRecon",
+        "description": "OSINT email harvester",
+        "language": "Python",
+        "stars": 320
+      },
+      {
+        "name": "ghosttrace",
+        "url": "https://github.com/phantoma/ghosttrace",
+        "description": "Web tracking analysis tool",
+        "language": "JavaScript",
+        "stars": 190
+      }
+    ],
+    "conferences": [
+      {
+        "name": "HITB Security Conference 2025 (Amsterdam)",
+        "role": "Speaker",
+        "topic": "Automating OSINT at Scale"
+      },
+      {
+        "name": "Vietnam Security Summit 2024",
+        "role": "Attendee & CTF Participant"
+      },
+      {
+        "name": "DEF CON 31 (2023)",
+        "role": "Village volunteer - Recon Village"
+      }
+    ],
+    "ctfResults": [
+      {
+        "ctf": "HackerOne H1-702 2024",
+        "rank": 12,
+        "team": "VietSec"
+      },
+      {
+        "ctf": "BSides SF CTF 2023",
+        "rank": 7,
+        "team": "solo"
+      },
+      {
+        "ctf": "CTFZone 2022",
+        "rank": 3,
+        "team": "0xPhantoma"
+      }
+    ]
+  },
+  "leakExposure": {
+    "passwordLeaks": [
+      {
+        "source": "Canva Data Breach 2019",
+        "date": "2019-05-24",
+        "email": "phantoma@gmail.com",
+        "severity": "MEDIUM",
+        "hashType": "Bcrypt",
+        "hashValue": "$2b$12$...",
+        "detail": "Email and bcrypt hash exposed. Password likely not cracked."
+      },
+      {
+        "source": "Gravatar Scrape 2020",
+        "date": "2020-10-03",
+        "email": "phantoma@gmail.com",
+        "severity": "LOW",
+        "hashType": "MD5 (avatar hash)",
+        "detail": "Email and avatar URL scraped from Gravatar API."
+      },
+      {
+        "source": "LinkedIn Scrape 2021",
+        "date": "2021-06-29",
+        "email": "phantoma@gmail.com",
+        "severity": "MEDIUM",
+        "hashType": "SHA-1",
+        "hashValue": "d5e1b...",
+        "detail": "Email and SHA-1 password hash. May be cracked."
+      },
+      {
+        "source": "Collection #1 (AntiPublic) 2019",
+        "date": "2019-01-07",
+        "email": "phantoma@gmail.com",
+        "severity": "HIGH",
+        "hashType": "SHA-1",
+        "hashValue": "e2c8...",
+        "passwordSample": "Phantoma@123",
+        "detail": "Email and plaintext password found in combo list. Likely reused."
+      },
+      {
+        "source": "Dropbox Breach (2022 subset)",
+        "date": "2022-09-01",
+        "email": "phantoma@gmail.com",
+        "severity": "MEDIUM",
+        "hashType": "Bcrypt",
+        "detail": "Email only (no password) leaked via third-party app authorization."
+      }
+    ],
+    "credentialLeaks": [
+      {
+        "source": "Pastebin (raw)",
+        "date": "2024-03-15",
+        "url": "https://pastebin.com/raw/phantoma_dump",
+        "content": "phantoma@gmail.com:Summer2021!",
+        "validated": true,
+        "note": "Found in a public paste along with other credentials."
+      },
+      {
+        "source": "GitHub public repo (phan/old-project)",
+        "date": "2023-11-01",
+        "url": "https://github.com/phan/old-project/blob/master/config.yaml",
+        "content": "api_key: sk_live_abc123... (assoc. with email)",
+        "validated": false
+      }
+    ],
+    "breachDatabase": ["HaveIBeenPwned", "IntelX", "DeHashed", "SnusBase", "LeakCheck"],
+    "pastebinLeaks": [
+      {
+        "url": "https://pastebin.com/raw/phantoma_dump",
+        "date": "2024-03-15",
+        "title": "phantoma gmail + pass",
+        "content": "phantoma@gmail.com:Summer2021!"
+      }
+    ],
+    "publicDocuments": [
+      {
+        "source": "SlideShare",
+        "url": "https://slideshare.net/phantoma/osint-recon",
+        "email": "phantoma@gmail.com",
+        "date": "2023-08-10"
+      }
+    ],
+    "darkwebMentions": [
+      {
+        "marketplace": "Exploit.in",
+        "date": "2025-01-22",
+        "threadTitle": "Looking for phantoma@gmail.com dox",
+        "detail": "User requested personal info on this email, claiming it's a security researcher."
+      },
+      {
+        "marketplace": "XSS.is",
+        "date": "2024-12-05",
+        "threadTitle": "phan phantoma@gmail.com leak?",
+        "detail": "A user offered a small database containing this email's credentials."
+      }
+    ]
+  },
+  "registeredServices": [
+    { "service": "GitHub", "confirmed": true, "url": "https://github.com/phantoma" },
+    { "service": "Google", "confirmed": true, "url": null },
+    { "service": "Canva", "confirmed": true, "url": null },
+    { "service": "Gravatar", "confirmed": true, "url": "https://gravatar.com/phantoma" },
+    { "service": "Notion", "confirmed": true, "url": "https://notion.so/phantoma" },
+    { "service": "HackerOne", "confirmed": true, "url": "https://hackerone.com/phantoma" },
+    { "service": "Bugcrowd", "confirmed": true, "url": "https://bugcrowd.com/phantoma" },
+    { "service": "Twitter", "confirmed": true, "url": "https://twitter.com/phantoma_sec" },
+    { "service": "LinkedIn", "confirmed": true, "url": "https://linkedin.com/in/phantoma" },
+    { "service": "Facebook", "confirmed": true, "url": "https://facebook.com/phantoma.nguyen" },
+    { "service": "Reddit", "confirmed": true, "url": "https://reddit.com/user/phantoma_sec" },
+    { "service": "Medium", "confirmed": true, "url": "https://medium.com/@phantoma" },
+    { "service": "YouTube", "confirmed": true, "url": "https://youtube.com/@phantoma_sec" },
+    { "service": "Patreon", "confirmed": true, "url": "https://patreon.com/phantoma" },
+    { "service": "Keybase", "confirmed": true, "url": "https://keybase.io/phantoma" },
+    { "service": "Dev.to", "confirmed": true, "url": "https://dev.to/phantoma" },
+    { "service": "Product Hunt", "confirmed": true, "url": "https://producthunt.com/@phantoma" },
+    { "service": "SlideShare", "confirmed": true, "url": "https://slideshare.net/phantoma" },
+    {
+      "service": "ProtonMail",
+      "confirmed": true,
+      "url": null,
+      "note": "Secondary email phantoma@protonmail.com"
+    },
+    { "service": "Discord", "confirmed": true, "url": null },
+    { "service": "Telegram", "confirmed": true, "url": "https://t.me/phantoma_sec" },
+    { "service": "Matrix", "confirmed": true, "url": null },
+    { "service": "GitLab", "confirmed": true, "url": "https://gitlab.com/phantoma" },
+    {
+      "service": "Stack Overflow",
+      "confirmed": true,
+      "url": "https://stackoverflow.com/users/12345678/phantoma"
+    },
+    { "service": "Docker Hub", "confirmed": true, "url": "https://hub.docker.com/u/phantoma" },
+    { "service": "PyPI", "confirmed": true, "url": "https://pypi.org/user/phantoma/" },
+    { "service": "npm", "confirmed": true, "url": "https://www.npmjs.com/~phantoma" },
+    { "service": "Pastebin", "confirmed": true, "url": "https://pastebin.com/u/phantoma" },
+    { "service": "WordPress.com", "confirmed": true, "url": "https://phantoma.wordpress.com" },
+    {
+      "service": "Trello",
+      "confirmed": false,
+      "url": null,
+      "note": "Account found but email not confirmed"
+    },
+    {
+      "service": "Slack",
+      "confirmed": false,
+      "url": null,
+      "note": "Might belong to another phantoma"
+    },
+    { "service": "Zoom", "confirmed": false, "url": null },
+    {
+      "service": "Spotify",
+      "confirmed": false,
+      "url": "https://open.spotify.com/user/phantoma",
+      "note": "Likely a different phantoma, not linked to email"
+    },
+    {
+      "service": "Steam",
+      "confirmed": false,
+      "url": "https://steamcommunity.com/id/phantoma",
+      "note": "Profile appears to be a gamer, not security researcher"
+    },
+    {
+      "service": "Twitch",
+      "confirmed": false,
+      "url": "https://twitch.tv/phantoma",
+      "note": "Gaming channel unrelated"
+    },
+    { "service": "Instagram", "confirmed": true, "url": "https://instagram.com/phantoma" },
+    { "service": "Flickr", "confirmed": false, "url": "https://flickr.com/people/phantoma" },
+    { "service": "Last.fm", "confirmed": false, "url": "https://last.fm/user/phantoma" }
+  ],
+  "noiseResults": [
+    {
+      "type": "username_collision",
+      "platform": "Steam",
+      "username": "phantoma",
+      "url": "https://steamcommunity.com/id/phantoma",
+      "note": "A gamer with the same handle, location Russia, not related to target email."
+    },
+    {
+      "type": "username_collision",
+      "platform": "Twitter",
+      "username": "@phantoma (no underscore)",
+      "url": "https://twitter.com/phantoma",
+      "note": "Inactive account, not the security researcher."
+    },
+    {
+      "type": "email_similar",
+      "platform": "GitHub",
+      "email": "phantoma@yahoo.com",
+      "url": "https://github.com/phantoma-yahoo",
+      "note": "Different email, different person."
+    },
+    {
+      "type": "domain_mention",
+      "source": "Reddit r/gaming",
+      "snippet": "Loving the new Phantoma game on Steam!",
+      "note": "Refers to the game 'Phantoma', not the email target."
+    },
+    {
+      "type": "breach_false_positive",
+      "source": "Adobe Breach 2013",
+      "email": "phantoma@gmail.com",
+      "note": "Email appears but with password hint 'favorite game' — likely a different person given the timeline."
+    },
+    {
+      "type": "social_media_false_positive",
+      "platform": "LinkedIn",
+      "profile": "linkedin.com/in/phantoma-us",
+      "note": "Phantoma Industries employee in US, not related."
+    },
+    {
+      "type": "ip_geolocation_conflict",
+      "ip": "104.18.32.11",
+      "note": "Cloudflare IP attributed to target's domains; not personal device."
+    }
+  ],
+  "warnings": [
+    "Some accounts (Spotify, Steam, Twitch) belong to username collisions; do not attribute to target.",
+    "Pastebin credential 'Summer2021!' may be outdated but still a risk.",
+    "Dark web mentions indicate interest in doxing this individual — recommend caution.",
+    "LinkedIn scrape hash could be cracked; consider password audit.",
+    "Domain phantoma.com is registered under Namecheap privacy but linked through email patterns.",
+    "Multiple GitHub contributions suggest high level of activity; potential for leaked tokens in public repos."
+  ]
+}

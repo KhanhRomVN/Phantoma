@@ -1,0 +1,984 @@
+{
+  "query": {
+    "value": "104.18.32.11",
+    "type": "ip"
+  },
+  "targetDomain": "phantoma.com",
+  "scan": {
+    "startedAt": "2026-06-06T08:00:00Z",
+    "completedAt": "2026-06-06T08:07:52Z",
+    "duration": 472132,
+    "totalRawHits": 12984,
+    "totalProcessedHits": 2147
+  },
+  "rawData": [
+    {
+      "source": "Shodan",
+      "type": "shodan",
+      "items": [
+        {
+          "port": 80,
+          "transport": "tcp",
+          "service": "http",
+          "product": "cloudflare",
+          "banner": "HTTP/1.1 403 Forbidden\r\nDate: Mon, 01 Jun 2026 12:00:00 GMT\r\nContent-Type: text/html; charset=UTF-8\r\nServer: cloudflare\r\nCF-RAY: 8a1b2c3d4e5f6g7h-SJC\r\n",
+          "lastSeen": "2026-06-05"
+        },
+        {
+          "port": 443,
+          "transport": "tcp",
+          "service": "https",
+          "product": "cloudflare",
+          "version": "TLS 1.3",
+          "banner": "HTTP/1.1 200 OK\r\nServer: cloudflare\r\nDate: Mon, 01 Jun 2026 12:01:00 GMT\r\nContent-Type: text/html\r\nSet-Cookie: __cf_bm=abc123; path=/; expires=Mon, 01-Jun-2026 12:31:00 GMT; HttpOnly; Secure\r\nCF-RAY: 8a1b2c3d4e5f6g7i-SJC\r\n",
+          "ssl": {
+            "issuer": "Cloudflare Inc. ECC CA-3",
+            "subject": "sni.cloudflaressl.com",
+            "san": ["phantoma.com", "*.phantoma.com", "another-site.com"]
+          },
+          "lastSeen": "2026-06-06"
+        },
+        {
+          "port": 8080,
+          "transport": "tcp",
+          "service": "http-alt",
+          "product": "nginx",
+          "version": "1.24.0",
+          "banner": "HTTP/1.1 200 OK\r\nServer: nginx/1.24.0\r\nContent-Type: application/json\r\nX-Powered-By: Phantoma API v2.3.1\r\nX-Request-ID: a1b2c3d4e5f6\r\n\r\n{\"status\":\"ok\",\"version\":\"2.3.1\"}",
+          "lastSeen": "2026-06-04"
+        },
+        {
+          "port": 8443,
+          "transport": "tcp",
+          "service": "https-alt",
+          "product": "nginx",
+          "version": "1.24.0",
+          "banner": "HTTP/1.1 401 Unauthorized\r\nServer: nginx/1.24.0\r\nWWW-Authenticate: Basic realm=\"Phantoma Admin Panel\"\r\nContent-Type: text/html\r\n\r\n<html><body>Authentication required</body></html>",
+          "ssl": {
+            "issuer": "Cloudflare Inc. RSA CA-2",
+            "subject": "admin.phantoma.com"
+          },
+          "lastSeen": "2026-06-03"
+        },
+        {
+          "port": 22,
+          "transport": "tcp",
+          "service": "ssh",
+          "product": "OpenSSH",
+          "version": "8.9p1 Ubuntu",
+          "banner": "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6\r\n",
+          "key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ...",
+          "lastSeen": "2026-06-01"
+        },
+        {
+          "port": 21,
+          "transport": "tcp",
+          "service": "ftp",
+          "product": "vsftpd",
+          "version": "3.0.5",
+          "banner": "220 (vsFTPd 3.0.5)\r\n",
+          "lastSeen": "2026-05-28",
+          "note": "Likely unrelated — shared hosting vsftpd"
+        },
+        {
+          "port": 25,
+          "transport": "tcp",
+          "service": "smtp",
+          "product": "Postfix",
+          "version": null,
+          "banner": "220 mail.random-blog.net ESMTP Postfix (Ubuntu)\r\n",
+          "lastSeen": "2026-05-20",
+          "note": "Belongs to random-blog.net"
+        },
+        {
+          "port": 53,
+          "transport": "udp",
+          "service": "dns",
+          "product": "cloudflare-dns",
+          "banner": ";; ->>HEADER<<- opcode: QUERY, status: REFUSED, id: 1234\r\n",
+          "lastSeen": "2026-06-01"
+        },
+        {
+          "port": 3306,
+          "transport": "tcp",
+          "service": "mysql",
+          "product": "MySQL",
+          "version": "8.0.35",
+          "banner": "HOST 'some-host' is not allowed to connect to this MySQL server\r\n",
+          "lastSeen": "2026-05-15",
+          "note": "Likely unrelated — MySQL on shared CDN IP"
+        },
+        {
+          "port": 6379,
+          "transport": "tcp",
+          "service": "redis",
+          "product": "Redis",
+          "version": "7.0.12",
+          "banner": "-NOAUTH Authentication required.\r\n",
+          "lastSeen": "2026-04-20",
+          "note": "Open Redis instance — may be honeypot or misconfigured"
+        },
+        {
+          "port": 2083,
+          "transport": "tcp",
+          "service": "cpanel",
+          "product": "cpsrvd",
+          "version": "11.108",
+          "banner": "cPanel - WHM Login\r\n",
+          "lastSeen": "2026-05-01",
+          "note": "False positive — cPanel on shared IP"
+        },
+        {
+          "port": 8443,
+          "transport": "tcp",
+          "service": "https-alt",
+          "product": "Node.js",
+          "version": "Express",
+          "banner": "HTTP/1.1 404 Not Found\r\nX-Powered-By: Express\r\nContent-Type: application/json; charset=utf-8\r\n\r\n{\"error\":\"Not Found\"}",
+          "lastSeen": "2026-05-12",
+          "note": "Alternate service on same port"
+        },
+        {
+          "port": 9090,
+          "transport": "tcp",
+          "service": "http",
+          "product": "Prometheus",
+          "version": "2.45.0",
+          "banner": "HTTP/1.1 302 Found\r\nLocation: /graph\r\nServer: Prometheus/2.45.0\r\n",
+          "lastSeen": "2026-04-10"
+        },
+        {
+          "port": 3000,
+          "transport": "tcp",
+          "service": "http",
+          "product": "Grafana",
+          "version": "10.2.0",
+          "banner": "HTTP/1.1 302 Found\r\nLocation: /login\r\nServer: Grafana/10.2.0\r\n",
+          "lastSeen": "2026-03-25"
+        }
+      ]
+    },
+    {
+      "source": "Censys IPv4 Scan",
+      "type": "censys",
+      "items": [
+        {
+          "port": 80,
+          "transport": "tcp",
+          "service": "http",
+          "product": "Cloudflare",
+          "banner": "HTTP/1.1 403 Forbidden\r\nServer: cloudflare\r\n",
+          "http_response": {
+            "status_code": 403,
+            "headers": {
+              "server": "cloudflare"
+            }
+          },
+          "lastSeen": "2026-06-05"
+        },
+        {
+          "port": 443,
+          "transport": "tcp",
+          "service": "https",
+          "product": "Cloudflare TLS",
+          "tls": {
+            "version": "TLS 1.3",
+            "cipher": "TLS_AES_256_GCM_SHA384",
+            "certificate": {
+              "parsed": {
+                "issuer_dn": "CN=Cloudflare Inc. ECC CA-3,O=Cloudflare\\, Inc.,L=San Francisco,ST=California,C=US",
+                "subject_dn": "CN=sni.cloudflaressl.com",
+                "validity": { "start": "2025-12-01T00:00:00Z", "end": "2026-12-01T00:00:00Z" },
+                "san": [
+                  "phantoma.com",
+                  "*.phantoma.com",
+                  "api.phantoma.com",
+                  "admin.phantoma.com",
+                  "another-site.com",
+                  "unrelated-startup.io"
+                ]
+              }
+            }
+          },
+          "lastSeen": "2026-06-06"
+        },
+        {
+          "port": 8080,
+          "transport": "tcp",
+          "service": "http",
+          "product": "nginx",
+          "version": "1.24.0",
+          "http_response": {
+            "status_code": 200,
+            "body_sample": "{\"status\":\"ok\"}"
+          },
+          "lastSeen": "2026-06-04"
+        },
+        {
+          "port": 8443,
+          "transport": "tcp",
+          "service": "https",
+          "product": "nginx",
+          "tls": {
+            "certificate": {
+              "parsed": {
+                "subject_dn": "CN=admin.phantoma.com"
+              }
+            }
+          },
+          "lastSeen": "2026-06-03"
+        },
+        {
+          "port": 22,
+          "transport": "tcp",
+          "service": "ssh",
+          "product": "OpenSSH",
+          "version": "8.9p1 Ubuntu",
+          "lastSeen": "2026-06-01"
+        },
+        {
+          "port": 53,
+          "transport": "udp",
+          "service": "dns",
+          "product": "cloudflare-dns",
+          "lastSeen": "2026-06-01"
+        },
+        {
+          "port": 3306,
+          "transport": "tcp",
+          "service": "mysql",
+          "product": "MySQL 8.0.35",
+          "lastSeen": "2026-05-15"
+        },
+        {
+          "port": 6379,
+          "transport": "tcp",
+          "service": "redis",
+          "product": "Redis 7.0.12",
+          "lastSeen": "2026-04-20"
+        },
+        {
+          "port": 2083,
+          "transport": "tcp",
+          "service": "cpanel",
+          "product": "cpsrvd 11.108",
+          "lastSeen": "2026-05-01"
+        },
+        {
+          "port": 25,
+          "transport": "tcp",
+          "service": "smtp",
+          "product": "Postfix",
+          "lastSeen": "2026-05-20"
+        },
+        {
+          "port": 9090,
+          "transport": "tcp",
+          "service": "http",
+          "product": "Prometheus",
+          "lastSeen": "2026-04-10"
+        },
+        {
+          "port": 3000,
+          "transport": "tcp",
+          "service": "http",
+          "product": "Grafana",
+          "lastSeen": "2026-03-25"
+        }
+      ]
+    },
+    {
+      "source": "SecurityTrails",
+      "type": "reverse_ip",
+      "items": [
+        { "domain": "phantoma.com", "firstSeen": "2023-01-15", "lastSeen": "2026-06-06" },
+        { "domain": "api.phantoma.com", "firstSeen": "2023-01-15", "lastSeen": "2026-06-06" },
+        { "domain": "admin.phantoma.com", "firstSeen": "2023-03-20", "lastSeen": "2026-06-06" },
+        { "domain": "mail.phantoma.com", "firstSeen": "2023-06-05", "lastSeen": "2026-06-06" },
+        { "domain": "cdn.phantoma.com", "firstSeen": "2023-09-01", "lastSeen": "2026-06-06" },
+        { "domain": "status.phantoma.com", "firstSeen": "2024-06-20", "lastSeen": "2026-05-01" },
+        { "domain": "old-blog.phantoma.com", "firstSeen": "2023-05-20", "lastSeen": "2025-12-31" },
+        { "domain": "another-site.com", "firstSeen": "2022-06-10", "lastSeen": "2026-06-06" },
+        { "domain": "unrelated-startup.io", "firstSeen": "2021-11-20", "lastSeen": "2026-06-06" },
+        { "domain": "random-blog.net", "firstSeen": "2020-03-05", "lastSeen": "2026-06-05" },
+        { "domain": "third-party-blog.com", "firstSeen": "2019-08-15", "lastSeen": "2026-06-04" },
+        {
+          "domain": "shared-hosting-example.net",
+          "firstSeen": "2022-01-01",
+          "lastSeen": "2026-06-03"
+        },
+        { "domain": "different-company.org", "firstSeen": "2021-05-20", "lastSeen": "2026-06-02" },
+        {
+          "domain": "totally-different-site.xyz",
+          "firstSeen": "2023-09-01",
+          "lastSeen": "2026-05-28"
+        },
+        { "domain": "some-random-domain.top", "firstSeen": "2024-01-10", "lastSeen": "2026-05-25" },
+        {
+          "domain": "another-client-site.com",
+          "firstSeen": "2023-07-01",
+          "lastSeen": "2026-06-01"
+        },
+        { "domain": "cdn.another-site.com", "firstSeen": "2022-12-01", "lastSeen": "2026-05-30" },
+        { "domain": "legacy-service.net", "firstSeen": "2022-04-01", "lastSeen": "2026-06-01" },
+        { "domain": "partner-portal.org", "firstSeen": "2023-10-01", "lastSeen": "2026-05-20" },
+        {
+          "domain": "staging.partner-portal.org",
+          "firstSeen": "2023-12-01",
+          "lastSeen": "2026-05-18"
+        },
+        { "domain": "blog.phantoma.com", "firstSeen": "2024-03-01", "lastSeen": "2026-06-06" },
+        { "domain": "shop.phantoma.com", "firstSeen": "2024-05-15", "lastSeen": "2026-06-06" },
+        { "domain": "docs.phantoma.com", "firstSeen": "2024-07-01", "lastSeen": "2026-06-06" },
+        { "domain": "ftp.phantoma.com", "firstSeen": "2023-07-08", "lastSeen": "2026-06-06" },
+        { "domain": "webmail.phantoma.com", "firstSeen": "2023-11-15", "lastSeen": "2026-06-06" },
+        { "domain": "assets.phantoma.com", "firstSeen": "2023-06-01", "lastSeen": "2026-06-06" },
+        { "domain": "static.phantoma.com", "firstSeen": "2023-09-01", "lastSeen": "2026-06-06" },
+        { "domain": "vpn.phantoma.com", "firstSeen": "2023-04-12", "lastSeen": "2025-12-01" },
+        { "domain": "internal.phantoma.com", "firstSeen": "2024-01-10", "lastSeen": "2025-06-01" },
+        {
+          "domain": "autodiscover.phantoma.com",
+          "firstSeen": "2025-01-01",
+          "lastSeen": "2026-06-06"
+        },
+        {
+          "domain": "lyncdiscover.phantoma.com",
+          "firstSeen": "2025-01-01",
+          "lastSeen": "2026-06-06"
+        },
+        { "domain": "sip.phantoma.com", "firstSeen": "2025-02-01", "lastSeen": "2026-06-06" },
+        { "domain": "partner.phantoma.com", "firstSeen": "2025-03-01", "lastSeen": "2026-06-06" },
+        { "domain": "portal.phantoma.com", "firstSeen": "2025-04-01", "lastSeen": "2026-06-06" },
+        { "domain": "secure.phantoma.com", "firstSeen": "2024-01-10", "lastSeen": "2026-06-06" },
+        { "domain": "auth.phantoma.com", "firstSeen": "2024-05-01", "lastSeen": "2026-06-06" },
+        { "domain": "login.phantoma.com", "firstSeen": "2024-06-01", "lastSeen": "2026-06-06" },
+        { "domain": "payments.phantoma.com", "firstSeen": "2024-12-01", "lastSeen": "2026-06-06" },
+        { "domain": "survey.phantoma.com", "firstSeen": "2025-06-01", "lastSeen": "2026-06-06" },
+        { "domain": "test.phantoma.com", "firstSeen": "2024-02-01", "lastSeen": "2025-02-01" },
+        { "domain": "dev.phantoma.com", "firstSeen": "2023-06-10", "lastSeen": "2024-06-10" },
+        { "domain": "staging.phantoma.com", "firstSeen": "2023-08-05", "lastSeen": "2024-08-05" },
+        {
+          "domain": "unrelated-tenant.agency",
+          "firstSeen": "2023-06-01",
+          "lastSeen": "2026-06-01"
+        },
+        { "domain": "external-service.co", "firstSeen": "2023-12-01", "lastSeen": "2026-05-01" },
+        {
+          "domain": "shared-cert-client1.com",
+          "firstSeen": "2024-01-01",
+          "lastSeen": "2026-06-01"
+        },
+        {
+          "domain": "shared-cert-client2.com",
+          "firstSeen": "2024-01-01",
+          "lastSeen": "2026-06-01"
+        },
+        { "domain": "shared-cert-client3.net", "firstSeen": "2024-01-01", "lastSeen": "2026-06-01" }
+      ]
+    },
+    {
+      "source": "DNSDB",
+      "type": "passive_dns",
+      "items": [
+        {
+          "domain": "phantoma.com",
+          "firstSeen": "2023-01-15T00:00:00Z",
+          "lastSeen": "2026-06-06T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "api.phantoma.com",
+          "firstSeen": "2023-01-15T00:00:00Z",
+          "lastSeen": "2026-06-06T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "admin.phantoma.com",
+          "firstSeen": "2023-03-20T00:00:00Z",
+          "lastSeen": "2026-06-06T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "cdn.phantoma.com",
+          "firstSeen": "2023-09-01T00:00:00Z",
+          "lastSeen": "2026-06-06T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "vpn.phantoma.com",
+          "firstSeen": "2023-04-12T00:00:00Z",
+          "lastSeen": "2025-12-01T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "internal.phantoma.com",
+          "firstSeen": "2024-01-10T00:00:00Z",
+          "lastSeen": "2025-06-01T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "old-blog.phantoma.com",
+          "firstSeen": "2023-05-20T00:00:00Z",
+          "lastSeen": "2024-12-31T00:00:00Z",
+          "type": "CNAME"
+        },
+        {
+          "domain": "another-site.com",
+          "firstSeen": "2022-06-10T00:00:00Z",
+          "lastSeen": "2026-06-06T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "unrelated-startup.io",
+          "firstSeen": "2021-11-20T00:00:00Z",
+          "lastSeen": "2026-06-06T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "random-blog.net",
+          "firstSeen": "2020-03-05T00:00:00Z",
+          "lastSeen": "2026-06-05T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "third-party-blog.com",
+          "firstSeen": "2019-08-15T00:00:00Z",
+          "lastSeen": "2026-06-04T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "shared-hosting-example.net",
+          "firstSeen": "2022-01-01T00:00:00Z",
+          "lastSeen": "2026-06-03T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "different-company.org",
+          "firstSeen": "2021-05-20T00:00:00Z",
+          "lastSeen": "2026-06-02T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "totally-different-site.xyz",
+          "firstSeen": "2023-09-01T00:00:00Z",
+          "lastSeen": "2026-05-28T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "some-random-domain.top",
+          "firstSeen": "2024-01-10T00:00:00Z",
+          "lastSeen": "2026-05-25T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "legacy-service.net",
+          "firstSeen": "2022-04-01T00:00:00Z",
+          "lastSeen": "2026-06-01T00:00:00Z",
+          "type": "A"
+        },
+        {
+          "domain": "partner-portal.org",
+          "firstSeen": "2023-10-01T00:00:00Z",
+          "lastSeen": "2026-05-20T00:00:00Z",
+          "type": "A"
+        }
+      ]
+    },
+    {
+      "source": "IP-API",
+      "type": "geoip",
+      "items": [
+        {
+          "country": "United States",
+          "countryCode": "US",
+          "region": "California",
+          "regionCode": "CA",
+          "city": "San Francisco",
+          "zip": "94105",
+          "latitude": 37.7749,
+          "longitude": -122.4194,
+          "timezone": "America/Los_Angeles",
+          "isp": "Cloudflare, Inc.",
+          "org": "Cloudflare",
+          "asn": "AS13335"
+        }
+      ]
+    },
+    {
+      "source": "MaxMind GeoIP",
+      "type": "geoip",
+      "items": [
+        {
+          "country": "United States",
+          "city": "San Jose",
+          "latitude": 37.3382,
+          "longitude": -121.8863,
+          "isp": "Cloudflare",
+          "org": "Cloudflare CDN",
+          "asn": "AS13335"
+        }
+      ]
+    },
+    {
+      "source": "IP2Location",
+      "type": "geoip",
+      "items": [
+        {
+          "country": "United States",
+          "region": "California",
+          "city": "San Francisco",
+          "latitude": 37.7749,
+          "longitude": -122.4194,
+          "isp": "Cloudflare Inc",
+          "usage_type": "CDN",
+          "asn": "AS13335"
+        }
+      ]
+    },
+    {
+      "source": "BGP.tools",
+      "type": "bgp",
+      "items": [
+        {
+          "asn": "AS13335 — Cloudflare, Inc.",
+          "prefix": "104.18.32.0/20",
+          "aspath": "13335",
+          "peers": [
+            "AS174 — Cogent Communications",
+            "AS3356 — Lumen (Level 3)",
+            "AS1299 — Arelion (Telia Carrier)",
+            "AS6939 — Hurricane Electric",
+            "AS3257 — GTT Communications",
+            "AS6453 — TATA Communications",
+            "AS6762 — Telecom Italia Sparkle",
+            "AS2914 — NTT Communications",
+            "AS1273 — Vodafone",
+            "AS3320 — Deutsche Telekom"
+          ]
+        },
+        {
+          "asn": "AS13335",
+          "prefix": "104.16.0.0/12",
+          "peers": ["AS174", "AS3356", "AS1299", "AS6939", "AS3257", "AS6453", "AS6762", "AS2914"]
+        },
+        {
+          "asn": "AS13335",
+          "prefix": "104.18.0.0/20",
+          "peers": ["AS174", "AS3356", "AS1299", "AS6939"]
+        }
+      ]
+    },
+    {
+      "source": "BGPView",
+      "type": "bgp",
+      "items": [
+        {
+          "prefix": "104.18.32.0/20",
+          "asn": "AS13335",
+          "peers": ["AS174", "AS3356", "AS1299", "AS6939", "AS3257", "AS6453"]
+        },
+        { "prefix": "104.16.0.0/12", "asn": "AS13335", "peers": ["AS174", "AS3356", "AS1299"] }
+      ]
+    },
+    {
+      "source": "RIPEStat",
+      "type": "bgp",
+      "items": [
+        {
+          "asn": "AS13335",
+          "prefix": "104.18.32.0/20",
+          "prefix_length": 20,
+          "first_seen": "2018-03-15",
+          "last_seen": "2026-06-06",
+          "origin": "Cloudflare, Inc.",
+          "upstreams": ["AS174", "AS3356", "AS1299"]
+        }
+      ]
+    },
+    {
+      "source": "AlienVault OTX",
+      "type": "threat_intel",
+      "items": [
+        {
+          "reportType": "Malware Communication",
+          "date": "2025-11-15",
+          "description": "IP observed communicating with known C2 server for Emotet botnet — likely false positive due to shared Cloudflare infrastructure"
+        },
+        {
+          "reportType": "Phishing Host",
+          "date": "2025-03-20",
+          "description": "IP hosted a phishing page targeting banking credentials — domain: totally-different-site.xyz"
+        },
+        {
+          "reportType": "Scanner Activity",
+          "date": "2024-08-10",
+          "description": "IP observed performing port scans on multiple targets — may be Cloudflare edge node scanning"
+        },
+        {
+          "reportType": "Spam Source",
+          "date": "2025-01-05",
+          "description": "Multiple spam emails originated from this IP via random-blog.net"
+        },
+        {
+          "reportType": "Brute Force",
+          "date": "2025-09-15",
+          "description": "SSH brute-force attacks observed from this IP — targeted multiple hosts"
+        }
+      ]
+    },
+    {
+      "source": "AbuseIPDB",
+      "type": "abuse_reports",
+      "items": [
+        {
+          "reportType": "Web Spam",
+          "date": "2025-12-01",
+          "description": "Automated spam comments from domain: random-blog.net"
+        },
+        {
+          "reportType": "Brute Force",
+          "date": "2025-09-15",
+          "description": "SSH brute force attempts — OpenSSH 8.9 on port 22"
+        },
+        {
+          "reportType": "Port Scan",
+          "date": "2025-06-10",
+          "description": "Horizontal port scan detected from this IP (Cloudflare edge node)"
+        },
+        {
+          "reportType": "DDoS Participant",
+          "date": "2024-11-01",
+          "description": "IP participated in DDoS reflection attack — likely spoofed/misattributed"
+        },
+        {
+          "reportType": "Malware Distribution",
+          "date": "2024-04-20",
+          "description": "Malware sample served from another-site.com (hosted on this IP)"
+        },
+        {
+          "reportType": "Fraud Orders",
+          "date": "2024-02-14",
+          "description": "IP used in fraudulent e-commerce orders — domain: shop.phantoma.com"
+        },
+        {
+          "reportType": "Hacking",
+          "date": "2023-12-01",
+          "description": "Unauthorized access attempts to admin panel via port 8443"
+        }
+      ]
+    },
+    {
+      "source": "Spamhaus",
+      "type": "spam_list",
+      "items": [
+        {
+          "reportType": "SBL Listing",
+          "date": "2025-08-01",
+          "description": "IP listed in Spamhaus Block List (SBL) due to spam from random-blog.net — delisted 2025-08-15"
+        },
+        {
+          "reportType": "XBL Listing",
+          "date": "2025-03-10",
+          "description": "IP listed in Exploits Block List (XBL) — brute force from SSH port 22"
+        },
+        {
+          "reportType": "PBL Advisory",
+          "date": "2025-01-01",
+          "description": "IP in Policy Block List (PBL) as dynamic/consumer — false positive for CDN IP"
+        }
+      ]
+    },
+    {
+      "source": "VirusTotal",
+      "type": "threat_intel",
+      "items": [
+        {
+          "reportType": "Detected URLs",
+          "date": "2025-10-01",
+          "description": "3/94 security vendors flagged URLs on this IP as malicious — domains: different-company.org, another-site.com"
+        },
+        {
+          "reportType": "Detected Files",
+          "date": "2025-07-01",
+          "description": "1/60 vendors flagged a file served from this IP as malware"
+        },
+        {
+          "reportType": "Communicating Files",
+          "date": "2025-06-15",
+          "description": "Several malware samples have communicated with this IP as C2 — likely false positive due to Cloudflare IP"
+        }
+      ]
+    },
+    {
+      "source": "GreyNoise",
+      "type": "noise_intel",
+      "items": [
+        {
+          "tag": "Cloudflare CDN",
+          "classification": "benign",
+          "lastSeen": "2026-06-06",
+          "seen": true
+        },
+        {
+          "tag": "Internet scanner",
+          "classification": "unknown",
+          "lastSeen": "2026-06-01",
+          "note": "IP seen in GreyNoise data as part of scanning activity"
+        }
+      ]
+    },
+    {
+      "source": "crt.sh (IP-based)",
+      "type": "ssl_certs",
+      "items": [
+        {
+          "issuer": "Cloudflare Inc. ECC CA-3",
+          "validFrom": "2025-12-01T00:00:00Z",
+          "validTo": "2026-12-01T00:00:00Z",
+          "domains": [
+            "phantoma.com",
+            "*.phantoma.com",
+            "api.phantoma.com",
+            "admin.phantoma.com",
+            "cdn.phantoma.com",
+            "mail.phantoma.com",
+            "another-site.com",
+            "unrelated-startup.io",
+            "random-blog.net",
+            "*.another-site.com",
+            "cdn.another-site.com"
+          ]
+        },
+        {
+          "issuer": "Let's Encrypt Authority X3",
+          "validFrom": "2025-09-15T00:00:00Z",
+          "validTo": "2025-12-15T00:00:00Z",
+          "domains": [
+            "phantoma.com",
+            "www.phantoma.com",
+            "dev.phantoma.com",
+            "staging.phantoma.com",
+            "old-blog.phantoma.com",
+            "totally-different-site.xyz",
+            "some-random-domain.top"
+          ]
+        },
+        {
+          "issuer": "Cloudflare Inc. RSA CA-2",
+          "validFrom": "2025-03-01T00:00:00Z",
+          "validTo": "2026-03-01T00:00:00Z",
+          "domains": [
+            "phantoma.com",
+            "*.phantoma.com",
+            "vpn.phantoma.com",
+            "internal.phantoma.com",
+            "db.phantoma.com",
+            "redis.phantoma.com",
+            "another-client-site.com",
+            "*.another-client-site.com",
+            "third-party-blog.com",
+            "shared-hosting-example.net",
+            "mail.another-client-site.com"
+          ]
+        },
+        {
+          "issuer": "Sectigo Limited",
+          "validFrom": "2024-08-01T00:00:00Z",
+          "validTo": "2025-08-01T00:00:00Z",
+          "domains": [
+            "phantoma.com",
+            "mail.phantoma.com",
+            "totally-unrelated-shop.com",
+            "different-company.org",
+            "www.totally-unrelated-shop.com"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Urlscan.io",
+      "type": "scan_results",
+      "items": [
+        {
+          "url": "https://phantoma.com",
+          "scanId": "abc-123",
+          "screenshot": "phantoma_home.png",
+          "domains": ["phantoma.com", "api.phantoma.com", "cdn.phantoma.com", "js.stripe.com"],
+          "ip": "104.18.32.11",
+          "server": "cloudflare",
+          "status": 200
+        },
+        {
+          "url": "https://admin.phantoma.com",
+          "scanId": "def-456",
+          "screenshot": "admin_login.png",
+          "domains": ["admin.phantoma.com"],
+          "ip": "104.18.32.11",
+          "server": "cloudflare",
+          "status": 200,
+          "auth": "basic"
+        },
+        {
+          "url": "https://another-site.com",
+          "scanId": "ghi-789",
+          "domains": ["another-site.com"],
+          "ip": "104.18.32.11",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "source": "RiskIQ",
+      "type": "passive_dns",
+      "items": [
+        {
+          "domain": "phantoma.com",
+          "resolveType": "A",
+          "firstSeen": "2023-01-15T00:00:00Z",
+          "lastSeen": "2026-06-06T00:00:00Z"
+        },
+        {
+          "domain": "api.phantoma.com",
+          "resolveType": "A",
+          "firstSeen": "2023-01-15T00:00:00Z",
+          "lastSeen": "2026-06-06T00:00:00Z"
+        },
+        {
+          "domain": "another-site.com",
+          "resolveType": "A",
+          "firstSeen": "2022-06-10T00:00:00Z",
+          "lastSeen": "2026-06-06T00:00:00Z"
+        },
+        {
+          "domain": "totally-different-site.xyz",
+          "resolveType": "A",
+          "firstSeen": "2023-09-01T00:00:00Z",
+          "lastSeen": "2026-05-28T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "source": "CommonCrawl",
+      "type": "index_pages",
+      "items": [
+        {
+          "url": "http://phantoma.com/",
+          "indexed": true,
+          "lastSeen": "2026-06-01"
+        },
+        {
+          "url": "http://random-blog.net/",
+          "indexed": true,
+          "lastSeen": "2026-05-15"
+        },
+        {
+          "url": "http://another-site.com/wp-admin/",
+          "indexed": true,
+          "lastSeen": "2026-04-20",
+          "note": "WordPress login indexed"
+        }
+      ]
+    },
+    {
+      "source": "Social Media / Forums",
+      "type": "mentions",
+      "items": [
+        {
+          "platform": "Reddit r/netsec",
+          "url": "https://reddit.com/r/netsec/comments/cloudflare_ip",
+          "snippet": "104.18.32.11 — anyone seen attacks from this Cloudflare IP?",
+          "date": "2025-11-10"
+        },
+        {
+          "platform": "Stack Overflow",
+          "url": "https://stackoverflow.com/q/block_cf_ip",
+          "snippet": "How to block all Cloudflare IPs except my own site? Getting attacks from 104.18.32.11",
+          "date": "2025-09-01"
+        },
+        {
+          "platform": "Twitter/X @security_researcher",
+          "url": "https://x.com/sec_researcher/status/99999",
+          "snippet": "Interesting finding: 104.18.32.11 hosts both phantoma.com and totally-different-site.xyz — shared Cloudflare IP",
+          "date": "2025-07-15"
+        },
+        {
+          "platform": "BreachForums",
+          "url": "https://breachforums/threads/cloudflare-ip-leak",
+          "snippet": "Anyone got access to 104.18.32.11? Hosts multiple sites including admin panels",
+          "date": "2025-05-20"
+        },
+        {
+          "platform": "Twitter/X @malware_traffic",
+          "url": "https://x.com/malware_traffic/status/11111",
+          "snippet": "Malware C2 communication spotted at 104.18.32.11:443 — likely false positive",
+          "date": "2025-08-01"
+        }
+      ]
+    },
+    {
+      "source": "Internet Storm Center (SANS)",
+      "type": "threat_intel",
+      "items": [
+        {
+          "reportType": "Scanning Activity",
+          "date": "2025-12-01",
+          "description": "IP 104.18.32.11 listed as top scanner targeting port 22"
+        }
+      ]
+    },
+    {
+      "source": "Shadowserver",
+      "type": "scan_reports",
+      "items": [
+        {
+          "reportType": "Open Redis",
+          "date": "2026-04-01",
+          "description": "Redis on port 6379 open without authentication"
+        },
+        {
+          "reportType": "Open MySQL",
+          "date": "2026-04-01",
+          "description": "MySQL on port 3306 exposed — may be misconfigured proxy"
+        }
+      ]
+    },
+    {
+      "source": "Cisco Talos",
+      "type": "reputation",
+      "items": [
+        {
+          "reputation": "neutral",
+          "volume": "medium",
+          "firstSeen": "2022-01-01"
+        }
+      ]
+    },
+    {
+      "source": "URLhaus",
+      "type": "malware_urls",
+      "items": [
+        {
+          "url": "http://different-company.org/malware.exe",
+          "status": "offline",
+          "date": "2024-11-01",
+          "tags": ["exe", "emotet"]
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "This is a Cloudflare CDN IP — hosts hundreds of unrelated domains. Reverse IP results are mostly noise.",
+    "Shodan/Censys ports 2083 (cPanel), 3306 (MySQL), 25 (SMTP), 21 (FTP) likely belong to different organizations on the same CDN IP.",
+    "Abuse reports may be misattributed due to shared Cloudflare infrastructure.",
+    "GeoIP shows conflicting cities (San Francisco vs San Jose) — both are Cloudflare edge locations.",
+    "Dark web mention on BreachForums may indicate targeting of this IP's hosted sites.",
+    "VirusTotal flags are for domains other than phantoma.com — shared hosting false positives.",
+    "Spamhaus listings were for unrelated domains — delisted but may affect reputation.",
+    "IP has been associated with scanning and brute force activity, typical for CDN edge nodes.",
+    "Open Redis and MySQL could be honeypots or misconfigured origin servers exposed via Cloudflare.",
+    "Multiple SSL certificates include overlapping SANs, typical for shared hosting.",
+    "Passive DNS contains many domains; focus on phantoma.com and its subdomains for target analysis.",
+    "Date ranges indicate historical data; some IP assignments may have changed.",
+    "Internet mentions often confuse this IP with malicious activity from other tenants."
+  ]
+}
