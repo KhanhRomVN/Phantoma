@@ -1,194 +1,133 @@
-import { useState, useEffect } from 'react';
-import type { PersonData } from '../types/person-data';
+import React, { useState, useEffect } from 'react';
+import type { DataPoint } from '../types/data-point';
+import { DataPointRow } from './shared/DataPointRow';
+import { SectionHeader } from './shared/SectionHeader';
+import { Search as SearchIcon, X } from 'lucide-react';
 
 interface SearchProps {
-  data: PersonData | null;
+  dataPoints: DataPoint[];
   searchQuery: string;
-  onResultClick: (tabId: string) => void;
+  onResultClick?: (dataPoint: DataPoint) => void;
+  onClear?: () => void;
 }
 
-interface SearchResult {
-  id: string;
-  type: string;
-  content: string;
-  section: string;
-}
-
-function searchInData(data: PersonData | null, query: string): SearchResult[] {
-  if (!data || !query.trim()) return [];
-  
-  const lowerQuery = query.toLowerCase();
-  const results: SearchResult[] = [];
-
-  const identity = data.identityInfo;
-  if (identity) {
-    if (identity.fullName?.toLowerCase().includes(lowerQuery)) {
-      results.push({ id: 'identity-name', type: 'Full Name', content: identity.fullName, section: 'Identity' });
-    }
-    if (identity.alias?.some(a => a.toLowerCase().includes(lowerQuery))) {
-      const alias = identity.alias.find(a => a.toLowerCase().includes(lowerQuery));
-      results.push({ id: 'identity-alias', type: 'Alias', content: alias || '', section: 'Identity' });
-    }
-    if (identity.username?.some(u => u.toLowerCase().includes(lowerQuery))) {
-      const username = identity.username.find(u => u.toLowerCase().includes(lowerQuery));
-      results.push({ id: 'identity-username', type: 'Username', content: username || '', section: 'Identity' });
-    }
-  }
-
-  const contact = data.contactInfo;
-  if (contact) {
-    if (contact.email?.some(e => e.toLowerCase().includes(lowerQuery))) {
-      const email = contact.email.find(e => e.toLowerCase().includes(lowerQuery));
-      results.push({ id: 'contact-email', type: 'Email', content: email || '', section: 'Contact' });
-    }
-    if (contact.phoneNumber?.some(p => p.includes(lowerQuery))) {
-      const phone = contact.phoneNumber.find(p => p.includes(lowerQuery));
-      results.push({ id: 'contact-phone', type: 'Phone', content: phone || '', section: 'Contact' });
-    }
-  }
-
-  const social = data.socialMedia;
-  if (social) {
-    Object.entries(social).forEach(([platform, handle]) => {
-      if (handle && typeof handle === 'string' && handle.toLowerCase().includes(lowerQuery)) {
-        results.push({ id: `social-${platform}`, type: `${platform}`, content: handle, section: 'Social Media' });
-      }
-    });
-  }
-
-  const technical = data.technicalFootprint;
-  if (technical) {
-    if (technical.github?.toLowerCase().includes(lowerQuery)) {
-      results.push({ id: 'tech-github', type: 'GitHub', content: technical.github, section: 'Technical Footprint' });
-    }
-    if (technical.gitlab?.toLowerCase().includes(lowerQuery)) {
-      results.push({ id: 'tech-gitlab', type: 'GitLab', content: technical.gitlab, section: 'Technical Footprint' });
-    }
-    if (technical.domainOwnership?.some(d => d.toLowerCase().includes(lowerQuery))) {
-      const domain = technical.domainOwnership.find(d => d.toLowerCase().includes(lowerQuery));
-      results.push({ id: 'tech-domain', type: 'Domain', content: domain || '', section: 'Technical Footprint' });
-    }
-  }
-
-  const leaks = data.leakExposure;
-  if (leaks) {
-    if (leaks.passwordLeaks?.some(l => l.source?.toLowerCase().includes(lowerQuery) || l.email?.toLowerCase().includes(lowerQuery))) {
-      results.push({ id: 'leak-password', type: 'Password Leak', content: 'Password leak found', section: 'Leak Exposure' });
-    }
-    if (leaks.pastebinLeaks?.some(p => p.title?.toLowerCase().includes(lowerQuery))) {
-      results.push({ id: 'leak-pastebin', type: 'Pastebin Leak', content: 'Pastebin exposure found', section: 'Leak Exposure' });
-    }
-  }
-
-  return results.slice(0, 50);
-}
-
-function getSectionColor(section: string): string {
-  const colors: Record<string, string> = {
-    'Identity': '#af52de',
-    'Contact': '#30d158',
-    'Social Media': '#0a84ff',
-    'Technical Footprint': '#64d2ff',
-    'Leak Exposure': '#ff375f',
-  };
-  return colors[section] || '#6a7a9a';
-}
-
-function getSectionIcon(section: string): string {
-  const icons: Record<string, string> = {
-    'Identity': '🆔',
-    'Contact': '📞',
-    'Social Media': '📱',
-    'Technical Footprint': '💻',
-    'Leak Exposure': '⚠️',
-  };
-  return icons[section] || '📄';
-}
-
-function getSectionToTabId(section: string): string {
-  const mapping: Record<string, string> = {
-    'Identity': 'identity',
-    'Contact': 'contact',
-    'Social Media': 'social',
-    'Technical Footprint': 'technical',
-    'Leak Exposure': 'leaks',
-  };
-  return mapping[section] || 'overview';
-}
-
-export function Search({ data, searchQuery, onResultClick }: SearchProps) {
-  const [results, setResults] = useState<SearchResult[]>([]);
+export function Search({ dataPoints, searchQuery, onResultClick, onClear }: SearchProps) {
+  const [results, setResults] = useState<DataPoint[]>([]);
 
   useEffect(() => {
-    setResults(searchInData(data, searchQuery));
-  }, [data, searchQuery]);
+    if (!searchQuery.trim()) {
+      setResults([]);
+      return;
+    }
+
+    const lower = searchQuery.toLowerCase();
+    const filtered = dataPoints.filter(dp => {
+      const label = dp.label.toLowerCase();
+      const displayVal = (dp.displayValue || '').toLowerCase();
+      const val = String(dp.value || '').toLowerCase();
+      const source = dp.source.name.toLowerCase();
+      const tags = (dp.tags || []).join(' ').toLowerCase();
+      return (
+        label.includes(lower) ||
+        displayVal.includes(lower) ||
+        val.includes(lower) ||
+        source.includes(lower) ||
+        tags.includes(lower)
+      );
+    });
+
+    setResults(filtered.slice(0, 100));
+  }, [dataPoints, searchQuery]);
 
   if (!searchQuery.trim()) {
     return (
       <div className="flex-1 flex items-center justify-center flex-col gap-3">
         <div className="text-[32px] opacity-15">🔍</div>
-        <div className="text-[12px] font-mono text-[#c8d6f0]">Enter a search query to find information</div>
+        <div className="text-[12px] font-mono text-[#6a7a9a]">Enter a search query to find data</div>
       </div>
     );
   }
 
-  if (results.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center flex-col gap-3">
-        <div className="text-[32px] opacity-15">🔍</div>
-        <div className="text-[12px] font-mono text-[#c8d6f0]">No results found for "{searchQuery}"</div>
-      </div>
-    );
-  }
-
-  const groupedResults = results.reduce((acc, result) => {
-    if (!acc[result.section]) acc[result.section] = [];
-    acc[result.section].push(result);
+  // Group results by category
+  const grouped = results.reduce((acc, dp) => {
+    const cat = dp.category;
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(dp);
     return acc;
-  }, {} as Record<string, SearchResult[]>);
+  }, {} as Record<string, DataPoint[]>);
 
-  const handleResultClick = (section: string) => {
-    const tabId = getSectionToTabId(section);
-    onResultClick(tabId);
+  const categoryLabels: Record<string, string> = {
+    email: 'Email Addresses',
+    phone: 'Phone Numbers',
+    full_name: 'Names',
+    username: 'Usernames',
+    alias: 'Aliases',
+    social_profile: 'Social Profiles',
+    domain: 'Domains',
+    ip_address: 'IP Addresses',
+    repository: 'Repositories',
+    password_leak: 'Password Leaks',
+    credential_leak: 'Credential Leaks',
+    darkweb_mention: 'Dark Web Mentions',
+    breach_entry: 'Breach Entries',
+    pastebin_entry: 'Pastebin Leaks',
+    stealer_log: 'Stealer Logs',
+    location: 'Locations',
+    job_title: 'Job Titles',
+    company: 'Companies',
+    education: 'Education',
+    crypto_address: 'Crypto Addresses',
+    ssh_key: 'SSH Keys',
+    pgp_key: 'PGP Keys',
+    url: 'URLs',
+    unclassified: 'Unclassified',
   };
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="sticky top-0 z-10 px-4 py-3 border-b border-[#1c2333]">
-        <div className="text-[12px] font-mono text-[#c8d6f0]">Found {results.length} result{results.length !== 1 ? 's' : ''}</div>
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 px-4 py-2 border-b border-[#1c2333] bg-[#0f1319] flex items-center justify-between">
+        <div className="text-[12px] font-mono text-[#c8d6f0]">
+          Found <span className="text-[#0af]">{results.length}</span> result{results.length !== 1 ? 's' : ''} for "<span className="text-[#0af]">{searchQuery}</span>"
+          {results.length >= 100 && <span className="text-[#f5a623] ml-1">(capped at 100)</span>}
+        </div>
+        {onClear && (
+          <button onClick={onClear} className="text-[#6a7a9a] hover:text-[#c8d6f0] transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
-      <div className="divide-y divide-[#111827]">
-        {Object.entries(groupedResults).map(([section, sectionResults]) => {
-          const sectionColor = getSectionColor(section);
-          const sectionIcon = getSectionIcon(section);
-          return (
-            <div key={section} className="">
-              <div className="sticky top-[45px] z-10 px-4 py-2 flex items-center gap-2 bg-[#0a0e14] border-b border-[#1c2333]" style={{ borderLeftColor: sectionColor, borderLeftWidth: '3px' }}>
-                <span className="text-base">{sectionIcon}</span>
-                <span className="text-[12px] font-bold font-mono uppercase tracking-wider" style={{ color: sectionColor }}>{section}</span>
-                <span className="text-[11px] font-mono text-[#c8d6f0] ml-auto">{sectionResults.length} item{sectionResults.length !== 1 ? 's' : ''}</span>
+
+      {results.length === 0 ? (
+        <div className="flex items-center justify-center py-12 flex-col gap-2">
+          <span className="text-[24px] opacity-15">🔍</span>
+          <span className="text-[12px] font-mono text-[#6a7a9a]">No results found</span>
+        </div>
+      ) : (
+        <div className="divide-y divide-[#111827]">
+          {Object.entries(grouped).map(([category, dps]) => (
+            <div key={category}>
+              <div className="sticky top-[41px] z-10 px-4 py-1.5 bg-[#0a0e14] border-b border-[#1c2333]">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#6a7a9a]">
+                  {categoryLabels[category] || category.replace(/_/g, ' ')}
+                </span>
+                <span className="text-[10px] font-mono text-[#6a7a9a] ml-2">({dps.length})</span>
               </div>
-              <div className="divide-y divide-[#111827]">
-                {sectionResults.map((result) => (
-                  <div key={result.id} onClick={() => handleResultClick(result.section)} className="group px-4 py-3 hover:bg-[#0d1017] transition-colors cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ backgroundColor: `${sectionColor}20`, color: sectionColor }}>{result.type}</span>
-                        </div>
-                        <div className="text-[13px] font-mono text-[#c8d6f0] break-all leading-relaxed">{result.content}</div>
-                      </div>
-                      <div className="text-[#c8d6f0] group-hover:text-[#0af] transition-colors shrink-0">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
-                      </div>
-                    </div>
+              <div className="p-2 space-y-1">
+                {dps.map(dp => (
+                  <div
+                    key={dp.id}
+                    onClick={() => onResultClick?.(dp)}
+                    style={{ cursor: onResultClick ? 'pointer' : 'default' }}
+                  >
+                    <DataPointRow dataPoint={dp} />
                   </div>
                 ))}
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
