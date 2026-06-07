@@ -80,13 +80,19 @@ export function useDomainRecon(): UseDomainReconReturn {
   const getDataPointsForTab = useCallback((tabId: string): DataPoint[] => {
     if (!result) return [];
 
-    const baseDps = selectedEntity
-      ? selectedEntity.dataPoints
-      : result.allDataPoints;
+    // Domain-level tabs always use all data points (not entity-scoped)
+    const DOMAIN_LEVEL_TABS = new Set([
+      'whois', 'dns', 'subdomains', 'certificates', 'infrastructure',
+      'sensitive', 'technology', 'osint', 'emails', 'people',
+      'mentions', 'network',
+    ]);
 
-    if (tabId === 'overview') return baseDps;
+    if (tabId === 'overview') {
+      return selectedEntity ? selectedEntity.dataPoints : result.allDataPoints;
+    }
     if (tabId === 'timeline') {
-      return baseDps
+      const dps = selectedEntity ? selectedEntity.dataPoints : result.allDataPoints;
+      return dps
         .filter(dp => dp.discoveredAt)
         .sort((a, b) => (a.discoveredAt || '').localeCompare(b.discoveredAt || ''));
     }
@@ -100,7 +106,10 @@ export function useDomainRecon(): UseDomainReconReturn {
     const group = categoryGroups.find(g => g.id === tabId);
     if (!group) return [];
 
-    return baseDps.filter(dp => group.categories.includes(dp.category));
+    // Domain-level tabs ignore entity selection — always show all domain data
+    const scope = DOMAIN_LEVEL_TABS.has(tabId) ? result.allDataPoints : (selectedEntity ? selectedEntity.dataPoints : result.allDataPoints);
+
+    return scope.filter(dp => group.categories.includes(dp.category));
   }, [result, selectedEntity, categoryGroups]);
 
   const filteredDataPoints = useMemo(() => {

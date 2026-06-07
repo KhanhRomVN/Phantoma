@@ -4,29 +4,20 @@ import { DataPointRow } from '../../Person/components/shared/DataPointRow';
 import { SectionHeader } from '../../Person/components/shared/SectionHeader';
 import { StatBox } from '../../Person/components/shared/StatBox';
 
-interface SensitiveExposureProps {
+interface SslTlsCertsProps {
   dataPoints: DataPoint[];
   activeGroup: SmartCategoryGroup;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  env_exposure: '.env Files',
-  git_exposure: 'Git Exposure',
-  backup_file: 'Backup Files',
-  config_file: 'Config Files',
-  exposed_api_key: 'API Keys',
-  exposed_secret_token: 'Secret Tokens',
-  firebase_config: 'Firebase Configs',
-  public_s3_bucket: 'Public S3 Buckets',
-  database_dump: 'Database Dumps',
-  log_file: 'Log Files',
-  source_code_exposure: 'Source Code',
-  debug_endpoint: 'Debug Endpoints',
-  admin_panel: 'Admin Panels',
-  phpinfo_exposure: 'PHP Info',
+  certificate: 'Certificates',
+  cert_issuer: 'Issuers',
+  cert_domains: 'Covered Domains',
+  cert_validity: 'Validity',
+  cert_transparency_log: 'CT Logs',
 };
 
-export function SensitiveExposure({ dataPoints, activeGroup }: SensitiveExposureProps) {
+export function SslTlsCerts({ dataPoints, activeGroup }: SslTlsCertsProps) {
   const grouped = dataPoints.reduce(
     (acc, dp) => {
       const key = dp.category;
@@ -37,16 +28,16 @@ export function SensitiveExposure({ dataPoints, activeGroup }: SensitiveExposure
     {} as Record<string, DataPoint[]>,
   );
 
-  const criticalCount = dataPoints.filter((dp) => dp.riskScore && dp.riskScore >= 75).length;
-  const noiseCount = dataPoints.filter((dp) => dp.isNoise).length;
+  const certCount = (grouped.certificate || []).length;
+  const uniqueIssuers = new Set(
+    (grouped.cert_issuer || []).map((dp) => dp.displayValue || dp.value),
+  ).size;
 
   if (dataPoints.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center flex-col gap-2 p-3">
-        <span className="text-[24px] opacity-15">🛡️</span>
-        <span className="text-[12px] font-mono text-[#30d158]">
-          No sensitive exposures detected ✓
-        </span>
+        <span className="text-[24px] opacity-15">🔒</span>
+        <span className="text-[12px] font-mono text-[#6a7a9a]">No SSL/TLS certificates found</span>
         <span className="text-[10px] font-mono text-[#3a4558]">{activeGroup.description}</span>
       </div>
     );
@@ -55,20 +46,15 @@ export function SensitiveExposure({ dataPoints, activeGroup }: SensitiveExposure
   return (
     <div className="flex-1 overflow-y-auto p-3">
       <div className="grid grid-cols-3 gap-2 mb-3">
-        <StatBox label="Exposures" value={dataPoints.length} sub="found" accent="#ff375f" />
-        <StatBox
-          label="Critical"
-          value={criticalCount}
-          sub="high risk"
-          accent={criticalCount > 0 ? '#ff2d55' : '#30d158'}
-        />
-        <StatBox label="Noise" value={noiseCount} sub="false positive" accent="#f5a623" />
+        <StatBox label="Certs" value={certCount} sub="found" accent="#64d2ff" />
+        <StatBox label="Issuers" value={uniqueIssuers} sub="unique" accent="#0a84ff" />
+        <StatBox label="Total" value={dataPoints.length} sub="data points" accent="#64d2ff" />
       </div>
 
       <div className="space-y-3">
         {Object.entries(grouped).map(([category, dps]) => (
           <div key={category}>
-            <SectionHeader accent="#ff375f">
+            <SectionHeader accent="#64d2ff">
               {CATEGORY_LABELS[category] || category.replace(/_/g, ' ')}
               <span className="text-[10px] font-normal text-[#6a7a9a] ml-1">({dps.length})</span>
             </SectionHeader>

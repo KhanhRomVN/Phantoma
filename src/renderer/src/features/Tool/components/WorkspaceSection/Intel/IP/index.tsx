@@ -12,12 +12,8 @@ import { Overview } from '../Person/components/Overview';
 import { SectionHeader } from '../Person/components/shared/SectionHeader';
 import { ConfidenceBadge } from '../Person/components/shared/ConfidenceBadge';
 
-import type { ReconResult } from '../Person/types/recon-result';
-
 // Import realistic mock data
 import realisticMockData from './data/phantoma-ip-realistic.json';
-
-import { Search as SearchIcon } from 'lucide-react';
 
 interface IPSession {
   id: string;
@@ -30,11 +26,11 @@ interface IPSession {
 type IPStatus = IPSession['status'];
 
 const STATUS_META: Record<IPStatus, { label: string; color: string; pulse?: boolean }> = {
-  idle:     { label: 'IDLE',     color: '#3a4558' },
-  queued:   { label: 'QUEUED',   color: '#f5a623', pulse: true },
-  scanning: { label: 'SCANNING', color: '#0af',    pulse: true },
-  done:     { label: 'DONE',     color: '#30d158' },
-  error:    { label: 'ERROR',    color: '#ff2d55' },
+  idle: { label: 'IDLE', color: '#3a4558' },
+  queued: { label: 'QUEUED', color: '#f5a623', pulse: true },
+  scanning: { label: 'SCANNING', color: '#0af', pulse: true },
+  done: { label: 'DONE', color: '#30d158' },
+  error: { label: 'ERROR', color: '#ff2d55' },
 };
 
 const DEFAULT_SESSIONS: IPSession[] = [
@@ -55,7 +51,11 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
   const [sessions, setSessions] = useState<IPSession[]>(DEFAULT_SESSIONS);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newIP, setNewIP] = useState('');
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; sessionId: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    sessionId: string;
+  } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const [activeIP, setActiveIP] = useState<string>(initialIP);
@@ -72,7 +72,6 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
     loadData,
     selectEntity,
     setActiveTab,
-    searchDataPoints,
   } = useIPRecon();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,20 +103,20 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
   const addIP = useCallback(() => {
     const ip = newIP.trim();
     if (!ip) return;
-    if (sessions.some(s => s.ip === ip)) return;
+    if (sessions.some((s) => s.ip === ip)) return;
     const sess: IPSession = {
       id: `sess-${Date.now()}`,
       ip,
       status: 'queued',
       progress: 0,
     };
-    setSessions(prev => [...prev, sess]);
+    setSessions((prev) => [...prev, sess]);
     setNewIP('');
     setShowAddForm(false);
   }, [newIP, sessions]);
 
   const removeIP = useCallback((id: string) => {
-    setSessions(prev => prev.filter(s => s.id !== id));
+    setSessions((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
   const handleContextMenu = (e: React.MouseEvent, sessionId: string) => {
@@ -125,18 +124,12 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
     setContextMenu({ x: e.clientX, y: e.clientY, sessionId });
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    setIsSearchMode(value.trim().length > 0);
-  };
-
   const handleClearSearch = () => {
     setSearchQuery('');
     setIsSearchMode(false);
   };
 
-  const activeGroup = categoryGroups.find(g => g.id === activeTab);
+  const activeGroup = categoryGroups.find((g) => g.id === activeTab);
 
   const renderContent = () => {
     if (isSearchMode && searchQuery.trim() && result) {
@@ -200,14 +193,16 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
                   No distinct entities identified
                 </div>
               ) : (
-                entities.map(entity => (
+                entities.map((entity) => (
                   <div
                     key={entity.id}
                     onClick={() => selectEntity(entity.id)}
                     className="p-2 bg-[#0d1017] border border-[#1c2333] rounded cursor-pointer hover:border-[#2a3548] transition-all"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[12px] font-mono font-bold text-[#c8d6f0]">{entity.displayName}</span>
+                      <span className="text-[12px] font-mono font-bold text-[#c8d6f0]">
+                        {entity.displayName}
+                      </span>
                       <ConfidenceBadge value={entity.confidence} />
                     </div>
                     <div className="text-[11px] font-mono text-[#6a7a9a]">{entity.summary}</div>
@@ -219,8 +214,18 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
                         <span
                           className="text-[9px] font-mono px-1 py-0.5 rounded"
                           style={{
-                            color: entity.riskScore >= 75 ? '#ff2d55' : entity.riskScore >= 50 ? '#f5a623' : '#30d158',
-                            backgroundColor: entity.riskScore >= 75 ? '#ff2d5515' : entity.riskScore >= 50 ? '#f5a62315' : '#30d15815',
+                            color:
+                              entity.riskScore >= 75
+                                ? '#ff2d55'
+                                : entity.riskScore >= 50
+                                  ? '#f5a623'
+                                  : '#30d158',
+                            backgroundColor:
+                              entity.riskScore >= 75
+                                ? '#ff2d5515'
+                                : entity.riskScore >= 50
+                                  ? '#f5a62315'
+                                  : '#30d15815',
                           }}
                         >
                           RISK {entity.riskScore}
@@ -237,9 +242,7 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
       case 'timeline':
         return (
           <TimelineCluster
-            dataPoints={
-              selectedEntity ? selectedEntity.dataPoints : result.allDataPoints
-            }
+            dataPoints={selectedEntity ? selectedEntity.dataPoints : result.allDataPoints}
           />
         );
 
@@ -248,7 +251,9 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
           <RawDataView
             dataPoints={
               selectedEntity
-                ? selectedEntity.dataPoints.filter(dp => dp.isNoise || dp.category === 'unclassified')
+                ? selectedEntity.dataPoints.filter(
+                    (dp) => dp.isNoise || dp.category === 'unclassified',
+                  )
                 : result.unassignedDataPoints
             }
             title="Raw & Unclassified Data"
@@ -274,7 +279,9 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
             <div className="flex-1 flex items-center justify-center flex-col gap-2 p-3">
               <span className="text-[24px] opacity-15">📭</span>
               <span className="text-[12px] font-mono text-[#6a7a9a]">No data in this category</span>
-              <span className="text-[10px] font-mono text-[#3a4558]">{activeGroup.description}</span>
+              <span className="text-[10px] font-mono text-[#3a4558]">
+                {activeGroup.description}
+              </span>
             </div>
           );
         }
@@ -296,7 +303,12 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
             title="Add IP"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path
+                d="M7 1v12M1 7h12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </div>
@@ -308,10 +320,13 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
                 autoFocus
                 type="text"
                 value={newIP}
-                onChange={e => setNewIP(e.target.value)}
-                onKeyDown={e => {
+                onChange={(e) => setNewIP(e.target.value)}
+                onKeyDown={(e) => {
                   if (e.key === 'Enter') addIP();
-                  if (e.key === 'Escape') { setShowAddForm(false); setNewIP(''); }
+                  if (e.key === 'Escape') {
+                    setShowAddForm(false);
+                    setNewIP('');
+                  }
                 }}
                 placeholder="192.168.1.1"
                 spellCheck={false}
@@ -330,14 +345,14 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
         )}
 
         <div className="overflow-y-auto p-2 space-y-1 shrink-0" style={{ maxHeight: '35%' }}>
-          {sessions.map(sess => {
+          {sessions.map((sess) => {
             const statusMeta = STATUS_META[sess.status];
             const isActive = sess.ip === activeIP;
             return (
               <div
                 key={sess.id}
                 onClick={() => setActiveIP(sess.ip)}
-                onContextMenu={e => handleContextMenu(e, sess.id)}
+                onContextMenu={(e) => handleContextMenu(e, sess.id)}
                 className={cn(
                   'p-2 rounded cursor-pointer transition-all relative',
                   isActive ? 'bg-[#0d1017]' : 'bg-[#0a0e14] hover:bg-[#111827]',
@@ -368,13 +383,25 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
                           className="h-full rounded-full"
                           style={{
                             width: `${sess.riskScore}%`,
-                            backgroundColor: sess.riskScore >= 75 ? '#ff2d55' : sess.riskScore >= 50 ? '#f5a623' : '#30d158',
+                            backgroundColor:
+                              sess.riskScore >= 75
+                                ? '#ff2d55'
+                                : sess.riskScore >= 50
+                                  ? '#f5a623'
+                                  : '#30d158',
                           }}
                         />
                       </div>
                       <span
                         className="text-[9px] font-mono shrink-0"
-                        style={{ color: sess.riskScore >= 75 ? '#ff2d55' : sess.riskScore >= 50 ? '#f5a623' : '#30d158' }}
+                        style={{
+                          color:
+                            sess.riskScore >= 75
+                              ? '#ff2d55'
+                              : sess.riskScore >= 50
+                                ? '#f5a623'
+                                : '#30d158',
+                        }}
                       >
                         {sess.riskScore}
                       </span>
@@ -393,20 +420,27 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
             style={{ top: contextMenu.y, left: contextMenu.x }}
           >
             <button
-              onClick={() => { setContextMenu(null); }}
+              onClick={() => {
+                setContextMenu(null);
+              }}
               className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#0af] hover:bg-[#1c2333] transition-colors"
             >
               ▶ Run (Full Scan)
             </button>
             <button
-              onClick={() => { setContextMenu(null); }}
+              onClick={() => {
+                setContextMenu(null);
+              }}
               className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#30d158] hover:bg-[#1c2333] transition-colors"
             >
               📜 Open History
             </button>
             <div className="border-t border-[#1c2333] my-1" />
             <button
-              onClick={() => { removeIP(contextMenu.sessionId); setContextMenu(null); }}
+              onClick={() => {
+                removeIP(contextMenu.sessionId);
+                setContextMenu(null);
+              }}
               className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#ff2d55] hover:bg-[#1c2333] transition-colors"
             >
               ✕ Delete
@@ -429,7 +463,14 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
                   className="h-6 w-6 flex items-center justify-center bg-[#1c2333] border border-[#2a3548] text-[#c8d6f0] rounded hover:text-[#c8d6f0] hover:border-[#0af30] transition-colors"
                   title="Switch tab"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <circle cx="12" cy="6" r="2" />
                     <circle cx="12" cy="12" r="2" />
                     <circle cx="12" cy="18" r="2" />
@@ -437,30 +478,42 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
                 </button>
                 {showTabsDropdown && (
                   <div className="absolute right-0 top-8 z-50 w-52 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1">
-                    {categoryGroups.filter(g => g.isActive).map((group) => (
-                      <button
-                        key={group.id}
-                        onClick={() => { setActiveTab(group.id); setShowTabsDropdown(false); }}
-                        className={cn(
-                          'w-full flex items-center justify-between px-3 py-1.5 text-[12px] font-mono transition-colors',
-                          activeTab === group.id
-                            ? 'bg-[#0af15] text-[#0af]'
-                            : 'text-[#c8d6f0] hover:bg-[#1c2333]',
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span style={{ color: group.accent }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                          </span>
-                          <span>{group.label}</span>
-                        </div>
-                        {group.count > 0 && (
-                          <span className="text-[10px] text-[#6a7a9a]">({group.count})</span>
-                        )}
-                      </button>
-                    ))}
+                    {categoryGroups
+                      .filter((g) => g.isActive)
+                      .map((group) => (
+                        <button
+                          key={group.id}
+                          onClick={() => {
+                            setActiveTab(group.id);
+                            setShowTabsDropdown(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center justify-between px-3 py-1.5 text-[12px] font-mono transition-colors',
+                            activeTab === group.id
+                              ? 'bg-[#0af15] text-[#0af]'
+                              : 'text-[#c8d6f0] hover:bg-[#1c2333]',
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span style={{ color: group.accent }}>
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            </span>
+                            <span>{group.label}</span>
+                          </div>
+                          {group.count > 0 && (
+                            <span className="text-[10px] text-[#6a7a9a]">({group.count})</span>
+                          )}
+                        </button>
+                      ))}
                   </div>
                 )}
               </div>
@@ -469,13 +522,13 @@ export default function IPIntel({ initialIP = '104.18.32.11' }: IPIntelProps) {
 
           {activeGroup && activeGroup.description && !isSearchMode && (
             <div className="px-3 py-1 bg-[#0a0e14] border-b border-[#1c2333] shrink-0">
-              <span className="text-[10px] font-mono text-[#3a4558]">{activeGroup.description}</span>
+              <span className="text-[10px] font-mono text-[#3a4558]">
+                {activeGroup.description}
+              </span>
             </div>
           )}
 
-          <div className="flex-1 flex overflow-hidden">
-            {renderContent()}
-          </div>
+          <div className="flex-1 flex overflow-hidden">{renderContent()}</div>
         </div>
       </div>
     </div>

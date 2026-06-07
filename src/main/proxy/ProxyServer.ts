@@ -93,15 +93,15 @@ export class ProxyServer extends EventEmitter {
       console.log(`[ProxyServer] WSS started, setting up listeners...`);
       this.setupListeners();
       console.log(`[ProxyServer] Starting proxy on port ${port}...`);
+      this.proxy.onError((_ctx: any, err: any) => {
+        console.error(`[ProxyServer] Error on proxy:`, err || _ctx);
+        reject(err || _ctx);
+      });
       this.proxy.listen({ port, host: '0.0.0.0' }, () => {
         this.isRunning = true;
         console.log(`[ProxyServer] Proxy listening on port ${port}`);
         this.emit('started', port);
         resolve();
-      });
-      this.proxy.on('error', (err: any) => {
-        console.error(`[ProxyServer] Error on proxy:`, err);
-        reject(err);
       });
     });
   }

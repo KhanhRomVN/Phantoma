@@ -6,10 +6,11 @@ import type { DataSource } from './source';
  * This is the fundamental unit — messy, with optional fields.
  */
 export interface DataPoint {
+  riskScore?: number;
   /** Unique ID for this data point */
   id: string;
-  /** What kind of data this is (auto-classified) */
-  category: DataCategory;
+  /** What kind of data this is (auto-classified, extensible) */
+  category: string;
   /** Human-readable label for display */
   label: string;
   /** The actual value (can be string, object, array — messy real data) */

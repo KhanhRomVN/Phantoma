@@ -77,13 +77,18 @@ export function useIPRecon(): UseIPReconReturn {
   const getDataPointsForTab = useCallback((tabId: string): DataPoint[] => {
     if (!result) return [];
 
-    const baseDps = selectedEntity
-      ? selectedEntity.dataPoints
-      : result.allDataPoints;
+    // IP-level tabs always use all data points (not entity-scoped)
+    const IP_LEVEL_TABS = new Set([
+      'network', 'services', 'reverse_ip', 'ssl_certs',
+      'vulnerabilities', 'reputation', 'related_ips', 'mentions',
+    ]);
 
-    if (tabId === 'overview') return baseDps;
+    if (tabId === 'overview') {
+      return selectedEntity ? selectedEntity.dataPoints : result.allDataPoints;
+    }
     if (tabId === 'timeline') {
-      return baseDps
+      const dps = selectedEntity ? selectedEntity.dataPoints : result.allDataPoints;
+      return dps
         .filter(dp => dp.discoveredAt)
         .sort((a, b) => (a.discoveredAt || '').localeCompare(b.discoveredAt || ''));
     }
@@ -97,7 +102,10 @@ export function useIPRecon(): UseIPReconReturn {
     const group = categoryGroups.find(g => g.id === tabId);
     if (!group) return [];
 
-    return baseDps.filter(dp => group.categories.includes(dp.category));
+    // IP-level tabs ignore entity selection — always show all IP data
+    const scope = IP_LEVEL_TABS.has(tabId) ? result.allDataPoints : (selectedEntity ? selectedEntity.dataPoints : result.allDataPoints);
+
+    return scope.filter(dp => group.categories.includes(dp.category));
   }, [result, selectedEntity, categoryGroups]);
 
   const filteredDataPoints = useMemo(() => {

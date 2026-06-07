@@ -62,16 +62,9 @@ export function normalizeSubdomain(
   const category = isInternal ? 'subdomain_internal' : 'subdomain';
 
   // Subdomain takeover check (CNAME to unclaimed service)
-  const takeoverServices = [
-    'amazonaws.com', 'azurewebsites.net', 'cloudfront.net', 'herokuapp.com',
-    'github.io', 'surge.sh', 'netlify.app', 'vercel.app', 'pages.dev',
-    'firebaseapp.com', 'web.app', 'myshopify.com', 'bitbucket.io',
-  ];
-
-  let isTakeover = false;
-  if (subdomain.resolvedIP === undefined && subdomain.name.includes('.')) {
-    isTakeover = false; // Would need CNAME check in real implementation
-  }
+  // TODO: Implement CNAME resolution to detect dangling records pointing to
+  // unclaimed cloud services (e.g., *.amazonaws.com, *.cloudfront.net, etc.)
+  const isTakeover = false;
 
   return createDataPoint(
     isTakeover ? 'subdomain_takeover' : category,
@@ -370,9 +363,6 @@ export function normalizeMention(
   date: string | undefined,
   source: DataSource,
 ): DataPoint {
-  const isSocialMedia = ['twitter', 'x', 'reddit', 'facebook', 'instagram', 'linkedin'].includes(
-    sourceName.toLowerCase().replace(/[/@]/g, ''),
-  );
   const isForum = ['hacker news', 'stack overflow', 'medium'].includes(sourceName.toLowerCase());
 
   let category: DomainDataCategory = 'social_mention';

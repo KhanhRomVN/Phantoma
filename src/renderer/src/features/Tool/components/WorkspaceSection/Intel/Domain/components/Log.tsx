@@ -12,11 +12,11 @@ export function Log({ data }: { data: ReconData }) {
     `[+] Resolving DNS: ${data.target} → ${data.targetIp}`,
     `[+] WHOIS lookup complete. Registrar: ${data.whoisData.registrar}`,
     `[+] Subdomain brute-force: ${data.subdomains.length} found`,
-    `[+] Port scan (nmap -sV): ${data.ports.filter((p: { state: string }) => p.state === 'open').length} ports identified`,
+    `[+] Reverse IP lookup: ${data.infrastructure.reverseIp?.length || 0} domains hosted`,
     `[+] Email harvest: ${data.harvestedEmails.length} addresses found`,
-    `[+] SSL: TLS 1.3, no critical misconfigs in cert chain`,
-    `[+] WAF: ${data.infrastructure.waf} detected`,
-    `[*] Scan complete. Risk score: ${data.riskScore.total}/100`,
+    `[+] SSL/TLS certs: ${data.certTransparency.length} entries in CT logs`,
+    `[+] Hosting: ${data.infrastructure.hostingProvider || data.infrastructure.cloudProvider || 'Unknown provider'}`,
+    `[*] Scan complete. ${data.subdomains.length} subdomains, ${data.breaches.length} breaches found`,
   ];
 
   useEffect(() => {

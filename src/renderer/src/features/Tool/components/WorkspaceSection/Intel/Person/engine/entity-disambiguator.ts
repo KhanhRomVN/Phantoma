@@ -124,7 +124,6 @@ function getIdentifiersFromDataPoint(dp: DataPoint): EntityIdentifier[] {
       ids.push({ type: 'email', value: String(dp.value), confidence: 0.9 });
       break;
     case 'username':
-    case 'social_profile':
       ids.push({ type: 'username', value: String(dp.value), confidence: 0.6 });
       break;
     case 'phone':
@@ -146,6 +145,8 @@ function getIdentifiersFromDataPoint(dp: DataPoint): EntityIdentifier[] {
         if (obj.handle && typeof obj.handle === 'string') {
           ids.push({ type: 'social_handle', value: obj.handle, confidence: 0.5 });
         }
+      } else {
+        ids.push({ type: 'username', value: String(dp.value), confidence: 0.6 });
       }
       break;
     }
