@@ -16,7 +16,6 @@ const NAV_MODULES: NavModuleConfig[] = [
       { id: 'recon-domain', title: 'Domain', disabled: false },
       { id: 'recon-ip', title: 'IP', disabled: false },
       { id: 'recon-person', title: 'Person', disabled: false },
-      { id: 'recon-sourcecode', title: 'Source Code', disabled: false },
     ],
   },
   {

@@ -11,7 +11,6 @@
 - [1. Tổng Quan Kiến Trúc](#1-tổng-quan-kiến-trúc)
 - [2. Domain — Tình Báo Tên Miền](#2-domain--tình-báo-tên-miền)
 - [3. Person — Tình Báo Cá Nhân](#3-person--tình-báo-cá-nhân)
-- [4. SourceCode — Tình Báo Mã Nguồn](#4-sourcecode--tình-báo-mã-nguồn)
 - [5. IP — Tình Báo Địa Chỉ IP](#5-ip--tình-báo-địa-chỉ-ip)
 - [6. Luồng Dữ Liệu & API](#6-luồng-dữ-liệu--api)
 - [7. Hướng Dẫn Phát Triển](#7-hướng-dẫn-phát-triển)
@@ -44,7 +43,6 @@ INTEL/
 │   ├── constants/
 │   └── utils/
 ├── Person/                      ← Tình báo cá nhân (5 nhóm)
-├── SourceCode/                  ← Tình báo mã nguồn (4 nhóm)
 └── IP/                          ← Tình báo địa chỉ IP (3 nhóm)
 ```
 
@@ -150,21 +148,6 @@ Giống mục 6 của RECON.md, toàn bộ từ OSINT:
 
 ---
 
-## 4. SourceCode — Tình Báo Mã Nguồn
-
-> Dựa trên mục 7 của RECON.md, nhưng **chỉ phân tích repo công khai**:
-
-- Repository Information: public repos của tổ chức/cá nhân (GitHub API)
-- Developer Information: contributors, commit emails
-- Secret Exposure: quét tìm API key, token, password (regex)
-- Dependency Analysis: package.json, requirements.txt, etc. (chỉ lấy version, kiểm tra CVE qua OSV hoặc NVD API – thụ động)
-
-**Không** thực hiện:
-- Quét nhánh private
-- Tải toàn bộ repo về phân tích sâu (chỉ đọc metadata)
-
----
-
 ## 5. IP — Tình Báo Địa Chỉ IP
 
 > **File chính:** `IP/index.tsx`  
@@ -198,7 +181,6 @@ Không gửi yêu cầu quét đến IP, mà dùng **dữ liệu lưu trữ sẵ
 Tương tự RECON.md, nhưng endpoint API gợi ý:
 - `GET /api/intel/domain/{domain}`
 - `GET /api/intel/person/{identifier}`
-- `GET /api/intel/sourcecode/{repo_url}`
 - `GET /api/intel/ip/{ip}`
 
 Dữ liệu trả về luôn là kết quả từ các nguồn công khai, **không** chạy bất kỳ active probe nào.
@@ -220,7 +202,7 @@ Quy tắc giống RECON.md, bổ sung:
 
 | Chỉ số | Giá trị |
 |--------|---------|
-| **Số target** | 4 (Domain, Person, SourceCode, IP) |
+| **Số target** | 4 (Domain, Person, IP) |
 | **Tổng số nhóm dữ liệu** | 19 |
 | **Tổng số components** | 40+ |
 | **Phạm vi** | 100% thụ động, không gây ra bất kỳ request trực tiếp nào đến mục tiêu (trừ DNS và HTTP public – vẫn được coi là traffic thông thường). |
