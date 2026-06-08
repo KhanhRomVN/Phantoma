@@ -4,12 +4,16 @@ import (
 	"net/http"
 
 	"github.com/phantoma/server/internal/config"
+	dorkhandler "github.com/phantoma/server/internal/handler/dork"
 	expoithandler "github.com/phantoma/server/internal/handler/exploit"
+	gauhandler "github.com/phantoma/server/internal/handler/gau"
 	"github.com/phantoma/server/internal/handler/health"
 	niktohandler "github.com/phantoma/server/internal/handler/nikto"
 	nmaphandler "github.com/phantoma/server/internal/handler/nmap"
 	scanhandler "github.com/phantoma/server/internal/handler/scan"
 	"github.com/phantoma/server/internal/middleware"
+	gausvc "github.com/phantoma/server/internal/service/gau"
+	godork "github.com/phantoma/server/internal/service/go-dork"
 	metasploitsvc "github.com/phantoma/server/internal/service/metasploit"
 	niktosvc "github.com/phantoma/server/internal/service/nikto"
 	nmapsvc "github.com/phantoma/server/internal/service/nmap"
@@ -25,6 +29,8 @@ func NewRouter(cfg *config.Config) http.Handler {
 	nikto := niktosvc.NewService(cfg.NiktoContainer)
 	searchsploit := searchsploitsvc.NewService(cfg.SearchsploitContainer)
 	metasploit := metasploitsvc.NewService(cfg.MetasploitContainer)
+	dorkService := godork.NewService(cfg.GoDorkContainer)
+	gauService := gausvc.NewService(cfg.GauContainer)
 
 	// Handlers
 	mux.HandleFunc("GET /health", health.Handler)
@@ -32,6 +38,8 @@ func NewRouter(cfg *config.Config) http.Handler {
 	mux.HandleFunc("POST /api/v1/nmap/portscan", nmaphandler.NewHandler(nmap).PortScan)
 	mux.HandleFunc("POST /api/v1/nikto/scan", niktohandler.NewHandler(nikto).Scan)
 	mux.HandleFunc("POST /api/v1/exploit/search", expoithandler.NewHandler(searchsploit, metasploit).SearchByCVE)
+	mux.HandleFunc("POST /api/v1/dork/search", dorkhandler.NewHandler(dorkService).Search)
+	mux.HandleFunc("POST /api/v1/gau/fetch", gauhandler.NewHandler(gauService).FetchURLs)
 
 	// Full pipeline: Tầng 1 (RustScan) + Tầng 2 (Nmap deep) + Tầng 3 (Exploit) + Tầng 4 (Nuclei + Nikto)
 	mux.HandleFunc("POST /api/v1/scan/full", scanhandler.NewHandler(cfg).FullScan)

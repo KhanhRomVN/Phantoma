@@ -1,4 +1,3 @@
-import React from 'react';
 import type { DataPoint } from '../../types/data-point';
 
 interface DataTableProps {
@@ -110,7 +109,8 @@ export function DataTable({
                     className="text-[9px] px-1.5 py-0.5 rounded"
                     style={{
                       color: dp.verificationStatus === 'verified' ? '#30d158' : '#6a7a9a',
-                      backgroundColor: dp.verificationStatus === 'verified' ? '#30d15815' : '#1c2333',
+                      backgroundColor:
+                        dp.verificationStatus === 'verified' ? '#30d15815' : '#1c2333',
                     }}
                   >
                     {dp.label}

@@ -1,0 +1,276 @@
+{
+  "query": {
+    "value": "104.18.32.0/24",
+    "type": "network"
+  },
+  "scan": {
+    "startedAt": "2026-06-06T10:00:00Z",
+    "completedAt": "2026-06-06T10:14:47Z",
+    "duration": 887000,
+    "totalRawHits": 51234,
+    "totalProcessedHits": 2134,
+    "scanType": "active"
+  },
+  "rawData": [
+    {
+      "source": "Ping Sweep (ICMP + TCP SYN 80/443)",
+      "type": "host_discovery",
+      "items": [
+        { "ip": "104.18.32.1", "status": "up", "method": "icmp", "latency_ms": 1.2 },
+        { "ip": "104.18.32.11", "status": "up", "method": "tcp_syn_443", "latency_ms": 8.5 },
+        { "ip": "104.18.32.33", "status": "up", "method": "icmp", "latency_ms": 1.8 },
+        { "ip": "104.18.32.100", "status": "up", "method": "tcp_syn_80", "latency_ms": 9.3 },
+        { "ip": "104.18.32.101", "status": "up", "method": "tcp_syn_443", "latency_ms": 10.1 },
+        { "ip": "104.18.32.150", "status": "down", "method": "none" },
+        { "ip": "104.18.32.200", "status": "up", "method": "icmp", "latency_ms": 1.4 },
+        { "ip": "104.18.32.250", "status": "down", "method": "none" }
+      ]
+    },
+    {
+      "source": "Port Scan (TCP SYN, top 1000)",
+      "type": "port_scan",
+      "items": [
+        {
+          "ip": "104.18.32.1",
+          "ports": [
+            { "port": 80, "state": "open", "service": "http" },
+            { "port": 443, "state": "open", "service": "https" },
+            { "port": 22, "state": "filtered", "service": "ssh" }
+          ]
+        },
+        {
+          "ip": "104.18.32.11",
+          "ports": [
+            { "port": 80, "state": "open", "service": "http" },
+            { "port": 443, "state": "open", "service": "https" },
+            { "port": 8080, "state": "open", "service": "http-alt" },
+            { "port": 8443, "state": "open", "service": "https-alt" },
+            { "port": 22, "state": "open", "service": "ssh" },
+            { "port": 3306, "state": "open", "service": "mysql" },
+            { "port": 6379, "state": "open", "service": "redis" },
+            { "port": 9090, "state": "open", "service": "prometheus" },
+            { "port": 3000, "state": "open", "service": "grafana" }
+          ]
+        },
+        {
+          "ip": "104.18.32.33",
+          "ports": [
+            { "port": 80, "state": "open", "service": "http" },
+            { "port": 443, "state": "open", "service": "https" },
+            { "port": 8080, "state": "open", "service": "http-alt" }
+          ]
+        },
+        {
+          "ip": "104.18.32.100",
+          "ports": [
+            { "port": 80, "state": "open", "service": "http" },
+            { "port": 443, "state": "open", "service": "https" },
+            { "port": 25, "state": "open", "service": "smtp" },
+            { "port": 587, "state": "open", "service": "smtp-submission" }
+          ]
+        },
+        {
+          "ip": "104.18.32.101",
+          "ports": [
+            { "port": 443, "state": "open", "service": "https" },
+            { "port": 8443, "state": "open", "service": "https-alt" },
+            { "port": 21, "state": "open", "service": "ftp" }
+          ]
+        },
+        {
+          "ip": "104.18.32.200",
+          "ports": [
+            { "port": 53, "state": "open", "service": "domain" },
+            { "port": 443, "state": "open", "service": "https" }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Service & Version Detection (nmap -sV)",
+      "type": "service_version",
+      "items": [
+        {
+          "ip": "104.18.32.11",
+          "services": [
+            {
+              "port": 80,
+              "protocol": "tcp",
+              "service": "http",
+              "product": "cloudflare",
+              "version": "HTTP/1.1",
+              "extra": "Cloudflare reverse proxy"
+            },
+            {
+              "port": 443,
+              "protocol": "tcp",
+              "service": "https",
+              "product": "cloudflare",
+              "version": "TLS 1.3",
+              "extra": "SAN: phantoma.com, *.phantoma.com"
+            },
+            {
+              "port": 8080,
+              "protocol": "tcp",
+              "service": "http",
+              "product": "nginx",
+              "version": "1.24.0",
+              "extra": "X-Powered-By: Phantoma API v2.3.1"
+            },
+            {
+              "port": 8443,
+              "protocol": "tcp",
+              "service": "https",
+              "product": "nginx",
+              "version": "1.24.0",
+              "extra": "WWW-Authenticate: Basic realm=\"Phantoma Admin Panel\""
+            },
+            {
+              "port": 22,
+              "protocol": "tcp",
+              "service": "ssh",
+              "product": "OpenSSH",
+              "version": "8.9p1 Ubuntu-3ubuntu0.6",
+              "cpe": "cpe:/a:openbsd:openssh:8.9p1"
+            },
+            {
+              "port": 3306,
+              "protocol": "tcp",
+              "service": "mysql",
+              "product": "MySQL",
+              "version": "8.0.35",
+              "extra": "Authentication required"
+            },
+            {
+              "port": 6379,
+              "protocol": "tcp",
+              "service": "redis",
+              "product": "Redis",
+              "version": "7.0.12",
+              "extra": "NOAUTH Authentication required"
+            },
+            {
+              "port": 9090,
+              "protocol": "tcp",
+              "service": "http",
+              "product": "Prometheus",
+              "version": "2.45.0"
+            },
+            {
+              "port": 3000,
+              "protocol": "tcp",
+              "service": "http",
+              "product": "Grafana",
+              "version": "10.2.0"
+            }
+          ]
+        },
+        {
+          "ip": "104.18.32.33",
+          "services": [
+            {
+              "port": 80,
+              "protocol": "tcp",
+              "service": "http",
+              "product": "cloudflare"
+            },
+            {
+              "port": 443,
+              "protocol": "tcp",
+              "service": "https",
+              "product": "cloudflare",
+              "version": "TLS 1.3"
+            },
+            {
+              "port": 8080,
+              "protocol": "tcp",
+              "service": "http",
+              "product": "nginx",
+              "version": "1.22.1"
+            }
+          ]
+        },
+        {
+          "ip": "104.18.32.100",
+          "services": [
+            {
+              "port": 25,
+              "protocol": "tcp",
+              "service": "smtp",
+              "product": "Postfix",
+              "version": "3.7.4",
+              "extra": "ESMTP"
+            },
+            {
+              "port": 587,
+              "protocol": "tcp",
+              "service": "smtp",
+              "product": "Postfix",
+              "version": "3.7.4"
+            }
+          ]
+        },
+        {
+          "ip": "104.18.32.200",
+          "services": [
+            {
+              "port": 53,
+              "protocol": "udp",
+              "service": "domain",
+              "product": "BIND",
+              "version": "9.18.21"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "OS Fingerprinting (nmap -O)",
+      "type": "os_detection",
+      "items": [
+        {
+          "ip": "104.18.32.1",
+          "operatingSystem": "Linux 5.10 - 5.15",
+          "accuracy": 92,
+          "cpe": "cpe:/o:linux:linux_kernel:5.10"
+        },
+        {
+          "ip": "104.18.32.11",
+          "operatingSystem": "Linux 5.15 (Ubuntu 22.04)",
+          "accuracy": 95,
+          "cpe": "cpe:/o:canonical:ubuntu_linux:22.04",
+          "fingerprintRaw": "TTL=54, TCP Timestamp=167..."
+        },
+        {
+          "ip": "104.18.32.33",
+          "operatingSystem": "Linux 5.10 - 5.15",
+          "accuracy": 89,
+          "cpe": "cpe:/o:linux:linux_kernel:5.10"
+        },
+        {
+          "ip": "104.18.32.100",
+          "operatingSystem": "FreeBSD 13.1",
+          "accuracy": 88,
+          "cpe": "cpe:/o:freebsd:freebsd:13.1"
+        },
+        {
+          "ip": "104.18.32.200",
+          "operatingSystem": "Linux 5.15 (Debian 11)",
+          "accuracy": 91,
+          "cpe": "cpe:/o:debian:debian_linux:11"
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "Scan performed on Cloudflare CDN IP range; hosts may belong to different organizations.",
+    "ICMP ping filtered on several hosts – fallback to TCP SYN on ports 80/443 used.",
+    "Port scan limited to top 1000 TCP ports (default) due to time constraints; UDP ports not scanned by default.",
+    "Service version detection intensity set to 7 (default) – some versions may be missed.",
+    "OS detection less reliable for CDN edge nodes; results may reflect the edge server, not the origin.",
+    "Open MySQL (3306) and Redis (6379) on 104.18.32.11 may be misconfigured or honeypots.",
+    "SSH (22) open on 104.18.32.11 – ensure it’s intended for administrative access.",
+    "SMTP ports (25, 587) on 104.18.32.100 suggest email infrastructure; verify SPF/DMARC separately.",
+    "All scan activity was authorized and rate‑limited (max 100 pps) to prevent disruption."
+  ]
+}

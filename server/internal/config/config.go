@@ -17,6 +17,8 @@ type Config struct {
 	NucleiContainer       string
 	SearchsploitContainer string
 	MetasploitContainer   string
+	GoDorkContainer       string
+	GauContainer          string
 }
 
 func Load() (*Config, error) {
@@ -30,6 +32,8 @@ func Load() (*Config, error) {
 		NucleiContainer:       getEnv("NUCLEI_CONTAINER", "nuclei"),
 		SearchsploitContainer: getEnv("SEARCHSPLOIT_CONTAINER", "searchsploit"),
 		MetasploitContainer:   getEnv("METASPLOIT_CONTAINER", "metasploit"),
+		GoDorkContainer:       getEnv("GO_DORK_CONTAINER", "go-dork"),
+		GauContainer:          getEnv("GAU_CONTAINER", "gau"),
 	}
 
 	if err := cfg.validate(); err != nil {

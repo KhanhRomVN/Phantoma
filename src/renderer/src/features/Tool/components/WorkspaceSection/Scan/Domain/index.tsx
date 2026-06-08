@@ -1,29 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { cn } from '../../../../../../shared/lib/utils';
-import { ScanOverview } from './components/Overview';
-import { DomainZoneTransfer } from './components/ZoneTransfer';
-import { DomainDNSBrute } from './components/DNSBrute';
-import { ScanLog } from './components/Log';
-import { ScanSearch } from './components/Search';
-import { ScanHistory } from './components/History';
-import {
-  Activity,
-  Globe,
-  Search,
-  Terminal,
-} from 'lucide-react';
+import { useDomainScan } from './hooks/useDomainScan';
 
-// Optional sample data
-import sampleData from './data/scan-sample.json';
+import { SectionHeader } from './components/shared/SectionHeader';
+import { DataTable } from './components/shared/DataTable';
+import { Overview } from './components/Overview';
+import { ZoneTransfer } from './components/ZoneTransfer';
+import { DnsBruteforce } from './components/DnsBruteforce';
+import { DnsEnumeration } from './components/DnsEnumeration';
+import { DnsMisconfig } from './components/DnsMisconfig';
 
-// Types
-import type { DomainScanSession, ScanDomainStatus, ScanDomainData, ScanSubTabId } from './types/scan-data';
+import { ChevronDown, Search as SearchIcon, Play, Square, RefreshCw } from 'lucide-react';
+import { getTabIcon } from './constants/icons';
 
-// ============================================================================
-// Status & Session Data
-// ============================================================================
+interface DomainSession {
+  id: string;
+  domain: string;
+  ip?: string;
+  status: 'idle' | 'queued' | 'scanning' | 'done' | 'error';
+  progress: number;
+  riskScore?: number;
+}
 
-const STATUS_META: Record<ScanDomainStatus, { label: string; color: string; pulse?: boolean }> = {
+type DomainStatus = DomainSession['status'];
+
+const STATUS_META: Record<DomainStatus, { label: string; color: string; pulse?: boolean }> = {
   idle: { label: 'IDLE', color: '#3a4558' },
   queued: { label: 'QUEUED', color: '#f5a623', pulse: true },
   scanning: { label: 'SCANNING', color: '#0af', pulse: true },
@@ -31,58 +32,26 @@ const STATUS_META: Record<ScanDomainStatus, { label: string; color: string; puls
   error: { label: 'ERROR', color: '#ff2d55' },
 };
 
-const DEFAULT_SESSIONS: DomainScanSession[] = [
+const DEFAULT_SESSIONS: DomainSession[] = [
   {
     id: 'scan-sess-1',
-    domain: 'example.com',
+    domain: 'phantoma.com',
+    ip: '104.18.32.11',
     status: 'done',
     progress: 100,
-    riskScore: 42,
-    stats: { zoneTransferSuccess: true, subdomainsResolved: 12, totalRecords: 27 },
+    riskScore: 72,
   },
 ];
 
-// TODO: Replace with actual API call
-async function fetchScanData(domain: string): Promise<ScanDomainData | null> {
-  console.log(`[DomainScan] Fetching data for: ${domain}`);
-
-  try {
-    if (typeof sampleData !== 'undefined' && sampleData && sampleData.target === domain) {
-      console.log('[DomainScan] Using sample data from scan-sample.json');
-      // @ts-ignore
-      return sampleData;
-    }
-  } catch (e) {
-    console.log('[DomainScan] Sample data not available, using API');
-  }
-
-  // TODO: Implement real API call here
-  console.log('[DomainScan] No data source available, returning null');
-  return null;
-}
-
-// ============================================================================
-// Tab Configuration
-// ============================================================================
-
-const SUB_TABS = [
-  { id: 'overview', label: 'Overview', accent: '#0af' },
-  { id: 'zone-transfer', label: 'Zone Transfer', accent: '#30d158' },
-  { id: 'dns-brute', label: 'DNS Brute', accent: '#f5a623' },
-  { id: 'terminal', label: 'Log', accent: '#30d158' },
-] as const;
-
-// ============================================================================
-// Main Component
-// ============================================================================
+const DATA_CACHE: Record<string, Record<string, unknown>> = {};
 
 interface DomainScanProps {
   initialDomain?: string;
 }
 
-export default function DomainScan({ initialDomain = 'example.com' }: DomainScanProps) {
-  // State for sessions (target list)
-  const [sessions, setSessions] = useState<DomainScanSession[]>(DEFAULT_SESSIONS);
+export default function DomainScan({ initialDomain = 'phantoma.com' }: DomainScanProps) {
+  // Session management
+  const [sessions, setSessions] = useState<DomainSession[]>(DEFAULT_SESSIONS);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [contextMenu, setContextMenu] = useState<{
@@ -92,56 +61,59 @@ export default function DomainScan({ initialDomain = 'example.com' }: DomainScan
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // State for active domain and panel
+  // Active domain
   const [activeDomain, setActiveDomain] = useState<string>(initialDomain);
-  const [activeSubTab, setActiveSubTab] = useState<ScanSubTabId>('overview');
-  const [domainInput, setDomainInput] = useState(activeDomain);
 
-  // State for dropdowns
-  const [showTabsDropdown, setShowTabsDropdown] = useState(false);
-  const [showRunSelectedDropdown, setShowRunSelectedDropdown] = useState(false);
-  const [selectedTabs, setSelectedTabs] = useState<Set<ScanSubTabId>>(new Set());
+  // Domain scan hook
+  const {
+    result,
+    categoryGroups,
+    activeTab,
+    filteredDataPoints,
+    isLoading,
+    error,
+    loadData,
+    setActiveTab,
+  } = useDomainScan();
 
-  // State for search
+  // Search state
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [showTabsDropdown, setShowTabsDropdown] = useState(false);
 
-  // State for history mode
-  const [isHistoryMode, setIsHistoryMode] = useState(false);
-  const [historyViewData, setHistoryViewData] = useState<ScanDomainData | null>(null);
-
-  // Data fetching state
-  const [data, setData] = useState<ScanDomainData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const activeTab = SUB_TABS.find((t) => t.id === activeSubTab)!;
-
-  // Fetch data for a domain
-  const fetchData = async (domain: string) => {
-    setIsLoading(true);
-    const result = await fetchScanData(domain);
-    setData(result);
-    setIsLoading(false);
-  };
-
-  // Update input when activeDomain changes
+  // Load data when active domain changes
   useEffect(() => {
-    setDomainInput(activeDomain);
-  }, [activeDomain]);
-
-  // Fetch data when activeDomain changes
-  useEffect(() => {
-    if (activeDomain) {
-      fetchData(activeDomain);
+    const cached = DATA_CACHE[activeDomain];
+    if (cached) {
+      loadData(cached);
+      return;
     }
-  }, [activeDomain]);
+    if (activeDomain === 'phantoma.com') {
+      import('./data/phantoma.com.json')
+        .then((mod) => {
+          const data = mod.default as unknown as Record<string, unknown>;
+          DATA_CACHE['phantoma.com'] = data;
+          loadData(data);
+        })
+        .catch((err) => console.error('Failed to load scan data:', err));
+    }
+  }, [activeDomain, loadData]);
 
-  const handleLookup = () => {
-    if (!domainInput.trim()) return;
-    setActiveDomain(domainInput.trim());
-  };
+  // Context menu click outside
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
-  // Target list functions
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.tabs-dropdown-container')) setShowTabsDropdown(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const addDomain = useCallback(() => {
     const d = newDomain
       .trim()
@@ -150,12 +122,11 @@ export default function DomainScan({ initialDomain = 'example.com' }: DomainScan
       .replace(/\/.*$/, '');
     if (!d) return;
     if (sessions.some((s) => s.domain === d)) return;
-    const sess: DomainScanSession = {
+    const sess: DomainSession = {
       id: `scan-sess-${Date.now()}`,
       domain: d,
       status: 'queued',
       progress: 0,
-      stats: { zoneTransferSuccess: false, subdomainsResolved: 0, totalRecords: 0 },
     };
     setSessions((prev) => [...prev, sess]);
     setNewDomain('');
@@ -166,132 +137,210 @@ export default function DomainScan({ initialDomain = 'example.com' }: DomainScan
     setSessions((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
-  const runDomain = useCallback((domain: string) => {
-    console.log('Running full scan for:', domain);
-  }, []);
-
   const handleContextMenu = (e: React.MouseEvent, sessionId: string) => {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, sessionId });
   };
 
-  useEffect(() => {
-    const handleClickOutside = () => setContextMenu(null);
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.tabs-dropdown-container')) {
-        setShowTabsDropdown(false);
-      }
-      if (!target.closest('.run-selected-dropdown-container')) {
-        setShowRunSelectedDropdown(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  // Handlers
-  const handleRunSelectedClick = () => setShowRunSelectedDropdown(!showRunSelectedDropdown);
-
-  const handleConfirmRunSelected = () => {
-    console.log('Running selected tabs:', Array.from(selectedTabs));
-    setShowRunSelectedDropdown(false);
-  };
-
-  const handleOpenHistory = () => {
-    setIsHistoryMode(true);
-    setHistoryViewData(null);
-  };
-
-  const handleSelectHistory = (historyScanData: ScanDomainData) => {
-    setHistoryViewData(historyScanData);
-  };
-
-  const handleBackFromHistory = () => {
-    setIsHistoryMode(false);
-    setHistoryViewData(null);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    setIsSearchMode(value.trim().length > 0);
-  };
-
-  const handleSearchResultClick = (tabId: string) => {
-    setActiveSubTab(tabId as ScanSubTabId);
-    setIsSearchMode(false);
+  const handleClearSearch = () => {
     setSearchQuery('');
   };
 
-  const renderContent = () => {
-    // Search mode
-    if (isSearchMode && searchQuery.trim()) {
-      return <ScanSearch data={data} searchQuery={searchQuery} onResultClick={handleSearchResultClick} />;
-    }
-
-    // History mode
-    if (isHistoryMode) {
-      return <ScanHistory onSelectHistory={handleSelectHistory} onBack={handleBackFromHistory} />;
-    }
-
-    // Viewing history data
-    if (historyViewData) {
-      return renderNormalContent(historyViewData);
-    }
-
-    // Normal mode
-    return renderNormalContent(data);
+  const handleStartScan = (sessionId: string) => {
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === sessionId ? { ...s, status: 'scanning', progress: 0 } : s,
+      ),
+    );
+    setContextMenu(null);
+    // Simulate scan progress
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 15 + 5;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === sessionId
+              ? { ...s, status: 'done', progress: 100, riskScore: Math.floor(Math.random() * 40 + 40) }
+              : s,
+          ),
+        );
+      } else {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? { ...s, progress: Math.floor(progress) } : s)),
+        );
+      }
+    }, 300);
   };
 
-  const renderNormalContent = (scanData: ScanDomainData | null) => {
-    if (!scanData) {
+  const activeGroup = categoryGroups.find((g) => g.id === activeTab);
+
+  // Search-filtered data points
+  const displayDataPoints = useMemo(() => {
+    if (!searchQuery.trim()) return filteredDataPoints;
+    const lower = searchQuery.toLowerCase();
+    return filteredDataPoints.filter((dp) => {
+      const label = dp.label.toLowerCase();
+      const displayVal = (dp.displayValue || '').toLowerCase();
+      const val = String(dp.value || '').toLowerCase();
+      const source = dp.source.name.toLowerCase();
       return (
-        <div className="flex-1 flex items-center justify-center flex-col gap-3 bg-[#0f1319]">
-          <div className="text-[32px] opacity-15">🛡️</div>
-          <div className="text-[11px] font-mono text-[#2a3548]">
-            Enter a domain and click "Scan" to start active DNS scanning
+        label.includes(lower) ||
+        displayVal.includes(lower) ||
+        val.includes(lower) ||
+        source.includes(lower)
+      );
+    });
+  }, [filteredDataPoints, searchQuery]);
+
+  // Render main content
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex-1 flex items-center justify-center flex-col gap-3">
+          <div className="text-[24px] animate-pulse">⏳</div>
+          <div className="text-[12px] font-mono text-[#c8d6f0]">
+            Processing active scan data...
           </div>
         </div>
       );
     }
 
-    switch (activeSubTab) {
+    if (error) {
+      return (
+        <div className="flex-1 flex items-center justify-center flex-col gap-3">
+          <div className="text-[24px] opacity-15">⚠️</div>
+          <div className="text-[12px] font-mono text-[#ff2d55]">{error}</div>
+        </div>
+      );
+    }
+
+    if (!result) {
+      return (
+        <div className="flex-1 flex items-center justify-center flex-col gap-3 bg-[#0f1319]">
+          <div className="text-[32px] opacity-15">🔍</div>
+          <div className="text-[12px] font-mono text-[#c8d6f0]">
+            Select a domain and run an active scan to view results
+          </div>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
       case 'overview':
-        return <ScanOverview data={scanData} />;
-      case 'zone-transfer':
-        return <DomainZoneTransfer data={scanData} />;
-      case 'dns-brute':
-        return <DomainDNSBrute data={scanData} />;
-      case 'terminal':
-        return <ScanLog data={scanData} />;
+        return <Overview result={result} />;
+
+      case 'zone_transfer':
+        return <ZoneTransfer dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
+
+      case 'dns_bruteforce':
+        return <DnsBruteforce dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
+
+      case 'dns_enum':
+        return <DnsEnumeration dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
+
+      case 'misconfig':
+        return <DnsMisconfig dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
+
+      case 'raw':
+        return (
+          <div className="flex-1 overflow-y-auto p-3">
+            <SectionHeader accent="#6a7a9a">
+              Raw & Noise Data ({displayDataPoints.length})
+            </SectionHeader>
+            <DataTable
+              dataPoints={displayDataPoints}
+              columns={['value', 'category', 'severity', 'confidence', 'source']}
+            />
+          </div>
+        );
+
+      case 'sources':
+        return (
+          <div className="flex-1 overflow-y-auto p-3">
+            <SectionHeader accent="#6a7a9a">
+              Data Sources ({result.sources.length})
+            </SectionHeader>
+            <div className="space-y-1">
+              {result.sources.map((src) => (
+                <div
+                  key={src.id}
+                  className="flex items-center justify-between px-3 py-2 bg-[#0a0e14] border border-[#111827] rounded"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-mono text-[#c8d6f0]">{src.name}</span>
+                    <span className="text-[9px] font-mono text-[#3a4558] bg-[#111827] px-1 rounded">
+                      {src.type}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-1 bg-[#111827] rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.round(src.credibility * 100)}%`,
+                          backgroundColor:
+                            src.credibility >= 0.7
+                              ? '#30d158'
+                              : src.credibility >= 0.4
+                                ? '#f5a623'
+                                : '#ff2d55',
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-[#6a7a9a] w-8 text-right">
+                      {Math.round(src.credibility * 100)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
       default:
+        if (activeGroup && displayDataPoints.length > 0) {
+          return (
+            <div className="flex-1 overflow-y-auto p-3">
+              <SectionHeader accent={activeGroup.accent}>
+                {activeGroup.label} ({displayDataPoints.length})
+              </SectionHeader>
+              <DataTable
+                dataPoints={displayDataPoints}
+                columns={['value', 'category', 'severity', 'confidence', 'source']}
+              />
+            </div>
+          );
+        }
+        if (activeGroup) {
+          return (
+            <div className="flex-1 flex items-center justify-center flex-col gap-2 p-3">
+              <span className="text-[24px] opacity-15">📭</span>
+              <span className="text-[12px] font-mono text-[#6a7a9a]">No data in this category</span>
+              <span className="text-[10px] font-mono text-[#3a4558]">
+                {activeGroup.description}
+              </span>
+            </div>
+          );
+        }
         return null;
     }
   };
 
-  const isInHistoryOrView = isHistoryMode || !!historyViewData;
-
   return (
     <div className="flex flex-1 overflow-hidden bg-[#0f1319]">
-      {/* Left panel: Target list */}
+      {/* ── Left sidebar: Domains ── */}
       <div className="w-[293px] bg-[#0f1319] border-r border-[#1c2333] flex flex-col shrink-0 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-3 h-[40px] border-b border-[#1c2333] shrink-0 bg-[#0f1319]">
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-bold tracking-[0.12em] text-[#c8d6f0] font-mono">
-              Domains
-            </span>
-          </div>
+        {/* Domains header */}
+        <div className="flex items-center justify-between px-3 h-[40px] border-b border-[#1c2333] shrink-0">
+          <span className="text-[13px] font-bold tracking-[0.12em] text-[#c8d6f0] font-mono">
+            Active Scan
+          </span>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="text-[#2a3548] hover:text-[#0af] hover:bg-[#0af15] transition-all p-1 rounded"
+            className="text-[#c8d6f0] hover:text-[#0af] hover:bg-[#0af15] transition-all p-1 rounded"
             title="Add domain"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -323,7 +372,7 @@ export default function DomainScan({ initialDomain = 'example.com' }: DomainScan
                 }}
                 placeholder="example.com"
                 spellCheck={false}
-                className="flex-1 h-7 bg-[#040608] border border-[#1c2333] rounded px-2 text-[11px] font-mono text-[#0af] outline-none placeholder:text-[#2a3548]"
+                className="flex-1 h-7 bg-[#040608] border border-[#1c2333] rounded px-2 text-[11px] font-mono text-[#0af] outline-none placeholder:text-[#3a4558]"
                 style={{ caretColor: '#0af' }}
               />
               <button
@@ -337,156 +386,244 @@ export default function DomainScan({ initialDomain = 'example.com' }: DomainScan
           </div>
         )}
 
-        {/* Cards list */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-[#0f1319]">
+        {/* Session list */}
+        <div className="overflow-y-auto p-1.5 space-y-1 flex-1">
           {sessions.map((sess) => {
-            const meta = STATUS_META[sess.status];
+            const statusMeta = STATUS_META[sess.status];
             const isActive = sess.domain === activeDomain;
+            const riskScore = sess.riskScore;
+            const riskColor: string | undefined =
+              riskScore !== undefined
+                ? riskScore >= 75
+                  ? '#ff2d55'
+                  : riskScore >= 50
+                    ? '#f5a623'
+                    : '#30d158'
+                : undefined;
             return (
               <div
                 key={sess.id}
                 onClick={() => setActiveDomain(sess.domain)}
                 onContextMenu={(e) => handleContextMenu(e, sess.id)}
                 className={cn(
-                  'p-2 rounded cursor-pointer transition-all relative',
-                  isActive ? 'bg-[#0d1017]' : 'bg-[#0a0e14] hover:bg-[#111827]',
+                  'group px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 relative',
+                  isActive ? 'bg-[#0d1017]' : 'bg-[#0a0e14] hover:bg-[#0c1016]',
                 )}
               >
                 {isActive && (
                   <div
-                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                    style={{ background: meta.color }}
+                    className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
+                    style={{ background: statusMeta.color }}
                   />
                 )}
-                <div className="flex items-center gap-2 pl-1">
+
+                <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      'w-1.5 h-1.5 rounded-full shrink-0',
+                      statusMeta.pulse && 'animate-pulse',
+                    )}
+                    style={{ background: statusMeta.color }}
+                    title={statusMeta.label}
+                  />
                   <span
-                    className="text-[13px] font-mono font-bold flex-1 truncate"
-                    style={{ color: isActive ? '#c8d6f0' : '#6a7a9a' }}
+                    className="text-[12px] font-mono font-semibold truncate flex-1 min-w-0 leading-tight"
+                    style={{ color: isActive ? '#e4e4e7' : '#a1a1aa' }}
                   >
                     {sess.domain}
                   </span>
+                  {riskScore !== undefined && (
+                    <span
+                      className="text-[10px] font-mono font-bold shrink-0 tabular-nums"
+                      style={{ color: riskColor }}
+                    >
+                      {riskScore}
+                    </span>
+                  )}
                 </div>
+
+                {sess.ip && (
+                  <div className="mt-1 ml-[14px]">
+                    <span className="text-[10px] font-mono text-[#3a4558] truncate block">
+                      {sess.ip}
+                    </span>
+                  </div>
+                )}
+
+                {/* Progress bar */}
+                {sess.status === 'scanning' && (
+                  <div className="mt-1.5 ml-[14px]">
+                    <div className="h-[2px] bg-[#111827] rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${sess.progress}%`, background: '#0af' }}
+                      />
+                    </div>
+                    <span className="text-[9px] font-mono text-[#0af] mt-0.5 block">
+                      {sess.progress}%
+                    </span>
+                  </div>
+                )}
+
+                {riskScore !== undefined && sess.status === 'done' && (
+                  <div className="mt-1.5 ml-[14px] h-[2px] bg-[#111827] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${riskScore}%`, background: riskColor }}
+                    />
+                  </div>
+                )}
+
+                {sess.status !== 'done' && sess.status !== 'scanning' && (
+                  <div className="mt-1 ml-[14px]">
+                    <span className="text-[9px] font-mono" style={{ color: statusMeta.color }}>
+                      {sess.status === 'queued'
+                        ? 'Queued...'
+                        : sess.status === 'error'
+                          ? 'Error'
+                          : 'Idle'}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-
-        {/* Context Menu */}
-        {contextMenu && (
-          <div
-            ref={menuRef}
-            className="fixed z-50 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1 min-w-[160px]"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-          >
-            <button
-              onClick={() => {
-                const session = sessions.find((s) => s.id === contextMenu.sessionId);
-                if (session) runDomain(session.domain);
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#0af] hover:bg-[#1c2333] transition-colors"
-            >
-              ▶ Run Full Scan
-            </button>
-            <button
-              onClick={() => {
-                handleOpenHistory();
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#30d158] hover:bg-[#1c2333] transition-colors"
-            >
-              📜 Open History
-            </button>
-            <button
-              onClick={() => {
-                handleRunSelectedClick();
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#ff9f0a] hover:bg-[#1c2333] transition-colors"
-            >
-              ✓ Run Selected
-            </button>
-            <div className="border-t border-[#1c2333] my-1" />
-            <button
-              onClick={() => {
-                removeDomain(contextMenu.sessionId);
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#ff2d55] hover:bg-[#1c2333] transition-colors"
-            >
-              ✕ Delete
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Right panel: Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#0f1319]">
-        <div className="flex flex-col flex-1 overflow-hidden bg-[#0f1319]">
-          <div className="flex items-center justify-between px-3 h-10 bg-[#0f1319] border-b border-[#1c2333] shrink-0">
-            <span className="text-[12px] font-mono font-bold text-[#c8d6f0]">
-              {activeTab.label}
-            </span>
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search..."
-                className="h-7 w-[21rem] bg-[#0d1017] border border-[#1c2333] rounded text-[#0af] text-[11px] px-2 outline-none font-mono placeholder:text-[#2a3548]"
-              />
-              <div className="relative tabs-dropdown-container">
-                <button
-                  onClick={() => setShowTabsDropdown(!showTabsDropdown)}
-                  className="h-6 w-6 flex items-center justify-center bg-[#1c2333] border border-[#2a3548] text-[#6a7a9a] rounded hover:text-[#c8d6f0] hover:border-[#0af30] transition-colors"
-                  title="Switch tab"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="6" r="2" />
-                    <circle cx="12" cy="12" r="2" />
-                    <circle cx="12" cy="18" r="2" />
-                  </svg>
-                </button>
-                {showTabsDropdown && (
-                  <div className="absolute right-0 top-8 z-50 w-48 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1">
-                    {SUB_TABS.map((tab) => {
-                      const getIcon = () => {
-                        switch (tab.id) {
-                          case 'overview': return <Activity className="w-3.5 h-3.5" />;
-                          case 'zone-transfer': return <Globe className="w-3.5 h-3.5" />;
-                          case 'dns-brute': return <Search className="w-3.5 h-3.5" />;
-                          case 'terminal': return <Terminal className="w-3.5 h-3.5" />;
-                          default: return <Activity className="w-3.5 h-3.5" />;
-                        }
-                      };
+      {/* Context menu */}
+      {contextMenu && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1 min-w-[140px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button
+            onClick={() => handleStartScan(contextMenu.sessionId)}
+            className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#0af] hover:bg-[#1c2333] transition-colors flex items-center gap-2"
+          >
+            <Play className="w-3 h-3" /> Run Active Scan
+          </button>
+          <div className="border-t border-[#1c2333] my-1" />
+          <button
+            onClick={() => {
+              removeDomain(contextMenu.sessionId);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#ff2d55] hover:bg-[#1c2333] transition-colors"
+          >
+            ✕ Delete
+          </button>
+        </div>
+      )}
 
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => {
-                            setActiveSubTab(tab.id);
-                            setShowTabsDropdown(false);
-                          }}
-                          className={cn(
-                            "w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-mono transition-colors",
-                            activeSubTab === tab.id
-                              ? "bg-[#0af15] text-[#0af]"
-                              : "text-[#c8d6f0] hover:bg-[#1c2333]"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            {getIcon()}
-                            <span>{tab.label}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+      {/* ── Main panel ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex items-center justify-between px-3 h-10 bg-[#0f1319] border-b border-[#1c2333] shrink-0">
+            <div className="relative tabs-dropdown-container">
+              <button
+                onClick={() => setShowTabsDropdown(!showTabsDropdown)}
+                className="flex items-center gap-2 text-[#c8d6f0] hover:text-[#0af] transition-colors group"
+                title="Switch tab"
+              >
+                {(() => {
+                  const iconName = activeGroup?.icon || 'LayoutDashboard';
+                  const TabIcon = getTabIcon(iconName);
+                  return (
+                    <TabIcon className="w-4 h-4 text-[#6a7a9a] group-hover:text-[#0af] transition-colors" />
+                  );
+                })()}
+                <span className="text-[13px] font-mono font-bold">
+                  {activeGroup?.label || 'Overview'}
+                </span>
+                <ChevronDown className="w-3 h-3 text-[#6a7a9a] group-hover:text-[#0af] transition-colors" />
+              </button>
+              {showTabsDropdown && (
+                <div className="absolute left-0 top-8 z-50 w-52 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1">
+                  {categoryGroups
+                    .filter((g) => g.isActive)
+                    .map((group) => (
+                      <button
+                        key={group.id}
+                        onClick={() => {
+                          setActiveTab(group.id);
+                          setShowTabsDropdown(false);
+                        }}
+                        className={cn(
+                          'w-full flex items-center justify-between px-3 py-1.5 text-[12px] font-mono transition-colors',
+                          activeTab === group.id
+                            ? 'bg-[#0af15] text-[#0af]'
+                            : 'text-[#c8d6f0] hover:bg-[#1c2333]',
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const ItemIcon = getTabIcon(group.icon);
+                            return (
+                              <ItemIcon
+                                className="w-3 h-3 shrink-0 -mt-0.5"
+                                style={{ color: group.accent }}
+                              />
+                            );
+                          })()}
+                          <span>{group.label}</span>
+                        </div>
+                        {group.count > 0 && (
+                          <span className="text-[10px] text-[#6a7a9a]">({group.count})</span>
+                        )}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Searchbar */}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3a4558]" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search data..."
+                  spellCheck={false}
+                  className="w-[320px] h-7 bg-[#040608] border border-[#1c2333] rounded pl-6 pr-2 text-[11px] font-mono text-[#c8d6f0] outline-none placeholder:text-[#6a7a9a] focus:border-[#0af30] transition-colors"
+                  style={{ caretColor: '#0af' }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#3a4558] hover:text-[#ff2d55] transition-colors"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
                 )}
               </div>
+              <button
+                onClick={() => {
+                  const activeSess = sessions.find((s) => s.domain === activeDomain);
+                  if (activeSess) handleStartScan(activeSess.id);
+                }}
+                className="h-7 w-7 flex items-center justify-center rounded bg-[#1c2333] border border-[#2a3548] text-[#6a7a9a] hover:text-[#c8d6f0] hover:border-[#0af30] transition-colors"
+                title="Run Scan"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
             </div>
           </div>
-          {renderContent()}
+
+          {/* Main content */}
+          <div className="flex-1 flex overflow-hidden">{renderContent()}</div>
         </div>
       </div>
     </div>

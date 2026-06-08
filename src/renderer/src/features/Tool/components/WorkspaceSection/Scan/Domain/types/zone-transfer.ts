@@ -1,16 +1,16 @@
-// Zone Transfer Types for ZoneTransfer component
+// Zone Transfer Types for Active Scan
 
-export interface DNSRecord {
-  name: string;
-  type: string;
-  ttl: number;
-  data: string;
-}
-
-export interface ZoneTransferResult {
+export interface ZoneTransferAttempt {
   nameserver: string;
   success: boolean;
   error?: string;
-  records: DNSRecord[];
-  recordCount: number;
+  records?: ZoneRecord[];
+  note?: string;
+}
+
+export interface ZoneRecord {
+  name: string;
+  type: string;
+  value: string;
+  ttl: number;
 }

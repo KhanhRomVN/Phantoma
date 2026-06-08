@@ -1,0 +1,1548 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phantoma — EMULATE Module</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        background: #0a0b0e;
+        color: #c9d1d9;
+      }
+
+      :root {
+        --bg:       #0a0b0e;
+        --bg2:      #0f1117;
+        --bg3:      #161b22;
+        --bg4:      #1c2128;
+        --border:   #21262d;
+        --border2:  #30363d;
+        --text:     #e6edf3;
+        --text2:    #7d8590;
+        --text3:    #484f58;
+        --blue:     #0af;
+        --red:      #ff2d55;
+        --green:    #30d158;
+        --purple:   #bf5af2;
+        --orange:   #ff6b35;
+        --yellow:   #f5a623;
+        --cyan:     #5ac8fa;
+        --pink:     #ff375f;
+      }
+
+      /* ── App shell ── */
+      .tool-container {
+        display: flex;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      /* ── ModuleBar ── */
+      .module-bar {
+        width: 240px;
+        flex-shrink: 0;
+        background: var(--bg3);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .mb-logo {
+        height: 48px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .mb-logo-icon {
+        width: 26px; height: 26px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, var(--blue), var(--purple));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px; font-weight: 900; color: #fff;
+      }
+      .mb-logo-text { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: 0.05em; }
+      .mb-section-title {
+        font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+        text-transform: uppercase; color: var(--text3);
+        padding: 14px 16px 5px;
+      }
+      .mb-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 7px 16px; cursor: pointer;
+        font-size: 11.5px; color: var(--text2);
+        border-left: 2px solid transparent;
+        transition: all 0.12s;
+        user-select: none;
+      }
+      .mb-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+      .mb-item.active {
+        color: var(--blue);
+        border-left-color: var(--blue);
+        background: rgba(0,170,255,0.07);
+      }
+      .mb-item .mi-icon { width: 16px; text-align: center; font-size: 12px; flex-shrink: 0; }
+      .mb-item .mi-badge {
+        margin-left: auto;
+        font-size: 9px; font-weight: 700;
+        padding: 1px 5px; border-radius: 999px;
+        background: rgba(0,170,255,0.15); color: var(--blue);
+      }
+      .mb-item .mi-badge.red { background: rgba(255,45,85,0.15); color: var(--red); }
+      .mb-item .mi-badge.green { background: rgba(48,209,88,0.15); color: var(--green); }
+
+      /* ── Workspace + IntelPanel ── */
+      .workspace-panel-container {
+        display: flex; flex: 1; min-width: 0; overflow: hidden;
+      }
+
+      /* ── Workspace ── */
+      .workspace {
+        flex: 1; display: flex; flex-direction: column;
+        min-width: 0; overflow: hidden;
+      }
+
+      /* ── WorkspaceTopbar ── */
+      .workspace-topbar {
+        height: 38px; flex-shrink: 0;
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center;
+        padding: 0 14px; gap: 8px;
+      }
+      .wtb-breadcrumb {
+        display: flex; align-items: center; gap: 5px;
+        font-size: 11px; color: var(--text2);
+      }
+      .wtb-breadcrumb .sep { color: var(--text3); }
+      .wtb-breadcrumb .cur { color: var(--text); font-weight: 600; }
+      .wtb-actions { margin-left: auto; display: flex; gap: 5px; }
+      .wtb-btn {
+        height: 24px; padding: 0 9px;
+        background: var(--bg4); border: 1px solid var(--border2);
+        border-radius: 5px; color: var(--text2); font-size: 10.5px;
+        font-family: inherit; cursor: pointer;
+        display: flex; align-items: center; gap: 4px;
+        transition: all 0.12s;
+      }
+      .wtb-btn:hover { color: var(--text); border-color: var(--text3); }
+      .wtb-btn.primary {
+        background: rgba(0,170,255,0.15); border-color: rgba(0,170,255,0.3);
+        color: var(--blue);
+      }
+
+      /* ── Workspace Content = EMULATE module ── */
+      .workspace-content {
+        flex: 1; overflow: hidden; background: var(--bg);
+        display: flex; flex-direction: column;
+      }
+
+      /* ── StatusBar ── */
+      .status-bar {
+        height: 22px; flex-shrink: 0;
+        background: var(--bg3); border-top: 1px solid var(--border);
+        display: flex; align-items: center; gap: 16px;
+        padding: 0 12px; font-size: 10px; color: var(--text2);
+      }
+      .sb-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+      .sb-item { display: flex; align-items: center; gap: 4px; }
+      .sb-item.ok .sb-dot { background: var(--green); }
+      .sb-item.warn .sb-dot { background: var(--yellow); }
+      .sb-item.err .sb-dot { background: var(--red); }
+      .sb-right { margin-left: auto; display: flex; gap: 14px; }
+
+      /* ══════════════════════════════════════════
+         EMULATE MODULE UI
+      ══════════════════════════════════════════ */
+
+      /* Tab bar */
+      .em-tabs {
+        display: flex; align-items: center;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+        padding: 0 14px;
+        flex-shrink: 0;
+        gap: 2px;
+        overflow-x: auto;
+      }
+      .em-tabs::-webkit-scrollbar { height: 0; }
+      .em-tab {
+        height: 38px; display: flex; align-items: center; gap: 5px;
+        padding: 0 12px; font-size: 11.5px; font-weight: 600;
+        color: var(--text2); cursor: pointer;
+        border-bottom: 2px solid transparent;
+        white-space: nowrap;
+        transition: all 0.12s;
+        user-select: none;
+      }
+      .em-tab:hover { color: var(--text); }
+      .em-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+      .em-tab .tb-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+      }
+      .em-tab-actions { margin-left: auto; display: flex; gap: 6px; padding: 0 0 0 12px; }
+      .em-act-btn {
+        height: 26px; padding: 0 10px;
+        background: var(--bg4); border: 1px solid var(--border2);
+        border-radius: 5px; font-family: inherit; font-size: 10.5px;
+        color: var(--text2); cursor: pointer;
+        display: flex; align-items: center; gap: 4px;
+        transition: all 0.12s;
+      }
+      .em-act-btn:hover { color: var(--text); border-color: var(--text3); }
+      .em-act-btn.run {
+        background: rgba(48,209,88,0.12); border-color: rgba(48,209,88,0.3);
+        color: var(--green);
+      }
+      .em-act-btn.stop {
+        background: rgba(255,45,85,0.12); border-color: rgba(255,45,85,0.3);
+        color: var(--red);
+      }
+      .em-act-btn.rec {
+        background: rgba(255,45,85,0.1); border-color: rgba(255,45,85,0.28);
+        color: var(--red);
+      }
+      .em-act-btn.rec.active { animation: recpulse 1.4s ease-in-out infinite; }
+      @keyframes recpulse {
+        0%,100% { background: rgba(255,45,85,0.1); }
+        50% { background: rgba(255,45,85,0.22); }
+      }
+
+      /* Tab panels */
+      .em-panel { display: none; flex: 1; overflow: hidden; }
+      .em-panel.active { display: flex; }
+
+      /* ── SHARED LAYOUT HELPERS ── */
+      .split-h { display: flex; height: 100%; overflow: hidden; }
+      .split-v { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+      .pane { overflow: hidden; }
+      .pane-scroll { overflow-y: auto; }
+      .pane-scroll::-webkit-scrollbar { width: 4px; }
+      .pane-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+      .pane-hdr {
+        height: 32px; display: flex; align-items: center;
+        padding: 0 12px; gap: 7px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2); flex-shrink: 0;
+        font-size: 10px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.08em; color: var(--text2);
+      }
+      .pane-hdr-actions { margin-left: auto; display: flex; gap: 4px; }
+      .ico-btn {
+        width: 22px; height: 22px; border-radius: 4px;
+        background: none; border: none; cursor: pointer;
+        color: var(--text2); font-size: 11px;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.12s;
+      }
+      .ico-btn:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+
+      /* ── FORM / INPUT ── */
+      .em-input {
+        height: 28px; background: var(--bg4);
+        border: 1px solid var(--border2); border-radius: 5px;
+        color: var(--text); font-size: 11.5px; font-family: inherit;
+        padding: 0 9px; outline: none;
+        transition: border-color 0.12s;
+      }
+      .em-input:focus { border-color: rgba(0,170,255,0.4); }
+      .em-input::placeholder { color: var(--text3); }
+      .em-select {
+        height: 28px; background: var(--bg4);
+        border: 1px solid var(--border2); border-radius: 5px;
+        color: var(--text); font-size: 11px; font-family: inherit;
+        padding: 0 8px; outline: none; cursor: pointer;
+      }
+      .em-textarea {
+        background: var(--bg4); border: 1px solid var(--border2);
+        border-radius: 5px; color: var(--text); font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+        padding: 8px 10px; outline: none; resize: none;
+        line-height: 1.6;
+        transition: border-color 0.12s;
+      }
+      .em-textarea:focus { border-color: rgba(0,170,255,0.35); }
+      .em-label { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.07em; }
+
+      /* ── CARD ── */
+      .em-card {
+        background: var(--bg3); border: 1px solid var(--border);
+        border-radius: 8px; padding: 10px 12px;
+      }
+      .em-card:hover { border-color: var(--border2); }
+
+      /* STATUS BADGE */
+      .sbadge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 7px; border-radius: 999px;
+        font-size: 9.5px; font-weight: 700; border: 1px solid transparent;
+      }
+      .sbadge.running { background: rgba(48,209,88,0.12); color: var(--green); border-color: rgba(48,209,88,0.28); }
+      .sbadge.idle { background: rgba(125,133,144,0.12); color: var(--text2); border-color: var(--border); }
+      .sbadge.error { background: rgba(255,45,85,0.12); color: var(--red); border-color: rgba(255,45,85,0.28); }
+      .sbadge.held { background: rgba(245,166,35,0.12); color: var(--yellow); border-color: rgba(245,166,35,0.28); }
+      .sbadge.done { background: rgba(0,170,255,0.1); color: var(--blue); border-color: rgba(0,170,255,0.25); }
+
+      /* ── DIVIDER RESIZE ── */
+      .vdivider {
+        width: 1px; background: var(--border); flex-shrink: 0;
+        cursor: col-resize; position: relative;
+      }
+      .vdivider::after {
+        content: ''; position: absolute; left: -2px; top: 0;
+        width: 5px; height: 100%;
+      }
+
+      /* ── LOG LINE ── */
+      .log-line { display: flex; gap: 8px; padding: 2px 10px; font-size: 11px; line-height: 1.55; }
+      .log-line:hover { background: rgba(255,255,255,0.025); }
+      .log-ts { color: var(--text3); flex-shrink: 0; width: 52px; }
+      .log-tag { flex-shrink: 0; width: 46px; font-weight: 700; }
+      .log-tag.info { color: var(--blue); }
+      .log-tag.ok { color: var(--green); }
+      .log-tag.warn { color: var(--yellow); }
+      .log-tag.err { color: var(--red); }
+      .log-msg { color: var(--text2); flex: 1; }
+      .log-msg .hi { color: var(--text); }
+
+      /* tag pill */
+      .pill {
+        display: inline-flex; align-items: center;
+        padding: 1px 6px; border-radius: 4px; font-size: 9.5px; font-weight: 700;
+        border: 1px solid transparent;
+      }
+      .pill.blue { background: rgba(0,170,255,0.12); color: var(--blue); border-color: rgba(0,170,255,0.25); }
+      .pill.green { background: rgba(48,209,88,0.12); color: var(--green); border-color: rgba(48,209,88,0.25); }
+      .pill.purple { background: rgba(191,90,242,0.12); color: var(--purple); border-color: rgba(191,90,242,0.25); }
+      .pill.orange { background: rgba(255,107,53,0.12); color: var(--orange); border-color: rgba(255,107,53,0.25); }
+      .pill.yellow { background: rgba(245,166,35,0.12); color: var(--yellow); border-color: rgba(245,166,35,0.25); }
+      .pill.red { background: rgba(255,45,85,0.12); color: var(--red); border-color: rgba(255,45,85,0.25); }
+
+      /* ══════════════════════════════
+        TAB 1 — HEADLESS BROWSER
+      ══════════════════════════════ */
+      #tab-headless {
+        /* split: left config + right log */
+      }
+      .hl-left {
+        width: 340px; flex-shrink: 0;
+        display: flex; flex-direction: column;
+        border-right: 1px solid var(--border);
+        overflow: hidden;
+      }
+      .hl-right {
+        flex: 1; display: flex; flex-direction: column;
+        overflow: hidden;
+      }
+      .hl-script-area {
+        flex: 1; padding: 10px;
+        display: flex; flex-direction: column; gap: 8px;
+        overflow-y: auto;
+      }
+      .hl-script-area::-webkit-scrollbar { width: 4px; }
+      .hl-script-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+      .step-list { display: flex; flex-direction: column; gap: 5px; }
+      .step-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 10px; border-radius: 6px;
+        background: var(--bg2); border: 1px solid var(--border);
+        cursor: grab; transition: all 0.1s;
+        font-size: 11px;
+      }
+      .step-item:hover { border-color: var(--border2); }
+      .step-item.running { border-color: rgba(48,209,88,0.35); background: rgba(48,209,88,0.04); }
+      .step-item.done { opacity: 0.6; }
+      .step-num {
+        width: 18px; height: 18px; border-radius: 50%;
+        background: var(--bg4); border: 1px solid var(--border2);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 9px; font-weight: 700; color: var(--text3);
+        flex-shrink: 0;
+      }
+      .step-item.running .step-num {
+        background: rgba(48,209,88,0.15); border-color: rgba(48,209,88,0.4); color: var(--green);
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .step-item.done .step-num {
+        background: rgba(0,170,255,0.1); border-color: rgba(0,170,255,0.3); color: var(--blue);
+      }
+      .step-action { flex-shrink: 0; }
+      .step-detail { flex: 1; min-width: 0; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .step-detail .kw { color: var(--blue); font-weight: 700; }
+      .step-detail .val { color: var(--green); }
+      .step-ms { color: var(--text3); font-size: 10px; flex-shrink: 0; }
+
+      /* raw code editor */
+      .code-editor {
+        flex: 1; font-family: 'JetBrains Mono', monospace;
+        font-size: 11px; line-height: 1.7; color: var(--text);
+        background: var(--bg); border: none; outline: none;
+        padding: 12px 14px; resize: none; width: 100%;
+        tab-size: 2;
+      }
+
+      /* output/log panel */
+      .log-panel {
+        flex: 1; overflow-y: auto; background: var(--bg);
+        padding: 6px 0;
+      }
+      .log-panel::-webkit-scrollbar { width: 4px; }
+      .log-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+      /* screenshot preview */
+      .ss-preview {
+        height: 130px; flex-shrink: 0;
+        background: var(--bg2); border-top: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        padding: 8px; gap: 8px; overflow-x: auto;
+      }
+      .ss-thumb {
+        height: 110px; aspect-ratio: 16/10;
+        background: var(--bg4); border: 1px solid var(--border2);
+        border-radius: 5px; display: flex; align-items: center; justify-content: center;
+        font-size: 22px; flex-shrink: 0; position: relative; overflow: hidden;
+        cursor: pointer; transition: border-color 0.12s;
+      }
+      .ss-thumb:hover { border-color: var(--blue); }
+      .ss-thumb::after {
+        content: attr(data-label);
+        position: absolute; bottom: 0; left: 0; right: 0;
+        background: rgba(0,0,0,0.6); font-size: 9px;
+        color: var(--text2); text-align: center; padding: 2px 0;
+      }
+      .ss-thumb .ss-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.5));
+      }
+
+      /* ══════════════════════════════
+        TAB 2 — MITM PROXY
+      ══════════════════════════════ */
+      .proxy-left {
+        width: 300px; flex-shrink: 0;
+        display: flex; flex-direction: column;
+        border-right: 1px solid var(--border);
+      }
+      .proxy-right {
+        flex: 1; display: flex; flex-direction: column;
+      }
+      .proxy-config { padding: 12px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+      .form-row { display: flex; flex-direction: column; gap: 4px; }
+      .form-row-h { display: flex; align-items: center; gap: 6px; }
+
+      /* traffic list */
+      .traffic-hdr {
+        display: flex; align-items: center;
+        background: var(--bg3); border-bottom: 1px solid var(--border);
+        font-size: 10px; font-weight: 700; color: var(--text3);
+        text-transform: uppercase; letter-spacing: 0.06em;
+        flex-shrink: 0;
+      }
+      .tc { padding: 6px 10px; }
+      .tc-method { width: 58px; flex-shrink: 0; }
+      .tc-host { flex: 1; min-width: 0; }
+      .tc-status { width: 60px; flex-shrink: 0; }
+      .tc-type { width: 56px; flex-shrink: 0; }
+      .tc-size { width: 64px; flex-shrink: 0; }
+      .tc-time { width: 60px; flex-shrink: 0; }
+
+      .traffic-row {
+        display: flex; align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.025);
+        cursor: pointer; font-size: 11px;
+        transition: background 0.08s;
+      }
+      .traffic-row:hover { background: rgba(255,255,255,0.03); }
+      .traffic-row.sel { background: rgba(0,170,255,0.08); border-left: 2px solid var(--blue); }
+      .traffic-row.held { border-left: 2px solid rgba(245,166,35,0.6); }
+      .m-get { color: #60a5fa; font-weight: 700; }
+      .m-post { color: #34d399; font-weight: 700; }
+      .m-put { color: #fbbf24; font-weight: 700; }
+      .s2 { color: var(--green); }
+      .s3 { color: var(--yellow); }
+      .s4 { color: var(--red); }
+
+      /* rules panel */
+      .rule-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 12px; border-bottom: 1px solid var(--border);
+        font-size: 11px;
+      }
+      .rule-toggle {
+        width: 30px; height: 16px; border-radius: 8px;
+        background: var(--bg4); border: 1px solid var(--border2);
+        cursor: pointer; flex-shrink: 0; position: relative;
+        transition: background 0.15s;
+      }
+      .rule-toggle.on { background: rgba(48,209,88,0.3); border-color: rgba(48,209,88,0.5); }
+      .rule-toggle::after {
+        content: ''; position: absolute;
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--text3); top: 2px; left: 2px;
+        transition: all 0.15s;
+      }
+      .rule-toggle.on::after { background: var(--green); left: 16px; }
+
+      /* ══════════════════════════════
+        TAB 3 — HAR / API RECREATION
+      ══════════════════════════════ */
+      .har-left {
+        width: 280px; flex-shrink: 0;
+        display: flex; flex-direction: column;
+        border-right: 1px solid var(--border);
+      }
+      .har-right { flex: 1; display: flex; flex-direction: column; }
+      .har-drop {
+        margin: 12px; padding: 20px 14px;
+        border: 1.5px dashed var(--border2); border-radius: 8px;
+        display: flex; flex-direction: column; align-items: center;
+        gap: 6px; text-align: center; cursor: pointer;
+        transition: all 0.14s;
+      }
+      .har-drop:hover { border-color: var(--blue); background: rgba(0,170,255,0.04); }
+      .har-drop .hd-icon { font-size: 24px; }
+      .har-drop .hd-title { font-size: 12px; font-weight: 700; color: var(--text); }
+      .har-drop .hd-sub { font-size: 10.5px; color: var(--text2); }
+
+      .har-entry {
+        display: flex; align-items: center; gap: 7px;
+        padding: 7px 12px; border-bottom: 1px solid var(--border);
+        cursor: pointer; font-size: 11px;
+        transition: background 0.08s;
+      }
+      .har-entry:hover { background: rgba(255,255,255,0.03); }
+      .har-entry.sel { background: rgba(0,170,255,0.07); border-left: 2px solid var(--blue); }
+      .har-entry-method { width: 38px; flex-shrink: 0; font-weight: 700; font-size: 10px; }
+      .har-entry-path { flex: 1; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; }
+      .har-entry-status { color: var(--text3); font-size: 10px; flex-shrink: 0; }
+
+      /* codegen panel */
+      .codegen-toolbar {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 12px; border-bottom: 1px solid var(--border);
+        background: var(--bg2); flex-shrink: 0;
+      }
+      .lang-btn {
+        height: 26px; padding: 0 10px; border-radius: 5px;
+        background: var(--bg4); border: 1px solid var(--border2);
+        font-family: inherit; font-size: 10.5px; color: var(--text2);
+        cursor: pointer; transition: all 0.12s;
+      }
+      .lang-btn.active {
+        background: rgba(191,90,242,0.12); border-color: rgba(191,90,242,0.3);
+        color: var(--purple);
+      }
+      .lang-btn:hover { color: var(--text); }
+
+      /* ══════════════════════════════
+        TAB 4 — TLS / CERTIFICATES
+      ══════════════════════════════ */
+      .tls-grid {
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 12px; padding: 14px; overflow-y: auto;
+      }
+      .tls-grid::-webkit-scrollbar { width: 4px; }
+      .tls-grid::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+      .tls-card {
+        background: var(--bg3); border: 1px solid var(--border);
+        border-radius: 8px; padding: 14px;
+      }
+      .tls-card-title {
+        font-size: 11px; font-weight: 700; color: var(--text);
+        margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+      }
+      .cert-chain {
+        display: flex; flex-direction: column; gap: 3px;
+      }
+      .cert-item {
+        display: flex; align-items: center; gap: 7px;
+        padding: 6px 8px; background: var(--bg4);
+        border: 1px solid var(--border); border-radius: 5px; font-size: 10.5px;
+      }
+      .cert-item .ci-icon { font-size: 12px; flex-shrink: 0; }
+      .cert-item .ci-name { flex: 1; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .cipher-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+      .cipher-row .cr-k { color: var(--text2); }
+      .cipher-row .cr-v { color: var(--text); font-weight: 600; }
+      .pinning-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 10px; background: var(--bg4);
+        border: 1px solid var(--border); border-radius: 5px;
+        margin-bottom: 5px; font-size: 11px;
+      }
+
+      /* ══════════════════════════════
+        TAB 5 — SESSION
+      ══════════════════════════════ */
+      .sess-left {
+        width: 260px; flex-shrink: 0;
+        display: flex; flex-direction: column;
+        border-right: 1px solid var(--border);
+      }
+      .sess-right { flex: 1; display: flex; flex-direction: column; }
+      .sess-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 9px 12px; border-bottom: 1px solid var(--border);
+        cursor: pointer; transition: background 0.08s;
+      }
+      .sess-item:hover { background: rgba(255,255,255,0.03); }
+      .sess-item.sel { background: rgba(0,170,255,0.07); border-left: 2px solid var(--blue); }
+      .sess-icon {
+        width: 32px; height: 32px; border-radius: 7px;
+        background: var(--bg4); border: 1px solid var(--border2);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; flex-shrink: 0;
+      }
+      .sess-name { font-size: 12px; font-weight: 600; color: var(--text); }
+      .sess-meta { font-size: 10px; color: var(--text2); margin-top: 1px; }
+
+      /* cookie table */
+      .cookie-tbl { width: 100%; font-size: 11px; border-collapse: collapse; }
+      .cookie-tbl th {
+        text-align: left; padding: 6px 10px;
+        font-size: 9.5px; font-weight: 700; color: var(--text2);
+        text-transform: uppercase; letter-spacing: 0.07em;
+        background: var(--bg3); border-bottom: 1px solid var(--border);
+      }
+      .cookie-tbl td {
+        padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.03);
+        color: var(--text2); max-width: 180px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .cookie-tbl td.sensitive { color: var(--yellow); }
+      .cookie-tbl tr:hover td { background: rgba(255,255,255,0.025); }
+
+      /* token refresh */
+      .token-flow {
+        display: flex; flex-direction: column; gap: 8px; padding: 12px;
+      }
+      .tf-step {
+        display: flex; align-items: flex-start; gap: 10px;
+      }
+      .tf-line {
+        display: flex; flex-direction: column; align-items: center;
+        gap: 0; flex-shrink: 0;
+      }
+      .tf-dot {
+        width: 20px; height: 20px; border-radius: 50%;
+        border: 2px solid var(--border2); background: var(--bg4);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 9px; font-weight: 700; color: var(--text3);
+        flex-shrink: 0;
+      }
+      .tf-dot.done { border-color: var(--green); background: rgba(48,209,88,0.12); color: var(--green); }
+      .tf-dot.active { border-color: var(--blue); background: rgba(0,170,255,0.12); color: var(--blue); animation: tfdotpulse 1.2s ease-in-out infinite; }
+      @keyframes tfdotpulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,170,255,0.3)} 50%{box-shadow:0 0 0 5px rgba(0,170,255,0)} }
+      .tf-connector { width: 2px; flex: 1; min-height: 14px; background: var(--border2); }
+      .tf-dot.done ~ .tf-connector { background: rgba(48,209,88,0.3); }
+      .tf-content { padding-top: 1px; flex: 1; }
+      .tf-title { font-size: 11.5px; font-weight: 600; color: var(--text); }
+      .tf-sub { font-size: 10.5px; color: var(--text2); margin-top: 2px; }
+
+      /* ══════════════════════════════
+        INTEL PANEL (right)
+      ══════════════════════════════ */
+      .intel-panel {
+        width: 300px; flex-shrink: 0;
+        background: var(--bg2);
+        border-left: 1px solid var(--border);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+      }
+      .ip-hdr {
+        height: 38px; display: flex; align-items: center; gap: 8px;
+        padding: 0 12px; border-bottom: 1px solid var(--border);
+        font-size: 11px; font-weight: 700; color: var(--text); flex-shrink: 0;
+      }
+      .ip-body { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+      .ip-body::-webkit-scrollbar { width: 4px; }
+      .ip-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+      .stat-card {
+        background: var(--bg3); border: 1px solid var(--border);
+        border-radius: 7px; padding: 10px 12px;
+      }
+      .stat-card-title { font-size: 9.5px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+      .stat-val { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+      .stat-sub { font-size: 10px; color: var(--text2); margin-top: 3px; }
+      .stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+      .stat-row:last-child { border-bottom: none; }
+      .stat-row .sr-k { color: var(--text2); }
+      .stat-row .sr-v { color: var(--text); font-weight: 600; }
+      .mini-bar { height: 4px; border-radius: 2px; background: var(--bg4); overflow: hidden; margin-top: 4px; }
+      .mini-bar-fill { height: 100%; border-radius: 2px; }
+
+      /* progress ring */
+      .ring-wrap { display: flex; align-items: center; gap: 10px; }
+      .ring-svg { transform: rotate(-90deg); }
+      .ring-text { text-anchor: middle; dominant-baseline: central; transform: rotate(90deg) translate(0, 0); }
+    </style>
+  </head>
+  <body>
+    <div class="tool-container">
+
+      <!-- ═══════════════ MODULE BAR ═══════════════ -->
+      <div class="module-bar">
+        <div class="mb-logo">
+          <div class="mb-logo-icon">P</div>
+          <div class="mb-logo-text">PHANTOMA</div>
+        </div>
+        <div class="mb-section-title">Recon</div>
+        <div class="mb-item"><span class="mi-icon">◎</span> OSINT <span class="mi-badge">3</span></div>
+        <div class="mb-item"><span class="mi-icon">◈</span> INTEL</div>
+        <div class="mb-section-title">Network</div>
+        <div class="mb-item"><span class="mi-icon">⊕</span> SCAN</div>
+        <div class="mb-item active"><span class="mi-icon">🎭</span> EMULATE <span class="mi-badge green">RUN</span></div>
+        <div class="mb-item"><span class="mi-icon">⧉</span> PROXY</div>
+        <div class="mb-section-title">Attack</div>
+        <div class="mb-item"><span class="mi-icon">⚡</span> FUZZER <span class="mi-badge red">!</span></div>
+        <div class="mb-item"><span class="mi-icon">💉</span> INJECT</div>
+        <div class="mb-item"><span class="mi-icon">🔑</span> AUTH</div>
+        <div class="mb-section-title">Tools</div>
+        <div class="mb-item"><span class="mi-icon">🔧</span> CRYPTO</div>
+        <div class="mb-item"><span class="mi-icon">📊</span> REPORT</div>
+      </div>
+
+      <div class="workspace-panel-container">
+        <!-- ═══════════════ WORKSPACE ═══════════════ -->
+        <div class="workspace">
+
+          <!-- Topbar -->
+          <div class="workspace-topbar">
+            <div class="wtb-breadcrumb">
+              <span>Phantoma</span>
+              <span class="sep">/</span>
+              <span>Network</span>
+              <span class="sep">/</span>
+              <span class="cur">🎭 EMULATE</span>
+            </div>
+            <div class="wtb-actions">
+              <button class="wtb-btn">⎘ Clone</button>
+              <button class="wtb-btn">📤 Export HAR</button>
+              <button class="wtb-btn primary">+ New Session</button>
+            </div>
+          </div>
+
+          <!-- ═══════════════════════════════════════
+               EMULATE MODULE — Workspace Content
+          ═══════════════════════════════════════ -->
+          <div class="workspace-content">
+
+            <!-- Tab Bar -->
+            <div class="em-tabs">
+              <div class="em-tab active" onclick="switchTab('headless', this)">
+                <span class="tb-dot" style="background:var(--green)"></span>
+                Headless Browser
+              </div>
+              <div class="em-tab" onclick="switchTab('proxy', this)">
+                <span class="tb-dot" style="background:var(--yellow)"></span>
+                MITM Proxy
+              </div>
+              <div class="em-tab" onclick="switchTab('har', this)">
+                <span class="tb-dot" style="background:var(--blue)"></span>
+                HAR / API Recreation
+              </div>
+              <div class="em-tab" onclick="switchTab('tls', this)">
+                <span class="tb-dot" style="background:var(--purple)"></span>
+                TLS / Certs
+              </div>
+              <div class="em-tab" onclick="switchTab('session', this)">
+                <span class="tb-dot" style="background:var(--orange)"></span>
+                Session Manager
+              </div>
+              <div class="em-tab-actions">
+                <button class="em-act-btn run" id="run-btn" onclick="toggleRun()">▶ Run</button>
+                <button class="em-act-btn" onclick="clearLog()">⊘ Clear</button>
+              </div>
+            </div>
+
+            <!-- ════════ TAB: HEADLESS BROWSER ════════ -->
+            <div class="em-panel active split-h" id="tab-headless">
+              <!-- Left: script builder -->
+              <div class="hl-left">
+                <div class="pane-hdr">
+                  Script Builder
+                  <div class="pane-hdr-actions">
+                    <select class="em-select" style="height:20px;font-size:9.5px;padding:0 5px">
+                      <option>Playwright</option>
+                      <option>Puppeteer</option>
+                      <option>Selenium</option>
+                    </select>
+                    <button class="ico-btn" title="Record">⏺</button>
+                    <button class="ico-btn" title="Import">↑</button>
+                  </div>
+                </div>
+                <div class="hl-script-area" id="step-mode">
+                  <!-- Target URL -->
+                  <div class="form-row">
+                    <span class="em-label">Target URL</span>
+                    <div class="form-row-h">
+                      <input class="em-input" style="flex:1" value="https://accounts.google.com/login" />
+                    </div>
+                  </div>
+                  <!-- Steps -->
+                  <div class="form-row">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                      <span class="em-label">Steps</span>
+                      <button class="em-act-btn" style="height:20px;font-size:9.5px">+ Add</button>
+                    </div>
+                    <div class="step-list" id="step-list">
+                      <div class="step-item done">
+                        <div class="step-num">✓</div>
+                        <span class="pill blue" style="font-size:9px">navigate</span>
+                        <span class="step-detail"><span class="val">https://accounts.google.com</span></span>
+                        <span class="step-ms">82ms</span>
+                      </div>
+                      <div class="step-item done">
+                        <div class="step-num">✓</div>
+                        <span class="pill green" style="font-size:9px">waitFor</span>
+                        <span class="step-detail"><span class="val">#identifier</span></span>
+                        <span class="step-ms">210ms</span>
+                      </div>
+                      <div class="step-item running">
+                        <div class="step-num">↻</div>
+                        <span class="pill orange" style="font-size:9px">fill</span>
+                        <span class="step-detail"><span class="val">#identifier</span> <span style="color:var(--text3)">← admin@test.com</span></span>
+                        <span class="step-ms">—</span>
+                      </div>
+                      <div class="step-item">
+                        <div class="step-num">4</div>
+                        <span class="pill orange" style="font-size:9px">fill</span>
+                        <span class="step-detail"><span class="val">#password</span> <span style="color:var(--text3)">← ••••••••</span></span>
+                        <span class="step-ms">—</span>
+                      </div>
+                      <div class="step-item">
+                        <div class="step-num">5</div>
+                        <span class="pill purple" style="font-size:9px">click</span>
+                        <span class="step-detail"><span class="val">#passwordNext</span></span>
+                        <span class="step-ms">—</span>
+                      </div>
+                      <div class="step-item">
+                        <div class="step-num">6</div>
+                        <span class="pill yellow" style="font-size:9px">screenshot</span>
+                        <span class="step-detail"><span class="val">post-login.png</span></span>
+                        <span class="step-ms">—</span>
+                      </div>
+                      <div class="step-item">
+                        <div class="step-num">7</div>
+                        <span class="pill red" style="font-size:9px">evaluate</span>
+                        <span class="step-detail"><span class="val">document.cookie</span></span>
+                        <span class="step-ms">—</span>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Options -->
+                  <div class="form-row">
+                    <span class="em-label">Options</span>
+                    <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px">
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer">
+                        <input type="checkbox" checked /> Headless mode
+                      </label>
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer">
+                        <input type="checkbox" checked /> Record network (HAR)
+                      </label>
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer">
+                        <input type="checkbox" /> Slow mo (100ms)
+                      </label>
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer">
+                        <input type="checkbox" checked /> Auto-save session
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="vdivider"></div>
+              <!-- Right: output -->
+              <div class="hl-right">
+                <div class="pane-hdr">
+                  Execution Log
+                  <span class="sbadge running" style="margin-left:6px">
+                    <span style="width:5px;height:5px;border-radius:50%;background:currentColor;animation:recpulse 1s infinite"></span>
+                    Running
+                  </span>
+                  <div class="pane-hdr-actions">
+                    <button class="ico-btn">⬇</button>
+                    <button class="ico-btn">✕</button>
+                  </div>
+                </div>
+                <div class="log-panel" id="headless-log">
+                  <div class="log-line"><span class="log-ts">09:41:02</span><span class="log-tag info">INFO</span><span class="log-msg">Launching <span class="hi">Playwright/Chromium</span> in headless mode…</span></div>
+                  <div class="log-line"><span class="log-ts">09:41:03</span><span class="log-tag ok">OK</span><span class="log-msg">Browser launched — PID <span class="hi">18342</span></span></div>
+                  <div class="log-line"><span class="log-ts">09:41:03</span><span class="log-tag info">INFO</span><span class="log-msg">Navigating to <span class="hi">https://accounts.google.com</span></span></div>
+                  <div class="log-line"><span class="log-ts">09:41:03</span><span class="log-tag ok">OK</span><span class="log-msg">Page loaded — <span class="hi">200 OK</span> in 82ms</span></div>
+                  <div class="log-line"><span class="log-ts">09:41:03</span><span class="log-tag info">INFO</span><span class="log-msg">Waiting for selector <span class="hi">#identifier</span>…</span></div>
+                  <div class="log-line"><span class="log-ts">09:41:03</span><span class="log-tag ok">OK</span><span class="log-msg">Selector found in <span class="hi">210ms</span></span></div>
+                  <div class="log-line"><span class="log-ts">09:41:04</span><span class="log-tag info">INFO</span><span class="log-msg">Filling <span class="hi">#identifier</span> with value…</span></div>
+                  <div class="log-line"><span class="log-ts">09:41:04</span><span class="log-tag warn">WAIT</span><span class="log-msg">Waiting for CAPTCHA to resolve…</span></div>
+                </div>
+                <!-- Screenshot previews -->
+                <div class="ss-preview">
+                  <div style="font-size:9.5px;color:var(--text3);writing-mode:vertical-rl;transform:rotate(180deg);padding:0 4px;flex-shrink:0">SCREENSHOTS</div>
+                  <div class="ss-thumb" data-label="step-1: navigate">🌐<div class="ss-overlay"></div></div>
+                  <div class="ss-thumb" data-label="step-2: waitFor" style="border-color:rgba(48,209,88,0.4)">✅<div class="ss-overlay"></div></div>
+                  <div class="ss-thumb" data-label="step-3: fill" style="opacity:0.5">⌛<div class="ss-overlay"></div></div>
+                  <div class="ss-thumb" data-label="pending…" style="opacity:0.3">⬜<div class="ss-overlay"></div></div>
+                  <div class="ss-thumb" data-label="pending…" style="opacity:0.3">⬜<div class="ss-overlay"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ════════ TAB: MITM PROXY ════════ -->
+            <div class="em-panel split-h" id="tab-proxy">
+              <div class="proxy-left">
+                <div class="pane-hdr">
+                  Proxy Config
+                  <div class="pane-hdr-actions">
+                    <span class="sbadge running">● Active</span>
+                  </div>
+                </div>
+                <div class="proxy-config">
+                  <div class="form-row">
+                    <span class="em-label">Port</span>
+                    <input class="em-input" value="8080" style="width:100px" />
+                  </div>
+                  <div class="form-row">
+                    <span class="em-label">Mode</span>
+                    <select class="em-select" style="width:100%">
+                      <option>Intercept + Record</option>
+                      <option>Record Only</option>
+                      <option>Intercept Only</option>
+                      <option>Transparent</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <span class="em-label">HAR Output</span>
+                    <input class="em-input" value="session_01.har" style="width:100%" />
+                  </div>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer">
+                    <input type="checkbox" checked /> SSL Insecure
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer">
+                    <input type="checkbox" checked /> Auto-decrypt TLS
+                  </label>
+                </div>
+                <div class="pane-hdr" style="margin-top:4px">Rewrite Rules</div>
+                <div style="flex:1;overflow-y:auto">
+                  <div class="rule-item">
+                    <div class="rule-toggle on" onclick="this.classList.toggle('on')"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:11px;color:var(--text)">Add Auth Header</div>
+                      <div style="font-size:10px;color:var(--text2)">*.api.* → Authorization: Bearer …</div>
+                    </div>
+                    <span class="pill blue">REQ</span>
+                  </div>
+                  <div class="rule-item">
+                    <div class="rule-toggle on" onclick="this.classList.toggle('on')"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:11px;color:var(--text)">Block Ads</div>
+                      <div style="font-size:10px;color:var(--text2)">doubleclick.net → 204</div>
+                    </div>
+                    <span class="pill red">RESP</span>
+                  </div>
+                  <div class="rule-item">
+                    <div class="rule-toggle" onclick="this.classList.toggle('on')"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:11px;color:var(--text)">Inject Delay</div>
+                      <div style="font-size:10px;color:var(--text2)">POST /checkout → +2000ms</div>
+                    </div>
+                    <span class="pill yellow">REQ</span>
+                  </div>
+                  <div style="padding:10px 12px">
+                    <button class="em-act-btn" style="width:100%;justify-content:center">+ New Rule</button>
+                  </div>
+                </div>
+              </div>
+              <div class="vdivider"></div>
+              <div class="proxy-right">
+                <div class="pane-hdr">
+                  Traffic Capture
+                  <span style="font-size:10px;color:var(--text2);margin-left:4px">84 requests · 47 filtered</span>
+                  <div class="pane-hdr-actions">
+                    <button class="em-act-btn rec active" id="rec-btn" onclick="toggleRec(this)">⏺ REC</button>
+                    <button class="ico-btn">🔍</button>
+                    <button class="ico-btn">⊘</button>
+                  </div>
+                </div>
+                <div class="traffic-hdr">
+                  <div class="tc tc-method">Method</div>
+                  <div class="tc tc-host">Host / Path</div>
+                  <div class="tc tc-status">Status</div>
+                  <div class="tc tc-type">Type</div>
+                  <div class="tc tc-size">Size</div>
+                  <div class="tc tc-time">Time</div>
+                </div>
+                <div class="pane-scroll" style="flex:1">
+                  <div class="traffic-row sel" onclick="selRow(this)">
+                    <div class="tc tc-method"><span class="m-post">POST</span></div>
+                    <div class="tc tc-host" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:10.5px">api.google.com/v1/auth/token</div>
+                    <div class="tc tc-status"><span class="s2">200</span></div>
+                    <div class="tc tc-type" style="color:var(--text2);font-size:10.5px">XHR</div>
+                    <div class="tc tc-size" style="color:var(--text2);font-size:10.5px">2.4 KB</div>
+                    <div class="tc tc-time" style="color:var(--text2);font-size:10.5px">142ms</div>
+                  </div>
+                  <div class="traffic-row held" onclick="selRow(this)">
+                    <div class="tc tc-method"><span class="m-post">POST</span></div>
+                    <div class="tc tc-host" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:10.5px">checkout.stripe.com/v1/payment_intents</div>
+                    <div class="tc tc-status"><span style="color:var(--yellow);font-size:10px;font-weight:700">⏸ HELD</span></div>
+                    <div class="tc tc-type" style="color:var(--text2);font-size:10.5px">XHR</div>
+                    <div class="tc tc-size" style="color:var(--text2);font-size:10.5px">—</div>
+                    <div class="tc tc-time" style="color:var(--text2);font-size:10.5px">—</div>
+                  </div>
+                  <div class="traffic-row" onclick="selRow(this)">
+                    <div class="tc tc-method"><span class="m-get">GET</span></div>
+                    <div class="tc tc-host" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:10.5px">accounts.google.com/o/oauth2/v2/auth</div>
+                    <div class="tc tc-status"><span class="s3">302</span></div>
+                    <div class="tc tc-type" style="color:var(--text2);font-size:10.5px">Doc</div>
+                    <div class="tc tc-size" style="color:var(--text2);font-size:10.5px">0 B</div>
+                    <div class="tc tc-time" style="color:var(--text2);font-size:10.5px">38ms</div>
+                  </div>
+                  <div class="traffic-row" onclick="selRow(this)">
+                    <div class="tc tc-method"><span class="m-get">GET</span></div>
+                    <div class="tc tc-host" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:10.5px">www.gstatic.com/firebasejs/9.22.0/firebase-app.js</div>
+                    <div class="tc tc-status"><span class="s2">200</span></div>
+                    <div class="tc tc-type" style="color:var(--text2);font-size:10.5px">JS</div>
+                    <div class="tc tc-size" style="color:var(--text2);font-size:10.5px">48.2 KB</div>
+                    <div class="tc tc-time" style="color:var(--text2);font-size:10.5px">291ms</div>
+                  </div>
+                  <div class="traffic-row" onclick="selRow(this)">
+                    <div class="tc tc-method"><span class="m-get">GET</span></div>
+                    <div class="tc tc-host" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:10.5px">stream.openai.com/v1/chat/completions</div>
+                    <div class="tc tc-status"><span class="s2">200</span></div>
+                    <div class="tc tc-type" style="color:var(--text2);font-size:10.5px">SSE</div>
+                    <div class="tc tc-size" style="color:var(--text2);font-size:10.5px">—</div>
+                    <div class="tc tc-time" style="color:var(--text2);font-size:10.5px">∞</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ════════ TAB: HAR / API RECREATION ════════ -->
+            <div class="em-panel split-h" id="tab-har">
+              <div class="har-left">
+                <div class="pane-hdr">
+                  HAR Entries
+                  <div class="pane-hdr-actions">
+                    <button class="ico-btn" title="Import HAR">↑</button>
+                    <button class="ico-btn" title="Clear">⊘</button>
+                  </div>
+                </div>
+                <div class="har-drop">
+                  <span class="hd-icon">📂</span>
+                  <span class="hd-title">Drop .har file here</span>
+                  <span class="hd-sub">or click to browse</span>
+                </div>
+                <!-- Loaded HAR entries (mock) -->
+                <div style="font-size:9.5px;font-weight:700;color:var(--text3);padding:6px 12px;text-transform:uppercase;letter-spacing:0.07em">session_01.har — 12 entries</div>
+                <div class="pane-scroll" style="flex:1">
+                  <div class="har-entry sel" onclick="selHar(this)">
+                    <span class="har-entry-method m-post">POST</span>
+                    <span class="har-entry-path">/v1/auth/token</span>
+                    <span class="har-entry-status s2">200</span>
+                  </div>
+                  <div class="har-entry" onclick="selHar(this)">
+                    <span class="har-entry-method m-get">GET</span>
+                    <span class="har-entry-path">/o/oauth2/v2/auth</span>
+                    <span class="har-entry-status s3">302</span>
+                  </div>
+                  <div class="har-entry" onclick="selHar(this)">
+                    <span class="har-entry-method m-post">POST</span>
+                    <span class="har-entry-path">/v1/payment_intents</span>
+                    <span class="har-entry-status s2">200</span>
+                  </div>
+                  <div class="har-entry" onclick="selHar(this)">
+                    <span class="har-entry-method m-get">GET</span>
+                    <span class="har-entry-path">/v3/users/profile</span>
+                    <span class="har-entry-status s4">404</span>
+                  </div>
+                  <div class="har-entry" onclick="selHar(this)">
+                    <span class="har-entry-method" style="color:var(--red);font-weight:700;font-size:10px">DEL</span>
+                    <span class="har-entry-path">/v3/sessions/abc123</span>
+                    <span class="har-entry-status s2">204</span>
+                  </div>
+                  <div class="har-entry" onclick="selHar(this)">
+                    <span class="har-entry-method" style="color:var(--purple);font-weight:700;font-size:10px">PATCH</span>
+                    <span class="har-entry-path">/v1/pages/block-id-xyz</span>
+                    <span class="har-entry-status" style="color:var(--text2)">—</span>
+                  </div>
+                  <div style="padding:8px 12px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                      <span class="em-label">OpenAPI Generated</span>
+                      <span class="sbadge done">Ready</span>
+                    </div>
+                    <button class="em-act-btn" style="width:100%;justify-content:center;font-size:10px">⬇ Download spec.yaml</button>
+                  </div>
+                </div>
+              </div>
+              <div class="vdivider"></div>
+              <div class="har-right">
+                <div class="codegen-toolbar">
+                  <span class="em-label">Generate SDK →</span>
+                  <button class="lang-btn active">Python</button>
+                  <button class="lang-btn">Node.js</button>
+                  <button class="lang-btn">cURL</button>
+                  <button class="lang-btn">Go</button>
+                  <button class="lang-btn">Java</button>
+                  <div style="margin-left:auto;display:flex;gap:5px">
+                    <button class="em-act-btn">⎘ Copy</button>
+                    <button class="em-act-btn run">▶ Run Code</button>
+                  </div>
+                </div>
+                <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+                  <textarea class="code-editor">import requests
+
+session = requests.Session()
+session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+    'Accept': 'application/json',
+    'X-CSRF-Token': 'abc123xyz'
+})
+
+# Step 1: Authenticate
+response = session.post(
+    'https://api.google.com/v1/auth/token',
+    json={
+        'grant_type': 'authorization_code',
+        'code':       '4/P7q7W91a-oMsCeLvIaQm6bTrgtp7',
+        'client_id':  '123456789-abc.apps.googleusercontent.com',
+    }
+)
+token = response.json().get('access_token')
+print(f'[+] Token: {token[:32]}...')
+
+# Step 2: Authenticated request
+session.headers['Authorization'] = f'Bearer {token}'
+
+profile = session.get('https://api.example.com/v3/users/profile')
+print(f'[+] Status: {profile.status_code}')
+print(profile.json())
+</textarea>
+                </div>
+                <div style="height:90px;flex-shrink:0;border-top:1px solid var(--border);background:var(--bg2);padding:6px 0;overflow-y:auto">
+                  <div class="log-line"><span class="log-ts">09:41:10</span><span class="log-tag ok">OK</span><span class="log-msg">Python SDK generated — <span class="hi">12 entries</span> → 48 lines</span></div>
+                  <div class="log-line"><span class="log-ts">09:41:10</span><span class="log-tag info">INFO</span><span class="log-msg">OpenAPI spec inferred: <span class="hi">4 endpoints</span>, auth: Bearer</span></div>
+                  <div class="log-line"><span class="log-ts">09:41:11</span><span class="log-tag ok">RUN</span><span class="log-msg">Code executed → <span class="hi">200 OK</span> · {"id":"u_123","email":"admin@test.com"}</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ════════ TAB: TLS / CERTS ════════ -->
+            <div class="em-panel split-v" id="tab-tls">
+              <div class="pane-hdr">
+                TLS Decryption & Certificate Management
+                <div class="pane-hdr-actions">
+                  <span class="sbadge running">CA Installed</span>
+                  <button class="em-act-btn" style="margin-left:8px">⬇ Install CA</button>
+                </div>
+              </div>
+              <div class="tls-grid" style="flex:1">
+                <!-- CA Setup -->
+                <div class="tls-card">
+                  <div class="tls-card-title">🔐 CA Certificate</div>
+                  <div class="cert-chain">
+                    <div class="cert-item">
+                      <span class="ci-icon">🏛</span>
+                      <span class="ci-name">Phantoma Root CA</span>
+                      <span class="pill green">Trusted</span>
+                    </div>
+                    <div style="width:2px;height:10px;background:var(--border2);margin-left:10px"></div>
+                    <div class="cert-item">
+                      <span class="ci-icon">🔑</span>
+                      <span class="ci-name">*.google.com (mitmproxy re-signed)</span>
+                      <span class="pill blue">Active</span>
+                    </div>
+                    <div style="width:2px;height:10px;background:var(--border2);margin-left:10px"></div>
+                    <div class="cert-item">
+                      <span class="ci-icon">🔑</span>
+                      <span class="ci-name">*.stripe.com (mitmproxy re-signed)</span>
+                      <span class="pill blue">Active</span>
+                    </div>
+                  </div>
+                  <div style="margin-top:10px;display:flex;gap:6px">
+                    <button class="em-act-btn" style="flex:1;justify-content:center">Export .pem</button>
+                    <button class="em-act-btn" style="flex:1;justify-content:center">Regenerate</button>
+                  </div>
+                </div>
+
+                <!-- TLS Session Info -->
+                <div class="tls-card">
+                  <div class="tls-card-title">🌐 TLS Session — api.google.com</div>
+                  <div class="cipher-row"><span class="cr-k">Protocol</span><span class="cr-v" style="color:var(--green)">TLSv1.3</span></div>
+                  <div class="cipher-row"><span class="cr-k">Cipher Suite</span><span class="cr-v">TLS_AES_256_GCM_SHA384</span></div>
+                  <div class="cipher-row"><span class="cr-k">SNI</span><span class="cr-v">api.google.com</span></div>
+                  <div class="cipher-row"><span class="cr-k">Server IP</span><span class="cr-v">142.250.80.36</span></div>
+                  <div class="cipher-row"><span class="cr-k">Certificate Pin</span><span class="cr-v" style="color:var(--red)">✕ Not Detected</span></div>
+                  <div class="cipher-row"><span class="cr-k">HSTS</span><span class="cr-v" style="color:var(--yellow)">max-age=31536000</span></div>
+                  <div class="cipher-row"><span class="cr-k">ALPN</span><span class="cr-v">h2, http/1.1</span></div>
+                </div>
+
+                <!-- Pinning Detection -->
+                <div class="tls-card">
+                  <div class="tls-card-title">📌 Certificate Pinning Scan</div>
+                  <div class="pinning-item">
+                    <span style="font-size:14px">📱</span>
+                    <div style="flex:1">
+                      <div style="font-size:11px;font-weight:600;color:var(--text)">app.stripe.com</div>
+                      <div style="font-size:10px;color:var(--text2)">HPKP detected — bypass required</div>
+                    </div>
+                    <span class="pill red">PINNED</span>
+                  </div>
+                  <div class="pinning-item">
+                    <span style="font-size:14px">🌐</span>
+                    <div style="flex:1">
+                      <div style="font-size:11px;font-weight:600;color:var(--text)">accounts.google.com</div>
+                      <div style="font-size:10px;color:var(--text2)">No pinning detected</div>
+                    </div>
+                    <span class="pill green">CLEAR</span>
+                  </div>
+                  <div class="pinning-item">
+                    <span style="font-size:14px">🌐</span>
+                    <div style="flex:1">
+                      <div style="font-size:11px;font-weight:600;color:var(--text)">api.example.com</div>
+                      <div style="font-size:10px;color:var(--text2)">Checking…</div>
+                    </div>
+                    <span class="pill yellow">SCAN</span>
+                  </div>
+                </div>
+
+                <!-- TLS Dumper -->
+                <div class="tls-card">
+                  <div class="tls-card-title">🗂 TLS Traffic Dump</div>
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <div class="cipher-row"><span class="cr-k">Total sessions</span><span class="cr-v">24</span></div>
+                    <div class="cipher-row"><span class="cr-k">Decrypted</span><span class="cr-v" style="color:var(--green)">21 / 24</span></div>
+                    <div class="cipher-row"><span class="cr-k">Pinned (blocked)</span><span class="cr-v" style="color:var(--red)">3</span></div>
+                    <div class="mini-bar">
+                      <div class="mini-bar-fill" style="width:87.5%;background:var(--green)"></div>
+                    </div>
+                    <div style="font-size:10px;color:var(--text2);margin-top:4px">87.5% decryption success rate</div>
+                  </div>
+                  <button class="em-act-btn" style="width:100%;justify-content:center;margin-top:10px">⬇ Export SSL Keys (SSLKEYLOGFILE)</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ════════ TAB: SESSION MANAGER ════════ -->
+            <div class="em-panel split-h" id="tab-session">
+              <div class="sess-left">
+                <div class="pane-hdr">
+                  Saved Sessions
+                  <div class="pane-hdr-actions">
+                    <button class="ico-btn">+</button>
+                  </div>
+                </div>
+                <div class="pane-scroll" style="flex:1">
+                  <div class="sess-item sel" onclick="selSess(this)">
+                    <div class="sess-icon">🌐</div>
+                    <div style="flex:1;min-width:0">
+                      <div class="sess-name">Google Auth</div>
+                      <div class="sess-meta">admin@test.com · expires 2h</div>
+                    </div>
+                    <span class="sbadge running" style="font-size:9px">Live</span>
+                  </div>
+                  <div class="sess-item" onclick="selSess(this)">
+                    <div class="sess-icon">💳</div>
+                    <div style="flex:1;min-width:0">
+                      <div class="sess-name">Stripe Checkout</div>
+                      <div class="sess-meta">test mode · saved 10m ago</div>
+                    </div>
+                    <span class="sbadge idle" style="font-size:9px">Idle</span>
+                  </div>
+                  <div class="sess-item" onclick="selSess(this)">
+                    <div class="sess-icon">🐙</div>
+                    <div style="flex:1;min-width:0">
+                      <div class="sess-name">GitHub API</div>
+                      <div class="sess-meta">token: ghp_xxxxx · 30d</div>
+                    </div>
+                    <span class="sbadge done" style="font-size:9px">Token</span>
+                  </div>
+                  <div class="sess-item" onclick="selSess(this)">
+                    <div class="sess-icon">🤖</div>
+                    <div style="flex:1;min-width:0">
+                      <div class="sess-name">OpenAI API</div>
+                      <div class="sess-meta">sk-proj-xxxx · expired</div>
+                    </div>
+                    <span class="sbadge error" style="font-size:9px">Expired</span>
+                  </div>
+                </div>
+                <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:5px">
+                  <button class="em-act-btn" style="flex:1;justify-content:center">⬇ Import</button>
+                  <button class="em-act-btn" style="flex:1;justify-content:center">⬆ Export</button>
+                </div>
+              </div>
+              <div class="vdivider"></div>
+              <div class="sess-right split-v">
+                <!-- Cookies -->
+                <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--border)">
+                  <div class="pane-hdr">
+                    🍪 Cookies — Google Auth
+                    <div class="pane-hdr-actions">
+                      <button class="ico-btn" title="Add cookie">+</button>
+                      <button class="ico-btn" title="Clear all">⊘</button>
+                      <button class="ico-btn" title="Export JSON">⬇</button>
+                    </div>
+                  </div>
+                  <div class="pane-scroll" style="flex:1">
+                    <table class="cookie-tbl">
+                      <thead>
+                        <tr><th>Name</th><th>Value</th><th>Domain</th><th>Expires</th><th>Flags</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style="color:var(--blue);font-weight:600">SID</td>
+                          <td class="sensitive">abc123xyz456def789</td>
+                          <td style="color:var(--text2)">.google.com</td>
+                          <td style="color:var(--text2)">2026-12-19</td>
+                          <td><span class="pill green" style="font-size:9px">HttpOnly</span> <span class="pill blue" style="font-size:9px">Secure</span></td>
+                        </tr>
+                        <tr>
+                          <td style="color:var(--blue);font-weight:600">HSID</td>
+                          <td class="sensitive">xyz456abc123</td>
+                          <td style="color:var(--text2)">.google.com</td>
+                          <td style="color:var(--text2)">2026-12-19</td>
+                          <td><span class="pill green" style="font-size:9px">HttpOnly</span></td>
+                        </tr>
+                        <tr>
+                          <td style="color:var(--blue);font-weight:600">SSID</td>
+                          <td class="sensitive">def789ghi012</td>
+                          <td style="color:var(--text2)">.google.com</td>
+                          <td style="color:var(--text2)">2026-12-19</td>
+                          <td><span class="pill blue" style="font-size:9px">Secure</span></td>
+                        </tr>
+                        <tr>
+                          <td style="color:var(--blue);font-weight:600">__Secure-1PSID</td>
+                          <td class="sensitive">g.a000…BcD</td>
+                          <td style="color:var(--text2)">.google.com</td>
+                          <td style="color:var(--text2)">2026-12-19</td>
+                          <td><span class="pill green" style="font-size:9px">HttpOnly</span> <span class="pill blue" style="font-size:9px">Secure</span></td>
+                        </tr>
+                        <tr>
+                          <td style="color:var(--blue);font-weight:600">APISID</td>
+                          <td style="color:var(--text2)">ghi012jkl345</td>
+                          <td style="color:var(--text2)">.google.com</td>
+                          <td style="color:var(--text2)">2026-06-01</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <!-- Token Refresh Flow -->
+                <div style="height:200px;flex-shrink:0;overflow:hidden;display:flex;flex-direction:column">
+                  <div class="pane-hdr">
+                    🔄 Token Auto-Refresh
+                    <div class="pane-hdr-actions">
+                      <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);cursor:pointer">
+                        <input type="checkbox" checked /> Auto
+                      </label>
+                    </div>
+                  </div>
+                  <div class="token-flow" style="overflow-y:auto">
+                    <div class="tf-step">
+                      <div class="tf-line">
+                        <div class="tf-dot done">✓</div>
+                        <div class="tf-connector"></div>
+                      </div>
+                      <div class="tf-content">
+                        <div class="tf-title">Detect 401 Unauthorized</div>
+                        <div class="tf-sub">Response from api.google.com · 09:41:08</div>
+                      </div>
+                    </div>
+                    <div class="tf-step">
+                      <div class="tf-line">
+                        <div class="tf-dot done">✓</div>
+                        <div class="tf-connector"></div>
+                      </div>
+                      <div class="tf-content">
+                        <div class="tf-title">Call Refresh Endpoint</div>
+                        <div class="tf-sub">POST /oauth2/token · refresh_token=1//04q…</div>
+                      </div>
+                    </div>
+                    <div class="tf-step">
+                      <div class="tf-line">
+                        <div class="tf-dot active">↻</div>
+                        <div class="tf-connector"></div>
+                      </div>
+                      <div class="tf-content">
+                        <div class="tf-title">Awaiting New Token…</div>
+                        <div class="tf-sub">Waiting for response</div>
+                      </div>
+                    </div>
+                    <div class="tf-step">
+                      <div class="tf-line">
+                        <div class="tf-dot">4</div>
+                      </div>
+                      <div class="tf-content">
+                        <div class="tf-title" style="color:var(--text2)">Update Session & Retry</div>
+                        <div class="tf-sub">Patch Authorization header, replay original request</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <!-- /workspace-content -->
+
+          <!-- Status Bar -->
+          <div class="status-bar">
+            <div class="sb-item ok"><div class="sb-dot"></div>Proxy: 8080</div>
+            <div class="sb-item ok"><div class="sb-dot"></div>Playwright: Running</div>
+            <div class="sb-item warn"><div class="sb-dot"></div>TLS: 3 blocked</div>
+            <div class="sb-right">
+              <span>Step 3/7</span>
+              <span>84 requests</span>
+              <span>Rate: 1 req/s</span>
+              <span style="color:var(--green)">✓ Session live</span>
+            </div>
+          </div>
+
+        </div>
+        <!-- /workspace -->
+
+        <!-- ═══════════════ INTEL PANEL ═══════════════ -->
+        <div class="intel-panel">
+          <div class="ip-hdr">
+            📊 Emulate Stats
+          </div>
+          <div class="ip-body">
+            <!-- Progress ring + overall -->
+            <div class="stat-card">
+              <div class="stat-card-title">Script Progress</div>
+              <div class="ring-wrap">
+                <svg width="56" height="56" class="ring-svg">
+                  <circle cx="28" cy="28" r="22" fill="none" stroke="var(--bg4)" stroke-width="5"/>
+                  <circle cx="28" cy="28" r="22" fill="none" stroke="var(--green)" stroke-width="5"
+                    stroke-dasharray="138.2" stroke-dashoffset="96" stroke-linecap="round"/>
+                  <text x="28" y="28" text-anchor="middle" dominant-baseline="central"
+                    fill="var(--text)" font-size="11" font-weight="700" font-family="monospace"
+                    transform="rotate(90,28,28)">3/7</text>
+                </svg>
+                <div>
+                  <div class="stat-val">43%</div>
+                  <div class="stat-sub">Playwright/Chromium</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-title">Traffic Captured</div>
+              <div class="stat-row"><span class="sr-k">Total requests</span><span class="sr-v">84</span></div>
+              <div class="stat-row"><span class="sr-k">Intercepted</span><span class="sr-v" style="color:var(--yellow)">7</span></div>
+              <div class="stat-row"><span class="sr-k">Modified</span><span class="sr-v" style="color:var(--orange)">3</span></div>
+              <div class="stat-row"><span class="sr-k">Dropped</span><span class="sr-v" style="color:var(--red)">1</span></div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-title">TLS Decryption</div>
+              <div class="stat-row"><span class="sr-k">Decrypted</span><span class="sr-v" style="color:var(--green)">21</span></div>
+              <div class="stat-row"><span class="sr-k">Pinned/Blocked</span><span class="sr-v" style="color:var(--red)">3</span></div>
+              <div class="mini-bar" style="margin-top:6px">
+                <div class="mini-bar-fill" style="width:87.5%;background:var(--green)"></div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-title">HAR / API</div>
+              <div class="stat-row"><span class="sr-k">Entries imported</span><span class="sr-v">12</span></div>
+              <div class="stat-row"><span class="sr-k">Endpoints inferred</span><span class="sr-v">6</span></div>
+              <div class="stat-row"><span class="sr-k">SDK generated</span><span class="sr-v" style="color:var(--purple)">Python</span></div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-title">Session Health</div>
+              <div class="stat-row"><span class="sr-k">Cookies</span><span class="sr-v">5</span></div>
+              <div class="stat-row"><span class="sr-k">Token TTL</span><span class="sr-v" style="color:var(--yellow)">1h 42m</span></div>
+              <div class="stat-row"><span class="sr-k">Auto-refresh</span><span class="sr-v" style="color:var(--green)">On</span></div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-title">Rate Limit</div>
+              <div class="stat-row"><span class="sr-k">Current rate</span><span class="sr-v">1 req/s</span></div>
+              <div class="stat-row"><span class="sr-k">Max allowed</span><span class="sr-v">10 req/s</span></div>
+              <div class="mini-bar" style="margin-top:6px">
+                <div class="mini-bar-fill" style="width:10%;background:var(--blue)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /workspace-panel-container -->
+    </div>
+    <!-- /tool-container -->
+
+    <script>
+      // Tab switching
+      function switchTab(name, el) {
+        document.querySelectorAll('.em-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.em-panel').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        const panel = document.getElementById('tab-' + name);
+        if (panel) panel.classList.add('active');
+      }
+
+      // Row select (proxy traffic)
+      function selRow(el) {
+        el.closest('.proxy-right').querySelectorAll('.traffic-row').forEach(r => r.classList.remove('sel'));
+        el.classList.add('sel');
+      }
+
+      // HAR entry select
+      function selHar(el) {
+        document.querySelectorAll('.har-entry').forEach(e => e.classList.remove('sel'));
+        el.classList.add('sel');
+      }
+
+      // Session select
+      function selSess(el) {
+        document.querySelectorAll('.sess-item').forEach(e => e.classList.remove('sel'));
+        el.classList.add('sel');
+      }
+
+      // Run button toggle
+      let running = false;
+      function toggleRun() {
+        running = !running;
+        const btn = document.getElementById('run-btn');
+        if (running) {
+          btn.textContent = '⏹ Stop';
+          btn.className = 'em-act-btn stop';
+        } else {
+          btn.textContent = '▶ Run';
+          btn.className = 'em-act-btn run';
+        }
+      }
+
+      // Rec toggle
+      function toggleRec(btn) {
+        btn.classList.toggle('active');
+      }
+
+      // Clear log
+      function clearLog() {
+        const log = document.getElementById('headless-log');
+        if (log) log.innerHTML = '<div class="log-line"><span class="log-ts">—</span><span class="log-tag info">INFO</span><span class="log-msg">Log cleared.</span></div>';
+      }
+
+      // Module bar item select
+      document.querySelectorAll('.mb-item').forEach(item => {
+        item.addEventListener('click', function() {
+          document.querySelectorAll('.mb-item').forEach(i => i.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -5,7 +5,7 @@ import { useLiveClock } from '../../hooks/useLiveClock';
 
 import { Recon } from './Intel';
 import { Dashboard } from './Dashboard';
-import { Scan } from './Scan';
+import Scan from './Scan';
 
 // ─── Module title map (local, lightweight) ───────────────────────────────────
 

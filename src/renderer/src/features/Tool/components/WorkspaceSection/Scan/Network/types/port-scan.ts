@@ -1,29 +1,20 @@
-// Port Scan Types for PortScan component
+// Port Scan Types for Network Scan
 
-export type PortProtocol = 'tcp' | 'udp';
-export type PortState = 'open' | 'closed' | 'filtered';
+export type PortState = 'open' | 'filtered' | 'closed';
 
-export interface PortResult {
+export interface PortInfo {
   port: number;
-  protocol: PortProtocol;
   state: PortState;
   service: string;
-  banner?: string;
-}
-
-export interface PortScanConfig {
-  target: string;
-  ports: string;
-  protocol: PortProtocol;
 }
 
 export interface PortScanResult {
-  config: PortScanConfig;
-  results: PortResult[];
-  totalScanned: number;
-  openPorts: number;
-  filteredPorts: number;
-  closedPorts: number;
-  duration: number;
-  startedAt: string;
+  ip: string;
+  ports: PortInfo[];
+}
+
+export interface PortSummary {
+  totalOpenPorts: number;
+  topServices: Map<string, number>;
+  hostsWithOpenPorts: string[];
 }

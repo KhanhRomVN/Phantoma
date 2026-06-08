@@ -1,68 +1,36 @@
-import { useState } from 'react';
 import DomainScan from './Domain';
 import NetworkScan from './Network';
-import WebsiteScan from './Website';
 
 interface ScanProps {
   activeSubItem?: string | null;
 }
 
-const VIEW_CONFIG: Record<
-  string,
-  {
-    Panel: React.ComponentType<{ activeDomain: string }>;
-    TargetList: React.ComponentType<{
-      activeDomain: string;
-      onSelectDomain: (domain: string) => void;
-    }>;
-    DataProvider: React.ComponentType<{ children: React.ReactNode }>;
+export default function Scan({ activeSubItem }: ScanProps) {
+  const subItem = activeSubItem || 'scan-domain';
+
+  switch (subItem) {
+    case 'scan-domain':
+      return (
+        <div className="flex flex-col h-full overflow-hidden bg-[#0f1319]">
+          <DomainScan initialDomain="phantoma.com" />
+        </div>
+      );
+
+    case 'scan-network':
+      return (
+        <div className="flex flex-col h-full overflow-hidden bg-[#0f1319]">
+          <NetworkScan initialTarget="104.18.32.0/24" />
+        </div>
+      );
+
+    default:
+      return (
+        <div className="flex-1 flex items-center justify-center flex-col gap-2 bg-[#0f1319]">
+          <span className="text-[32px] opacity-15">🚧</span>
+          <div className="text-[13px] font-mono text-[#2a3548]">
+            Module <span className="text-[#6a7a9a]">"{subItem}"</span> not implemented
+          </div>
+        </div>
+      );
   }
-> = {
-  'scan-network': {
-    Panel: () => <NetworkScan />,
-    TargetList: () => null,
-    DataProvider: ({ children }) => <>{children}</>,
-  },
-  'scan-website': {
-    Panel: () => <WebsiteScan />,
-    TargetList: () => null,
-    DataProvider: ({ children }) => <>{children}</>,
-  },
-};
-
-const TARGET_LIST_VIEWS = new Set(Object.keys(VIEW_CONFIG));
-
-export function Scan({ activeSubItem }: ScanProps) {
-  const isDomainScan = !activeSubItem || activeSubItem === 'scan-domain';
-
-  if (isDomainScan) {
-    return <DomainScan />;
-  }
-
-  const showTargetList = TARGET_LIST_VIEWS.has(activeSubItem);
-  const config = VIEW_CONFIG[activeSubItem];
-
-  if (!config) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-[#2a3548]">
-        Module not implemented
-      </div>
-    );
-  }
-
-  const [activeDomain, setActiveDomain] = useState<string>('example.com');
-  const { Panel, TargetList, DataProvider } = config;
-
-  return (
-    <div className="flex flex-1 overflow-hidden bg-[#080b10]">
-      {showTargetList && (
-        <TargetList activeDomain={activeDomain} onSelectDomain={setActiveDomain} />
-      )}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <DataProvider>
-          <Panel activeDomain={activeDomain} />
-        </DataProvider>
-      </div>
-    </div>
-  );
 }

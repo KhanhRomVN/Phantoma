@@ -1,0 +1,13 @@
+FROM golang:1.21-alpine AS builder
+
+RUN apk add --no-cache git
+
+RUN go install github.com/dwisiswant0/go-dork@latest
+
+FROM alpine:latest
+
+RUN apk add --no-cache ca-certificates
+
+COPY --from=builder /go/bin/go-dork /usr/local/bin/go-dork
+
+ENTRYPOINT ["go-dork"]

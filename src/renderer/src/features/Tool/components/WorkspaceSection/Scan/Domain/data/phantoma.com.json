@@ -1,0 +1,456 @@
+{
+  "query": {
+    "value": "phantoma.com",
+    "type": "domain"
+  },
+  "scan": {
+    "startedAt": "2026-06-06T09:00:00Z",
+    "completedAt": "2026-06-06T09:21:18Z",
+    "duration": 1278000,
+    "totalRawHits": 97421,
+    "totalProcessedHits": 8346,
+    "scanType": "active"
+  },
+  "rawData": [
+    {
+      "source": "DNS Zone Transfer (AXFR)",
+      "type": "zone_transfer",
+      "items": [
+        {
+          "nameserver": "ns1.phantoma.com",
+          "success": false,
+          "error": "Transfer refused (NOTAUTH)"
+        },
+        {
+          "nameserver": "ns2.phantoma.com",
+          "success": false,
+          "error": "Connection timed out"
+        },
+        {
+          "nameserver": "ns3.phantoma.com",
+          "success": true,
+          "records": [
+            { "name": "phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "phantoma.com.", "type": "MX", "value": "10 mail.phantoma.com.", "ttl": 300 },
+            { "name": "www.phantoma.com.", "type": "CNAME", "value": "phantoma.com.", "ttl": 300 },
+            { "name": "api.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "admin.phantoma.com.", "type": "A", "value": "104.18.33.11", "ttl": 300 },
+            {
+              "name": "cdn.phantoma.com.",
+              "type": "CNAME",
+              "value": "cloudflare.net.",
+              "ttl": 300
+            },
+            {
+              "name": "assets.phantoma.com.",
+              "type": "CNAME",
+              "value": "phantoma-assets.s3.amazonaws.com.",
+              "ttl": 300
+            },
+            { "name": "internal.phantoma.com.", "type": "A", "value": "10.10.10.1", "ttl": 300 },
+            { "name": "db.phantoma.com.", "type": "A", "value": "10.10.10.5", "ttl": 300 },
+            { "name": "redis.phantoma.com.", "type": "A", "value": "10.10.10.6", "ttl": 300 },
+            { "name": "grafana.phantoma.com.", "type": "A", "value": "10.10.10.8", "ttl": 300 },
+            { "name": "gitlab.phantoma.com.", "type": "A", "value": "10.10.10.10", "ttl": 300 },
+            { "name": "jenkins.phantoma.com.", "type": "A", "value": "192.168.1.200", "ttl": 300 },
+            { "name": "vpn.phantoma.com.", "type": "A", "value": "203.0.113.45", "ttl": 300 },
+            { "name": "staging.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "dev.phantoma.com.", "type": "A", "value": "192.168.1.100", "ttl": 300 },
+            { "name": "webmail.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "ftp.phantoma.com.", "type": "A", "value": "104.18.33.11", "ttl": 300 },
+            { "name": "shop.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "blog.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "docs.phantoma.com.", "type": "A", "value": "104.18.33.11", "ttl": 300 },
+            { "name": "auth.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "login.phantoma.com.", "type": "A", "value": "104.18.33.11", "ttl": 300 },
+            { "name": "secure.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "portal.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "partner.phantoma.com.", "type": "A", "value": "172.67.70.5", "ttl": 300 },
+            { "name": "status.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "media.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "events.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "survey.phantoma.com.", "type": "A", "value": "104.18.32.11", "ttl": 300 },
+            { "name": "monitoring.phantoma.com.", "type": "A", "value": "172.16.0.10", "ttl": 300 },
+            {
+              "name": "internal-api.phantoma.com.",
+              "type": "A",
+              "value": "10.10.10.7",
+              "ttl": 300
+            },
+            { "name": "kibana.phantoma.com.", "type": "A", "value": "10.10.10.9", "ttl": 300 },
+            { "name": "confluence.phantoma.com.", "type": "A", "value": "10.10.10.12", "ttl": 300 },
+            { "name": "jira.phantoma.com.", "type": "A", "value": "10.10.10.11", "ttl": 300 }
+          ],
+          "note": "Full zone transfer obtained due to misconfigured AXFR on ns3"
+        }
+      ]
+    },
+    {
+      "source": "DNS Brute‑force (Active Subdomain)",
+      "type": "dns_bruteforce",
+      "items": [
+        {
+          "subdomain": "api.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "admin.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.33.11",
+          "latency_ms": 14
+        },
+        { "subdomain": "cdn.phantoma.com", "resolved": true, "ip": "104.16.0.1", "latency_ms": 8 },
+        {
+          "subdomain": "assets.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 11
+        },
+        {
+          "subdomain": "mail.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.34.11",
+          "latency_ms": 13
+        },
+        {
+          "subdomain": "internal.phantoma.com",
+          "resolved": true,
+          "ip": "10.10.10.1",
+          "latency_ms": 10
+        },
+        { "subdomain": "db.phantoma.com", "resolved": true, "ip": "10.10.10.5", "latency_ms": 10 },
+        {
+          "subdomain": "redis.phantoma.com",
+          "resolved": true,
+          "ip": "10.10.10.6",
+          "latency_ms": 9
+        },
+        {
+          "subdomain": "grafana.phantoma.com",
+          "resolved": true,
+          "ip": "10.10.10.8",
+          "latency_ms": 11
+        },
+        {
+          "subdomain": "gitlab.phantoma.com",
+          "resolved": true,
+          "ip": "10.10.10.10",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "jenkins.phantoma.com",
+          "resolved": true,
+          "ip": "192.168.1.200",
+          "latency_ms": 10
+        },
+        {
+          "subdomain": "vpn.phantoma.com",
+          "resolved": true,
+          "ip": "203.0.113.45",
+          "latency_ms": 11
+        },
+        {
+          "subdomain": "staging.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "dev.phantoma.com",
+          "resolved": true,
+          "ip": "192.168.1.100",
+          "latency_ms": 9
+        },
+        {
+          "subdomain": "webmail.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 13
+        },
+        {
+          "subdomain": "ftp.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.33.11",
+          "latency_ms": 14
+        },
+        {
+          "subdomain": "shop.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "blog.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "docs.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.33.11",
+          "latency_ms": 11
+        },
+        {
+          "subdomain": "auth.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "login.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.33.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "secure.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 10
+        },
+        {
+          "subdomain": "portal.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 11
+        },
+        {
+          "subdomain": "partner.phantoma.com",
+          "resolved": true,
+          "ip": "172.67.70.5",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "status.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 8
+        },
+        {
+          "subdomain": "media.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "events.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 13
+        },
+        {
+          "subdomain": "survey.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 11
+        },
+        {
+          "subdomain": "monitoring.phantoma.com",
+          "resolved": true,
+          "ip": "172.16.0.10",
+          "latency_ms": 10
+        },
+        {
+          "subdomain": "internal-api.phantoma.com",
+          "resolved": true,
+          "ip": "10.10.10.7",
+          "latency_ms": 9
+        },
+        {
+          "subdomain": "kibana.phantoma.com",
+          "resolved": true,
+          "ip": "10.10.10.9",
+          "latency_ms": 11
+        },
+        {
+          "subdomain": "confluence.phantoma.com",
+          "resolved": true,
+          "ip": "10.10.10.12",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "jira.phantoma.com",
+          "resolved": true,
+          "ip": "10.10.10.11",
+          "latency_ms": 10
+        },
+        {
+          "subdomain": "autodiscover.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "lyncdiscover.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "sip.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 13
+        },
+        {
+          "subdomain": "xmpp.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 14
+        },
+        {
+          "subdomain": "docker.phantoma.com",
+          "resolved": true,
+          "ip": "172.17.0.1",
+          "latency_ms": 10
+        },
+        { "subdomain": "test.phantoma.com", "resolved": true, "ip": "10.0.0.50", "latency_ms": 11 },
+        {
+          "subdomain": "old-blog.phantoma.com",
+          "resolved": true,
+          "ip": "198.51.100.73",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "dev2.phantoma.com",
+          "resolved": true,
+          "ip": "192.168.1.101",
+          "latency_ms": 11
+        },
+        {
+          "subdomain": "images.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 10
+        },
+        {
+          "subdomain": "static.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.33.11",
+          "latency_ms": 9
+        },
+        {
+          "subdomain": "cdn-assets.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 12
+        },
+        {
+          "subdomain": "payments.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 14
+        },
+        {
+          "subdomain": "*.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 8,
+          "note": "Wildcard DNS detected"
+        },
+        {
+          "subdomain": "thisdoesnotexist.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 8,
+          "note": "Wildcard response"
+        },
+        {
+          "subdomain": "zzzzzzz.phantoma.com",
+          "resolved": true,
+          "ip": "104.18.32.11",
+          "latency_ms": 8,
+          "note": "Wildcard response"
+        }
+      ]
+    },
+    {
+      "source": "DNS Active Checks",
+      "type": "dns_enumeration",
+      "items": [
+        { "type": "version.bind", "target": "ns1.phantoma.com", "response": "BIND 9.18.21" },
+        { "type": "version.bind", "target": "ns2.phantoma.com", "response": "BIND 9.18.21" },
+        { "type": "version.bind", "target": "ns3.phantoma.com", "response": "BIND 9.16.48" },
+        { "type": "hostname.bind", "target": "ns1.phantoma.com", "response": "ns1.phantoma.com" },
+        {
+          "type": "dnssec",
+          "domain": "phantoma.com",
+          "status": "unsigned",
+          "note": "No DS record in parent zone"
+        },
+        { "type": "dnssec", "domain": "phantoma.com", "status": "zone unsigned (no RRSIGs)" },
+        { "type": "nsid", "target": "ns1.phantoma.com", "response": "657501" },
+        { "type": "chaos_txt", "query": "authors.bind", "response": "Internet Systems Consortium" }
+      ]
+    },
+    {
+      "source": "DNS Misconfiguration Check",
+      "type": "dns_misconfig",
+      "items": [
+        {
+          "issue": "Open Zone Transfer",
+          "severity": "high",
+          "detail": "ns3.phantoma.com allowed full AXFR for phantoma.com",
+          "nameserver": "ns3.phantoma.com"
+        },
+        {
+          "issue": "Wildcard DNS",
+          "severity": "medium",
+          "detail": "A record for *.phantoma.com points to 104.18.32.11, can mask subdomain enumeration",
+          "ip": "104.18.32.11"
+        },
+        {
+          "issue": "Missing DNSSEC",
+          "severity": "medium",
+          "detail": "Domain not signed, vulnerable to DNS spoofing/cache poisoning",
+          "domain": "phantoma.com"
+        },
+        {
+          "issue": "SPF record ends with ~all",
+          "severity": "low",
+          "detail": "Softfail allows some spoofed emails; use -all for stricter policy",
+          "record": "v=spf1 include:_spf.google.com include:mailgun.org include:sendgrid.net ~all"
+        },
+        {
+          "issue": "DMARC p=reject but missing sp=reject",
+          "severity": "low",
+          "detail": "Subdomain policy not explicitly set, might default to relaxed",
+          "record": "v=DMARC1; p=reject; rua=mailto:dmarc@phantoma.com"
+        },
+        {
+          "issue": "Nameserver inconsistency",
+          "severity": "low",
+          "detail": "ns3 runs older BIND version (9.16.48) vs ns1/ns2 (9.18.21)",
+          "nameservers": ["ns1", "ns2", "ns3"]
+        },
+        {
+          "issue": "Internal IPs in public DNS",
+          "severity": "high",
+          "detail": "Zone transfer reveals internal addresses (10.x, 192.168.x, 172.16.x)",
+          "affected_records": [
+            "internal.phantoma.com",
+            "db.phantoma.com",
+            "redis.phantoma.com",
+            "grafana.phantoma.com",
+            "gitlab.phantoma.com",
+            "jenkins.phantoma.com"
+          ]
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "Active DNS brute‑force was performed using a custom wordlist of 10,000 entries; wildcard DNS caused many false positives.",
+    "Zone transfer succeeded on ns3.phantoma.com due to misconfigured ACL — full zone content disclosed.",
+    "Wildcard DNS record (*.phantoma.com → 104.18.32.11) detected; brute‑force hits on random subdomains should be ignored.",
+    "Multiple internal IP addresses (RFC 1918) were found in zone transfer — indicates poor DNS segmentation.",
+    "DNSSEC is not implemented; domain is susceptible to DNS spoofing attacks.",
+    "SPF record uses softfail (~all) – not fully enforcing email authentication.",
+    "Older BIND version on ns3 may have known vulnerabilities; recommend upgrading.",
+    "Brute‑force result includes many subdomains that are actually behind Cloudflare; actual server IPs are hidden.",
+    "All active scans were performed under authorized engagement; no DoS conditions triggered."
+  ]
+}

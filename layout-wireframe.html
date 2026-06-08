@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phantoma Layout Wireframe</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        font-family: monospace;
+      }
+
+      /* Layout chính từ Tool/index.tsx */
+      .tool-container {
+        display: flex;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      /* ModuleBar - bên trái, width 240px */
+      .module-bar {
+        width: 240px;
+        flex-shrink: 0;
+        background-color: #3b82f6; /* Xanh dương */
+      }
+
+      /* Container cho Workspace + IntelPanel (flex) */
+      .workspace-panel-container {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      /* Workspace - phần trung tâm */
+      .workspace {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      /* WorkspaceTopbar */
+      .workspace-topbar {
+        height: 38px;
+        flex-shrink: 0;
+        background-color: #22c55e; /* Xanh lá */
+      }
+
+      /* Workspace content (ViewRouter) */
+      .workspace-content {
+        flex: 1;
+        overflow: hidden;
+        background-color: #10b981; /* Xanh ngọc */
+      }
+
+      /* StatusBar */
+      .status-bar {
+        height: 22px;
+        flex-shrink: 0;
+        background-color: #eab308; /* Vàng */
+      }
+
+      /* IntelPanel - bên phải, width 450px */
+      .intel-panel {
+        width: 450px;
+        flex-shrink: 0;
+        background-color: #a855f7; /* Tím */
+      }
+
+      /* Box style chung */
+      .box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="tool-container">
+      <!-- ModuleBar: xanh dương -->
+      <div class="module-bar box">ModuleBar</div>
+
+      <div class="workspace-panel-container">
+        <!-- Workspace section: xanh lá + vàng -->
+        <div class="workspace">
+          <div class="workspace-topbar box">WorkspaceTopbar</div>
+          <div class="workspace-content box">Workspace Content (ViewRouter)</div>
+          <div class="status-bar box">StatusBar</div>
+        </div>
+
+        <!-- IntelPanel: tím -->
+        <div class="intel-panel box">IntelPanel</div>
+      </div>
+    </div>
+  </body>
+</html>

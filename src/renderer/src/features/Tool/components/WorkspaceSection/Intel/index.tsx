@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import Domain from './Domain';
+import DomainRecon from './Domain';
 import IpRecon from './IP';
+import PersonRecon from './Person';
 
 interface ReconProps {
   activeSubItem?: string | null;
@@ -26,10 +27,13 @@ export function Recon({ activeSubItem }: ReconProps) {
 
   switch (subItem) {
     case 'recon-domain':
-      return <Domain />;
+      return <DomainRecon />;
 
     case 'recon-ip':
       return <IpRecon />;
+
+    case 'recon-person':
+      return <PersonRecon />;
 
     default: {
       // Legacy VIEW_CONFIG pattern for future extensibility

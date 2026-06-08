@@ -19,12 +19,12 @@
 - [9. Hướng Dẫn Phát Triển](#9-hướng-dẫn-phát-triển)
 
 ---
-
+    
 ## 1. Tổng Quan Kiến Trúc
 
 Module **EMULATE** cung cấp khả năng giả lập hành vi của trình duyệt thật, ghi lại và tái tạo các request HTTP/HTTPS, cũng như xử lý xác thực và phiên làm việc.
 
-```
+```rere
 EMULATE/
 ├── EMULATE.md                   ← Tài liệu này
 ├── index.tsx                    ← Component chính

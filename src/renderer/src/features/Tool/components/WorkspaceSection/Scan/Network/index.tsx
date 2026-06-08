@@ -1,33 +1,31 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { cn } from '../../../../../../shared/lib/utils';
-import { NetworkOverview } from './components/Overview';
-import { NetworkPingSweep } from './components/PingSweep';
-import { NetworkPortScan } from './components/PortScan';
-import { NetworkServiceDetection } from './components/ServiceDetection';
-import { NetworkOSFingerprint } from './components/OSFingerprint';
-import { NetworkLog } from './components/Log';
-import { NetworkSearch } from './components/Search';
-import { NetworkHistory } from './components/History';
-import {
-  Activity,
-  Radio,
-  Plug,
-  Cpu,
-  Search,
-  Terminal,
-} from 'lucide-react';
+import { useNetworkScan } from './hooks/useNetworkScan';
 
-// Optional sample data
-import sampleData from './data/network-sample.json';
+import { SectionHeader } from './components/shared/SectionHeader';
+import { DataTable } from './components/shared/DataTable';
+import { Overview } from './components/Overview';
+import { HostDiscovery } from './components/HostDiscovery';
+import { PortScan } from './components/PortScan';
+import { ServiceVersion } from './components/ServiceVersion';
+import { OSDetection } from './components/OSDetection';
 
-// Types
-import type { NetworkScanSession, ScanNetworkStatus, ScanNetworkData, ScanNetworkSubTabId } from './types/scan-network-data';
+import { ChevronDown, Search as SearchIcon, Play, RefreshCw } from 'lucide-react';
+import { getTabIcon } from './constants/icons';
+import type { DataSource } from './types/scan-data-point';
+import type { SmartCategoryGroup } from './types/scan-result';
 
-// ============================================================================
-// Status & Session Data
-// ============================================================================
+interface NetworkSession {
+  id: string;
+  target: string;
+  status: 'idle' | 'queued' | 'scanning' | 'done' | 'error';
+  progress: number;
+  riskScore?: number;
+}
 
-const STATUS_META: Record<ScanNetworkStatus, { label: string; color: string; pulse?: boolean }> = {
+type NetworkStatus = NetworkSession['status'];
+
+const STATUS_META: Record<NetworkStatus, { label: string; color: string; pulse?: boolean }> = {
   idle: { label: 'IDLE', color: '#3a4558' },
   queued: { label: 'QUEUED', color: '#f5a623', pulse: true },
   scanning: { label: 'SCANNING', color: '#0af', pulse: true },
@@ -35,59 +33,24 @@ const STATUS_META: Record<ScanNetworkStatus, { label: string; color: string; pul
   error: { label: 'ERROR', color: '#ff2d55' },
 };
 
-const DEFAULT_SESSIONS: NetworkScanSession[] = [
+const DEFAULT_SESSIONS: NetworkSession[] = [
   {
-    id: 'net-sess-1',
-    target: '192.168.1.0/24',
+    id: 'net-scan-1',
+    target: '104.18.32.0/24',
     status: 'done',
     progress: 100,
-    riskScore: 45,
-    stats: { liveHosts: 8, openPorts: 6, servicesIdentified: 6, osAccuracy: 92 },
+    riskScore: 68,
   },
 ];
 
-// TODO: Replace with actual API call
-async function fetchNetworkData(target: string): Promise<ScanNetworkData | null> {
-  console.log(`[NetworkScan] Fetching data for: ${target}`);
-
-  try {
-    if (typeof sampleData !== 'undefined' && sampleData && sampleData.target === target) {
-      console.log('[NetworkScan] Using sample data from network-sample.json');
-      // @ts-ignore
-      return sampleData;
-    }
-  } catch (e) {
-    console.log('[NetworkScan] Sample data not available, using API');
-  }
-
-  console.log('[NetworkScan] No data source available, returning null');
-  return null;
-}
-
-// ============================================================================
-// Tab Configuration
-// ============================================================================
-
-const SUB_TABS = [
-  { id: 'overview', label: 'Overview', accent: '#0af' },
-  { id: 'ping-sweep', label: 'Ping Sweep', accent: '#30d158' },
-  { id: 'port-scan', label: 'Port Scan', accent: '#ff9f0a' },
-  { id: 'service-detection', label: 'Service Detection', accent: '#0af' },
-  { id: 'os-fingerprint', label: 'OS Fingerprint', accent: '#5e5ce6' },
-  { id: 'terminal', label: 'Log', accent: '#30d158' },
-] as const;
-
-// ============================================================================
-// Main Component
-// ============================================================================
+const DATA_CACHE: Record<string, Record<string, unknown>> = {};
 
 interface NetworkScanProps {
   initialTarget?: string;
 }
 
-export default function NetworkScan({ initialTarget = '192.168.1.0/24' }: NetworkScanProps) {
-  // State for sessions (target list)
-  const [sessions, setSessions] = useState<NetworkScanSession[]>(DEFAULT_SESSIONS);
+export default function NetworkScan({ initialTarget = '104.18.32.0/24' }: NetworkScanProps) {
+  const [sessions, setSessions] = useState<NetworkSession[]>(DEFAULT_SESSIONS);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTarget, setNewTarget] = useState('');
   const [contextMenu, setContextMenu] = useState<{
@@ -97,84 +60,38 @@ export default function NetworkScan({ initialTarget = '192.168.1.0/24' }: Networ
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // State for active target and panel
   const [activeTarget, setActiveTarget] = useState<string>(initialTarget);
-  const [activeSubTab, setActiveSubTab] = useState<ScanNetworkSubTabId>('overview');
-  const [targetInput, setTargetInput] = useState(activeTarget);
 
-  // State for dropdowns
-  const [showTabsDropdown, setShowTabsDropdown] = useState(false);
-  const [showRunSelectedDropdown, setShowRunSelectedDropdown] = useState(false);
-  const [selectedTabs, setSelectedTabs] = useState<Set<ScanNetworkSubTabId>>(new Set());
+  const {
+    result,
+    categoryGroups,
+    activeTab,
+    filteredDataPoints,
+    isLoading,
+    error,
+    loadData,
+    setActiveTab,
+  } = useNetworkScan();
 
-  // State for search
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [showTabsDropdown, setShowTabsDropdown] = useState(false);
 
-  // State for history mode
-  const [isHistoryMode, setIsHistoryMode] = useState(false);
-  const [historyViewData, setHistoryViewData] = useState<ScanNetworkData | null>(null);
-
-  // Data fetching state
-  const [data, setData] = useState<ScanNetworkData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const activeTab = SUB_TABS.find((t) => t.id === activeSubTab)!;
-
-  // Fetch data for a target
-  const fetchData = async (target: string) => {
-    setIsLoading(true);
-    const result = await fetchNetworkData(target);
-    setData(result);
-    setIsLoading(false);
-  };
-
-  // Update input when activeTarget changes
   useEffect(() => {
-    setTargetInput(activeTarget);
-  }, [activeTarget]);
-
-  // Fetch data when activeTarget changes
-  useEffect(() => {
-    if (activeTarget) {
-      fetchData(activeTarget);
+    const cached = DATA_CACHE[activeTarget];
+    if (cached) {
+      loadData(cached);
+      return;
     }
-  }, [activeTarget]);
-
-  const handleLookup = () => {
-    if (!targetInput.trim()) return;
-    setActiveTarget(targetInput.trim());
-  };
-
-  // Target list functions
-  const addTarget = useCallback(() => {
-    const t = newTarget.trim();
-    if (!t) return;
-    if (sessions.some((s) => s.target === t)) return;
-    const sess: NetworkScanSession = {
-      id: `net-sess-${Date.now()}`,
-      target: t,
-      status: 'queued',
-      progress: 0,
-      stats: { liveHosts: 0, openPorts: 0, servicesIdentified: 0, osAccuracy: 0 },
-    };
-    setSessions((prev) => [...prev, sess]);
-    setNewTarget('');
-    setShowAddForm(false);
-  }, [newTarget, sessions]);
-
-  const removeTarget = useCallback((id: string) => {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
-  }, []);
-
-  const runScan = useCallback((target: string) => {
-    console.log('Running full network scan for:', target);
-  }, []);
-
-  const handleContextMenu = (e: React.MouseEvent, sessionId: string) => {
-    e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, sessionId });
-  };
+    if (activeTarget === '104.18.32.0/24') {
+      import('./data/104.18.32.0-24.json')
+        .then((mod) => {
+          const data = mod.default as unknown as Record<string, unknown>;
+          DATA_CACHE['104.18.32.0/24'] = data;
+          loadData(data);
+        })
+        .catch((err) => console.error('Failed to load network scan data:', err));
+    }
+  }, [activeTarget, loadData]);
 
   useEffect(() => {
     const handleClickOutside = () => setContextMenu(null);
@@ -182,119 +99,227 @@ export default function NetworkScan({ initialTarget = '192.168.1.0/24' }: Networ
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('.tabs-dropdown-container')) {
-        setShowTabsDropdown(false);
-      }
-      if (!target.closest('.run-selected-dropdown-container')) {
-        setShowRunSelectedDropdown(false);
-      }
+      if (!target.closest('.tabs-dropdown-container')) setShowTabsDropdown(false);
     };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Handlers
-  const handleRunSelectedClick = () => setShowRunSelectedDropdown(!showRunSelectedDropdown);
+  const addTarget = useCallback(() => {
+    let t = newTarget.trim();
+    if (!t) return;
+    if (sessions.some((s) => s.target === t)) return;
+    const sess: NetworkSession = {
+      id: `net-scan-${Date.now()}`,
+      target: t,
+      status: 'queued',
+      progress: 0,
+    };
+    setSessions((prev) => [...prev, sess]);
+    setNewTarget('');
+    setShowAddForm(false);
+  }, [newTarget, sessions]);
 
-  const handleConfirmRunSelected = () => {
-    console.log('Running selected tabs:', Array.from(selectedTabs));
-    setShowRunSelectedDropdown(false);
+  const removeSession = useCallback((id: string) => {
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const handleContextMenu = (e: React.MouseEvent, sessionId: string) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, sessionId });
   };
 
-  const handleOpenHistory = () => {
-    setIsHistoryMode(true);
-    setHistoryViewData(null);
-  };
-
-  const handleSelectHistory = (historyData: ScanNetworkData) => {
-    setHistoryViewData(historyData);
-  };
-
-  const handleBackFromHistory = () => {
-    setIsHistoryMode(false);
-    setHistoryViewData(null);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    setIsSearchMode(value.trim().length > 0);
-  };
-
-  const handleSearchResultClick = (tabId: string) => {
-    setActiveSubTab(tabId as ScanNetworkSubTabId);
-    setIsSearchMode(false);
+  const handleClearSearch = () => {
     setSearchQuery('');
   };
 
-  const renderContent = () => {
-    // Search mode
-    if (isSearchMode && searchQuery.trim()) {
-      return <NetworkSearch data={data} searchQuery={searchQuery} onResultClick={handleSearchResultClick} />;
-    }
-
-    // History mode
-    if (isHistoryMode) {
-      return <NetworkHistory onSelectHistory={handleSelectHistory} onBack={handleBackFromHistory} />;
-    }
-
-    // Viewing history data
-    if (historyViewData) {
-      return renderNormalContent(historyViewData);
-    }
-
-    // Normal mode
-    return renderNormalContent(data);
+  const handleStartScan = (sessionId: string) => {
+    setSessions((prev) =>
+      prev.map((s) => (s.id === sessionId ? { ...s, status: 'scanning', progress: 0 } : s)),
+    );
+    setContextMenu(null);
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 15 + 5;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === sessionId
+              ? {
+                  ...s,
+                  status: 'done',
+                  progress: 100,
+                  riskScore: Math.floor(Math.random() * 40 + 40),
+                }
+              : s,
+          ),
+        );
+      } else {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? { ...s, progress: Math.floor(progress) } : s)),
+        );
+      }
+    }, 300);
   };
 
-  const renderNormalContent = (scanData: ScanNetworkData | null) => {
-    if (!scanData) {
+  const activeGroup = categoryGroups.find((g) => g.id === activeTab);
+
+  const displayDataPoints = useMemo(() => {
+    if (!searchQuery.trim()) return filteredDataPoints;
+    const lower = searchQuery.toLowerCase();
+    return filteredDataPoints.filter((dp) => {
+      const label = dp.label.toLowerCase();
+      const displayVal = (dp.displayValue || '').toLowerCase();
+      const val = String(dp.value || '').toLowerCase();
+      const source = dp.source.name.toLowerCase();
       return (
-        <div className="flex-1 flex items-center justify-center flex-col gap-3 bg-[#0f1319]">
-          <div className="text-[32px] opacity-15">📡</div>
-          <div className="text-[11px] font-mono text-[#2a3548]">
-            Enter an IP or CIDR range and click "Scan" to start active network scanning
+        label.includes(lower) ||
+        displayVal.includes(lower) ||
+        val.includes(lower) ||
+        source.includes(lower)
+      );
+    });
+  }, [filteredDataPoints, searchQuery]);
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex-1 flex items-center justify-center flex-col gap-3">
+          <div className="text-[24px] animate-pulse">🌐</div>
+          <div className="text-[12px] font-mono text-[#c8d6f0]">
+            Processing network scan data...
           </div>
         </div>
       );
     }
 
-    switch (activeSubTab) {
+    if (error) {
+      return (
+        <div className="flex-1 flex items-center justify-center flex-col gap-3">
+          <div className="text-[24px] opacity-15">⚠️</div>
+          <div className="text-[12px] font-mono text-[#ff2d55]">{error}</div>
+        </div>
+      );
+    }
+
+    if (!result) {
+      return (
+        <div className="flex-1 flex items-center justify-center flex-col gap-3 bg-[#0f1319]">
+          <div className="text-[32px] opacity-15">🔍</div>
+          <div className="text-[12px] font-mono text-[#c8d6f0]">
+            Select a network target and run an active scan to view results
+          </div>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
       case 'overview':
-        return <NetworkOverview data={scanData} />;
-      case 'ping-sweep':
-        return <NetworkPingSweep data={scanData} />;
-      case 'port-scan':
-        return <NetworkPortScan data={scanData} />;
-      case 'service-detection':
-        return <NetworkServiceDetection data={scanData} />;
-      case 'os-fingerprint':
-        return <NetworkOSFingerprint data={scanData} />;
-      case 'terminal':
-        return <NetworkLog data={scanData} />;
+        return <Overview result={result} />;
+      case 'host_discovery':
+        return <HostDiscovery dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
+      case 'port_scan':
+        return <PortScan dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
+      case 'service_version':
+        return <ServiceVersion dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
+      case 'os_detection':
+        return <OSDetection dataPoints={displayDataPoints} activeGroup={activeGroup!} />;
+      case 'raw':
+        return (
+          <div className="flex-1 overflow-y-auto p-3">
+            <SectionHeader accent="#6a7a9a">
+              Raw & Noise Data ({displayDataPoints.length})
+            </SectionHeader>
+            <DataTable
+              dataPoints={displayDataPoints}
+              columns={['value', 'category', 'severity', 'confidence', 'source']}
+            />
+          </div>
+        );
+      case 'sources':
+        return (
+          <div className="flex-1 overflow-y-auto p-3">
+            <SectionHeader accent="#6a7a9a">Data Sources ({result.sources.length})</SectionHeader>
+            <div className="space-y-1">
+              {result.sources.map((src: DataSource) => (
+                <div
+                  key={src.id}
+                  className="flex items-center justify-between px-3 py-2 bg-[#0a0e14] border border-[#111827] rounded"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-mono text-[#c8d6f0]">{src.name}</span>
+                    <span className="text-[9px] font-mono text-[#3a4558] bg-[#111827] px-1 rounded">
+                      {src.type}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-1 bg-[#111827] rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.round(src.credibility * 100)}%`,
+                          backgroundColor:
+                            src.credibility >= 0.7
+                              ? '#30d158'
+                              : src.credibility >= 0.4
+                                ? '#f5a623'
+                                : '#ff2d55',
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-[#6a7a9a] w-8 text-right">
+                      {Math.round(src.credibility * 100)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       default:
+        if (activeGroup && displayDataPoints.length > 0) {
+          return (
+            <div className="flex-1 overflow-y-auto p-3">
+              <SectionHeader accent={activeGroup.accent}>
+                {activeGroup.label} ({displayDataPoints.length})
+              </SectionHeader>
+              <DataTable
+                dataPoints={displayDataPoints}
+                columns={['value', 'category', 'severity', 'confidence', 'source']}
+              />
+            </div>
+          );
+        }
+        if (activeGroup) {
+          return (
+            <div className="flex-1 flex items-center justify-center flex-col gap-2 p-3">
+              <span className="text-[24px] opacity-15">📭</span>
+              <span className="text-[12px] font-mono text-[#6a7a9a]">No data in this category</span>
+              <span className="text-[10px] font-mono text-[#3a4558]">
+                {activeGroup.description}
+              </span>
+            </div>
+          );
+        }
         return null;
     }
   };
 
   return (
     <div className="flex flex-1 overflow-hidden bg-[#0f1319]">
-      {/* Left panel: Target list */}
       <div className="w-[293px] bg-[#0f1319] border-r border-[#1c2333] flex flex-col shrink-0 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-3 h-[40px] border-b border-[#1c2333] shrink-0 bg-[#0f1319]">
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-bold tracking-[0.12em] text-[#c8d6f0] font-mono">
-              Targets
-            </span>
-          </div>
+        <div className="flex items-center justify-between px-3 h-[40px] border-b border-[#1c2333] shrink-0">
+          <span className="text-[13px] font-bold tracking-[0.12em] text-[#c8d6f0] font-mono">
+            Network Scan
+          </span>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="text-[#2a3548] hover:text-[#ff9f0a] hover:bg-[#ff9f0a15] transition-all p-1 rounded"
+            className="text-[#c8d6f0] hover:text-[#0af] hover:bg-[#0af15] transition-all p-1 rounded"
             title="Add target"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -308,7 +333,6 @@ export default function NetworkScan({ initialTarget = '192.168.1.0/24' }: Networ
           </button>
         </div>
 
-        {/* Add form */}
         {showAddForm && (
           <div className="p-2 border-b border-[#1c2333] shrink-0">
             <div className="flex gap-1">
@@ -326,13 +350,13 @@ export default function NetworkScan({ initialTarget = '192.168.1.0/24' }: Networ
                 }}
                 placeholder="192.168.1.0/24"
                 spellCheck={false}
-                className="flex-1 h-7 bg-[#040608] border border-[#1c2333] rounded px-2 text-[11px] font-mono text-[#ff9f0a] outline-none placeholder:text-[#2a3548]"
-                style={{ caretColor: '#ff9f0a' }}
+                className="flex-1 h-7 bg-[#040608] border border-[#1c2333] rounded px-2 text-[11px] font-mono text-[#0af] outline-none placeholder:text-[#3a4558]"
+                style={{ caretColor: '#0af' }}
               />
               <button
                 onClick={addTarget}
                 className="h-7 w-7 rounded text-[11px] font-bold font-mono transition-colors"
-                style={{ background: '#ff9f0a15', border: '1px solid #ff9f0a30', color: '#ff9f0a' }}
+                style={{ background: '#0af15', border: '1px solid #0af30', color: '#0af' }}
               >
                 +
               </button>
@@ -340,158 +364,230 @@ export default function NetworkScan({ initialTarget = '192.168.1.0/24' }: Networ
           </div>
         )}
 
-        {/* Cards list */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-[#0f1319]">
+        <div className="overflow-y-auto p-1.5 space-y-1 flex-1">
           {sessions.map((sess) => {
-            const meta = STATUS_META[sess.status];
+            const statusMeta = STATUS_META[sess.status];
             const isActive = sess.target === activeTarget;
+            const riskScore = sess.riskScore;
+            const riskColor: string | undefined =
+              riskScore !== undefined
+                ? riskScore >= 75
+                  ? '#ff2d55'
+                  : riskScore >= 50
+                    ? '#f5a623'
+                    : '#30d158'
+                : undefined;
             return (
               <div
                 key={sess.id}
                 onClick={() => setActiveTarget(sess.target)}
                 onContextMenu={(e) => handleContextMenu(e, sess.id)}
                 className={cn(
-                  'p-2 rounded cursor-pointer transition-all relative',
-                  isActive ? 'bg-[#0d1017]' : 'bg-[#0a0e14] hover:bg-[#111827]',
+                  'group px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 relative',
+                  isActive ? 'bg-[#0d1017]' : 'bg-[#0a0e14] hover:bg-[#0c1016]',
                 )}
               >
                 {isActive && (
                   <div
-                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                    style={{ background: meta.color }}
+                    className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
+                    style={{ background: statusMeta.color }}
                   />
                 )}
-                <div className="flex items-center gap-2 pl-1">
+
+                <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      'w-1.5 h-1.5 rounded-full shrink-0',
+                      statusMeta.pulse && 'animate-pulse',
+                    )}
+                    style={{ background: statusMeta.color }}
+                    title={statusMeta.label}
+                  />
                   <span
-                    className="text-[13px] font-mono font-bold flex-1 truncate"
-                    style={{ color: isActive ? '#c8d6f0' : '#6a7a9a' }}
+                    className="text-[12px] font-mono font-semibold truncate flex-1 min-w-0 leading-tight"
+                    style={{ color: isActive ? '#e4e4e7' : '#a1a1aa' }}
                   >
                     {sess.target}
                   </span>
+                  {riskScore !== undefined && (
+                    <span
+                      className="text-[10px] font-mono font-bold shrink-0 tabular-nums"
+                      style={{ color: riskColor }}
+                    >
+                      {riskScore}
+                    </span>
+                  )}
                 </div>
+
+                {sess.status === 'scanning' && (
+                  <div className="mt-1.5 ml-[14px]">
+                    <div className="h-[2px] bg-[#111827] rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${sess.progress}%`, background: '#0af' }}
+                      />
+                    </div>
+                    <span className="text-[9px] font-mono text-[#0af] mt-0.5 block">
+                      {sess.progress}%
+                    </span>
+                  </div>
+                )}
+
+                {riskScore !== undefined && sess.status === 'done' && (
+                  <div className="mt-1.5 ml-[14px] h-[2px] bg-[#111827] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${riskScore}%`, background: riskColor }}
+                    />
+                  </div>
+                )}
+
+                {sess.status !== 'done' && sess.status !== 'scanning' && (
+                  <div className="mt-1 ml-[14px]">
+                    <span className="text-[9px] font-mono" style={{ color: statusMeta.color }}>
+                      {sess.status === 'queued'
+                        ? 'Queued...'
+                        : sess.status === 'error'
+                          ? 'Error'
+                          : 'Idle'}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-
-        {/* Context Menu */}
-        {contextMenu && (
-          <div
-            ref={menuRef}
-            className="fixed z-50 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1 min-w-[160px]"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-          >
-            <button
-              onClick={() => {
-                const session = sessions.find((s) => s.id === contextMenu.sessionId);
-                if (session) runScan(session.target);
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#ff9f0a] hover:bg-[#1c2333] transition-colors"
-            >
-              ▶ Run Full Scan
-            </button>
-            <button
-              onClick={() => {
-                handleOpenHistory();
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#30d158] hover:bg-[#1c2333] transition-colors"
-            >
-              📜 Open History
-            </button>
-            <button
-              onClick={() => {
-                handleRunSelectedClick();
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#ff9f0a] hover:bg-[#1c2333] transition-colors"
-            >
-              ✓ Run Selected
-            </button>
-            <div className="border-t border-[#1c2333] my-1" />
-            <button
-              onClick={() => {
-                removeTarget(contextMenu.sessionId);
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-[#ff2d55] hover:bg-[#1c2333] transition-colors"
-            >
-              ✕ Delete
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Right panel: Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#0f1319]">
-        <div className="flex flex-col flex-1 overflow-hidden bg-[#0f1319]">
-          <div className="flex items-center justify-between px-3 h-10 bg-[#0f1319] border-b border-[#1c2333] shrink-0">
-            <span className="text-[12px] font-mono font-bold text-[#c8d6f0]">
-              {activeTab.label}
-            </span>
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search..."
-                className="h-7 w-[21rem] bg-[#0d1017] border border-[#1c2333] rounded text-[#ff9f0a] text-[11px] px-2 outline-none font-mono placeholder:text-[#2a3548]"
-              />
-              <div className="relative tabs-dropdown-container">
-                <button
-                  onClick={() => setShowTabsDropdown(!showTabsDropdown)}
-                  className="h-6 w-6 flex items-center justify-center bg-[#1c2333] border border-[#2a3548] text-[#6a7a9a] rounded hover:text-[#c8d6f0] hover:border-[#ff9f0a30] transition-colors"
-                  title="Switch tab"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="6" r="2" />
-                    <circle cx="12" cy="12" r="2" />
-                    <circle cx="12" cy="18" r="2" />
-                  </svg>
-                </button>
-                {showTabsDropdown && (
-                  <div className="absolute right-0 top-8 z-50 w-52 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1">
-                    {SUB_TABS.map((tab) => {
-                      const getIcon = () => {
-                        switch (tab.id) {
-                          case 'overview': return <Activity className="w-3.5 h-3.5" />;
-                          case 'ping-sweep': return <Radio className="w-3.5 h-3.5" />;
-                          case 'port-scan': return <Plug className="w-3.5 h-3.5" />;
-                          case 'service-detection': return <Search className="w-3.5 h-3.5" />;
-                          case 'os-fingerprint': return <Cpu className="w-3.5 h-3.5" />;
-                          case 'terminal': return <Terminal className="w-3.5 h-3.5" />;
-                          default: return <Activity className="w-3.5 h-3.5" />;
-                        }
-                      };
+      {contextMenu && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1 min-w-[140px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button
+            onClick={() => handleStartScan(contextMenu.sessionId)}
+            className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#0af] hover:bg-[#1c2333] transition-colors flex items-center gap-2"
+          >
+            <Play className="w-3 h-3" /> Run Network Scan
+          </button>
+          <div className="border-t border-[#1c2333] my-1" />
+          <button
+            onClick={() => {
+              removeSession(contextMenu.sessionId);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-3 py-1.5 text-[12px] font-mono text-[#ff2d55] hover:bg-[#1c2333] transition-colors"
+          >
+            ✕ Delete
+          </button>
+        </div>
+      )}
 
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => {
-                            setActiveSubTab(tab.id);
-                            setShowTabsDropdown(false);
-                          }}
-                          className={cn(
-                            "w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-mono transition-colors",
-                            activeSubTab === tab.id
-                              ? "bg-[#ff9f0a15] text-[#ff9f0a]"
-                              : "text-[#c8d6f0] hover:bg-[#1c2333]"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            {getIcon()}
-                            <span>{tab.label}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex items-center justify-between px-3 h-10 bg-[#0f1319] border-b border-[#1c2333] shrink-0">
+            <div className="relative tabs-dropdown-container">
+              <button
+                onClick={() => setShowTabsDropdown(!showTabsDropdown)}
+                className="flex items-center gap-2 text-[#c8d6f0] hover:text-[#0af] transition-colors group"
+                title="Switch tab"
+              >
+                {(() => {
+                  const iconName = activeGroup?.icon || 'Network';
+                  const TabIcon = getTabIcon(iconName);
+                  return (
+                    <TabIcon className="w-4 h-4 text-[#6a7a9a] group-hover:text-[#0af] transition-colors" />
+                  );
+                })()}
+                <span className="text-[13px] font-mono font-bold">
+                  {activeGroup?.label || 'Overview'}
+                </span>
+                <ChevronDown className="w-3 h-3 text-[#6a7a9a] group-hover:text-[#0af] transition-colors" />
+              </button>
+              {showTabsDropdown && (
+                <div className="absolute left-0 top-8 z-50 w-52 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1">
+                  {categoryGroups
+                    .filter((g: { isActive: boolean }) => g.isActive)
+                    .map((group: SmartCategoryGroup) => (
+                      <button
+                        key={group.id}
+                        onClick={() => {
+                          setActiveTab(group.id);
+                          setShowTabsDropdown(false);
+                        }}
+                        className={cn(
+                          'w-full flex items-center justify-between px-3 py-1.5 text-[12px] font-mono transition-colors',
+                          activeTab === group.id
+                            ? 'bg-[#0af15] text-[#0af]'
+                            : 'text-[#c8d6f0] hover:bg-[#1c2333]',
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const ItemIcon = getTabIcon(group.icon);
+                            return (
+                              <ItemIcon
+                                className="w-3 h-3 shrink-0 -mt-0.5"
+                                style={{ color: group.accent }}
+                              />
+                            );
+                          })()}
+                          <span>{group.label}</span>
+                        </div>
+                        {group.count > 0 && (
+                          <span className="text-[10px] text-[#6a7a9a]">({group.count})</span>
+                        )}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3a4558]" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search data..."
+                  spellCheck={false}
+                  className="w-[320px] h-7 bg-[#040608] border border-[#1c2333] rounded pl-6 pr-2 text-[11px] font-mono text-[#c8d6f0] outline-none placeholder:text-[#6a7a9a] focus:border-[#0af30] transition-colors"
+                  style={{ caretColor: '#0af' }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#3a4558] hover:text-[#ff2d55] transition-colors"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
                 )}
               </div>
+              <button
+                onClick={() => {
+                  const activeSess = sessions.find((s) => s.target === activeTarget);
+                  if (activeSess) handleStartScan(activeSess.id);
+                }}
+                className="h-7 w-7 flex items-center justify-center rounded bg-[#1c2333] border border-[#2a3548] text-[#6a7a9a] hover:text-[#c8d6f0] hover:border-[#0af30] transition-colors"
+                title="Run Scan"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
             </div>
           </div>
-          {renderContent()}
+
+          <div className="flex-1 flex overflow-hidden">{renderContent()}</div>
         </div>
       </div>
     </div>
