@@ -3,7 +3,7 @@ export type PhantomModule =
   | 'intruder' | 'webapp' | 'sqli' | 'forensics' | 'malware'
   | 'sniffer' | 'cracking' | 'phishing' | 'cloud' | 'report'
   | 'collab' | 'settings' | 'dashboard' | 'target' | 'osint'
-  | 'c2'
+  | 'c2' | 'emulate' | 'tools'
 
 export type BadgeColor = 'green' | 'red' | 'amber' | 'cyan' | 'purple' | 'gray'
 export type PortStatus = 'open' | 'filtered' | 'vuln'

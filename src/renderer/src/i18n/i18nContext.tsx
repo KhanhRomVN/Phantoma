@@ -19,7 +19,7 @@ const I18nContext = createContext<I18nContextType>({
 
 const translationsMap: Record<Language, Translations> = { en, vi };
 
-const LANGUAGE_STORAGE_KEY = 'phantoma-language';
+const LANGUAGE_STORAGE_KEY = 'systema-language';
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {

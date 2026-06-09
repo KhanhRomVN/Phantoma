@@ -1,6 +1,12 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '../../../../shared/lib/utils';
 import { NavModuleConfig, PhantomModule, SubMenuItem } from '../../types/types';
-import { Settings as SettingsIcon, Crosshair as CrosshairIcon } from 'lucide-react';
+import {
+  Settings as SettingsIcon,
+  Crosshair as CrosshairIcon,
+  Wrench as WrenchIcon,
+} from 'lucide-react';
 
 const NAV_MODULES: NavModuleConfig[] = [
   {
@@ -28,17 +34,27 @@ const NAV_MODULES: NavModuleConfig[] = [
       { id: 'scan-website', title: 'Website', disabled: false },
     ],
   },
+  {
+    id: 'tools',
+    title: 'Tools',
+    activeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  },
+  {
+    id: 'emulate',
+    title: 'Emulate',
+    activeClass: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  },
 ];
 
 // ─── NavLogo ─────────────────────────────────────────────────────────────────
-function NavLogo() {
+function NavLogo({ expanded }: { expanded: boolean }) {
   return (
     <div
       className="w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
       title="PHANTOM v2.5.0"
     >
       <svg
-        className="w-[18px] h-[18px] text-cyan-400"
+        className="w-[18px] h-[18px] text-cyan-400 shrink-0"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -47,6 +63,16 @@ function NavLogo() {
         <path d="M12 2L3 7v10l9 5 9-5V7z" />
         <path d="M12 12L3 7M12 12v10M12 12l9-5" />
       </svg>
+      {expanded && (
+        <motion.span
+          initial={{ opacity: 0, width: 0 }}
+          animate={{ opacity: 1, width: 'auto' }}
+          exit={{ opacity: 0, width: 0 }}
+          className="ml-2 text-sm font-mono text-cyan-400 whitespace-nowrap overflow-hidden"
+        >
+          PHANTOM v2.5.0
+        </motion.span>
+      )}
     </div>
   );
 }
@@ -196,6 +222,16 @@ function NavIcon({ module }: { module: PhantomModule }) {
           <path d="M11.5 9v3m0 0l-2-1.5m2 1.5l2-1.5" />
         </svg>
       );
+    case 'emulate':
+      return (
+        <svg {...p}>
+          <rect x="2" y="2" width="12" height="12" rx="2" />
+          <circle cx="8" cy="8" r="2.5" />
+          <path d="M8 5.5v5M5.5 8h5" />
+        </svg>
+      );
+    case 'tools':
+      return <WrenchIcon className="w-4 h-4" strokeWidth={1.3} />;
     case 'settings':
       return <SettingsIcon className="w-4 h-4" strokeWidth={1.3} />;
     case 'target':
@@ -213,6 +249,7 @@ function NavButton({
   activeClass,
   dotColor,
   onClick,
+  expanded,
 }: {
   module: PhantomModule;
   title: string;
@@ -220,20 +257,32 @@ function NavButton({
   activeClass: string;
   dotColor?: string;
   onClick: () => void;
+  expanded: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'relative w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200',
-        isActive ? activeClass : 'text-[#6b7a96] hover:text-[#c5cfe0] hover:bg-[#161b26]',
+        'relative w-full flex items-center gap-3 transition-all duration-200',
+        expanded ? 'px-3 py-2 rounded-lg' : 'w-9 h-9 px-0 rounded-md justify-center',
+        isActive ? activeClass : 'text-gray-400 hover:text-[#c5cfe0] hover:bg-[#161b26]',
+        !expanded && 'mx-auto',
       )}
     >
-      <div className="w-5 h-5 flex items-center justify-center shrink-0">
+      <div className={cn('flex items-center justify-center shrink-0', expanded ? 'w-5 h-5' : 'w-4 h-4')}>
         <NavIcon module={module} />
       </div>
-      <span className="text-[13px] font-medium truncate flex-1 text-left">{title}</span>
-      {dotColor && !isActive && (
+      {expanded && (
+        <motion.span
+          initial={{ opacity: 0, width: 0 }}
+          animate={{ opacity: 1, width: 'auto' }}
+          exit={{ opacity: 0, width: 0 }}
+          className="text-[13px] font-medium truncate flex-1 text-left whitespace-nowrap overflow-hidden"
+        >
+          {title}
+        </motion.span>
+      )}
+      {dotColor && !isActive && expanded && (
         <span className={cn('absolute top-2 right-2 w-1.5 h-1.5 rounded-full', dotColor)} />
       )}
     </button>
@@ -245,15 +294,17 @@ function SubMenuItemButton({
   item,
   onSelect,
   isActive,
-  isFirst,
-  isLast,
+  expanded,
 }: {
   item: SubMenuItem;
   onSelect: () => void;
   isActive: boolean;
   isFirst?: boolean;
   isLast?: boolean;
+  expanded: boolean;
 }) {
+  if (!expanded) return null;
+
   return (
     <button
       onClick={onSelect}
@@ -295,6 +346,9 @@ export function ModuleBar({
   activeSubItem?: string | null;
   onSubItemSelect?: (subItemId: string) => void;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const expanded = isHovered;
+
   const handleSubItemClick = (item: NavModuleConfig, subItem: SubMenuItem) => {
     if (subItem.disabled) return;
     onSelect(item.id);
@@ -305,15 +359,25 @@ export function ModuleBar({
   const activeModuleWithChildren = modulesWithChildren.find((m) => m.id === active);
 
   return (
-    <div className="relative">
-      <div className="w-[240px] shrink-0 bg-[#0f1319] border-r border-[#1e2535] flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0 h-full">
-        <div className="w-full h-[37px] flex items-center px-3 shrink-0">
-          <NavLogo />
-          <span className="ml-2 text-sm font-mono text-cyan-400">PHANTOM v2.5.0</span>
+    <motion.div
+      className="relative h-full"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      animate={{ width: expanded ? 240 : 48 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+    >
+      <div className="h-full shrink-0 bg-[#0f1319] border-r border-[#1e2535] flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
+        <div className="w-full h-[37px] flex items-center px-3 shrink-0 overflow-hidden">
+          <NavLogo expanded={expanded} />
         </div>
         <div className="w-full h-px bg-[#1e2535] shrink-0" />
 
-        <div className="flex flex-col gap-0.5 w-full px-2 py-2">
+        <div
+          className={cn(
+            'flex flex-col gap-1 w-full py-2',
+            expanded ? 'px-2' : 'px-0 items-center',
+          )}
+        >
           {NAV_MODULES.map((item) => (
             <div key={item.id}>
               <NavButton
@@ -323,21 +387,32 @@ export function ModuleBar({
                 activeClass={item.activeClass}
                 dotColor={item.dotColor}
                 onClick={() => onSelect(item.id)}
+                expanded={expanded}
               />
-              {item.id === active && activeModuleWithChildren?.id === item.id && item.children && (
-                <div className="relative mt-1">
-                  {item.children.map((child, index) => (
-                    <SubMenuItemButton
-                      key={child.id}
-                      item={child}
-                      isActive={child.id === activeSubItem}
-                      isFirst={index === 0}
-                      isLast={index === item.children!.length - 1}
-                      onSelect={() => handleSubItemClick(item, child)}
-                    />
-                  ))}
-                </div>
-              )}
+              {expanded &&
+                item.id === active &&
+                activeModuleWithChildren?.id === item.id &&
+                item.children && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative mt-1 overflow-hidden"
+                  >
+                    {item.children.map((child, index) => (
+                      <SubMenuItemButton
+                        key={child.id}
+                        item={child}
+                        isActive={child.id === activeSubItem}
+                        isFirst={index === 0}
+                        isLast={index === item.children!.length - 1}
+                        onSelect={() => handleSubItemClick(item, child)}
+                        expanded={expanded}
+                      />
+                    ))}
+                  </motion.div>
+                )}
             </div>
           ))}
         </div>
@@ -349,6 +424,7 @@ export function ModuleBar({
             isActive={active === 'target'}
             activeClass="bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
             onClick={() => onSelect('target' as PhantomModule)}
+            expanded={expanded}
           />
           <NavButton
             module={'settings' as PhantomModule}
@@ -356,9 +432,10 @@ export function ModuleBar({
             isActive={active === 'settings'}
             activeClass="bg-amber-500/10 text-amber-400 border-amber-500/30"
             onClick={() => onSelect('settings' as PhantomModule)}
+            expanded={expanded}
           />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

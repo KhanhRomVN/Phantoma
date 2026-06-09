@@ -1,13 +1,12 @@
-import quartz from './Quartz.json';
-import obsidian from './Obsidian.json';
+import IntelBlack from './IntelBlack.json';
 import { ThemePreset } from '../types/theme.types';
 
 export const defaultTheme: ThemePreset = {
   name: 'Obsidian',
   modes: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    light: quartz as any,
+    light: IntelBlack as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    dark: obsidian as any,
+    dark: IntelBlack as any,
   },
 };

@@ -62,12 +62,13 @@ func TestService_FetchURLs_Integration(t *testing.T) {
 		t.Skip("Skipping integration test. Set INTEGRATION_TEST=1 to run")
 	}
 
-	targetDomain := "example.com"
+	targetDomain := "deepseek.com"
 	svc := gau.NewService("gau")
 	
 	req := domain.GAURequest{
-		Domain: targetDomain,
-		Subs:   true,
+		Domain:    targetDomain,
+		Subs:      false,
+		Providers: []string{"wayback"},
 	}
 	
 	result, err := svc.FetchURLs(context.Background(), req)

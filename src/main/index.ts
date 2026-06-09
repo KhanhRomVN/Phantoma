@@ -1185,6 +1185,15 @@ app.whenReady().then(async () => {
     return userAppStore.addApp(appData);
   });
 
+  // Alias for 'apps:add' to match frontend naming
+  ipcMain.handle('apps:add', (_, appData: Omit<UserApp, 'id' | 'createdAt'>) => {
+    return userAppStore.addApp(appData);
+  });
+
+  ipcMain.handle('apps:update', async (_, id: string, updates: Partial<Omit<UserApp, 'id' | 'createdAt'>>) => {
+    return userAppStore.updateApp(id, updates);
+  });
+
   ipcMain.handle('apps:delete', (_, id: string) => {
     return userAppStore.deleteApp(id);
   });

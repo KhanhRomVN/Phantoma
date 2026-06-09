@@ -12,7 +12,7 @@ import (
 	"github.com/phantoma/server/pkg/logger"
 )
 
-const defaultTimeout = 2 * time.Minute
+const defaultTimeout = 10 * time.Minute
 const defaultContainer = "gau"
 
 var log = logger.WithContext("GAU")

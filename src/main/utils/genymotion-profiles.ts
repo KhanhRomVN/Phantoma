@@ -129,7 +129,7 @@ export function getDefaultProfiles(): GenymotionProfile[] {
       id: randomUUID(),
       name: 'Android 9 - Compatibility',
       description: 'Older Android version for compatibility testing',
-      vmName: 'Systema_Android9_Compat',
+      vmName: 'Phantoma_Android9_Compat',
       androidVersion: '9.0',
       architecture: 'x86',
       screenSize: '720x1280',
