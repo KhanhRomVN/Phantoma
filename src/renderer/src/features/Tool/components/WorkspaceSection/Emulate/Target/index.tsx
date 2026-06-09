@@ -57,12 +57,14 @@ interface TargetPanelProps {
   ) => Promise<void>;
   onStopSession: () => Promise<void>;
   onTargetSelected?: (target: UserApp) => void;
+  openTargetIds?: string[];
 }
 export const TargetPanel: React.FC<TargetPanelProps> = ({
   activeAppId,
   onSelectApp,
   onStopSession,
   onTargetSelected,
+  openTargetIds = [],
 }) => {
   const [activeTab, setActiveTab] = useState<AppPlatform>('web');
   const [apps, setApps] = useState<UserApp[]>([]);
@@ -209,7 +211,7 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
 
   return (
     <>
-      <div className="flex flex-col h-full bg-[#0f1319]">
+      <div className="flex flex-col h-full">
         {/* Compact Header - All in one row: Left (Title), Center (Tabs), Right (Search + Add) */}
         <div className="px-3 py-2 border-b border-[#1e2535] shrink-0 flex flex-wrap items-center justify-between gap-2">
           {/* Platform tabs - NeonUI style with white text and colored backgrounds */}
@@ -304,24 +306,27 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1.5">
             {filteredApps.map((app) => {
               const isActive = app.id === activeAppId;
+              const isOpen = openTargetIds.includes(app.id);
               const platformColor = PLATFORM_TABS.find((p) => p.id === app.platform)?.color || 'gray';
               return (
                 <div
                   key={app.id}
                   onClick={(e) => {
-                    if (isActive) return;
+                    if (isActive || isOpen) return;
                     setContextMenu({ appId: app.id, x: e.clientX, y: e.clientY });
                   }}
                   onContextMenu={(e) => {
-                    if (isActive) return;
+                    if (isActive || isOpen) return;
                     e.preventDefault();
                     setContextMenu({ appId: app.id, x: e.clientX, y: e.clientY });
                   }}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-lg border transition-all cursor-pointer p-1.5',
+                    'flex items-center gap-1.5 rounded-lg border transition-all p-1.5',
                     isActive
                       ? `bg-${platformColor}-500/5 border-${platformColor}-500/30`
-                      : 'bg-[#0f1319] border-[#1e2535] hover:border-purple-500/30 hover:scale-[1.02]',
+                      : isOpen
+                        ? 'bg-[#0f1319] border-[#1e2535] opacity-50 cursor-not-allowed'
+                        : 'bg-[#0f1319] border-[#1e2535] hover:border-purple-500/30 hover:scale-[1.02] cursor-pointer',
                   )}
                 >
                   {/* Left icon - square favicon, compact */}

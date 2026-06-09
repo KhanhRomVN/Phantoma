@@ -509,7 +509,7 @@ export function RequestDetails({
 
   return (
     <div className="h-full">
-      <div className="h-full flex flex-col bg-table-bodyBg border-t border-divider/50">
+      <div className="h-full flex flex-col border-t border-divider/50">
         <div className="flex h-10 items-center border-b border-divider/50 bg-table-headerBg">
           <div className="flex-1 overflow-x-auto no-scrollbar flex items-center h-full">
             {tabs.map((tab) => {

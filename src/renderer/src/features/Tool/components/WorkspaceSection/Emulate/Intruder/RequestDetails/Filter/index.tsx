@@ -273,7 +273,7 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
   };
 
   return (
-    <div className="h-full overflow-y-auto min-h-0 bg-table-bodyBg border-l border-border/50 flex flex-col font-sans select-none">
+    <div className="h-full overflow-y-auto min-h-0 border-l border-border/50 flex flex-col font-sans select-none">
       <div className="p-4 space-y-6">
         {/* Method */}
         <section>
@@ -503,7 +503,7 @@ function ListFilterSection({
         <div className="flex gap-1.5 relative w-full items-center">
           <div className="flex-1">
             <input
-              className="w-full bg-zinc-800 border border-zinc-700 hover:border-zinc-600 focus:border-primary/70 rounded px-3 py-2 text-xs focus:bg-zinc-800/80 outline-none h-10 transition-all text-zinc-100 placeholder:text-zinc-400"
+              className="w-full bg-input-background border border-input-border-default hover:border-input-border-hover focus:border-primary/70 rounded px-3 py-2 text-xs focus:bg-input-background/80 outline-none h-10 transition-all text-text-primary placeholder:text-text-secondary"
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);
@@ -526,7 +526,7 @@ function ListFilterSection({
           {showSuggestions && (
             <button
               onClick={() => setShowSuggestions(false)}
-              className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/40 rounded text-zinc-400 hover:text-red-500 w-10 h-10 flex items-center justify-center transition-colors shrink-0"
+              className="bg-input-background hover:bg-red-500/10 border border-input-border-default hover:border-red-500/40 rounded text-text-secondary hover:text-red-500 w-10 h-10 flex items-center justify-center transition-colors shrink-0"
               title={t.networkFilter.closeSuggestions}
             >
               <X className="w-4 h-4" />
@@ -537,7 +537,7 @@ function ListFilterSection({
           {showSuggestions && filteredSuggestions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="absolute top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-md shadow-xl z-50"
+              className="absolute top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto bg-dialog-background border border-divider rounded-md shadow-xl z-50"
             >
               <div className="p-1 flex flex-col gap-1">
                 {filteredSuggestions.map((suggestion) => {
@@ -551,7 +551,7 @@ function ListFilterSection({
                         'w-full text-left px-2 py-2 text-xs rounded transition-colors flex items-center justify-between gap-2 min-w-0',
                         isAlreadyAdded
                           ? 'bg-primary/20 text-primary font-medium hover:bg-primary/30'
-                          : 'hover:bg-zinc-700/50 text-zinc-300 hover:text-zinc-100',
+                          : 'hover:bg-secondary/40 text-text-secondary hover:text-text-primary',
                       )}
                     >
                       <div className="flex items-center gap-2 min-w-0">

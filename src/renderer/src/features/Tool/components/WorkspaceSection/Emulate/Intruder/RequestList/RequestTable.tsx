@@ -24,6 +24,8 @@ import {
   Copy,
   Globe,
   List,
+  Play,
+  Pause,
   Regex,
   Search,
   ShieldAlert,
@@ -78,7 +80,7 @@ export function RequestTable({
   onForward,
   onDrop,
   onDelete,
-  appId,
+  appId: _appId,
   onSetCompare1,
   onSetCompare2,
   onAnalyzeRequest,
@@ -89,6 +91,8 @@ export function RequestTable({
   const [matchCase, setMatchCase] = useState(false);
   const [matchWholeWord, setMatchWholeWord] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
+  const [isTargetActive, setIsTargetActive] = useState(false);
+  const [isInterceptActive, setIsInterceptActive] = useState(false);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [rowSelection, setRowSelection] = useState({});
   const [contextMenuPage, setContextMenuPage] = useState<string | null>(null);
@@ -123,11 +127,6 @@ export function RequestTable({
     output += req.requestBody || '(No body)';
 
     return output;
-  };
-
-  const handleCopySingle = (req: NetworkRequest) => {
-    const text = formatRequestForCopy(req);
-    navigator.clipboard.writeText(text);
   };
 
   const formatRequestToMarkdown = (req: NetworkRequest): string => {
@@ -192,25 +191,6 @@ export function RequestTable({
 
   const handleCopySingleAsJson = (req: NetworkRequest) => {
     navigator.clipboard.writeText(formatRequestToJson(req));
-  };
-
-  const handleCopySelectedAsMarkdown = () => {
-    const selectedRows = table.getSelectedRowModel().rows;
-    if (selectedRows.length === 0) return;
-
-    const text = selectedRows
-      .map((row) => formatRequestToMarkdown(row.original))
-      .join('\n\n---\n\n');
-
-    navigator.clipboard.writeText(text);
-  };
-
-  const handleCopySelectedAsJson = () => {
-    const selectedRows = table.getSelectedRowModel().rows;
-    if (selectedRows.length === 0) return;
-
-    const selectedData = selectedRows.map((row) => row.original);
-    navigator.clipboard.writeText(JSON.stringify(selectedData, null, 2));
   };
 
   // Copy Selected with section options
@@ -744,7 +724,7 @@ export function RequestTable({
   };
 
   return (
-    <div className="h-full w-full flex flex-col bg-table-bodyBg text-sm overflow-hidden relative">
+    <div className="h-full w-full flex flex-col text-sm overflow-hidden relative">
       {/* Intercept pulse animation */}
       <style>{`
         @keyframes intercept-pulse {
@@ -819,6 +799,45 @@ export function RequestTable({
             title={t.requestList.useRegex}
           >
             <Regex className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        {/* Divider and buttons on the right */}
+        <div className="flex items-center gap-1 border-l border-divider pl-2 h-full">
+          {/* Target button - yellow theme with toggle */}
+          <button
+            onClick={() => {
+              setIsTargetActive(!isTargetActive);
+              console.log('[Target] Target button clicked - state toggled');
+            }}
+            className={cn(
+              'p-1.5 rounded transition-all duration-300',
+              isTargetActive
+                ? 'bg-yellow-500/30 text-yellow-400 hover:bg-yellow-500/40'
+                : 'text-text-secondary hover:bg-secondary hover:text-text-primary'
+            )}
+            title={isTargetActive ? "Deactivate target" : "Activate target"}
+          >
+            <Target className="w-3.5 h-3.5" />
+          </button>
+          {/* Intercept button - red theme with pause/play */}
+          <button
+            onClick={() => {
+              setIsInterceptActive(!isInterceptActive);
+              console.log('[Intercept] Intercept button clicked - state toggled');
+            }}
+            className={cn(
+              'p-1.5 rounded transition-all duration-300 flex items-center gap-1',
+              isInterceptActive
+                ? 'bg-red-500/30 text-red-400 hover:bg-red-500/40'
+                : 'text-text-secondary hover:bg-secondary hover:text-text-primary'
+            )}
+            title={isInterceptActive ? "Pause intercept (click to resume)" : "Start intercept (click to pause)"}
+          >
+            {isInterceptActive ? (
+              <Pause className="w-3.5 h-3.5" />
+            ) : (
+              <Play className="w-3.5 h-3.5" />
+            )}
           </button>
         </div>
       </div>
@@ -1119,28 +1138,29 @@ export function RequestTable({
               {/* Sections */}
               <div className="px-2 pt-2 pb-1">
                 <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2 px-1">
-                  {t.requestTable.copySections || 'Sections'}
+                  {(t.requestTable as any).copySections || 'Sections'}
                 </div>
                 <div className="space-y-0.5">
                   {[
                     {
                       key: 'status' as const,
-                      label: t.requestTable.copySectionStatus || 'Status + Type + Host + Path',
+                      label:
+                        (t.requestTable as any).copySectionStatus || 'Status + Type + Host + Path',
                       icon: Globe,
                     },
                     {
                       key: 'headers' as const,
-                      label: t.requestTable.copySectionHeaders || 'Headers',
+                      label: (t.requestTable as any).copySectionHeaders || 'Headers',
                       icon: List,
                     },
                     {
                       key: 'body' as const,
-                      label: t.requestTable.copySectionBody || 'Body',
+                      label: (t.requestTable as any).copySectionBody || 'Body',
                       icon: Box,
                     },
                     {
                       key: 'security' as const,
-                      label: t.requestTable.copySectionSecurity || 'Security',
+                      label: (t.requestTable as any).copySectionSecurity || 'Security',
                       icon: ShieldAlert,
                     },
                   ].map(({ key, label, icon: Icon }) => (
@@ -1192,7 +1212,7 @@ export function RequestTable({
               {/* Format */}
               <div className="px-2 pt-2 pb-1">
                 <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2 px-1">
-                  {t.requestTable.copyFormatLabel || 'Format'}
+                  {(t.requestTable as any).copyFormatLabel || 'Format'}
                 </div>
                 <div className="flex gap-1 p-0.5 bg-zinc-900 rounded-lg border border-zinc-800">
                   <button
@@ -1245,7 +1265,7 @@ export function RequestTable({
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-semibold transition-all duration-150 active:scale-[0.98] shadow-sm shadow-primary/20"
                 >
                   <Copy className="w-3.5 h-3.5" />
-                  {t.requestTable.copyToClipboard || 'Copy to Clipboard'}
+                  {(t.requestTable as any).copyToClipboard || 'Copy to Clipboard'}
                 </button>
               </div>
             </DropdownMenuContent>
