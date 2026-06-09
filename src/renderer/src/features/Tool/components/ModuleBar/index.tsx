@@ -44,6 +44,11 @@ const NAV_MODULES: NavModuleConfig[] = [
     title: 'Emulate',
     activeClass: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
   },
+  {
+    id: 'wireless',
+    title: 'Wireless',
+    activeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  },
 ];
 
 // ─── NavLogo ─────────────────────────────────────────────────────────────────
@@ -228,6 +233,16 @@ function NavIcon({ module }: { module: PhantomModule }) {
           <rect x="2" y="2" width="12" height="12" rx="2" />
           <circle cx="8" cy="8" r="2.5" />
           <path d="M8 5.5v5M5.5 8h5" />
+        </svg>
+      );
+    case 'wireless':
+      return (
+        <svg {...p}>
+          <circle cx="8" cy="6" r="3" />
+          <path d="M2 11c2-3 4-4 6-4s4 1 6 4" />
+          <path d="M4 13c1-1.5 2.5-2 4-2s3 .5 4 2" />
+          <path d="M6 15c0.5-0.5 1-1 2-1s1.5 0.5 2 1" />
+          <circle cx="8" cy="15" r="1" fill="currentColor" />
         </svg>
       );
     case 'tools':

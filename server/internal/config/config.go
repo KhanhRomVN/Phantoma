@@ -19,6 +19,9 @@ type Config struct {
 	MetasploitContainer   string
 	GoDorkContainer       string
 	GauContainer          string
+	AmassContainer        string
+	AssetfinderContainer  string
+	SubfinderContainer    string
 }
 
 func Load() (*Config, error) {
@@ -34,6 +37,9 @@ func Load() (*Config, error) {
 		MetasploitContainer:   getEnv("METASPLOIT_CONTAINER", "metasploit"),
 		GoDorkContainer:       getEnv("GO_DORK_CONTAINER", "go-dork"),
 		GauContainer:          getEnv("GAU_CONTAINER", "gau"),
+		AmassContainer:        getEnv("AMASS_CONTAINER", "amass"),
+		AssetfinderContainer:  getEnv("ASSETFINDER_CONTAINER", "assetfinder"),
+		SubfinderContainer:    getEnv("SUBFINDER_CONTAINER", "subfinder"),
 	}
 
 	if err := cfg.validate(); err != nil {

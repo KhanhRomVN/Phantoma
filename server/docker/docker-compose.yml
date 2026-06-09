@@ -94,3 +94,12 @@ services:
     entrypoint: /bin/sh
     command: ["-c", "sleep infinity"]
     restart: unless-stopped
+
+  assetfinder:
+    build:
+      context: .
+      dockerfile: Dockerfile.assetfinder
+    container_name: assetfinder
+    entrypoint: /bin/sh
+    command: ["-c", "sleep infinity"]
+    restart: unless-stopped

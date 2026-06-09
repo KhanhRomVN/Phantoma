@@ -7,6 +7,8 @@ import { Recon } from './Intel';
 import { Dashboard } from './Dashboard';
 import Scan from './Scan';
 import Emulate from './Emulate';
+import { Wireless } from './Wireless';
+import Tool from './Tool';
 
 // ─── Module title map (local, lightweight) ───────────────────────────────────
 
@@ -31,6 +33,7 @@ const MODULE_TITLE: Record<string, string> = {
   c2: 'C2 / Operations',
   settings: 'Settings',
   target: 'Target Manager',
+  tool: 'Security Tools',
 };
 
 // ─── StatusBar ───────────────────────────────────────────────────────────────
@@ -130,11 +133,15 @@ function ViewRouter({
       return <Scan activeSubItem={activeSubItem} />;
     case 'emulate':
       return <Emulate />;
+    case 'wireless':
+      return <Wireless />;
+    case 'tool':
+    case 'tools':
+      return <Tool />;
     default:
       return <Dashboard />;
   }
 }
-
 // ─── Workspace (main export) ─────────────────────────────────────────────────
 
 export function Workspace({

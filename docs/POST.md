@@ -21,7 +21,7 @@
 
 ---
 
-## 1. Tổng Quan Kiến Trúc
+## 1. Tổng Quan Kiến Trúcre
 
 Module **POST** hoạt động sau khi đã có shell (hoặc Meterpreter session) trên máy mục tiêu. Nó cung cấp các công cụ để khám phá, leo thang, và mở rộng kiểm soát.
 

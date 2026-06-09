@@ -1,4 +1,4 @@
-package amass
+package assetfinder
 
 import (
 	"context"
@@ -9,20 +9,20 @@ import (
 	"time"
 
 	"github.com/phantoma/server/internal/domain"
-	"github.com/phantoma/server/internal/service/amass"
+	"github.com/phantoma/server/internal/service/assetfinder"
 )
 
 // writeLog writes scan output to a log file in the logs directory within the current test folder
 func writeLog(target string, content string) error {
-	// Get current working directory (should be tests/amass or tests/subfinder or tests/alienvault)
+	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
-	
+
 	// Create logs directory in current test folder
 	logsDir := filepath.Join(cwd, "logs")
-	
+
 	// Create logs directory if not exists
 	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		return fmt.Errorf("failed to create logs directory: %w", err)
@@ -42,28 +42,18 @@ func writeLog(target string, content string) error {
 }
 
 func TestNewService(t *testing.T) {
-	svc := amass.NewService("test-container")
+	svc := assetfinder.NewService("test-container")
 	if svc == nil {
 		t.Error("NewService returned nil")
 	}
 }
 
 func TestService_Scan_EmptyTarget(t *testing.T) {
-	svc := amass.NewService("amass")
+	svc := assetfinder.NewService("assetfinder")
 	_, err := svc.Scan(context.Background(), domain.ScanRequest{Target: ""})
 	if err == nil {
 		t.Error("Expected error for empty target, got nil")
 	}
-}
-
-func TestFormatAmassOutput(t *testing.T) {
-	// Test with valid JSON lines
-	// rawJSON := `{"name":"www.example.com","domain":"example.com","sources":["dns"]}
-	// {"name":"mail.example.com","domain":"example.com","sources":["dns"]}`
-
-	// This function is unexported, so we test indirectly through service
-	// For now, skip
-	t.Skip("formatAmassOutput is unexported, test via integration")
 }
 
 // Integration test - requires running Docker container
@@ -73,10 +63,10 @@ func TestService_Scan_Integration(t *testing.T) {
 	}
 
 	target := "deepseek.com"
-	svc := amass.NewService("amass")
+	svc := assetfinder.NewService("assetfinder")
 	result, err := svc.Scan(context.Background(), domain.ScanRequest{
 		Target: target,
-		Flags:  []string{"-passive"}, // Use passive mode for faster test
+		Flags:  []string{"--subs-only"}, // Only show subdomains
 	})
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
@@ -95,5 +85,41 @@ func TestService_Scan_Integration(t *testing.T) {
 		t.Logf("Log saved to logs/%s_*.log", target)
 	}
 
-	t.Logf("Output: %s", result.Output)
+	t.Logf("Output:\n%s", result.Output)
+}
+
+func TestFormatOutput(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "single domain",
+			input:    "deepseek.com\n",
+			expected: "deepseek.com",
+		},
+		{
+			name:     "multiple subdomains",
+			input:    "www.deepseek.com\napi.deepseek.com\ncdn.deepseek.com\n",
+			expected: "www.deepseek.com\napi.deepseek.com\ncdn.deepseek.com",
+		},
+		{
+			name:     "empty input",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "with empty lines",
+			input:    "www.deepseek.com\n\napi.deepseek.com\n",
+			expected: "www.deepseek.com\napi.deepseek.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// formatOutput is unexported, test indirectly via service
+			t.Skip("formatOutput is unexported, test via integration")
+		})
+	}
 }

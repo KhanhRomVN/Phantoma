@@ -99,7 +99,7 @@ func TestService_Scan_Integration(t *testing.T) {
 		t.Skip("Skipping integration test. Set INTEGRATION_TEST=1 to run")
 	}
 
-	target := "example.com"
+	target := "deepseek.com"
 	svc := subfinder.NewService("subfinder")
 	result, err := svc.Scan(context.Background(), domain.ScanRequest{
 		Target: target,

@@ -168,6 +168,113 @@ Tạo một Access Point giả mạo có cùng SSID với mạng đích, chặn 
 
 ---
 
+## 7. Tấn Công WPA3 & WPA‑Enterprise (Mạng Doanh Nghiệp)
+
+### 7.1 WPA3 Security Assessment
+
+WPA3 (Wi‑Fi Protected Access 3) là chuẩn bảo mật mới, thay thế WPA2. Module hỗ trợ kiểm tra các khía cạnh bảo mật của WPA3.
+
+| Kiểm tra | Mô tả | Công cụ |
+|----------|-------|---------|
+| **Transition Mode** | AP hỗ trợ cả WPA2 và WPA3 → dễ bị downgrade attack | `aircrack-ng`, `bettercap` |
+| **SAE (Simultaneous Authentication of Equals)** | Phát hiện weak password trong handshake | `hashcat -m 22000` (WPA3‑SAE) |
+| **MFP (Management Frame Protection)** | Kiểm tra xem AP có bắt buộc MFP không | `airodump-ng` |
+| **Downgrade Attack** | Ép client về WPA2 để bắt handshake cũ | `airbase-ng` |
+
+**Quy trình kiểm tra WPA3:**
+1. Quét mạng, phát hiện `encryption: 'wpa3'`
+2. Kiểm tra transition mode: nếu có cả `RSN` và `OSEN` → dễ bị tấn công
+3. Bắt SAE handshake (nếu có client kết nối)
+4. Crack bằng hashcat với mode `22000`
+
+**Output:** `{ wpa3Supported, transitionMode, mfpEnabled, vulnerableToDowngrade }`
+
+### 7.2 WPA‑Enterprise / 802.1X Attack
+
+Tấn công mạng doanh nghiệp sử dụng RADIUS authentication.
+
+| Kỹ thuật | Mô tả | Công cụ |
+|----------|-------|---------|
+| **Rogue AP (EAP‑hammer)** | Tạo AP giả, capture credential RADIUS | `hostapd‑mana`, `eaphammer` |
+| **EAP‑MSCHAPv2 Cracking** | Bẻ khóa hash MSCHAPv2 (tương tự NTLM) | `asleap`, `hashcat -m 5500` |
+| **PEAP Downgrade** | Ép client dùng EAP‑MSCHAPv2 thay vì TLS | `hostapd‑mana` |
+| **RADIUS Relay Attack** | Chuyển tiếp credential đến RADIUS thật để xác thực | `freeradius‑wpe` |
+
+**Quy trình tấn công WPA‑Enterprise:**
+1. Tạo rogue AP với SSID giống mạng thật
+2. Cấu hình hostapd‑mana (hỗ trợ nhiều EAP methods)
+3. Khi client kết nối, capture credential (username + hash MSCHAPv2)
+4. Crack hash hoặc dùng pass‑the‑hash để truy cập
+
+**Output:** `{ username, mschapv2Hash, crackedPassword?, clientMac }`
+
+### 7.3 KRACK Attack (Key Reinstallation Attack)
+
+Khai thác lỗ hổng trong 4‑way handshake của WPA2 (CVE‑2017‑13077 đến 13082). Module hỗ trợ kiểm tra và khai thác.
+
+| Thành phần | Mô tả |
+|------------|-------|
+| **Yêu cầu** | Client ở gần, AP có lỗ hổng (hầu hết thiết bị trước 2017) |
+| **Công cụ** | `krack-test`, `krackattacks-scripts` |
+| **Tác động** | Decrypt gói tin, giả mạo, đánh cắp dữ liệu |
+
+**Component:** `Attack/KRACKTester.tsx` – kiểm tra AP/client có dễ bị tấn công không, hiển thị cảnh báo.
+
+---
+
+## 8. MAC Spoofing & MAC Filter Bypass
+
+### 8.1 MAC Spoofing
+
+Thay đổi địa chỉ MAC của card mạng để ẩn danh hoặc vượt qua kiểm soát truy cập.
+
+| Thao tác | Lệnh (Linux) |
+|----------|---------------|
+| Tạm dừng interface | `ip link set wlan0 down` |
+| Đổi MAC | `macchanger -m XX:XX:XX:XX:XX:XX wlan0` |
+| Random MAC | `macchanger -r wlan0` |
+| Khởi động lại | `ip link set wlan0 up` |
+
+**Component:** `Attack/MACSpoof.tsx` – chọn interface, nhập MAC hoặc random, thực thi.
+
+### 8.2 MAC Filter Bypass
+
+- Phát hiện MAC được phép thông qua sniffing (airodump‑ng hiển thị clients đã kết nối)
+- Clone MAC của client hợp lệ để truy cập
+
+**Quy trình:**
+1. Quét mạng, lấy danh sách client MAC đang hoạt động
+2. Chọn một MAC, spoof card về MAC đó
+3. Kết nối lại AP (có thể cần deauth client gốc để tránh trùng)
+
+---
+
+## 9. Cơ Chế An Toàn & Giới Hạn
+
+Tạo một Access Point giả mạo có cùng SSID với mạng đích, chặn lưu lượng và hiển thị trang đăng nhập yêu cầu mật khẩu.
+
+### 6.1 Các bước
+
+1. **Cấu hình hostapd** (AP giả):  
+   - SSID giống mạng mục tiêu  
+   - Kênh trùng với kênh thật (để cạnh tranh tín hiệu)  
+2. **Cấu hình dnsmasq** (cấp IP, DNS)  
+3. **Tạo trang portal** (HTML form) gửi credential về C2  
+4. **Deauth client khỏi AP thật** để họ kết nối vào Evil Twin  
+
+### 6.2 Dữ liệu thu được
+
+| Trường | Mô tả |
+|--------|-------|
+| `ssid` | SSID giả mạo |
+| `clientMac` | MAC của nạn nhân |
+| `password` | Mật khẩu họ nhập vào |
+| `timestamp` | Thời gian |
+
+**Component:** `Attack/EvilTwin.tsx` – hướng dẫn từng bước, hiển thị log real‑time.
+
+---
+
 ## 7. Cơ Chế An Toàn & Giới Hạn
 
 ### 7.1 Yêu cầu phần cứng
@@ -224,7 +331,7 @@ Tất cả API đều phải kèm header `X-Authorization-Wireless: <token>` và
 - Sử dụng `node-pty` hoặc `child_process.spawn` để chạy các lệnh `aircrack-ng`, `airodump-ng`, `reaver`.
 - Ghi log real‑time qua WebSocket để hiển thị tiến độ.
 
-### 9.2 Các service cần viết
+### 11.2 Các service cần viết
 
 | File | Mô tả |
 |------|-------|
@@ -232,7 +339,10 @@ Tất cả API đều phải kèm header `X-Authorization-Wireless: <token>` và
 | `services/airodump.ts` | Chạy airodump, phân tích dữ liệu JSON (nếu có flag `-J`) |
 | `services/reaver.ts` | Gọi reaver, capture PIN thành công |
 | `services/evilTwin.ts` | Quản lý hostapd + dnsmasq, tạo portal |
-
+| `services/wpa3.ts` | Xử lý SAE handshake capture (hcxdumptool), crack với hashcat mode 22000 |
+| `services/enterprise.ts` | Gọi eaphammer / hostapd‑mana, parse credential |
+| `services/krack.ts` | Chạy krackattacks-scripts, kiểm tra lỗ hổng |
+| `services/macchanger.ts` | Gọi macchanger, đổi MAC, lưu log |
 ### 9.3 UI Components
 
 - **WiFiScanTable**: hiển thị danh sách mạng, có nút “Bắt Handshake”, “Pixie Dust” trên mỗi dòng.
@@ -251,8 +361,8 @@ Tất cả API đều phải kèm header `X-Authorization-Wireless: <token>` và
 
 | Chỉ số | Giá trị |
 |--------|---------|
-| **Số kỹ thuật** | 7 (scan, WEP crack, WPA handshake, dictionary, WPS, PMKID, Evil Twin) |
-| **Công cụ tích hợp** | aircrack-ng, reaver, hostapd, dnsmasq, hcxdumptool |
+| **Số kỹ thuật** | 11 (scan, WEP, WPA handshake, dictionary, WPS, PMKID, Evil Twin, WPA3, WPA‑Enterprise, KRACK, MAC spoofing) |
+| **Công cụ tích hợp** | aircrack-ng, reaver, hostapd, dnsmasq, hcxdumptool, eaphammer, hostapd‑mana, krackattacks-scripts, macchanger |
 | **Yêu cầu phần cứng** | Card monitor mode + injection |
 | **Mức độ an toàn** | Cảnh báo + ủy quyền bắt buộc + rate limit |
 

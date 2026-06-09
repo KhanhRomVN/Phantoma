@@ -10,9 +10,25 @@
 
 - [1. Tổng Quan Kiến Trúc](#1-tổng-quan-kiến-trúc)
 - [2. Hash Cracking — Bẻ Khóa Hash](#2-hash-cracking--bẻ-khóa-hash)
+  - [2.1 Nhận Diện Loại Hash](#21-nhận-diện-loại-hash)
+  - [2.2 Dictionary Attack](#22-dictionary-attack)
+  - [2.3 Brute Force (Mask Attack)](#23-brute-force-mask-attack)
+  - [2.4 Rainbow Table](#24-rainbow-table-pre-computed)
+  - [2.5 Hash Hiện Đại (bcrypt, scrypt, Argon2, PBKDF2)](#25-hash-hiện-đại-bcrypt-scrypt-argon2-pbkdf2)
+  - [2.6 Hash Length Extension Attack](#26-hash-length-extension-attack)
 - [3. Mã Hóa Đối Xứng — Symmetric Ciphers](#3-mã-hóa-đối-xứng--symmetric-ciphers)
 - [4. Mã Hóa Bất Đối Xứng — Asymmetric Ciphers](#4-mã-hóa-bất-đối-xứng--asymmetric-ciphers)
+  - [4.1 RSA — Tấn Công Số Mũ Nhỏ](#41-rsa--tấn-công-số-mũ-nhỏ)
+  - [4.2 Tấn Công Wiener (d nhỏ)](#42-tấn-công-wiener-d-nhỏ)
+  - [4.3 Tấn Công Common Modulus](#43-tấn-công-common-modulus)
+  - [4.4 RSA Nâng Cao (Hastad, Coppersmith, Boneh-Durfee)](#44-rsa-nâng-cao-hastad-coppersmith-boneh-durfee)
+  - [4.5 Elliptic Curve Cryptography (ECC) Attacks](#45-elliptic-curve-cryptography-ecc-attacks)
 - [5. Tấn Công Giao Thức Mã Hóa](#5-tấn-công-giao-thức-mã-hóa)
+  - [5.1 Padding Oracle Attack (CBC mode)](#51-padding-oracle-attack-cbc-mode)
+  - [5.2 CBC Bit Flipping Attack](#52-cbc-bit-flipping-attack)
+  - [5.3 CRIME / BREACH](#53-crime--breach)
+  - [5.4 Lucky13](#54-lucky13-tls-timing-attack)
+  - [5.5 JWT (JSON Web Token) Attacks](#55-jwt-json-web-token-attacks)
 - [6. Xử Lý Chứng Chỉ Số & SSL/TLS](#6-xử-lý-chứng-chỉ-số--ssltls)
 - [7. Cơ Chế An Toàn & Giới Hạn](#7-cơ-chế-an-toàn--giới-hạn)
 - [8. Luồng Dữ Liệu & API](#8-luồng-dữ-liệu--api)
@@ -201,6 +217,32 @@ CRYPTO/
 
 - Dựa trên thời gian xử lý padding trong CBC mode.
 
+### 5.5 JWT (JSON Web Token) Attacks
+
+JWT (`Header.Payload.Signature`) là chuẩn xác thực phổ biến. Module hỗ trợ các tấn công:
+
+| Kỹ thuật | Mô tả | Công cụ |
+|----------|-------|---------|
+| **None Algorithm** | `alg: "none"` → bỏ qua chữ ký, token luôn hợp lệ | `jwt_tool`, `jwt.io` |
+| **HS256→RS256 Confusion** | Dùng public key (RS256) làm HMAC secret (HS256) | `jwt_tool -X k` |
+| **Kid Injection (Path Traversal)** | `kid: "../../tmp/key"` đọc file tùy ý | custom |
+| **Kid Injection (Command Injection)** | `kid: "key; whoami"` (nếu backend dùng `system()`) | custom |
+| **JKU (JWK Set URL) SSRF** | `jku: "http://attacker.com/jwks.json"` → dùng JWK giả | custom |
+| **CVE‑2015‑9235 (key confusion)** | `alg: RS256` nhưng dùng public key làm secret | `jwt_forgery` |
+| **Weak HMAC Secret Bruteforce** | HS256 với secret yếu | `hashcat -m 16500` |
+| **JWK Injection** | Nhúng JWK trực tiếp vào header | custom |
+
+**Quy trình kiểm tra JWT:**
+1. Decode token (base64)
+2. Kiểm tra `alg` có phải `none` không
+3. Thử `HS256→RS256` confusion
+4. Bruteforce HS256 secret (nếu cần)
+5. Kiểm tra `kid`, `jku`, `x5u` injection
+
+**Công cụ:** `jwt_tool`, `c-jwt-cracker`, `hashcat -m 16500`.
+
+**Component:** `Protocol/JWTAttack.tsx` – nhập JWT token, chọn attack, hiển thị forged token.
+
 ---
 
 ## 6. Xử Lý Chứng Chỉ Số & SSL/TLS
@@ -305,8 +347,8 @@ Trả về kết quả (password, plaintext, ...)
 
 | Chỉ số | Giá trị |
 |--------|---------|
-| **Số kỹ thuật** | 15+ (hash ID, dictionary/brute/rainbow, AES, DES, XOR, RSA small key/wiener/common modulus, padding oracle, CBC flip, CRIME, cert parse, CT) |
-| **Công cụ tích hợp** | hashcat, john, openssl, padbuster, rsactftool, xortool |
+| **Số kỹ thuật** | 25+ (hash ID, dictionary/brute/rainbow, bcrypt/scrypt/Argon2, length extension, AES, DES, XOR, RSA small key/wiener/common modulus/broadcast/coppersmith/boneh, ECC (invalid curve, nonce reuse, subgroup), padding oracle, CBC flip, CRIME, JWT (none/confusion/kid/jku), cert parse, CT) |
+| **Công cụ tích hợp** | hashcat, john, openssl, padbuster, rsactftool, xortool, jwt_tool, hash_extender, sage, ecctool |
 | **Hiệu năng** | Có thể xử lý hash tốc độ cao nếu dùng GPU |
 | **Mức độ an toàn** | Cảnh báo, giới hạn thời gian, xác nhận quyền |
 
