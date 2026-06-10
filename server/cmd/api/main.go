@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/phantoma/server/internal/config"
-	"github.com/phantoma/server/internal/handler"
+	"github.com/phantoma/server/internal/routes"
 	"github.com/phantoma/server/internal/startup"
 	"github.com/phantoma/server/pkg/logger"
 )
@@ -43,7 +43,7 @@ func main() {
 	// ── HTTP server ───────────────────────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      handler.NewRouter(cfg),
+		Handler:      routes.NewRouter(cfg),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 10 * time.Minute,
 		IdleTimeout:  60 * time.Second,

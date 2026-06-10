@@ -1,8 +1,13 @@
-.PHONY: run build test lint docker-up docker-down
+.PHONY: run build test lint docker-up docker-down dev
 
 # Run server in development mode
 run:
 	go run ./cmd/api
+
+# Run with hot reload (requires air)
+dev:
+	@command -v air >/dev/null 2>&1 || { echo "air not installed. Run: go install github.com/air-verse/air@latest"; exit 1; }
+	air
 
 # Build production binary
 build:

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Search, Wifi, Globe, Bug, Eye, Shield, Server } from 'lucide-react';
+import { Search, Wifi, Globe, Bug, Eye, Shield, Server, ExternalLink } from 'lucide-react';
 import { TOOLS_LIST } from './data/toolsList';
 import { CATEGORY_META } from './constants';
 import { ToolIcon } from './utils/iconHelpers';
 import { useToolManager } from './hooks/useToolManager';
+import { ServerConfigProvider } from '../../../context/ServerConfigContext';
 
 interface ToolManagerProps {
   activeToolId?: string;
@@ -26,7 +27,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
   } = useToolManager(activeToolId, onToolChange);
 
   const [toolActiveTab, setToolActiveTab] = useState<
-    'information' | 'execution' | 'history' | 'logs'
+    'information' | 'execution' | 'history'
   >('information');
 
   // Scanline CSS baked inline để không cần external styles
@@ -325,6 +326,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                 alignItems: 'flex-start',
                 gap: 16,
                 flexShrink: 0,
+                position: 'relative',
               }}
             >
               {/* Big icon - centered vertically */}
@@ -372,7 +374,6 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       fontWeight: 800,
                       letterSpacing: '0.12em',
                       textShadow: `0 0 8px ${catMeta.color}80`,
-                      boxShadow: `0 0 12px ${catMeta.color}40`,
                     }}
                   >
                     {currentTool.category.toUpperCase()}
@@ -408,10 +409,33 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       #{tag}
                     </span>
                   ))}
+                  {currentTool.websiteUrl && (
+                    <span
+                      style={{
+                        padding: '2px 7px',
+                        borderRadius: 3,
+                        background: `${catMeta.color}10`,
+                        border: `1px solid ${catMeta.color}50`,
+                        color: catMeta.color,
+                        fontSize: 9,
+                        letterSpacing: '0.06em',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                      onClick={() => window.open(currentTool.websiteUrl, '_blank')}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = `${catMeta.color}30`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = `${catMeta.color}10`;
+                      }}
+                      title={`Open ${currentTool.name} website`}
+                    >
+                      {currentTool.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                    </span>
+                  )}
                 </div>
               </div>
-
-              {/* Endpoint badge removed */}
             </div>
 
             {/* Tab Bar */}
@@ -428,7 +452,6 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                 { id: 'information', label: 'INFORMATION' },
                 { id: 'execution', label: 'EXECUTION' },
                 { id: 'history', label: 'HISTORY' },
-                { id: 'logs', label: 'LOGS' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -462,11 +485,13 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               }}
             >
               {ToolComponent ? (
-                <ToolComponent
-                  accentColor={catMeta.color}
-                  activeTab={toolActiveTab}
-                  onTabChange={setToolActiveTab}
-                />
+                <ServerConfigProvider>
+                  <ToolComponent
+                    accentColor={catMeta.color}
+                    activeTab={toolActiveTab}
+                    onTabChange={setToolActiveTab}
+                  />
+                </ServerConfigProvider>
               ) : (
                 <div
                   style={{

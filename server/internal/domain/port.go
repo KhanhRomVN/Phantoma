@@ -16,5 +16,5 @@ type PortEntry struct {
 type PortScanResult struct {
 	Target    string      `json:"target"`
 	Ports     []PortEntry `json:"ports"`
-	RawOutput string      `json:"rawOutput,omitempty"`
+	RawOutput string      `json:"rawOutput"`
 }

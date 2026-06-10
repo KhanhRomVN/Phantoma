@@ -11,5 +11,4 @@ import (
 func RegisterNmapRoutes(mux *http.ServeMux, svc *nmapsvc.Service) {
 	handler := nmaphandler.NewHandler(svc)
 	mux.HandleFunc("POST /api/v1/nmap/scan", handler.Scan)
-	mux.HandleFunc("POST /api/v1/nmap/portscan", handler.PortScan)
 }

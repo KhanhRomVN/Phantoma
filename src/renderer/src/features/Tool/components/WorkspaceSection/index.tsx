@@ -9,6 +9,7 @@ import Scan from './Scan';
 import Emulate from './Emulate';
 import { Wireless } from './Wireless';
 import Tool from './Tool';
+import Setting from './Setting';
 
 // ─── Module title map (local, lightweight) ───────────────────────────────────
 
@@ -34,6 +35,7 @@ const MODULE_TITLE: Record<string, string> = {
   settings: 'Settings',
   target: 'Target Manager',
   tool: 'Security Tools',
+  tools: 'Security Tools',
 };
 
 // ─── StatusBar ───────────────────────────────────────────────────────────────
@@ -138,6 +140,8 @@ function ViewRouter({
     case 'tool':
     case 'tools':
       return <Tool />;
+    case 'settings':
+      return <Setting />;
     default:
       return <Dashboard />;
   }
