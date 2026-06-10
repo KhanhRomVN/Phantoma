@@ -181,7 +181,7 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
       {/* ── Command Preview ── */}
       <div
         style={{
-          padding: '8px 12px',
+          padding: '10px 14px',
           borderRadius: 4,
           background: '#0d1117',
           border: '1px solid #1a2236',
@@ -190,11 +190,11 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
           gap: 8,
         }}
       >
-        <span style={{ color: '#334155', fontSize: 10 }}>$</span>
+        <span style={{ color: '#64748b', fontSize: 12 }}>$</span>
         <span
           style={{
-            fontSize: 10,
-            color: '#475569',
+            fontSize: 12,
+            color: '#94a3b8',
             fontFamily: 'inherit',
             flex: 1,
             overflow: 'hidden',
@@ -213,11 +213,11 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
           <label
             style={{
               display: 'block',
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
-              color: '#374151',
+              color: '#64748b',
               letterSpacing: '0.12em',
-              marginBottom: 5,
+              marginBottom: 6,
             }}
           >
             TARGET
@@ -231,12 +231,12 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
             style={{
               width: '100%',
               boxSizing: 'border-box',
-              padding: '8px 12px',
+              padding: '10px 14px',
               background: '#0d1117',
               border: `1px solid ${params.target ? accentColor + '50' : '#1a2236'}`,
               borderRadius: 4,
               color: '#e2e8f0',
-              fontSize: 11,
+              fontSize: 12,
               outline: 'none',
               fontFamily: 'inherit',
               boxShadow: params.target ? `0 0 10px ${glow}` : 'none',
@@ -250,16 +250,16 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
           <label
             style={{
               display: 'block',
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
-              color: '#374151',
+              color: '#64748b',
               letterSpacing: '0.12em',
-              marginBottom: 5,
+              marginBottom: 6,
             }}
           >
             SCAN TYPE
           </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {SCAN_TYPES.map((st) => (
               <button
                 key={st.value}
@@ -268,8 +268,8 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '6px 10px',
-                  borderRadius: 3,
+                  padding: '8px 12px',
+                  borderRadius: 4,
                   cursor: 'pointer',
                   background: params.scanType === st.value ? glow : 'transparent',
                   border: `1px solid ${params.scanType === st.value ? accentColor + '50' : '#1a2236'}`,
@@ -291,14 +291,14 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                 <div>
                   <span
                     style={{
-                      fontSize: 10,
-                      color: params.scanType === st.value ? accentColor : '#475569',
+                      fontSize: 11,
+                      color: params.scanType === st.value ? accentColor : '#94a3b8',
                       fontWeight: 700,
                     }}
                   >
                     {st.flag}
                   </span>
-                  <span style={{ fontSize: 10, color: '#334155', marginLeft: 6 }}>{st.label}</span>
+                  <span style={{ fontSize: 11, color: '#64748b', marginLeft: 6 }}>{st.label}</span>
                 </div>
               </button>
             ))}
@@ -312,14 +312,14 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
             <label
               style={{
                 display: 'block',
-                fontSize: 9,
+                fontSize: 11,
                 fontWeight: 700,
-                color: '#374151',
+                color: '#64748b',
                 letterSpacing: '0.12em',
-                marginBottom: 5,
+                marginBottom: 6,
               }}
             >
-              PORTS <span style={{ color: '#1e293b', fontWeight: 400 }}>(optional)</span>
+              PORTS <span style={{ color: '#475569', fontWeight: 400 }}>(optional)</span>
             </label>
             <input
               type="text"
@@ -329,12 +329,12 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
               style={{
                 width: '100%',
                 boxSizing: 'border-box',
-                padding: '7px 10px',
+                padding: '9px 12px',
                 background: '#0d1117',
                 border: '1px solid #1a2236',
                 borderRadius: 4,
-                color: '#94a3b8',
-                fontSize: 10,
+                color: '#cbd5e1',
+                fontSize: 11,
                 outline: 'none',
                 fontFamily: 'inherit',
               }}
@@ -346,31 +346,31 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
             <label
               style={{
                 display: 'block',
-                fontSize: 9,
+                fontSize: 11,
                 fontWeight: 700,
-                color: '#374151',
+                color: '#64748b',
                 letterSpacing: '0.12em',
-                marginBottom: 5,
+                marginBottom: 6,
               }}
             >
               TIMING —{' '}
-              <span style={{ color: accentColor, fontSize: 9 }}>
+              <span style={{ color: accentColor, fontSize: 11 }}>
                 {TIMING_LABELS[parseInt(params.timing)]}
               </span>
             </label>
-            <div style={{ display: 'flex', gap: 3 }}>
+            <div style={{ display: 'flex', gap: 4 }}>
               {(['0', '1', '2', '3', '4', '5'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setParams({ ...params, timing: t })}
                   style={{
                     flex: 1,
-                    padding: '5px 0',
-                    borderRadius: 3,
+                    padding: '6px 0',
+                    borderRadius: 4,
                     border: `1px solid ${params.timing === t ? accentColor + '60' : '#1a2236'}`,
                     background: params.timing === t ? glow : '#0d1117',
-                    color: params.timing === t ? accentColor : '#334155',
-                    fontSize: 10,
+                    color: params.timing === t ? accentColor : '#64748b',
+                    fontSize: 11,
                     fontWeight: 700,
                     cursor: 'pointer',
                     fontFamily: 'inherit',
@@ -387,16 +387,16 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
             <label
               style={{
                 display: 'block',
-                fontSize: 9,
+                fontSize: 11,
                 fontWeight: 700,
-                color: '#374151',
+                color: '#64748b',
                 letterSpacing: '0.12em',
-                marginBottom: 5,
+                marginBottom: 6,
               }}
             >
               FLAGS
             </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
                 {
                   key: 'osDetection',
@@ -433,9 +433,9 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                         setParams({ ...params, [opt.key]: !(params as any)[opt.key] });
                     }}
                     style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: 2,
+                      width: 16,
+                      height: 16,
+                      borderRadius: 3,
                       flexShrink: 0,
                       border: `1px solid ${(params as any)[opt.key] && !opt.disabled ? accentColor : '#1a2236'}`,
                       background: (params as any)[opt.key] && !opt.disabled ? glow : '#0d1117',
@@ -446,11 +446,11 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                     }}
                   >
                     {(params as any)[opt.key] && !opt.disabled && (
-                      <span style={{ fontSize: 8, color: accentColor, lineHeight: 1 }}>✓</span>
+                      <span style={{ fontSize: 10, color: accentColor, lineHeight: 1 }}>✓</span>
                     )}
                   </div>
-                  <span style={{ fontSize: 9, color: '#334155' }}>
-                    <span style={{ color: accentColor + '80', marginRight: 4 }}>{opt.flag}</span>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>
+                    <span style={{ color: accentColor + '99', marginRight: 6 }}>{opt.flag}</span>
                     {opt.label}
                   </span>
                 </label>
@@ -466,15 +466,15 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
         disabled={scanning || !params.target.trim()}
         style={{
           width: '100%',
-          padding: '10px',
+          padding: '12px',
           background:
             scanning || !params.target.trim()
               ? '#0d1117'
               : `linear-gradient(135deg, ${accentColor}20, ${accentColor}10)`,
           border: `1px solid ${scanning || !params.target.trim() ? '#1a2236' : accentColor + '80'}`,
           borderRadius: 4,
-          color: scanning || !params.target.trim() ? '#334155' : accentColor,
-          fontSize: 11,
+          color: scanning || !params.target.trim() ? '#64748b' : accentColor,
+          fontSize: 12,
           fontWeight: 700,
           letterSpacing: '0.15em',
           cursor: scanning || !params.target.trim() ? 'not-allowed' : 'pointer',
@@ -528,7 +528,7 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
           {/* Result header */}
           <div
             style={{
-              padding: '8px 14px',
+              padding: '10px 16px',
               background: glow,
               borderBottom: `1px solid ${accentColor}20`,
               display: 'flex',
@@ -538,16 +538,16 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
           >
             <div
               style={{
-                width: 6,
-                height: 6,
+                width: 8,
+                height: 8,
                 borderRadius: '50%',
                 background: '#34d399',
-                boxShadow: '0 0 6px #34d399',
+                boxShadow: '0 0 8px #34d399',
               }}
             />
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: accentColor,
                 letterSpacing: '0.1em',
@@ -556,8 +556,8 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
             >
               SCAN COMPLETE — {results.target}
             </span>
-            <span style={{ fontSize: 9, color: '#374151' }}>{results.duration}</span>
-            <span style={{ fontSize: 9, color: '#34d399' }}>
+            <span style={{ fontSize: 11, color: '#64748b' }}>{results.duration}</span>
+            <span style={{ fontSize: 11, color: '#34d399' }}>
               {results.ports.filter((p) => p.state === 'open').length} OPEN
             </span>
           </div>
@@ -575,14 +575,14 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 style={{
-                  padding: '6px 14px',
+                  padding: '8px 16px',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                   background: 'transparent',
                   border: 'none',
                   borderBottom: `2px solid ${activeTab === tab ? accentColor : 'transparent'}`,
-                  color: activeTab === tab ? accentColor : '#334155',
-                  fontSize: 9,
+                  color: activeTab === tab ? accentColor : '#64748b',
+                  fontSize: 11,
                   fontWeight: 700,
                   letterSpacing: '0.12em',
                   transition: 'all 0.15s',
@@ -604,7 +604,7 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
           >
             {/* PORTS tab */}
             {activeTab === 'ports' && (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                 <thead>
                   <tr>
                     {['PORT', 'PROTO', 'STATE', 'SERVICE', 'VERSION'].map((h) => (
@@ -612,10 +612,10 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                         key={h}
                         style={{
                           textAlign: 'left',
-                          padding: '3px 8px',
-                          color: '#1e293b',
+                          padding: '5px 10px',
+                          color: '#475569',
                           fontWeight: 700,
-                          fontSize: 8,
+                          fontSize: 10,
                           letterSpacing: '0.1em',
                           borderBottom: '1px solid #111827',
                         }}
@@ -628,26 +628,26 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                 <tbody>
                   {results.ports.map((p, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #0d1117' }}>
-                      <td style={{ padding: '4px 8px', color: accentColor, fontWeight: 700 }}>
+                      <td style={{ padding: '6px 10px', color: accentColor, fontWeight: 700, fontSize: 11 }}>
                         {p.port}
                       </td>
-                      <td style={{ padding: '4px 8px', color: '#334155' }}>{p.protocol}</td>
-                      <td style={{ padding: '4px 8px' }}>
+                      <td style={{ padding: '6px 10px', color: '#64748b', fontSize: 11 }}>{p.protocol}</td>
+                      <td style={{ padding: '6px 10px' }}>
                         <span
                           style={{
                             color: stateColor(p.state),
                             fontWeight: 700,
-                            fontSize: 9,
-                            padding: '1px 5px',
-                            borderRadius: 2,
+                            fontSize: 10,
+                            padding: '2px 6px',
+                            borderRadius: 3,
                             background: stateColor(p.state) + '15',
                           }}
                         >
                           {p.state.toUpperCase()}
                         </span>
                       </td>
-                      <td style={{ padding: '4px 8px', color: '#64748b' }}>{p.service}</td>
-                      <td style={{ padding: '4px 8px', color: '#475569', fontSize: 9 }}>
+                      <td style={{ padding: '6px 10px', color: '#94a3b8', fontSize: 11 }}>{p.service}</td>
+                      <td style={{ padding: '6px 10px', color: '#64748b', fontSize: 10 }}>
                         {p.version || '—'}
                       </td>
                     </tr>
@@ -658,15 +658,15 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
 
             {/* HOST tab */}
             {activeTab === 'host' && results.host && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {Object.entries(results.host)
                   .filter(([, v]) => v)
                   .map(([k, v]) => (
                     <div key={k} style={{ display: 'flex', gap: 12 }}>
                       <span
                         style={{
-                          fontSize: 9,
-                          color: '#334155',
+                          fontSize: 11,
+                          color: '#64748b',
                           width: 80,
                           flexShrink: 0,
                           letterSpacing: '0.08em',
@@ -675,30 +675,30 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                       >
                         {k}
                       </span>
-                      <span style={{ fontSize: 10, color: '#64748b', fontFamily: 'inherit' }}>
+                      <span style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'inherit' }}>
                         {v}
                       </span>
                     </div>
                   ))}
                 {results.scripts && (
                   <>
-                    <div style={{ height: 1, background: '#111827', margin: '4px 0' }} />
-                    <span style={{ fontSize: 9, color: '#374151', letterSpacing: '0.1em' }}>
+                    <div style={{ height: 1, background: '#111827', margin: '6px 0' }} />
+                    <span style={{ fontSize: 11, color: '#64748b', letterSpacing: '0.1em' }}>
                       NSE SCRIPTS
                     </span>
                     {results.scripts.map((s, i) => (
                       <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                         <span
                           style={{
-                            fontSize: 9,
-                            color: accentColor + '80',
+                            fontSize: 11,
+                            color: accentColor + '99',
                             width: 80,
                             flexShrink: 0,
                           }}
                         >
                           {s.name}
                         </span>
-                        <span style={{ fontSize: 9, color: '#475569' }}>{s.output}</span>
+                        <span style={{ fontSize: 11, color: '#94a3b8' }}>{s.output}</span>
                       </div>
                     ))}
                   </>
@@ -708,14 +708,14 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
 
             {/* RAW tab */}
             {activeTab === 'raw' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {results.rawOutput.map((line, i) => (
                   <div key={i} style={{ display: 'flex', gap: 10 }}>
                     <span
                       style={{
-                        fontSize: 9,
-                        color: '#1e293b',
-                        width: 20,
+                        fontSize: 10,
+                        color: '#475569',
+                        width: 24,
                         flexShrink: 0,
                         textAlign: 'right',
                       }}
@@ -724,19 +724,19 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                     </span>
                     <span
                       style={{
-                        fontSize: 10,
+                        fontSize: 11,
                         fontFamily: 'inherit',
                         color: line.startsWith('PORT')
                           ? accentColor
                           : line.includes('open')
                             ? '#34d399'
                             : line.includes('closed')
-                              ? '#374151'
+                              ? '#64748b'
                               : line.includes('filtered')
                                 ? '#fbbf24'
                                 : line.startsWith('Starting') || line.startsWith('Nmap done')
-                                  ? '#64748b'
-                                  : '#475569',
+                                  ? '#94a3b8'
+                                  : '#cbd5e1',
                       }}
                     >
                       {line}

@@ -1,374 +1,9 @@
-// src/renderer/src/features/Tool/components/WorkspaceSection/Tool/index.tsx
-// Quản lý toàn bộ công cụ bảo mật trong Phantoma
-
-import React, { useState } from 'react';
-import {
-  Network,
-  Globe,
-  Bug,
-  Zap,
-  Shield,
-  Search,
-  Eye,
-  Wrench,
-  Scan,
-  Radio,
-  ShieldAlert,
-} from 'lucide-react';
-import NmapTool from './components/Nmap';
-import NiktoTool from './components/Nikto';
-import SearchsploitTool from './components/Searchsploit';
-import MetasploitTool from './components/Metasploit';
-import DorkTool from './components/Dork';
-import GauTool from './components/Gau';
-import AmassTool from './components/Amass';
-import AssetfinderTool from './components/Assetfinder';
-import SubfinderTool from './components/Subfinder';
-import NucleiTool from './components/Nuclei';
-import RustscanTool from './components/Rustscan';
-import AlienvaultTool from './components/Alienvault';
-import CertshTool from './components/Certsh';
-
-export interface SecurityTool {
-  id: string;
-  name: string;
-  shortName: string;
-  description: string;
-  category: ToolCategory;
-  tags: string[];
-  testCommand?: string;
-  component: React.ComponentType<any>;
-  apiEndpoint: string;
-  method: 'GET' | 'POST';
-  icon: string;
-  status: 'stable' | 'beta' | 'experimental';
-  speed: 'fast' | 'medium' | 'slow';
-  websiteUrl?: string;
-}
-
-export type ToolCategory = 'Network' | 'Web' | 'Exploit' | 'OSINT' | 'Vuln';
-
-const CATEGORY_META: Record<
-  ToolCategory,
-  { color: string; glow: string; bg: string; label: string }
-> = {
-  Network: {
-    color: '#00e5ff',
-    glow: 'rgba(0,229,255,0.15)',
-    bg: 'rgba(0,229,255,0.06)',
-    label: 'NET',
-  },
-  Web: {
-    color: '#a78bfa',
-    glow: 'rgba(167,139,250,0.15)',
-    bg: 'rgba(167,139,250,0.06)',
-    label: 'WEB',
-  },
-  Exploit: {
-    color: '#ff4d6d',
-    glow: 'rgba(255,77,109,0.15)',
-    bg: 'rgba(255,77,109,0.06)',
-    label: 'EXP',
-  },
-  OSINT: {
-    color: '#34d399',
-    glow: 'rgba(52,211,153,0.15)',
-    bg: 'rgba(52,211,153,0.06)',
-    label: 'INT',
-  },
-  Vuln: {
-    color: '#fbbf24',
-    glow: 'rgba(251,191,36,0.15)',
-    bg: 'rgba(251,191,36,0.06)',
-    label: 'VUL',
-  },
-};
-
-export const TOOLS_LIST: SecurityTool[] = [
-  {
-    id: 'nmap',
-    name: 'Nmap',
-    shortName: 'NMAP',
-    description:
-      'Network mapper hàng đầu — quét cổng, phát hiện dịch vụ, OS fingerprinting, và script scanning với NSE engine.',
-    category: 'Network',
-    tags: ['port-scan', 'os-detect', 'nse'],
-    testCommand: 'nmap --version',
-    component: NmapTool,
-    apiEndpoint: '/api/v1/nmap/scan',
-    method: 'POST',
-    icon: '⬡',
-    status: 'stable',
-    speed: 'medium',
-  },
-  {
-    id: 'rustscan',
-    name: 'Rustscan',
-    shortName: 'RSCAN',
-    description:
-      'Port scanner siêu tốc viết bằng Rust — quét 65k ports trong 3 giây, tích hợp Nmap pipeline.',
-    category: 'Network',
-    tags: ['port-scan', 'fast', 'rust'],
-    testCommand: 'rustscan --version',
-    component: RustscanTool,
-    apiEndpoint: '/api/v1/rustscan/scan',
-    method: 'POST',
-    icon: '▸',
-    status: 'stable',
-    speed: 'fast',
-  },
-  {
-    id: 'nikto',
-    name: 'Nikto',
-    shortName: 'NIKTO',
-    description:
-      'Web server vulnerability scanner — kiểm tra 6700+ mẫu nguy hiểm, misconfiguration, outdated software.',
-    category: 'Web',
-    tags: ['web-scan', 'cgi', 'ssl', 'vuln'],
-    testCommand: 'nikto -Version',
-    component: NiktoTool,
-    apiEndpoint: '/api/v1/nikto/scan',
-    method: 'POST',
-    icon: '◈',
-    status: 'stable',
-    speed: 'slow',
-  },
-  {
-    id: 'nuclei',
-    name: 'Nuclei',
-    shortName: 'NUCL',
-    description:
-      'Template-based vulnerability scanner với 5000+ templates — CVE, misconfig, exposed panels, secrets.',
-    category: 'Vuln',
-    tags: ['cve', 'templates', 'http', 'dns'],
-    testCommand: 'nuclei --version',
-    component: NucleiTool,
-    apiEndpoint: '/api/v1/nuclei/scan',
-    method: 'POST',
-    icon: '◎',
-    status: 'stable',
-    speed: 'fast',
-  },
-  {
-    id: 'searchsploit',
-    name: 'Searchsploit',
-    shortName: 'SPLOIT',
-    description:
-      'CLI interface cho Exploit-DB — tìm kiếm exploit theo CVE, software, version, platform.',
-    category: 'Exploit',
-    tags: ['exploit', 'cve', 'exploit-db'],
-    testCommand: 'searchsploit --version',
-    component: SearchsploitTool,
-    apiEndpoint: '/api/v1/exploit/search',
-    method: 'POST',
-    icon: '⚡',
-    status: 'stable',
-    speed: 'fast',
-  },
-  {
-    id: 'metasploit',
-    name: 'Metasploit',
-    shortName: 'MSF',
-    description:
-      'Framework khai thác lỗ hổng hàng đầu — 2000+ exploits, payload generator, post-exploitation.',
-    category: 'Exploit',
-    tags: ['framework', 'payload', 'post-exploit'],
-    testCommand: 'msfconsole -v',
-    component: MetasploitTool,
-    apiEndpoint: '/api/v1/exploit/search',
-    method: 'POST',
-    icon: '☢',
-    status: 'stable',
-    speed: 'slow',
-  },
-  {
-    id: 'amass',
-    name: 'Amass',
-    shortName: 'AMASS',
-    description:
-      'OWASP subdomain enumeration mạnh nhất — 100+ nguồn dữ liệu, active/passive recon, network mapping.',
-    category: 'OSINT',
-    tags: ['subdomain', 'dns', 'passive', 'active'],
-    testCommand: 'amass --version',
-    component: AmassTool,
-    apiEndpoint: '/api/v1/amass/scan',
-    method: 'POST',
-    icon: '◉',
-    status: 'stable',
-    speed: 'slow',
-  },
-  {
-    id: 'subfinder',
-    name: 'Subfinder',
-    shortName: 'SUBF',
-    description:
-      'Passive subdomain discovery từ ProjectDiscovery — tích hợp Shodan, Censys, VirusTotal, rapid7.',
-    category: 'OSINT',
-    tags: ['subdomain', 'passive', 'dns'],
-    testCommand: 'subfinder --version',
-    component: SubfinderTool,
-    apiEndpoint: '/api/v1/subfinder/scan',
-    method: 'POST',
-    icon: '◌',
-    websiteUrl: 'https://github.com/projectdiscovery/subfinder',
-    status: 'stable',
-    speed: 'medium',
-  },
-  {
-    id: 'assetfinder',
-    name: 'Assetfinder',
-    shortName: 'ASSET',
-    description:
-      'Domain và subdomain finder từ AlienVault, Wayback, CertSpotter — nhẹ, nhanh, pipeline-friendly.',
-    category: 'OSINT',
-    tags: ['asset', 'domain', 'recon'],
-    testCommand: 'assetfinder --help',
-    component: AssetfinderTool,
-    apiEndpoint: '/api/v1/assetfinder/scan',
-    method: 'POST',
-    icon: '⊕',
-    websiteUrl: 'https://github.com/tomnomnom/assetfinder',
-    status: 'stable',
-    speed: 'fast',
-  },
-  {
-    id: 'gau',
-    name: 'GAU',
-    shortName: 'GAU',
-    description:
-      'GetAllUrls — thu thập URL từ Wayback Machine, AlienVault, CommonCrawl, URLScan cho bug bounty.',
-    category: 'OSINT',
-    tags: ['url', 'wayback', 'crawl', 'recon'],
-    testCommand: 'gau --version',
-    component: GauTool,
-    apiEndpoint: '/api/v1/gau/fetch',
-    method: 'POST',
-    icon: '⊗',
-    websiteUrl: 'https://github.com/lc/gau',
-    status: 'stable',
-    speed: 'medium',
-  },
-  {
-    id: 'go-dork',
-    name: 'Go Dork',
-    shortName: 'DORK',
-    description:
-      'Google Dorking engine viết bằng Go — hỗ trợ nhiều search engine, proxy, tìm exposed endpoints.',
-    category: 'OSINT',
-    tags: ['dork', 'google', 'search', 'osint'],
-    testCommand: 'go-dork --help',
-    component: DorkTool,
-    apiEndpoint: '/api/v1/dork/search',
-    method: 'POST',
-    icon: '⊘',
-    status: 'beta',
-    speed: 'medium',
-  },
-  {
-    id: 'alienvault',
-    name: 'AlienVault',
-    shortName: 'OTX',
-    description:
-      'Threat intelligence platform — tra cứu IP/domain/hash, indicators of compromise, malware C2 detection.',
-    category: 'OSINT',
-    tags: ['threat-intel', 'ioc', 'malware', 'c2'],
-    testCommand: 'curl https://otx.alienvault.com/api/v1/indicators/domain/example.com/general',
-    component: AlienvaultTool,
-    apiEndpoint: '/api/v1/alienvault/scan',
-    method: 'POST',
-    icon: '◑',
-    websiteUrl: 'https://otx.alienvault.com',
-    status: 'stable',
-    speed: 'fast',
-  },
-  {
-    id: 'certsh',
-    name: 'Cert.sh',
-    shortName: 'CERT',
-    description:
-      'Certificate Transparency Logs — tìm subdomain từ SSL certs, theo dõi wildcard, passive recon.',
-    category: 'OSINT',
-    tags: ['ssl', 'certificate', 'subdomain', 'passive'],
-    testCommand: 'curl https://crt.sh/?q=example.com',
-    component: CertshTool,
-    apiEndpoint: '/api/v1/certsh/scan',
-    method: 'POST',
-    icon: '◐',
-    websiteUrl: 'https://crt.sh',
-    status: 'stable',
-    speed: 'fast',
-  },
-];
-
-const SPEED_META = {
-  fast: { label: 'FAST', color: '#34d399' },
-  medium: { label: 'MED', color: '#fbbf24' },
-  slow: { label: 'SLOW', color: '#fb7185' },
-};
-
-const STATUS_META = {
-  stable: { label: 'STABLE', color: '#34d399' },
-  beta: { label: 'BETA', color: '#fbbf24' },
-  experimental: { label: 'EXPRMTL', color: '#fb7185' },
-};
-
-interface ToolIconProps {
-  tool: SecurityTool;
-  color: string;
-}
-
-const getLucideIconForTool = (toolId: string, category: ToolCategory) => {
-  const iconMap: Record<string, React.ElementType> = {
-    nmap: Scan,
-    rustscan: Radio,
-    nikto: Globe,
-    nuclei: Shield,
-    searchsploit: Search,
-    metasploit: Bug,
-    amass: Network,
-    subfinder: Eye,
-    assetfinder: Eye,
-    gau: Globe,
-    'go-dork': Search,
-    alienvault: ShieldAlert,
-    certsh: Eye,
-  };
-
-  const categoryFallback: Record<ToolCategory, React.ElementType> = {
-    Network: Network,
-    Web: Globe,
-    Exploit: Zap,
-    OSINT: Search,
-    Vuln: Shield,
-  };
-
-  const IconComponent = iconMap[toolId] || categoryFallback[category] || Wrench;
-  return IconComponent;
-};
-
-const ToolIcon: React.FC<ToolIconProps> = ({ tool, color }) => {
-  const [hasError, setHasError] = useState(false);
-  const IconComponent = getLucideIconForTool(tool.id, tool.category);
-
-  if (tool.websiteUrl && !hasError) {
-    try {
-      const url = new URL(tool.websiteUrl);
-      const domain = url.hostname;
-      const faviconUrl = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-      return (
-        <img
-          src={faviconUrl}
-          alt={tool.name}
-          style={{ width: 20, height: 20, objectFit: 'contain' }}
-          onError={() => setHasError(true)}
-        />
-      );
-    } catch {
-      return <IconComponent size={18} style={{ color }} strokeWidth={1.5} />;
-    }
-  }
-  return <IconComponent size={18} style={{ color }} strokeWidth={1.5} />;
-};
+import React from 'react';
+import { Search, Wifi, Globe, Bug, Eye, Shield, Server } from 'lucide-react';
+import { TOOLS_LIST } from './data/toolsList';
+import { CATEGORY_META, SPEED_META, STATUS_META } from './constants';
+import { ToolIcon } from './utils/iconHelpers';
+import { useToolManager } from './hooks/useToolManager';
 
 interface ToolManagerProps {
   activeToolId?: string;
@@ -376,34 +11,19 @@ interface ToolManagerProps {
 }
 
 const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onToolChange }) => {
-  const [selectedTool, setSelectedTool] = useState<string>(activeToolId);
-  const [activeCategory, setActiveCategory] = useState<ToolCategory | 'All'>('All');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleToolSelect = (toolId: string) => {
-    setSelectedTool(toolId);
-    onToolChange?.(toolId);
-  };
-
-  const currentTool = TOOLS_LIST.find((t) => t.id === selectedTool);
-  const ToolComponent = currentTool?.component;
-  const catMeta = currentTool ? CATEGORY_META[currentTool.category] : null;
-
-  const categories: Array<ToolCategory | 'All'> = [
-    'All',
-    'Network',
-    'Web',
-    'Exploit',
-    'OSINT',
-    'Vuln',
-  ];
-
-  const filteredTools = TOOLS_LIST.filter((t) => {
-    const matchCat = activeCategory === 'All' || t.category === activeCategory;
-    const q = searchQuery.toLowerCase();
-    const matchSearch = !q || t.name.toLowerCase().includes(q) || t.tags.some((g) => g.includes(q));
-    return matchCat && matchSearch;
-  });
+  const {
+    selectedTool,
+    activeCategory,
+    searchQuery,
+    currentTool,
+    ToolComponent,
+    catMeta,
+    categories,
+    filteredTools,
+    handleToolSelect,
+    setActiveCategory,
+    setSearchQuery,
+  } = useToolManager(activeToolId, onToolChange);
 
   // Scanline CSS baked inline để không cần external styles
   const scanlineStyle: React.CSSProperties = {
@@ -441,7 +61,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
         }}
       >
         {/* Header */}
-        <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid #111827' }}>
+        <div style={{ padding: '14px 0px 10px 0px', borderBottom: '1px solid #111827' }}>
           {/* Tools Header with Badge */}
           <div
             style={{
@@ -449,20 +69,22 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               justifyContent: 'space-between',
               alignItems: 'center',
               marginBottom: 12,
+              paddingLeft: 14,
+              paddingRight: 14,
             }}
           >
             <span
-              style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em' }}
+              style={{ fontSize: 14, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.15em' }}
             >
-              TOOLS
+              Tools
             </span>
             <span
               style={{
-                fontSize: 9,
+                fontSize: 10,
                 background: '#0d1117',
-                padding: '2px 6px',
-                borderRadius: 3,
-                color: '#475569',
+                padding: '2px 8px',
+                borderRadius: 4,
+                color: '#94a3b8',
                 border: '1px solid #1a2236',
               }}
             >
@@ -470,19 +92,18 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
             </span>
           </div>
           {/* Search */}
-          <div style={{ position: 'relative' }}>
-            <span
+          <div style={{ position: 'relative', paddingLeft: 14, paddingRight: 14 }}>
+            <Search
+              size={14}
               style={{
                 position: 'absolute',
-                left: 9,
+                left: 22,
                 top: '50%',
                 transform: 'translateY(-50%)',
-                fontSize: 10,
-                color: '#374151',
+                color: '#64748b',
+                pointerEvents: 'none',
               }}
-            >
-              ⌕
-            </span>
+            />
             <input
               type="text"
               value={searchQuery}
@@ -490,12 +111,12 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               placeholder="search tools..."
               style={{
                 width: '100%',
-                padding: '6px 8px 6px 24px',
-                background: '#0d1117',
-                border: '1px solid #1a2236',
-                borderRadius: 4,
-                color: '#94a3b8',
-                fontSize: 10,
+                padding: '10px 12px 10px 36px',
+                background: '#080b10',
+                border: '1px solid #1e2535',
+                borderRadius: 6,
+                color: '#e2e8f0',
+                fontSize: 12,
                 outline: 'none',
                 boxSizing: 'border-box',
                 fontFamily: 'inherit',
@@ -509,8 +130,8 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
           style={{
             display: 'flex',
             flexWrap: 'wrap',
-            gap: 4,
-            padding: '8px 10px',
+            gap: 6,
+            padding: '10px 10px',
             borderBottom: '1px solid #111827',
           }}
         >
@@ -521,27 +142,60 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               cat === 'All'
                 ? TOOLS_LIST.length
                 : TOOLS_LIST.filter((t) => t.category === cat).length;
+            
+            // Map category to icon
+            let CategoryIcon = null;
+            if (cat === 'All') {
+              CategoryIcon = Server;
+            } else if (cat === 'Network') {
+              CategoryIcon = Wifi;
+            } else if (cat === 'Web') {
+              CategoryIcon = Globe;
+            } else if (cat === 'Exploit') {
+              CategoryIcon = Bug;
+            } else if (cat === 'OSINT') {
+              CategoryIcon = Eye;
+            } else if (cat === 'Vuln') {
+              CategoryIcon = Shield;
+            }
+            
             return (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 style={{
-                  padding: '3px 8px',
-                  borderRadius: 3,
-                  border: `1px solid ${isActive ? meta?.color || '#00e5ff' : '#1a2236'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 12px',
+                  borderRadius: 6,
+                  border: isActive ? 'none' : `1px solid #1a2236`,
                   background: isActive ? meta?.bg || 'rgba(0,229,255,0.06)' : 'transparent',
-                  color: isActive ? meta?.color || '#00e5ff' : '#374151',
-                  fontSize: 9,
+                  color: isActive ? '#ffffff' : '#475569',
+                  fontSize: 11,
                   fontWeight: 700,
                   letterSpacing: '0.1em',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                   transition: 'all 0.15s',
-                  boxShadow: isActive ? `0 0 8px ${meta?.glow || 'rgba(0,229,255,0.15)'}` : 'none',
                 }}
               >
-                {cat === 'All' ? 'ALL' : CATEGORY_META[cat].label}{' '}
-                <span style={{ opacity: 0.6 }}>{count}</span>
+                {CategoryIcon && (
+                  <CategoryIcon
+                    size={12}
+                    style={{ color: isActive ? meta?.color || '#00e5ff' : '#475569' }}
+                  />
+                )}
+                <span>{cat === 'All' ? 'ALL' : CATEGORY_META[cat].label}</span>
+                <span
+                  style={{
+                    opacity: isActive ? 0.8 : 0.5,
+                    color: isActive ? meta?.color || '#00e5ff' : '#475569',
+                    fontSize: 10,
+                  }}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -571,13 +225,13 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                   gap: 10,
                   padding: '8px 10px',
                   background: isSelected ? meta.bg : 'transparent',
-                  border: `1px solid ${isSelected ? meta.color : 'transparent'}`,
+                  border: '1px solid transparent',
                   borderLeft: `2px solid ${isSelected ? meta.color : 'transparent'}`,
-                  borderRadius: 4,
+                  borderRadius: '0 4px 4px 0',
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all 0.15s',
-                  boxShadow: isSelected ? `0 0 12px ${meta.glow}` : 'none',
+                  boxShadow: 'none',
                   fontFamily: 'inherit',
                 }}
                 onMouseEnter={(e) => {
@@ -598,21 +252,21 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                     height: 28,
                     borderRadius: 4,
                     background: isSelected ? meta.bg : '#0d1117',
-                    border: `1px solid ${isSelected ? meta.color + '60' : '#1a2236'}`,
+                    border: '1px solid #1a2236',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: 13,
                     color: meta.color,
                     flexShrink: 0,
-                    boxShadow: isSelected ? `0 0 8px ${meta.glow}` : 'none',
+                    boxShadow: 'none',
                     overflow: 'hidden',
                   }}
                 >
                   <ToolIcon tool={tool} color={meta.color} />
                 </div>
 
-                {/* Name + tags */}
+                {/* Name + short description */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
                     <span
@@ -641,19 +295,21 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       </span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    {tool.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        style={{
-                          fontSize: 9,
-                          color: '#6b7a96',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        #{tag}
-                      </span>
-                    ))}
+                  <div>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: '#6b7a96',
+                        letterSpacing: '0.03em',
+                        lineHeight: 1.3,
+                        display: 'block',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {tool.shortDescription}
+                    </span>
                   </div>
                 </div>
 
@@ -699,7 +355,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                   boxShadow: `0 0 20px ${catMeta.glow}`,
                 }}
               >
-                {currentTool.icon}
+                <ToolIcon tool={currentTool} color={catMeta.color} />
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -809,40 +465,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                 </div>
               </div>
 
-              {/* Endpoint badge */}
-              <div
-                style={{
-                  flexShrink: 0,
-                  padding: '4px 10px',
-                  borderRadius: 4,
-                  background: '#0d1117',
-                  border: '1px solid #1a2236',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 3,
-                  alignSelf: 'flex-start',
-                }}
-              >
-                <span style={{ fontSize: 8, color: '#1e293b', letterSpacing: '0.1em' }}>
-                  ENDPOINT
-                </span>
-                <span style={{ fontSize: 9, color: '#334155', fontFamily: 'inherit' }}>
-                  {currentTool.method}
-                </span>
-                <span
-                  style={{
-                    fontSize: 8,
-                    color: '#475569',
-                    fontFamily: 'inherit',
-                    maxWidth: 120,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {currentTool.apiEndpoint}
-                </span>
-              </div>
+              {/* Endpoint badge removed */}
             </div>
 
             {/* Tool Content */}
