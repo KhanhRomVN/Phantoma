@@ -1,4 +1,4 @@
-// Package alienvault implements the Scanner interface for AlienVault OTX threat intelligence.
+// Package alienvault implements threat intelligence lookup using AlienVault OTX API.
 package alienvault
 
 import (
@@ -7,147 +7,320 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
+	"strings"
 	"time"
 
 	"github.com/phantoma/server/internal/domain"
 )
 
 const (
-	defaultBaseURL = "https://otx.alienvault.com/api/v1"
+	otxAPIBase   = "https://otx.alienvault.com/api/v1"
 	defaultTimeout = 30 * time.Second
 )
 
-// Service queries AlienVault OTX for threat intelligence on targets.
+// Service handles AlienVault OTX API calls.
 type Service struct {
-	apiKey  string
-	baseURL string
-	client  *http.Client
+	httpClient *http.Client
 }
 
-// NewService creates a new AlienVault OTX service.
-// API key is read from OTX_API_KEY environment variable.
 func NewService() *Service {
-	apiKey := os.Getenv("OTX_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("ALIENVAULT_OTX_KEY")
-	}
 	return &Service{
-		apiKey:  apiKey,
-		baseURL: defaultBaseURL,
-		client: &http.Client{
+		httpClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
 	}
 }
 
-// Scan implements domain.Scanner.
-// Target can be an IP address, domain, or hostname.
-func (s *Service) Scan(ctx context.Context, req domain.ScanRequest) (domain.ScanResult, error) {
-	if req.Target == "" {
-		return domain.ScanResult{}, domain.ErrInvalidTarget
-	}
+// ScanRequest represents an incoming lookup request.
+type ScanRequest struct {
+	Indicator     string `json:"indicator"`
+	IndicatorType string `json:"indicatorType"`
+	APIKey        string `json:"apiKey"`
+}
 
-	if s.apiKey == "" {
-		return domain.ScanResult{
-			Success: false,
-			Error:   "OTX_API_KEY environment variable is not set",
-		}, nil
+// IndicatorResponse is the parsed response from OTX API.
+type IndicatorResponse struct {
+	Type              string      `json:"type"`
+	Value             string      `json:"value"`
+	Reputation        string      `json:"reputation"`
+	ActivityCount     int         `json:"activity_count"`
+	RelatedIndicators int         `json:"related_indicators"`
+	GeoData           *GeoData    `json:"geo_data,omitempty"`
+	MalwareFamilies   []string    `json:"malware_families"`
+	Industries        []string    `json:"industries"`
+	TargetCountries   []string    `json:"target_countries"`
+	FirstSeen         string      `json:"first_seen"`
+	LastSeen          string      `json:"last_seen"`
+	Pulses            []PulseInfo `json:"pulses"`
+	Whois             string      `json:"whois,omitempty"`
+	DNSRecords        []DNSRecord `json:"dns_records,omitempty"`
+}
+
+type GeoData struct {
+	Country     string  `json:"country"`
+	CountryCode string  `json:"country_code"`
+	City        string  `json:"city"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+}
+
+type PulseInfo struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Created     string   `json:"created"`
+	Modified    string   `json:"modified"`
+	Adversary   string   `json:"adversary"`
+	TLP         string   `json:"tlp"`
+	Tags        []string `json:"tags"`
+}
+
+type DNSRecord struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+// Lookup performs an indicator lookup against AlienVault OTX.
+func (s *Service) Lookup(ctx context.Context, req ScanRequest) (*IndicatorResponse, error) {
+	if req.Indicator == "" {
+		return nil, domain.ErrInvalidTarget
+	}
+	if req.APIKey == "" {
+		return nil, fmt.Errorf("API key is required")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
-	// Determine indicator type based on target format
-	indicatorType := detectIndicatorType(req.Target)
-	url := fmt.Sprintf("%s/indicators/%s/%s", s.baseURL, indicatorType, req.Target)
-
-	data, err := s.doRequest(ctx, url)
-	if err != nil {
-		return domain.ScanResult{
-			Success: false,
-			Output:  "",
-			Error:   fmt.Sprintf("OTX API request failed: %v", err),
-		}, nil
+	// Map indicator type to OTX endpoint
+	var endpoint string
+	switch req.IndicatorType {
+	case "ip":
+		endpoint = fmt.Sprintf("%s/indicators/IPv4/%s/general", otxAPIBase, req.Indicator)
+	case "domain":
+		endpoint = fmt.Sprintf("%s/indicators/domain/%s/general", otxAPIBase, req.Indicator)
+	case "hash":
+		endpoint = fmt.Sprintf("%s/indicators/file/%s/general", otxAPIBase, req.Indicator)
+	case "url":
+		endpoint = fmt.Sprintf("%s/indicators/url/%s/general", otxAPIBase, req.Indicator)
+	default:
+		return nil, fmt.Errorf("unsupported indicator type: %s", req.IndicatorType)
 	}
 
-	// Convert raw JSON to pretty-printed output for the scan result
-	output, _ := json.MarshalIndent(data, "", "  ")
-
-	return domain.ScanResult{
-		Success: true,
-		Output:  string(output),
-	}, nil
-}
-
-// doRequest performs an authenticated GET request to the OTX API.
-func (s *Service) doRequest(ctx context.Context, url string) (map[string]interface{}, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	// Create request
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("X-OTX-API-KEY", s.apiKey)
-	req.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("X-OTX-API-KEY", req.APIKey)
+	httpReq.Header.Set("Accept", "application/json")
 
-	resp, err := s.client.Do(req)
+	// Execute request
+	resp, err := s.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("executing request: %w", err)
+		return nil, fmt.Errorf("OTX API request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("OTX API returned status %d: %s", resp.StatusCode, string(body))
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decoding response: %w", err)
+	// Handle error status codes
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusUnauthorized {
+			return nil, fmt.Errorf("invalid API key (status %d)", resp.StatusCode)
+		}
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("indicator not found in OTX database")
+		}
+		return nil, fmt.Errorf("OTX API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// Parse JSON response
+	var rawResp map[string]interface{}
+	if err := json.Unmarshal(body, &rawResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Extract reputation
+	reputation := "unknown"
+	if rep, ok := rawResp["reputation"].(string); ok {
+		reputation = rep
+	}
+
+	// Extract pulse info
+	pulses := []PulseInfo{}
+	if pulsesRaw, ok := rawResp["pulse_info"].(map[string]interface{}); ok {
+		if pulsesList, ok := pulsesRaw["pulses"].([]interface{}); ok {
+			for _, p := range pulsesList {
+				if pulseMap, ok := p.(map[string]interface{}); ok {
+					pulse := PulseInfo{}
+					if id, ok := pulseMap["id"].(string); ok {
+						pulse.ID = id
+					}
+					if name, ok := pulseMap["name"].(string); ok {
+						pulse.Name = name
+					}
+					if desc, ok := pulseMap["description"].(string); ok {
+						pulse.Description = desc
+					}
+					if created, ok := pulseMap["created"].(string); ok {
+						pulse.Created = created
+					}
+					if modified, ok := pulseMap["modified"].(string); ok {
+						pulse.Modified = modified
+					}
+					if adv, ok := pulseMap["adversary"].(string); ok {
+						pulse.Adversary = adv
+					}
+					if tlp, ok := pulseMap["tlp"].(string); ok {
+						pulse.TLP = tlp
+					}
+					if tagsRaw, ok := pulseMap["tags"].([]interface{}); ok {
+						for _, tag := range tagsRaw {
+							if tagStr, ok := tag.(string); ok {
+								pulse.Tags = append(pulse.Tags, tagStr)
+							}
+						}
+					}
+					pulses = append(pulses, pulse)
+				}
+			}
+		}
+	}
+
+	// Extract malware families
+	malwareFamilies := []string{}
+	if families, ok := rawResp["malware_families"].([]interface{}); ok {
+		for _, f := range families {
+			if fStr, ok := f.(string); ok {
+				malwareFamilies = append(malwareFamilies, fStr)
+			}
+		}
+	}
+
+	// Extract industries
+	industries := []string{}
+	if indus, ok := rawResp["industries"].([]interface{}); ok {
+		for _, i := range indus {
+			if iStr, ok := i.(string); ok {
+				industries = append(industries, iStr)
+			}
+		}
+	}
+
+	// Extract target countries
+	targetCountries := []string{}
+	if countries, ok := rawResp["targeted_countries"].([]interface{}); ok {
+		for _, c := range countries {
+			if cStr, ok := c.(string); ok {
+				targetCountries = append(targetCountries, cStr)
+			}
+		}
+	}
+
+	// Extract geo data
+	var geoData *GeoData
+	if geo, ok := rawResp["geo"].(map[string]interface{}); ok {
+		geoData = &GeoData{}
+		if country, ok := geo["country"].(string); ok {
+			geoData.Country = country
+		}
+		if code, ok := geo["country_code"].(string); ok {
+			geoData.CountryCode = code
+		}
+		if city, ok := geo["city"].(string); ok {
+			geoData.City = city
+		}
+		if lat, ok := geo["latitude"].(float64); ok {
+			geoData.Latitude = lat
+		}
+		if lng, ok := geo["longitude"].(float64); ok {
+			geoData.Longitude = lng
+		}
+	}
+
+	// Get first/last seen
+	firstSeen := ""
+	if fs, ok := rawResp["first_seen"].(string); ok {
+		firstSeen = fs
+	}
+	lastSeen := ""
+	if ls, ok := rawResp["last_seen"].(string); ok {
+		lastSeen = ls
+	}
+
+	// Calculate activity count (number of pulses + related indicators)
+	activityCount := len(pulses)
+	if related, ok := rawResp["related_indicators"].(map[string]interface{}); ok {
+		if relatedList, ok := related["related"].([]interface{}); ok {
+			activityCount += len(relatedList)
+		}
+	}
+
+	result := &IndicatorResponse{
+		Type:              req.IndicatorType,
+		Value:             req.Indicator,
+		Reputation:        reputation,
+		ActivityCount:     activityCount,
+		RelatedIndicators: 0,
+		GeoData:           geoData,
+		MalwareFamilies:   malwareFamilies,
+		Industries:        industries,
+		TargetCountries:   targetCountries,
+		FirstSeen:         firstSeen,
+		LastSeen:          lastSeen,
+		Pulses:            pulses,
 	}
 
 	return result, nil
 }
 
-// detectIndicatorType determines the OTX indicator type from the target string.
-// Supports: IPv4, IPv6, domain, hostname, URL, file hash (MD5/SHA1/SHA256).
-func detectIndicatorType(target string) string {
-	// Simple heuristic: if it looks like an IP, use IPv4; otherwise domain/hostname
-	if isIPv4(target) {
-		return "IPv4"
+// FormatRawOutput formats the lookup result as readable text.
+func FormatRawOutput(result *IndicatorResponse, err error) string {
+	if err != nil {
+		return fmt.Sprintf("Error: %v", err)
 	}
-	if isIPv6(target) {
-		return "IPv6"
+	if result == nil {
+		return "No data found"
 	}
-	// Could extend with more types: URL, FileHash-MD5, FileHash-SHA256, etc.
-	// For now, default to domain
-	return "domain"
-}
 
-func isIPv4(s string) bool {
-	parts := 0
-	octet := ""
-	for _, c := range s {
-		if c == '.' {
-			parts++
-			octet = ""
-		} else if c >= '0' && c <= '9' {
-			octet += string(c)
-		} else {
-			return false
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("=== AlienVault OTX Indicator Report ===\n"))
+	sb.WriteString(fmt.Sprintf("Type: %s\n", strings.ToUpper(result.Type)))
+	sb.WriteString(fmt.Sprintf("Indicator: %s\n", result.Value))
+	sb.WriteString(fmt.Sprintf("Reputation: %s\n", result.Reputation))
+	sb.WriteString(fmt.Sprintf("Activity Count: %d\n", result.ActivityCount))
+	sb.WriteString(fmt.Sprintf("First Seen: %s\n", result.FirstSeen))
+	sb.WriteString(fmt.Sprintf("Last Seen: %s\n", result.LastSeen))
+
+	if result.GeoData != nil {
+		sb.WriteString(fmt.Sprintf("\n=== Geo Location ===\n"))
+		sb.WriteString(fmt.Sprintf("Country: %s (%s)\n", result.GeoData.Country, result.GeoData.CountryCode))
+		if result.GeoData.City != "" {
+			sb.WriteString(fmt.Sprintf("City: %s\n", result.GeoData.City))
 		}
 	}
-	return parts == 3 && len(octet) > 0
-}
 
-func isIPv6(s string) bool {
-	// Simple check: contains colons and hex characters
-	hasColon := false
-	for _, c := range s {
-		if c == ':' {
-			hasColon = true
-		} else if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-			return false
+	if len(result.MalwareFamilies) > 0 {
+		sb.WriteString(fmt.Sprintf("\n=== Malware Families ===\n"))
+		for _, f := range result.MalwareFamilies {
+			sb.WriteString(fmt.Sprintf("- %s\n", f))
 		}
 	}
-	return hasColon
+
+	if len(result.Pulses) > 0 {
+		sb.WriteString(fmt.Sprintf("\n=== Related Pulses (%d) ===\n", len(result.Pulses)))
+		for _, p := range result.Pulses {
+			sb.WriteString(fmt.Sprintf("[%s] %s\n", p.ID, p.Name))
+			if p.Description != "" {
+				sb.WriteString(fmt.Sprintf("  %s\n", p.Description))
+			}
+		}
+	}
+
+	return sb.String()
 }

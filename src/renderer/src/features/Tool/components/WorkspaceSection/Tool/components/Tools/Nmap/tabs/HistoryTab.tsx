@@ -10,12 +10,13 @@ import {
   Network,
   Shield,
   Server,
+  FileText,
 } from 'lucide-react';
 import { ScanResult, ContextMenuState, TooltipState } from '../types';
 import { groupHistoryByDate } from '../utils';
 import ScanCard from '../components/ScanCard';
 import PortsTable from '../components/PortsTable';
-import ExportButtons from '../components/ExportButtons';
+
 import { parseNmapXML, formatDuration } from '../../../../../../../utils/nmapParser';
 
 interface HistoryTabProps {
@@ -130,11 +131,11 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Header with Back button and Export buttons */}
+        {/* Header with Back button */}
         <div
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-start',
             alignItems: 'center',
             gap: 12,
           }}
@@ -162,7 +163,6 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             <ArrowLeft size={14} />
             BACK TO HISTORY
           </button>
-          <ExportButtons scan={scan} accentColor={accentColor} />
         </div>
 
         {/* Scan Header */}
@@ -183,7 +183,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             }}
           >
             <div>
-              <h3 style={{ margin: 0, fontSize: 16, color: accentColor }}>{scan.target}</h3>
+              <h3 style={{ margin: 0, fontSize: 16, color: '#e2e8f0' }}>{scan.target}</h3>
               <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
                 {scan.scanType} • {scan.duration}
               </p>
@@ -257,13 +257,13 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             style={{
               margin: '0 0 12px',
               fontSize: 13,
-              color: accentColor,
+              color: '#e2e8f0',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
             }}
           >
-            <Server size={14} /> HOST INFORMATION
+            <Server size={14} style={{ color: '#64748b' }} /> HOST INFORMATION
           </h4>
           <div
             style={{
@@ -349,13 +349,13 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             style={{
               margin: '0 0 12px',
               fontSize: 13,
-              color: accentColor,
+              color: '#e2e8f0',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
             }}
           >
-            <Shield size={14} /> PORTS SCANNED ({scan.ports.length} total,{' '}
+            <Shield size={14} style={{ color: '#64748b' }} /> PORTS SCANNED ({scan.ports.length} total,{' '}
             {scan.ports.filter((p) => p.state === 'open').length} open)
           </h4>
           <PortsTable ports={scan.ports} accentColor={accentColor} showRisk={true} />
@@ -378,7 +378,9 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               marginBottom: 12,
             }}
           >
-            <h4 style={{ margin: 0, fontSize: 13, color: accentColor }}>RAW OUTPUT (XML)</h4>
+            <h4 style={{ margin: 0, fontSize: 13, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FileText size={14} style={{ color: '#64748b' }} /> RAW OUTPUT (XML)
+            </h4>
             <button
               onClick={() => navigator.clipboard.writeText(scan.rawOutput.join('\n'))}
               style={{

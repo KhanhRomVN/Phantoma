@@ -3,13 +3,12 @@ package routes
 import (
 	"net/http"
 
-	alienvaulthandler "github.com/phantoma/server/internal/handler/alienvault"
-	"github.com/phantoma/server/internal/service/alienvault"
+	alienvaultHandler "github.com/phantoma/server/internal/handler/alienvault"
+	alienvaultSvc "github.com/phantoma/server/internal/service/alienvault"
 )
 
-// RegisterAlienvaultRoutes registers AlienVault OTX threat intelligence endpoints.
-func RegisterAlienvaultRoutes(mux *http.ServeMux) {
-	svc := alienvault.NewService()
-	handler := alienvaulthandler.NewHandler(svc)
+// RegisterAlienvaultRoutes registers AlienVault OTX lookup endpoints.
+func RegisterAlienvaultRoutes(mux *http.ServeMux, svc *alienvaultSvc.Service) {
+	handler := alienvaultHandler.NewHandler(svc)
 	mux.HandleFunc("POST /api/v1/alienvault/scan", handler.Scan)
 }

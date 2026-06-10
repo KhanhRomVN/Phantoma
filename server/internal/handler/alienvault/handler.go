@@ -4,44 +4,64 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/phantoma/server/internal/domain"
 	"github.com/phantoma/server/internal/service/alienvault"
-	"github.com/phantoma/server/pkg/response"
 )
 
+// Handler handles HTTP requests for AlienVault OTX lookups.
 type Handler struct {
 	service *alienvault.Service
 }
 
-func NewHandler(service *alienvault.Service) *Handler {
-	return &Handler{service: service}
+// NewHandler creates a new AlienVault handler.
+func NewHandler(svc *alienvault.Service) *Handler {
+	return &Handler{service: svc}
 }
 
-// Scan handles threat intelligence lookup requests.
-// POST /api/v1/alienvault/scan
-// Body: { "target": "8.8.8.8" or "example.com" }
+// Scan handles POST /api/v1/alienvault/scan
 func (h *Handler) Scan(w http.ResponseWriter, r *http.Request) {
-	var req domain.ScanRequest
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req alienvault.ScanRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid request body")
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if req.Target == "" {
-		response.Error(w, http.StatusBadRequest, "target is required")
+	// Validate request
+	if req.Indicator == "" {
+		http.Error(w, "indicator is required", http.StatusBadRequest)
+		return
+	}
+	if req.IndicatorType == "" {
+		http.Error(w, "indicatorType is required", http.StatusBadRequest)
+		return
+	}
+	if req.APIKey == "" {
+		http.Error(w, "apiKey is required", http.StatusBadRequest)
 		return
 	}
 
-	result, err := h.service.Scan(r.Context(), req)
+	// Perform lookup
+	result, err := h.service.Lookup(r.Context(), req)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if !result.Success {
-		response.Error(w, http.StatusBadRequest, result.Error)
-		return
+	// Format raw output
+	rawOutput := alienvault.FormatRawOutput(result, nil)
+
+	// Prepare response
+	response := map[string]interface{}{
+		"success":   true,
+		"data":      result,
+		"rawOutput": rawOutput,
 	}
 
-	response.JSON(w, http.StatusOK, result)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }

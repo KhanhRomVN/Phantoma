@@ -316,12 +316,12 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
       >
         {currentTool && catMeta ? (
           <>
-            {/* Tool Header */}
+            {/* Tool Header - Thống nhất màu nền */}
             <div
               style={{
                 padding: '12px 20px',
-                borderBottom: `1px solid ${catMeta.color}30`,
-                background: catMeta.bg,
+                borderBottom: '1px solid #1e2535',
+                background: '#0f1319',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 16,
@@ -329,7 +329,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                 position: 'relative',
               }}
             >
-              {/* Big icon - centered vertically */}
+              {/* Big icon - giữ màu accent */}
               <div
                 style={{
                   width: 48,
@@ -356,7 +356,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       margin: 0,
                       fontSize: 18,
                       fontWeight: 800,
-                      color: catMeta.color,
+                      color: '#e2e8f0',
                       letterSpacing: '0.1em',
                       fontFamily: 'inherit',
                     }}
@@ -367,13 +367,12 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                     style={{
                       padding: '4px 12px',
                       borderRadius: 4,
-                      background: `linear-gradient(135deg, ${catMeta.color}20, ${catMeta.color}05)`,
-                      border: `1px solid ${catMeta.color}80`,
-                      color: catMeta.color,
+                      background: '#1a2236',
+                      border: '1px solid #2a3346',
+                      color: '#94a3b8',
                       fontSize: 10,
                       fontWeight: 800,
                       letterSpacing: '0.12em',
-                      textShadow: `0 0 8px ${catMeta.color}80`,
                     }}
                   >
                     {currentTool.category.toUpperCase()}
@@ -401,7 +400,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                         borderRadius: 3,
                         background: '#0d1117',
                         border: '1px solid #1a2236',
-                        color: '#475569',
+                        color: '#64748b',
                         fontSize: 9,
                         letterSpacing: '0.06em',
                       }}
@@ -414,9 +413,9 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       style={{
                         padding: '2px 7px',
                         borderRadius: 3,
-                        background: `${catMeta.color}10`,
-                        border: `1px solid ${catMeta.color}50`,
-                        color: catMeta.color,
+                        background: '#0d1117',
+                        border: '1px solid #1a2236',
+                        color: '#64748b',
                         fontSize: 9,
                         letterSpacing: '0.06em',
                         cursor: 'pointer',
@@ -424,10 +423,10 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       }}
                       onClick={() => window.open(currentTool.websiteUrl, '_blank')}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = `${catMeta.color}30`;
+                        e.currentTarget.style.background = '#1a2236';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = `${catMeta.color}10`;
+                        e.currentTarget.style.background = '#0d1117';
                       }}
                       title={`Open ${currentTool.name} website`}
                     >
@@ -438,11 +437,11 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               </div>
             </div>
 
-            {/* Tab Bar */}
+            {/* Tab Bar - Thống nhất màu sắc */}
             <div
               style={{
                 display: 'flex',
-                borderBottom: `1px solid ${catMeta.color}30`,
+                borderBottom: '1px solid #1e2535',
                 background: '#0d1117',
                 padding: '0 20px',
                 gap: 4,
@@ -462,8 +461,8 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                     fontFamily: 'inherit',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: `2px solid ${toolActiveTab === tab.id ? catMeta.color : 'transparent'}`,
-                    color: toolActiveTab === tab.id ? catMeta.color : '#64748b',
+                    borderBottom: `2px solid ${toolActiveTab === tab.id ? '#00e5ff' : 'transparent'}`,
+                    color: toolActiveTab === tab.id ? '#00e5ff' : '#64748b',
                     fontSize: 11,
                     fontWeight: 700,
                     letterSpacing: '0.12em',

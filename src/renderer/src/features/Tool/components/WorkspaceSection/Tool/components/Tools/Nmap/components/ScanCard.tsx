@@ -56,7 +56,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
               boxShadow: '0 0 6px #34d399',
             }}
           />
-          <span style={{ fontSize: 13, fontWeight: 700, color: accentColor }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
             {scan.target}
           </span>
           <span
@@ -114,7 +114,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: accentColor,
+                color: '#e2e8f0',
                 marginBottom: 8,
                 letterSpacing: '0.1em',
               }}
@@ -130,7 +130,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: accentColor,
+                  color: '#e2e8f0',
                   marginBottom: 8,
                   letterSpacing: '0.1em',
                 }}
@@ -184,7 +184,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: accentColor,
+                  color: '#e2e8f0',
                   marginBottom: 8,
                   letterSpacing: '0.1em',
                 }}
@@ -215,7 +215,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: accentColor,
+                color: '#e2e8f0',
                 marginBottom: 8,
                 letterSpacing: '0.1em',
               }}

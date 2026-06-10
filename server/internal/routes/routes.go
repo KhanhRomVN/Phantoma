@@ -5,6 +5,7 @@ import (
 
 	"github.com/phantoma/server/internal/config"
 	"github.com/phantoma/server/internal/middleware"
+	alienvaultsvc "github.com/phantoma/server/internal/service/alienvault"
 	gausvc "github.com/phantoma/server/internal/service/gau"
 	dorksvc "github.com/phantoma/server/internal/service/go-dork"
 	metasploitsvc "github.com/phantoma/server/internal/service/metasploit"
@@ -24,6 +25,7 @@ func NewRouter(cfg *config.Config) http.Handler {
 	metasploitSvc := metasploitsvc.NewService(cfg.MetasploitContainer)
 	dorkSvc := dorksvc.NewService(cfg.GoDorkContainer)
 	gauSvc := gausvc.NewService(cfg.GauContainer)
+	alienvaultSvc := alienvaultsvc.NewService()
 
 	// Register all route groups
 	RegisterHealthRoutes(mux)
@@ -32,7 +34,7 @@ func NewRouter(cfg *config.Config) http.Handler {
 	RegisterExploitRoutes(mux, searchsploitSvc, metasploitSvc)
 	RegisterDorkRoutes(mux, dorkSvc)
 	RegisterGauRoutes(mux, gauSvc)
-	RegisterAlienvaultRoutes(mux)
+	RegisterAlienvaultRoutes(mux, alienvaultSvc)
 	RegisterAmassRoutes(mux, cfg.AmassContainer)
 	RegisterAssetfinderRoutes(mux, cfg.AssetfinderContainer)
 	RegisterCertshRoutes(mux)
