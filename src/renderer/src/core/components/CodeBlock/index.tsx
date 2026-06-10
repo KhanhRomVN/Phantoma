@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import intelBlackTheme from '../../theme/themes/IntelBlack.json';
 
 // Define Window interface to include require for AMD loader
 declare global {
@@ -51,21 +52,15 @@ interface CodeBlockProps {
 }
 
 const SYSTEMA_THEME = {
-  base: 'vs-dark',
-  inherit: true,
-  rules: [
-    { token: 'string.key.json', foreground: '#e06c75' }, // Red/Pink for keys
-    { token: 'string.value.json', foreground: '#98c379' }, // Green for string values
-    { token: 'number', foreground: '#d19a66' }, // Orange for numbers
-    { token: 'keyword.json', foreground: '#56b6c2' }, // Cyan for booleans/null
-    { token: 'delimiter', foreground: '#abb2bf' }, // White/Grey for braces
-  ],
-  colors: {
-    'editor.background': '#1e1e1e', // Default dark background
-    'editor.foreground': '#abb2bf',
-    'editor.selectionBackground': '#264f78',
-    'editor.findMatchHighlightBackground': '#ea5c0055',
-  },
+  base: intelBlackTheme.monaco.base,
+  inherit: intelBlackTheme.monaco.inherit,
+  rules: intelBlackTheme.monaco.rules.map(rule => ({
+    token: rule.token,
+    foreground: rule.foreground,
+    background: rule.background,
+    fontStyle: rule.fontStyle,
+  })),
+  colors: intelBlackTheme.monaco.colors,
 };
 
 const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
@@ -141,7 +136,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             editorInstance.current.dispose();
           }
 
-          let themeName = 'phantoma-dark';
+          let themeName = 'intel-black';
 
           // Always define our custom theme
           if (window.monaco) {

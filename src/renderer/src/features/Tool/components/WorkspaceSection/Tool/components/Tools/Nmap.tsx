@@ -2,6 +2,9 @@
 // UI cho công cụ Nmap — hacker style, compact embedded
 
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import nmapDoc from '../../docs/nmap.md?raw';
+import { CodeBlock } from '../../../../../../../core/components/CodeBlock';
 
 interface NmapScanParams {
   target: string;
@@ -56,9 +59,15 @@ const TIMING_LABELS = [
 
 interface NmapToolProps {
   accentColor?: string;
+  activeTab?: 'information' | 'execution' | 'history' | 'logs';
+  onTabChange?: (tab: 'information' | 'execution' | 'history' | 'logs') => void;
 }
 
-const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
+const NmapTool: React.FC<NmapToolProps> = ({
+  accentColor = '#00e5ff',
+  activeTab = 'information',
+  onTabChange,
+}) => {
   const [params, setParams] = useState<NmapScanParams>({
     target: '',
     scanType: 'syn',
@@ -71,7 +80,12 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ScanResult | null>(null);
-  const [activeTab, setActiveTab] = useState<'ports' | 'host' | 'raw'>('ports');
+  const [resultActiveTab, setResultActiveTab] = useState<'ports' | 'host' | 'raw'>('ports');
+  const [history, setHistory] = useState<ScanResult[]>([]);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
+  const historyContainerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<NodeJS.Timeout | null>(null);
 
   const glow = accentColor + '25';
@@ -91,8 +105,14 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
     return parts.join(' ');
   };
 
+  const addLog = (message: string) => {
+    const timestamp = new Date().toISOString().slice(11, 19);
+    setLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 99)]);
+  };
+
   const handleScan = async () => {
     if (!params.target.trim()) return;
+    addLog(`Starting scan on ${params.target} with ${params.scanType} scan`);
     setScanning(true);
     setResults(null);
     setProgress(0);
@@ -152,8 +172,18 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
         ].filter(Boolean),
       };
 
-      setResults(mockResult);
+      setHistory((prev) => [mockResult, ...prev.slice(0, 9)]);
+      addLog(
+        `Scan completed: ${mockResult.ports.filter((p) => p.state === 'open').length} open ports found`,
+      );
       setScanning(false);
+      setExpandedCardIndex(0);
+      if (onTabChange) onTabChange('history');
+      setTimeout(() => {
+        if (historyContainerRef.current) {
+          historyContainerRef.current.scrollTop = 0;
+        }
+      }, 100);
     }, 3500);
   };
 
@@ -169,59 +199,286 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
     return '#374151';
   };
 
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        fontFamily: '"JetBrains Mono", monospace',
-      }}
-    >
-      {/* ── Command Preview ── */}
+  // Information tab content with markdown
+  const renderInformation = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div
         style={{
-          padding: '10px 14px',
-          borderRadius: 4,
+          padding: '12px 16px',
           background: '#0d1117',
-          border: '1px solid #1a2236',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
+          border: `1px solid ${accentColor}30`,
+          borderRadius: 6,
         }}
       >
-        <span style={{ color: '#64748b', fontSize: 12 }}>$</span>
-        <span
-          style={{
-            fontSize: 12,
-            color: '#94a3b8',
-            fontFamily: 'inherit',
-            flex: 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+        <ReactMarkdown
+          components={{
+            h1: ({ children }: { children?: React.ReactNode }) => (
+              <h1
+                style={{
+                  fontSize: 16,
+                  color: accentColor,
+                  marginBottom: 12,
+                  letterSpacing: '0.1em',
+                }}
+              >
+                {children}
+              </h1>
+            ),
+            h2: ({ children }: { children?: React.ReactNode }) => (
+              <h2 style={{ fontSize: 14, color: accentColor, marginTop: 16, marginBottom: 8 }}>
+                {children}
+              </h2>
+            ),
+            h3: ({ children }: { children?: React.ReactNode }) => (
+              <h3 style={{ fontSize: 13, color: accentColor, marginBottom: 8 }}>{children}</h3>
+            ),
+            p: ({ children }: { children?: React.ReactNode }) => (
+              <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, marginBottom: 12 }}>
+                {children}
+              </p>
+            ),
+            ul: ({ children }: { children?: React.ReactNode }) => (
+              <ul style={{ fontSize: 11, color: '#94a3b8', margin: '8px 0', paddingLeft: 20 }}>
+                {children}
+              </ul>
+            ),
+            li: ({ children }: { children?: React.ReactNode }) => (
+              <li style={{ marginBottom: 4 }}>{children}</li>
+            ),
+            code: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
+              const isBlock = className?.includes('language');
+              return isBlock ? (
+                <pre
+                  style={{
+                    fontSize: 11,
+                    color: '#cbd5e1',
+                    background: '#080b10',
+                    padding: 12,
+                    borderRadius: 4,
+                    overflowX: 'auto',
+                    margin: '12px 0',
+                  }}
+                >
+                  <code>{children}</code>
+                </pre>
+              ) : (
+                <code
+                  style={{
+                    fontSize: 11,
+                    color: accentColor,
+                    background: '#080b10',
+                    padding: '2px 4px',
+                    borderRadius: 3,
+                  }}
+                >
+                  {children}
+                </code>
+              );
+            },
+            table: ({ children }: { children?: React.ReactNode }) => (
+              <div style={{ overflowX: 'auto', margin: '12px 0' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                  {children}
+                </table>
+              </div>
+            ),
+            th: ({ children }: { children?: React.ReactNode }) => (
+              <th
+                style={{
+                  textAlign: 'left',
+                  padding: '8px',
+                  color: accentColor,
+                  borderBottom: `1px solid ${accentColor}30`,
+                  backgroundColor: `${accentColor}10`,
+                }}
+              >
+                {children}
+              </th>
+            ),
+            td: ({ children }: { children?: React.ReactNode }) => (
+              <td
+                style={{ padding: '6px 8px', color: '#94a3b8', borderBottom: '1px solid #1a2236' }}
+              >
+                {children}
+              </td>
+            ),
           }}
         >
-          {buildCommand()}
-        </span>
+          {nmapDoc}
+        </ReactMarkdown>
+      </div>
+    </div>
+  );
+
+  // Execution tab content (original scan UI)
+  const renderExecution = () => (
+    <>
+      {/* ── Command Preview with label and copy ── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <label
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#64748b',
+              letterSpacing: '0.12em',
+            }}
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setTooltip({
+                text: 'Lệnh Nmap sẽ được thực thi. Bạn có thể copy để chạy thủ công nếu cần.',
+                x: rect.left,
+                y: rect.bottom + 5,
+              });
+            }}
+            onMouseLeave={() => setTooltip(null)}
+          >
+            COMMAND
+          </label>
+          <div
+            style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setTooltip({
+                text: 'Lệnh Nmap sẽ được thực thi. Bạn có thể copy để chạy thủ công nếu cần.',
+                x: rect.left,
+                y: rect.bottom + 5,
+              });
+            }}
+            onMouseLeave={() => setTooltip(null)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#64748b"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <path d="M12 17h.01" />
+            </svg>
+          </div>
+        </div>
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: 4,
+            background: '#0d1117',
+            border: '1px solid #1a2236',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            position: 'relative',
+          }}
+        >
+          <span style={{ color: '#64748b', fontSize: 12 }}>$</span>
+          <span
+            style={{
+              fontSize: 12,
+              color: '#94a3b8',
+              fontFamily: 'inherit',
+              flex: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {buildCommand()}
+          </span>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(buildCommand());
+              addLog('Command copied to clipboard');
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 4,
+              display: 'flex',
+              alignItems: 'center',
+              color: '#64748b',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = accentColor)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* ── Main Controls ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {/* Target */}
         <div style={{ gridColumn: '1 / -1' }}>
-          <label
-            style={{
-              display: 'block',
-              fontSize: 11,
-              fontWeight: 700,
-              color: '#64748b',
-              letterSpacing: '0.12em',
-              marginBottom: 6,
-            }}
-          >
-            TARGET
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <label
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#64748b',
+                letterSpacing: '0.12em',
+              }}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltip({
+                  text: 'Địa chỉ IP, tên miền hoặc dải mạng cần quét. Ví dụ: 192.168.1.1, example.com, 10.0.0.0/24',
+                  x: rect.left,
+                  y: rect.bottom + 5,
+                });
+              }}
+              onMouseLeave={() => setTooltip(null)}
+            >
+              TARGET
+            </label>
+            <div
+              style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltip({
+                  text: 'Địa chỉ IP, tên miền hoặc dải mạng cần quét. Ví dụ: 192.168.1.1, example.com, 10.0.0.0/24',
+                  x: rect.left,
+                  y: rect.bottom + 5,
+                });
+              }}
+              onMouseLeave={() => setTooltip(null)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#64748b"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <path d="M12 17h.01" />
+              </svg>
+            </div>
+          </div>
           <input
             type="text"
             value={params.target}
@@ -247,18 +504,55 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
 
         {/* Scan Type */}
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: 11,
-              fontWeight: 700,
-              color: '#64748b',
-              letterSpacing: '0.12em',
-              marginBottom: 6,
-            }}
-          >
-            SCAN TYPE
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <label
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#64748b',
+                letterSpacing: '0.12em',
+              }}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltip({
+                  text: 'Phương thức quét cổng: SYN (stealth, cần root), TCP Connect (full handshake), UDP (chậm), Ping Sweep (chỉ phát hiện host)',
+                  x: rect.left,
+                  y: rect.bottom + 5,
+                });
+              }}
+              onMouseLeave={() => setTooltip(null)}
+            >
+              SCAN TYPE
+            </label>
+            <div
+              style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltip({
+                  text: 'Phương thức quét cổng: SYN (stealth, cần root), TCP Connect (full handshake), UDP (chậm), Ping Sweep (chỉ phát hiện host)',
+                  x: rect.left,
+                  y: rect.bottom + 5,
+                });
+              }}
+              onMouseLeave={() => setTooltip(null)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#64748b"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <path d="M12 17h.01" />
+              </svg>
+            </div>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {SCAN_TYPES.map((st) => (
               <button
@@ -309,18 +603,55 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* Ports */}
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#64748b',
-                letterSpacing: '0.12em',
-                marginBottom: 6,
-              }}
-            >
-              PORTS <span style={{ color: '#475569', fontWeight: 400 }}>(optional)</span>
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <label
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#64748b',
+                  letterSpacing: '0.12em',
+                }}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({
+                    text: 'Cổng cần quét. Định dạng: cổng đơn (22,80), dải (1-1000), hoặc danh sách (22,80,443). Để trống để quét các cổng phổ biến.',
+                    x: rect.left,
+                    y: rect.bottom + 5,
+                  });
+                }}
+                onMouseLeave={() => setTooltip(null)}
+              >
+                PORTS <span style={{ color: '#475569', fontWeight: 400 }}>(optional)</span>
+              </label>
+              <div
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({
+                    text: 'Cổng cần quét. Định dạng: cổng đơn (22,80), dải (1-1000), hoặc danh sách (22,80,443). Để trống để quét các cổng phổ biến.',
+                    x: rect.left,
+                    y: rect.bottom + 5,
+                  });
+                }}
+                onMouseLeave={() => setTooltip(null)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#64748b"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <path d="M12 17h.01" />
+                </svg>
+              </div>
+            </div>
             <input
               type="text"
               value={params.ports}
@@ -343,21 +674,58 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
 
           {/* Timing */}
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#64748b',
-                letterSpacing: '0.12em',
-                marginBottom: 6,
-              }}
-            >
-              TIMING —{' '}
-              <span style={{ color: accentColor, fontSize: 11 }}>
-                {TIMING_LABELS[parseInt(params.timing)]}
-              </span>
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <label
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#64748b',
+                  letterSpacing: '0.12em',
+                }}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({
+                    text: 'Tốc độ quét: T0 (chậm nhất, tránh IDS), T3 (bình thường), T5 (nhanh nhất, dễ bị phát hiện). Càng nhanh càng aggressive.',
+                    x: rect.left,
+                    y: rect.bottom + 5,
+                  });
+                }}
+                onMouseLeave={() => setTooltip(null)}
+              >
+                TIMING —{' '}
+                <span style={{ color: accentColor, fontSize: 11 }}>
+                  {TIMING_LABELS[parseInt(params.timing)]}
+                </span>
+              </label>
+              <div
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({
+                    text: 'Tốc độ quét: T0 (chậm nhất, tránh IDS), T3 (bình thường), T5 (nhanh nhất, dễ bị phát hiện). Càng nhanh càng aggressive.',
+                    x: rect.left,
+                    y: rect.bottom + 5,
+                  });
+                }}
+                onMouseLeave={() => setTooltip(null)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#64748b"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <path d="M12 17h.01" />
+                </svg>
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: 4 }}>
               {(['0', '1', '2', '3', '4', '5'] as const).map((t) => (
                 <button
@@ -382,20 +750,57 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
             </div>
           </div>
 
-          {/* Flags */}
+          {/* Flags with Check icon */}
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#64748b',
-                letterSpacing: '0.12em',
-                marginBottom: 6,
-              }}
-            >
-              FLAGS
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <label
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#64748b',
+                  letterSpacing: '0.12em',
+                }}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({
+                    text: 'Cờ bổ sung: -O (phát hiện OS), -sV (phát hiện version), -A (aggressive - bật tất cả). Aggressive sẽ tự động bật OS và version detection.',
+                    x: rect.left,
+                    y: rect.bottom + 5,
+                  });
+                }}
+                onMouseLeave={() => setTooltip(null)}
+              >
+                FLAGS
+              </label>
+              <div
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({
+                    text: 'Cờ bổ sung: -O (phát hiện OS), -sV (phát hiện version), -A (aggressive - bật tất cả). Aggressive sẽ tự động bật OS và version detection.',
+                    x: rect.left,
+                    y: rect.bottom + 5,
+                  });
+                }}
+                onMouseLeave={() => setTooltip(null)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#64748b"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <path d="M12 17h.01" />
+                </svg>
+              </div>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
                 {
@@ -446,7 +851,19 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
                     }}
                   >
                     {(params as any)[opt.key] && !opt.disabled && (
-                      <span style={{ fontSize: 10, color: accentColor, lineHeight: 1 }}>✓</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke={accentColor}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
                     )}
                   </div>
                   <span style={{ fontSize: 11, color: '#64748b' }}>
@@ -515,247 +932,238 @@ const NmapTool: React.FC<NmapToolProps> = ({ accentColor = '#00e5ff' }) => {
           </div>
         </div>
       )}
+    </>
+  );
 
-      {/* ── Results ── */}
-      {results && !scanning && (
-        <div
-          style={{
-            border: `1px solid ${accentColor}30`,
-            borderRadius: 4,
-            overflow: 'hidden',
-          }}
-        >
-          {/* Result header */}
-          <div
-            style={{
-              padding: '10px 16px',
-              background: glow,
-              borderBottom: `1px solid ${accentColor}20`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
+  // History tab content with improved cards
+  const renderHistory = () => (
+    <div
+      ref={historyContainerRef}
+      style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}
+    >
+      {history.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#64748b', fontSize: 12 }}>
+          No scan history yet. Run a scan to see results here.
+        </div>
+      ) : (
+        history.map((scan, idx) => {
+          const isExpanded = expandedCardIndex === idx;
+          const openPorts = scan.ports.filter(p => p.state === 'open');
+          return (
             <div
+              key={idx}
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: '#34d399',
-                boxShadow: '0 0 8px #34d399',
-              }}
-            />
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: accentColor,
-                letterSpacing: '0.1em',
-                flex: 1,
+                background: '#0d1117',
+                border: `1px solid ${expandedCardIndex === idx ? accentColor : '#1a2236'}`,
+                borderRadius: 6,
+                transition: 'all 0.15s',
               }}
             >
-              SCAN COMPLETE — {results.target}
-            </span>
-            <span style={{ fontSize: 11, color: '#64748b' }}>{results.duration}</span>
-            <span style={{ fontSize: 11, color: '#34d399' }}>
-              {results.ports.filter((p) => p.state === 'open').length} OPEN
-            </span>
-          </div>
-
-          {/* Tab bar */}
-          <div
-            style={{
-              display: 'flex',
-              borderBottom: `1px solid #111827`,
-              background: '#0d1117',
-            }}
-          >
-            {(['ports', 'host', 'raw'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+              {/* Card header - click to expand */}
+              <div
                 style={{
-                  padding: '8px 16px',
+                  padding: '12px 16px',
                   cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: `2px solid ${activeTab === tab ? accentColor : 'transparent'}`,
-                  color: activeTab === tab ? accentColor : '#64748b',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  transition: 'all 0.15s',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                  flexWrap: 'wrap',
                 }}
+                onClick={() => setExpandedCardIndex(isExpanded ? null : idx)}
               >
-                {tab.toUpperCase()}
-              </button>
-            ))}
-          </div>
+                {/* Left side: target and scan type */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 2 }}>
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: '#34d399',
+                      boxShadow: '0 0 6px #34d399',
+                    }}
+                  />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: accentColor }}>
+                    {scan.target}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#64748b', background: '#1a2236', padding: '2px 8px', borderRadius: 4 }}>
+                    {scan.scanType}
+                  </span>
+                </div>
 
-          {/* Tab content */}
-          <div
-            style={{
-              background: '#080b10',
-              padding: '10px 14px',
-              maxHeight: 260,
-              overflowY: 'auto',
-            }}
-          >
-            {/* PORTS tab */}
-            {activeTab === 'ports' && (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                <thead>
-                  <tr>
-                    {['PORT', 'PROTO', 'STATE', 'SERVICE', 'VERSION'].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          textAlign: 'left',
-                          padding: '5px 10px',
-                          color: '#475569',
-                          fontWeight: 700,
-                          fontSize: 10,
-                          letterSpacing: '0.1em',
-                          borderBottom: '1px solid #111827',
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.ports.map((p, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #0d1117' }}>
-                      <td style={{ padding: '6px 10px', color: accentColor, fontWeight: 700, fontSize: 11 }}>
-                        {p.port}
-                      </td>
-                      <td style={{ padding: '6px 10px', color: '#64748b', fontSize: 11 }}>{p.protocol}</td>
-                      <td style={{ padding: '6px 10px' }}>
-                        <span
-                          style={{
-                            color: stateColor(p.state),
-                            fontWeight: 700,
-                            fontSize: 10,
-                            padding: '2px 6px',
-                            borderRadius: 3,
-                            background: stateColor(p.state) + '15',
-                          }}
-                        >
-                          {p.state.toUpperCase()}
-                        </span>
-                      </td>
-                      <td style={{ padding: '6px 10px', color: '#94a3b8', fontSize: 11 }}>{p.service}</td>
-                      <td style={{ padding: '6px 10px', color: '#64748b', fontSize: 10 }}>
-                        {p.version || '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {/* HOST tab */}
-            {activeTab === 'host' && results.host && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {Object.entries(results.host)
-                  .filter(([, v]) => v)
-                  .map(([k, v]) => (
-                    <div key={k} style={{ display: 'flex', gap: 12 }}>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: '#64748b',
-                          width: 80,
-                          flexShrink: 0,
-                          letterSpacing: '0.08em',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {k}
-                      </span>
-                      <span style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'inherit' }}>
-                        {v}
-                      </span>
-                    </div>
-                  ))}
-                {results.scripts && (
-                  <>
-                    <div style={{ height: 1, background: '#111827', margin: '6px 0' }} />
-                    <span style={{ fontSize: 11, color: '#64748b', letterSpacing: '0.1em' }}>
-                      NSE SCRIPTS
-                    </span>
-                    {results.scripts.map((s, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: accentColor + '99',
-                            width: 80,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {s.name}
-                        </span>
-                        <span style={{ fontSize: 11, color: '#94a3b8' }}>{s.output}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* RAW tab */}
-            {activeTab === 'raw' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {results.rawOutput.map((line, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10 }}>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        color: '#475569',
-                        width: 24,
-                        flexShrink: 0,
-                        textAlign: 'right',
-                      }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontFamily: 'inherit',
-                        color: line.startsWith('PORT')
-                          ? accentColor
-                          : line.includes('open')
-                            ? '#34d399'
-                            : line.includes('closed')
-                              ? '#64748b'
-                              : line.includes('filtered')
-                                ? '#fbbf24'
-                                : line.startsWith('Starting') || line.startsWith('Nmap done')
-                                  ? '#94a3b8'
-                                  : '#cbd5e1',
-                      }}
-                    >
-                      {line}
-                    </span>
+                {/* Right side: stats grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, auto)', gap: 20, alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Duration</span>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{scan.duration}</span>
                   </div>
-                ))}
+                  <div>
+                    <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Open Ports</span>
+                    <span style={{ fontSize: 11, color: '#34d399' }}>{openPorts.length}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Total Ports</span>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{scan.ports.length}</span>
+                  </div>
+                  {scan.host?.os && (
+                    <div>
+                      <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>OS</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{scan.host.os.substring(0, 20)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Expand icon */}
+                <div style={{ fontSize: 16, color: accentColor }}>
+                  {isExpanded ? '▲' : '▼'}
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* Expanded content - detailed results */}
+              {isExpanded && (
+                <div style={{ borderTop: `1px solid ${accentColor}30`, padding: '12px 16px', background: '#080b10' }}>
+                  {/* Ports table */}
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: accentColor, marginBottom: 8, letterSpacing: '0.1em' }}>
+                      OPEN PORTS
+                    </div>
+                    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                        <thead>
+                          <tr>
+                            {['PORT', 'PROTO', 'STATE', 'SERVICE', 'VERSION'].map(h => (
+                              <th key={h} style={{ textAlign: 'left', padding: '6px 8px', color: '#475569', borderBottom: '1px solid #1a2236' }}>
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {scan.ports.map((p, i) => (
+                            <tr key={i}>
+                              <td style={{ padding: '6px 8px', color: accentColor, fontWeight: 700 }}>{p.port}</td>
+                              <td style={{ padding: '6px 8px', color: '#64748b' }}>{p.protocol}</td>
+                              <td style={{ padding: '6px 8px' }}>
+                                <span style={{ color: stateColor(p.state), fontWeight: 700 }}>{p.state.toUpperCase()}</span>
+                              </td>
+                              <td style={{ padding: '6px 8px', color: '#94a3b8' }}>{p.service}</td>
+                              <td style={{ padding: '6px 8px', color: '#64748b' }}>{p.version || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Host info if available */}
+                  {scan.host && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: accentColor, marginBottom: 8, letterSpacing: '0.1em' }}>
+                        HOST INFORMATION
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+                        {scan.host.ip && <div><span style={{ color: '#64748b' }}>IP:</span> <span style={{ color: '#94a3b8' }}>{scan.host.ip}</span></div>}
+                        {scan.host.hostname && <div><span style={{ color: '#64748b' }}>Hostname:</span> <span style={{ color: '#94a3b8' }}>{scan.host.hostname}</span></div>}
+                        {scan.host.os && <div><span style={{ color: '#64748b' }}>OS:</span> <span style={{ color: '#94a3b8' }}>{scan.host.os}</span></div>}
+                        {scan.host.uptime && <div><span style={{ color: '#64748b' }}>Uptime:</span> <span style={{ color: '#94a3b8' }}>{scan.host.uptime}</span></div>}
+                        {scan.host.mac && <div><span style={{ color: '#64748b' }}>MAC:</span> <span style={{ color: '#94a3b8' }}>{scan.host.mac}</span></div>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Scripts preview */}
+                  {scan.scripts && scan.scripts.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: accentColor, marginBottom: 8, letterSpacing: '0.1em' }}>
+                        NSE SCRIPTS ({scan.scripts.length})
+                      </div>
+                      <div style={{ maxHeight: 150, overflowY: 'auto', fontSize: 10, color: '#64748b', fontFamily: 'monospace' }}>
+                        {scan.scripts.map((s, i) => (
+                          <div key={i} style={{ marginBottom: 4 }}><span style={{ color: accentColor }}>{s.name}:</span> {s.output.substring(0, 100)}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Raw output preview */}
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: accentColor, marginBottom: 8, letterSpacing: '0.1em' }}>
+                      RAW OUTPUT (first 10 lines)
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748b', fontFamily: 'monospace', background: '#0d1117', padding: 8, borderRadius: 4, maxHeight: 150, overflowY: 'auto' }}>
+                      {scan.rawOutput.slice(0, 10).map((line, i) => (
+                        <div key={i}>{line}</div>
+                      ))}
+                      {scan.rawOutput.length > 10 && <div>... and {scan.rawOutput.length - 10} more lines</div>}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+
+  // Logs tab content with CodeBlock
+  const renderLogs = () => {
+    const logText =
+      logs.length === 0 ? 'No logs yet. Run a scan to see output here.' : logs.join('\n');
+    return (
+      <div style={{ height: 400, display: 'flex', flexDirection: 'column' }}>
+        <CodeBlock
+          code={logText}
+          language="text"
+          showLineNumbers={true}
+          wordWrap="on"
+          editorOptions={{ readOnly: true, fontSize: 11 }}
+        />
+      </div>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        fontFamily: '"JetBrains Mono", monospace',
+        position: 'relative',
+      }}
+    >
+      {activeTab === 'information' && renderInformation()}
+      {activeTab === 'execution' && renderExecution()}
+      {activeTab === 'history' && renderHistory()}
+      {activeTab === 'logs' && renderLogs()}
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div
+          style={{
+            position: 'fixed',
+            top: tooltip.y,
+            left: tooltip.x,
+            background: '#1a2236',
+            color: '#cbd5e1',
+            fontSize: 11,
+            padding: '6px 12px',
+            borderRadius: 4,
+            border: `1px solid ${accentColor}50`,
+            boxShadow: `0 4px 12px rgba(0,0,0,0.4)`,
+            zIndex: 1000,
+            maxWidth: 280,
+            pointerEvents: 'none',
+            whiteSpace: 'normal',
+            fontFamily: 'inherit',
+          }}
+        >
+          {tooltip.text}
         </div>
       )}
     </div>
   );
-};
-
-const stateColor = (state: PortResult['state']) => {
-  if (state === 'open') return '#34d399';
-  if (state === 'filtered') return '#fbbf24';
-  return '#374151';
 };
 
 export default NmapTool;

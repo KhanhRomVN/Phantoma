@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Search, Wifi, Globe, Bug, Eye, Shield, Server } from 'lucide-react';
 import { TOOLS_LIST } from './data/toolsList';
-import { CATEGORY_META, SPEED_META, STATUS_META } from './constants';
+import { CATEGORY_META } from './constants';
 import { ToolIcon } from './utils/iconHelpers';
 import { useToolManager } from './hooks/useToolManager';
 
@@ -24,6 +24,10 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
     setActiveCategory,
     setSearchQuery,
   } = useToolManager(activeToolId, onToolChange);
+
+  const [toolActiveTab, setToolActiveTab] = useState<
+    'information' | 'execution' | 'history' | 'logs'
+  >('information');
 
   // Scanline CSS baked inline để không cần external styles
   const scanlineStyle: React.CSSProperties = {
@@ -142,7 +146,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               cat === 'All'
                 ? TOOLS_LIST.length
                 : TOOLS_LIST.filter((t) => t.category === cat).length;
-            
+
             // Map category to icon
             let CategoryIcon = null;
             if (cat === 'All') {
@@ -158,7 +162,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
             } else if (cat === 'Vuln') {
               CategoryIcon = Shield;
             }
-            
+
             return (
               <button
                 key={cat}
@@ -279,21 +283,6 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                     >
                       {tool.name}
                     </span>
-                    {tool.status !== 'stable' && (
-                      <span
-                        style={{
-                          fontSize: 8,
-                          padding: '1px 4px',
-                          background: STATUS_META[tool.status].color + '20',
-                          color: STATUS_META[tool.status].color,
-                          borderRadius: 2,
-                          fontWeight: 700,
-                          letterSpacing: '0.08em',
-                        }}
-                      >
-                        {STATUS_META[tool.status].label}
-                      </span>
-                    )}
                   </div>
                   <div>
                     <span
@@ -338,7 +327,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                 flexShrink: 0,
               }}
             >
-              {/* Big icon */}
+              {/* Big icon - centered vertically */}
               <div
                 style={{
                   width: 48,
@@ -352,7 +341,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                   fontSize: 22,
                   color: catMeta.color,
                   flexShrink: 0,
-                  boxShadow: `0 0 20px ${catMeta.glow}`,
+                  alignSelf: 'center',
                 }}
               >
                 <ToolIcon tool={currentTool} color={catMeta.color} />
@@ -368,52 +357,25 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       color: catMeta.color,
                       letterSpacing: '0.1em',
                       fontFamily: 'inherit',
-                      textShadow: `0 0 20px ${catMeta.glow}`,
                     }}
                   >
                     {currentTool.name.toUpperCase()}
                   </h2>
                   <span
                     style={{
-                      padding: '2px 8px',
-                      borderRadius: 3,
-                      background: catMeta.bg,
-                      border: `1px solid ${catMeta.color}50`,
+                      padding: '4px 12px',
+                      borderRadius: 4,
+                      background: `linear-gradient(135deg, ${catMeta.color}20, ${catMeta.color}05)`,
+                      border: `1px solid ${catMeta.color}80`,
                       color: catMeta.color,
-                      fontSize: 9,
-                      fontWeight: 700,
+                      fontSize: 10,
+                      fontWeight: 800,
                       letterSpacing: '0.12em',
+                      textShadow: `0 0 8px ${catMeta.color}80`,
+                      boxShadow: `0 0 12px ${catMeta.color}40`,
                     }}
                   >
                     {currentTool.category.toUpperCase()}
-                  </span>
-                  <span
-                    style={{
-                      padding: '2px 8px',
-                      borderRadius: 3,
-                      background: SPEED_META[currentTool.speed].color + '15',
-                      border: `1px solid ${SPEED_META[currentTool.speed].color}40`,
-                      color: SPEED_META[currentTool.speed].color,
-                      fontSize: 9,
-                      fontWeight: 700,
-                      letterSpacing: '0.12em',
-                    }}
-                  >
-                    {SPEED_META[currentTool.speed].label}
-                  </span>
-                  <span
-                    style={{
-                      padding: '2px 8px',
-                      borderRadius: 3,
-                      background: STATUS_META[currentTool.status].color + '15',
-                      border: `1px solid ${STATUS_META[currentTool.status].color}40`,
-                      color: STATUS_META[currentTool.status].color,
-                      fontSize: 9,
-                      fontWeight: 700,
-                      letterSpacing: '0.12em',
-                    }}
-                  >
-                    {STATUS_META[currentTool.status].label}
                   </span>
                 </div>
 
@@ -446,26 +408,48 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       #{tag}
                     </span>
                   ))}
-                  {currentTool.testCommand && (
-                    <span
-                      style={{
-                        marginLeft: 4,
-                        padding: '2px 8px',
-                        borderRadius: 3,
-                        background: '#0d1117',
-                        border: '1px solid #1a2236',
-                        color: '#334155',
-                        fontSize: 9,
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      $ {currentTool.testCommand}
-                    </span>
-                  )}
                 </div>
               </div>
 
               {/* Endpoint badge removed */}
+            </div>
+
+            {/* Tab Bar */}
+            <div
+              style={{
+                display: 'flex',
+                borderBottom: `1px solid ${catMeta.color}30`,
+                background: '#0d1117',
+                padding: '0 20px',
+                gap: 4,
+              }}
+            >
+              {[
+                { id: 'information', label: 'INFORMATION' },
+                { id: 'execution', label: 'EXECUTION' },
+                { id: 'history', label: 'HISTORY' },
+                { id: 'logs', label: 'LOGS' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setToolActiveTab(tab.id as typeof toolActiveTab)}
+                  style={{
+                    padding: '10px 16px',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: `2px solid ${toolActiveTab === tab.id ? catMeta.color : 'transparent'}`,
+                    color: toolActiveTab === tab.id ? catMeta.color : '#64748b',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: '0.12em',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
             {/* Tool Content */}
@@ -478,7 +462,11 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               }}
             >
               {ToolComponent ? (
-                <ToolComponent accentColor={catMeta.color} />
+                <ToolComponent
+                  accentColor={catMeta.color}
+                  activeTab={toolActiveTab}
+                  onTabChange={setToolActiveTab}
+                />
               ) : (
                 <div
                   style={{
