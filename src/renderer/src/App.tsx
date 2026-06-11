@@ -1,5 +1,5 @@
 import { RouterProvider, createHashRouter } from 'react-router-dom';
-import { routes } from './core/routes/routes';
+import { routes } from './routes/routes';
 
 function App() {
   const router = createHashRouter(routes);

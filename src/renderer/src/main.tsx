@@ -4,7 +4,7 @@ import App from './App';
 import './styles/main.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import { ThemeProvider } from './core/theme/ThemeProvider';
+import { ThemeProvider } from './theme/ThemeProvider';
 import { I18nProvider } from './i18n/i18nContext';
 
 const queryClient = new QueryClient();
