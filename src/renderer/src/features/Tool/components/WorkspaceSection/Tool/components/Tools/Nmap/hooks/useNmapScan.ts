@@ -20,7 +20,9 @@ export const useNmapScan = (
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ScanResult | null>(null);
+  const [logOutput, setLogOutput] = useState('');
   const progressRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleScan = async (
     setHistory: React.Dispatch<React.SetStateAction<ScanResult[]>>,
@@ -30,6 +32,7 @@ export const useNmapScan = (
     setScanning(true);
     setResults(null);
     setProgress(0);
+    setLogOutput('');
 
     let p = 0;
     progressRef.current = setInterval(() => {
@@ -41,48 +44,70 @@ export const useNmapScan = (
     const startTime = Date.now();
     const flags = buildFlags(params);
 
-    try {
-      const url = getFullUrl('/api/v1/nmap/scan');
-      console.log('[Nmap] Fetching URL:', url);
-      console.log('[Nmap] Request body:', { target: params.target, flags });
+    // Build SSE URL
+    const flagsQuery = flags.join(',');
+    const streamUrl = getFullUrl(
+      `/api/v1/nmap/scan/stream?target=${encodeURIComponent(params.target)}&flags=${encodeURIComponent(flagsQuery)}`
+    );
 
-      const response = await fetch(url, {
-        method: 'POST',
+    console.log('[Nmap SSE] Connecting to:', streamUrl);
+
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const response = await fetch(streamUrl, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
         },
-        body: JSON.stringify({
-          target: params.target,
-          flags: flags,
-        }),
+        signal: abortControllerRef.current.signal,
       });
 
-      console.log('[Nmap] Response status:', response.status, response.statusText);
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body for streaming');
+      }
+
+      // Read SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let rawOutputLines: string[] = [];
+      let done = false;
+
+      while (!done) {
+        const { value, done: streamDone } = await reader.read();
+        if (streamDone) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE events from buffer
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            rawOutputLines.push(data);
+            setLogOutput(prev => prev + data + '\n');
+          } else if (line.startsWith('event: done')) {
+            done = true;
+            break;
+          } else if (line.startsWith('event: error')) {
+            // Error event — the next data line will have the error message
+            // We'll handle it when we parse the data
+          }
+        }
+      }
 
       if (progressRef.current) clearInterval(progressRef.current);
       setProgress(100);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[Nmap] Response not OK:', response.status, errorText);
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
-      }
-
-      const rawText = await response.text();
-      console.log('[Nmap] Raw response text length:', rawText.length);
-
-      const parsedResponse = JSON.parse(rawText);
-      const responseData = parsedResponse.data || parsedResponse;
       const duration = ((Date.now() - startTime) / 1000).toFixed(2) + 's';
-
-      let rawOutputLines: string[] = [`Nmap scan completed for ${params.target}`];
-      if (responseData.rawOutput) {
-        if (typeof responseData.rawOutput === 'string') {
-          rawOutputLines = responseData.rawOutput.split('\n');
-        } else if (Array.isArray(responseData.rawOutput)) {
-          rawOutputLines = responseData.rawOutput;
-        }
-      }
 
       const scanResult: ScanResult = {
         status: 'completed',
@@ -90,13 +115,7 @@ export const useNmapScan = (
         scanType: SCAN_TYPES.find((s) => s.value === params.scanType)?.label || '',
         duration: duration,
         timestamp: Date.now(),
-        ports: (responseData.ports || []).map((p: any) => ({
-          port: p.port,
-          protocol: p.proto || 'tcp',
-          service: p.service || '',
-          state: p.state === 'open' ? 'open' : p.state === 'filtered' ? 'filtered' : 'closed',
-          version: p.product || undefined,
-        })),
+        ports: [],
         rawOutput: rawOutputLines,
         host: {
           ip: params.target,
@@ -113,8 +132,15 @@ export const useNmapScan = (
       setScanning(false);
       setExpandedCardIndex(0);
       if (onTabChange) onTabChange('history');
-    } catch (error) {
-      console.error('Nmap scan failed:', error);
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        console.log('[Nmap SSE] Scan aborted');
+        setLogOutput(prev => prev + '\n[Scan aborted by user]\n');
+      } else {
+        console.error('Nmap scan failed:', error);
+        setLogOutput(prev => prev + `\n[Error: ${error?.message || 'Unknown error'}]\n`);
+      }
+
       if (progressRef.current) clearInterval(progressRef.current);
       setProgress(100);
 
@@ -140,6 +166,9 @@ export const useNmapScan = (
   useEffect(() => {
     return () => {
       if (progressRef.current) clearInterval(progressRef.current);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, []);
 
@@ -149,6 +178,7 @@ export const useNmapScan = (
     scanning,
     progress,
     results,
+    logOutput,
     handleScan,
   };
 };

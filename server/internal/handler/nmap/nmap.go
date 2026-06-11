@@ -2,6 +2,7 @@ package nmap
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,11 +16,11 @@ var log = logger.WithContext("NmapHandler")
 
 // Handler handles HTTP requests for nmap scanning.
 type Handler struct {
-	scanner domain.Scanner
+	svc *nmapsvc.Service
 }
 
-func NewHandler(scanner domain.Scanner) *Handler {
-	return &Handler{scanner: scanner}
+func NewHandler(svc *nmapsvc.Service) *Handler {
+	return &Handler{svc: svc}
 }
 
 func (h *Handler) Scan(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +61,7 @@ func (h *Handler) Scan(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := h.scanner.Scan(r.Context(), req)
+	result, err := h.svc.Scan(r.Context(), req)
 	if err != nil {
 		log.Error("Scan — failed", logger.F("target", req.Target), logger.F("error", err))
 		response.Error(w, http.StatusInternalServerError, err.Error())
@@ -100,4 +101,78 @@ func (h *Handler) Scan(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Scan — complete", logger.F("target", req.Target), logger.F("success", result.Success))
 	response.JSON(w, http.StatusOK, result)
+}
+
+// ScanStream streams nmap scan output via Server-Sent Events (SSE).
+// GET /api/v1/nmap/scan/stream?target=...&flags=-sV,-sC
+func (h *Handler) ScanStream(w http.ResponseWriter, r *http.Request) {
+	target := r.URL.Query().Get("target")
+	if target == "" {
+		response.Error(w, http.StatusBadRequest, "target is required")
+		return
+	}
+
+	flagsStr := r.URL.Query().Get("flags")
+	var flags []string
+	if flagsStr != "" {
+		flags = strings.Split(flagsStr, ",")
+	}
+
+	// Build scan request
+	req := domain.ScanRequest{
+		Target: target,
+		Flags:  flags,
+	}
+
+	log.Info("ScanStream — starting", logger.F("target", req.Target), logger.F("flags", req.Flags))
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		response.Error(w, http.StatusInternalServerError, "streaming not supported")
+		return
+	}
+
+	// Start the scan stream
+	lineCh, errCh := h.svc.ScanStream(r.Context(), req)
+
+	// Send initial event
+	fmt.Fprintf(w, "event: start\ndata: scan started for %s\n\n", target)
+	flusher.Flush()
+
+	// Stream lines
+	for {
+		select {
+		case line, ok := <-lineCh:
+			if !ok {
+				// Channel closed — scan complete
+				fmt.Fprintf(w, "event: done\ndata: scan complete\n\n")
+				flusher.Flush()
+				log.Info("ScanStream — complete", logger.F("target", target))
+				return
+			}
+			// Escape any newlines in the line, write SSE data
+			safeLine := strings.ReplaceAll(line, "\n", "")
+			safeLine = strings.ReplaceAll(safeLine, "\r", "")
+			fmt.Fprintf(w, "data: %s\n\n", safeLine)
+			flusher.Flush()
+
+		case err := <-errCh:
+			if err != nil {
+				log.Error("ScanStream — error", logger.F("target", target), logger.F("error", err))
+				fmt.Fprintf(w, "event: error\ndata: %s\n\n", err.Error())
+				flusher.Flush()
+			}
+			return
+
+		case <-r.Context().Done():
+			log.Info("ScanStream — client disconnected", logger.F("target", target))
+			return
+		}
+	}
 }

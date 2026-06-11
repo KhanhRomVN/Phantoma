@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { AlienvaultScanParams, TooltipState } from '../types';
 import { INDICATOR_TYPES } from '../constants';
+import { CodeBlock } from '../../../../../../../../../core/components/CodeBlock';
 
 interface ExecutionTabProps {
   params: AlienvaultScanParams;
   setParams: React.Dispatch<React.SetStateAction<AlienvaultScanParams>>;
   scanning: boolean;
   progress: number;
+  logOutput: string;
   onScan: () => void;
   accentColor: string;
   glow: string;
@@ -19,6 +21,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
   setParams,
   scanning,
   progress,
+  logOutput,
   onScan,
   accentColor,
   glow,
@@ -38,10 +41,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
     width: '100%',
     boxSizing: 'border-box',
     padding: '10px 13px',
-    background: '#0d1117',
-    border: '1px solid #1a2236',
+    background: 'var(--input-background)',
+    border: '1px solid var(--input-border-default)',
     borderRadius: 4,
-    color: '#cbd5e1',
+    color: 'var(--text-primary)',
     fontSize: 12,
     outline: 'none',
     fontFamily: 'inherit',
@@ -56,11 +59,11 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
       <div
         style={{
           padding: '10px 12px',
-          background: '#00e5ff10',
-          border: '1px solid #00e5ff30',
+          background: `${accentColor}10`,
+          border: `1px solid ${accentColor}30`,
           borderRadius: 4,
           fontSize: 11,
-          color: '#94a3b8',
+          color: 'var(--text-secondary)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -71,7 +74,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           href="https://otx.alienvault.com/"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: '#00e5ff' }}
+          style={{ color: accentColor }}
         >
           otx.alienvault.com
         </a>
@@ -84,7 +87,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             display: 'block',
             fontSize: 11,
             fontWeight: 700,
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             letterSpacing: '0.12em',
             marginBottom: 6,
             cursor: 'default',
@@ -115,8 +118,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   flex: 1,
                   padding: '10px 0',
                   borderRadius: 4,
-                  border: `1px solid ${active ? '#00e5ff60' : '#1a2236'}`,
-                  background: active ? '#00e5ff20' : '#0d1117',
+                  border: `1px solid ${active ? `${accentColor}60` : 'var(--input-border-default)'}`,
+                  background: active ? `${accentColor}20` : 'var(--input-background)',
                   cursor: 'pointer',
                   fontFamily: 'monospace',
                   transition: 'all 0.12s',
@@ -126,7 +129,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   gap: 4,
                 }}
               >
-                <span style={{ fontSize: 11, fontWeight: 700, color: active ? '#00e5ff' : '#9ca3af' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: active ? accentColor : 'var(--text-secondary)' }}>
                   {type.label}
                 </span>
               </button>
@@ -142,7 +145,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             display: 'block',
             fontSize: 11,
             fontWeight: 700,
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             letterSpacing: '0.12em',
             marginBottom: 6,
             cursor: 'default',
@@ -171,8 +174,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           placeholder={currentType?.placeholder}
           style={{
             ...inputBase,
-            border: `1px solid ${params.indicator ? '#00e5ff50' : '#1a2236'}`,
-            boxShadow: params.indicator ? '0 0 10px #00e5ff20' : 'none',
+            border: `1px solid ${params.indicator ? `${accentColor}50` : 'var(--input-border-default)'}`,
+            boxShadow: params.indicator ? `0 0 10px ${accentColor}20` : 'none',
             fontSize: 13,
             padding: '11px 14px',
           }}
@@ -185,8 +188,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               left: 0,
               right: 0,
               marginTop: 3,
-              background: '#0d1117',
-              border: '1px solid #00e5ff30',
+              background: 'var(--dropdown-background)',
+              border: `1px solid ${accentColor}30`,
               borderRadius: 4,
               zIndex: 10,
               maxHeight: 180,
@@ -204,11 +207,11 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   padding: '8px 12px',
                   cursor: 'pointer',
                   fontSize: 12,
-                  color: '#94a3b8',
-                  borderBottom: i < indicatorHistory.length - 1 ? '1px solid #1a2236' : 'none',
+                  color: 'var(--text-primary)',
+                  borderBottom: i < indicatorHistory.length - 1 ? '1px solid var(--border)' : 'none',
                   transition: 'background 0.12s',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#111827')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--dropdown-item-hover)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 {t}
@@ -225,7 +228,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             display: 'block',
             fontSize: 11,
             fontWeight: 700,
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             letterSpacing: '0.12em',
             marginBottom: 6,
             cursor: 'default',
@@ -248,7 +251,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               marginLeft: 8,
               background: 'transparent',
               border: 'none',
-              color: '#00e5ff',
+              color: accentColor,
               cursor: 'pointer',
               fontSize: 10,
               fontFamily: 'inherit',
@@ -265,7 +268,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           placeholder="Enter your OTX API key..."
           style={{
             ...inputBase,
-            border: `1px solid ${params.apiKey ? '#00e5ff50' : '#1a2236'}`,
+            border: `1px solid ${params.apiKey ? `${accentColor}50` : 'var(--input-border-default)'}`,
             fontFamily: 'monospace',
           }}
         />
@@ -274,14 +277,14 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             style={{
               marginTop: 8,
               padding: '8px 12px',
-              background: '#1a2236',
+              background: 'var(--border)',
               borderRadius: 4,
               fontSize: 10,
-              color: '#94a3b8',
+              color: 'var(--text-secondary)',
             }}
           >
             🔐 Your API key is stored locally and never shared. Get yours at{' '}
-            <a href="https://otx.alienvault.com/" target="_blank" rel="noopener noreferrer" style={{ color: '#00e5ff' }}>
+            <a href="https://otx.alienvault.com/" target="_blank" rel="noopener noreferrer" style={{ color: accentColor }}>
               otx.alienvault.com
             </a>{' '}
             → Profile → API Key
@@ -298,16 +301,16 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           padding: '12px',
 background:
             scanning || !params.indicator.trim() || !params.apiKey.trim()
-              ? '#0d1117'
-              : 'linear-gradient(135deg, #00e5ff18, #00e5ff08)',
-          border: `1px solid ${scanning || !params.indicator.trim() || !params.apiKey.trim() ? '#1a2236' : '#00e5ff70'}`,
-          color: scanning || !params.indicator.trim() || !params.apiKey.trim() ? '#334155' : '#00e5ff',
+              ? 'var(--input-background)'
+              : `linear-gradient(135deg, ${accentColor}18, ${accentColor}08)`,
+          border: `1px solid ${scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'var(--input-border-default)' : `${accentColor}70`}`,
+          color: scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'var(--text-secondary)' : accentColor,
           fontSize: 12,
           fontWeight: 700,
           letterSpacing: '0.15em',
           cursor: scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'not-allowed' : 'pointer',
           fontFamily: 'inherit',
-          boxShadow: scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'none' : '0 0 18px #00e5ff20',
+          boxShadow: scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'none' : `0 0 18px ${accentColor}20`,
           transition: 'all 0.2s',
           marginTop: 3,
         }}
@@ -322,26 +325,60 @@ background:
             <span
               style={{
                 fontSize: 10,
-                color: '#4a5a7a',
+                color: 'var(--text-secondary)',
                 letterSpacing: '0.1em',
                 fontFamily: 'monospace',
               }}
             >
               {params.indicator}
             </span>
-            <span style={{ fontSize: 10, color: '#00e5ff', fontFamily: 'monospace' }}>
+            <span style={{ fontSize: 10, color: accentColor, fontFamily: 'monospace' }}>
               {progress}%
             </span>
           </div>
-          <div style={{ height: 1, background: '#131c2e', borderRadius: 1, overflow: 'hidden' }}>
+          <div style={{ height: 1, background: 'var(--divider)', borderRadius: 1, overflow: 'hidden' }}>
             <div
               style={{
                 height: '100%',
                 width: `${progress}%`,
-                background: 'linear-gradient(90deg, #00e5ff60, #00e5ff)',
-                boxShadow: '0 0 6px #00e5ff',
+                background: `linear-gradient(90deg, ${accentColor}60, ${accentColor})`,
+                boxShadow: `0 0 6px ${accentColor}`,
                 transition: 'width 0.3s ease',
               }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Lookup Log Output ────────────────────────────────────────── */}
+      {(scanning || logOutput) && (
+        <div>
+          <label
+            style={{
+              display: 'block',
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'var(--text-secondary)',
+              letterSpacing: '0.12em',
+              marginBottom: 6,
+            }}
+          >
+            LOOKUP LOG OUTPUT
+          </label>
+          <div
+            style={{
+              borderRadius: 5,
+              border: `1px solid ${accentColor}30`,
+              overflow: 'hidden',
+              minHeight: 250,
+            }}
+          >
+            <CodeBlock
+              code={logOutput || 'Waiting for lookup to start...'}
+              language="plaintext"
+              showLineNumbers={true}
+              editorOptions={{ readOnly: true }}
+              className="h-[300px]"
             />
           </div>
         </div>

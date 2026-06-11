@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useServerConfig } from '../../../../../../context/ServerConfigContext';
 import { useNmapScan } from './hooks/useNmapScan';
 import { useHistory } from './hooks/useHistory';
-import InformationTab from './tabs/InformationTab';
+import MarkdownBlock from '../../common/MarkdownBlock';
 import ExecutionTab from './tabs/ExecutionTab';
 import HistoryTab from './tabs/HistoryTab';
 import Tooltip from './components/Tooltip';
 import { TooltipState, ContextMenuState } from './types';
+import { NMAP_DOC } from './constants';
 
 interface NmapToolProps {
   accentColor?: string;
@@ -28,6 +29,7 @@ const NmapTool: React.FC<NmapToolProps> = ({
     setParams,
     scanning,
     progress,
+    logOutput,
     handleScan: scanHandler,
   } = useNmapScan(getFullUrl, onTabChange);
 
@@ -72,7 +74,7 @@ const NmapTool: React.FC<NmapToolProps> = ({
         position: 'relative',
       }}
     >
-      {activeTab === 'information' && <InformationTab accentColor={accentColor} />}
+      {activeTab === 'information' && <MarkdownBlock content={NMAP_DOC} accentColor={accentColor} />}
 
       {activeTab === 'execution' && (
         <ExecutionTab
@@ -80,6 +82,7 @@ const NmapTool: React.FC<NmapToolProps> = ({
           setParams={setParams}
           scanning={scanning}
           progress={progress}
+          logOutput={logOutput}
           onScan={handleScan}
           accentColor={accentColor}
           glow={glow}

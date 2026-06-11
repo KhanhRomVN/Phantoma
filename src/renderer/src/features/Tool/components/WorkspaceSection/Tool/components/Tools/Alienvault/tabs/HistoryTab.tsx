@@ -103,10 +103,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               alignItems: 'center',
               gap: 8,
               padding: '6px 12px',
-              background: '#0d1117',
-              border: '1px solid #00e5ff30',
+              background: 'var(--card-background)',
+              border: `1px solid ${accentColor}30`,
               borderRadius: 4,
-              color: '#00e5ff',
+              color: accentColor,
               fontSize: 11,
               fontWeight: 700,
               cursor: 'pointer',
@@ -122,8 +122,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         <div
           style={{
             padding: '16px',
-            background: '#0d1117',
-            border: '1px solid #00e5ff30',
+            background: 'var(--card-background)',
+            border: `1px solid ${accentColor}30`,
             borderRadius: 6,
           }}
         >
@@ -136,8 +136,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             }}
           >
             <div>
-              <h3 style={{ margin: 0, fontSize: 16, color: '#e2e8f0' }}>{scan.indicator}</h3>
-              <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
+              <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text-primary)' }}>{scan.indicator}</h3>
+              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>
                 {scan.indicatorType.toUpperCase()} • {scan.duration}
               </p>
             </div>
@@ -146,8 +146,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                 style={{
                   padding: '4px 12px',
                   borderRadius: 4,
-                  background: '#1a2236',
-                  color: '#64748b',
+                  background: 'var(--border)',
+                  color: 'var(--text-secondary)',
                   fontSize: 11,
                 }}
               >
@@ -176,7 +176,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             <div
               style={{
                 padding: '16px',
-                background: '#0d1117',
+                background: 'var(--card-background)',
                 border: `1px solid ${accentColor}30`,
                 borderRadius: 6,
               }}
@@ -185,13 +185,13 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                 style={{
                   margin: '0 0 12px',
                   fontSize: 13,
-                  color: '#e2e8f0',
+                  color: 'var(--text-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
                 }}
               >
-                <Activity size={14} style={{ color: '#64748b' }} /> REPUTATION & ACTIVITY
+                <Activity size={14} style={{ color: 'var(--text-secondary)' }} /> REPUTATION & ACTIVITY
               </h4>
               <div
                 style={{
@@ -201,20 +201,20 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                 }}
               >
                 <div>
-                  <span style={{ color: '#64748b' }}>Reputation:</span>{' '}
+                  <span style={{ color: 'var(--text-secondary)' }}>Reputation:</span>{' '}
                   <span style={{ color: reputationColor, fontWeight: 700 }}>{reputationLabel}</span>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>Activity Count:</span>{' '}
-                  <span style={{ color: '#94a3b8' }}>{result.activityCount}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Activity Count:</span>{' '}
+                  <span style={{ color: 'var(--text-primary)' }}>{result.activityCount}</span>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>First Seen:</span>{' '}
-                  <span style={{ color: '#94a3b8' }}>{result.firstSeen || 'N/A'}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>First Seen:</span>{' '}
+                  <span style={{ color: 'var(--text-primary)' }}>{result.firstSeen || 'N/A'}</span>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>Last Seen:</span>{' '}
-                  <span style={{ color: '#94a3b8' }}>{result.lastSeen || 'N/A'}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Last Seen:</span>{' '}
+                  <span style={{ color: 'var(--text-primary)' }}>{result.lastSeen || 'N/A'}</span>
                 </div>
               </div>
             </div>
@@ -224,23 +224,23 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <div
                 style={{
                   padding: '16px',
-                  background: '#0d1117',
+                  background: 'var(--card-background)',
                   border: `1px solid ${accentColor}30`,
                   borderRadius: 6,
                 }}
               >
-                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <MapPin size={14} style={{ color: '#64748b' }} /> GEO LOCATION
+                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <MapPin size={14} style={{ color: 'var(--text-secondary)' }} /> GEO LOCATION
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
                   <div>
-                    <span style={{ color: '#64748b' }}>Country:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{result.geoData.country} ({result.geoData.countryCode})</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Country:</span>{' '}
+                    <span style={{ color: 'var(--text-primary)' }}>{result.geoData.country} ({result.geoData.countryCode})</span>
                   </div>
                   {result.geoData.city && (
                     <div>
-                      <span style={{ color: '#64748b' }}>City:</span>{' '}
-                      <span style={{ color: '#94a3b8' }}>{result.geoData.city}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>City:</span>{' '}
+                      <span style={{ color: 'var(--text-primary)' }}>{result.geoData.city}</span>
                     </div>
                   )}
                 </div>
@@ -252,13 +252,13 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <div
                 style={{
                   padding: '16px',
-                  background: '#0d1117',
+                  background: 'var(--card-background)',
                   border: `1px solid ${accentColor}30`,
                   borderRadius: 6,
                 }}
               >
-                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Bug size={14} style={{ color: '#64748b' }} /> MALWARE FAMILIES
+                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Bug size={14} style={{ color: 'var(--text-secondary)' }} /> MALWARE FAMILIES
                 </h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {result.malwareFamilies.map((family, i) => (
@@ -286,13 +286,13 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <div
                 style={{
                   padding: '16px',
-                  background: '#0d1117',
+                  background: 'var(--card-background)',
                   border: `1px solid ${accentColor}30`,
                   borderRadius: 6,
                 }}
               >
-                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Radio size={14} style={{ color: '#64748b' }} /> RELATED PULSES
+                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Radio size={14} style={{ color: 'var(--text-secondary)' }} /> RELATED PULSES
                 </h4>
                 <div style={{ maxHeight: 400, overflowY: 'auto' }}>
                   {result.pulses.map((pulse, i) => (
@@ -300,19 +300,19 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                       key={i}
                       style={{
                         padding: '12px',
-                        background: '#080b10',
-                        border: '1px solid #00e5ff20',
+                        background: 'var(--input-background)',
+                        border: `1px solid ${accentColor}20`,
                         borderRadius: 4,
                         marginBottom: 8,
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ color: '#00e5ff', fontWeight: 700 }}>{pulse.name}</span>
-                        <span style={{ fontSize: 10, color: '#64748b' }}>
+                        <span style={{ color: accentColor, fontWeight: 700 }}>{pulse.name}</span>
+                        <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
                           {new Date(pulse.modified).toLocaleDateString()}
                         </span>
                       </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-primary)', marginBottom: 8 }}>
                         {pulse.description}
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -322,9 +322,9 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                             style={{
                               fontSize: 9,
                               padding: '2px 6px',
-                              background: '#1a2236',
+                              background: 'var(--border)',
                               borderRadius: 3,
-                              color: '#64748b',
+                              color: 'var(--text-secondary)',
                             }}
                           >
                             #{tag}
@@ -343,7 +343,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         <div
           style={{
             padding: '16px',
-            background: '#0d1117',
+            background: 'var(--card-background)',
             border: `1px solid ${accentColor}30`,
             borderRadius: 6,
           }}
@@ -356,17 +356,17 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               marginBottom: 12,
             }}
           >
-            <h4 style={{ margin: 0, fontSize: 13, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FileText size={14} style={{ color: '#64748b' }} /> RAW OUTPUT
+            <h4 style={{ margin: 0, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FileText size={14} style={{ color: 'var(--text-secondary)' }} /> RAW OUTPUT
             </h4>
             <button
               onClick={() => navigator.clipboard.writeText(scan.rawOutput.join('\n'))}
               style={{
                 padding: '6px',
-                background: '#1a2236',
+                background: 'var(--border)',
                 border: `1px solid ${accentColor}30`,
                 borderRadius: 4,
-                color: '#00e5ff',
+                color: accentColor,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -380,9 +380,9 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           <div
             style={{
               fontSize: 10,
-              color: '#94a3b8',
+              color: 'var(--text-primary)',
               fontFamily: 'monospace',
-              background: '#080b10',
+              background: 'var(--input-background)',
               padding: 12,
               borderRadius: 4,
               maxHeight: 300,
@@ -424,7 +424,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             left: 10,
             top: '50%',
             transform: 'translateY(-50%)',
-            color: '#64748b',
+            color: 'var(--text-secondary)',
             pointerEvents: 'none',
           }}
         />
@@ -436,10 +436,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           style={{
             width: '100%',
             padding: '8px 12px 8px 32px',
-            background: '#0d1117',
-            border: `1px solid ${historySearchQuery ? '#00e5ff50' : '#1a2236'}`,
+            background: 'var(--input-background)',
+            border: `1px solid ${historySearchQuery ? `${accentColor}50` : 'var(--input-border-default)'}`,
             borderRadius: 4,
-            color: '#e2e8f0',
+            color: 'var(--text-primary)',
             fontSize: 11,
             outline: 'none',
             fontFamily: 'inherit',
@@ -448,7 +448,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
       </div>
 
       {filteredHistory.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#64748b', fontSize: 12 }}>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)', fontSize: 12 }}>
           {history.length === 0
             ? 'No lookup history yet. Run a lookup to see results here.'
             : 'No matching lookups found.'}
@@ -460,10 +460,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: '#00e5ff',
+                color: accentColor,
                 letterSpacing: '0.1em',
                 padding: '8px 0 4px 0',
-                borderBottom: '1px solid #00e5ff30',
+                borderBottom: `1px solid ${accentColor}30`,
                 marginBottom: 8,
               }}
             >
@@ -496,8 +496,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             position: 'fixed',
             top: contextMenu.y,
             left: contextMenu.x,
-            background: '#0d1117',
-            border: '1px solid #00e5ff50',
+            background: 'var(--dropdown-background)',
+            border: `1px solid ${accentColor}50`,
             borderRadius: 6,
             boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
             zIndex: 1000,
@@ -513,7 +513,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               padding: '10px 16px',
               background: 'transparent',
               border: 'none',
-              color: '#00e5ff',
+              color: accentColor,
               fontSize: 12,
               fontWeight: 700,
               textAlign: 'left',
@@ -525,7 +525,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               gap: 8,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#00e5ff10';
+              e.currentTarget.style.background = `${accentColor}10`;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';
@@ -544,7 +544,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               padding: '10px 16px',
               background: 'transparent',
               border: 'none',
-              borderTop: '1px solid #00e5ff20',
+              borderTop: `1px solid ${accentColor}20`,
               color: '#ef4444',
               fontSize: 12,
               fontWeight: 700,

@@ -98,7 +98,15 @@ export function ThemeProvider({
     Object.entries(themeData).forEach(([key, value]) => {
       const cssVar = cssVarMap[key];
       if (cssVar && value) {
-        root.style.setProperty(cssVar, value as string);
+        // Check if value is an RGB triplet (e.g., "20 28 40" or "10 132 255")
+        const rgbMatch = (value as string).match(/^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})$/);
+        if (rgbMatch) {
+          // Convert to rgb(r, g, b) format
+          const rgbValue = `rgb(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]})`;
+          root.style.setProperty(cssVar, rgbValue);
+        } else {
+          root.style.setProperty(cssVar, value as string);
+        }
       }
     });
   };

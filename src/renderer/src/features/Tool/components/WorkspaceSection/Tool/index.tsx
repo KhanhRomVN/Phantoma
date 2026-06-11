@@ -26,14 +26,17 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
     setSearchQuery,
   } = useToolManager(activeToolId, onToolChange);
 
-  const [toolActiveTab, setToolActiveTab] = useState<
-    'information' | 'execution' | 'history'
-  >('information');
+  const [toolActiveTab, setToolActiveTab] = useState<'information' | 'execution' | 'history'>(
+    'information',
+  );
+
+  // Unified accent color from Tailwind theme (--primary: 54 134 255)
+  const UNIFIED_ACCENT = '#3686ff';
 
   // Scanline CSS baked inline để không cần external styles
   const scanlineStyle: React.CSSProperties = {
     background:
-      'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,229,255,0.015) 2px, rgba(0,229,255,0.015) 4px)',
+      'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(54,134,255,0.015) 2px, rgba(54,134,255,0.015) 4px)',
     pointerEvents: 'none',
   };
 
@@ -329,24 +332,24 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                 position: 'relative',
               }}
             >
-              {/* Big icon - giữ màu accent */}
+              {/* Big icon - màu accent thống nhất */}
               <div
                 style={{
                   width: 48,
                   height: 48,
                   borderRadius: 8,
                   background: '#080b10',
-                  border: `1px solid ${catMeta.color}40`,
+                  border: `1px solid ${UNIFIED_ACCENT}40`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 22,
-                  color: catMeta.color,
+                  color: UNIFIED_ACCENT,
                   flexShrink: 0,
                   alignSelf: 'center',
                 }}
               >
-                <ToolIcon tool={currentTool} color={catMeta.color} />
+                <ToolIcon tool={currentTool} color={UNIFIED_ACCENT} />
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -461,8 +464,8 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                     fontFamily: 'inherit',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: `2px solid ${toolActiveTab === tab.id ? '#00e5ff' : 'transparent'}`,
-                    color: toolActiveTab === tab.id ? '#00e5ff' : '#64748b',
+                    borderBottom: `2px solid ${toolActiveTab === tab.id ? UNIFIED_ACCENT : 'transparent'}`,
+                    color: toolActiveTab === tab.id ? UNIFIED_ACCENT : '#64748b',
                     fontSize: 11,
                     fontWeight: 700,
                     letterSpacing: '0.12em',
@@ -486,7 +489,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               {ToolComponent ? (
                 <ServerConfigProvider>
                   <ToolComponent
-                    accentColor={catMeta.color}
+                    accentColor={UNIFIED_ACCENT}
                     activeTab={toolActiveTab}
                     onTabChange={setToolActiveTab}
                   />

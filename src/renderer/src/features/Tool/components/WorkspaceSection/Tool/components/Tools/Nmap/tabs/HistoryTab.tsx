@@ -150,7 +150,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               alignItems: 'center',
               gap: 8,
               padding: '6px 12px',
-              background: '#0d1117',
+              background: 'var(--card-background)',
               border: `1px solid ${accentColor}30`,
               borderRadius: 4,
               color: accentColor,
@@ -169,7 +169,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         <div
           style={{
             padding: '16px',
-            background: '#0d1117',
+            background: 'var(--card-background)',
             border: `1px solid ${accentColor}30`,
             borderRadius: 6,
           }}
@@ -183,8 +183,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             }}
           >
             <div>
-              <h3 style={{ margin: 0, fontSize: 16, color: '#e2e8f0' }}>{scan.target}</h3>
-              <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
+              <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text-primary)' }}>{scan.target}</h3>
+              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>
                 {scan.scanType} • {scan.duration}
               </p>
             </div>
@@ -192,7 +192,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               style={{
                 padding: '4px 12px',
                 borderRadius: 4,
-                background: '#1a2236',
+                background: 'var(--border)',
                 color: '#34d399',
                 fontSize: 11,
                 fontWeight: 700,
@@ -216,8 +216,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Clock size={14} color={accentColor} />
                 <div>
-                  <div style={{ fontSize: 10, color: '#64748b' }}>Duration</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Duration</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>
                     {formatDuration(parsedData.duration)}
                   </div>
                 </div>
@@ -225,8 +225,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Activity size={14} color={accentColor} />
                 <div>
-                  <div style={{ fontSize: 10, color: '#64748b' }}>Ports</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Ports</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>
                     {parsedData.stats.openPorts} open / {parsedData.stats.filteredPorts} filtered
                   </div>
                 </div>
@@ -234,8 +234,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Network size={14} color={accentColor} />
                 <div>
-                  <div style={{ fontSize: 10, color: '#64748b' }}>Command</div>
-                  <div style={{ fontSize: 10, color: '#94a3b8', fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Command</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                     {parsedData.args.substring(0, 60)}...
                   </div>
                 </div>
@@ -248,7 +248,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         <div
           style={{
             padding: '16px',
-            background: '#0d1117',
+            background: 'var(--card-background)',
             border: `1px solid ${accentColor}30`,
             borderRadius: 6,
           }}
@@ -257,13 +257,13 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             style={{
               margin: '0 0 12px',
               fontSize: 13,
-              color: '#e2e8f0',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
             }}
           >
-            <Server size={14} style={{ color: '#64748b' }} /> HOST INFORMATION
+            <Server size={14} style={{ color: 'var(--text-secondary)' }} /> HOST INFORMATION
           </h4>
           <div
             style={{
@@ -275,37 +275,37 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             {parsedData ? (
               <>
                 <div>
-                  <span style={{ color: '#64748b' }}>IP:</span>{' '}
-                  <span style={{ color: '#94a3b8' }}>{parsedData.host.ip}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>IP:</span>{' '}
+                  <span style={{ color: 'var(--text-primary)' }}>{parsedData.host.ip}</span>
                 </div>
                 {parsedData.host.hostname && (
                   <div>
-                    <span style={{ color: '#64748b' }}>Hostname:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{parsedData.host.hostname}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Hostname:</span>{' '}
+                    <span style={{ color: 'var(--text-primary)' }}>{parsedData.host.hostname}</span>
                   </div>
                 )}
                 {parsedData.host.os && (
                   <div>
-                    <span style={{ color: '#64748b' }}>OS:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{parsedData.host.os}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>OS:</span>{' '}
+                    <span style={{ color: 'var(--text-primary)' }}>{parsedData.host.os}</span>
                   </div>
                 )}
                 {parsedData.host.uptime && (
                   <div>
-                    <span style={{ color: '#64748b' }}>Uptime:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Uptime:</span>{' '}
+                    <span style={{ color: 'var(--text-primary)' }}>
                       {formatDuration(parsedData.host.uptime)}
                     </span>
                   </div>
                 )}
                 {parsedData.host.mac && (
                   <div>
-                    <span style={{ color: '#64748b' }}>MAC:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{parsedData.host.mac}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>MAC:</span>{' '}
+                    <span style={{ color: 'var(--text-primary)' }}>{parsedData.host.mac}</span>
                   </div>
                 )}
                 <div>
-                  <span style={{ color: '#64748b' }}>Status:</span>{' '}
+                  <span style={{ color: 'var(--text-secondary)' }}>Status:</span>{' '}
                   <span style={{ color: parsedData.host.status === 'up' ? '#34d399' : '#ef4444' }}>
                     {parsedData.host.status.toUpperCase()}
                   </span>
@@ -315,20 +315,20 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <>
                 {scan.host?.ip && (
                   <div>
-                    <span style={{ color: '#64748b' }}>IP:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{scan.host.ip}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>IP:</span>{' '}
+                    <span style={{ color: 'var(--text-primary)' }}>{scan.host.ip}</span>
                   </div>
                 )}
                 {scan.host?.hostname && (
                   <div>
-                    <span style={{ color: '#64748b' }}>Hostname:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{scan.host.hostname}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Hostname:</span>{' '}
+                    <span style={{ color: 'var(--text-primary)' }}>{scan.host.hostname}</span>
                   </div>
                 )}
                 {scan.host?.os && (
                   <div>
-                    <span style={{ color: '#64748b' }}>OS:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{scan.host.os}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>OS:</span>{' '}
+                    <span style={{ color: 'var(--text-primary)' }}>{scan.host.os}</span>
                   </div>
                 )}
               </>
@@ -340,7 +340,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         <div
           style={{
             padding: '16px',
-            background: '#0d1117',
+            background: 'var(--card-background)',
             border: `1px solid ${accentColor}30`,
             borderRadius: 6,
           }}
@@ -349,13 +349,13 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             style={{
               margin: '0 0 12px',
               fontSize: 13,
-              color: '#e2e8f0',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
             }}
           >
-            <Shield size={14} style={{ color: '#64748b' }} /> PORTS SCANNED ({scan.ports.length} total,{' '}
+            <Shield size={14} style={{ color: 'var(--text-secondary)' }} /> PORTS SCANNED ({scan.ports.length} total,{' '}
             {scan.ports.filter((p) => p.state === 'open').length} open)
           </h4>
           <PortsTable ports={scan.ports} accentColor={accentColor} showRisk={true} />
@@ -365,7 +365,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         <div
           style={{
             padding: '16px',
-            background: '#0d1117',
+            background: 'var(--card-background)',
             border: `1px solid ${accentColor}30`,
             borderRadius: 6,
           }}
@@ -378,14 +378,14 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               marginBottom: 12,
             }}
           >
-            <h4 style={{ margin: 0, fontSize: 13, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FileText size={14} style={{ color: '#64748b' }} /> RAW OUTPUT (XML)
+            <h4 style={{ margin: 0, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FileText size={14} style={{ color: 'var(--text-secondary)' }} /> RAW OUTPUT (XML)
             </h4>
             <button
               onClick={() => navigator.clipboard.writeText(scan.rawOutput.join('\n'))}
               style={{
                 padding: '6px',
-                background: '#1a2236',
+                background: 'var(--border)',
                 border: `1px solid ${accentColor}30`,
                 borderRadius: 4,
                 color: accentColor,
@@ -402,9 +402,9 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           <div
             style={{
               fontSize: 10,
-              color: '#94a3b8',
+              color: 'var(--text-primary)',
               fontFamily: 'monospace',
-              background: '#080b10',
+              background: 'var(--background)',
               padding: 12,
               borderRadius: 4,
               maxHeight: 400,
@@ -414,7 +414,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             }}
           >
             {scan.rawOutput.map((line, i) => {
-              let color = '#64748b';
+              let color = 'var(--text-secondary)';
               if (line.startsWith('<?xml') || line.startsWith('<!DOCTYPE')) color = '#fbbf24';
               else if (line.includes('<nmaprun') || line.includes('</nmaprun>')) color = '#34d399';
               else if (line.includes('<host') || line.includes('</host>')) color = '#60a5fa';
@@ -423,7 +423,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               else if (line.includes('state="open"')) color = '#34d399';
               else if (line.includes('state="filtered"')) color = '#fbbf24';
               else if (line.includes('state="closed"')) color = '#ef4444';
-              else if (line.startsWith('<!--')) color = '#475569';
+              else if (line.startsWith('<!--')) color = 'var(--text-secondary)';
               return (
                 <div key={i} style={{ color, whiteSpace: 'pre-wrap' }}>
                   {line}
@@ -460,7 +460,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             left: 10,
             top: '50%',
             transform: 'translateY(-50%)',
-            color: '#64748b',
+            color: 'var(--text-secondary)',
             pointerEvents: 'none',
           }}
         />
@@ -472,10 +472,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           style={{
             width: '100%',
             padding: '8px 12px 8px 32px',
-            background: '#0d1117',
-            border: `1px solid ${historySearchQuery ? accentColor + '50' : '#1a2236'}`,
+            background: 'var(--input-background)',
+            border: `1px solid ${historySearchQuery ? accentColor + '50' : 'var(--input-border-default)'}`,
             borderRadius: 4,
-            color: '#e2e8f0',
+            color: 'var(--text-primary)',
             fontSize: 11,
             outline: 'none',
             fontFamily: 'inherit',
@@ -484,7 +484,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
       </div>
 
       {filteredHistory.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#64748b', fontSize: 12 }}>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)', fontSize: 12 }}>
           {history.length === 0
             ? 'No scan history yet. Run a scan to see results here.'
             : 'No matching scans found.'}
@@ -532,7 +532,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             position: 'fixed',
             top: contextMenu.y,
             left: contextMenu.x,
-            background: '#0d1117',
+            background: 'var(--dropdown-background)',
             border: `1px solid ${accentColor}50`,
             borderRadius: 6,
             boxShadow: '0 4px 12px rgba(0,0,0,0.5)',

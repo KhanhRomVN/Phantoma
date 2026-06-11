@@ -21,6 +21,7 @@ export const useAlienvaultScan = (
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ScanResult | null>(null);
+  const [logOutput, setLogOutput] = useState('');
   const progressRef = useRef<NodeJS.Timeout | null>(null);
 
   // Save API key to localStorage whenever it changes
@@ -42,6 +43,7 @@ export const useAlienvaultScan = (
     setScanning(true);
     setResults(null);
     setProgress(0);
+    setLogOutput('');
 
     let p = 0;
     progressRef.current = setInterval(() => {
@@ -96,7 +98,16 @@ export const useAlienvaultScan = (
         } else if (Array.isArray(responseData.rawOutput)) {
           rawOutputLines = responseData.rawOutput;
         }
+      } else if (parsedResponse.rawOutput) {
+        if (typeof parsedResponse.rawOutput === 'string') {
+          rawOutputLines = parsedResponse.rawOutput.split('\n');
+        } else if (Array.isArray(parsedResponse.rawOutput)) {
+          rawOutputLines = parsedResponse.rawOutput;
+        }
       }
+
+      // Set log output for CodeBlock display
+      setLogOutput(rawOutputLines.join('\n'));
 
       let indicatorResult: IndicatorResult | null = null;
       // Server trả về data trực tiếp, không có field result
@@ -130,6 +141,9 @@ export const useAlienvaultScan = (
       if (progressRef.current) clearInterval(progressRef.current);
       setProgress(100);
 
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      setLogOutput(`Error: ${errorMsg}`);
+
       const errorResult: ScanResult = {
         status: 'error',
         indicator: params.indicator,
@@ -137,7 +151,7 @@ export const useAlienvaultScan = (
         duration: ((Date.now() - startTime) / 1000).toFixed(2) + 's',
         timestamp: Date.now(),
         result: null,
-        rawOutput: [`Error: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        rawOutput: [`Error: ${errorMsg}`],
       };
 
       setHistory((prev) => {
@@ -161,6 +175,7 @@ export const useAlienvaultScan = (
     scanning,
     progress,
     results,
+    logOutput,
     handleScan,
   };
 };

@@ -2,8 +2,10 @@
 package docker
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"io"
 	"os/exec"
 	"strings"
 
@@ -53,4 +55,75 @@ func Exec(ctx context.Context, container string, args ...string) (ExecResult, er
 	}
 
 	return result, err
+}
+
+// ExecStream runs `docker exec <container> <args...>` and streams stdout
+// line-by-line through the returned channel. The channel is closed when the
+// process exits. Errors during execution are sent to the error channel.
+func ExecStream(ctx context.Context, container string, args ...string) (<-chan string, <-chan error) {
+	lineCh := make(chan string, 100)
+	errCh := make(chan error, 1)
+
+	cmdArgs := append([]string{"exec", container}, args...)
+
+	log.Debug("exec — streaming start",
+		logger.F("container", container),
+		logger.F("cmd", strings.Join(args, " ")),
+	)
+
+	go func() {
+		defer close(lineCh)
+		defer close(errCh)
+
+		cmd := exec.CommandContext(ctx, "docker", cmdArgs...)
+
+		stdoutPipe, err := cmd.StdoutPipe()
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		stderrPipe, err := cmd.StderrPipe()
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		if err := cmd.Start(); err != nil {
+			errCh <- err
+			return
+		}
+
+		// Read stdout line by line
+		scanner := bufio.NewScanner(stdoutPipe)
+		for scanner.Scan() {
+			select {
+			case lineCh <- scanner.Text():
+			case <-ctx.Done():
+				return
+			}
+		}
+
+		// Drain stderr
+		stderrBytes, _ := io.ReadAll(stderrPipe)
+		stderr := strings.TrimSpace(string(stderrBytes))
+
+		// Wait for process to finish
+		err = cmd.Wait()
+
+		if err != nil {
+			log.Error("exec — stream failed",
+				logger.F("container", container),
+				logger.F("error", err),
+				logger.F("stderr", stderr),
+			)
+			errCh <- err
+		} else {
+			log.Debug("exec — stream complete",
+				logger.F("container", container),
+			)
+		}
+	}()
+
+	return lineCh, errCh
 }

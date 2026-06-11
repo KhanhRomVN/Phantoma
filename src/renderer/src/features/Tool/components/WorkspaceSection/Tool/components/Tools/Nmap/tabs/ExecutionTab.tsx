@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { NmapScanParams, TooltipState } from '../types';
 import { buildCommand } from '../utils';
 import { SCAN_TYPES, TIMING_LABELS, COMMON_FLAGS } from '../constants';
+import { CodeBlock } from '../../../../../../../../../core/components/CodeBlock';
 
 // ─── Flag Accordion ────────────────────────────────────────────────────────────
 
@@ -41,8 +42,8 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
     <div
       style={{
         borderRadius: 6,
-        border: `1px solid ${open ? accentColor + '30' : '#1a2236'}`,
-        background: open ? '#0a0f1a' : '#0d1117',
+        border: `1px solid ${open ? accentColor + '30' : 'var(--border)'}`,
+        background: open ? 'var(--dropdown-item-hover)' : 'var(--card-background)',
         overflow: 'hidden',
         transition: 'border-color 0.2s',
       }}
@@ -63,7 +64,7 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
           textAlign: 'left',
         }}
       >
-        <span style={{ color: open ? accentColor : '#475569', fontSize: 13, flexShrink: 0 }}>
+        <span style={{ color: open ? accentColor : 'var(--text-secondary)', fontSize: 13, flexShrink: 0 }}>
           {category.icon}
         </span>
         <span
@@ -72,7 +73,7 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
             fontSize: 10,
             fontWeight: 700,
             letterSpacing: '0.1em',
-            color: open ? '#94a3b8' : '#475569',
+            color: open ? 'var(--text-primary)' : 'var(--text-secondary)',
           }}
         >
           <span
@@ -103,7 +104,7 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
         <span
           style={{
             fontSize: 10,
-            color: '#334155',
+            color: 'var(--text-secondary)',
             transform: open ? 'rotate(180deg)' : 'none',
             transition: 'transform 0.2s',
           }}
@@ -120,7 +121,7 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
             display: 'flex',
             flexWrap: 'wrap',
             gap: 5,
-            borderTop: '1px solid #131c2e',
+            borderTop: '1px solid var(--divider)',
           }}
         >
           {category.flags.map((flag) => {
@@ -132,14 +133,14 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
                 onMouseEnter={(e) => {
                   if (!active) {
                     e.currentTarget.style.borderColor = accentColor + '50';
-                    e.currentTarget.style.color = '#94a3b8';
+                    e.currentTarget.style.color = 'var(--text-primary)';
                     e.currentTarget.style.background = accentColor + '08';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!active) {
-                    e.currentTarget.style.borderColor = '#1e2d45';
-                    e.currentTarget.style.color = '#475569';
+                    e.currentTarget.style.borderColor = 'var(--input-border-default)';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
                     e.currentTarget.style.background = 'transparent';
                   }
                 }}
@@ -149,9 +150,9 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
                   alignItems: 'center',
                   padding: '6px 10px',
                   borderRadius: 4,
-                  border: `1px solid ${active ? accentColor + '60' : '#1e2d45'}`,
+                  border: `1px solid ${active ? accentColor + '60' : 'var(--input-border-default)'}`,
                   background: active ? glow : 'transparent',
-                  color: active ? accentColor : '#9ca3af',
+                  color: active ? accentColor : 'var(--text-secondary)',
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -165,7 +166,7 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
                 <span
                   style={{
                     fontSize: 9,
-                    color: '#8a9aba',
+                    color: 'var(--text-secondary)',
                     opacity: 0.7,
                     fontWeight: 400,
                     whiteSpace: 'nowrap',
@@ -189,6 +190,7 @@ interface ExecutionTabProps {
   setParams: React.Dispatch<React.SetStateAction<NmapScanParams>>;
   scanning: boolean;
   progress: number;
+  logOutput: string;
   onScan: () => void;
   accentColor: string;
   glow: string;
@@ -201,6 +203,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
   setParams,
   scanning,
   progress,
+  logOutput,
   onScan,
   accentColor,
   glow,
@@ -317,10 +320,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
     width: '100%',
     boxSizing: 'border-box',
     padding: '10px 13px',
-    background: '#0d1117',
-    border: '1px solid #1a2236',
+    background: 'var(--input-background)',
+    border: '1px solid var(--input-border-default)',
     borderRadius: 4,
-    color: '#cbd5e1',
+    color: 'var(--text-primary)',
     fontSize: 12,
     outline: 'none',
     fontFamily: 'inherit',
@@ -330,7 +333,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
   // Placeholder style
   const placeholderStyle = {
     '::placeholder': {
-      color: '#1e2d45',
+      color: 'var(--text-secondary)',
       opacity: 0.7,
       fontSize: 11,
     },
@@ -345,7 +348,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             display: 'block',
             fontSize: 11,
             fontWeight: 700,
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             letterSpacing: '0.12em',
             marginBottom: 6,
             cursor: 'default',
@@ -357,20 +360,20 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           style={{
             padding: '10px 14px',
             borderRadius: 5,
-            background: '#060a11',
-            border: '1px solid #131c2e',
+            background: 'var(--input-background)',
+            border: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
           }}
         >
-          <span style={{ color: '#334155', fontSize: 12, fontFamily: 'monospace', flexShrink: 0 }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 12, fontFamily: 'monospace', flexShrink: 0 }}>
             $
           </span>
           <span
             style={{
               fontSize: 12,
-              color: '#64748b',
+              color: 'var(--text-secondary)',
               fontFamily: 'monospace',
               flex: 1,
               overflow: 'hidden',
@@ -388,14 +391,14 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             }}
             onMouseLeave={(e) => {
               onTooltipShow(null);
-              (e.currentTarget as HTMLButtonElement).style.color = '#334155';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
             }}
             style={{
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
               padding: 4,
-              color: '#334155',
+              color: 'var(--text-secondary)',
               transition: 'color 0.15s',
               flexShrink: 0,
             }}
@@ -422,7 +425,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             display: 'block',
             fontSize: 11,
             fontWeight: 700,
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             letterSpacing: '0.12em',
             marginBottom: 6,
             cursor: 'default',
@@ -451,7 +454,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           placeholder="192.168.1.1  ·  example.com  ·  10.0.0.0/24"
           style={{
             ...inputBase,
-            border: `1px solid ${params.target ? accentColor + '50' : '#1a2236'}`,
+            border: `1px solid ${params.target ? accentColor + '50' : 'var(--input-border-default)'}`,
             boxShadow: params.target ? `0 0 10px ${glow}` : 'none',
             fontSize: 13,
             padding: '11px 14px',
@@ -466,7 +469,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               left: 0,
               right: 0,
               marginTop: 3,
-              background: '#0d1117',
+              background: 'var(--dropdown-background)',
               border: `1px solid ${accentColor}30`,
               borderRadius: 4,
               zIndex: 10,
@@ -485,11 +488,11 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   padding: '8px 12px',
                   cursor: 'pointer',
                   fontSize: 12,
-                  color: '#94a3b8',
-                  borderBottom: i < targetHistory.length - 1 ? '1px solid #1a2236' : 'none',
+                  color: 'var(--text-primary)',
+                  borderBottom: i < targetHistory.length - 1 ? '1px solid var(--border)' : 'none',
                   transition: 'background 0.12s',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#111827')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--dropdown-item-hover)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 {t}
@@ -508,7 +511,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               display: 'block',
               fontSize: 11,
               fontWeight: 700,
-              color: '#9ca3af',
+              color: 'var(--text-secondary)',
               letterSpacing: '0.12em',
               marginBottom: 6,
               cursor: 'default',
@@ -523,7 +526,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               }
               onMouseLeave={() => onTooltipShow(null)}
             >
-              PORTS <span style={{ fontWeight: 400, color: '#6b7a96' }}>(optional)</span>
+              PORTS <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}>(optional)</span>
             </span>
           </label>
           <input
@@ -545,7 +548,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               display: 'block',
               fontSize: 11,
               fontWeight: 700,
-              color: '#9ca3af',
+              color: 'var(--text-secondary)',
               letterSpacing: '0.12em',
               marginBottom: 6,
               cursor: 'default',
@@ -575,9 +578,9 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   flex: 1,
                   padding: '9px 0',
                   borderRadius: 3,
-                  border: `1px solid ${params.timing === t ? accentColor + '60' : '#1a2236'}`,
-                  background: params.timing === t ? glow : '#0d1117',
-                  color: params.timing === t ? accentColor : '#3d5068',
+                  border: `1px solid ${params.timing === t ? accentColor + '60' : 'var(--input-border-default)'}`,
+                  background: params.timing === t ? glow : 'var(--input-background)',
+                  color: params.timing === t ? accentColor : 'var(--text-secondary)',
                   fontSize: 11,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -599,7 +602,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             display: 'block',
             fontSize: 11,
             fontWeight: 700,
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             letterSpacing: '0.12em',
             marginBottom: 7,
             cursor: 'default',
@@ -630,14 +633,14 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 }}
                 onMouseLeave={(e) => {
                   onTooltipShow(null);
-                  if (!active) e.currentTarget.style.borderColor = '#1a2236';
+                  if (!active) e.currentTarget.style.borderColor = 'var(--input-border-default)';
                 }}
                 style={{
                   flex: 1,
                   padding: '8px 8px',
                   borderRadius: 4,
-                  border: `1px solid ${active ? accentColor + '60' : '#1a2236'}`,
-                  background: active ? glow : '#0d1117',
+                  border: `1px solid ${active ? accentColor + '60' : 'var(--input-border-default)'}`,
+                  background: active ? glow : 'var(--input-background)',
                   cursor: 'pointer',
                   fontFamily: 'monospace',
                   transition: 'all 0.12s',
@@ -650,14 +653,14 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 }}
               >
                 <span
-                  style={{ fontSize: 11, fontWeight: 700, color: active ? accentColor : '#9ca3af' }}
+                  style={{ fontSize: 11, fontWeight: 700, color: active ? accentColor : 'var(--text-secondary)' }}
                 >
                   {st.flag}
                 </span>
                 <span
                   style={{
                     fontSize: 10,
-                    color: active ? accentColor + 'aa' : '#4a5a7a',
+                    color: active ? accentColor + 'aa' : 'var(--text-secondary)',
                   }}
                 >
                   {st.label}
@@ -690,13 +693,12 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
         style={{
           width: '100%',
           padding: '12px',
-          background:
-            scanning || !params.target.trim()
-              ? '#0d1117'
-              : `linear-gradient(135deg, ${accentColor}18, ${accentColor}08)`,
-          border: `1px solid ${scanning || !params.target.trim() ? '#1a2236' : accentColor + '70'}`,
-          borderRadius: 5,
-          color: scanning || !params.target.trim() ? '#334155' : accentColor,
+background:
+              scanning || !params.target.trim()
+                ? 'var(--input-background)'
+                : `linear-gradient(135deg, ${accentColor}18, ${accentColor}08)`,
+            border: `1px solid ${scanning || !params.target.trim() ? 'var(--input-border-default)' : accentColor + '70'}`,
+            color: scanning || !params.target.trim() ? 'var(--text-secondary)' : accentColor,
           fontSize: 12,
           fontWeight: 700,
           letterSpacing: '0.15em',
@@ -717,7 +719,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             <span
               style={{
                 fontSize: 10,
-                color: '#4a5a7a',
+                color: 'var(--text-secondary)',
                 letterSpacing: '0.1em',
                 fontFamily: 'monospace',
               }}
@@ -728,7 +730,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               {progress}%
             </span>
           </div>
-          <div style={{ height: 1, background: '#131c2e', borderRadius: 1, overflow: 'hidden' }}>
+          <div style={{ height: 1, background: 'var(--divider)', borderRadius: 1, overflow: 'hidden' }}>
             <div
               style={{
                 height: '100%',
@@ -737,6 +739,40 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 boxShadow: `0 0 6px ${accentColor}`,
                 transition: 'width 0.3s ease',
               }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Scan Log Output ──────────────────────────────────────────── */}
+      {(scanning || logOutput) && (
+        <div>
+          <label
+            style={{
+              display: 'block',
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'var(--text-secondary)',
+              letterSpacing: '0.12em',
+              marginBottom: 6,
+            }}
+          >
+            SCAN LOG OUTPUT
+          </label>
+          <div
+            style={{
+              borderRadius: 5,
+              border: `1px solid ${accentColor}30`,
+              overflow: 'hidden',
+              minHeight: 250,
+            }}
+          >
+            <CodeBlock
+              code={logOutput || 'Waiting for scan to start...'}
+              language="plaintext"
+              showLineNumbers={true}
+              editorOptions={{ readOnly: true }}
+              className="h-[300px]"
             />
           </div>
         </div>

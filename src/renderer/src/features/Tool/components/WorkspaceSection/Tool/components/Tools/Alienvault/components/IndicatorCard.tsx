@@ -13,6 +13,16 @@ interface IndicatorCardProps {
   glow: string;
 }
 
+const formatDate = (timestamp: number): string => {
+  const d = new Date(timestamp);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} - ${hours}:${minutes}`;
+};
+
 const IndicatorCard: React.FC<IndicatorCardProps> = ({
   scan,
   globalIdx,
@@ -50,42 +60,47 @@ const IndicatorCard: React.FC<IndicatorCardProps> = ({
         }}
         onClick={onToggle}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 2 }}>
-          <div
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: reputationColor,
-              boxShadow: `0 0 6px ${reputationColor}`,
-            }}
-          />
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
-            {scan.indicator}
-          </span>
-          <span
-            style={{
-              fontSize: 11,
-              color: '#64748b',
-              background: '#1a2236',
-              padding: '2px 8px',
-              borderRadius: 4,
-            }}
-          >
-            {scan.indicatorType.toUpperCase()}
-          </span>
-          <span
-            style={{
-              fontSize: 10,
-              color: reputationColor,
-              background: `${reputationColor}20`,
-              padding: '2px 6px',
-              borderRadius: 4,
-              fontWeight: 700,
-            }}
-          >
-            {reputationIcon} {reputationLabel}
-          </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: reputationColor,
+                boxShadow: `0 0 6px ${reputationColor}`,
+              }}
+            />
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+              {scan.indicator}
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                color: '#64748b',
+                background: '#1a2236',
+                padding: '2px 8px',
+                borderRadius: 4,
+              }}
+            >
+              {scan.indicatorType.toUpperCase()}
+            </span>
+            <span
+              style={{
+                fontSize: 10,
+                color: reputationColor,
+                background: `${reputationColor}20`,
+                padding: '2px 6px',
+                borderRadius: 4,
+                fontWeight: 700,
+              }}
+            >
+              {reputationIcon} {reputationLabel}
+            </span>
+          </div>
+          <div style={{ fontSize: 10, color: '#64748b', paddingLeft: 20 }}>
+            {formatDate(scan.timestamp)}
+          </div>
         </div>
 
         <div

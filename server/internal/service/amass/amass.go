@@ -54,3 +54,27 @@ func (s *Service) Scan(ctx context.Context, req domain.ScanRequest) (domain.Scan
 		Output:  result.Stdout,
 	}, nil
 }
+
+// ScanStream executes amass and returns channels for real-time line-by-line output.
+func (s *Service) ScanStream(ctx context.Context, req domain.ScanRequest) (<-chan string, <-chan error) {
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+
+	// Build args: amass enum -d <target>
+	args := []string{"amass", "enum", "-d", req.Target}
+	if len(req.Flags) > 0 {
+		args = append(args, req.Flags...)
+	}
+
+	lineCh, errCh := dockerpkg.ExecStream(ctx, s.container, args...)
+
+	wrappedErrCh := make(chan error, 1)
+	go func() {
+		defer cancel()
+		defer close(wrappedErrCh)
+		for err := range errCh {
+			wrappedErrCh <- err
+		}
+	}()
+
+	return lineCh, wrappedErrCh
+}

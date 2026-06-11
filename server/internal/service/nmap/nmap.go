@@ -47,3 +47,30 @@ func (s *Service) Scan(ctx context.Context, req domain.ScanRequest) (domain.Scan
 		Output:  result.Stdout,
 	}, nil
 }
+
+// ScanStream executes nmap and returns channels for real-time line-by-line output.
+// The lineCh receives each stdout line as it's produced. errCh receives any error.
+// Both channels are closed when the scan completes.
+func (s *Service) ScanStream(ctx context.Context, req domain.ScanRequest) (<-chan string, <-chan error) {
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	// Note: cancel is called when the goroutine in ExecStream finishes (channels close).
+	// We keep a reference so the caller can also cancel via context.
+
+	// Build args: nmap [flags] [target]
+	args := append([]string{"nmap"}, req.Flags...)
+	args = append(args, req.Target)
+
+	lineCh, errCh := dockerpkg.ExecStream(ctx, s.container, args...)
+
+	// Wrap errCh to cancel the timeout context on completion
+	wrappedErrCh := make(chan error, 1)
+	go func() {
+		defer cancel()
+		defer close(wrappedErrCh)
+		for err := range errCh {
+			wrappedErrCh <- err
+		}
+	}()
+
+	return lineCh, wrappedErrCh
+}

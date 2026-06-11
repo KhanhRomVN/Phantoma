@@ -19,6 +19,13 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+// Flush implements http.Flusher by delegating to the underlying writer.
+func (rw *responseWriter) Flush() {
+	if flusher, ok := rw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 // RequestLogger logs every incoming HTTP request in the format:
 // [INFO] [middleware/logger.go:N] POST /api/v1/nmap/scan - 200 - 123ms
 func RequestLogger(next http.Handler) http.Handler {

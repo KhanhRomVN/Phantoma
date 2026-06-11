@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useServerConfig } from '../../../../../../context/ServerConfigContext';
 import { useAlienvaultScan } from './hooks/useAlienvaultScan';
 import { useHistory } from './hooks/useHistory';
-import InformationTab from './tabs/InformationTab';
+import MarkdownBlock from '../../common/MarkdownBlock';
 import ExecutionTab from './tabs/ExecutionTab';
 import HistoryTab from './tabs/HistoryTab';
 import Tooltip from './components/Tooltip';
 import { TooltipState, ContextMenuState } from './types';
+import { ALIENVAULT_DOC } from './constants';
 
 interface AlienvaultToolProps {
   accentColor?: string;
@@ -28,6 +29,7 @@ const AlienvaultTool: React.FC<AlienvaultToolProps> = ({
     setParams,
     scanning,
     progress,
+    logOutput,
     handleScan: scanHandler,
   } = useAlienvaultScan(getFullUrl, onTabChange);
 
@@ -72,7 +74,9 @@ const AlienvaultTool: React.FC<AlienvaultToolProps> = ({
         position: 'relative',
       }}
     >
-      {activeTab === 'information' && <InformationTab accentColor={accentColor} />}
+      {activeTab === 'information' && (
+        <MarkdownBlock content={ALIENVAULT_DOC} accentColor={accentColor} />
+      )}
 
       {activeTab === 'execution' && (
         <ExecutionTab
@@ -80,6 +84,7 @@ const AlienvaultTool: React.FC<AlienvaultToolProps> = ({
           setParams={setParams}
           scanning={scanning}
           progress={progress}
+          logOutput={logOutput}
           onScan={handleScan}
           accentColor={accentColor}
           glow={glow}
