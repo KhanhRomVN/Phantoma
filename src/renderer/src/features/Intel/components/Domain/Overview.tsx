@@ -1,6 +1,6 @@
-import type { ReconResult } from '../types/recon-result';
-import { StatBox } from './shared/StatBox';
-import { SectionHeader } from './shared/SectionHeader';
+import type { ReconResult } from '../../types/domain/recon-result';
+import { StatBox } from '../shared/StatBox';
+import { SectionHeader } from '../shared/SectionHeader';
 
 interface OverviewProps {
   result: ReconResult;

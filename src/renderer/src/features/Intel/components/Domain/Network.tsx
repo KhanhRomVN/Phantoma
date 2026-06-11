@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import type { DataPoint } from '../types/data-point';
-import type { SmartCategoryGroup } from '../types/smart-category';
-import { SectionHeader } from './shared/SectionHeader';
-import { StatBox } from './shared/StatBox';
-import { DataTable } from './shared/DataTable';
+import type { DataPoint } from '../../types/domain/data-point';
+import type { SmartCategoryGroup } from '../../types/domain/smart-category';
+import { SectionHeader } from '../shared/SectionHeader';
+import { StatBox } from '../shared/StatBox';
+import { DataTable } from '../shared/DataTable';
 
 interface NetworkProps {
   dataPoints: DataPoint[];
@@ -11,15 +11,19 @@ interface NetworkProps {
 }
 
 export function Network({ dataPoints, activeGroup }: NetworkProps) {
-  const grouped = useMemo(() => dataPoints.reduce(
-    (acc, dp) => {
-      const key = dp.category;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(dp);
-      return acc;
-    },
-    {} as Record<string, DataPoint[]>,
-  ), [dataPoints]);
+  const grouped = useMemo(
+    () =>
+      dataPoints.reduce(
+        (acc, dp) => {
+          const key = dp.category;
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(dp);
+          return acc;
+        },
+        {} as Record<string, DataPoint[]>,
+      ),
+    [dataPoints],
+  );
 
   const openPortsCount = (grouped.open_port || []).length + (grouped.port || []).length;
   const serviceCount = (grouped.service || []).length + (grouped.service_banner || []).length;
@@ -43,10 +47,7 @@ export function Network({ dataPoints, activeGroup }: NetworkProps) {
       </div>
 
       <SectionHeader accent="#ff6b35">Network Scan</SectionHeader>
-      <DataTable
-        dataPoints={dataPoints}
-        columns={['value', 'category', 'confidence', 'source']}
-      />
+      <DataTable dataPoints={dataPoints} columns={['value', 'category', 'confidence', 'source']} />
     </div>
   );
 }

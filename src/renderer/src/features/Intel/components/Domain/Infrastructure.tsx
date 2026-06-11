@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import type { DataPoint } from '../types/data-point';
-import type { SmartCategoryGroup } from '../types/smart-category';
-import { SectionHeader } from './shared/SectionHeader';
-import { StatBox } from './shared/StatBox';
-import { DataTable } from './shared/DataTable';
+import type { DataPoint } from '../../types/domain/data-point';
+import type { SmartCategoryGroup } from '../../types/domain/smart-category';
+import { SectionHeader } from '../shared/SectionHeader';
+import { StatBox } from '../shared/StatBox';
+import { DataTable } from '../shared/DataTable';
 
 interface InfrastructureProps {
   dataPoints: DataPoint[];
@@ -11,15 +11,19 @@ interface InfrastructureProps {
 }
 
 export function Infrastructure({ dataPoints, activeGroup }: InfrastructureProps) {
-  const grouped = useMemo(() => dataPoints.reduce(
-    (acc, dp) => {
-      const key = dp.category;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(dp);
-      return acc;
-    },
-    {} as Record<string, DataPoint[]>,
-  ), [dataPoints]);
+  const grouped = useMemo(
+    () =>
+      dataPoints.reduce(
+        (acc, dp) => {
+          const key = dp.category;
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(dp);
+          return acc;
+        },
+        {} as Record<string, DataPoint[]>,
+      ),
+    [dataPoints],
+  );
 
   const ipCount = (grouped.ip_address || []).length;
   const asnCount = (grouped.asn || []).length;

@@ -1,8 +1,8 @@
 /**
  * Domain-local entity disambiguator — groups data points into distinct entities.
  */
-import type { DataPoint, DataSource } from '../types/data-point';
-import type { ReconEntity } from '../types/entity';
+import type { DataPoint, DataSource } from '../types/domain/data-point';
+import type { ReconEntity } from '../types/domain/entity';
 
 interface DisambiguationResult {
   entities: ReconEntity[];

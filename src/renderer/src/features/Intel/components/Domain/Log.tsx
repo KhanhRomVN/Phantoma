@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { cn } from '../../../../../shared/lib/utils';
-import type { ReconData } from '../types/recon-data';
+import { cn } from '../../../../shared/lib/utils';
+import type { ReconData } from '../../types/domain/recon-data';
 
 interface MatchResult {
   lineIndex: number;

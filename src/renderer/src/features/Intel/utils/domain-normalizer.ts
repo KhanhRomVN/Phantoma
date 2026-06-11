@@ -2,9 +2,9 @@
  * Domain Data Normalizer — extends the base normalizer with domain-specific patterns.
  * Handles subdomains, DNS records, certificates, WHOIS data, etc.
  */
-import type { DataPoint } from '../types/data-point';
-import type { DataSource } from '../types/data-point';
-import type { DomainDataCategory } from '../types/domain-data-point';
+import type { DataPoint } from '../types/domain/data-point';
+import type { DataSource } from '../types/domain/data-point';
+import type { DomainDataCategory } from '../types/domain/domain-data-point';
 
 let _dpCounter = 0;
 function nextId(): string {
@@ -26,7 +26,8 @@ function createDataPoint(
     category,
     label,
     value,
-    displayValue: typeof value === 'string' ? value.substring(0, 200) : String(value).substring(0, 200),
+    displayValue:
+      typeof value === 'string' ? value.substring(0, 200) : String(value).substring(0, 200),
     confidence: 0.5,
     source,
     relevance: 0.5,
@@ -57,8 +58,19 @@ export function normalizeSubdomain(
   }
 
   // Check for internal patterns
-  const internalPatterns = ['dev', 'staging', 'test', 'internal', 'localhost', 'admin', 'db', 'api-internal'];
-  const isInternal = internalPatterns.some(p => name.toLowerCase().startsWith(p + '.') || name.toLowerCase().includes('.' + p + '.'));
+  const internalPatterns = [
+    'dev',
+    'staging',
+    'test',
+    'internal',
+    'localhost',
+    'admin',
+    'db',
+    'api-internal',
+  ];
+  const isInternal = internalPatterns.some(
+    (p) => name.toLowerCase().startsWith(p + '.') || name.toLowerCase().includes('.' + p + '.'),
+  );
   const category = isInternal ? 'subdomain_internal' : 'subdomain';
 
   // Subdomain takeover check (CNAME to unclaimed service)
@@ -153,35 +165,49 @@ export function normalizeCertificate(
   const dps: DataPoint[] = [];
 
   // Main certificate
-  dps.push(createDataPoint('certificate', 'SSL Certificate', cert, source, {
-    displayValue: `${cert.issuer} — ${cert.domains.length} domains`,
-    confidence: 0.9,
-    relevance: 0.8,
-    metadata: cert,
-  }));
+  dps.push(
+    createDataPoint('certificate', 'SSL Certificate', cert, source, {
+      displayValue: `${cert.issuer} — ${cert.domains.length} domains`,
+      confidence: 0.9,
+      relevance: 0.8,
+      metadata: cert,
+    }),
+  );
 
   // Issuer
-  dps.push(createDataPoint('cert_issuer', 'Certificate Issuer', cert.issuer, source, {
-    confidence: 0.9,
-    relevance: 0.6,
-  }));
+  dps.push(
+    createDataPoint('cert_issuer', 'Certificate Issuer', cert.issuer, source, {
+      confidence: 0.9,
+      relevance: 0.6,
+    }),
+  );
 
   // Validity
-  dps.push(createDataPoint('cert_validity', 'Certificate Validity', `${cert.validFrom} → ${cert.validTo}`, source, {
-    confidence: 0.9,
-    relevance: 0.7,
-    metadata: { validFrom: cert.validFrom, validTo: cert.validTo },
-  }));
+  dps.push(
+    createDataPoint(
+      'cert_validity',
+      'Certificate Validity',
+      `${cert.validFrom} → ${cert.validTo}`,
+      source,
+      {
+        confidence: 0.9,
+        relevance: 0.7,
+        metadata: { validFrom: cert.validFrom, validTo: cert.validTo },
+      },
+    ),
+  );
 
   // Domains on certificate
   for (const domain of cert.domains) {
     const isNoise = !domain.includes(targetDomain.replace('www.', '')) && !domain.startsWith('*.');
-    dps.push(createDataPoint('cert_domains', 'Domain on Certificate', domain, source, {
-      confidence: 0.8,
-      relevance: isNoise ? 0.1 : 0.6,
-      isNoise: isNoise,
-      tags: isNoise ? ['shared-cert', 'unrelated'] : ['matched'],
-    }));
+    dps.push(
+      createDataPoint('cert_domains', 'Domain on Certificate', domain, source, {
+        confidence: 0.8,
+        relevance: isNoise ? 0.1 : 0.6,
+        isNoise: isNoise,
+        tags: isNoise ? ['shared-cert', 'unrelated'] : ['matched'],
+      }),
+    );
   }
 
   return dps;
@@ -190,11 +216,7 @@ export function normalizeCertificate(
 /**
  * Normalize a WHOIS field.
  */
-export function normalizeWhoisField(
-  field: string,
-  value: string,
-  source: DataSource,
-): DataPoint {
+export function normalizeWhoisField(field: string, value: string, source: DataSource): DataPoint {
   const fieldCategoryMap: Record<string, DomainDataCategory> = {
     domainName: 'whois_domain_name',
     registrar: 'whois_registrar',
@@ -258,14 +280,20 @@ export function normalizeSensitiveExposure(
 /**
  * Normalize an email harvested for the domain.
  */
-export function normalizeHarvestedEmail(
-  email: string,
-  source: DataSource,
-): DataPoint {
+export function normalizeHarvestedEmail(email: string, source: DataSource): DataPoint {
   // Check if likely catch-all or generic
-  const genericPrefixes = ['admin', 'info', 'contact', 'support', 'sales', 'hello', 'noreply', 'no-reply'];
+  const genericPrefixes = [
+    'admin',
+    'info',
+    'contact',
+    'support',
+    'sales',
+    'hello',
+    'noreply',
+    'no-reply',
+  ];
   const prefix = email.split('@')[0].toLowerCase();
-  const isGeneric = genericPrefixes.some(g => prefix === g);
+  const isGeneric = genericPrefixes.some((g) => prefix === g);
 
   return createDataPoint('harvested_email', isGeneric ? 'Generic Email' : 'Email', email, source, {
     confidence: 0.7,
@@ -312,12 +340,18 @@ export function normalizeOpenPort(
   banner: string | null,
   source: DataSource,
 ): DataPoint {
-  return createDataPoint('open_port', `Port ${port}`, `${service}${banner ? ' — ' + banner.substring(0, 100) : ''}`, source, {
-    confidence: 0.9,
-    relevance: 0.7,
-    metadata: { port, service, banner },
-    tags: [service, port < 1024 ? 'privileged' : 'unprivileged'],
-  });
+  return createDataPoint(
+    'open_port',
+    `Port ${port}`,
+    `${service}${banner ? ' — ' + banner.substring(0, 100) : ''}`,
+    source,
+    {
+      confidence: 0.9,
+      relevance: 0.7,
+      metadata: { port, service, banner },
+      tags: [service, port < 1024 ? 'privileged' : 'unprivileged'],
+    },
+  );
 }
 
 /**

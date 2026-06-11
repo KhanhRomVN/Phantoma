@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import type { DataPoint } from '../types/data-point';
-import type { SmartCategoryGroup } from '../types/smart-category';
-import { SectionHeader } from './shared/SectionHeader';
-import { StatBox } from './shared/StatBox';
-import { DataTable } from './shared/DataTable';
+import type { DataPoint } from '../../types/domain/data-point';
+import type { SmartCategoryGroup } from '../../types/domain/smart-category';
+import { SectionHeader } from '../shared/SectionHeader';
+import { StatBox } from '../shared/StatBox';
+import { DataTable } from '../shared/DataTable';
 
 interface MentionsProps {
   dataPoints: DataPoint[];
@@ -11,15 +11,19 @@ interface MentionsProps {
 }
 
 export function Mentions({ dataPoints, activeGroup }: MentionsProps) {
-  const grouped = useMemo(() => dataPoints.reduce(
-    (acc, dp) => {
-      const key = dp.category;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(dp);
-      return acc;
-    },
-    {} as Record<string, DataPoint[]>,
-  ), [dataPoints]);
+  const grouped = useMemo(
+    () =>
+      dataPoints.reduce(
+        (acc, dp) => {
+          const key = dp.category;
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(dp);
+          return acc;
+        },
+        {} as Record<string, DataPoint[]>,
+      ),
+    [dataPoints],
+  );
 
   if (dataPoints.length === 0) {
     return (
@@ -45,10 +49,7 @@ export function Mentions({ dataPoints, activeGroup }: MentionsProps) {
       </div>
 
       <SectionHeader accent="#f5a623">Internet Mentions</SectionHeader>
-      <DataTable
-        dataPoints={dataPoints}
-        columns={['value', 'category', 'confidence', 'source']}
-      />
+      <DataTable dataPoints={dataPoints} columns={['value', 'category', 'confidence', 'source']} />
     </div>
   );
 }

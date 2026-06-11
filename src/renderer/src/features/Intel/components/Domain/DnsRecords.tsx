@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import type { DataPoint } from '../types/data-point';
-import type { SmartCategoryGroup } from '../types/smart-category';
-import { SectionHeader } from './shared/SectionHeader';
-import { StatBox } from './shared/StatBox';
-import { DataTable } from './shared/DataTable';
+import type { DataPoint } from '../../types/domain/data-point';
+import type { SmartCategoryGroup } from '../../types/domain/smart-category';
+import { SectionHeader } from '../shared/SectionHeader';
+import { StatBox } from '../shared/StatBox';
+import { DataTable } from '../shared/DataTable';
 
 interface DnsRecordsProps {
   dataPoints: DataPoint[];
@@ -11,15 +11,19 @@ interface DnsRecordsProps {
 }
 
 export function DnsRecords({ dataPoints, activeGroup }: DnsRecordsProps) {
-  const grouped = useMemo(() => dataPoints.reduce(
-    (acc, dp) => {
-      const key = dp.category;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(dp);
-      return acc;
-    },
-    {} as Record<string, DataPoint[]>,
-  ), [dataPoints]);
+  const grouped = useMemo(
+    () =>
+      dataPoints.reduce(
+        (acc, dp) => {
+          const key = dp.category;
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(dp);
+          return acc;
+        },
+        {} as Record<string, DataPoint[]>,
+      ),
+    [dataPoints],
+  );
 
   const recordTypes = Object.keys(grouped).length;
   const highConfCount = dataPoints.filter((dp) => dp.confidence >= 0.7).length;

@@ -1,8 +1,8 @@
 /**
  * Domain-local confidence scorer — calculates confidence, relevance, and risk scores.
  */
-import type { DataPoint } from '../types/data-point';
-import type { ReconEntity } from '../types/entity';
+import type { DataPoint } from '../types/domain/data-point';
+import type { ReconEntity } from '../types/domain/entity';
 
 /**
  * Score a single data point based on its source credibility, metadata signals, and noise flags.
@@ -61,8 +61,14 @@ export function calculateRiskScore(entity: ReconEntity): number {
 
     // Bonus for sensitive categories
     const sensitiveCategories = [
-      'env_exposure', 'git_exposure', 'exposed_api_key', 'exposed_secret_token',
-      'admin_panel', 'database_dump', 'source_code_exposure', 'subdomain_takeover',
+      'env_exposure',
+      'git_exposure',
+      'exposed_api_key',
+      'exposed_secret_token',
+      'admin_panel',
+      'database_dump',
+      'source_code_exposure',
+      'subdomain_takeover',
     ];
     const categoryBonus = sensitiveCategories.includes(dp.category) ? 25 : 0;
 
