@@ -1,25 +1,25 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { cn } from '../../../shared/lib/utils';
-import { usePersonRecon } from './hooks/usePersonRecon';
+import { cn } from '../../../../shared/lib/utils';
+import { usePersonRecon } from '../../hooks/usePersonRecon';
 
-import { SourcesPanel } from './components/shared/SourcesPanel';
-import { RawDataView } from './components/shared/RawDataView';
-import { TimelineCluster } from './components/shared/TimelineCluster';
-import { DataView } from './components/shared/DataView';
-import { Overview } from './components/Overview';
-import { SectionHeader } from './components/shared/SectionHeader';
-import { ConfidenceBadge } from './components/shared/ConfidenceBadge';
-import { Identity } from './components/Identity';
-import { Contacts } from './components/Contacts';
-import { SocialMedia } from './components/SocialMedia';
-import { Technical } from './components/Technical';
-import { Leaks } from './components/Leaks';
-import { Services } from './components/Services';
-import { Noise } from './components/Noise';
-import { Log } from './components/Log';
+import { SourcesPanel } from '../../components/shared/SourcesPanel';
+import { RawDataView } from '../../components/shared/RawDataView';
+import { TimelineCluster } from '../../components/shared/TimelineCluster';
+import { DataView } from '../../components/shared/DataView';
+import { Overview } from './Overview';
+import { SectionHeader } from '../../components/shared/SectionHeader';
+import { ConfidenceBadge } from '../../components/shared/ConfidenceBadge';
+import { Identity } from './Identity';
+import { Contacts } from './Contacts';
+import { SocialMedia } from './SocialMedia';
+import { Technical } from './Technical';
+import { Leaks } from './Leaks';
+import { Services } from './Services';
+import { Noise } from './Noise';
+import { Log } from './Log';
 
 import { ChevronDown, Search as SearchIcon, FileClock } from 'lucide-react';
-import { getTabIcon } from './constants/icons';
+import { getTabIcon } from '../../constants/icons';
 
 interface PersonSession {
   id: string;
@@ -102,7 +102,7 @@ export default function PersonRecon({ initialEmail = 'phantoma@gmail.com' }: Per
       return;
     }
     if (activeEmail === 'phantoma@gmail.com') {
-      import('./data/phantoma@gmail.com.json')
+      import('../../data/person/phantoma@gmail.com.json')
         .then((mod) => {
           const data = mod.default as unknown as Record<string, unknown>;
           DATA_CACHE['phantoma@gmail.com'] = data;
@@ -162,12 +162,17 @@ export default function PersonRecon({ initialEmail = 'phantoma@gmail.com' }: Per
   const displayDataPoints = useMemo(() => {
     if (!searchQuery.trim()) return filteredDataPoints;
     const lower = searchQuery.toLowerCase();
-    return filteredDataPoints.filter(dp => {
+    return filteredDataPoints.filter((dp) => {
       const label = dp.label.toLowerCase();
       const displayVal = (dp.displayValue || '').toLowerCase();
       const val = String(dp.value || '').toLowerCase();
       const source = dp.source.name.toLowerCase();
-      return label.includes(lower) || displayVal.includes(lower) || val.includes(lower) || source.includes(lower);
+      return (
+        label.includes(lower) ||
+        displayVal.includes(lower) ||
+        val.includes(lower) ||
+        source.includes(lower)
+      );
     });
   }, [filteredDataPoints, searchQuery]);
 
@@ -196,7 +201,7 @@ export default function PersonRecon({ initialEmail = 'phantoma@gmail.com' }: Per
             </button>
             <span className="text-[13px] font-mono font-bold text-[#c8d6f0]">Scan Log</span>
           </div>
-          <Log data={result as unknown as import('./types/recon-data').ReconData} />
+          <Log data={result as unknown as import('../../types/person/recon-data').ReconData} />
         </div>
       );
     }
@@ -455,9 +460,7 @@ export default function PersonRecon({ initialEmail = 'phantoma@gmail.com' }: Per
                 onContextMenu={(e) => handleContextMenu(e, sess.id)}
                 className={cn(
                   'group px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 relative',
-                  isActive
-                    ? 'bg-[#0d1017]'
-                    : 'bg-[#0a0e14] hover:bg-[#0c1016]',
+                  isActive ? 'bg-[#0d1017]' : 'bg-[#0a0e14] hover:bg-[#0c1016]',
                 )}
               >
                 {/* Active accent line */}
@@ -521,10 +524,7 @@ export default function PersonRecon({ initialEmail = 'phantoma@gmail.com' }: Per
                 {/* Status text for non-done states */}
                 {sess.status !== 'done' && (
                   <div className="mt-1 ml-[14px]">
-                    <span
-                      className="text-[9px] font-mono"
-                      style={{ color: statusMeta.color }}
-                    >
+                    <span className="text-[9px] font-mono" style={{ color: statusMeta.color }}>
                       {sess.status === 'queued'
                         ? 'Queued...'
                         : sess.status === 'scanning'

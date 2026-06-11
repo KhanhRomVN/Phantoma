@@ -1,26 +1,26 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { cn } from '../../../../shared/lib/utils';
-import { useIpRecon } from './hooks/useIpRecon';
+import { useIpRecon } from '../../hooks/useIpRecon';
 
-import { SourcesPanel } from './components/shared/SourcesPanel';
-import { RawDataView } from './components/shared/RawDataView';
-import { TimelineCluster } from './components/shared/TimelineCluster';
-import { DataView } from './components/shared/DataView';
-import { Overview } from './components/Overview';
-import { SectionHeader } from './components/shared/SectionHeader';
-import { ConfidenceBadge } from './components/shared/ConfidenceBadge';
-import { Shodan } from './components/Shodan';
-import { ReverseIp } from './components/ReverseIp';
-import { GeoIp } from './components/GeoIp';
-import { Bgp } from './components/Bgp';
-import { ThreatIntel } from './components/ThreatIntel';
-import { Abuse } from './components/Abuse';
-import { SslCerts } from './components/SslCerts';
-import { Mentions } from './components/Mentions';
-import { Log } from './components/Log';
+import { SourcesPanel } from '../../components/shared/SourcesPanel';
+import { RawDataView } from '../../components/shared/RawDataView';
+import { TimelineCluster } from '../../components/shared/TimelineCluster';
+import { DataView } from '../../components/shared/DataView';
+import { Overview } from './Overview';
+import { SectionHeader } from '../../components/shared/SectionHeader';
+import { ConfidenceBadge } from '../../components/shared/ConfidenceBadge';
+import { Shodan } from './Shodan';
+import { ReverseIp } from './ReverseIp';
+import { GeoIp } from './GeoIp';
+import { Bgp } from './Bgp';
+import { ThreatIntel } from './ThreatIntel';
+import { Abuse } from './Abuse';
+import { SslCerts } from './SslCerts';
+import { Mentions } from './Mentions';
+import { Log } from './Log';
 
 import { ChevronDown, Search as SearchIcon, FileClock } from 'lucide-react';
-import { getTabIcon } from './constants/icons';
+import { getTabIcon } from '../../constants/icons';
 
 interface IpSession {
   id: string;
@@ -103,7 +103,7 @@ export default function IpRecon({ initialIp = '104.18.32.11' }: IpReconProps) {
       return;
     }
     if (activeIp === '104.18.32.11') {
-      import('./data/104.18.32.11.json')
+      import('../../data/ip/104.18.32.11.json')
         .then((mod) => {
           const data = mod.default as unknown as Record<string, unknown>;
           DATA_CACHE['104.18.32.11'] = data;
@@ -202,7 +202,7 @@ export default function IpRecon({ initialIp = '104.18.32.11' }: IpReconProps) {
             </button>
             <span className="text-[13px] font-mono font-bold text-[#c8d6f0]">Scan Log</span>
           </div>
-          <Log data={result as unknown as import('./types/recon-data').ReconData} />
+          <Log data={result as unknown as import('../../types/ip/recon-data').ReconData} />
         </div>
       );
     }

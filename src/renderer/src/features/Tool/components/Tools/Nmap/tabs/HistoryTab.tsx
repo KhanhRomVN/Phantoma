@@ -17,7 +17,7 @@ import { groupHistoryByDate } from '../utils';
 import ScanCard from '../components/ScanCard';
 import PortsTable from '../components/PortsTable';
 
-import { parseNmapXML, formatDuration } from '../../../../../../utils/nmapParser';
+import { parseNmapXML, formatDuration } from '../nmapParser';
 
 interface HistoryTabProps {
   history: ScanResult[];
@@ -54,45 +54,9 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
   contextMenu,
   accentColor,
   glow,
-  onTooltipShow,
 }) => {
   const historyContainerRef = useRef<HTMLDivElement>(null);
   const groupedHistory = groupHistoryByDate(filteredHistory);
-
-  // Helper function to format date label
-  const getDateLabelHelper = (timestamp: number): string => {
-    if (!timestamp || isNaN(timestamp) || timestamp <= 0) {
-      return 'Unknown date';
-    }
-
-    const now = new Date();
-    const scanDate = new Date(timestamp);
-
-    if (isNaN(scanDate.getTime())) {
-      return 'Unknown date';
-    }
-
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const scanDay = new Date(scanDate.getFullYear(), scanDate.getMonth(), scanDate.getDate());
-
-    const formatDate = (date: Date): string => {
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
-    };
-
-    if (scanDay.getTime() === today.getTime()) {
-      return 'Today';
-    } else if (scanDay.getTime() === yesterday.getTime()) {
-      return `Yesterday - ${formatDate(scanDate)}`;
-    } else {
-      return formatDate(scanDate);
-    }
-  };
 
   // Close context menu when clicking elsewhere
   useEffect(() => {
@@ -520,7 +484,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             >
               {dateLabel}
             </div>
-            {scans.map((scan, idx) => {
+            {scans.map((scan) => {
               const globalIdx = history.findIndex((h) => h.timestamp === scan.timestamp);
               const isExpanded = expandedCardIndex === globalIdx;
               return (

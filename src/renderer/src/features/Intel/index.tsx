@@ -117,7 +117,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
       return;
     }
     if (activeDomain === 'phantoma.com') {
-      import('./data/phantoma.com.json')
+      import('./data/domain/phantoma.com.json')
         .then((mod) => {
           const data = mod.default as unknown as Record<string, unknown>;
           DATA_CACHE['phantoma.com'] = data;
