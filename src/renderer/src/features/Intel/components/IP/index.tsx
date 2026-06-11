@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '../../../../shared/lib/utils';
 import { useIpRecon } from './hooks/useIpRecon';
 
 import { SourcesPanel } from './components/shared/SourcesPanel';
@@ -163,12 +163,17 @@ export default function IpRecon({ initialIp = '104.18.32.11' }: IpReconProps) {
   const displayDataPoints = useMemo(() => {
     if (!searchQuery.trim()) return filteredDataPoints;
     const lower = searchQuery.toLowerCase();
-    return filteredDataPoints.filter(dp => {
+    return filteredDataPoints.filter((dp) => {
       const label = dp.label.toLowerCase();
       const displayVal = (dp.displayValue || '').toLowerCase();
       const val = String(dp.value || '').toLowerCase();
       const source = dp.source.name.toLowerCase();
-      return label.includes(lower) || displayVal.includes(lower) || val.includes(lower) || source.includes(lower);
+      return (
+        label.includes(lower) ||
+        displayVal.includes(lower) ||
+        val.includes(lower) ||
+        source.includes(lower)
+      );
     });
   }, [filteredDataPoints, searchQuery]);
 
@@ -207,9 +212,7 @@ export default function IpRecon({ initialIp = '104.18.32.11' }: IpReconProps) {
       return (
         <div className="flex-1 flex items-center justify-center flex-col gap-3">
           <div className="text-[24px] animate-pulse">⏳</div>
-          <div className="text-[12px] font-mono text-[#c8d6f0]">
-            Processing IP RECON data...
-          </div>
+          <div className="text-[12px] font-mono text-[#c8d6f0]">Processing IP RECON data...</div>
         </div>
       );
     }
@@ -459,9 +462,7 @@ export default function IpRecon({ initialIp = '104.18.32.11' }: IpReconProps) {
                 onContextMenu={(e) => handleContextMenu(e, sess.id)}
                 className={cn(
                   'group px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 relative',
-                  isActive
-                    ? 'bg-[#0d1017]'
-                    : 'bg-[#0a0e14] hover:bg-[#0c1016]',
+                  isActive ? 'bg-[#0d1017]' : 'bg-[#0a0e14] hover:bg-[#0c1016]',
                 )}
               >
                 {/* Active accent line */}
@@ -525,10 +526,7 @@ export default function IpRecon({ initialIp = '104.18.32.11' }: IpReconProps) {
                 {/* Status text for non-done states */}
                 {sess.status !== 'done' && (
                   <div className="mt-1 ml-[14px]">
-                    <span
-                      className="text-[9px] font-mono"
-                      style={{ color: statusMeta.color }}
-                    >
+                    <span className="text-[9px] font-mono" style={{ color: statusMeta.color }}>
                       {sess.status === 'queued'
                         ? 'Queued...'
                         : sess.status === 'scanning'

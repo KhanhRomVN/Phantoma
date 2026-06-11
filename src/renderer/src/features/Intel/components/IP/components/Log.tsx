@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '../../../../../shared/lib/utils';
 import type { ReconData } from '../types/recon-data';
 
 export function Log({ data }: { data: ReconData }) {
@@ -39,10 +39,7 @@ export function Log({ data }: { data: ReconData }) {
   }, [lines]);
 
   return (
-    <div
-      ref={ref}
-      className="flex-1 overflow-y-auto p-3 font-mono text-[12px] leading-relaxed"
-    >
+    <div ref={ref} className="flex-1 overflow-y-auto p-3 font-mono text-[12px] leading-relaxed">
       <div className="text-[#c8d6f0] mb-2">
         ghost-recon v2.0.0 — target: {data.target} — {data.scanTime}
       </div>

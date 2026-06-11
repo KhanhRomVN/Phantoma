@@ -2,10 +2,10 @@
  * Domain-specific DataCategory extensions.
  * Reuses the base DataPoint type from Person module.
  */
-import type { DataCategory as BaseDataCategory } from '../../Person/types/data-point';
+import type { DataCategory as BaseDataCategory } from '../../../Person/types/data-point';
 
 // Re-export base categories that apply to Domain
-export type { DataPoint, DataSource, SourceType } from '../../Person/types/data-point';
+export type { DataPoint, DataSource, SourceType } from '../../../Person/types/data-point';
 
 /**
  * Domain-specific data categories.

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import DomainRecon from './Domain';
-import IpRecon from './IP';
+import DomainRecon from './components/Domain';
+import IpRecon from './components/IP';
 import PersonRecon from './Person';
 
 interface ReconProps {

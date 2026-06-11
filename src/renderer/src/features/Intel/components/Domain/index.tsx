@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '../../../../shared/lib/utils';
 import { useDomainRecon } from './hooks/useDomainRecon';
 import { SearchProvider } from './context/SearchContext';
 
