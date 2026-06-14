@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Wifi, Globe, Bug, Eye, Shield, Server, ExternalLink } from 'lucide-react';
+import { Search, Wifi, Globe, Bug, Eye, Shield, Server } from 'lucide-react';
 import { TOOLS_LIST } from './data/toolsList';
 import { CATEGORY_META } from './constants';
 import { ToolIcon } from './utils/iconHelpers';

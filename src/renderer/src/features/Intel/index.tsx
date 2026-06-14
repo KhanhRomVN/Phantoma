@@ -444,7 +444,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
 
   return (
     <SearchProvider>
-      <div className="flex flex-1 overflow-hidden bg-[#0f1319]">
+      <div className="flex flex-1 h-full overflow-hidden bg-[#0f1319]">
         {/* Left sidebar */}
         <div className="w-[293px] bg-[#0f1319] border-r border-[#1c2333] flex flex-col shrink-0 overflow-hidden">
           <div className="flex items-center justify-between px-3 h-[40px] border-b border-[#1c2333] shrink-0">

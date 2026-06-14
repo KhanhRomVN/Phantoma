@@ -11,18 +11,18 @@ import {
   ScrollText,
   X,
 } from 'lucide-react';
-import { RequestList } from './Intruder/RequestList';
-import { RequestDetails } from './Intruder/RequestDetails';
-import TargetPanel from './Target';
-import { WasmPanel } from './Wasm';
-import { MediaPanel } from './Media';
-import { PayloadPanel } from './Payload';
-import { ComparePanel } from './Compare';
-import { ComposerPanel } from './Composer';
-import { SourcesPanel } from './Source';
-import { LogViewer } from './Log';
+import { RequestList } from './components/Intruder/RequestList';
+import { RequestDetails } from './components/Intruder/RequestDetails';
+import TargetPanel from './components/Target';
+import { WasmPanel } from './components/Wasm';
+import { MediaPanel } from './components/Media';
+import { PayloadPanel } from './components/Payload';
+import { ComparePanel } from './components/Compare';
+import { ComposerPanel } from './components/Composer';
+import { SourcesPanel } from './components/Source';
+import { LogViewer } from './components/Log';
 import type { NetworkRequest, WebSocketConnection } from '../../types/inspector';
-import { InspectorFilter, initialFilterState } from './Intruder/RequestDetails/Filter';
+import { InspectorFilter, initialFilterState } from './components/Intruder/RequestDetails/Filter';
 
 // Mock data for demonstration
 const mockRequests: NetworkRequest[] = [

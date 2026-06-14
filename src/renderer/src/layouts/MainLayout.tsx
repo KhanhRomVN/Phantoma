@@ -1,9 +1,11 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useActiveModule } from '../features/Tool/hooks/useActiveModule';
 import { useActiveSubItem } from '../features/Tool/hooks/useActiveSubItem';
 import { useActiveTarget } from '../features/Tool/hooks/useActiveTarget';
 import { ModuleBar } from '../components/ModuleBar';
 import { IntelPanel } from '../components/IntelPanel';
+import { PhantomModule } from '../features/Tool/types/types';
 
 /**
  * MainLayout — Shell of the application
@@ -11,15 +13,35 @@ import { IntelPanel } from '../components/IntelPanel';
  * Mirrors the old ToolFeature layout from temp/Phantoma
  */
 const MainLayout = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { activeModule, setActiveModule } = useActiveModule('recon');
   const { activeSubItem, setActiveSubItem } = useActiveSubItem(null);
   const { activeSubTarget } = useActiveTarget();
+
+  // Sync activeModule with URL path
+  useEffect(() => {
+    const currentPath = location.pathname.slice(1) || 'recon';
+    const validPaths = ['dashboard', 'recon', 'scanner', 'tools', 'emulate', 'wireless', 'target', 'settings'];
+    const isCurrentPathValid = validPaths.includes(currentPath);
+    
+    if (isCurrentPathValid && currentPath !== activeModule) {
+      setActiveModule(currentPath as any);
+    }
+  }, [location.pathname, activeModule, setActiveModule]);
+
+  // Navigate when activeModule changes
+  const handleModuleSelect = (moduleId: string) => {
+    setActiveModule(moduleId as PhantomModule);
+    navigate(`/${moduleId === 'recon' ? '' : moduleId}`);
+  };
 
   const handleSubItemSelect = (subItemId: string) => {
     setActiveSubItem(subItemId);
     // Ensure module is set to recon when a recon sub-item is selected
     if (subItemId.startsWith('recon-')) {
       setActiveModule('recon');
+      navigate('/recon');
     }
   };
 
@@ -27,7 +49,7 @@ const MainLayout = () => {
     <div className="phantom flex h-screen w-screen overflow-hidden bg-phantom-bg font-mono text-xs text-phantom-text">
       <ModuleBar
         active={activeModule}
-        onSelect={setActiveModule}
+        onSelect={handleModuleSelect}
         activeSubItem={activeSubItem}
         onSubItemSelect={handleSubItemSelect}
       />

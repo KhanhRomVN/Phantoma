@@ -3,11 +3,11 @@
  * Reuses the entity recon pattern from Person module.
  */
 import { useState, useMemo, useCallback } from 'react';
-import type { ReconResult } from '../types/recon-result';
-import type { ReconEntity } from '../types/entity';
-import type { DataPoint } from '../types/data-point';
-import type { SmartCategoryGroup } from '../types/smart-category';
-import { parseDomainReconResult } from '../utils/domain-parser';
+import type { ReconResult } from '../types/domain/recon-result';
+import type { ReconEntity } from '../types/domain/entity';
+import type { DataPoint } from '../types/domain/data-point';
+import type { SmartCategoryGroup } from '../types/domain/smart-category';
+import { parseDomainReconResult } from '../utils/domain/domain-parser';
 
 interface UseDomainReconReturn {
   result: ReconResult | null;
@@ -38,7 +38,7 @@ export function useDomainRecon(): UseDomainReconReturn {
 
   const selectedEntity = useMemo(() => {
     if (!selectedEntityId || !result) return null;
-    return result.entities.find(e => e.id === selectedEntityId) || null;
+    return result.entities.find((e) => e.id === selectedEntityId) || null;
   }, [selectedEntityId, result]);
 
   const loadData = useCallback((rawData: Record<string, unknown>) => {
@@ -47,7 +47,8 @@ export function useDomainRecon(): UseDomainReconReturn {
     try {
       const parsed = parseDomainReconResult(rawData);
       setResult(parsed);
-      const primary = parsed.entities.find(e => e.relevance === 'primary') || parsed.entities[0] || null;
+      const primary =
+        parsed.entities.find((e) => e.relevance === 'primary') || parsed.entities[0] || null;
       setSelectedEntityId(primary?.id || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse domain RECON data');
@@ -65,61 +66,88 @@ export function useDomainRecon(): UseDomainReconReturn {
     setActiveTabState(tabId);
   }, []);
 
-  const searchDataPoints = useCallback((query: string): DataPoint[] => {
-    if (!result || !query.trim()) return [];
-    const lower = query.toLowerCase();
-    return result.allDataPoints.filter(dp => {
-      const label = dp.label.toLowerCase();
-      const displayVal = (dp.displayValue || '').toLowerCase();
-      const val = String(dp.value || '').toLowerCase();
-      const source = dp.source.name.toLowerCase();
-      return label.includes(lower) || displayVal.includes(lower) || val.includes(lower) || source.includes(lower);
-    });
-  }, [result]);
+  const searchDataPoints = useCallback(
+    (query: string): DataPoint[] => {
+      if (!result || !query.trim()) return [];
+      const lower = query.toLowerCase();
+      return result.allDataPoints.filter((dp) => {
+        const label = dp.label.toLowerCase();
+        const displayVal = (dp.displayValue || '').toLowerCase();
+        const val = String(dp.value || '').toLowerCase();
+        const source = dp.source.name.toLowerCase();
+        return (
+          label.includes(lower) ||
+          displayVal.includes(lower) ||
+          val.includes(lower) ||
+          source.includes(lower)
+        );
+      });
+    },
+    [result],
+  );
 
-  const getDataPointsForTab = useCallback((tabId: string): DataPoint[] => {
-    if (!result) return [];
+  const getDataPointsForTab = useCallback(
+    (tabId: string): DataPoint[] => {
+      if (!result) return [];
 
-    // Domain-level tabs always use all data points (not entity-scoped)
-    const DOMAIN_LEVEL_TABS = new Set([
-      'whois', 'dns', 'subdomains', 'certificates', 'infrastructure',
-      'sensitive', 'technology', 'osint', 'emails', 'people',
-      'mentions', 'network',
-    ]);
+      // Domain-level tabs always use all data points (not entity-scoped)
+      const DOMAIN_LEVEL_TABS = new Set([
+        'whois',
+        'dns',
+        'subdomains',
+        'certificates',
+        'infrastructure',
+        'sensitive',
+        'technology',
+        'osint',
+        'emails',
+        'people',
+        'mentions',
+        'network',
+      ]);
 
-    if (tabId === 'overview') {
-      return selectedEntity ? selectedEntity.dataPoints : result.allDataPoints;
-    }
-    if (tabId === 'timeline') {
-      const dps = selectedEntity ? selectedEntity.dataPoints : result.allDataPoints;
-      return dps
-        .filter(dp => dp.discoveredAt)
-        .sort((a, b) => (a.discoveredAt || '').localeCompare(b.discoveredAt || ''));
-    }
-    if (tabId === 'raw') {
-      return selectedEntity
-        ? selectedEntity.dataPoints.filter(dp => dp.isNoise || dp.category === 'unclassified')
-        : result.unassignedDataPoints;
-    }
-    if (tabId === 'sources') return [];
+      if (tabId === 'overview') {
+        return selectedEntity ? selectedEntity.dataPoints : result.allDataPoints;
+      }
+      if (tabId === 'timeline') {
+        const dps = selectedEntity ? selectedEntity.dataPoints : result.allDataPoints;
+        return dps
+          .filter((dp) => dp.discoveredAt)
+          .sort((a, b) => (a.discoveredAt || '').localeCompare(b.discoveredAt || ''));
+      }
+      if (tabId === 'raw') {
+        return selectedEntity
+          ? selectedEntity.dataPoints.filter((dp) => dp.isNoise || dp.category === 'unclassified')
+          : result.unassignedDataPoints;
+      }
+      if (tabId === 'sources') return [];
 
-    const group = categoryGroups.find(g => g.id === tabId);
-    if (!group) return [];
+      const group = categoryGroups.find((g) => g.id === tabId);
+      if (!group) return [];
 
-    // Domain-level tabs ignore entity selection — always show all domain data
-    const scope = DOMAIN_LEVEL_TABS.has(tabId) ? result.allDataPoints : (selectedEntity ? selectedEntity.dataPoints : result.allDataPoints);
+      // Domain-level tabs ignore entity selection — always show all domain data
+      const scope = DOMAIN_LEVEL_TABS.has(tabId)
+        ? result.allDataPoints
+        : selectedEntity
+          ? selectedEntity.dataPoints
+          : result.allDataPoints;
 
-    return scope.filter(dp => group.categories.includes(dp.category));
-  }, [result, selectedEntity, categoryGroups]);
+      return scope.filter((dp) => group.categories.includes(dp.category));
+    },
+    [result, selectedEntity, categoryGroups],
+  );
 
   const filteredDataPoints = useMemo(() => {
     if (!result) return [];
     return getDataPointsForTab(activeTab);
   }, [result, activeTab, selectedEntityId, getDataPointsForTab]);
 
-  const getEntityById = useCallback((entityId: string): ReconEntity | undefined => {
-    return result?.entities.find(e => e.id === entityId);
-  }, [result]);
+  const getEntityById = useCallback(
+    (entityId: string): ReconEntity | undefined => {
+      return result?.entities.find((e) => e.id === entityId);
+    },
+    [result],
+  );
 
   return {
     result,
