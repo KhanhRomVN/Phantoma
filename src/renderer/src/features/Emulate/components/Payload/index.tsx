@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Play, Square, Plus, Trash2, Search, Zap, X } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { NetworkRequest } from '../../../../types/inspector';
+import { StatusBadge } from '../common/StatusBadge';
 
 type PayloadType = 'list' | 'numbers' | 'brute';
 type FuzzerStatus = 'idle' | 'running' | 'done' | 'stopped';
@@ -102,23 +103,6 @@ function countPayloads(job: FuzzerJob) {
   return Math.pow(job.bruteChars.length, job.bruteLen);
 }
 
-function StatusBadge({ status }: { status: number }) {
-  const color = !status
-    ? 'text-red-400 bg-red-500/10'
-    : status < 300
-      ? 'text-emerald-400 bg-emerald-500/10'
-      : status < 400
-        ? 'text-blue-400 bg-blue-500/10'
-        : status < 500
-          ? 'text-amber-400 bg-amber-500/10'
-          : 'text-red-400 bg-red-500/10';
-  return (
-    <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-bold font-mono', color)}>
-      {status || 'ERR'}
-    </span>
-  );
-}
-
 function AddJobDrawer({
   onClose,
   onSave,
@@ -141,8 +125,17 @@ function AddJobDrawer({
       <div className="absolute inset-0 bg-black/40 z-40" onClick={onClose} />
       <div className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[85%]">
         <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
-          <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-amber-500/15 border border-amber-500/25">
-            <Zap className="w-4 h-4 text-amber-400" />
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 36,
+            height: 40,
+            borderRadius: 8,
+            background: 'var(--accent-amber)/15',
+            border: '1px solid var(--accent-amber)/25',
+          }}>
+            <Zap style={{ width: 16, height: 16, color: 'var(--accent-amber)' }} />
           </div>
           <div className="flex-1">
             <h3 className="text-base font-bold text-text-primary">New Fuzzer Job</h3>

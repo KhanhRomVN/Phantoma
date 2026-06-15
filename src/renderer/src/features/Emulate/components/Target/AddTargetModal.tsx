@@ -390,9 +390,9 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 bg-[#1a1f2a] border border-[#1e2535] rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-in fade-in zoom-in duration-200">
+      <div className="relative z-10 bg-[var(--dialog-background)] border border-[var(--border)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-in fade-in zoom-in duration-200">
         {/* Header */}
-        <div className="px-5 pt-5 pb-3 border-b border-[#1e2535] flex items-center gap-3 shrink-0">
+        <div className="px-5 pt-5 pb-3 border-b border-[var(--border)] flex items-center gap-3 shrink-0">
           <div
             className={cn(
               'flex items-center justify-center w-9 h-9 rounded-lg border shrink-0',
@@ -419,7 +419,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-[#252a3a] text-text-secondary hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0"
+            className="p-1.5 rounded-lg bg-[var(--sidebar-itemHover)] text-[var(--text-secondary)] hover:text-[var(--error)] hover:bg-[var(--error)]/10 transition-all shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
@@ -465,8 +465,8 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Google"
                   className={cn(
-                    'w-full bg-[#0f1319] border rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-primary',
-                    duplicateError.name ? 'border-red-500' : 'border-[#1e2535]',
+                    'w-full bg-[var(--input-background)] border rounded-lg px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--primary)]',
+                    duplicateError.name ? 'border-[var(--error)]' : 'border-[var(--border)]',
                   )}
                 />
                 {duplicateError.name && (
@@ -481,8 +481,8 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://example.com"
                   className={cn(
-                    'w-full bg-[#0f1319] border rounded-lg px-3 py-2.5 text-sm font-mono text-text-primary outline-none focus:border-primary',
-                    duplicateError.value ? 'border-red-500' : 'border-[#1e2535]',
+                    'w-full bg-[var(--input-background)] border rounded-lg px-3 py-2.5 text-sm font-mono text-[var(--text-primary)] outline-none focus:border-[var(--primary)]',
+                    duplicateError.value ? 'border-[var(--error)]' : 'border-[var(--border)]',
                   )}
                 />
                 {duplicateError.value && (

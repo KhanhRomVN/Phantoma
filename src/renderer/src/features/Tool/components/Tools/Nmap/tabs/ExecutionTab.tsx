@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NmapScanParams, TooltipState } from '../types';
 import { buildCommand } from '../utils';
 import { SCAN_TYPES, TIMING_LABELS, COMMON_FLAGS } from '../constants';
@@ -30,7 +30,6 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
   glow,
   onTooltipShow,
 }) => {
-  const [open, setOpen] = useState(false);
   const activeCount = category.flags.filter((f) => activeFlags.includes(f.value)).length;
 
   const showTooltip = (text: string, e: React.MouseEvent<HTMLElement>) => {
@@ -39,46 +38,12 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
   };
 
   return (
-    <div
-      style={{
-        borderRadius: 6,
-        border: `1px solid ${open ? accentColor + '30' : 'var(--border)'}`,
-        background: open ? 'var(--dropdown-item-hover)' : 'var(--card-background)',
-        overflow: 'hidden',
-        transition: 'border-color 0.2s',
-      }}
-    >
-      {/* Header */}
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '9px 14px',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          textAlign: 'left',
-        }}
-      >
-        <span style={{ color: open ? accentColor : 'var(--text-secondary)', fontSize: 13, flexShrink: 0 }}>
-          {category.icon}
-        </span>
-        <span
-          style={{
-            flex: 1,
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            color: open ? 'var(--text-primary)' : 'var(--text-secondary)',
-          }}
-        >
+    <div>
+      <div className="flex items-center gap-2.5 py-2">
+        <span className="flex-1 text-xs font-bold tracking-wide text-text-primary">
           <span
             onMouseEnter={(e) => {
-              const flagList = category.flags.map(f => f.value).join(', ');
+              const flagList = category.flags.map((f) => f.value).join(', ');
               showTooltip(`${category.label}: ${flagList}`, e);
             }}
             onMouseLeave={() => onTooltipShow(null)}
@@ -88,97 +53,53 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
         </span>
         {activeCount > 0 && (
           <span
+            className="text-[9px] font-bold rounded-full px-2 py-0.5"
             style={{
-              fontSize: 9,
-              fontWeight: 700,
               color: accentColor,
               background: accentColor + '20',
               border: `1px solid ${accentColor}40`,
-              borderRadius: 10,
-              padding: '1px 7px',
             }}
           >
             {activeCount}
           </span>
         )}
-        <span
-          style={{
-            fontSize: 10,
-            color: 'var(--text-secondary)',
-            transform: open ? 'rotate(180deg)' : 'none',
-            transition: 'transform 0.2s',
-          }}
-        >
-          ▾
-        </span>
-      </button>
-
-      {/* Flag Pills */}
-      {open && (
-        <div
-          style={{
-            padding: '8px 14px 12px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 5,
-            borderTop: '1px solid var(--divider)',
-          }}
-        >
-          {category.flags.map((flag) => {
-            const active = activeFlags.includes(flag.value);
-            return (
-              <button
-                key={flag.value}
-                onClick={() => onToggle(flag.value)}
-                onMouseEnter={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.borderColor = accentColor + '50';
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                    e.currentTarget.style.background = accentColor + '08';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.borderColor = 'var(--input-border-default)';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                    e.currentTarget.style.background = 'transparent';
-                  }
-                }}
-                style={{
-                  display: 'inline-flex',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: '6px 10px',
-                  borderRadius: 4,
-                  border: `1px solid ${active ? accentColor + '60' : 'var(--input-border-default)'}`,
-                  background: active ? glow : 'transparent',
-                  color: active ? accentColor : 'var(--text-secondary)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'monospace',
-                  transition: 'all 0.12s',
-                  gap: 6,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span>{flag.label}</span>
-                <span
-                  style={{
-                    fontSize: 9,
-                    color: 'var(--text-secondary)',
-                    opacity: 0.7,
-                    fontWeight: 400,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {flag.desc}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      </div>
+      <div className="flex flex-wrap gap-1.5 pb-3">
+        {category.flags.map((flag) => {
+          const active = activeFlags.includes(flag.value);
+          return (
+            <button
+              key={flag.value}
+              onClick={() => onToggle(flag.value)}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.borderColor = accentColor + '50';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = accentColor + '08';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  e.currentTarget.style.borderColor = 'var(--input-border-default)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
+              className="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded text-xs font-semibold font-mono whitespace-nowrap transition-all duration-100"
+              style={{
+                border: `1px solid ${active ? accentColor + '60' : 'var(--input-border-default)'}`,
+                background: active ? 'var(--primary-10)' : 'transparent',
+                color: active ? accentColor : 'var(--text-secondary)',
+              }}
+            >
+              <span>{flag.label}</span>
+              <span className="text-[9px] opacity-70 font-normal whitespace-nowrap text-text-secondary">
+                {flag.desc}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -316,71 +237,16 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
     },
   ];
 
-  const inputBase: React.CSSProperties = {
-    width: '100%',
-    boxSizing: 'border-box',
-    padding: '10px 13px',
-    background: 'var(--input-background)',
-    border: '1px solid var(--input-border-default)',
-    borderRadius: 4,
-    color: 'var(--text-primary)',
-    fontSize: 12,
-    outline: 'none',
-    fontFamily: 'inherit',
-    transition: 'border-color 0.2s',
-  };
-
-  // Placeholder style
-  const placeholderStyle = {
-    '::placeholder': {
-      color: 'var(--text-secondary)',
-      opacity: 0.7,
-      fontSize: 11,
-    },
-  } as any;
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="flex flex-col gap-3.5">
       {/* ── Command Preview ───────────────────────────────────────────── */}
       <div>
-        <label
-          style={{
-            display: 'block',
-            fontSize: 11,
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.12em',
-            marginBottom: 6,
-            cursor: 'default',
-          }}
-        >
+        <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
           COMMAND PREVIEW
         </label>
-        <div
-          style={{
-            padding: '10px 14px',
-            borderRadius: 5,
-            background: 'var(--input-background)',
-            border: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <span style={{ color: 'var(--text-secondary)', fontSize: 12, fontFamily: 'monospace', flexShrink: 0 }}>
-            $
-          </span>
-          <span
-            style={{
-              fontSize: 12,
-              color: 'var(--text-secondary)',
-              fontFamily: 'monospace',
-              flex: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="p-2.5 rounded-md flex items-center gap-2 bg-input-background border border-border">
+          <span className="text-[12px] font-mono shrink-0 text-text-secondary">$</span>
+          <span className="text-[12px] font-mono flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-text-secondary">
             {buildCommand(params)}
           </span>
           <button
@@ -393,24 +259,9 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               onTooltipShow(null);
               (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 4,
-              color: 'var(--text-secondary)',
-              transition: 'color 0.15s',
-              flexShrink: 0,
-            }}
+            className="bg-transparent border-none cursor-pointer p-1 transition-colors shrink-0 text-text-secondary"
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="9" y="9" width="13" height="13" rx="2" />
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
@@ -419,18 +270,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
       </div>
 
       {/* ── Target ───────────────────────────────────────────────────── */}
-      <div style={{ position: 'relative' }}>
-        <label
-          style={{
-            display: 'block',
-            fontSize: 11,
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.12em',
-            marginBottom: 6,
-            cursor: 'default',
-          }}
-        >
+      <div className="relative">
+        <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
           <span
             onMouseEnter={(e) =>
               showTooltip(
@@ -440,7 +281,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             }
             onMouseLeave={() => onTooltipShow(null)}
           >
-            TARGET
+            TARGET <span className="text-red-500 text-sm align-middle ml-0.5">*</span>
           </span>
         </label>
         <input
@@ -452,30 +293,16 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           onBlur={() => setTimeout(() => setShowTargetSuggestions(false), 150)}
           onKeyDown={(e) => e.key === 'Enter' && onScan()}
           placeholder="192.168.1.1  ·  example.com  ·  10.0.0.0/24"
+          className="w-full box-border p-2.5 rounded text-[13px] font-inherit outline-none transition-colors bg-input-background text-text-primary placeholder:text-text-secondary border border-border"
           style={{
-            ...inputBase,
-            border: `1px solid ${params.target ? accentColor + '50' : 'var(--input-border-default)'}`,
+            borderColor: params.target ? accentColor + '50' : undefined,
             boxShadow: params.target ? `0 0 10px ${glow}` : 'none',
-            fontSize: 13,
-            padding: '11px 14px',
-            ...placeholderStyle,
           }}
         />
         {showTargetSuggestions && targetHistory.length > 0 && (
           <div
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: 3,
-              background: 'var(--dropdown-background)',
-              border: `1px solid ${accentColor}30`,
-              borderRadius: 4,
-              zIndex: 10,
-              maxHeight: 180,
-              overflowY: 'auto',
-            }}
+            className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto bg-dropdown-content-background"
+            style={{ border: `1px solid ${accentColor}30` }}
           >
             {targetHistory.map((t, i) => (
               <div
@@ -484,13 +311,9 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   setParams({ ...params, target: t });
                   setShowTargetSuggestions(false);
                 }}
+                className="p-2 cursor-pointer text-[12px] transition-colors text-text-primary"
                 style={{
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  color: 'var(--text-primary)',
                   borderBottom: i < targetHistory.length - 1 ? '1px solid var(--border)' : 'none',
-                  transition: 'background 0.12s',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--dropdown-item-hover)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -503,20 +326,9 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
       </div>
 
       {/* ── Ports + Timing (row) ─────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {/* Ports */}
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: 11,
-              fontWeight: 700,
-              color: 'var(--text-secondary)',
-              letterSpacing: '0.12em',
-              marginBottom: 6,
-              cursor: 'default',
-            }}
-          >
+          <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
             <span
               onMouseEnter={(e) =>
                 showTooltip(
@@ -526,34 +338,20 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               }
               onMouseLeave={() => onTooltipShow(null)}
             >
-              PORTS <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}>(optional)</span>
+              PORTS <span className="font-normal text-text-secondary">(optional)</span>
             </span>
           </label>
           <input
             type="text"
             value={params.ports}
             onChange={(e) => setParams({ ...params, ports: e.target.value })}
-            placeholder="22,80,443  ·  1-1000"
-            style={{
-              ...inputBase,
-              ...placeholderStyle,
-            }}
+placeholder="22,80,443  ·  1-1000"
+            className="w-full box-border p-2.5 rounded text-[12px] font-inherit outline-none transition-colors bg-input-background border border-input-border-default text-text-primary placeholder:text-text-secondary"
           />
         </div>
 
-        {/* Timing */}
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: 11,
-              fontWeight: 700,
-              color: 'var(--text-secondary)',
-              letterSpacing: '0.12em',
-              marginBottom: 6,
-              cursor: 'default',
-            }}
-          >
+          <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
             <span
               onMouseEnter={(e) =>
                 showTooltip(
@@ -563,29 +361,23 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               }
               onMouseLeave={() => onTooltipShow(null)}
             >
-              TIMING —{' '}
-              <span style={{ color: accentColor }}>{TIMING_LABELS[parseInt(params.timing)]}</span>
+              TIMING — <span style={{ color: accentColor }}>{TIMING_LABELS[parseInt(params.timing)]}</span> <span className="text-red-500 text-sm align-middle ml-0.5">*</span>
             </span>
           </label>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="flex gap-1">
             {(['0', '1', '2', '3', '4', '5'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setParams({ ...params, timing: t })}
                 onMouseEnter={(e) => showTooltip(`T${t} — ${TIMING_LABELS[parseInt(t)]}`, e)}
                 onMouseLeave={() => onTooltipShow(null)}
+                className={`flex-1 py-2 rounded text-xs font-bold cursor-pointer font-inherit transition-all ${
+                  params.timing === t
+                    ? 'bg-primary/10 text-primary border-primary'
+                    : 'bg-input-background text-text-secondary border-input-border-default'
+                }`}
                 style={{
-                  flex: 1,
-                  padding: '9px 0',
-                  borderRadius: 3,
-                  border: `1px solid ${params.timing === t ? accentColor + '60' : 'var(--input-border-default)'}`,
-                  background: params.timing === t ? glow : 'var(--input-background)',
-                  color: params.timing === t ? accentColor : 'var(--text-secondary)',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  transition: 'all 0.12s',
+                  border: `1px solid ${params.timing === t ? 'rgb(var(--primary))' : 'var(--input-border-default)'}`,
                 }}
               >
                 {t}
@@ -597,17 +389,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
 
       {/* ── Scan Type (horizontal pills) ────────────────────────────── */}
       <div>
-        <label
-          style={{
-            display: 'block',
-            fontSize: 11,
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.12em',
-            marginBottom: 7,
-            cursor: 'default',
-          }}
-        >
+        <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
           <span
             onMouseEnter={(e) =>
               showTooltip(
@@ -617,10 +399,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             }
             onMouseLeave={() => onTooltipShow(null)}
           >
-            SCAN TYPE
+            SCAN TYPE <span className="text-red-500 text-sm align-middle ml-0.5">*</span>
           </span>
         </label>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="flex gap-1.5">
           {SCAN_TYPES.map((st) => {
             const active = params.scanType === st.value;
             return (
@@ -629,40 +411,25 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 onClick={() => setParams({ ...params, scanType: st.value as any })}
                 onMouseEnter={(e) => {
                   showTooltip(st.note, e);
-                  if (!active) e.currentTarget.style.borderColor = accentColor + '35';
+                  if (!active) e.currentTarget.style.borderColor = 'var(--input-border-default)';
                 }}
                 onMouseLeave={(e) => {
                   onTooltipShow(null);
                   if (!active) e.currentTarget.style.borderColor = 'var(--input-border-default)';
                 }}
+                className={`flex-1 py-2 px-2 rounded font-mono transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                  active
+                    ? 'bg-primary/10 text-primary border-primary'
+                    : 'bg-input-background text-text-secondary border-input-border-default'
+                }`}
                 style={{
-                  flex: 1,
-                  padding: '8px 8px',
-                  borderRadius: 4,
-                  border: `1px solid ${active ? accentColor + '60' : 'var(--input-border-default)'}`,
-                  background: active ? glow : 'var(--input-background)',
-                  cursor: 'pointer',
-                  fontFamily: 'monospace',
-                  transition: 'all 0.12s',
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  whiteSpace: 'nowrap',
+                  border: `1px solid ${active ? 'rgb(var(--primary))' : 'var(--input-border-default)'}`,
                 }}
               >
-                <span
-                  style={{ fontSize: 11, fontWeight: 700, color: active ? accentColor : 'var(--text-secondary)' }}
-                >
+                <span className="text-[11px] font-bold">
                   {st.flag}
                 </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: active ? accentColor + 'aa' : 'var(--text-secondary)',
-                  }}
-                >
+                <span className="text-[10px]">
                   {st.label}
                 </span>
               </button>
@@ -671,42 +438,131 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
         </div>
       </div>
 
-      {/* ── Flag Accordions ──────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {FLAG_CATEGORIES.map((cat) => (
-          <FlagAccordion
-            key={cat.id}
-            category={cat}
-            activeFlags={params.additionalFlags}
-            onToggle={toggleFlag}
-            accentColor={accentColor}
-            glow={glow}
-            onTooltipShow={onTooltipShow}
-          />
-        ))}
+      {/* ── Flag Input Fields (2x2 grid) ─────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        {FLAG_CATEGORIES.map((cat) => {
+          // eslint-disable-next-line react-hooks/rules-of-hooks
+          const [showSuggestions, setShowSuggestions] = useState(false);
+          const containerRef = useRef<HTMLDivElement>(null);
+          
+          // Close dropdown when clicking outside
+          useEffect(() => {
+            const handleClickOutside = (event: MouseEvent) => {
+              if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false);
+              }
+            };
+            if (showSuggestions) {
+              document.addEventListener('mousedown', handleClickOutside);
+            }
+            return () => {
+              document.removeEventListener('mousedown', handleClickOutside);
+            };
+          }, [showSuggestions]);
+          
+          // Lọc các flags đang active thuộc category này
+          const activeFlagsInCat = cat.flags.filter((f) =>
+            params.additionalFlags.includes(f.value)
+          );
+          const inputValue = activeFlagsInCat.map((f) => f.value).join(' ');
+          
+          // Hiển thị tất cả flags (không lọc)
+          const allFlags = cat.flags;
+          
+          const toggleFlag = (flagValue: string) => {
+            const currentFlags = params.additionalFlags.split(' ').filter(Boolean);
+            if (currentFlags.includes(flagValue)) {
+              // Nếu đã có thì xóa
+              setParams({
+                ...params,
+                additionalFlags: currentFlags.filter((f) => f !== flagValue).join(' '),
+              });
+            } else {
+              // Nếu chưa có thì thêm
+              setParams({ ...params, additionalFlags: [...currentFlags, flagValue].join(' ') });
+            }
+          };
+          
+          // const removeFlag = (flagValue: string) => {
+          //   const currentFlags = params.additionalFlags.split(' ').filter(Boolean);
+          //   setParams({
+          //     ...params,
+          //     additionalFlags: currentFlags.filter((f) => f !== flagValue).join(' '),
+          //   });
+          // };
+          
+          return (
+            <div key={cat.id} ref={containerRef}>
+              <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
+                <span
+                  onMouseEnter={(e) => {
+                    const flagList = cat.flags.map((f) => `${f.value} (${f.desc})`).join(', ');
+                    showTooltip(`${cat.label}: ${flagList}`, e);
+                  }}
+                  onMouseLeave={() => onTooltipShow(null)}
+                >
+                  {cat.label}
+                </span>
+              </label>
+              <div className="relative">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    readOnly
+                    onFocus={() => setShowSuggestions(true)}
+                    placeholder={`e.g., ${cat.flags.slice(0, 3).map((f) => f.value).join(', ')}...`}
+                    className="w-full box-border p-2.5 rounded text-[12px] font-inherit outline-none transition-colors bg-input-background border border-border text-text-primary placeholder:text-text-secondary pr-8 cursor-pointer"
+                  />
+                  {showSuggestions && (
+                    <button
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setShowSuggestions(false);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {showSuggestions && allFlags.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[200px] overflow-y-auto bg-dropdown-content-background border border-border shadow-lg">
+                    {allFlags.map((flag) => {
+                      const isActive = activeFlagsInCat.some((f) => f.value === flag.value);
+                      return (
+                        <div
+                          key={flag.value}
+                          onClick={() => toggleFlag(flag.value)}
+                          className={`p-2 cursor-pointer text-[12px] transition-colors hover:bg-dropdown-item-hover text-text-primary ${
+                            isActive ? 'bg-primary/10 text-primary' : ''
+                          }`}
+                        >
+                          <span className="font-mono">{flag.value}</span>
+                          <span className="text-text-secondary ml-2 text-[10px]">{flag.desc}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              {/* No badges - removed as requested */}
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Execute Button ───────────────────────────────────────────── */}
       <button
         onClick={onScan}
         disabled={scanning || !params.target.trim()}
+        className="w-full py-3 text-[12px] font-bold tracking-wide font-inherit transition-all mt-1 bg-primary text-text-foreground disabled:bg-input-background disabled:text-text-secondary disabled:cursor-not-allowed rounded"
         style={{
-          width: '100%',
-          padding: '12px',
-background:
-              scanning || !params.target.trim()
-                ? 'var(--input-background)'
-                : `linear-gradient(135deg, ${accentColor}18, ${accentColor}08)`,
-            border: `1px solid ${scanning || !params.target.trim() ? 'var(--input-border-default)' : accentColor + '70'}`,
-            color: scanning || !params.target.trim() ? 'var(--text-secondary)' : accentColor,
-          fontSize: 12,
-          fontWeight: 700,
-          letterSpacing: '0.15em',
-          cursor: scanning || !params.target.trim() ? 'not-allowed' : 'pointer',
-          fontFamily: 'inherit',
+          border: `1px solid ${scanning || !params.target.trim() ? 'var(--input-border-default)' : 'transparent'}`,
           boxShadow: scanning || !params.target.trim() ? 'none' : `0 0 18px ${glow}`,
-          transition: 'all 0.2s',
-          marginTop: 3,
         }}
       >
         {scanning ? '▸ SCANNING...' : '▸ EXECUTE SCAN'}
@@ -715,29 +571,19 @@ background:
       {/* ── Progress Bar ─────────────────────────────────────────────── */}
       {scanning && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-            <span
-              style={{
-                fontSize: 10,
-                color: 'var(--text-secondary)',
-                letterSpacing: '0.1em',
-                fontFamily: 'monospace',
-              }}
-            >
-              {params.target}
-            </span>
-            <span style={{ fontSize: 10, color: accentColor, fontFamily: 'monospace' }}>
+          <div className="flex justify-between mb-1">
+            <span className="text-[10px] tracking-wide font-mono text-text-secondary">{params.target}</span>
+            <span className="text-[10px] font-mono" style={{ color: accentColor }}>
               {progress}%
             </span>
           </div>
-          <div style={{ height: 1, background: 'var(--divider)', borderRadius: 1, overflow: 'hidden' }}>
+          <div className="h-px rounded-sm overflow-hidden bg-divider">
             <div
+              className="h-full transition-all duration-300"
               style={{
-                height: '100%',
                 width: `${progress}%`,
                 background: `linear-gradient(90deg, ${accentColor}60, ${accentColor})`,
                 boxShadow: `0 0 6px ${accentColor}`,
-                transition: 'width 0.3s ease',
               }}
             />
           </div>
@@ -747,23 +593,13 @@ background:
       {/* ── Scan Log Output ──────────────────────────────────────────── */}
       {(scanning || logOutput) && (
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: 11,
-              fontWeight: 700,
-              color: 'var(--text-secondary)',
-              letterSpacing: '0.12em',
-              marginBottom: 6,
-            }}
-          >
+          <label className="block text-xs font-bold tracking-wide mb-1.5 text-text-secondary">
             SCAN LOG OUTPUT
           </label>
           <div
+            className="rounded-md overflow-hidden"
             style={{
-              borderRadius: 5,
               border: `1px solid ${accentColor}30`,
-              overflow: 'hidden',
               minHeight: 250,
             }}
           >

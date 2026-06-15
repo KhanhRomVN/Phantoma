@@ -1,108 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Settings, Palette, ChevronRight, Home } from 'lucide-react';
+import General from './components/General';
+import Interface from './components/Interface';
 
-interface SettingProps {
-  accentColor?: string;
-}
+type SettingTab = 'general' | 'interface';
 
-const Setting: React.FC<SettingProps> = ({ accentColor = '#00e5ff' }) => {
-  const [serverUrl, setServerUrl] = useState('localhost:8080');
+const Setting: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<SettingTab>('general');
 
-  useEffect(() => {
-    const saved = localStorage.getItem('server_url');
-    if (saved) {
-      setServerUrl(saved);
+  const getTabTitle = () => {
+    switch (activeTab) {
+      case 'general':
+        return 'General';
+      case 'interface':
+        return 'Interface';
+      default:
+        return '';
     }
-  }, []);
-
-  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newUrl = e.target.value;
-    setServerUrl(newUrl);
-    localStorage.setItem('server_url', newUrl);
-    // Dispatch event để các component khác cập nhật
-    window.dispatchEvent(new CustomEvent('serverUrlChanged', { detail: newUrl }));
   };
 
-  const glow = accentColor + '25';
+  const getTabIcon = () => {
+    switch (activeTab) {
+      case 'general':
+        return <Settings className="w-3 h-3 text-text-primary/60" />;
+      case 'interface':
+        return <Palette className="w-3 h-3 text-text-primary/60" />;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '600px' }}>
-      <div
-        style={{
-          marginBottom: '24px',
-          borderBottom: `1px solid ${accentColor}30`,
-          paddingBottom: '8px',
-        }}
-      >
-        <h2
-          style={{
-            fontSize: '16px',
-            color: accentColor,
-            margin: 0,
-            letterSpacing: '0.1em',
-          }}
-        >
-          SERVER CONFIGURATION
-        </h2>
+    <div className="w-full h-full flex-1 flex flex-col overflow-hidden">
+      {/* Breadcrumb Topbar - same height as ModuleBar (37px) */}
+      <div className="h-[37px] shrink-0 border-b border-border px-5 flex items-center gap-2">
+        <Home className="w-4 h-4 text-text-secondary -mt-0.5" />
+        <ChevronRight className="w-3 h-3 text-text-secondary" />
+        <span className="text-text-secondary text-sm">Settings</span>
+        <ChevronRight className="w-3 h-3 text-text-secondary" />
+        <div className="flex items-center gap-1">
+          <span className="text-text-primary text-sm font-medium">{getTabTitle()}</span>
+        </div>
       </div>
 
-      <div>
-        <label
-          style={{
-            display: 'block',
-            fontSize: '11px',
-            fontWeight: 700,
-            color: '#64748b',
-            letterSpacing: '0.12em',
-            marginBottom: '6px',
-          }}
-        >
-          API SERVER URL
-        </label>
-        <input
-          type="text"
-          value={serverUrl}
-          onChange={handleUrlChange}
-          placeholder="localhost:8080"
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            background: '#0d1117',
-            border: `1px solid ${accentColor}50`,
-            borderRadius: '6px',
-            color: '#e2e8f0',
-            fontSize: '13px',
-            fontFamily: 'monospace',
-            outline: 'none',
-            transition: 'all 0.2s',
-            boxShadow: `0 0 10px ${glow}`,
-          }}
-        />
-        <p
-          style={{
-            fontSize: '10px',
-            color: '#475569',
-            marginTop: '8px',
-            marginBottom: 0,
-          }}
-        >
-          Example: localhost:8080 | 192.168.1.100:8080 | api.example.com
-        </p>
-      </div>
+      {/* Main content area with sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar - wider with icons */}
+        <div className="w-64 shrink-0 border-r border-border p-2 overflow-y-auto">
+          <button
+            onClick={() => setActiveTab('general')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              activeTab === 'general'
+                ? 'bg-primary/10 text-primary'
+                : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            <span>General</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('interface')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              activeTab === 'interface'
+                ? 'bg-primary/10 text-primary'
+                : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+            }`}
+          >
+            <Palette className="w-4 h-4" />
+            <span>Interface</span>
+          </button>
+        </div>
 
-      <div
-        style={{
-          marginTop: '24px',
-          padding: '12px',
-          background: '#0d1117',
-          border: `1px solid ${accentColor}20`,
-          borderRadius: '4px',
-        }}
-      >
-        <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>
-          ⚡ All security tools will use this server URL for API calls.
-          <br />
-          Make sure the server is running before executing scans.
-        </p>
+        {/* Content area */}
+        <div className="flex-1 overflow-auto p-5">
+          {activeTab === 'general' && <General />}
+          {activeTab === 'interface' && <Interface />}
+        </div>
       </div>
     </div>
   );

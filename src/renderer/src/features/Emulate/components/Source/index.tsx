@@ -1,104 +1,8 @@
 import { NetworkRequest } from '../../../../types/inspector';
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { FileCode, Search, X } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
-
-// Custom ResizableSplit component
-interface ResizableSplitProps {
-  children: [React.ReactNode, React.ReactNode];
-  direction: 'horizontal' | 'vertical';
-  initialSize?: number;
-  minSize?: number;
-  maxSize?: number;
-}
-
-const ResizableSplit = ({
-  children,
-  direction,
-  initialSize = 50,
-  minSize = 20,
-  maxSize = 80,
-}: ResizableSplitProps) => {
-  const [splitSize, setSplitSize] = useState(initialSize);
-  const [isDragging, setIsDragging] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const startXRef = useRef(0);
-  const startYRef = useRef(0);
-  const startSizeRef = useRef(0);
-
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      setIsDragging(true);
-      startXRef.current = e.clientX;
-      startYRef.current = e.clientY;
-      startSizeRef.current = splitSize;
-      e.preventDefault();
-    },
-    [splitSize],
-  );
-
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!isDragging || !containerRef.current) return;
-
-      const containerRect = containerRef.current.getBoundingClientRect();
-      let newSize: number;
-
-      if (direction === 'vertical') {
-        const deltaX = e.clientX - startXRef.current;
-        const deltaPercent = (deltaX / containerRect.width) * 100;
-        newSize = startSizeRef.current + deltaPercent;
-      } else {
-        const deltaY = e.clientY - startYRef.current;
-        const deltaPercent = (deltaY / containerRect.height) * 100;
-        newSize = startSizeRef.current + deltaPercent;
-      }
-
-      newSize = Math.max(minSize, Math.min(maxSize, newSize));
-      setSplitSize(newSize);
-    },
-    [isDragging, direction, minSize, maxSize],
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
-
-  const [firstChild, secondChild] = children;
-  const isVertical = direction === 'vertical';
-
-  return (
-    <div
-      ref={containerRef}
-      className="flex w-full h-full overflow-hidden"
-      style={{ flexDirection: isVertical ? 'row' : 'column' }}
-    >
-      <div style={{ flexBasis: `${splitSize}%`, flexGrow: 0, flexShrink: 0, overflow: 'auto' }}>
-        {firstChild}
-      </div>
-      <div
-        className={cn(
-          'bg-divider hover:bg-purple-500 transition-colors cursor-col-resize shrink-0',
-          isVertical ? 'w-px hover:w-0.5' : 'h-px hover:h-0.5',
-        )}
-        style={isVertical ? { width: '1px' } : { height: '1px' }}
-        onMouseDown={handleMouseDown}
-      />
-      <div style={{ flex: 1, overflow: 'auto' }}>{secondChild}</div>
-    </div>
-  );
-};
+import { ResizableSplit } from '../common/ResizableSplit';
 
 interface SourceFile {
   id: string;
@@ -299,8 +203,18 @@ export function SourcesPanel({ requests = [], onClose }: SourcesPanelProps) {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-purple-500/15 border border-purple-500/25 shrink-0">
-          <FileCode className="w-4 h-4 text-purple-400" />
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 36,
+          height: 40,
+          borderRadius: 8,
+          background: 'var(--accent-purple)/15',
+          border: '1px solid var(--accent-purple)/25',
+          flexShrink: 0,
+        }}>
+          <FileCode style={{ width: 16, height: 16, color: 'var(--accent-purple)' }} />
         </div>
         <div className="flex-1">
           <h2 className="text-base font-bold text-text-primary">Sources</h2>
@@ -322,8 +236,18 @@ export function SourcesPanel({ requests = [], onClose }: SourcesPanelProps) {
           <div className="h-full bg-background border-r border-border/50 flex flex-col">
             {sourceRequests.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-6">
-                <div className="w-16 h-16 rounded-xl bg-purple-500/15 flex items-center justify-center mb-4 border border-purple-500/25">
-                  <FileCode className="w-8 h-8 text-purple-400" />
+                <div style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 12,
+                  background: 'var(--accent-purple)/15',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16,
+                  border: '1px solid var(--accent-purple)/25',
+                }}>
+                  <FileCode style={{ width: 32, height: 32, color: 'var(--accent-purple)' }} />
                 </div>
                 <h3 className="text-sm font-semibold text-text-primary mb-1">No Source Files</h3>
                 <p className="text-xs text-text-secondary text-center max-w-[200px]">

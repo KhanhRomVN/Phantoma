@@ -35,82 +35,75 @@ const ScanCard: React.FC<ScanCardProps> = ({
   const openPorts = scan.ports.filter((p) => p.state === 'open');
 
   return (
-    <div      style={{
-        background: '#0d1117',
-        border: `1px solid ${isExpanded ? accentColor : '#1a2236'}`,
-        borderRadius: 6,
-        transition: 'all 0.15s',
-        marginBottom: 8,
+    <div
+      className="rounded-md transition-all mb-2 cursor-pointer"
+      style={{
+        background: 'rgb(var(--card-background))',
+        border: `1px solid ${isExpanded ? accentColor : 'rgb(var(--border))'}`,
       }}
       onContextMenu={(e) => onContextMenu(e, scan)}
     >
       <div
-        style={{
-          padding: '12px 16px',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}
+        className="p-3 flex justify-between items-center gap-3 flex-wrap"
         onClick={onToggle}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="flex flex-col gap-1 flex-[2]">
+          <div className="flex items-center gap-3">
             <div
+              className="w-2 h-2 rounded-full"
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: '#34d399',
-                boxShadow: '0 0 6px #34d399',
+                background: 'rgb(var(--primary))',
+                boxShadow: `0 0 6px rgb(var(--primary))`,
               }}
             />
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+            <span className="text-[13px] font-bold" style={{ color: 'rgb(var(--text-primary))' }}>
               {scan.target}
             </span>
             <span
-              style={{
-                fontSize: 11,
-                color: '#64748b',
-                background: '#1a2236',
-                padding: '2px 8px',
-                borderRadius: 4,
-              }}
+              className="text-[11px] px-2 py-0.5 rounded"
+              style={{ color: 'rgb(var(--text-secondary))', background: 'rgb(var(--border))' }}
             >
               {scan.scanType}
             </span>
           </div>
-          <div style={{ fontSize: 10, color: '#64748b', paddingLeft: 20 }}>
+          <div className="text-[10px] pl-5" style={{ color: 'rgb(var(--text-secondary))' }}>
             {formatDate(scan.timestamp)}
           </div>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, auto)',
-            gap: 20,
-            alignItems: 'center',
-          }}
-        >
+        <div className="grid grid-cols-4 gap-5 items-center">
           <div>
-            <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Duration</span>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{scan.duration}</span>
+            <span className="text-[10px] block" style={{ color: 'rgb(var(--text-secondary))' }}>
+              Duration
+            </span>
+            <span className="text-[11px]" style={{ color: 'rgb(var(--text-secondary))' }}>
+              {scan.duration}
+            </span>
           </div>
           <div>
-            <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Open Ports</span>
-            <span style={{ fontSize: 11, color: '#34d399' }}>{openPorts.length}</span>
+            <span className="text-[10px] block" style={{ color: 'rgb(var(--text-secondary))' }}>
+              Open Ports
+            </span>
+            <span className="text-[11px]" style={{ color: 'rgb(var(--primary))' }}>
+              {openPorts.length}
+            </span>
           </div>
           <div>
-            <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Total Ports</span>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{scan.ports.length}</span>
+            <span className="text-[10px] block" style={{ color: 'rgb(var(--text-secondary))' }}>
+              Total Ports
+            </span>
+            <span className="text-[11px]" style={{ color: 'rgb(var(--text-secondary))' }}>
+              {scan.ports.length}
+            </span>
           </div>
           {scan.host?.os && (
             <div>
-              <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>OS</span>
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>{scan.host.os.substring(0, 20)}</span>
+              <span className="text-[10px] block" style={{ color: 'rgb(var(--text-secondary))' }}>
+                OS
+              </span>
+              <span className="text-[11px]" style={{ color: 'rgb(var(--text-secondary))' }}>
+                {scan.host.os.substring(0, 20)}
+              </span>
             </div>
           )}
         </div>
@@ -118,21 +111,16 @@ const ScanCard: React.FC<ScanCardProps> = ({
 
       {isExpanded && (
         <div
+          className="pt-3 px-4 pb-4"
           style={{
             borderTop: `1px solid ${accentColor}30`,
-            padding: '12px 16px',
-            background: '#080b10',
+            background: 'rgb(var(--input-background))',
           }}
         >
-          <div style={{ marginBottom: 12 }}>
+          <div className="mb-3">
             <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#e2e8f0',
-                marginBottom: 8,
-                letterSpacing: '0.1em',
-              }}
+              className="text-[11px] font-bold mb-2 tracking-wide"
+              style={{ color: 'rgb(var(--text-primary))' }}
             >
               OPEN PORTS
             </div>
@@ -140,53 +128,42 @@ const ScanCard: React.FC<ScanCardProps> = ({
           </div>
 
           {scan.host && (
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#e2e8f0',
-                  marginBottom: 8,
-                  letterSpacing: '0.1em',
-                }}
+                className="text-[11px] font-bold mb-2 tracking-wide"
+                style={{ color: 'rgb(var(--text-primary))' }}
               >
                 HOST INFORMATION
               </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: 8,
-                }}
-              >
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2">
                 {scan.host.ip && (
                   <div>
-                    <span style={{ color: '#64748b' }}>IP:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{scan.host.ip}</span>
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>IP:</span>{' '}
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>{scan.host.ip}</span>
                   </div>
                 )}
                 {scan.host.hostname && (
                   <div>
-                    <span style={{ color: '#64748b' }}>Hostname:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{scan.host.hostname}</span>
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>Hostname:</span>{' '}
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>{scan.host.hostname}</span>
                   </div>
                 )}
                 {scan.host.os && (
                   <div>
-                    <span style={{ color: '#64748b' }}>OS:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{scan.host.os}</span>
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>OS:</span>{' '}
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>{scan.host.os}</span>
                   </div>
                 )}
                 {scan.host.uptime && (
                   <div>
-                    <span style={{ color: '#64748b' }}>Uptime:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{scan.host.uptime}</span>
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>Uptime:</span>{' '}
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>{scan.host.uptime}</span>
                   </div>
                 )}
                 {scan.host.mac && (
                   <div>
-                    <span style={{ color: '#64748b' }}>MAC:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{scan.host.mac}</span>
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>MAC:</span>{' '}
+                    <span style={{ color: 'rgb(var(--text-secondary))' }}>{scan.host.mac}</span>
                   </div>
                 )}
               </div>
@@ -194,29 +171,19 @@ const ScanCard: React.FC<ScanCardProps> = ({
           )}
 
           {scan.scripts && scan.scripts.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#e2e8f0',
-                  marginBottom: 8,
-                  letterSpacing: '0.1em',
-                }}
+                className="text-[11px] font-bold mb-2 tracking-wide"
+                style={{ color: 'rgb(var(--text-primary))' }}
               >
                 NSE SCRIPTS ({scan.scripts.length})
               </div>
               <div
-                style={{
-                  maxHeight: 150,
-                  overflowY: 'auto',
-                  fontSize: 10,
-                  color: '#64748b',
-                  fontFamily: 'monospace',
-                }}
+                className="max-h-[150px] overflow-y-auto text-[10px] font-mono"
+                style={{ color: 'rgb(var(--text-secondary))' }}
               >
                 {scan.scripts.map((s, i) => (
-                  <div key={i} style={{ marginBottom: 4 }}>
+                  <div key={i} className="mb-1">
                     <span style={{ color: accentColor }}>{s.name}:</span>{' '}
                     {s.output.substring(0, 100)}
                   </div>
@@ -227,26 +194,16 @@ const ScanCard: React.FC<ScanCardProps> = ({
 
           <div>
             <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#e2e8f0',
-                marginBottom: 8,
-                letterSpacing: '0.1em',
-              }}
+              className="text-[11px] font-bold mb-2 tracking-wide"
+              style={{ color: 'rgb(var(--text-primary))' }}
             >
               RAW OUTPUT (first 10 lines)
             </div>
             <div
+              className="text-[10px] font-mono p-2 rounded max-h-[150px] overflow-y-auto"
               style={{
-                fontSize: 10,
-                color: '#64748b',
-                fontFamily: 'monospace',
-                background: '#0d1117',
-                padding: 8,
-                borderRadius: 4,
-                maxHeight: 150,
-                overflowY: 'auto',
+                color: 'rgb(var(--text-secondary))',
+                background: 'rgb(var(--card-background))',
               }}
             >
               {scan.rawOutput.slice(0, 10).map((line, i) => (

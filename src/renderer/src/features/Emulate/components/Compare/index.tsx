@@ -10,6 +10,8 @@ import {
   ChevronDown,
   GitCompare,
 } from 'lucide-react';
+import { MethodBadge } from '../common/MethodBadge';
+import { StatusBadge } from '../common/StatusBadge';
 import { cn } from '../../../../shared/lib/utils';
 import { NetworkRequest } from '../../../../types/inspector';
 
@@ -179,7 +181,7 @@ function Combobox({
       {isOpen && (
         <div className="absolute z-50 w-full mt-1 bg-dialog-background border border-divider rounded-lg shadow-lg max-h-64 overflow-y-auto">
           {filteredItems.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-text-secondary">No matching requests</div>
+            <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-secondary)' }}>No matching requests</div>
           ) : (
             filteredItems.map((item) => (
               <button
@@ -192,29 +194,8 @@ function Combobox({
                 className="w-full text-left px-3 py-2 hover:bg-sidebar-itemHover transition-colors border-b border-divider/50 last:border-0"
               >
                 <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      'text-[10px] font-bold px-1.5 py-0.5 rounded',
-                      item.method === 'GET' && 'text-blue-400 bg-blue-500/10',
-                      item.method === 'POST' && 'text-green-400 bg-green-500/10',
-                      item.method === 'PUT' && 'text-orange-400 bg-orange-500/10',
-                      item.method === 'DELETE' && 'text-red-400 bg-red-500/10',
-                    )}
-                  >
-                    {item.method}
-                  </span>
-                  <span
-                    className={cn(
-                      'text-[10px] font-mono',
-                      item.status >= 200 && item.status < 300
-                        ? 'text-green-400'
-                        : item.status >= 400
-                          ? 'text-red-400'
-                          : 'text-yellow-400',
-                    )}
-                  >
-                    {item.status}
-                  </span>
+                  <MethodBadge method={item.method} size="sm" />
+                  <StatusBadge status={item.status} />
                 </div>
                 <div className="text-xs font-mono text-text-primary truncate mt-1">
                   {item.host}

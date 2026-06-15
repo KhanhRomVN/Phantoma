@@ -11,8 +11,7 @@ import {
   ScrollText,
   X,
 } from 'lucide-react';
-import { RequestList } from './components/Intruder/RequestList';
-import { RequestDetails } from './components/Intruder/RequestDetails';
+import { RequestList, RequestDetails, InspectorFilter, initialFilterState } from './components/Intruder';
 import TargetPanel from './components/Target';
 import { WasmPanel } from './components/Wasm';
 import { MediaPanel } from './components/Media';
@@ -22,7 +21,7 @@ import { ComposerPanel } from './components/Composer';
 import { SourcesPanel } from './components/Source';
 import { LogViewer } from './components/Log';
 import type { NetworkRequest, WebSocketConnection } from '../../types/inspector';
-import { InspectorFilter, initialFilterState } from './components/Intruder/RequestDetails/Filter';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // Mock data for demonstration
 const mockRequests: NetworkRequest[] = [
@@ -101,6 +100,10 @@ export default function Emulate({
   onSelectApp = async () => {},
   onStopSession = async () => {},
 }: EmulateProps) {
+  const { currentPreset } = useTheme();
+  const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
+  const glow = `0 0 8px ${accentColor}80`;
+  
   const [selectedTool, setSelectedTool] = useState<ToolType>('intruder');
   const [showTargetPanel, setShowTargetPanel] = useState(false);
 
@@ -221,11 +224,11 @@ export default function Emulate({
   ];
 
   return (
-    <div className="flex h-full bg-[#0f1319]">
+    <div style={{ display: 'flex', height: '100%', background: 'var(--background)' }}>
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Horizontal Chrome-style Tab Bar for Targets */}
-        <div className="flex h-10 border-b border-[#1e2535] shrink-0 overflow-x-auto">
+        <div style={{ display: 'flex', height: 40, borderBottom: '1px solid var(--border)', flexShrink: 0, overflowX: 'auto' }}>
           {targetTabs.map((tab, index) => (
             <button
               key={tab.id}
@@ -251,22 +254,64 @@ export default function Emulate({
                   setShowTargetPanel(false);
                 }
               }}
-              className={`px-2 h-full text-xs font-medium whitespace-nowrap m-0 flex items-center gap-1.5 ${
-                activeTargetId === tab.id
-                  ? 'text-white border-b-2 border-blue-500 bg-[#1a1f2a]'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#1a1f2a]/50'
-              }`}
+              style={{
+                padding: '0 8px',
+                height: '100%',
+                fontSize: 12,
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                color: activeTargetId === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderBottom: activeTargetId === tab.id ? `2px solid ${accentColor}` : 'none',
+                background: activeTargetId === tab.id ? 'var(--dropdown-item-hover)' : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                if (activeTargetId !== tab.id) {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'var(--dropdown-item-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTargetId !== tab.id) {
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
             >
               {tab.url &&
                 (tab.favicon ? (
-                  <img src={tab.favicon} alt={tab.title} className="w-3 h-3" />
+                  <img src={tab.favicon} alt={tab.title} style={{ width: 12, height: 12 }} />
                 ) : (
-                  <Code className="w-3 h-3" />
+                  <Code style={{ width: 12, height: 12 }} />
                 ))}
               <span>{tab.title}</span>
               {!(index === 0 && tab.title === 'Chưa chọn target') && tab.id !== 'default' && (
                 <X
-                  className="w-4 h-4 opacity-60 hover:opacity-100 hover:text-red-500 hover:w-5 hover:h-5 ml-2 transition-all"
+                  style={{
+                    width: 16,
+                    height: 16,
+                    opacity: 0.6,
+                    marginLeft: 8,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                    e.currentTarget.style.color = '#ef4444';
+                    e.currentTarget.style.width = '20px';
+                    e.currentTarget.style.height = '20px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.6';
+                    e.currentTarget.style.color = '';
+                    e.currentTarget.style.width = '16px';
+                    e.currentTarget.style.height = '16px';
+                  }}
                   onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     const newTabs = targetTabs.filter((t) => t.id !== tab.id);
@@ -296,7 +341,27 @@ export default function Emulate({
               setActiveTargetId(newTabId);
               setShowTargetPanel(true);
             }}
-            className="px-2 h-full text-gray-400 hover:text-gray-200 hover:bg-[#1a1f2a]/50 flex items-center text-xl font-medium"
+            style={{
+              padding: '0 8px',
+              height: '100%',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: 20,
+              fontWeight: 500,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--text-primary)';
+              e.currentTarget.style.background = 'var(--dropdown-item-hover)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-secondary)';
+              e.currentTarget.style.background = 'transparent';
+            }}
           >
             +
           </button>
@@ -351,7 +416,7 @@ export default function Emulate({
           <>
             {selectedTool === 'intruder' && (
               <>
-                <div className="flex-1 min-h-0 border-b border-[#1e2535]">
+                <div style={{ flex: 1, minHeight: 0, borderBottom: '1px solid var(--border)' }}>
                   <RequestList
                     filteredRequests={filteredRequests}
                     requests={requests}
@@ -377,7 +442,7 @@ export default function Emulate({
                     browserViewUrl={null}
                   />
                 </div>
-                <div className="flex-1 min-h-0">
+                <div style={{ flex: 1, minHeight: 0 }}>
                   <RequestDetails
                     request={mockRequests.find((r) => r.id === selectedId) || null}
                     searchTerm={searchTerm}
@@ -396,42 +461,42 @@ export default function Emulate({
               </>
             )}
             {selectedTool === 'wasm' && (
-              <div className="flex-1 overflow-hidden">
+              <div style={{ flex: 1, overflow: 'hidden' }}>
                 <WasmPanel />
               </div>
             )}
             {selectedTool === 'media' && (
-              <div className="flex-1 overflow-hidden">
+              <div style={{ flex: 1, overflow: 'hidden' }}>
                 <MediaPanel />
               </div>
             )}
             {selectedTool === 'payload' && (
-              <div className="flex-1 overflow-hidden">
+              <div style={{ flex: 1, overflow: 'hidden' }}>
                 <PayloadPanel />
               </div>
             )}
             {selectedTool === 'compare' && (
-              <div className="flex-1 overflow-hidden">
+              <div style={{ flex: 1, overflow: 'hidden' }}>
                 <ComparePanel />
               </div>
             )}
             {selectedTool === 'composer' && (
-              <div className="flex-1 overflow-hidden">
+              <div style={{ flex: 1, overflow: 'hidden' }}>
                 <ComposerPanel />
               </div>
             )}
             {selectedTool === 'setting' && (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
                 Settings Content - Coming Soon
               </div>
             )}
             {selectedTool === 'source' && (
-              <div className="flex-1 overflow-hidden">
+              <div style={{ flex: 1, overflow: 'hidden' }}>
                 <SourcesPanel />
               </div>
             )}
             {selectedTool === 'log' && (
-              <div className="flex-1 overflow-hidden">
+              <div style={{ flex: 1, overflow: 'hidden' }}>
                 <LogViewer />
               </div>
             )}
@@ -453,16 +518,38 @@ export default function Emulate({
         });
         return shouldShowToolbar;
       })() && (
-        <div className="w-12 border-l border-[#1e2535] flex flex-col items-center py-2 gap-1 shrink-0">
+        <div style={{ width: 48, borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0', gap: 4, flexShrink: 0 }}>
           {tools.map((tool) => (
             <button
               key={tool.id}
               onClick={() => setSelectedTool(tool.id)}
-              className={`w-9 h-9 flex items-center justify-center px-0 mx-auto rounded-md transition-colors ${
-                selectedTool === tool.id
-                  ? `bg-${tool.color}-500/10 text-${tool.color}-400`
-                  : `text-gray-400 hover:bg-${tool.color}-500/10 hover:text-${tool.color}-400`
-              }`}
+              style={{
+                width: 36,
+                height: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                margin: '0 auto',
+                borderRadius: 6,
+                background: selectedTool === tool.id ? `${accentColor}10` : 'transparent',
+                color: selectedTool === tool.id ? accentColor : 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (selectedTool !== tool.id) {
+                  e.currentTarget.style.background = `${accentColor}08`;
+                  e.currentTarget.style.color = accentColor;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedTool !== tool.id) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }
+              }}
               title={tool.label}
             >
               {tool.icon}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Wifi, Globe, Bug, Eye, Shield, Server } from 'lucide-react';
+import { Search, Wifi, Globe, Bug, Eye, Shield, Server, Home, ChevronRight } from 'lucide-react';
 import { TOOLS_LIST } from './data/toolsList';
 import { CATEGORY_META } from './constants';
 import { ToolIcon } from './utils/iconHelpers';
@@ -47,7 +47,6 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        background: '#07090e',
         fontFamily: '"JetBrains Mono", "Fira Code", monospace',
         position: 'relative',
       }}
@@ -63,44 +62,17 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
           display: 'flex',
           flexDirection: 'column',
           borderRight: '1px solid #1e2535',
-          background: '#0f1319',
           zIndex: 1,
           overflow: 'hidden',
         }}
       >
-        {/* Header */}
-        <div style={{ padding: '14px 0px 10px 0px', borderBottom: '1px solid #111827' }}>
-          {/* Tools Header with Badge */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 12,
-              paddingLeft: 14,
-              paddingRight: 14,
-            }}
-          >
-            <span
-              style={{ fontSize: 14, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.15em' }}
-            >
-              Tools
-            </span>
-            <span
-              style={{
-                fontSize: 10,
-                background: '#0d1117',
-                padding: '2px 8px',
-                borderRadius: 4,
-                color: '#94a3b8',
-                border: '1px solid #1a2236',
-              }}
-            >
-              {TOOLS_LIST.length}
-            </span>
-          </div>
-          {/* Search */}
-          <div style={{ position: 'relative', paddingLeft: 14, paddingRight: 14 }}>
+        {/* Topbar */}
+        <div className="h-[37px] shrink-0 px-5 flex items-center border-b border-border">
+          <span className="text-text-secondary text-sm">Tools</span>
+        </div>
+        {/* Search */}
+        <div style={{ padding: '12px 14px' }}>
+          <div style={{ position: 'relative' }}>
             <Search
               size={14}
               style={{
@@ -131,82 +103,6 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               }}
             />
           </div>
-        </div>
-
-        {/* Category Pills */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 6,
-            padding: '10px 10px',
-            borderBottom: '1px solid #111827',
-          }}
-        >
-          {categories.map((cat) => {
-            const isActive = activeCategory === cat;
-            const meta = cat !== 'All' ? CATEGORY_META[cat] : null;
-            const count =
-              cat === 'All'
-                ? TOOLS_LIST.length
-                : TOOLS_LIST.filter((t) => t.category === cat).length;
-
-            // Map category to icon
-            let CategoryIcon = null;
-            if (cat === 'All') {
-              CategoryIcon = Server;
-            } else if (cat === 'Network') {
-              CategoryIcon = Wifi;
-            } else if (cat === 'Web') {
-              CategoryIcon = Globe;
-            } else if (cat === 'Exploit') {
-              CategoryIcon = Bug;
-            } else if (cat === 'OSINT') {
-              CategoryIcon = Eye;
-            } else if (cat === 'Vuln') {
-              CategoryIcon = Shield;
-            }
-
-            return (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '5px 12px',
-                  borderRadius: 6,
-                  border: isActive ? 'none' : `1px solid #1a2236`,
-                  background: isActive ? meta?.bg || 'rgba(0,229,255,0.06)' : 'transparent',
-                  color: isActive ? '#ffffff' : '#475569',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: '0.1em',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {CategoryIcon && (
-                  <CategoryIcon
-                    size={12}
-                    style={{ color: isActive ? meta?.color || '#00e5ff' : '#475569' }}
-                  />
-                )}
-                <span>{cat === 'All' ? 'ALL' : CATEGORY_META[cat].label}</span>
-                <span
-                  style={{
-                    opacity: isActive ? 0.8 : 0.5,
-                    color: isActive ? meta?.color || '#00e5ff' : '#475569',
-                    fontSize: 10,
-                  }}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
         </div>
 
         {/* Tool Grid */}
@@ -317,6 +213,19 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
       <div
         style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1 }}
       >
+        {/* Breadcrumb Topbar - same height as ModuleBar (37px) */}
+        <div className="h-[37px] shrink-0 border-b border-border px-5 flex items-center gap-2">
+          <Home className="w-4 h-4 text-text-secondary -mt-0.5" />
+          <ChevronRight className="w-3 h-3 text-text-secondary" />
+          <span className="text-text-secondary text-sm">Tools</span>
+          <ChevronRight className="w-3 h-3 text-text-secondary" />
+          <div className="flex items-center gap-1">
+            <span className="text-text-primary text-sm font-medium">
+              {currentTool?.name || 'Select a tool'}
+            </span>
+          </div>
+        </div>
+
         {currentTool && catMeta ? (
           <>
             {/* Tool Header - Thống nhất màu nền */}
@@ -324,7 +233,6 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               style={{
                 padding: '12px 20px',
                 borderBottom: '1px solid #1e2535',
-                background: '#0f1319',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 16,
@@ -445,7 +353,6 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               style={{
                 display: 'flex',
                 borderBottom: '1px solid #1e2535',
-                background: '#0d1117',
                 padding: '0 20px',
                 gap: 4,
               }}
@@ -464,8 +371,8 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                     fontFamily: 'inherit',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: `2px solid ${toolActiveTab === tab.id ? UNIFIED_ACCENT : 'transparent'}`,
-                    color: toolActiveTab === tab.id ? UNIFIED_ACCENT : '#64748b',
+                    borderBottom: `2px solid ${toolActiveTab === tab.id ? 'rgb(var(--primary))' : 'transparent'}`,
+                    color: toolActiveTab === tab.id ? 'rgb(var(--primary))' : 'rgb(var(--text-secondary))',
                     fontSize: 11,
                     fontWeight: 700,
                     letterSpacing: '0.12em',
@@ -483,7 +390,6 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                 flex: 1,
                 overflowY: 'auto',
                 padding: '16px 20px',
-                background: '#0f1319',
               }}
             >
               {ToolComponent ? (

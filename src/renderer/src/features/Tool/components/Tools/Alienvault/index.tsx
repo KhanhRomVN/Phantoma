@@ -5,7 +5,7 @@ import { useHistory } from './hooks/useHistory';
 import MarkdownBlock from '../../common/MarkdownBlock';
 import ExecutionTab from './tabs/ExecutionTab';
 import HistoryTab from './tabs/HistoryTab';
-import Tooltip from './components/Tooltip';
+import Tooltip from '../../common/Tooltip';
 import { TooltipState, ContextMenuState } from './types';
 import { ALIENVAULT_DOC } from './constants';
 

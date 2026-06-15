@@ -223,60 +223,66 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
     <>
       <div className="flex flex-col h-full">
         {/* Compact Header - All in one row: Left (Title), Center (Tabs), Right (Search + Add) */}
-        <div className="px-3 py-2 border-b border-[#1e2535] shrink-0 flex flex-wrap items-center justify-between gap-2">
+        <div className="px-3 py-2 border-b border-border shrink-0 flex flex-wrap items-center justify-between gap-2">
           {/* Platform tabs - NeonUI style with white text and colored backgrounds */}
           <div className="flex items-center gap-1.5 flex-wrap justify-start flex-1">
             {PLATFORM_TABS.map(({ id, icon: Icon, label, color }) => {
               const count = appsByPlatform[id]?.length ?? 0;
               const isActive = activeTab === id;
 
-              const activeBgClass = {
-                sky: 'bg-sky-500/20',
-                violet: 'bg-violet-500/20',
-                emerald: 'bg-emerald-500/20',
-                amber: 'bg-amber-500/20',
-              }[color];
-
-              const inactiveBgClass = {
-                sky: 'bg-sky-500/5 hover:bg-sky-500/15',
-                violet: 'bg-violet-500/5 hover:bg-violet-500/15',
-                emerald: 'bg-emerald-500/5 hover:bg-emerald-500/15',
-                amber: 'bg-amber-500/5 hover:bg-amber-500/15',
-              }[color];
-
-              const badgeActiveClass = {
-                sky: 'bg-sky-400/30',
-                violet: 'bg-violet-400/30',
-                emerald: 'bg-emerald-400/30',
-                amber: 'bg-amber-400/30',
-              }[color];
-
-              const badgeInactiveClass = {
-                sky: 'bg-sky-500/10',
-                violet: 'bg-violet-500/10',
-                emerald: 'bg-emerald-500/10',
-                amber: 'bg-amber-500/10',
-              }[color];
-
+              // Map color names to CSS variables
+              const colorMap: Record<string, { active: string; inactive: string }> = {
+                sky: { active: 'var(--accent-cyan)', inactive: 'var(--accent-cyan)' },
+                violet: { active: 'var(--accent-purple)', inactive: 'var(--accent-purple)' },
+                emerald: { active: 'var(--accent-green)', inactive: 'var(--accent-green)' },
+                amber: { active: 'var(--accent-amber)', inactive: 'var(--accent-amber)' },
+              };
+              const accentColor = colorMap[color]?.active || 'var(--primary)';
+              
               return (
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-2 rounded-lg text-[11px] font-medium transition-all h-7',
-                    isActive
-                      ? `${activeBgClass} text-${color}-200`
-                      : `${inactiveBgClass} text-${color}-400/70`,
-                  )}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '0 8px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    transition: 'all 0.2s',
+                    height: '28px',
+                    background: isActive ? `${accentColor}20` : `${accentColor}08`,
+                    color: isActive ? accentColor : `${accentColor}80`,
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = `${accentColor}15`;
+                      e.currentTarget.style.color = accentColor;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = `${accentColor}08`;
+                      e.currentTarget.style.color = `${accentColor}80`;
+                    }
+                  }}
                 >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
                   <span>{label}</span>
                   {count > 0 && (
                     <span
-                      className={cn(
-                        'text-[9px] px-1 rounded-full font-medium',
-                        isActive ? badgeActiveClass : badgeInactiveClass,
-                      )}
+                      style={{
+                        fontSize: '9px',
+                        padding: '0 4px',
+                        borderRadius: '9999px',
+                        fontWeight: 500,
+                        background: isActive ? `${accentColor}30` : `${accentColor}15`,
+                        color: isActive ? accentColor : `${accentColor}80`,
+                      }}
                     >
                       {count}
                     </span>
@@ -294,7 +300,7 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
                 placeholder={`Search ${activeTab}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-72 md:w-80 h-8 bg-[#1a1f2a] border border-[#1e2535] rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-purple-500/50 outline-none"
+                className="w-72 md:w-80 h-8 bg-card-background border border-border rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-primary/50 outline-none"
               />
             </div>
             <button
@@ -303,7 +309,7 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
                 setEditingApp(null);
                 setIsAddModalOpen(true);
               }}
-              className="flex items-center justify-center w-7 h-7 bg-[#1a1f2a] hover:bg-purple-500/20 hover:text-purple-400 text-gray-400 rounded-md border border-[#1e2535] hover:border-purple-500/30 transition-all"
+              className="flex items-center justify-center w-7 h-7 bg-card-background hover:bg-primary/20 hover:text-primary text-text-secondary rounded-md border border-border hover:border-primary/30 transition-all"
               title="Add Target"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -336,12 +342,12 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
                     isActive
                       ? `bg-${platformColor}-500/5 border-${platformColor}-500/30`
                       : isOpen
-                        ? 'bg-[#0f1319] border-[#1e2535] opacity-50 cursor-not-allowed'
-                        : 'bg-[#0f1319] border-[#1e2535] hover:border-purple-500/30 hover:scale-[1.02] cursor-pointer',
+                        ? 'bg-background border-border opacity-50 cursor-not-allowed'
+                        : 'bg-background border-border hover:border-primary/30 hover:scale-[1.02] cursor-pointer',
                   )}
                 >
                   {/* Left icon - square favicon, compact */}
-                  <div className="w-7 h-7 rounded-lg bg-[#1a1f2a] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="w-7 h-7 rounded-lg bg-card-background flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {app.platform === 'web' ? (
                       <FaviconImage app={app} />
                     ) : (
@@ -386,13 +392,42 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
                 setEditingApp(null);
                 setIsAddModalOpen(true);
               }}
-              className="flex items-center gap-1.5 rounded-lg border border-dashed border-[#1e2535] bg-[#0f1319] hover:border-purple-500/30 hover:bg-[#1a1f2a] transition-all cursor-pointer p-1.5"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                borderRadius: '8px',
+                border: '1px dashed var(--border)',
+                background: 'var(--background)',
+                transition: 'all 0.2s',
+                cursor: 'pointer',
+                padding: '6px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--primary)';
+                e.currentTarget.style.background = 'var(--card-background)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.background = 'var(--background)';
+              }}
             >
-              <div className="w-7 h-7 rounded-lg bg-[#1a1f2a] flex items-center justify-center flex-shrink-0">
-                <Plus className="w-3.5 h-3.5 text-gray-400" />
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '8px',
+                  background: 'var(--card-background)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Plus style={{ width: 14, height: 14, color: 'var(--text-secondary)' }} />
               </div>
-              <div className="flex-1 text-left">
-                <span className="text-xs font-medium text-gray-400">Add Target</span>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Add Target</span>
               </div>
             </button>
           </div>
@@ -406,18 +441,27 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
           (() => {
             const app = apps.find((a) => a.id === contextMenu.appId);
             if (!app) return null;
-            const platformColor = PLATFORM_TABS.find((p) => p.id === app.platform)?.color || 'gray';
 
             return (
               <div
                 ref={contextMenuRef}
-                className="fixed z-50 bg-[#1a1f2a] border border-[#1e2535] rounded-lg shadow-2xl py-1 min-w-[180px]"
-                style={{ left: contextMenu.x, top: contextMenu.y }}
+                style={{
+                  position: 'fixed',
+                  zIndex: 50,
+                  background: 'var(--dialog-background)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
+                  padding: '4px 0',
+                  minWidth: '180px',
+                  left: contextMenu.x,
+                  top: contextMenu.y,
+                }}
               >
                 {/* App info */}
-                <div className="px-3 py-2 border-b border-[#1e2535] mb-1">
-                  <div className="text-xs font-semibold text-text-primary truncate">{app.name}</div>
-                  <div className="text-[10px] text-gray-400 truncate mt-0.5">
+                <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
                     {app.url || (app.platform === 'cli' ? 'CLI Command' : 'Native App')}
                   </div>
                 </div>

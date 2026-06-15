@@ -41,71 +41,41 @@ export function ThemeProvider({
     const cssVarMap: Record<string, string> = {
       primary: '--primary',
       background: '--background',
+      foreground: '--foreground',
       textPrimary: '--text-primary',
       textSecondary: '--text-secondary',
       border: '--border',
-      borderHover: '--border-hover',
-      borderFocus: '--border-focus',
       divider: '--divider',
       cardBackground: '--card-background',
       inputBackground: '--input-background',
-      inputBorderDefault: '--input-border-default',
-      inputBorderHover: '--input-border-hover',
-      inputBorderFocus: '--input-border-focus',
-      dialogBackground: '--dialog-background',
-      dropdownBackground: '--dropdown-background',
+      modalBackground: '--modal-background',
+      dropdownContentBackground: '--dropdown-content-background',
       dropdownItemHover: '--dropdown-item-hover',
-      dropdownBorder: '--dropdown-border',
-      dropdownBorderHover: '--dropdown-border-hover',
       sidebarBackground: '--sidebar-background',
       sidebarItemHover: '--sidebar-item-hover',
       sidebarItemFocus: '--sidebar-item-focus',
-      buttonBg: '--button-bg',
-      buttonBgHover: '--button-bg-hover',
-      buttonText: '--button-text',
-      buttonBorder: '--button-border',
-      buttonBorderHover: '--button-border-hover',
-      buttonSecondBg: '--button-second-bg',
-      buttonSecondBgHover: '--button-second-bg-hover',
-      bookmarkItemBg: '--bookmark-item-bg',
-      bookmarkItemText: '--bookmark-item-text',
-      drawerBackground: '--drawer-background',
-      clockGradientFrom: '--clock-gradient-from',
-      clockGradientTo: '--clock-gradient-to',
-      cardShadow: '--card-shadow',
-      dialogShadow: '--dialog-shadow',
-      dropdownShadow: '--dropdown-shadow',
-      tableHeaderBg: '--table-header-bg',
-      tableHoverHeaderBg: '--table-hover-header-bg',
-      tableBodyBg: '--table-body-bg',
-      tableHoverItemBodyBg: '--table-hover-item-body-bg',
-      tableFocusItemBodyBg: '--table-focus-item-body-bg',
-      tableFooterBg: '--table-footer-bg',
-      tableHoverFooterBg: '--table-hover-footer-bg',
-      tableBorder: '--table-border',
-      tabBackground: '--tab-background',
-      tabBorder: '--tab-border',
-      tabHoverBorder: '--tab-hover-border',
-      tabItemBackground: '--tab-item-background',
-      tabItemHoverBg: '--tab-item-hover-bg',
-      tabItemFocusBg: '--tab-item-focus-bg',
-      tabItemBorder: '--tab-item-border',
-      tabItemHoverBorder: '--tab-item-hover-border',
-      tabItemFocusBorder: '--tab-item-focus-border',
     };
 
     const themeData = preset.tailwind;
     Object.entries(themeData).forEach(([key, value]) => {
       const cssVar = cssVarMap[key];
       if (cssVar && value) {
-        // Check if value is an RGB triplet (e.g., "20 28 40" or "10 132 255")
-        const rgbMatch = (value as string).match(/^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})$/);
-        if (rgbMatch) {
-          // Convert to rgb(r, g, b) format
-          const rgbValue = `rgb(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]})`;
-          root.style.setProperty(cssVar, rgbValue);
+        // Check if value is already in rgb(r, g, b) format (for VSCode extension highlight)
+        const rgbStringMatch = (value as string).match(/^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/);
+        if (rgbStringMatch) {
+          // Store as space-separated triplet for Tailwind opacity modifiers to work
+          const triplet = `${rgbStringMatch[1]} ${rgbStringMatch[2]} ${rgbStringMatch[3]}`;
+          root.style.setProperty(cssVar, triplet);
         } else {
-          root.style.setProperty(cssVar, value as string);
+          // Check if value is an RGB triplet (e.g., "20 28 40")
+          const tripletMatch = (value as string).match(/^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})$/);
+          if (tripletMatch) {
+            // Store as-is (already space-separated)
+            root.style.setProperty(cssVar, value as string);
+          } else {
+            // Fallback: set as raw value
+            root.style.setProperty(cssVar, value as string);
+          }
         }
       }
     });

@@ -315,8 +315,17 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
     <div className="flex flex-col h-full bg-table-bodyBg">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-green-500/15 border border-green-500/25">
-          <Search className="w-4 h-4 text-green-400" />
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 36,
+          height: 40,
+          borderRadius: 8,
+          background: 'var(--accent-green)/15',
+          border: '1px solid var(--accent-green)/25',
+        }}>
+          <Search style={{ width: 16, height: 16, color: 'var(--accent-green)' }} />
         </div>
         <div className="flex-1">
           <h2 className="text-base font-bold text-text-primary">Log Viewer</h2>
@@ -346,30 +355,78 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
           <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
             <button
               onClick={() => setMatchCase(!matchCase)}
-              className={cn(
-                'p-0.5 rounded',
-                matchCase ? 'bg-primary/20 text-primary' : 'text-muted-foreground',
-              )}
+              style={{
+                padding: 2,
+                borderRadius: 4,
+                background: matchCase ? 'var(--primary)/20' : 'transparent',
+                color: matchCase ? 'var(--primary)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                border: 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (!matchCase) {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'var(--sidebar-item-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!matchCase) {
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
             >
-              <CaseSensitive className="w-3 h-3" />
+              <CaseSensitive style={{ width: 12, height: 12 }} />
             </button>
             <button
               onClick={() => setMatchWholeWord(!matchWholeWord)}
-              className={cn(
-                'p-0.5 rounded',
-                matchWholeWord ? 'bg-primary/20 text-primary' : 'text-muted-foreground',
-              )}
+              style={{
+                padding: 2,
+                borderRadius: 4,
+                background: matchWholeWord ? 'var(--primary)/20' : 'transparent',
+                color: matchWholeWord ? 'var(--primary)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                border: 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (!matchWholeWord) {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'var(--sidebar-item-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!matchWholeWord) {
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
             >
-              <WholeWord className="w-3 h-3" />
+              <WholeWord style={{ width: 12, height: 12 }} />
             </button>
             <button
               onClick={() => setUseRegex(!useRegex)}
-              className={cn(
-                'p-0.5 rounded',
-                useRegex ? 'bg-primary/20 text-primary' : 'text-muted-foreground',
-              )}
+              style={{
+                padding: 2,
+                borderRadius: 4,
+                background: useRegex ? 'var(--success)/20' : 'transparent',
+                color: useRegex ? 'var(--success)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                border: 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (!useRegex) {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'var(--sidebar-item-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!useRegex) {
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
             >
-              <Regex className="w-3 h-3" />
+              <Regex style={{ width: 12, height: 12 }} />
             </button>
           </div>
         </div>

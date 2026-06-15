@@ -1,4 +1,5 @@
 export interface ThemeConfig {
+  id: string;
   name: string;
   monaco: {
     base: string;
@@ -16,66 +17,60 @@ export interface ThemeConfig {
   tailwind: {
     primary: string;
     background: string;
+    foreground: string;
     textPrimary: string;
     textSecondary: string;
     border: string;
-    borderHover: string;
-    borderFocus: string;
+    divider: string;
     cardBackground: string;
     inputBackground: string;
-    inputBorderDefault: string;
-    inputBorderHover: string;
-    inputBorderFocus: string;
-    dialogBackground: string;
-    dropdownBackground: string;
+    modalBackground: string;
+    dropdownContentBackground: string;
     dropdownItemHover: string;
-    dropdownBorder: string;
-    dropdownBorderHover: string;
     sidebarBackground: string;
     sidebarItemHover: string;
     sidebarItemFocus: string;
-    buttonBg: string;
-    buttonBgHover: string;
-    buttonText: string;
-    buttonBorder: string;
-    buttonBorderHover: string;
-    buttonSecondBg: string;
-    buttonSecondBgHover: string;
-    bookmarkItemBg: string;
-    bookmarkItemText: string;
-    drawerBackground: string;
-    clockGradientFrom: string;
-    clockGradientTo: string;
-    cardShadow: string;
-    dialogShadow: string;
-    dropdownShadow: string;
-    tableHeaderBg: string;
-    tableBodyBg: string;
-    tableHoverItemBodyBg: string;
-    tableFocusItemBodyBg: string;
-    tableFooterBg: string;
-    tableBorder: string;
-    tabBackground: string;
-    tabBorder: string;
-    tabHoverBorder: string;
-    tabItemBackground: string;
-    tabItemHoverBg: string;
-    tabItemFocusBg: string;
-    tabItemBorder: string;
-    tabItemHoverBorder: string;
-    tabItemFocusBorder: string;
-    [key: string]: string;
   };
 }
 
-// Auto-load all JSON theme files from ./themes/ folder
-const themeModules = import.meta.glob<{ default: ThemeConfig }>('./themes/*.json', {
+// Auto-load all theme files from ./themes/ folder (both .ts and .json)
+const themeModulesTs = import.meta.glob<{ [key: string]: ThemeConfig }>('./themes/*.ts', {
+  eager: true,
+});
+const themeModulesJson = import.meta.glob<{ default: ThemeConfig }>('./themes/*.json', {
   eager: true,
 });
 
-// All themes in a single flat array — no dark/light distinction
-export const PRESET_THEMES: ThemeConfig[] = Object.values(themeModules).map(
-  (mod) => mod.default,
-);
+// Helper to extract named export from .ts files
+function extractThemeFromTsModule(module: any): ThemeConfig | null {
+  // Check for named export 'MidnightBlue' or any other named export that is a ThemeConfig
+  for (const key of Object.keys(module)) {
+    if (
+      module[key] &&
+      typeof module[key] === 'object' &&
+      module[key].monaco &&
+      module[key].tailwind
+    ) {
+      return module[key] as ThemeConfig;
+    }
+  }
+  return null;
+}
+
+// Load .ts themes
+const tsThemes: ThemeConfig[] = [];
+for (const path in themeModulesTs) {
+  const module = themeModulesTs[path];
+  const theme = extractThemeFromTsModule(module);
+  if (theme) {
+    tsThemes.push(theme);
+  }
+}
+
+// Load .json themes
+const jsonThemes: ThemeConfig[] = Object.values(themeModulesJson).map((mod) => mod.default);
+
+// All themes in a single flat array
+export const PRESET_THEMES: ThemeConfig[] = [...tsThemes, ...jsonThemes];
 
 export type PresetThemeType = ThemeConfig;

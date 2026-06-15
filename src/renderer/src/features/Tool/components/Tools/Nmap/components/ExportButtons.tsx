@@ -65,27 +65,42 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ scan, accentColor }) => {
     URL.revokeObjectURL(url);
   };
 
-  const buttonStyle = {
-    padding: '6px 12px',
-    background: '#0d1117',
-    border: `1px solid ${accentColor}30`,
-    borderRadius: 4,
-    color: accentColor,
-    fontSize: 11,
-    fontWeight: 700,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  };
-
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
-      <button onClick={exportAsJSON} style={buttonStyle} title="Export as JSON">
+    <div className="flex gap-2">
+      <button
+        onClick={exportAsJSON}
+        className="px-3 py-1.5 rounded text-[11px] font-bold font-inherit cursor-pointer transition-all hover:opacity-80"
+        style={{
+          background: 'rgb(var(--card-background))',
+          border: `1px solid ${accentColor}30`,
+          color: accentColor,
+        }}
+        title="Export as JSON"
+      >
         📄 JSON
       </button>
-      <button onClick={exportAsXML} style={buttonStyle} title="Export as XML (raw)">
+      <button
+        onClick={exportAsXML}
+        className="px-3 py-1.5 rounded text-[11px] font-bold font-inherit cursor-pointer transition-all hover:opacity-80"
+        style={{
+          background: 'rgb(var(--card-background))',
+          border: `1px solid ${accentColor}30`,
+          color: accentColor,
+        }}
+        title="Export as XML (raw)"
+      >
         📋 XML
       </button>
-      <button onClick={exportAsTXT} style={buttonStyle} title="Export as TXT report">
+      <button
+        onClick={exportAsTXT}
+        className="px-3 py-1.5 rounded text-[11px] font-bold font-inherit cursor-pointer transition-all hover:opacity-80"
+        style={{
+          background: 'rgb(var(--card-background))',
+          border: `1px solid ${accentColor}30`,
+          color: accentColor,
+        }}
+        title="Export as TXT report"
+      >
         📝 TXT
       </button>
     </div>

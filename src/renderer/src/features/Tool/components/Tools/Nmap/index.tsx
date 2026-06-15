@@ -5,7 +5,7 @@ import { useHistory } from './hooks/useHistory';
 import MarkdownBlock from '../../common/MarkdownBlock';
 import ExecutionTab from './tabs/ExecutionTab';
 import HistoryTab from './tabs/HistoryTab';
-import Tooltip from './components/Tooltip';
+import Tooltip from '../../common/Tooltip';
 import { TooltipState, ContextMenuState } from './types';
 import { NMAP_DOC } from './constants';
 
@@ -65,15 +65,7 @@ const NmapTool: React.FC<NmapToolProps> = ({
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        fontFamily: '"JetBrains Mono", monospace',
-        position: 'relative',
-      }}
-    >
+    <div className="flex flex-col gap-3 relative font-mono">
       {activeTab === 'information' && <MarkdownBlock content={NMAP_DOC} accentColor={accentColor} />}
 
       {activeTab === 'execution' && (
@@ -113,7 +105,7 @@ const NmapTool: React.FC<NmapToolProps> = ({
       )}
 
       {activeTab === 'logs' && (
-        <div style={{ padding: 20, color: '#64748b', textAlign: 'center' }}>
+        <div className="p-5 text-center" style={{ color: 'rgb(var(--text-secondary))' }}>
           Logs tab - Coming soon
         </div>
       )}

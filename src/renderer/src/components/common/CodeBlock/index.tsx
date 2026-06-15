@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import intelBlackTheme from '../../../theme/themes/IntelBlack.json';
+import { MidnightBlue } from '../../../theme/themes/MidnightBlue';
 
 // Define Window interface to include require for AMD loader
 declare global {
@@ -52,15 +52,15 @@ interface CodeBlockProps {
 }
 
 const SYSTEMA_THEME = {
-  base: intelBlackTheme.monaco.base,
-  inherit: intelBlackTheme.monaco.inherit,
-  rules: intelBlackTheme.monaco.rules.map((rule) => ({
+  base: MidnightBlue.monaco.base,
+  inherit: MidnightBlue.monaco.inherit,
+  rules: MidnightBlue.monaco.rules.map((rule: any) => ({
     token: rule.token,
     foreground: rule.foreground,
     background: rule.background,
     fontStyle: rule.fontStyle,
   })),
-  colors: intelBlackTheme.monaco.colors,
+  colors: MidnightBlue.monaco.colors,
 };
 
 const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(

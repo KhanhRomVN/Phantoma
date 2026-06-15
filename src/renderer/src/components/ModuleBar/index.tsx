@@ -56,10 +56,10 @@ function NavLogo({ expanded }: { expanded: boolean }) {
   return (
     <div
       className="w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
-      title="PHANTOM v2.5.0"
+      title="PHANTOMA"
     >
       <svg
-        className="w-[18px] h-[18px] text-cyan-400 shrink-0"
+        className="w-[18px] h-[18px] text-primary shrink-0"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -70,12 +70,12 @@ function NavLogo({ expanded }: { expanded: boolean }) {
       </svg>
       {expanded && (
         <motion.span
-          initial={{ opacity: 0, width: 0 }}
-          animate={{ opacity: 1, width: 'auto' }}
-          exit={{ opacity: 0, width: 0 }}
-          className="ml-2 text-sm font-mono text-cyan-400 whitespace-nowrap overflow-hidden"
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="ml-4 text-sm font-mono text-primary whitespace-nowrap"
         >
-          PHANTOM v2.5.0
+          PHANTOMA
         </motion.span>
       )}
     </div>
@@ -280,11 +280,18 @@ function NavButton({
       className={cn(
         'relative w-full flex items-center gap-3 transition-all duration-200',
         expanded ? 'px-3 py-2 rounded-lg' : 'w-9 h-9 px-0 rounded-md justify-center',
-        isActive ? activeClass : 'text-gray-400 hover:text-[#c5cfe0] hover:bg-[#161b26]',
+        isActive
+          ? activeClass
+          : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
         !expanded && 'mx-auto',
       )}
     >
-      <div className={cn('flex items-center justify-center shrink-0', expanded ? 'w-5 h-5' : 'w-4 h-4')}>
+      <div
+        className={cn(
+          'flex items-center justify-center shrink-0',
+          expanded ? 'w-5 h-5' : 'w-4 h-4',
+        )}
+      >
         <NavIcon module={module} />
       </div>
       {expanded && (
@@ -327,24 +334,24 @@ function SubMenuItemButton({
       className={cn(
         'w-full flex items-center gap-2 pl-6 py-1.5 text-left transition-all duration-200 text-sm',
         isActive && !item.disabled
-          ? 'text-white'
+          ? 'text-text-primary'
           : item.disabled
-            ? 'text-[#3a4558] cursor-not-allowed opacity-50'
-            : 'text-[#6b7a96] hover:text-[#c5cfe0]',
+            ? 'text-border cursor-not-allowed opacity-50'
+            : 'text-text-secondary hover:text-text-primary',
       )}
     >
       <span
         className={cn(
           'w-1.5 h-1.5 rounded-full shrink-0',
           isActive && !item.disabled
-            ? 'bg-white ring-1 ring-white ring-opacity-50'
+            ? 'bg-text-primary ring-1 ring-text-primary ring-opacity-50'
             : item.disabled
-              ? 'bg-[#3a4558]'
-              : 'bg-[#1e2535]',
+              ? 'bg-border'
+              : 'bg-divider',
         )}
       />
       <span className="text-[13px]">{item.title}</span>
-      {item.disabled && <span className="ml-auto text-[8px] text-[#3a4558]">(soon)</span>}
+      {item.disabled && <span className="ml-auto text-[8px] text-border">(soon)</span>}
     </button>
   );
 }
@@ -381,17 +388,19 @@ export function ModuleBar({
       animate={{ width: expanded ? 240 : 48 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <div className="h-full shrink-0 bg-[#0f1319] border-r border-[#1e2535] flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
-        <div className="w-full h-[37px] flex items-center px-3 shrink-0 overflow-hidden">
-          <NavLogo expanded={expanded} />
-        </div>
-        <div className="w-full h-px bg-[#1e2535] shrink-0" />
-
+      <div className="h-full shrink-0 bg-sidebar-background border-r border-border flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
         <div
           className={cn(
-            'flex flex-col gap-1 w-full py-2',
-            expanded ? 'px-2' : 'px-0 items-center',
+            'w-full h-[37px] flex items-center shrink-0',
+            expanded ? 'px-3 justify-start' : 'justify-center',
           )}
+        >
+          <NavLogo expanded={expanded} />
+        </div>
+        <div className="w-full h-px bg-divider shrink-0" />
+
+        <div
+          className={cn('flex flex-col gap-1 w-full py-2', expanded ? 'px-2' : 'px-0 items-center')}
         >
           {NAV_MODULES.map((item) => (
             <div key={item.id}>
@@ -433,14 +442,6 @@ export function ModuleBar({
         </div>
 
         <div className="mt-auto flex flex-col gap-1 px-2 pb-3">
-          <NavButton
-            module={'target' as PhantomModule}
-            title="Target Manager"
-            isActive={active === 'target'}
-            activeClass="bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
-            onClick={() => onSelect('target' as PhantomModule)}
-            expanded={expanded}
-          />
           <NavButton
             module={'settings' as PhantomModule}
             title="Settings"

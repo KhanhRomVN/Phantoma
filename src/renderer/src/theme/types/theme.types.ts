@@ -16,6 +16,8 @@ export interface MonacoTheme {
 }
 
 export interface ThemeConfig {
+  id: string;
+  name: string;
   monaco: MonacoTheme;
   tailwind: ThemeColors;
 }

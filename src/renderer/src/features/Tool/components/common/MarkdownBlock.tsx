@@ -7,24 +7,24 @@ interface MarkdownBlockProps {
   accentColor?: string;
 }
 
-const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = '#00e5ff' }) => {
+const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'rgb(var(--primary))' }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div
         style={{
           padding: '12px 16px',
-          background: '#0d1117',
+          background: 'rgb(var(--card-background))',
           borderRadius: 6,
         }}
       >
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
-            h1: ({ children }: { children?: React.ReactNode }) => (
+            h1: ({ children }) => (
               <h1
                 style={{
                   fontSize: 16,
-                  color: '#e2e8f0',
+                  color: 'rgb(var(--text-primary))',
                   marginBottom: 12,
                   letterSpacing: '0.1em',
                 }}
@@ -32,35 +32,62 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = '#
                 {children}
               </h1>
             ),
-            h2: ({ children }: { children?: React.ReactNode }) => (
-              <h2 style={{ fontSize: 14, color: '#e2e8f0', marginTop: 16, marginBottom: 8 }}>
+            h2: ({ children }) => (
+              <h2
+                style={{
+                  fontSize: 14,
+                  color: 'rgb(var(--text-primary))',
+                  marginTop: 16,
+                  marginBottom: 8,
+                }}
+              >
                 {children}
               </h2>
             ),
-            h3: ({ children }: { children?: React.ReactNode }) => (
-              <h3 style={{ fontSize: 13, color: '#e2e8f0', marginBottom: 8 }}>{children}</h3>
+            h3: ({ children }) => (
+              <h3
+                style={{
+                  fontSize: 13,
+                  color: 'rgb(var(--text-primary))',
+                  marginBottom: 8,
+                }}
+              >
+                {children}
+              </h3>
             ),
-            p: ({ children }: { children?: React.ReactNode }) => (
-              <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, marginBottom: 12 }}>
+            p: ({ children }) => (
+              <p
+                style={{
+                  fontSize: 12,
+                  color: 'rgb(var(--text-secondary))',
+                  lineHeight: 1.6,
+                  marginBottom: 12,
+                }}
+              >
                 {children}
               </p>
             ),
-            ul: ({ children }: { children?: React.ReactNode }) => (
-              <ul style={{ fontSize: 11, color: '#94a3b8', margin: '8px 0', paddingLeft: 20 }}>
+            ul: ({ children }) => (
+              <ul
+                style={{
+                  fontSize: 11,
+                  color: 'rgb(var(--text-secondary))',
+                  margin: '8px 0',
+                  paddingLeft: 20,
+                }}
+              >
                 {children}
               </ul>
             ),
-            li: ({ children }: { children?: React.ReactNode }) => (
-              <li style={{ marginBottom: 4 }}>{children}</li>
-            ),
-            code: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
+            li: ({ children }) => <li style={{ marginBottom: 4 }}>{children}</li>,
+            code: ({ children, className }) => {
               const isBlock = className?.includes('language');
               return isBlock ? (
                 <pre
                   style={{
                     fontSize: 11,
-                    color: '#cbd5e1',
-                    background: '#080b10',
+                    color: 'rgb(var(--text-primary))',
+                    background: 'rgb(var(--input-background))',
                     padding: 12,
                     borderRadius: 4,
                     overflowX: 'auto',
@@ -74,7 +101,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = '#
                   style={{
                     fontSize: 11,
                     color: accentColor,
-                    background: '#080b10',
+                    background: 'rgb(var(--input-background))',
                     padding: '2px 4px',
                     borderRadius: 3,
                   }}
@@ -83,19 +110,19 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = '#
                 </code>
               );
             },
-            table: ({ children }: { children?: React.ReactNode }) => (
+            table: ({ children }) => (
               <div style={{ overflowX: 'auto', margin: '12px 0' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                   {children}
                 </table>
               </div>
             ),
-            th: ({ children }: { children?: React.ReactNode }) => (
+            th: ({ children }) => (
               <th
                 style={{
                   textAlign: 'left',
                   padding: '8px',
-                  color: '#e2e8f0',
+                  color: 'rgb(var(--text-primary))',
                   borderBottom: `1px solid ${accentColor}30`,
                   backgroundColor: `${accentColor}10`,
                 }}
@@ -103,9 +130,13 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = '#
                 {children}
               </th>
             ),
-            td: ({ children }: { children?: React.ReactNode }) => (
+            td: ({ children }) => (
               <td
-                style={{ padding: '6px 8px', color: '#e2e8f0', borderBottom: '1px solid #1a2236' }}
+                style={{
+                  padding: '6px 8px',
+                  color: 'rgb(var(--text-primary))',
+                  borderBottom: '1px solid rgb(var(--border))',
+                }}
               >
                 {children}
               </td>

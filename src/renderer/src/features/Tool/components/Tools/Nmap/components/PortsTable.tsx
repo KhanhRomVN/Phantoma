@@ -23,20 +23,25 @@ const PortsTable: React.FC<PortsTableProps> = ({ ports, accentColor, showRisk = 
     ? ['PORT', 'PROTO', 'STATE', 'SERVICE', 'VERSION', 'RISK']
     : ['PORT', 'PROTO', 'STATE', 'SERVICE', 'VERSION'];
 
+  const getRiskColor = (risk: string): string => {
+    switch (risk) {
+      case 'critical': return '#ef4444';
+      case 'high': return '#f97316';
+      case 'medium': return '#fbbf24';
+      default: return '#22c55e';
+    }
+  };
+
   return (
-    <div style={{ overflowX: 'auto', maxHeight: 400, overflowY: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+    <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 400 }}>
+      <table className="w-full border-collapse text-[11px]">
         <thead>
           <tr>
             {columns.map((h) => (
               <th
                 key={h}
-                style={{
-                  textAlign: 'left',
-                  padding: '8px',
-                  color: '#475569',
-                  borderBottom: '1px solid #1a2236',
-                }}
+                className="text-left p-2"
+                style={{ color: 'rgb(var(--text-secondary))', borderBottom: '1px solid rgb(var(--border))' }}
               >
                 {h}
               </th>
@@ -46,30 +51,29 @@ const PortsTable: React.FC<PortsTableProps> = ({ ports, accentColor, showRisk = 
         <tbody>
           {ports.map((p, i) => {
             const risk = getPortRisk(p.port, p.service);
-            const riskColor =
-              risk === 'critical'
-                ? '#ef4444'
-                : risk === 'high'
-                  ? '#f97316'
-                  : risk === 'medium'
-                    ? '#fbbf24'
-                    : '#22c55e';
+            const riskColor = getRiskColor(risk);
             return (
               <tr key={i}>
-                <td style={{ padding: '8px', color: accentColor, fontWeight: 700 }}>
+                <td className="p-2 font-bold" style={{ color: accentColor }}>
                   {p.port}
                 </td>
-                <td style={{ padding: '8px', color: '#64748b' }}>{p.protocol}</td>
-                <td style={{ padding: '8px' }}>
-                  <span style={{ color: stateColor(p.state), fontWeight: 700 }}>
+                <td className="p-2" style={{ color: 'rgb(var(--text-secondary))' }}>
+                  {p.protocol}
+                </td>
+                <td className="p-2">
+                  <span className="font-bold" style={{ color: stateColor(p.state) }}>
                     {p.state.toUpperCase()}
                   </span>
                 </td>
-                <td style={{ padding: '8px', color: '#94a3b8' }}>{p.service}</td>
-                <td style={{ padding: '8px', color: '#64748b' }}>{p.version || '—'}</td>
+                <td className="p-2" style={{ color: 'rgb(var(--text-secondary))' }}>
+                  {p.service}
+                </td>
+                <td className="p-2" style={{ color: 'rgb(var(--text-secondary))' }}>
+                  {p.version || '—'}
+                </td>
                 {showRisk && (
-                  <td style={{ padding: '8px' }}>
-                    <span style={{ color: riskColor, fontWeight: 600, fontSize: 10 }}>
+                  <td className="p-2">
+                    <span className="font-semibold text-[10px]" style={{ color: riskColor }}>
                       {risk.toUpperCase()}
                     </span>
                   </td>

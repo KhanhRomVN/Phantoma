@@ -92,8 +92,18 @@ export function WasmPanel({ requests = [], onClose }: WasmPanelProps) {
     <div className="flex flex-col h-full">
       {/* Header - horizontal */}
       <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-purple-500/15 border border-purple-500/25 shrink-0">
-          <FileCode className="w-4 h-4 text-purple-400" />
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 36,
+          height: 40,
+          borderRadius: 8,
+          background: 'var(--accent-purple)/15',
+          border: '1px solid var(--accent-purple)/25',
+          flexShrink: 0,
+        }}>
+          <FileCode style={{ width: 16, height: 16, color: 'var(--accent-purple)' }} />
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-base font-bold text-text-primary">WASM Modules</h2>

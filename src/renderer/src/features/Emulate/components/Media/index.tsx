@@ -183,8 +183,18 @@ export function MediaPanel({ requests = [], onClose }: MediaPanelProps) {
     <div className="flex flex-col h-full relative overflow-hidden">
       {/* Header - horizontal */}
       <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-blue-500/15 border border-blue-500/25 shrink-0">
-          <ImageIcon className="w-4 h-4 text-blue-400" />
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 36,
+          height: 40,
+          borderRadius: 8,
+          background: 'var(--accent-blue)/15',
+          border: '1px solid var(--accent-blue)/25',
+          flexShrink: 0,
+        }}>
+          <ImageIcon style={{ width: 16, height: 16, color: 'var(--accent-blue)' }} />
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-base font-bold text-text-primary">Media Assets</h2>
@@ -345,8 +355,18 @@ export function MediaPanel({ requests = [], onClose }: MediaPanelProps) {
 
         {mediaItems.length === 0 && !isScanning && (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 rounded-xl bg-blue-500/15 flex items-center justify-center mb-4 border border-blue-500/25">
-              <ImageIcon className="w-8 h-8 text-blue-400" />
+            <div style={{
+              width: 64,
+              height: 64,
+              borderRadius: 12,
+              background: 'var(--accent-blue)/15',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+              border: '1px solid var(--accent-blue)/25',
+            }}>
+              <ImageIcon style={{ width: 32, height: 32, color: 'var(--accent-blue)' }} />
             </div>
             <p className="text-sm text-text-primary font-medium">No media assets found</p>
             <p className="text-xs text-text-secondary mt-1">

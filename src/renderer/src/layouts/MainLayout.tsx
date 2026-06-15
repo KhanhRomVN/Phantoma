@@ -22,9 +22,18 @@ const MainLayout = () => {
   // Sync activeModule with URL path
   useEffect(() => {
     const currentPath = location.pathname.slice(1) || 'recon';
-    const validPaths = ['dashboard', 'recon', 'scanner', 'tools', 'emulate', 'wireless', 'target', 'settings'];
+    const validPaths = [
+      'dashboard',
+      'recon',
+      'scanner',
+      'tools',
+      'emulate',
+      'wireless',
+      'target',
+      'settings',
+    ];
     const isCurrentPathValid = validPaths.includes(currentPath);
-    
+
     if (isCurrentPathValid && currentPath !== activeModule) {
       setActiveModule(currentPath as any);
     }
@@ -46,7 +55,7 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="phantom flex h-screen w-screen overflow-hidden bg-phantom-bg font-mono text-xs text-phantom-text">
+    <div className="flex h-screen w-screen overflow-hidden bg-background font-mono text-xs text-text-primary">
       <ModuleBar
         active={activeModule}
         onSelect={handleModuleSelect}
