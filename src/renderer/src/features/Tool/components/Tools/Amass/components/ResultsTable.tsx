@@ -32,40 +32,27 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ subdomains, accentColor, on
   };
   
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="flex flex-col gap-3">
       {/* Filter and actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <div style={{ position: 'relative', flex: 1 }}>
+      <div className="flex justify-between items-center gap-3">
+        <div className="relative flex-1">
           <input
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter subdomains..."
+            className="w-full px-3 py-1.5 rounded text-[11px] outline-none font-inherit bg-input-background text-text-primary placeholder:text-text-secondary"
             style={{
-              width: '100%',
-              padding: '6px 10px',
-              background: '#0d1117',
-              border: `1px solid ${filter ? accentColor + '50' : '#1a2236'}`,
-              borderRadius: 4,
-              color: '#e2e8f0',
-              fontSize: 11,
-              outline: 'none',
-              fontFamily: 'inherit',
+              border: `1px solid ${filter ? accentColor + '50' : 'var(--border)'}`,
             }}
           />
         </div>
         <button
           onClick={handleCopyAll}
+          className="px-3 py-1.5 rounded text-[11px] font-bold cursor-pointer font-inherit bg-card-background transition-all hover:opacity-80"
           style={{
-            padding: '6px 12px',
-            background: '#0d1117',
             border: `1px solid ${accentColor}30`,
-            borderRadius: 4,
             color: accentColor,
-            fontSize: 11,
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
           }}
         >
           Copy All ({filtered.length})
@@ -73,22 +60,22 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ subdomains, accentColor, on
       </div>
       
       {/* Results count */}
-      <div style={{ fontSize: 10, color: '#64748b' }}>
+      <div className="text-[10px] text-text-secondary">
         Showing {filtered.length} of {subdomains.length} subdomains
       </div>
       
       {/* Table */}
-      <div style={{ overflowX: 'auto', maxHeight: 400, overflowY: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+      <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 400 }}>
+        <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr>
-              <th style={{ textAlign: 'left', padding: '8px', color: '#475569', borderBottom: '1px solid #1a2236' }}>
+              <th className="text-left p-2 text-text-secondary" style={{ borderBottom: '1px solid var(--border)' }}>
                 SUBDOMAIN
               </th>
-              <th style={{ textAlign: 'left', padding: '8px', color: '#475569', borderBottom: '1px solid #1a2236' }}>
+              <th className="text-left p-2 text-text-secondary" style={{ borderBottom: '1px solid var(--border)' }}>
                 SOURCE
               </th>
-              <th style={{ textAlign: 'left', padding: '8px', color: '#475569', borderBottom: '1px solid #1a2236' }}>
+              <th className="text-left p-2 text-text-secondary" style={{ borderBottom: '1px solid var(--border)' }}>
                 ACTION
               </th>
             </tr>
@@ -96,22 +83,16 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ subdomains, accentColor, on
           <tbody>
             {filtered.map((sub, i) => (
               <tr key={i}>
-                <td style={{ padding: '8px', color: accentColor, fontWeight: 500 }}>
+                <td className="p-2 font-medium" style={{ color: accentColor }}>
                   {sub.name}
                 </td>
-                <td style={{ padding: '8px', color: '#64748b' }}>
+                <td className="p-2 text-text-secondary">
                   {sub.source || '—'}
                 </td>
-                <td style={{ padding: '8px' }}>
+                <td className="p-2">
                   <button
                     onClick={() => handleCopySingle(sub.name)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#64748b',
-                      cursor: 'pointer',
-                      fontSize: 10,
-                    }}
+                    className="bg-transparent border-none text-text-secondary cursor-pointer text-[10px]"
                     title="Copy to clipboard"
                   >
                     📋 Copy

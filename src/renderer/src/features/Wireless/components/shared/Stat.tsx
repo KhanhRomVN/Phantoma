@@ -11,40 +11,17 @@ interface StatProps {
 
 export function Stat({ label, value, accent = 'var(--primary)', sub }: StatProps) {
   return (
-    <div
-      style={{
-        background: 'var(--input-background)',
-        border: '1px solid var(--border)',
-        borderRadius: 5,
-        padding: '10px 12px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 9,
-          color: 'var(--text-secondary)',
-          fontWeight: 700,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-        }}
-      >
+    <div className="bg-input-background border border-border rounded p-2.5 flex flex-col gap-1">
+      <div className="text-[9px] text-text-secondary font-bold tracking-[0.1em] uppercase">
         {label}
       </div>
       <div
-        style={{
-          fontSize: 24,
-          fontWeight: 800,
-          color: accent,
-          lineHeight: 1,
-          fontVariantNumeric: 'tabular-nums',
-        }}
+        className="text-2xl font-extrabold leading-none tabular-nums"
+        style={{ color: accent }}
       >
         {value}
       </div>
-      {sub && <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{sub}</div>}
+      {sub && <div className="text-[9px] text-text-secondary">{sub}</div>}
     </div>
   );
 }

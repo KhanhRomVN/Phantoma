@@ -1,0 +1,93 @@
+/* All fonts are loaded from local assets folder */
+/* Each font is declared via @font-face in JavaScript (injectFontFace) */
+/* The CSS here serves as a fallback */
+
+/* Google Sans - Local font */
+@font-face {
+  font-family: 'GoogleSans';
+  src: url('./assets/GoogleSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fira Code - Local font */
+@font-face {
+  font-family: 'Fira Code';
+  src: url('./assets/FiraCode-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Space Grotesk - Local font */
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('./assets/SpaceGrotesk-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* IBM Plex Mono - Local font */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('./assets/IBMPlexMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* DM Sans - Local font */
+@font-face {
+  font-family: 'DM Sans';
+  src: url('./assets/DMSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Geist - Local font */
+@font-face {
+  font-family: 'Geist';
+  src: url('./assets/Geist-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Manrope - Local font */
+@font-face {
+  font-family: 'Manrope';
+  src: url('./assets/Manrope-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Outfit - Local font */
+@font-face {
+  font-family: 'Outfit';
+  src: url('./assets/Outfit-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Plus Jakarta Sans - Local font */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('./assets/PlusJakartaSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Sora - Local font */
+@font-face {
+  font-family: 'Sora';
+  src: url('./assets/Sora-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

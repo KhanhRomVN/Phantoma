@@ -36,10 +36,9 @@ const ScanCard: React.FC<ScanCardProps> = ({
 
   return (
     <div
-      className="rounded-md transition-all mb-2 cursor-pointer"
+      className={`rounded-md transition-all mb-2 cursor-pointer bg-card-background ${isExpanded ? 'border border-border' : ''}`}
       style={{
-        background: 'rgb(var(--card-background))',
-        border: `1px solid ${isExpanded ? accentColor : 'rgb(var(--border))'}`,
+        border: !isExpanded ? `1px solid rgb(var(--border))` : undefined,
       }}
       onContextMenu={(e) => onContextMenu(e, scan)}
     >
@@ -48,14 +47,25 @@ const ScanCard: React.FC<ScanCardProps> = ({
         onClick={onToggle}
       >
         <div className="flex flex-col gap-1 flex-[2]">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{
-                background: 'rgb(var(--primary))',
-                boxShadow: `0 0 6px rgb(var(--primary))`,
-              }}
-            />
+          <div className="flex items-center gap-2">
+            {(() => {
+              // Check if target is a domain (not an IP address)
+              const isDomain = !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(scan.target) && 
+                               !scan.target.includes('/') &&
+                               scan.target.includes('.');
+              const faviconUrl = isDomain ? `https://www.google.com/s2/favicons?domain=${scan.target}&sz=16` : null;
+              
+              return faviconUrl ? (
+                <img
+                  src={faviconUrl}
+                  alt="favicon"
+                  className="w-4 h-4 rounded-sm"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : null;
+            })()}
             <span className="text-[13px] font-bold" style={{ color: 'rgb(var(--text-primary))' }}>
               {scan.target}
             </span>
@@ -66,7 +76,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
               {scan.scanType}
             </span>
           </div>
-          <div className="text-[10px] pl-5" style={{ color: 'rgb(var(--text-secondary))' }}>
+          <div className="text-xs pl-5" style={{ color: 'rgb(var(--text-primary))' }}>
             {formatDate(scan.timestamp)}
           </div>
         </div>

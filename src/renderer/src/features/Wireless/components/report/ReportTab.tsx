@@ -6,8 +6,38 @@ import type { WiFiNetwork, ActiveAttack } from '../../types';
 import { encBadge } from '../../utils';
 import { Panel } from '../shared/Panel';
 import { Stat } from '../shared/Stat';
-import { Tag } from '../shared/Tag';
 import { Btn } from '../shared/Btn';
+
+// Helper function to resolve color from CSS variable
+function resolveColor(color: string): string {
+  const colorMap: Record<string, string> = {
+    'var(--success)': '#10b981',
+    'var(--error)': '#ef4444',
+    'var(--warning)': '#f59e0b',
+    'var(--primary)': '#3686ff',
+    'var(--accent-purple)': '#a78bfa',
+  };
+  return colorMap[color] || color;
+}
+
+// Inline Badge component
+function Badge({ label, color }: { label: string; color: string }) {
+  const resolvedColor = resolveColor(color);
+  return (
+    <span
+      className="font-bold rounded tracking-[0.08em] font-mono"
+      style={{
+        fontSize: 8,
+        padding: '1px 5px',
+        border: `1px solid ${resolvedColor}80`,
+        background: `${resolvedColor}20`,
+        color: resolvedColor,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 interface ReportTabProps {
   networks: WiFiNetwork[];
@@ -25,16 +55,9 @@ export function ReportTab({ networks, attacks: _attacks, crackedCount }: ReportT
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="flex flex-col gap-3">
       <Panel title="Executive Summary" accent="var(--primary)">
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 8,
-            marginBottom: 12,
-          }}
-        >
+        <div className="grid grid-cols-4 gap-2 mb-3">
           <Stat label="Networks Scanned" value={networks.length} accent="var(--primary)" />
           <Stat label="Vulnerable" value={vulns.length} accent="var(--error)" />
           <Stat label="Passwords Cracked" value={crackedCount} accent="var(--success)" />
@@ -44,7 +67,7 @@ export function ReportTab({ networks, attacks: _attacks, crackedCount }: ReportT
             accent="var(--warning)"
           />
         </div>
-        <div style={{ fontSize: 9, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+        <div className="text-[9px] text-text-secondary leading-relaxed">
           Wireless security audit completed. {vulns.length} out of {networks.length} networks
           present critical or high-severity vulnerabilities.
           {networks.filter((n) => n.encryption === 'wep').length > 0 &&
@@ -71,25 +94,19 @@ export function ReportTab({ networks, attacks: _attacks, crackedCount }: ReportT
           return (
             <div
               key={n.id}
-              style={{
-                padding: '8px 12px',
-                background: 'var(--input-background)',
-                border: '1px solid var(--border)',
-                borderRadius: 5,
-                marginBottom: 6,
-              }}
+              className="py-2 px-3 bg-input-background border border-border rounded mb-1.5"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <span className="text-xs font-bold text-text-primary">
                   {n.ssid || '‹hidden›'}
                 </span>
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{n.bssid}</span>
+                <span className="text-[9px] text-text-secondary">{n.bssid}</span>
                 {encBadge(n.encryption)}
-                {n.crackedPassword && <Tag label={`PSK: ${n.crackedPassword}`} color="var(--success)" />}
+                {n.crackedPassword && <Badge label={`PSK: ${n.crackedPassword}`} color="var(--success)" />}
               </div>
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              <div className="flex gap-1.5 flex-wrap">
                 {reasons.map((r, i) => (
-                  <Tag key={i} label={r.label} color={r.color} />
+                  <Badge key={i} label={r.label} color={r.color} />
                 ))}
               </div>
             </div>
@@ -132,33 +149,24 @@ export function ReportTab({ networks, attacks: _attacks, crackedCount }: ReportT
         ].map(([title, desc, color]) => (
           <div
             key={title}
-            style={{
-              display: 'flex',
-              gap: 12,
-              padding: '8px 0',
-              borderBottom: '1px solid var(--divider)',
-            }}
+            className="flex gap-3 py-2 border-b border-divider"
           >
             <div
-              style={{
-                width: 5,
-                flexShrink: 0,
-                background: color as string,
-                borderRadius: 2,
-                alignSelf: 'stretch',
-              }}
+              className="w-[5px] flex-shrink-0 rounded-sm self-stretch"
+              style={{ background: color as string }}
             />
             <div>
               <div
-                style={{ fontSize: 10, fontWeight: 700, color: color as string, marginBottom: 3 }}
+                className="text-[10px] font-bold mb-0.5"
+                style={{ color: color as string }}
               >
                 {title}
               </div>
-              <div style={{ fontSize: 9, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{desc}</div>
+              <div className="text-[9px] text-text-secondary leading-relaxed">{desc}</div>
             </div>
           </div>
         ))}
-        <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
+        <div className="mt-3 flex gap-1.5">
           <Btn label="📄 EXPORT PDF REPORT" color="var(--primary)" size="sm" />
           <Btn label="📊 EXPORT JSON" color="var(--success)" size="sm" />
           <Btn label="📋 COPY SUMMARY" color="var(--text-secondary)" size="sm" />

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { TabType } from './types';
 import { Wifi, Zap, VenetianMask, KeyRound, ShieldCheck, Monitor, ScrollText, BarChart3 } from 'lucide-react';
 import { useWireless } from './hooks/useWireless';
@@ -15,6 +16,12 @@ import { MacTab } from './components/mac/MacTab';
 import { LogTab } from './components/log/LogTab';
 import { ReportTab } from './components/report/ReportTab';
 import { PMKIDPanel } from './components/attacks/PMKIDPanel';
+
+interface TooltipState {
+  text: string;
+  x: number;
+  y: number;
+}
 
 // ============================================================================
 // MAIN COMPONENT
@@ -49,6 +56,8 @@ export function Wireless() {
     probes,
   } = useWireless();
 
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+
   const TABS: { id: TabType; label: string; accent: string; badge?: number; icon: React.ReactNode }[] = [
     { id: 'scan', label: 'SCAN', accent: 'var(--primary)', badge: networks.length, icon: <Wifi size={14} /> },
     { id: 'attacks', label: 'ATTACKS', accent: 'var(--error)', badge: stats.running || undefined, icon: <Zap size={14} /> },
@@ -61,85 +70,35 @@ export function Wireless() {
   ];
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        background: 'var(--background)',
-        overflow: 'hidden',
-        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-        color: 'var(--text-primary)',
-        position: 'relative',
-      }}
-    >
+    <div className="flex flex-col h-full bg-background overflow-hidden font-mono text-text-primary relative">
       {/* Scanline overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 0,
-          background:
-            'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(54,134,255,0.015) 2px, rgba(54,134,255,0.015) 4px)',
-          pointerEvents: 'none',
-        }}
-      />
+      <div className="absolute inset-0 z-0 pointer-events-none bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(54,134,255,0.015)_2px,rgba(54,134,255,0.015)_4px)]" />
 
       {/* ── TABS ── */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 2,
-          padding: '0 12px',
-          flexShrink: 0,
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--card-background)',
-          zIndex: 1,
-        }}
-      >
+      <div className="flex gap-0.5 px-3 flex-shrink-0 border-b border-border bg-card-background z-1">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 7,
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                padding: '10px 14px',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                background: isActive ? 'var(--input-background)' : 'transparent',
-                color: isActive ? tab.accent : 'var(--text-secondary)',
-                borderTop: 'none',
-                borderLeft: 'none',
-                borderRight: 'none',
-                borderBottom: isActive ? `2px solid ${tab.accent}` : '2px solid transparent',
-                transition: 'all 0.15s',
-                position: 'relative',
-                whiteSpace: 'nowrap',
-              }}
+              className={`
+                flex items-center gap-1.5 text-xs font-bold tracking-wider py-2.5 px-3.5 cursor-pointer font-mono
+                transition-all duration-150 relative whitespace-nowrap border-t-0 border-l-0 border-r-0 border-b-2
+                ${isActive ? `bg-input-background text-[${tab.accent}]` : 'bg-transparent text-text-secondary'}
+                ${isActive ? `border-b-2 border-solid border-[${tab.accent}]` : 'border-b-2 border-transparent'}
+              `}
             >
-              <span style={{ color: isActive ? tab.accent : 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+              <span className={`flex items-center ${isActive ? `text-[${tab.accent}]` : 'text-text-secondary'}`}>
                 {tab.icon}
               </span>
-              <span style={{ color: 'var(--text-primary)' }}>{tab.label}</span>
+              <span className="text-text-primary">{tab.label}</span>
               {tab.badge !== undefined && (
                 <span
-                  style={{
-                    fontSize: 8,
-                    fontWeight: 800,
-                    padding: '1px 5px',
-                    borderRadius: 10,
-                    minWidth: 18,
-                    textAlign: 'center',
-                    background: isActive ? `${tab.accent}20` : 'var(--border)',
-                    color: isActive ? tab.accent : 'var(--text-secondary)',
-                  }}
+                  className={`
+                    text-[8px] font-extrabold py-px px-1.5 rounded-full min-w-[18px] text-center
+                    ${isActive ? `bg-[${tab.accent}]/20 text-[${tab.accent}]` : 'bg-border text-text-secondary'}
+                  `}
                 >
                   {tab.badge}
                 </span>
@@ -150,9 +109,9 @@ export function Wireless() {
       </div>
 
       {/* ── CONTENT ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 14, zIndex: 1 }}>
+      <div className="flex-1 overflow-y-auto p-3.5 z-1">
         {activeTab === 'scan' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2">
             <ScanTab
               networks={networks}
               onAction={handleAction}
@@ -162,8 +121,9 @@ export function Wireless() {
               onScanConfig={setScanConfig}
               expandedRow={expandedRow}
               setExpandedRow={setExpandedRow}
+              onTooltipShow={setTooltip}
             />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div className="grid grid-cols-2 gap-2">
               <ChannelChart networks={networks} />
               <TopologyMap networks={networks} />
             </div>
@@ -171,7 +131,7 @@ export function Wireless() {
           </div>
         )}
         {activeTab === 'attacks' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2">
             <AttacksTab attacks={activeAttacks} onStop={stopAttack} />
             <WPSAttackPanel networks={networks} onAction={handleAction} />
             <DeauthManager sessions={deauthSessions} networks={networks} />
@@ -197,6 +157,29 @@ export function Wireless() {
           <ReportTab networks={networks} attacks={activeAttacks} crackedCount={stats.cracked} />
         )}
       </div>
+      {/* Tooltip */}
+      {tooltip && (
+        <div
+          style={{
+            position: 'fixed',
+            top: tooltip.y,
+            left: tooltip.x,
+            zIndex: 1000,
+            background: 'rgba(0, 0, 0, 0.9)',
+            color: '#fff',
+            fontSize: 11,
+            padding: '6px 10px',
+            borderRadius: 6,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            fontFamily: 'monospace',
+            border: '1px solid var(--primary)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          }}
+        >
+          {tooltip.text}
+        </div>
+      )}
     </div>
   );
 }

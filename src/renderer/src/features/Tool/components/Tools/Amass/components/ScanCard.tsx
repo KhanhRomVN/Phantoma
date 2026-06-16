@@ -34,78 +34,54 @@ const ScanCard: React.FC<ScanCardProps> = ({
   
   return (
     <div
+      className="rounded-md transition-all mb-2 bg-card-background"
       style={{
-        background: '#0d1117',
-        border: `1px solid ${isExpanded ? accentColor : '#1a2236'}`,
-        borderRadius: 6,
-        transition: 'all 0.15s',
-        marginBottom: 8,
+        border: `1px solid ${isExpanded ? accentColor : 'var(--border)'}`,
       }}
       onContextMenu={(e) => onContextMenu(e, scan)}
     >
       <div
-        style={{
-          padding: '12px 16px',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}
+        className="p-3 cursor-pointer flex justify-between items-center gap-3 flex-wrap"
         onClick={onToggle}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="flex flex-col gap-1 flex-[2]">
+          <div className="flex items-center gap-3">
             <div
+              className="w-2 h-2 rounded-full"
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
                 background: scan.status === 'completed' ? '#34d399' : '#ef4444',
                 boxShadow: scan.status === 'completed' ? '0 0 6px #34d399' : 'none',
               }}
             />
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+            <span className="text-[13px] font-bold text-text-primary">
               {scan.target}
             </span>
             <span
-              style={{
-                fontSize: 11,
-                color: '#64748b',
-                background: '#1a2236',
-                padding: '2px 8px',
-                borderRadius: 4,
-              }}
+              className="text-[11px] px-2 py-0.5 rounded bg-border text-text-secondary"
             >
               {scan.mode.toUpperCase()}
             </span>
           </div>
-          <div style={{ fontSize: 10, color: '#64748b', paddingLeft: 20 }}>
+          <div className="text-[10px] text-text-secondary pl-5">
             {formatDate(scan.timestamp)}
           </div>
         </div>
         
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, auto)',
-            gap: 20,
-            alignItems: 'center',
-          }}
+          className="grid grid-cols-3 gap-5 items-center"
         >
           <div>
-            <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Duration</span>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{scan.duration}</span>
+            <span className="text-[10px] block text-text-secondary">Duration</span>
+            <span className="text-[11px] text-text-secondary">{scan.duration}</span>
           </div>
           <div>
-            <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Subdomains</span>
-            <span style={{ fontSize: 11, color: '#34d399' }}>{uniqueSubdomains}</span>
+            <span className="text-[10px] block text-text-secondary">Subdomains</span>
+            <span className="text-[11px]" style={{ color: '#34d399' }}>{uniqueSubdomains}</span>
           </div>
           {scan.stats && (
             <div>
-              <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Unique</span>
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>{scan.stats.unique}</span>
+              <span className="text-[10px] block text-text-secondary">Unique</span>
+              <span className="text-[11px] text-text-secondary">{scan.stats.unique}</span>
             </div>
           )}
         </div>
@@ -113,44 +89,29 @@ const ScanCard: React.FC<ScanCardProps> = ({
       
       {isExpanded && (
         <div
+          className="pt-3 px-4 pb-4 bg-input-background"
           style={{
             borderTop: `1px solid ${accentColor}30`,
-            padding: '12px 16px',
-            background: '#080b10',
           }}
         >
           {/* Subdomains list */}
-          <div style={{ marginBottom: 12 }}>
+          <div className="mb-3">
             <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#e2e8f0',
-                marginBottom: 8,
-                letterSpacing: '0.1em',
-              }}
+              className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
             >
               SUBDOMAINS FOUND ({uniqueSubdomains})
             </div>
             <div
-              style={{
-                maxHeight: 200,
-                overflowY: 'auto',
-                fontSize: 11,
-                fontFamily: 'monospace',
-                background: '#0d1117',
-                padding: 8,
-                borderRadius: 4,
-              }}
+              className="max-h-[200px] overflow-y-auto text-[11px] font-mono bg-card-background p-2 rounded"
             >
               {scan.subdomains.slice(0, 50).map((sub, i) => (
-                <div key={i} style={{ marginBottom: 4, color: accentColor }}>
+                <div key={i} className="mb-1" style={{ color: accentColor }}>
                   {sub.name}
-                  {sub.source && <span style={{ color: '#64748b', fontSize: 10 }}> ({sub.source})</span>}
+                  {sub.source && <span className="text-text-secondary text-[10px]"> ({sub.source})</span>}
                 </div>
               ))}
               {scan.subdomains.length > 50 && (
-                <div style={{ color: '#64748b', marginTop: 4 }}>
+                <div className="text-text-secondary mt-1">
                   ... and {scan.subdomains.length - 50} more
                 </div>
               )}
@@ -159,32 +120,22 @@ const ScanCard: React.FC<ScanCardProps> = ({
           
           {/* Stats */}
           {scan.stats && (
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#e2e8f0',
-                  marginBottom: 8,
-                  letterSpacing: '0.1em',
-                }}
+                className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
               >
                 STATISTICS
               </div>
               <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                  gap: 8,
-                }}
+                className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2"
               >
-                <div><span style={{ color: '#64748b' }}>Total:</span> <span style={{ color: '#94a3b8' }}>{scan.stats.total}</span></div>
-                <div><span style={{ color: '#64748b' }}>Unique:</span> <span style={{ color: '#94a3b8' }}>{scan.stats.unique}</span></div>
+                <div><span className="text-text-secondary">Total:</span> <span className="text-text-secondary">{scan.stats.total}</span></div>
+                <div><span className="text-text-secondary">Unique:</span> <span className="text-text-secondary">{scan.stats.unique}</span></div>
                 {scan.stats.fromPassive !== undefined && (
-                  <div><span style={{ color: '#64748b' }}>Passive:</span> <span style={{ color: '#94a3b8' }}>{scan.stats.fromPassive}</span></div>
+                  <div><span className="text-text-secondary">Passive:</span> <span className="text-text-secondary">{scan.stats.fromPassive}</span></div>
                 )}
                 {scan.stats.fromActive !== undefined && (
-                  <div><span style={{ color: '#64748b' }}>Active:</span> <span style={{ color: '#94a3b8' }}>{scan.stats.fromActive}</span></div>
+                  <div><span className="text-text-secondary">Active:</span> <span className="text-text-secondary">{scan.stats.fromActive}</span></div>
                 )}
               </div>
             </div>
@@ -192,35 +143,23 @@ const ScanCard: React.FC<ScanCardProps> = ({
           
           {/* Sources used */}
           {scan.sourcesUsed && scan.sourcesUsed.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#e2e8f0',
-                  marginBottom: 8,
-                  letterSpacing: '0.1em',
-                }}
+                className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
               >
                 DATA SOURCES ({scan.sourcesUsed.length})
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {scan.sourcesUsed.slice(0, 15).map((src, i) => (
                   <span
                     key={i}
-                    style={{
-                      fontSize: 10,
-                      padding: '2px 6px',
-                      background: '#1a2236',
-                      borderRadius: 3,
-                      color: '#64748b',
-                    }}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-border text-text-secondary"
                   >
                     {src}
                   </span>
                 ))}
                 {scan.sourcesUsed.length > 15 && (
-                  <span style={{ fontSize: 10, color: '#64748b' }}>
+                  <span className="text-[10px] text-text-secondary">
                     +{scan.sourcesUsed.length - 15} more
                   </span>
                 )}
@@ -231,27 +170,12 @@ const ScanCard: React.FC<ScanCardProps> = ({
           {/* Raw output (first 10 lines) */}
           <div>
             <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#e2e8f0',
-                marginBottom: 8,
-                letterSpacing: '0.1em',
-              }}
+              className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
             >
               RAW OUTPUT (first 10 lines)
             </div>
             <div
-              style={{
-                fontSize: 10,
-                color: '#64748b',
-                fontFamily: 'monospace',
-                background: '#0d1117',
-                padding: 8,
-                borderRadius: 4,
-                maxHeight: 150,
-                overflowY: 'auto',
-              }}
+              className="text-[10px] font-mono bg-card-background p-2 rounded max-h-[150px] overflow-y-auto text-text-secondary"
             >
               {scan.rawOutput.slice(0, 10).map((line, i) => (
                 <div key={i}>{line}</div>

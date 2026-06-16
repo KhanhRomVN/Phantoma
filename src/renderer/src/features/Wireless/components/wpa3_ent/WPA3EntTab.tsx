@@ -4,8 +4,42 @@
 
 import type { WPA3Result, EnterpriseCapture, KrackResult } from '../../types';
 import { Panel } from '../shared/Panel';
-import { Tag } from '../shared/Tag';
 import { Btn } from '../shared/Btn';
+
+// Helper function to resolve color from CSS variable or hex
+function resolveColor(color: string): string {
+  const colorMap: Record<string, string> = {
+    'var(--error)': '#ef4444',
+    'var(--warning)': '#f59e0b',
+    'var(--success)': '#10b981',
+    'var(--primary)': '#3686ff',
+    'var(--accent-purple)': '#a78bfa',
+    'var(--text-secondary)': '#9ca3af',
+  };
+  if (!color.startsWith('var(--')) {
+    return color;
+  }
+  return colorMap[color] || color;
+}
+
+// Inline Badge component
+function Badge({ label, color }: { label: string; color: string }) {
+  const resolvedColor = resolveColor(color);
+  return (
+    <span
+      className="font-bold rounded tracking-[0.08em] font-mono"
+      style={{
+        fontSize: 8,
+        padding: '1px 5px',
+        border: `1px solid ${resolvedColor}80`,
+        background: `${resolvedColor}20`,
+        color: resolvedColor,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 interface WPA3EntTabProps {
   wpa3Results: WPA3Result[];
@@ -15,38 +49,25 @@ interface WPA3EntTabProps {
 
 export function WPA3EntTab({ wpa3Results, entCaptures, krackResults }: WPA3EntTabProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="flex flex-col gap-3">
       <Panel title="WPA3 Security Assessment" accent="var(--accent-purple)">
         {wpa3Results.length === 0 ? (
-          <div style={{ fontSize: 9, color: 'var(--text-secondary)', padding: 20, textAlign: 'center' }}>
+          <div className="text-[9px] text-text-secondary py-5 text-center">
             No WPA3 targets scanned.
           </div>
         ) : (
           wpa3Results.map((r) => (
             <div
               key={r.bssid}
-              style={{
-                background: 'var(--input-background)',
-                border: '1px solid var(--border)',
-                borderRadius: 5,
-                padding: 12,
-                marginBottom: 8,
-              }}
+              className="bg-input-background border border-border rounded p-3 mb-2"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{r.ssid}</span>
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{r.bssid}</span>
-                {r.vulnerableToDowngrade && <Tag label="⚠ DOWNGRADE VULN" color="var(--error)" />}
-                {r.transitionMode && <Tag label="TRANSITION MODE" color="var(--warning)" />}
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <span className="text-xs font-bold text-text-primary">{r.ssid}</span>
+                <span className="text-[9px] text-text-secondary">{r.bssid}</span>
+                {r.vulnerableToDowngrade && <Badge label="⚠ DOWNGRADE VULN" color="var(--error)" />}
+                {r.transitionMode && <Badge label="TRANSITION MODE" color="var(--warning)" />}
               </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: 8,
-                  marginBottom: 10,
-                }}
-              >
+              <div className="grid grid-cols-4 gap-2 mb-2.5">
                 {[
                   ['WPA3 Support', r.wpa3Supported, 'var(--success)'],
                   ['Transition Mode', r.transitionMode, 'var(--error)'],
@@ -55,18 +76,14 @@ export function WPA3EntTab({ wpa3Results, entCaptures, krackResults }: WPA3EntTa
                 ].map(([k, v, c]) => (
                   <div
                     key={k as string}
-                    style={{
-                      padding: '6px 10px',
-                      background: 'var(--card-background)',
-                      borderRadius: 4,
-                      border: '1px solid var(--border)',
-                    }}
+                    className="py-1.5 px-2.5 bg-card-background rounded border border-border"
                   >
-                    <div style={{ fontSize: 8, color: 'var(--text-secondary)', marginBottom: 3 }}>
+                    <div className="text-[8px] text-text-secondary mb-0.5">
                       {k as string}
                     </div>
                     <div
-                      style={{ fontSize: 10, fontWeight: 700, color: v ? (c as string) : 'var(--text-secondary)' }}
+                      className="text-[10px] font-bold"
+                      style={{ color: v ? (c as string) : 'var(--text-secondary)' }}
                     >
                       {v ? '✓ Yes' : '✗ No'}
                     </div>
@@ -76,14 +93,7 @@ export function WPA3EntTab({ wpa3Results, entCaptures, krackResults }: WPA3EntTa
               {r.notes.map((n, i) => (
                 <div
                   key={i}
-                  style={{
-                    fontSize: 9,
-                    color: 'var(--warning)',
-                    padding: '3px 8px',
-                    background: '#f9731608',
-                    borderRadius: 3,
-                    marginBottom: 3,
-                  }}
+                  className="text-[9px] text-warning py-0.5 px-2 bg-warning/5 rounded mb-0.5"
                 >
                   ⚠ {n}
                 </div>
@@ -95,42 +105,36 @@ export function WPA3EntTab({ wpa3Results, entCaptures, krackResults }: WPA3EntTa
 
       <Panel title="WPA-Enterprise · RADIUS Credential Capture" accent="var(--warning)">
         {entCaptures.length === 0 ? (
-          <div style={{ fontSize: 9, color: 'var(--text-secondary)', padding: 20, textAlign: 'center' }}>
+          <div className="text-[9px] text-text-secondary py-5 text-center">
             No enterprise credentials captured. Deploy rogue AP via EVIL action.
           </div>
         ) : (
           entCaptures.map((ec) => (
             <div
               key={ec.id}
-              style={{
-                background: 'var(--input-background)',
-                border: '1px solid var(--border)',
-                borderRadius: 5,
-                padding: 12,
-                marginBottom: 8,
-              }}
+              className="bg-input-background border border-border rounded p-3 mb-2"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--warning)' }}>
+              <div className="flex items-center gap-2.5 mb-2">
+                <span className="text-xs font-bold text-warning">
                   {ec.domain ? `${ec.domain}\\${ec.username}` : ec.username}
                 </span>
-                <Tag label={ec.eapMethod} color="var(--warning)" />
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)', marginLeft: 'auto' }}>
+                <Badge label={ec.eapMethod} color="var(--warning)" />
+                <span className="text-[9px] text-text-secondary ml-auto">
                   {ec.timestamp}
                 </span>
               </div>
-              <div style={{ fontSize: 9 }}>
-                <span style={{ color: 'var(--text-secondary)' }}>MSCHAPv2 Hash: </span>
-                <span style={{ color: 'var(--warning)', fontFamily: 'inherit', wordBreak: 'break-all' }}>
+              <div className="text-[9px]">
+                <span className="text-text-secondary">MSCHAPv2 Hash: </span>
+                <span className="text-warning font-mono break-all">
                   {ec.mschapv2Hash}
                 </span>
               </div>
               {ec.crackedPassword ? (
-                <div style={{ marginTop: 8, fontSize: 10, color: 'var(--success)', fontWeight: 700 }}>
+                <div className="mt-2 text-[10px] text-success font-bold">
                   ✓ Password: {ec.crackedPassword}
                 </div>
               ) : (
-                <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>
+                <div className="mt-2 flex gap-1">
                   <Btn label="🔓 Crack with asleap" color="var(--warning)" size="xs" />
                   <Btn label="🔓 Hashcat -m 5500" color="var(--error)" size="xs" />
                 </div>
@@ -142,53 +146,39 @@ export function WPA3EntTab({ wpa3Results, entCaptures, krackResults }: WPA3EntTa
 
       <Panel title="KRACK Attack · Key Reinstallation (CVE-2017-13077+)" accent="var(--error)">
         {krackResults.length === 0 ? (
-          <div style={{ fontSize: 9, color: 'var(--text-secondary)', padding: 20, textAlign: 'center' }}>
+          <div className="text-[9px] text-text-secondary py-5 text-center">
             No KRACK tests run. Select an enterprise or WPA2 network and expand.
           </div>
         ) : (
           krackResults.map((kr) => (
             <div
               key={kr.id}
-              style={{
-                background: 'var(--input-background)',
-                border: '1px solid var(--border)',
-                borderRadius: 5,
-                padding: 12,
-                marginBottom: 8,
-              }}
+              className="bg-input-background border border-border rounded p-3 mb-2"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+              <div className="flex items-center gap-2.5 mb-2">
+                <span className="text-xs font-bold text-text-primary">
                   {kr.targetSSID}
                 </span>
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{kr.targetBSSID}</span>
+                <span className="text-[9px] text-text-secondary">{kr.targetBSSID}</span>
                 {kr.vulnerable ? (
-                  <Tag label="💀 VULNERABLE" color="var(--error)" />
+                  <Badge label="💀 VULNERABLE" color="var(--error)" />
                 ) : (
-                  <Tag label="✓ PATCHED" color="var(--success)" />
+                  <Badge label="✓ PATCHED" color="var(--success)" />
                 )}
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)', marginLeft: 'auto' }}>
+                <span className="text-[9px] text-text-secondary ml-auto">
                   {kr.testedAt}
                 </span>
               </div>
-              <div style={{ fontSize: 9, marginBottom: 5 }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Client MAC: </span>
-                <span style={{ color: 'var(--text-secondary)' }}>{kr.clientMac}</span>
+              <div className="text-[9px] mb-1.5">
+                <span className="text-text-secondary">Client MAC: </span>
+                <span className="text-text-secondary">{kr.clientMac}</span>
               </div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+              <div className="flex gap-1 flex-wrap mb-2">
                 {kr.cveList.map((cve) => (
-                  <Tag key={cve} label={cve} color="var(--error)" />
+                  <Badge key={cve} label={cve} color="var(--error)" />
                 ))}
               </div>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: 'var(--warning)',
-                  padding: '5px 8px',
-                  background: '#f9731608',
-                  borderRadius: 3,
-                }}
-              >
+              <div className="text-[9px] text-warning py-1.5 px-2 bg-warning/5 rounded">
                 Impact: {kr.impact}
               </div>
             </div>

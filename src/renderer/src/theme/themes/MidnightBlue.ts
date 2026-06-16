@@ -167,18 +167,39 @@ export const MidnightBlue: ThemeConfig = {
     divider: 'rgb(28, 35, 51)',
     //
     cardBackground: 'rgb(13, 16, 23)',
+    cardBackgroundHover: 'rgb(20, 25, 35)',
     //
     inputBackground: 'rgb(10, 14, 20)',
     //
     modalBackground: 'rgb(10, 14, 20)',
     //
-    dropdownContentBackground: 'rgb(10, 14, 20)',
-    dropdownItemHover: 'rgb(13, 16, 23)',
+    dropdownBackground: 'rgb(10, 15, 25)',
+    dropdownItemHover: 'rgb(15, 25, 40)',
     //
     tooltipBackground: 'rgb(20, 25, 35)',
     //
     sidebarBackground: 'rgb(8, 10, 14)',
     sidebarItemHover: 'rgb(13, 16, 23)',
     sidebarItemFocus: 'rgb(17, 24, 39)',
+    //
+    tableHeaderBackground: 'rgb(12, 16, 22)',
+    tableFooterBackground: 'rgb(12, 16, 22)',
+    tableRowHover: 'rgb(20, 25, 35)',
+  },
+  accentColors: [
+    'rgb(10, 132, 255)',  // Blue - primary
+    'rgb(48, 209, 88)',   // Green - vibrant
+    'rgb(255, 159, 10)',  // Orange - warm
+    'rgb(175, 82, 222)',  // Purple - rich
+    'rgb(255, 45, 85)',   // Red - bold
+    'rgb(255, 105, 180)', // Pink - bright
+    'rgb(0, 210, 255)',   // Aqua - electric
+    'rgb(255, 200, 50)',  // Gold - bright (replaced similar mustard)
+    'rgb(230, 190, 60)',  // Mustard - warm
+    'rgb(138, 90, 255)',  // Violet - luminous
+    'rgb(255, 150, 100)', // Coral - warm (replaced peach)
+  ],
+  typography: {
+    fontFamily: '"JetBrains Mono", "Fira Code", monospace',
   },
 };

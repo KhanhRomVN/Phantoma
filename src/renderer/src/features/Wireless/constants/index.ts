@@ -9,7 +9,7 @@ export const ENC_PALETTE: Record<Encryption, { color: string; bg: string; border
   wep: { color: 'var(--error)', bg: '#ef444410', border: '#ef444440' },
   wpa: { color: 'var(--warning)', bg: '#f9731610', border: '#f9731630' },
   wpa2: { color: 'var(--primary)', bg: '#3686ff10', border: '#3686ff30' },
-  wpa3: { color: 'var(--accent-purple)', bg: '#a78bfa10', border: '#a78bfa30' },
+  wpa3: { color: '#a78bfa', bg: '#a78bfa10', border: '#a78bfa30' },
   enterprise: { color: 'var(--warning)', bg: '#fbbf2410', border: '#fbbf2430' },
 };
 

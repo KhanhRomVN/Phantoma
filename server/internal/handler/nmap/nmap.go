@@ -23,6 +23,8 @@ func NewHandler(svc *nmapsvc.Service) *Handler {
 	return &Handler{svc: svc}
 }
 
+// Scan streams nmap scan output via Server-Sent Events (SSE).
+// POST /api/v1/nmap/scan
 func (h *Handler) Scan(w http.ResponseWriter, r *http.Request) {
 	var req domain.ScanRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -61,71 +63,6 @@ func (h *Handler) Scan(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := h.svc.Scan(r.Context(), req)
-	if err != nil {
-		log.Error("Scan — failed", logger.F("target", req.Target), logger.F("error", err))
-		response.Error(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if !result.Success {
-		log.Warn("Scan — nmap error", logger.F("target", req.Target), logger.F("stderr", result.Error))
-		response.Error(w, http.StatusBadGateway, result.Error)
-		return
-	}
-
-	// If XML was requested, parse and return structured data
-	if wantsXML {
-		ports, parseErr := nmapsvc.ParseNmapXML(result.Output)
-		if parseErr != nil {
-			log.Warn("Scan — XML parse failed, returning raw output",
-				logger.F("target", req.Target),
-				logger.F("error", parseErr),
-			)
-			// Fallback: return raw output
-			response.JSON(w, http.StatusOK, domain.PortScanResult{
-				Target:    req.Target,
-				Ports:     []domain.PortEntry{},
-				RawOutput: result.Output,
-			})
-			return
-		}
-		log.Info("Scan — complete with XML parse", logger.F("target", req.Target), logger.F("ports", len(ports)))
-		response.JSON(w, http.StatusOK, domain.PortScanResult{
-			Target:    req.Target,
-			Ports:     ports,
-			RawOutput: result.Output,
-		})
-		return
-	}
-
-	log.Info("Scan — complete", logger.F("target", req.Target), logger.F("success", result.Success))
-	response.JSON(w, http.StatusOK, result)
-}
-
-// ScanStream streams nmap scan output via Server-Sent Events (SSE).
-// GET /api/v1/nmap/scan/stream?target=...&flags=-sV,-sC
-func (h *Handler) ScanStream(w http.ResponseWriter, r *http.Request) {
-	target := r.URL.Query().Get("target")
-	if target == "" {
-		response.Error(w, http.StatusBadRequest, "target is required")
-		return
-	}
-
-	flagsStr := r.URL.Query().Get("flags")
-	var flags []string
-	if flagsStr != "" {
-		flags = strings.Split(flagsStr, ",")
-	}
-
-	// Build scan request
-	req := domain.ScanRequest{
-		Target: target,
-		Flags:  flags,
-	}
-
-	log.Info("ScanStream — starting", logger.F("target", req.Target), logger.F("flags", req.Flags))
-
 	// Set SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -139,10 +76,10 @@ func (h *Handler) ScanStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Start the scan stream
-	lineCh, errCh := h.svc.ScanStream(r.Context(), req)
+	scanID, lineCh, errCh := h.svc.Scan(r.Context(), req)
 
-	// Send initial event
-	fmt.Fprintf(w, "event: start\ndata: scan started for %s\n\n", target)
+	// Send initial event with scan ID
+	fmt.Fprintf(w, "event: start\ndata: {\"scanId\":\"%s\",\"message\":\"scan started for %s\"}\n\n", scanID, req.Target)
 	flusher.Flush()
 
 	// Stream lines
@@ -153,7 +90,7 @@ func (h *Handler) ScanStream(w http.ResponseWriter, r *http.Request) {
 				// Channel closed — scan complete
 				fmt.Fprintf(w, "event: done\ndata: scan complete\n\n")
 				flusher.Flush()
-				log.Info("ScanStream — complete", logger.F("target", target))
+				log.Info("Scan — complete", logger.F("target", req.Target))
 				return
 			}
 			// Escape any newlines in the line, write SSE data
@@ -164,15 +101,44 @@ func (h *Handler) ScanStream(w http.ResponseWriter, r *http.Request) {
 
 		case err := <-errCh:
 			if err != nil {
-				log.Error("ScanStream — error", logger.F("target", target), logger.F("error", err))
+				log.Error("Scan — error", logger.F("target", req.Target), logger.F("error", err))
 				fmt.Fprintf(w, "event: error\ndata: %s\n\n", err.Error())
 				flusher.Flush()
 			}
 			return
 
 		case <-r.Context().Done():
-			log.Info("ScanStream — client disconnected", logger.F("target", target))
+			log.Info("Scan — client disconnected", logger.F("target", req.Target))
 			return
 		}
 	}
+}
+
+// CancelScan cancels a running nmap scan.
+// POST /api/v1/nmap/scan/cancel
+func (h *Handler) CancelScan(w http.ResponseWriter, r *http.Request) {
+	var req domain.CancelScanRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.ScanID == "" {
+		response.Error(w, http.StatusBadRequest, "scanId is required")
+		return
+	}
+
+	log.Info("CancelScan — received", logger.F("scanId", req.ScanID))
+
+	ok := h.svc.CancelScan(req.ScanID)
+	if !ok {
+		response.Error(w, http.StatusNotFound, "scan not found or already completed")
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "scan cancelled successfully",
+		"scanId":  req.ScanID,
+	})
 }

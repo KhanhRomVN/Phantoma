@@ -5,7 +5,34 @@
 import type { WiFiNetwork } from '../../types';
 import { Panel } from '../shared/Panel';
 import { Btn } from '../shared/Btn';
-import { Tag } from '../shared/Tag';
+
+// Helper function to resolve color from CSS variable
+function resolveColor(color: string): string {
+  const colorMap: Record<string, string> = {
+    'var(--accent-purple)': '#a78bfa',
+    'var(--success)': '#10b981',
+  };
+  return colorMap[color] || color;
+}
+
+// Inline Badge component
+function Badge({ label, color }: { label: string; color: string }) {
+  const resolvedColor = resolveColor(color);
+  return (
+    <span
+      className="font-bold rounded tracking-[0.08em] font-mono"
+      style={{
+        fontSize: 8,
+        padding: '1px 5px',
+        border: `1px solid ${resolvedColor}80`,
+        background: `${resolvedColor}20`,
+        color: resolvedColor,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 interface PMKIDPanelProps {
   networks: WiFiNetwork[];
@@ -17,60 +44,44 @@ export function PMKIDPanel({ networks, onAction }: PMKIDPanelProps) {
 
   return (
     <Panel title="PMKID Attack · hcxdumptool — No Deauth Required" accent="var(--accent-purple)">
-      <div
-        style={{
-          fontSize: 9,
-          color: 'var(--text-secondary)',
-          marginBottom: 12,
-          lineHeight: 1.7,
-          padding: '8px 10px',
-          background: '#a78bfa08',
-          border: '1px solid #a78bfa20',
-          borderRadius: 4,
-        }}
-      >
+      <div className="text-[9px] text-text-secondary mb-3 leading-relaxed py-2 px-2.5 bg-accent-purple/5 border border-accent-purple/20 rounded">
         PMKID attacks capture the RSN IE PMKID from beacon/association frames — no client needed, no
-        deauth sent. Use <span style={{ color: 'var(--accent-purple)' }}>hcxdumptool</span> to capture, then
-        crack with <span style={{ color: 'var(--accent-purple)' }}>hashcat -m 22000</span>.
+        deauth sent. Use <span className="text-accent-purple">hcxdumptool</span> to capture, then
+        crack with <span className="text-accent-purple">hashcat -m 22000</span>.
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+      <div className="grid grid-cols-2 gap-2">
         {wpa2Targets.map((net) => (
           <div
             key={net.id}
-            style={{
-              padding: '8px 10px',
-              background: 'var(--input-background)',
-              border: `1px solid ${net.pmkidCaptured ? '#a78bfa40' : 'var(--border)'}`,
-              borderRadius: 5,
-            }}
+            className={`p-2 bg-input-background rounded border ${net.pmkidCaptured ? 'border-accent-purple/40' : 'border-border'}`}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[10px] font-bold text-text-primary">
                 {net.ssid || '‹hidden›'}
               </span>
-              {net.pmkidCaptured && <Tag label="✓ CAPTURED" color="var(--accent-purple)" />}
-              {net.crackedPassword && <Tag label="CRACKED" color="var(--success)" />}
+              {net.pmkidCaptured && <Badge label="✓ CAPTURED" color="var(--accent-purple)" />}
+              {net.crackedPassword && <Badge label="CRACKED" color="var(--success)" />}
             </div>
-            <div style={{ display: 'flex', gap: 10, fontSize: 9, marginBottom: 6 }}>
-              <span style={{ color: 'var(--text-secondary)' }}>
-                BSSID <span style={{ color: 'var(--text-secondary)' }}>{net.bssid}</span>
+            <div className="flex gap-2.5 text-[9px] mb-1.5">
+              <span className="text-text-secondary">
+                BSSID <span className="text-text-secondary">{net.bssid}</span>
               </span>
-              <span style={{ color: 'var(--text-secondary)' }}>
-                CH <span style={{ color: 'var(--text-secondary)' }}>{net.channel}</span>
+              <span className="text-text-secondary">
+                CH <span className="text-text-secondary">{net.channel}</span>
               </span>
-              <span style={{ color: 'var(--text-secondary)' }}>{net.signal}dBm</span>
+              <span className="text-text-secondary">{net.signal}dBm</span>
             </div>
             {net.pmkidFile && (
-              <div style={{ fontSize: 8, color: 'var(--accent-purple)', marginBottom: 5 }}>
+              <div className="text-[8px] text-accent-purple mb-1.5">
                 → {net.pmkidFile}
               </div>
             )}
             {net.crackedPassword && (
-              <div style={{ fontSize: 9, color: 'var(--success)', fontWeight: 700, marginBottom: 5 }}>
+              <div className="text-[9px] text-success font-bold mb-1.5">
                 ✓ {net.crackedPassword}
               </div>
             )}
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div className="flex gap-1">
               {!net.pmkidCaptured ? (
                 <Btn
                   label="🧬 CAPTURE PMKID"
@@ -86,13 +97,13 @@ export function PMKIDPanel({ networks, onAction }: PMKIDPanelProps) {
                   size="xs"
                 />
               ) : (
-                <Tag label="✓ PASSWORD RECOVERED" color="var(--success)" />
+                <Badge label="✓ PASSWORD RECOVERED" color="var(--success)" />
               )}
             </div>
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+      <div className="flex gap-1.5 mt-2.5">
         <Btn
           label="🧬 CAPTURE ALL PMKID"
           color="var(--accent-purple)"

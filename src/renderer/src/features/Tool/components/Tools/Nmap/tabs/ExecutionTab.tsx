@@ -3,6 +3,7 @@ import { NmapScanParams, TooltipState } from '../types';
 import { buildCommand } from '../utils';
 import { SCAN_TYPES, TIMING_LABELS, COMMON_FLAGS } from '../constants';
 import { CodeBlock } from '../../../../../../components/common/CodeBlock';
+import { Play, Save, Square } from 'lucide-react';
 
 // ─── Flag Accordion ────────────────────────────────────────────────────────────
 
@@ -113,10 +114,13 @@ interface ExecutionTabProps {
   progress: number;
   logOutput: string;
   onScan: () => void;
+  onCancel?: () => void;
+  onSaveProfile: () => void;
   accentColor: string;
   glow: string;
   targetHistory: string[];
   onTooltipShow: (tooltip: TooltipState | null) => void;
+  savedProfiles?: Array<{ params: NmapScanParams }>;
 }
 
 const ExecutionTab: React.FC<ExecutionTabProps> = ({
@@ -126,10 +130,13 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
   progress,
   logOutput,
   onScan,
+  onCancel,
+  onSaveProfile,
   accentColor,
   glow,
   targetHistory,
   onTooltipShow,
+  savedProfiles = [],
 }) => {
   const [showTargetSuggestions, setShowTargetSuggestions] = useState(false);
   const targetInputRef = useRef<HTMLInputElement>(null);
@@ -261,13 +268,74 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             }}
             className="bg-transparent border-none cursor-pointer p-1 transition-colors shrink-0 text-text-secondary"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <rect x="9" y="9" width="13" height="13" rx="2" />
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
           </button>
         </div>
       </div>
+
+      {/* ── Command Explanation ──────────────────────────────────────── */}
+      {(() => {
+        const command = buildCommand(params);
+        const explanations: { flag: string; text: string }[] = [];
+        
+        // Parse scan type
+        if (command.includes('-sS')) explanations.push({ flag: '-sS', text: 'SYN stealth scan (nhanh, không hoàn thành TCP handshake)' });
+        if (command.includes('-sT')) explanations.push({ flag: '-sT', text: 'TCP connect scan (hoàn thành handshake, dễ bị phát hiện)' });
+        if (command.includes('-sU')) explanations.push({ flag: '-sU', text: 'UDP scan (chậm, phát hiện dịch vụ UDP)' });
+        if (command.includes('-sP')) explanations.push({ flag: '-sP', text: 'Ping sweep (quét các host đang hoạt động)' });
+        
+        // Parse OS and version detection
+        if (command.includes('-O')) explanations.push({ flag: '-O', text: 'Phát hiện hệ điều hành' });
+        if (command.includes('-sV')) explanations.push({ flag: '-sV', text: 'Phát hiện phiên bản dịch vụ' });
+        if (command.includes('-A')) explanations.push({ flag: '-A', text: 'Bật chế độ aggressive (OS, version, script, traceroute)' });
+        
+        // Parse timing
+        const timingMatch = command.match(/-T(\d)/);
+        if (timingMatch) {
+          const timing = parseInt(timingMatch[1]);
+          const timingNames = ['Paranoid', 'Sneaky', 'Polite', 'Normal', 'Aggressive', 'Insane'];
+          explanations.push({ flag: `-T${timing}`, text: `Tốc độ quét: ${timingNames[timing]}` });
+        }
+        
+        // Parse common flags
+        if (command.includes('-Pn')) explanations.push({ flag: '-Pn', text: 'Bỏ qua host discovery (coi tất cả host đều online)' });
+        if (command.includes('-n')) explanations.push({ flag: '-n', text: 'Không phân giải DNS' });
+        if (command.includes('-v')) explanations.push({ flag: '-v', text: 'Verbose output (chi tiết hơn)' });
+        if (command.includes('-vv')) explanations.push({ flag: '-vv', text: 'Very verbose output (rất chi tiết)' });
+        if (command.includes('-f')) explanations.push({ flag: '-f', text: 'Fragment packets (tránh firewall)' });
+        if (command.includes('-D')) explanations.push({ flag: '-D', text: 'Decoy scan (che giấu IP nguồn)' });
+        if (command.includes('--script')) explanations.push({ flag: '--script', text: 'Chạy NSE scripts' });
+        
+        if (explanations.length === 0) return null;
+        
+        return (
+          <div className="mt-1 mb-2">
+            <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
+              COMMAND EXPLANATION
+            </label>
+            <div className="p-3 rounded-md bg-input-background border border-border">
+              <div className="flex flex-col gap-1.5">
+                {explanations.map((exp, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-[11px]">
+                    <span className="font-mono text-primary shrink-0">{exp.flag}</span>
+                    <span className="text-text-secondary">{exp.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Target ───────────────────────────────────────────────────── */}
       <div className="relative">
@@ -301,8 +369,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
         />
         {showTargetSuggestions && targetHistory.length > 0 && (
           <div
-            className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto bg-dropdown-content-background"
-            style={{ border: `1px solid ${accentColor}30` }}
+            className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto border border-border"
+            style={{ 
+              background: 'rgb(10, 15, 25)'
+            }}
           >
             {targetHistory.map((t, i) => (
               <div
@@ -315,7 +385,9 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 style={{
                   borderBottom: i < targetHistory.length - 1 ? '1px solid var(--border)' : 'none',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--dropdown-item-hover)')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = 'var(--dropdown-item-hover)')
+                }
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 {t}
@@ -345,7 +417,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             type="text"
             value={params.ports}
             onChange={(e) => setParams({ ...params, ports: e.target.value })}
-placeholder="22,80,443  ·  1-1000"
+            placeholder="22,80,443  ·  1-1000"
             className="w-full box-border p-2.5 rounded text-[12px] font-inherit outline-none transition-colors bg-input-background border border-input-border-default text-text-primary placeholder:text-text-secondary"
           />
         </div>
@@ -361,7 +433,9 @@ placeholder="22,80,443  ·  1-1000"
               }
               onMouseLeave={() => onTooltipShow(null)}
             >
-              TIMING — <span style={{ color: accentColor }}>{TIMING_LABELS[parseInt(params.timing)]}</span> <span className="text-red-500 text-sm align-middle ml-0.5">*</span>
+              TIMING —{' '}
+              <span style={{ color: accentColor }}>{TIMING_LABELS[parseInt(params.timing)]}</span>{' '}
+              <span className="text-red-500 text-sm align-middle ml-0.5">*</span>
             </span>
           </label>
           <div className="flex gap-1">
@@ -426,12 +500,8 @@ placeholder="22,80,443  ·  1-1000"
                   border: `1px solid ${active ? 'rgb(var(--primary))' : 'var(--input-border-default)'}`,
                 }}
               >
-                <span className="text-[11px] font-bold">
-                  {st.flag}
-                </span>
-                <span className="text-[10px]">
-                  {st.label}
-                </span>
+                <span className="text-[11px] font-bold">{st.flag}</span>
+                <span className="text-[10px]">{st.label}</span>
               </button>
             );
           })}
@@ -444,7 +514,7 @@ placeholder="22,80,443  ·  1-1000"
           // eslint-disable-next-line react-hooks/rules-of-hooks
           const [showSuggestions, setShowSuggestions] = useState(false);
           const containerRef = useRef<HTMLDivElement>(null);
-          
+
           // Close dropdown when clicking outside
           useEffect(() => {
             const handleClickOutside = (event: MouseEvent) => {
@@ -459,16 +529,16 @@ placeholder="22,80,443  ·  1-1000"
               document.removeEventListener('mousedown', handleClickOutside);
             };
           }, [showSuggestions]);
-          
+
           // Lọc các flags đang active thuộc category này
           const activeFlagsInCat = cat.flags.filter((f) =>
-            params.additionalFlags.includes(f.value)
+            params.additionalFlags.includes(f.value),
           );
           const inputValue = activeFlagsInCat.map((f) => f.value).join(' ');
-          
+
           // Hiển thị tất cả flags (không lọc)
           const allFlags = cat.flags;
-          
+
           const toggleFlag = (flagValue: string) => {
             const currentFlags = params.additionalFlags.split(' ').filter(Boolean);
             if (currentFlags.includes(flagValue)) {
@@ -482,7 +552,7 @@ placeholder="22,80,443  ·  1-1000"
               setParams({ ...params, additionalFlags: [...currentFlags, flagValue].join(' ') });
             }
           };
-          
+
           // const removeFlag = (flagValue: string) => {
           //   const currentFlags = params.additionalFlags.split(' ').filter(Boolean);
           //   setParams({
@@ -490,7 +560,7 @@ placeholder="22,80,443  ·  1-1000"
           //     additionalFlags: currentFlags.filter((f) => f !== flagValue).join(' '),
           //   });
           // };
-          
+
           return (
             <div key={cat.id} ref={containerRef}>
               <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
@@ -511,7 +581,10 @@ placeholder="22,80,443  ·  1-1000"
                     value={inputValue}
                     readOnly
                     onFocus={() => setShowSuggestions(true)}
-                    placeholder={`e.g., ${cat.flags.slice(0, 3).map((f) => f.value).join(', ')}...`}
+                    placeholder={`e.g., ${cat.flags
+                      .slice(0, 3)
+                      .map((f) => f.value)
+                      .join(', ')}...`}
                     className="w-full box-border p-2.5 rounded text-[12px] font-inherit outline-none transition-colors bg-input-background border border-border text-text-primary placeholder:text-text-secondary pr-8 cursor-pointer"
                   />
                   {showSuggestions && (
@@ -522,7 +595,14 @@ placeholder="22,80,443  ·  1-1000"
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
                         <line x1="18" y1="6" x2="6" y2="18" />
                         <line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
@@ -530,7 +610,8 @@ placeholder="22,80,443  ·  1-1000"
                   )}
                 </div>
                 {showSuggestions && allFlags.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[200px] overflow-y-auto bg-dropdown-content-background border border-border shadow-lg">
+                  <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[200px] overflow-y-auto border border-border shadow-lg"
+                       style={{ background: 'rgb(10, 15, 25)' }}>
                     {allFlags.map((flag) => {
                       const isActive = activeFlagsInCat.some((f) => f.value === flag.value);
                       return (
@@ -555,24 +636,13 @@ placeholder="22,80,443  ·  1-1000"
         })}
       </div>
 
-      {/* ── Execute Button ───────────────────────────────────────────── */}
-      <button
-        onClick={onScan}
-        disabled={scanning || !params.target.trim()}
-        className="w-full py-3 text-[12px] font-bold tracking-wide font-inherit transition-all mt-1 bg-primary text-text-foreground disabled:bg-input-background disabled:text-text-secondary disabled:cursor-not-allowed rounded"
-        style={{
-          border: `1px solid ${scanning || !params.target.trim() ? 'var(--input-border-default)' : 'transparent'}`,
-          boxShadow: scanning || !params.target.trim() ? 'none' : `0 0 18px ${glow}`,
-        }}
-      >
-        {scanning ? '▸ SCANNING...' : '▸ EXECUTE SCAN'}
-      </button>
-
       {/* ── Progress Bar ─────────────────────────────────────────────── */}
       {scanning && (
         <div>
           <div className="flex justify-between mb-1">
-            <span className="text-[10px] tracking-wide font-mono text-text-secondary">{params.target}</span>
+            <span className="text-[10px] tracking-wide font-mono text-text-secondary">
+              {params.target}
+            </span>
             <span className="text-[10px] font-mono" style={{ color: accentColor }}>
               {progress}%
             </span>
@@ -613,6 +683,57 @@ placeholder="22,80,443  ·  1-1000"
           </div>
         </div>
       )}
+
+      {/* ── Footer ───────────────────────────────────────────────────── */}
+      <div className="flex justify-between items-center gap-3 pt-4 mt-2 border-t border-border">
+        <div className="flex-1" />
+        <div className="flex gap-3">
+          {!scanning && (() => {
+            const isProfileExists = savedProfiles.some(
+              (profile) =>
+                profile.params.target === params.target &&
+                profile.params.ports === params.ports &&
+                profile.params.timing === params.timing &&
+                profile.params.scanType === params.scanType &&
+                profile.params.additionalFlags === params.additionalFlags
+            );
+            const isSaveDisabled = !params.target.trim() || isProfileExists;
+            return (
+              <button
+                onClick={onSaveProfile}
+                disabled={isSaveDisabled}
+                className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+              >
+                <Save size={14} />
+                {isProfileExists ? 'PROFILE EXISTS' : 'SAVE PROFILE'}
+              </button>
+            );
+          })()}
+          {scanning && onCancel && (
+            <button
+              onClick={onCancel}
+              onMouseEnter={(e) => showTooltip('Cancel running scan', e)}
+              onMouseLeave={() => onTooltipShow(null)}
+              className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20 rounded"
+            >
+              <Square size={14} />
+              CANCEL SCAN
+            </button>
+          )}
+          <button
+            onClick={onScan}
+            disabled={scanning || !params.target.trim()}
+            className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary text-text-foreground disabled:bg-input-background disabled:text-text-secondary disabled:cursor-not-allowed rounded"
+            style={{
+              border: `1px solid ${scanning || !params.target.trim() ? 'var(--input-border-default)' : 'transparent'}`,
+              boxShadow: scanning || !params.target.trim() ? 'none' : `0 0 18px ${glow}`,
+            }}
+          >
+            <Play size={14} />
+            {scanning ? 'SCANNING...' : 'EXECUTE SCAN'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

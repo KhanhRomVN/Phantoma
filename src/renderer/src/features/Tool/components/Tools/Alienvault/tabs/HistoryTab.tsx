@@ -119,49 +119,24 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         </div>
 
         {/* Scan Header */}
-        <div
-          style={{
-            padding: '16px',
-            background: 'var(--card-background)',
-            border: `1px solid ${accentColor}30`,
-            borderRadius: 6,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 12,
-            }}
-          >
+        <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+          <div className="flex justify-between items-center mb-3">
             <div>
-              <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text-primary)' }}>{scan.indicator}</h3>
-              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>
+              <h3 className="m-0 text-base text-text-primary">{scan.indicator}</h3>
+              <p className="m-0 mt-1 text-[11px] text-text-secondary">
                 {scan.indicatorType.toUpperCase()} • {scan.duration}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span
-                style={{
-                  padding: '4px 12px',
-                  borderRadius: 4,
-                  background: 'var(--border)',
-                  color: 'var(--text-secondary)',
-                  fontSize: 11,
-                }}
-              >
+            <div className="flex gap-2 items-center">
+              <span className="px-3 py-1 rounded text-[11px] bg-border text-text-secondary">
                 {new Date(scan.timestamp).toLocaleString()}
               </span>
               <span
+                className="px-3 py-1 rounded text-[11px] font-bold"
                 style={{
-                  padding: '4px 12px',
-                  borderRadius: 4,
                   background: `${reputationColor}20`,
                   border: `1px solid ${reputationColor}50`,
                   color: reputationColor,
-                  fontSize: 11,
-                  fontWeight: 700,
                 }}
               >
                 {reputationIcon} {reputationLabel}
@@ -173,74 +148,45 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         {/* Reputation & Basic Info */}
         {result && (
           <>
-            <div
-              style={{
-                padding: '16px',
-                background: 'var(--card-background)',
-                border: `1px solid ${accentColor}30`,
-                borderRadius: 6,
-              }}
-            >
-              <h4
-                style={{
-                  margin: '0 0 12px',
-                  fontSize: 13,
-                  color: 'var(--text-primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <Activity size={14} style={{ color: 'var(--text-secondary)' }} /> REPUTATION & ACTIVITY
+            <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+              <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
+                <Activity size={14} className="text-text-secondary" /> REPUTATION & ACTIVITY
               </h4>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: 12,
-                }}
-              >
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
                 <div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Reputation:</span>{' '}
-                  <span style={{ color: reputationColor, fontWeight: 700 }}>{reputationLabel}</span>
+                  <span className="text-text-secondary">Reputation:</span>{' '}
+                  <span className="font-bold" style={{ color: reputationColor }}>{reputationLabel}</span>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Activity Count:</span>{' '}
-                  <span style={{ color: 'var(--text-primary)' }}>{result.activityCount}</span>
+                  <span className="text-text-secondary">Activity Count:</span>{' '}
+                  <span className="text-text-primary">{result.activityCount}</span>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-secondary)' }}>First Seen:</span>{' '}
-                  <span style={{ color: 'var(--text-primary)' }}>{result.firstSeen || 'N/A'}</span>
+                  <span className="text-text-secondary">First Seen:</span>{' '}
+                  <span className="text-text-primary">{result.firstSeen || 'N/A'}</span>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Last Seen:</span>{' '}
-                  <span style={{ color: 'var(--text-primary)' }}>{result.lastSeen || 'N/A'}</span>
+                  <span className="text-text-secondary">Last Seen:</span>{' '}
+                  <span className="text-text-primary">{result.lastSeen || 'N/A'}</span>
                 </div>
               </div>
             </div>
 
             {/* Geo Location */}
             {result.geoData && (
-              <div
-                style={{
-                  padding: '16px',
-                  background: 'var(--card-background)',
-                  border: `1px solid ${accentColor}30`,
-                  borderRadius: 6,
-                }}
-              >
-                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <MapPin size={14} style={{ color: 'var(--text-secondary)' }} /> GEO LOCATION
+              <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+                <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
+                  <MapPin size={14} className="text-text-secondary" /> GEO LOCATION
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
                   <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>Country:</span>{' '}
-                    <span style={{ color: 'var(--text-primary)' }}>{result.geoData.country} ({result.geoData.countryCode})</span>
+                    <span className="text-text-secondary">Country:</span>{' '}
+                    <span className="text-text-primary">{result.geoData.country} ({result.geoData.countryCode})</span>
                   </div>
                   {result.geoData.city && (
                     <div>
-                      <span style={{ color: 'var(--text-secondary)' }}>City:</span>{' '}
-                      <span style={{ color: 'var(--text-primary)' }}>{result.geoData.city}</span>
+                      <span className="text-text-secondary">City:</span>{' '}
+                      <span className="text-text-primary">{result.geoData.city}</span>
                     </div>
                   )}
                 </div>
@@ -249,29 +195,19 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
 
             {/* Malware Families */}
             {result.malwareFamilies && result.malwareFamilies.length > 0 && (
-              <div
-                style={{
-                  padding: '16px',
-                  background: 'var(--card-background)',
-                  border: `1px solid ${accentColor}30`,
-                  borderRadius: 6,
-                }}
-              >
-                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Bug size={14} style={{ color: 'var(--text-secondary)' }} /> MALWARE FAMILIES
+              <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+                <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
+                  <Bug size={14} className="text-text-secondary" /> MALWARE FAMILIES
                 </h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div className="flex flex-wrap gap-2">
                   {result.malwareFamilies.map((family, i) => (
                     <span
                       key={i}
+                      className="px-3 py-1 rounded text-[11px] font-bold"
                       style={{
-                        padding: '4px 12px',
                         background: '#ef444420',
                         border: '1px solid #ef444450',
-                        borderRadius: 4,
                         color: '#ef4444',
-                        fontSize: 11,
-                        fontWeight: 700,
                       }}
                     >
                       {family}
@@ -283,49 +219,31 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
 
             {/* Pulses */}
             {result.pulses && result.pulses.length > 0 && (
-              <div
-                style={{
-                  padding: '16px',
-                  background: 'var(--card-background)',
-                  border: `1px solid ${accentColor}30`,
-                  borderRadius: 6,
-                }}
-              >
-                <h4 style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Radio size={14} style={{ color: 'var(--text-secondary)' }} /> RELATED PULSES
+              <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+                <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
+                  <Radio size={14} className="text-text-secondary" /> RELATED PULSES
                 </h4>
-                <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                <div className="max-h-[400px] overflow-y-auto">
                   {result.pulses.map((pulse, i) => (
                     <div
                       key={i}
-                      style={{
-                        padding: '12px',
-                        background: 'var(--input-background)',
-                        border: `1px solid ${accentColor}20`,
-                        borderRadius: 4,
-                        marginBottom: 8,
-                      }}
+                      className="p-3 rounded mb-2 bg-input-background"
+                      style={{ border: `1px solid ${accentColor}20` }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ color: accentColor, fontWeight: 700 }}>{pulse.name}</span>
-                        <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
+                      <div className="flex justify-between mb-1.5">
+                        <span className="font-bold" style={{ color: accentColor }}>{pulse.name}</span>
+                        <span className="text-[10px] text-text-secondary">
                           {new Date(pulse.modified).toLocaleDateString()}
                         </span>
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-primary)', marginBottom: 8 }}>
+                      <div className="text-[11px] text-text-primary mb-2">
                         {pulse.description}
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      <div className="flex flex-wrap gap-1">
                         {pulse.tags.map((tag, j) => (
                           <span
                             key={j}
-                            style={{
-                              fontSize: 9,
-                              padding: '2px 6px',
-                              background: 'var(--border)',
-                              borderRadius: 3,
-                              color: 'var(--text-secondary)',
-                            }}
+                            className="text-[9px] px-1.5 py-0.5 rounded bg-border text-text-secondary"
                           >
                             #{tag}
                           </span>
@@ -340,57 +258,21 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         )}
 
         {/* Raw Output */}
-        <div
-          style={{
-            padding: '16px',
-            background: 'var(--card-background)',
-            border: `1px solid ${accentColor}30`,
-            borderRadius: 6,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 12,
-            }}
-          >
-            <h4 style={{ margin: 0, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FileText size={14} style={{ color: 'var(--text-secondary)' }} /> RAW OUTPUT
+        <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+          <div className="flex justify-between items-center mb-3">
+            <h4 className="m-0 text-[13px] flex items-center gap-2 text-text-primary">
+              <FileText size={14} className="text-text-secondary" /> RAW OUTPUT
             </h4>
             <button
               onClick={() => navigator.clipboard.writeText(scan.rawOutput.join('\n'))}
-              style={{
-                padding: '6px',
-                background: 'var(--border)',
-                border: `1px solid ${accentColor}30`,
-                borderRadius: 4,
-                color: accentColor,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              className="p-1.5 rounded flex items-center justify-center cursor-pointer bg-border"
+              style={{ border: `1px solid ${accentColor}30`, color: accentColor }}
               title="Copy to clipboard"
             >
               <Copy size={14} />
             </button>
           </div>
-          <div
-            style={{
-              fontSize: 10,
-              color: 'var(--text-primary)',
-              fontFamily: 'monospace',
-              background: 'var(--input-background)',
-              padding: 12,
-              borderRadius: 4,
-              maxHeight: 300,
-              overflowY: 'auto',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-            }}
-          >
+          <div className="text-[10px] font-mono bg-input-background p-3 rounded max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words">
             {scan.rawOutput.map((line, i) => (
               <div key={i}>{line}</div>
             ))}

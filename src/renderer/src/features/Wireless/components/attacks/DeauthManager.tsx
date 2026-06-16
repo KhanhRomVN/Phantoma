@@ -7,7 +7,41 @@ import type { WiFiNetwork, DeauthSession } from '../../types';
 import { fmtNum } from '../../utils';
 import { Panel } from '../shared/Panel';
 import { Btn } from '../shared/Btn';
-import { Tag } from '../shared/Tag';
+
+// Helper function to resolve color from CSS variable or hex
+function resolveColor(color: string): string {
+  const colorMap: Record<string, string> = {
+    'var(--warning)': '#f59e0b',
+    'var(--success)': '#10b981',
+    'var(--error)': '#ef4444',
+    'var(--primary)': '#3686ff',
+    'var(--accent-purple)': '#a78bfa',
+    'var(--text-secondary)': '#9ca3af',
+  };
+  if (!color.startsWith('var(--')) {
+    return color;
+  }
+  return colorMap[color] || color;
+}
+
+// Inline Badge component
+function Badge({ label, color }: { label: string; color: string }) {
+  const resolvedColor = resolveColor(color);
+  return (
+    <span
+      className="font-bold rounded tracking-[0.08em] font-mono"
+      style={{
+        fontSize: 8,
+        padding: '1px 5px',
+        border: `1px solid ${resolvedColor}80`,
+        background: `${resolvedColor}20`,
+        color: resolvedColor,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 interface DeauthManagerProps {
   sessions: DeauthSession[];
@@ -51,21 +85,13 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
 
   return (
     <Panel title="Deauthentication Manager · aireplay-ng -0" accent="var(--error)">
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 140px 80px 110px 100px',
-          gap: 8,
-          marginBottom: 10,
-          alignItems: 'flex-end',
-        }}
-      >
+      <div className="grid grid-cols-[1fr_140px_80px_110px_100px] gap-2 mb-2.5 items-end">
         <div>
-          <div style={{ fontSize: 8, color: 'var(--text-secondary)', marginBottom: 4, fontWeight: 700 }}>TARGET BSSID</div>
+          <div className="text-[8px] text-text-secondary mb-1 font-bold">TARGET BSSID</div>
           <select
             value={targetNet}
             onChange={(e) => setTargetNet(e.target.value)}
-            style={selectStyle}
+            className="w-full bg-input-background border border-border text-text-secondary text-[9px] py-1.5 px-2 rounded font-mono outline-none"
           >
             {networks.map((n) => (
               <option key={n.bssid} value={n.bssid}>
@@ -75,37 +101,37 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
           </select>
         </div>
         <div>
-          <div style={{ fontSize: 8, color: 'var(--text-secondary)', marginBottom: 4, fontWeight: 700 }}>CLIENT MAC</div>
+          <div className="text-[8px] text-text-secondary mb-1 font-bold">CLIENT MAC</div>
           <input
             value={clientMac}
             onChange={(e) => setClientMac(e.target.value)}
-            style={inputStyle}
+            className="w-full bg-input-background border border-border text-text-secondary text-[9px] py-1.5 px-2 rounded font-mono outline-none"
           />
         </div>
         <div>
-          <div style={{ fontSize: 8, color: 'var(--text-secondary)', marginBottom: 4, fontWeight: 700 }}>PKT/SEC</div>
+          <div className="text-[8px] text-text-secondary mb-1 font-bold">PKT/SEC</div>
           <input
             type="number"
             value={pps}
             onChange={(e) => setPps(Number(e.target.value))}
             min={1}
             max={50}
-            style={{ ...inputStyle, color: 'var(--warning)', fontWeight: 700, fontSize: 10 }}
+            className="w-full bg-input-background border border-border text-warning text-[10px] font-bold py-1.5 px-2 rounded font-mono outline-none"
           />
         </div>
         <div>
-          <div style={{ fontSize: 8, color: 'var(--text-secondary)', marginBottom: 4, fontWeight: 700 }}>REASON</div>
+          <div className="text-[8px] text-text-secondary mb-1 font-bold">REASON</div>
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value as typeof reason)}
-            style={selectStyle}
+            className="w-full bg-input-background border border-border text-text-secondary text-[9px] py-1.5 px-2 rounded font-mono outline-none"
           >
             <option value="handshake">Handshake Capture</option>
             <option value="evil_twin">Evil Twin Prep</option>
             <option value="test">Connectivity Test</option>
           </select>
         </div>
-        <div style={{ paddingTop: 14 }}>
+        <div className="pt-3.5">
           <Btn
             label="⚡ LAUNCH"
             color="var(--error)"
@@ -131,16 +157,7 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '150px 130px 130px 60px 70px 70px 80px 60px',
-          gap: 5,
-          padding: '4px 0',
-          borderBottom: '1px solid var(--border)',
-          marginBottom: 6,
-        }}
-      >
+      <div className="grid grid-cols-[150px_130px_130px_60px_70px_70px_80px_60px] gap-1.5 py-1 border-b border-border mb-1.5">
         {[
           'TARGET SSID',
           'TARGET BSSID',
@@ -153,7 +170,7 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
         ].map((h) => (
           <span
             key={h}
-            style={{ fontSize: 7, color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.1em' }}
+            className="text-[7px] text-text-secondary font-bold tracking-[0.1em]"
           >
             {h}
           </span>
@@ -163,48 +180,32 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
       {localSessions.map((s) => (
         <div
           key={s.id}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '150px 130px 130px 60px 70px 70px 80px 60px',
-            gap: 5,
-            padding: '5px 0',
-            borderBottom: '1px solid var(--divider)',
-            alignItems: 'center',
-          }}
+          className="grid grid-cols-[150px_130px_130px_60px_70px_70px_80px_60px] gap-1.5 py-1.5 border-b border-divider items-center"
         >
-          <span style={{ fontSize: 9, color: 'var(--text-primary)', fontWeight: 600 }}>{s.targetSSID}</span>
-          <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>{s.targetBSSID}</span>
+          <span className="text-[9px] text-text-primary font-semibold">{s.targetSSID}</span>
+          <span className="text-[8px] text-text-secondary">{s.targetBSSID}</span>
           <span
-            style={{
-              fontSize: 8,
-              color: s.clientMAC === 'FF:FF:FF:FF:FF:FF' ? 'var(--warning)' : 'var(--text-secondary)',
-            }}
+            className="text-[8px]"
+            style={{ color: s.clientMAC === 'FF:FF:FF:FF:FF:FF' ? 'var(--yellow)' : 'var(--text-secondary)' }}
           >
             {s.clientMAC === 'FF:FF:FF:FF:FF:FF' ? '✱ BROADCAST' : s.clientMAC}
           </span>
-          <span style={{ fontSize: 9, color: 'var(--error)', fontWeight: 700 }}>{s.packetsPerSec}</span>
-          <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{fmtNum(s.totalSent)}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span className="text-[9px] text-error font-bold">{s.packetsPerSec}</span>
+          <span className="text-[9px] text-text-secondary">{fmtNum(s.totalSent)}</span>
+          <div className="flex items-center gap-1">
             <div
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: s.status === 'running' ? 'var(--success)' : 'var(--text-secondary)',
-              }}
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: s.status === 'running' ? 'var(--green)' : 'var(--text-secondary)' }}
             />
             <span
-              style={{
-                fontSize: 8,
-                color: s.status === 'running' ? 'var(--success)' : 'var(--text-secondary)',
-                fontWeight: 700,
-              }}
+              className="text-[8px] font-bold"
+              style={{ color: s.status === 'running' ? 'var(--green)' : 'var(--text-secondary)' }}
             >
               {s.status.toUpperCase()}
             </span>
           </div>
-          <Tag label={s.reason.replace('_', ' ').toUpperCase()} color="var(--warning)" />
-          <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>{s.startedAt}</span>
+          <Badge label={s.reason.replace('_', ' ').toUpperCase()} color="var(--warning)" />
+          <span className="text-[8px] text-text-secondary">{s.startedAt}</span>
         </div>
       ))}
     </Panel>

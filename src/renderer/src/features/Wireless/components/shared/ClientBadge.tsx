@@ -11,22 +11,11 @@ interface ClientBadgeProps {
 
 export function ClientBadge({ client }: ClientBadgeProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '4px 8px',
-        background: 'var(--input-background)',
-        border: '1px solid var(--border)',
-        borderRadius: 4,
-        marginBottom: 3,
-      }}
-    >
-      <span style={{ fontSize: 9, color: 'var(--success)', fontWeight: 700 }}>{client.mac}</span>
-      <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{client.vendor}</span>
-      <span style={{ fontSize: 8, color: 'var(--warning)', marginLeft: 'auto' }}>{client.signal}dBm</span>
-      <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>{fmtNum(client.packets)} pkts</span>
+    <div className="flex items-center gap-1.5 py-1 px-2 bg-input-background border border-border rounded mb-0.5">
+      <span className="text-[9px] text-success font-bold">{client.mac}</span>
+      <span className="text-[9px] text-text-secondary">{client.vendor}</span>
+      <span className="text-[8px] text-warning ml-auto">{client.signal}dBm</span>
+      <span className="text-[8px] text-text-secondary">{fmtNum(client.packets)} pkts</span>
     </div>
   );
 }

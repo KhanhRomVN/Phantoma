@@ -121,19 +121,15 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         >
           <div className="flex justify-between items-center mb-3">
             <div>
-              <h3 className="m-0 text-base" style={{ color: 'var(--text-primary)' }}>
+              <h3 className="m-0 text-base text-text-primary">
                 {scan.target}
               </h3>
-              <p className="m-0 mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+              <p className="m-0 mt-1 text-[11px] text-text-secondary">
                 {scan.scanType} • {scan.duration}
               </p>
             </div>
             <span
-              className="px-3 py-1 rounded text-[11px] font-bold"
-              style={{
-                background: 'var(--border)',
-                color: 'rgb(var(--primary))',
-              }}
+              className="px-3 py-1 rounded text-[11px] font-bold bg-border text-primary"
             >
               {new Date(scan.timestamp).toLocaleString()}
             </span>
@@ -147,8 +143,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <div className="flex items-center gap-2">
                 <Clock size={14} color={accentColor} />
                 <div>
-                  <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Duration</div>
-                  <div className="text-[12px]" style={{ color: 'var(--text-primary)' }}>
+                  <div className="text-[10px] text-text-secondary">Duration</div>
+                  <div className="text-[12px] text-text-primary">
                     {formatDuration(parsedData.duration)}
                   </div>
                 </div>
@@ -156,8 +152,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <div className="flex items-center gap-2">
                 <Activity size={14} color={accentColor} />
                 <div>
-                  <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Ports</div>
-                  <div className="text-[12px]" style={{ color: 'var(--text-primary)' }}>
+                  <div className="text-[10px] text-text-secondary">Ports</div>
+                  <div className="text-[12px] text-text-primary">
                     {parsedData.stats.openPorts} open / {parsedData.stats.filteredPorts} filtered
                   </div>
                 </div>
@@ -165,8 +161,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <div className="flex items-center gap-2">
                 <Network size={14} color={accentColor} />
                 <div>
-                  <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Command</div>
-                  <div className="text-[10px] font-mono" style={{ color: 'var(--text-primary)' }}>
+                  <div className="text-[10px] text-text-secondary">Command</div>
+                  <div className="text-[10px] font-mono text-text-primary">
                     {parsedData.args.substring(0, 60)}...
                   </div>
                 </div>
@@ -176,50 +172,49 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         </div>
 
         <div
-          className="p-4 rounded-md"
+          className="p-4 rounded-md bg-card-background"
           style={{
-            background: 'var(--card-background)',
             border: `1px solid ${accentColor}30`,
           }}
         >
-          <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-            <Server size={14} style={{ color: 'var(--text-secondary)' }} /> HOST INFORMATION
+          <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
+            <Server size={14} className="text-text-secondary" /> HOST INFORMATION
           </h4>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3">
             {parsedData ? (
               <>
                 <div>
-                  <span style={{ color: 'var(--text-secondary)' }}>IP:</span>{' '}
-                  <span style={{ color: 'var(--text-primary)' }}>{parsedData.host.ip}</span>
+                  <span className="text-text-secondary">IP:</span>{' '}
+                  <span className="text-text-primary">{parsedData.host.ip}</span>
                 </div>
                 {parsedData.host.hostname && (
                   <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>Hostname:</span>{' '}
-                    <span style={{ color: 'var(--text-primary)' }}>{parsedData.host.hostname}</span>
+                    <span className="text-text-secondary">Hostname:</span>{' '}
+                    <span className="text-text-primary">{parsedData.host.hostname}</span>
                   </div>
                 )}
                 {parsedData.host.os && (
                   <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>OS:</span>{' '}
-                    <span style={{ color: 'var(--text-primary)' }}>{parsedData.host.os}</span>
+                    <span className="text-text-secondary">OS:</span>{' '}
+                    <span className="text-text-primary">{parsedData.host.os}</span>
                   </div>
                 )}
                 {parsedData.host.uptime && (
                   <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>Uptime:</span>{' '}
-                    <span style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-text-secondary">Uptime:</span>{' '}
+                    <span className="text-text-primary">
                       {formatDuration(parsedData.host.uptime)}
                     </span>
                   </div>
                 )}
                 {parsedData.host.mac && (
                   <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>MAC:</span>{' '}
-                    <span style={{ color: 'var(--text-primary)' }}>{parsedData.host.mac}</span>
+                    <span className="text-text-secondary">MAC:</span>{' '}
+                    <span className="text-text-primary">{parsedData.host.mac}</span>
                   </div>
                 )}
                 <div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Status:</span>{' '}
+                  <span className="text-text-secondary">Status:</span>{' '}
                   <span style={{ color: parsedData.host.status === 'up' ? 'rgb(var(--primary))' : 'rgb(var(--error))' }}>
                     {parsedData.host.status.toUpperCase()}
                   </span>
@@ -229,20 +224,20 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <>
                 {scan.host?.ip && (
                   <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>IP:</span>{' '}
-                    <span style={{ color: 'var(--text-primary)' }}>{scan.host.ip}</span>
+                    <span className="text-text-secondary">IP:</span>{' '}
+                    <span className="text-text-primary">{scan.host.ip}</span>
                   </div>
                 )}
                 {scan.host?.hostname && (
                   <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>Hostname:</span>{' '}
-                    <span style={{ color: 'var(--text-primary)' }}>{scan.host.hostname}</span>
+                    <span className="text-text-secondary">Hostname:</span>{' '}
+                    <span className="text-text-primary">{scan.host.hostname}</span>
                   </div>
                 )}
                 {scan.host?.os && (
                   <div>
-                    <span style={{ color: 'var(--text-secondary)' }}>OS:</span>{' '}
-                    <span style={{ color: 'var(--text-primary)' }}>{scan.host.os}</span>
+                    <span className="text-text-secondary">OS:</span>{' '}
+                    <span className="text-text-primary">{scan.host.os}</span>
                   </div>
                 )}
               </>
@@ -251,35 +246,32 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         </div>
 
         <div
-          className="p-4 rounded-md"
+          className="p-4 rounded-md bg-card-background"
           style={{
-            background: 'var(--card-background)',
             border: `1px solid ${accentColor}30`,
           }}
         >
-          <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-            <Shield size={14} style={{ color: 'var(--text-secondary)' }} /> PORTS SCANNED (
+          <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
+            <Shield size={14} className="text-text-secondary" /> PORTS SCANNED (
             {scan.ports.length} total, {scan.ports.filter((p) => p.state === 'open').length} open)
           </h4>
           <PortsTable ports={scan.ports} accentColor={accentColor} showRisk={true} />
         </div>
 
         <div
-          className="p-4 rounded-md"
+          className="p-4 rounded-md bg-card-background"
           style={{
-            background: 'var(--card-background)',
             border: `1px solid ${accentColor}30`,
           }}
         >
           <div className="flex justify-between items-center mb-3">
-            <h4 className="m-0 text-[13px] flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-              <FileText size={14} style={{ color: 'var(--text-secondary)' }} /> RAW OUTPUT (XML)
+            <h4 className="m-0 text-[13px] flex items-center gap-2 text-text-primary">
+              <FileText size={14} className="text-text-secondary" /> RAW OUTPUT (XML)
             </h4>
             <button
               onClick={() => navigator.clipboard.writeText(scan.rawOutput.join('\n'))}
-              className="p-1.5 rounded flex items-center justify-center cursor-pointer"
+              className="p-1.5 rounded flex items-center justify-center cursor-pointer bg-border"
               style={{
-                background: 'var(--border)',
                 border: `1px solid ${accentColor}30`,
                 color: accentColor,
               }}
@@ -289,11 +281,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             </button>
           </div>
           <div
-            className="text-[10px] font-mono p-3 rounded max-h-[400px] overflow-y-auto whitespace-pre-wrap break-words"
-            style={{
-              color: 'var(--text-primary)',
-              background: 'var(--background)',
-            }}
+            className="text-[10px] font-mono p-3 rounded max-h-[400px] overflow-y-auto whitespace-pre-wrap break-words text-text-primary bg-background"
           >
             {scan.rawOutput.map((line, i) => {
               let color = 'var(--text-secondary)';
@@ -326,28 +314,27 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
     <div
       ref={historyContainerRef}
       className="flex flex-col gap-3 overflow-y-auto"
-      style={{ maxHeight: 'calc(100vh - 300px)' }}
+      style={{ maxHeight: 'calc(100vh - 180px)' }}
     >
       <div className="relative mb-2">
         <Search
           size={14}
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: 'var(--text-secondary)' }}
+          className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary"
         />
         <input
           type="text"
           value={historySearchQuery}
           onChange={(e) => setHistorySearchQuery(e.target.value)}
           placeholder="Search by target, scan type, port, or service..."
-          className="w-full py-2 pl-8 pr-3 rounded text-[11px] outline-none font-inherit bg-input-background text-text-primary placeholder:text-text-secondary"
+          className="w-full py-3 pl-9 pr-3 rounded text-[12px] outline-none font-inherit bg-input-background text-text-primary placeholder:text-text-secondary border border-border"
           style={{
-            border: `1px solid ${historySearchQuery ? accentColor + '50' : 'var(--input-border-default)'}`,
+            borderColor: historySearchQuery ? accentColor + '50' : undefined,
           }}
         />
       </div>
 
       {filteredHistory.length === 0 ? (
-        <div className="text-center p-10 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+        <div className="text-center p-10 text-[12px] text-text-secondary">
           {history.length === 0
             ? 'No scan history yet. Run a scan to see results here.'
             : 'No matching scans found.'}
@@ -356,9 +343,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         Object.entries(groupedHistory).map(([dateLabel, scans]) => (
           <div key={dateLabel}>
             <div
-              className="text-[11px] font-bold tracking-wide pt-2 pb-1 mb-2"
+              className="text-sm font-bold tracking-wide pt-2 pb-1 mb-2 text-text-primary"
               style={{
-                color: accentColor,
                 borderBottom: `1px solid ${accentColor}30`,
               }}
             >
@@ -386,13 +372,11 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
 
       {contextMenu?.visible && contextMenu.scan && (
         <div
-          className="fixed z-[1000] min-w-[160px] overflow-hidden rounded-md"
+          className="fixed z-[1000] min-w-[160px] overflow-hidden rounded-md border border-border shadow-lg"
           style={{
             top: contextMenu.y,
             left: contextMenu.x,
-            background: 'var(--dropdown-background)',
-            border: `1px solid ${accentColor}50`,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            background: 'rgb(10, 15, 25)',
           }}
           onClick={(e) => e.stopPropagation()}
         >

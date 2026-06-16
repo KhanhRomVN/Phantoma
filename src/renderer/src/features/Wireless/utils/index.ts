@@ -13,14 +13,15 @@ export function encBadge(enc: Encryption): React.ReactElement {
     {
       style: {
         color: p.color,
-        background: p.bg,
-        border: `1px solid ${p.border}`,
-        fontSize: 8,
+        border: `1px solid ${p.color}80`,
+        fontSize: 10,
         fontWeight: 700,
-        padding: '2px 6px',
-        borderRadius: 3,
+        padding: '4px 8px',
+        borderRadius: 4,
         letterSpacing: '0.08em',
         fontFamily: 'inherit',
+        background: 'transparent',
+        display: 'inline-block',
       },
     },
     enc.toUpperCase(),
@@ -28,29 +29,28 @@ export function encBadge(enc: Encryption): React.ReactElement {
 }
 
 export function signalBar(dbm: number): React.ReactElement {
-  const pct = Math.max(0, Math.min(100, ((dbm + 100) / 60) * 100));
-  const color = dbm >= -55 ? 'var(--success)' : dbm >= -72 ? 'var(--warning)' : 'var(--error)';
+  // Use direct hex colors to ensure visibility
+  let colorHex = '';
+  
+  if (dbm >= -55) {
+    colorHex = '#10b981'; // success green
+  } else if (dbm >= -72) {
+    colorHex = '#f59e0b'; // warning amber
+  } else {
+    colorHex = '#ef4444'; // error red
+  }
+  
   return React.createElement(
-    'div',
-    { style: { display: 'flex', alignItems: 'center', gap: 5 } },
-    React.createElement(
-      'span',
-      { style: { color, fontSize: 10, fontWeight: 700, width: 36, textAlign: 'right' } },
-      `${dbm}dBm`,
-    ),
-    React.createElement(
-      'div',
-      { style: { width: 38, height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' } },
-      React.createElement('div', {
-        style: {
-          width: `${pct}%`,
-          height: '100%',
-          background: color,
-          borderRadius: 2,
-          transition: 'width 0.5s',
-        },
-      }),
-    ),
+    'span',
+    { 
+      style: { 
+        color: colorHex, 
+        fontSize: 12, 
+        fontWeight: 700, 
+        textShadow: '0 0 1px rgba(0,0,0,0.5)'
+      } 
+    },
+    `${dbm}dBm`,
   );
 }
 

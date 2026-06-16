@@ -167,12 +167,13 @@ export const MonoBlack: ThemeConfig = {
     divider: 'rgb(40, 40, 40)',
     //
     cardBackground: 'rgb(10, 10, 10)',
+    cardBackgroundHover: 'rgb(18, 18, 18)',
     //
     inputBackground: 'rgb(15, 15, 15)',
     //
     modalBackground: 'rgb(12, 12, 12)',
     //
-    dropdownContentBackground: 'rgb(12, 12, 12)',
+    dropdownBackground: 'rgb(12, 12, 12)',
     dropdownItemHover: 'rgb(25, 25, 25)',
     //
     tooltipBackground: 'rgb(25, 25, 25)',
@@ -180,5 +181,23 @@ export const MonoBlack: ThemeConfig = {
     sidebarBackground: 'rgb(5, 5, 5)',
     sidebarItemHover: 'rgb(20, 20, 20)',
     sidebarItemFocus: 'rgb(25, 25, 25)',
+    //
+    tableHeaderBackground: 'rgb(15, 15, 15)',
+    tableFooterBackground: 'rgb(15, 15, 15)',
+    tableRowHover: 'rgb(25, 25, 25)',
+  },
+  accentColors: [
+    'rgb(255, 255, 255)', // White - primary
+    'rgb(100, 150, 255)', // Blue - cool
+    'rgb(255, 200, 100)', // Yellow - warm
+    'rgb(100, 255, 100)', // Green - vibrant
+    'rgb(255, 68, 68)', // Red - bold
+    'rgb(255, 120, 200)', // Pink - soft
+    'rgb(80, 220, 255)', // Aqua - electric
+    'rgb(255, 200, 80)', // Gold - warm (replaced similar mustard)
+    'rgb(180, 120, 255)', // Violet - luminous
+  ],
+  typography: {
+    fontFamily: '"SF Mono", "Menlo", monospace',
   },
 };

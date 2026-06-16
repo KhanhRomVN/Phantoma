@@ -12,12 +12,12 @@ const NAV_MODULES: NavModuleConfig[] = [
   {
     id: 'dashboard',
     title: 'Dashboard',
-    activeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+    activeClass: 'bg-blue/10 text-blue border-blue/30',
   },
   {
     id: 'recon',
     title: 'Reconnaissance',
-    activeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+    activeClass: 'bg-aqua/10 text-aqua border-aqua/30',
     children: [
       { id: 'recon-domain', title: 'Domain', disabled: false },
       { id: 'recon-ip', title: 'IP', disabled: false },
@@ -27,7 +27,7 @@ const NAV_MODULES: NavModuleConfig[] = [
   {
     id: 'scanner',
     title: 'Scanner',
-    activeClass: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+    activeClass: 'bg-orange/10 text-orange border-orange/30',
     children: [
       { id: 'scan-domain', title: 'Domain', disabled: false },
       { id: 'scan-network', title: 'Network', disabled: false },
@@ -37,17 +37,17 @@ const NAV_MODULES: NavModuleConfig[] = [
   {
     id: 'tools',
     title: 'Tools',
-    activeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    activeClass: 'bg-green/10 text-green border-green/30',
   },
   {
     id: 'emulate',
     title: 'Emulate',
-    activeClass: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+    activeClass: 'bg-purple/10 text-purple border-purple/30',
   },
   {
     id: 'wireless',
     title: 'Wireless',
-    activeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    activeClass: 'bg-yellow/10 text-yellow border-yellow/30',
   },
 ];
 
@@ -282,7 +282,7 @@ function NavButton({
         expanded ? 'px-3 py-2 rounded-lg' : 'w-9 h-9 px-0 rounded-md justify-center',
         isActive
           ? activeClass
-          : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
+          : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover border-transparent',
         !expanded && 'mx-auto',
       )}
     >
@@ -446,7 +446,7 @@ export function ModuleBar({
             module={'settings' as PhantomModule}
             title="Settings"
             isActive={active === 'settings'}
-            activeClass="bg-amber-500/10 text-amber-400 border-amber-500/30"
+            activeClass="bg-primary/10 text-primary border-primary/30"
             onClick={() => onSelect('settings' as PhantomModule)}
             expanded={expanded}
           />

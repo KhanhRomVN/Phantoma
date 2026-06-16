@@ -13,6 +13,11 @@ import (
 	niktosvc "github.com/phantoma/server/internal/service/nikto"
 	nmapsvc "github.com/phantoma/server/internal/service/nmap"
 	searchsploitsvc "github.com/phantoma/server/internal/service/searchsploit"
+	airodumpsvc "github.com/phantoma/server/internal/service/airodump"
+	aireplaysvc "github.com/phantoma/server/internal/service/aireplay"
+	hcxdumptoolsvc "github.com/phantoma/server/internal/service/hcxdumptool"
+	hashcatsvc "github.com/phantoma/server/internal/service/hashcat"
+	reaver "github.com/phantoma/server/internal/service/reaver"
 )
 
 // NewRouter wires up all routes and returns the root http.Handler.
@@ -28,6 +33,11 @@ func NewRouter(cfg *config.Config) http.Handler {
 	gauSvc := gausvc.NewService(cfg.GauContainer)
 	alienvaultSvc := alienvaultsvc.NewService()
 	amassSvc := amasssvc.NewService(cfg.AmassContainer)
+	airodumpSvc := airodumpsvc.NewService()
+	aireplaySvc := aireplaysvc.NewService()
+	hcxdumptoolSvc := hcxdumptoolsvc.NewService()
+	hashcatSvc := hashcatsvc.NewService()
+	reaverSvc := reaver.NewService()
 
 	// Register all route groups
 	RegisterHealthRoutes(mux)
@@ -43,6 +53,11 @@ func NewRouter(cfg *config.Config) http.Handler {
 	RegisterSubfinderRoutes(mux, cfg.SubfinderContainer)
 	RegisterRustscanRoutes(mux, cfg.RustScanContainer)
 	RegisterNucleiRoutes(mux, cfg.NucleiContainer)
+	RegisterAirodumpRoutes(mux, airodumpSvc)
+	RegisterAireplayRoutes(mux, aireplaySvc)
+	RegisterHcxdumptoolRoutes(mux, hcxdumptoolSvc)
+	RegisterHashcatRoutes(mux, hashcatSvc)
+	RegisterReaverRoutes(mux, reaverSvc)
 
 	// Apply middleware stack: CORS → RequestLogger → mux
 	return cors(middleware.RequestLogger(mux))

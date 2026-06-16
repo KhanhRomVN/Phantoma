@@ -6,7 +6,42 @@ import type { CrackJob } from '../../types';
 import { STATUS_STYLE, CRACK_MODE_COLORS } from '../../constants';
 import { progressBar, fmtTime, fmtNum } from '../../utils';
 import { Btn } from '../shared/Btn';
-import { Tag } from '../shared/Tag';
+
+// Helper function to resolve color from CSS variable or hex
+function resolveColor(color: string): string {
+  const colorMap: Record<string, string> = {
+    'var(--accent-purple)': '#a78bfa',
+    'var(--success)': '#10b981',
+    'var(--error)': '#ef4444',
+    'var(--warning)': '#f59e0b',
+    'var(--primary)': '#3686ff',
+    'var(--text-secondary)': '#9ca3af',
+  };
+  // If it's already a hex color or doesn't need mapping
+  if (!color.startsWith('var(--')) {
+    return color;
+  }
+  return colorMap[color] || color;
+}
+
+// Inline Badge component
+function Badge({ label, color }: { label: string; color: string }) {
+  const resolvedColor = resolveColor(color);
+  return (
+    <span
+      className="font-bold rounded tracking-[0.08em] font-mono"
+      style={{
+        fontSize: 8,
+        padding: '1px 5px',
+        border: `1px solid ${resolvedColor}80`,
+        background: `${resolvedColor}20`,
+        color: resolvedColor,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 interface CrackTabProps {
   jobs: CrackJob[];
@@ -15,8 +50,8 @@ interface CrackTabProps {
 
 export function CrackTab({ jobs, onNewJob }: CrackTabProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-end gap-1.5">
         <Btn label="+ NEW JOB" color="var(--primary)" onClick={onNewJob} size="sm" />
         <Btn label="📂 SELECT WORDLIST" color="var(--text-secondary)" size="sm" />
         <Btn label="⚙ HASHCAT GPU CONFIG" color="var(--text-secondary)" size="sm" />
@@ -27,83 +62,62 @@ export function CrackTab({ jobs, onNewJob }: CrackTabProps) {
         return (
           <div
             key={job.id}
-            style={{
-              background: 'var(--card-background)',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              padding: 12,
-            }}
+            className="bg-card-background border border-border rounded-md p-3"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <Tag label={job.mode.toUpperCase()} color={accentColor} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div className="flex items-center gap-2.5 mb-2">
+              <Badge label={job.mode.toUpperCase()} color={accentColor} />
+              <span className="text-xs font-bold text-text-primary">
                 {job.targetSSID}
               </span>
-              <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{job.targetBSSID}</span>
-              <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 700, color: ss.color }}>
+              <span className="text-[9px] text-text-secondary">{job.targetBSSID}</span>
+              <span className="ml-auto text-[9px] font-bold" style={{ color: ss.color }}>
                 {ss.label}
               </span>
-              <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{fmtTime(job.elapsedSeconds)}</span>
+              <span className="text-[9px] text-text-secondary">{fmtTime(job.elapsedSeconds)}</span>
             </div>
             {job.status === 'running' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div className="flex items-center gap-2 mb-2">
                 {progressBar(job.progress, accentColor, 4)}
                 <span
-                  style={{
-                    fontSize: 9,
-                    color: accentColor,
-                    fontWeight: 700,
-                    width: 30,
-                    textAlign: 'right',
-                  }}
+                  className="text-[9px] font-bold w-[30px] text-right"
+                  style={{ color: accentColor }}
                 >
                   {job.progress}%
                 </span>
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            <div className="grid grid-cols-4 gap-2">
               {job.wordlist && (
-                <div style={{ fontSize: 9 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Wordlist: </span>
-                  <span style={{ color: 'var(--text-secondary)' }}>{job.wordlist}</span>
+                <div className="text-[9px]">
+                  <span className="text-text-secondary">Wordlist: </span>
+                  <span className="text-text-secondary">{job.wordlist}</span>
                 </div>
               )}
-              <div style={{ fontSize: 9 }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Attempts: </span>
-                <span style={{ color: 'var(--text-primary)' }}>{fmtNum(job.attempts)}</span>
+              <div className="text-[9px]">
+                <span className="text-text-secondary">Attempts: </span>
+                <span className="text-text-primary">{fmtNum(job.attempts)}</span>
               </div>
               {job.speed > 0 && (
-                <div style={{ fontSize: 9 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Speed: </span>
-                  <span style={{ color: 'var(--success)' }}>{fmtNum(job.speed)} keys/s</span>
+                <div className="text-[9px]">
+                  <span className="text-text-secondary">Speed: </span>
+                  <span className="text-success">{fmtNum(job.speed)} keys/s</span>
                 </div>
               )}
               {job.eta && (
-                <div style={{ fontSize: 9 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>ETA: </span>
-                  <span style={{ color: 'var(--warning)' }}>{job.eta}</span>
+                <div className="text-[9px]">
+                  <span className="text-text-secondary">ETA: </span>
+                  <span className="text-warning">{job.eta}</span>
                 </div>
               )}
               {job.hashFile && (
-                <div style={{ fontSize: 9 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>File: </span>
-                  <span style={{ color: 'var(--text-secondary)' }}>{job.hashFile}</span>
+                <div className="text-[9px]">
+                  <span className="text-text-secondary">File: </span>
+                  <span className="text-text-secondary">{job.hashFile}</span>
                 </div>
               )}
             </div>
             {job.result && (
-              <div
-                style={{
-                  marginTop: 8,
-                  fontSize: 11,
-                  color: 'var(--success)',
-                  fontWeight: 700,
-                  padding: '8px 12px',
-                  background: '#34d39910',
-                  border: '1px solid #34d39930',
-                  borderRadius: 4,
-                }}
-              >
+              <div className="mt-2 text-[11px] text-success font-bold py-2 px-3 bg-success/10 border border-success/30 rounded">
                 ✓ PASSWORD FOUND: {job.result}
               </div>
             )}

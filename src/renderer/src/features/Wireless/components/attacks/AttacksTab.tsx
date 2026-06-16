@@ -16,9 +16,9 @@ const ACCENT = 'var(--primary)';
 
 export function AttacksTab({ attacks, onStop }: AttacksTabProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {attacks.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 40, fontSize: 10, color: 'var(--text-secondary)' }}>
+        <div className="text-center py-10 text-[10px] text-text-secondary">
           No active attacks. Select a network from the Scan tab.
         </div>
       )}
@@ -27,90 +27,53 @@ export function AttacksTab({ attacks, onStop }: AttacksTabProps) {
         return (
           <div
             key={atk.id}
-            style={{
-              background: 'var(--card-background)',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              padding: 12,
-            }}
+            className="bg-card-background border border-border rounded-md p-3"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <div className="flex items-center gap-2.5 mb-2">
               <div
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: ss.dot,
-                  boxShadow: atk.status === 'running' ? `0 0 8px ${ss.dot}` : 'none',
-                  flexShrink: 0,
-                }}
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ background: ss.dot, boxShadow: atk.status === 'running' ? `0 0 8px ${ss.dot}` : 'none' }}
               />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span className="text-xs font-bold text-text-primary">
                 {ATK_LABEL[atk.type]}
               </span>
-              <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>→ {atk.targetSSID}</span>
-              <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>{atk.targetBSSID}</span>
-              <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 700, color: ss.color }}>
+              <span className="text-[9px] text-text-secondary">→ {atk.targetSSID}</span>
+              <span className="text-[8px] text-text-secondary">{atk.targetBSSID}</span>
+              <span className="ml-auto text-[9px] font-bold" style={{ color: ss.color }}>
                 {ss.label}
               </span>
-              <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{fmtTime(atk.elapsedSeconds)}</span>
+              <span className="text-[9px] text-text-secondary">{fmtTime(atk.elapsedSeconds)}</span>
               {atk.status === 'running' && (
                 <Btn label="■ STOP" color="var(--error)" onClick={() => onStop(atk.id)} size="xs" />
               )}
             </div>
             {atk.status === 'running' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div className="flex items-center gap-2 mb-2">
                 {progressBar(atk.progress, ACCENT, 4)}
                 <span
-                  style={{
-                    fontSize: 9,
-                    color: ACCENT,
-                    fontWeight: 700,
-                    width: 30,
-                    textAlign: 'right',
-                  }}
+                  className="text-[9px] font-bold w-[30px] text-right"
+                  style={{ color: ACCENT }}
                 >
                   {atk.progress}%
                 </span>
               </div>
             )}
             {atk.ivsCollected !== undefined && (
-              <div style={{ fontSize: 9, color: 'var(--warning)', marginBottom: 6 }}>
+              <div className="text-[9px] text-warning mb-1.5">
                 IVs collected: {fmtNum(atk.ivsCollected)}
               </div>
             )}
             {atk.result && (
-              <div
-                style={{
-                  fontSize: 10,
-                  color: 'var(--success)',
-                  fontWeight: 700,
-                  padding: '6px 10px',
-                  background: '#34d39910',
-                  borderRadius: 4,
-                  border: '1px solid #34d39930',
-                  marginBottom: 8,
-                }}
-              >
+              <div className="text-[10px] text-success font-bold py-1.5 px-2.5 bg-success/10 border border-success/30 rounded mb-2">
                 ✓ {atk.result}
               </div>
             )}
-            <div
-              style={{
-                background: 'var(--input-background)',
-                borderRadius: 4,
-                padding: '6px 10px',
-                fontFamily: 'inherit',
-                fontSize: 9,
-              }}
-            >
+            <div className="bg-input-background rounded p-1.5 font-mono text-[9px]">
               {atk.logLines.map((l, i) => (
                 <div
                   key={i}
-                  style={{
-                    color: l.includes('✅') || l.includes('found') ? 'var(--success)' : 'var(--text-secondary)',
-                    marginBottom: 2,
-                  }}
+                  className="mb-0.5"
+                  style={{ color: l.includes('✅') || l.includes('found') ? 'var(--green)' : 'var(--text-secondary)' }}
                 >
                   {l}
                 </div>

@@ -6,7 +6,41 @@ import { useState } from 'react';
 import type { MacEntry } from '../../types';
 import { Panel } from '../shared/Panel';
 import { Btn } from '../shared/Btn';
-import { Tag } from '../shared/Tag';
+
+// Helper function to resolve color from CSS variable or hex
+function resolveColor(color: string): string {
+  const colorMap: Record<string, string> = {
+    'var(--success)': '#10b981',
+    'var(--text-secondary)': '#9ca3af',
+    'var(--error)': '#ef4444',
+    'var(--warning)': '#f59e0b',
+    'var(--primary)': '#3686ff',
+    'var(--accent-purple)': '#a78bfa',
+  };
+  if (!color.startsWith('var(--')) {
+    return color;
+  }
+  return colorMap[color] || color;
+}
+
+// Inline Badge component
+function Badge({ label, color }: { label: string; color: string }) {
+  const resolvedColor = resolveColor(color);
+  return (
+    <span
+      className="font-bold rounded tracking-[0.08em] font-mono"
+      style={{
+        fontSize: 8,
+        padding: '1px 5px',
+        border: `1px solid ${resolvedColor}80`,
+        background: `${resolvedColor}20`,
+        color: resolvedColor,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 interface MacTabProps {
   entries: MacEntry[];
@@ -158,15 +192,15 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
                 <span
                   style={{
                     fontSize: 9,
-                    color: e.spoofed ? 'var(--success)' : 'var(--text-secondary)',
+                    color: e.spoofed ? 'var(--green)' : 'var(--text-secondary)',
                     fontWeight: e.spoofed ? 700 : 400,
                   }}
                 >
                   {e.currentMac}
                 </span>
-                <Tag
+                <Badge
                   label={e.spoofed ? '● SPOOFED' : '○ ORIGINAL'}
-                  color={e.spoofed ? 'var(--success)' : 'var(--text-secondary)'}
+                  color={e.spoofed ? 'var(--green)' : 'var(--text-secondary)'}
                 />
                 <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{e.reason}</span>
                 <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>{e.timestamp}</span>

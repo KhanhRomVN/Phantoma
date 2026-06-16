@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, Wifi, Globe, Bug, Eye, Shield, Server, Home, ChevronRight } from 'lucide-react';
 import { TOOLS_LIST } from './data/toolsList';
 import { CATEGORY_META } from './constants';
 import { ToolIcon } from './utils/iconHelpers';
 import { useToolManager } from './hooks/useToolManager';
 import { ServerConfigProvider } from './context/ServerConfigContext';
+import { useTheme } from '../../theme/ThemeProvider';
 
 interface ToolManagerProps {
   activeToolId?: string;
@@ -26,9 +27,38 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
     setSearchQuery,
   } = useToolManager(activeToolId, onToolChange);
 
-  const [toolActiveTab, setToolActiveTab] = useState<'information' | 'execution' | 'history'>(
-    'information',
-  );
+  const [toolActiveTab, setToolActiveTab] = useState<
+    'information' | 'execution' | 'history' | 'profiles'
+  >('information');
+
+  // Get current theme for accent colors
+  const { currentPreset } = useTheme();
+
+  // Generate random color mapping for tool categories based on theme accentColors
+  const categoryColorMap = useMemo(() => {
+    const accentColors = currentPreset?.accentColors || [
+      'rgb(100, 150, 255)',
+      'rgb(255, 200, 100)',
+      'rgb(100, 255, 100)',
+      'rgb(200, 100, 255)',
+      'rgb(255, 150, 50)',
+      'rgb(255, 68, 68)',
+      'rgb(255, 120, 200)',
+      'rgb(80, 220, 255)',
+    ];
+
+    // Get unique categories from tools
+    const categories = [...new Set(TOOLS_LIST.map((t) => t.category))];
+
+    // Shuffle accent colors and assign to categories
+    const shuffled = [...accentColors].sort(() => Math.random() - 0.5);
+    const map: Record<string, string> = {};
+    categories.forEach((cat, index) => {
+      map[cat] = shuffled[index % shuffled.length];
+    });
+    map['default'] = shuffled[0] || 'rgb(150, 150, 150)';
+    return map;
+  }, [currentPreset]);
 
   // Unified accent color from Tailwind theme (--primary: 54 134 255)
   const UNIFIED_ACCENT = '#3686ff';
@@ -41,162 +71,70 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-        position: 'relative',
-      }}
-    >
+    <div className="flex w-full h-full overflow-hidden font-['JetBrains_Mono'] font-['Fira_Code'] monospace relative">
       {/* Scanline overlay */}
       <div style={{ ...scanlineStyle, position: 'absolute', inset: 0, zIndex: 0 }} />
 
       {/* ─── LEFT PANEL ─── */}
-      <div
-        style={{
-          width: 390,
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          borderRight: '1px solid #1e2535',
-          zIndex: 1,
-          overflow: 'hidden',
-        }}
-      >
+      <div className="w-[390px] shrink-0 flex flex-col border-r border-[var(--divider)] z-10 overflow-hidden">
         {/* Topbar */}
         <div className="h-[37px] shrink-0 px-5 flex items-center border-b border-border">
           <span className="text-text-secondary text-sm">Tools</span>
         </div>
         {/* Search */}
-        <div style={{ padding: '12px 14px' }}>
-          <div style={{ position: 'relative' }}>
-            <Search
-              size={14}
-              style={{
-                position: 'absolute',
-                left: 22,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#64748b',
-                pointerEvents: 'none',
-              }}
-            />
+        <div className="p-3">
+          <div className="relative">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="search tools..."
-              style={{
-                width: '100%',
-                padding: '10px 12px 10px 36px',
-                background: '#080b10',
-                border: '1px solid #1e2535',
-                borderRadius: 6,
-                color: '#e2e8f0',
-                fontSize: 12,
-                outline: 'none',
-                boxSizing: 'border-box',
-                fontFamily: 'inherit',
-              }}
+              placeholder="Search tools..."
+              className="w-full pl-3 pr-3 py-2.5 text-xs font-mono border rounded-md outline-none bg-input-background text-text-primary border-border"
             />
           </div>
         </div>
 
         {/* Tool Grid */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '8px 8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 3,
-          }}
-        >
+        <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-[3px]">
           {filteredTools.map((tool) => {
             const isSelected = selectedTool === tool.id;
-            const meta = CATEGORY_META[tool.category];
+            // Get accent color from random mapping based on theme
+            const accentColor = categoryColorMap[tool.category] || categoryColorMap.default;
             return (
               <button
                 key={tool.id}
                 onClick={() => handleToolSelect(tool.id)}
+                className={`flex items-center gap-2.5 px-2.5 py-2 border border-transparent rounded-r-[4px] cursor-pointer text-left transition-all duration-150 shadow-none font-inherit ${
+                  isSelected ? 'bg-[var(--sidebar-item-hover)]' : 'bg-transparent hover:bg-[var(--sidebar-item-hover)]'
+                }`}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '8px 10px',
-                  background: isSelected ? meta.bg : 'transparent',
-                  border: '1px solid transparent',
-                  borderLeft: `2px solid ${isSelected ? meta.color : 'transparent'}`,
-                  borderRadius: '0 4px 4px 0',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s',
-                  boxShadow: 'none',
-                  fontFamily: 'inherit',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) {
-                    (e.currentTarget as HTMLButtonElement).style.background = meta.bg;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                  }
+                  borderLeft: `2px solid ${isSelected ? accentColor : 'transparent'}`,
                 }}
               >
                 {/* Icon with favicon support */}
                 <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 4,
-                    background: isSelected ? meta.bg : '#0d1117',
-                    border: '1px solid #1a2236',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 13,
-                    color: meta.color,
-                    flexShrink: 0,
-                    boxShadow: 'none',
-                    overflow: 'hidden',
-                  }}
+                  className={`w-7 h-7 rounded-[4px] flex items-center justify-center text-[13px] shrink-0 shadow-none overflow-hidden border border-border ${
+                    isSelected ? 'bg-[var(--sidebar-item-hover)]' : 'bg-card-background'
+                  }`}
+                  style={{ color: accentColor }}
                 >
-                  <ToolIcon tool={tool} color={meta.color} />
+                  <ToolIcon tool={tool} color={accentColor} />
                 </div>
 
                 {/* Name + short description */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.25 mb-0.5">
                     <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: isSelected ? meta.color : '#c5cfe0',
-                        letterSpacing: '0.05em',
-                      }}
+                      className={`text-[13px] font-bold tracking-[0.05em] ${
+                        isSelected ? '' : 'text-text-primary'
+                      }`}
+                      style={{ color: isSelected ? accentColor : 'var(--text-primary)' }}
                     >
                       {tool.name}
                     </span>
                   </div>
                   <div>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        color: '#6b7a96',
-                        letterSpacing: '0.03em',
-                        lineHeight: 1.3,
-                        display: 'block',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
+                    <span className="text-[10px] text-text-secondary tracking-[0.03em] leading-1.3 block whitespace-nowrap overflow-hidden text-ellipsis">
                       {tool.shortDescription}
                     </span>
                   </div>
@@ -210,9 +148,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
       </div>
 
       {/* ─── RIGHT PANEL ─── */}
-      <div
-        style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1 }}
-      >
+      <div className="flex-1 flex flex-col overflow-hidden z-10">
         {/* Breadcrumb Topbar - same height as ModuleBar (37px) */}
         <div className="h-[37px] shrink-0 border-b border-border px-5 flex items-center gap-2">
           <Home className="w-4 h-4 text-text-secondary -mt-0.5" />
@@ -229,116 +165,79 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
         {currentTool && catMeta ? (
           <>
             {/* Tool Header - Thống nhất màu nền */}
-            <div
-              style={{
-                padding: '12px 20px',
-                borderBottom: '1px solid #1e2535',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 16,
-                flexShrink: 0,
-                position: 'relative',
-              }}
-            >
-              {/* Big icon - màu accent thống nhất */}
+            <div className="px-5 py-3 border-b border-[var(--divider)] flex items-start gap-4 shrink-0 relative">
+              {/* Big icon - màu accent từ category mapping */}
               <div
+                className="w-12 h-12 rounded-lg flex items-center justify-center text-[22px] shrink-0 self-center"
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 8,
-                  background: '#080b10',
-                  border: `1px solid ${UNIFIED_ACCENT}40`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 22,
-                  color: UNIFIED_ACCENT,
-                  flexShrink: 0,
-                  alignSelf: 'center',
+                  background: (() => {
+                    const color =
+                      categoryColorMap[currentTool.category] || categoryColorMap.default;
+                    const rgbMatch = color.match(/\d+/g);
+                    if (rgbMatch) {
+                      const r = parseInt(rgbMatch[0]);
+                      const g = parseInt(rgbMatch[1]);
+                      const b = parseInt(rgbMatch[2]);
+                      return `rgba(${r}, ${g}, ${b}, 0.15)`;
+                    }
+                    return 'var(--card-background)';
+                  })(),
+                  border: `1px solid ${categoryColorMap[currentTool.category] || categoryColorMap.default}40`,
+                  color: categoryColorMap[currentTool.category] || categoryColorMap.default,
                 }}
               >
-                <ToolIcon tool={currentTool} color={UNIFIED_ACCENT} />
+                <ToolIcon
+                  tool={currentTool}
+                  color={categoryColorMap[currentTool.category] || categoryColorMap.default}
+                />
               </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: 18,
-                      fontWeight: 800,
-                      color: '#e2e8f0',
-                      letterSpacing: '0.1em',
-                      fontFamily: 'inherit',
-                    }}
-                  >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2.5 mb-1">
+                  <h2 className="m-0 text-[18px] font-extrabold text-text-primary tracking-[0.1em] font-inherit">
                     {currentTool.name.toUpperCase()}
                   </h2>
-                  <span
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: 4,
-                      background: '#1a2236',
-                      border: '1px solid #2a3346',
-                      color: '#94a3b8',
-                      fontSize: 10,
-                      fontWeight: 800,
-                      letterSpacing: '0.12em',
-                    }}
-                  >
-                    {currentTool.category.toUpperCase()}
-                  </span>
                 </div>
 
-                <p
-                  style={{
-                    margin: '0 0 8px',
-                    fontSize: 11,
-                    color: '#64748b',
-                    lineHeight: 1.5,
-                    fontFamily: 'inherit',
-                  }}
-                >
+                <p className="m-0 mb-2 text-[11px] text-[#64748b] leading-1.5 font-inherit">
                   {currentTool.description}
                 </p>
 
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-                  {currentTool.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      style={{
-                        padding: '2px 7px',
-                        borderRadius: 3,
-                        background: '#0d1117',
-                        border: '1px solid #1a2236',
-                        color: '#64748b',
-                        fontSize: 9,
-                        letterSpacing: '0.06em',
-                      }}
-                    >
-                      #{tag}
-                    </span>
-                  ))}
+                <div className="flex gap-1.25 flex-wrap items-center">
+                  {currentTool.tags.map((tag, index) => {
+                    // Get color from accentColors based on index
+                    const accentColors = currentPreset?.accentColors || [
+                      'rgb(100, 150, 255)',
+                      'rgb(255, 200, 100)',
+                      'rgb(100, 255, 100)',
+                      'rgb(200, 100, 255)',
+                      'rgb(255, 150, 50)',
+                      'rgb(255, 68, 68)',
+                    ];
+                    const color = accentColors[index % accentColors.length];
+                    // Parse RGB values from color string
+                    const rgbMatch = color.match(/\d+/g);
+                    const r = rgbMatch ? parseInt(rgbMatch[0]) : 100;
+                    const g = rgbMatch ? parseInt(rgbMatch[1]) : 150;
+                    const b = rgbMatch ? parseInt(rgbMatch[2]) : 255;
+                    return (
+                      <span
+                        key={tag}
+                        className="px-[7px] py-0.5 rounded-[3px] text-[9px] tracking-[0.06em]"
+                        style={{
+                          background: `rgba(${r}, ${g}, ${b}, 0.2)`,
+                          border: `1px solid rgba(${r}, ${g}, ${b}, 0.4)`,
+                          color: `rgb(${r}, ${g}, ${b})`,
+                        }}
+                      >
+                        #{tag}
+                      </span>
+                    );
+                  })}
                   {currentTool.websiteUrl && (
                     <span
-                      style={{
-                        padding: '2px 7px',
-                        borderRadius: 3,
-                        background: '#0d1117',
-                        border: '1px solid #1a2236',
-                        color: '#64748b',
-                        fontSize: 9,
-                        letterSpacing: '0.06em',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}
+                      className="px-[7px] py-0.5 rounded-[3px] text-[9px] tracking-[0.06em] cursor-pointer transition-all duration-150 bg-card-background border border-border text-text-secondary hover:bg-sidebar-item-hover"
                       onClick={() => window.open(currentTool.websiteUrl, '_blank')}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#1a2236';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#0d1117';
-                      }}
                       title={`Open ${currentTool.name} website`}
                     >
                       {currentTool.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
@@ -349,35 +248,21 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
             </div>
 
             {/* Tab Bar - Thống nhất màu sắc */}
-            <div
-              style={{
-                display: 'flex',
-                borderBottom: '1px solid #1e2535',
-                padding: '0 20px',
-                gap: 4,
-              }}
-            >
+            <div className="flex border-b border-[var(--divider)] px-5 gap-1">
               {[
                 { id: 'information', label: 'INFORMATION' },
                 { id: 'execution', label: 'EXECUTION' },
                 { id: 'history', label: 'HISTORY' },
+                { id: 'profiles', label: 'PROFILES' },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setToolActiveTab(tab.id as typeof toolActiveTab)}
-                  style={{
-                    padding: '10px 16px',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    background: 'transparent',
-                    border: 'none',
-                    borderBottom: `2px solid ${toolActiveTab === tab.id ? 'rgb(var(--primary))' : 'transparent'}`,
-                    color: toolActiveTab === tab.id ? 'rgb(var(--primary))' : 'rgb(var(--text-secondary))',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: '0.12em',
-                    transition: 'all 0.15s',
-                  }}
+                  className={`px-4 py-2.5 cursor-pointer font-inherit bg-transparent border-none text-[11px] font-bold tracking-[0.12em] transition-all duration-150 ${
+                    toolActiveTab === tab.id
+                      ? 'text-[rgb(var(--primary))] border-b-2 border-[rgb(var(--primary))]'
+                      : 'text-[rgb(var(--text-secondary))] border-b-2 border-transparent'
+                  }`}
                 >
                   {tab.label}
                 </button>
@@ -385,13 +270,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
             </div>
 
             {/* Tool Content */}
-            <div
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '16px 20px',
-              }}
-            >
+            <div className="flex-1 overflow-y-auto px-5 py-4">
               {ToolComponent ? (
                 <ServerConfigProvider>
                   <ToolComponent
@@ -401,22 +280,15 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                   />
                 </ServerConfigProvider>
               ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                  }}
-                >
-                  <p style={{ fontSize: 12, color: '#1e293b' }}>NO COMPONENT LOADED</p>
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-[12px] text-[#1e293b]">NO COMPONENT LOADED</p>
                 </div>
               )}
             </div>
           </>
         ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ fontSize: 12, color: '#1e293b', letterSpacing: '0.15em' }}>
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-[12px] text-[#1e293b] tracking-[0.15em]">
               // SELECT A TOOL
             </p>
           </div>

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { AlienvaultScanParams, TooltipState } from '../types';
 import { INDICATOR_TYPES } from '../constants';
 import { CodeBlock } from '../../../../../../components/common/CodeBlock';
+import { Play, Save } from 'lucide-react';
 
 interface ExecutionTabProps {
   params: AlienvaultScanParams;
@@ -10,10 +11,12 @@ interface ExecutionTabProps {
   progress: number;
   logOutput: string;
   onScan: () => void;
+  onSaveProfile: () => void;
   accentColor: string;
   glow: string;
   indicatorHistory: string[];
   onTooltipShow: (tooltip: TooltipState | null) => void;
+  savedProfiles?: Array<{ params: AlienvaultScanParams }>;
 }
 
 const ExecutionTab: React.FC<ExecutionTabProps> = ({
@@ -23,10 +26,12 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
   progress,
   logOutput,
   onScan,
+  onSaveProfile,
   accentColor,
   glow,
   indicatorHistory,
   onTooltipShow,
+  savedProfiles = [],
 }) => {
   const [showIndicatorSuggestions, setShowIndicatorSuggestions] = useState(false);
   const [showApiKeyInfo, setShowApiKeyInfo] = useState(false);
@@ -37,62 +42,13 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
     onTooltipShow({ text, x: rect.left, y: rect.bottom + 6 });
   };
 
-  const inputBase: React.CSSProperties = {
-    width: '100%',
-    boxSizing: 'border-box',
-    padding: '10px 13px',
-    background: 'var(--input-background)',
-    border: '1px solid var(--input-border-default)',
-    borderRadius: 4,
-    color: 'var(--text-primary)',
-    fontSize: 12,
-    outline: 'none',
-    fontFamily: 'inherit',
-    transition: 'border-color 0.2s',
-  };
-
-  const currentType = INDICATOR_TYPES.find(t => t.value === params.indicatorType);
+  const currentType = INDICATOR_TYPES.find((t) => t.value === params.indicatorType);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* ── API Key Info Banner ── */}
-      <div
-        style={{
-          padding: '10px 12px',
-          background: `${accentColor}10`,
-          border: `1px solid ${accentColor}30`,
-          borderRadius: 4,
-          fontSize: 11,
-          color: 'var(--text-secondary)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <span>🔑 AlienVault OTX API key required. Get one free at </span>
-        <a
-          href="https://otx.alienvault.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: accentColor }}
-        >
-          otx.alienvault.com
-        </a>
-      </div>
-
+    <div className="flex flex-col gap-3.5">
       {/* ── Indicator Type Selector ── */}
       <div>
-        <label
-          style={{
-            display: 'block',
-            fontSize: 11,
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.12em',
-            marginBottom: 6,
-            cursor: 'default',
-          }}
-        >
+        <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
           <span
             onMouseEnter={(e) =>
               showTooltip(
@@ -105,31 +61,24 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             INDICATOR TYPE
           </span>
         </label>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex gap-2">
           {INDICATOR_TYPES.map((type) => {
             const active = params.indicatorType === type.value;
             return (
               <button
                 key={type.value}
-                onClick={() => setParams({ ...params, indicatorType: type.value as any, indicator: '' })}
+                onClick={() =>
+                  setParams({ ...params, indicatorType: type.value as any, indicator: '' })
+                }
                 onMouseEnter={(e) => showTooltip(type.note, e)}
                 onMouseLeave={() => onTooltipShow(null)}
+                className={`flex-1 py-2.5 rounded font-mono transition-all flex flex-col items-center gap-1 ${active ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
                 style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  borderRadius: 4,
                   border: `1px solid ${active ? `${accentColor}60` : 'var(--input-border-default)'}`,
-                  background: active ? `${accentColor}20` : 'var(--input-background)',
-                  cursor: 'pointer',
-                  fontFamily: 'monospace',
-                  transition: 'all 0.12s',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 4,
+                  background: active ? `${accentColor}20` : undefined,
                 }}
               >
-                <span style={{ fontSize: 11, fontWeight: 700, color: active ? accentColor : 'var(--text-secondary)' }}>
+                <span className="text-[11px] font-bold" style={{ color: active ? accentColor : undefined }}>
                   {type.label}
                 </span>
               </button>
@@ -139,18 +88,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
       </div>
 
       {/* ── Indicator Input ── */}
-      <div style={{ position: 'relative' }}>
-        <label
-          style={{
-            display: 'block',
-            fontSize: 11,
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.12em',
-            marginBottom: 6,
-            cursor: 'default',
-          }}
-        >
+      <div className="relative">
+        <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
           <span
             onMouseEnter={(e) =>
               showTooltip(
@@ -172,30 +111,14 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           onBlur={() => setTimeout(() => setShowIndicatorSuggestions(false), 150)}
           onKeyDown={(e) => e.key === 'Enter' && onScan()}
           placeholder={currentType?.placeholder}
+          className="w-full box-border p-2.5 rounded text-[13px] font-inherit outline-none transition-colors bg-input-background text-text-primary placeholder:text-text-secondary"
           style={{
-            ...inputBase,
             border: `1px solid ${params.indicator ? `${accentColor}50` : 'var(--input-border-default)'}`,
             boxShadow: params.indicator ? `0 0 10px ${accentColor}20` : 'none',
-            fontSize: 13,
-            padding: '11px 14px',
           }}
         />
         {showIndicatorSuggestions && indicatorHistory.length > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: 3,
-              background: 'var(--dropdown-background)',
-              border: `1px solid ${accentColor}30`,
-              borderRadius: 4,
-              zIndex: 10,
-              maxHeight: 180,
-              overflowY: 'auto',
-            }}
-          >
+          <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto border border-border" style={{ background: 'rgb(10, 15, 25)' }}>
             {indicatorHistory.map((t, i) => (
               <div
                 key={i}
@@ -203,16 +126,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   setParams({ ...params, indicator: t });
                   setShowIndicatorSuggestions(false);
                 }}
-                style={{
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  color: 'var(--text-primary)',
-                  borderBottom: i < indicatorHistory.length - 1 ? '1px solid var(--border)' : 'none',
-                  transition: 'background 0.12s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--dropdown-item-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                className="p-2 cursor-pointer text-[12px] transition-colors text-text-primary hover:bg-dropdown-item-hover"
+                style={{ borderBottom: i < indicatorHistory.length - 1 ? '1px solid var(--border)' : 'none' }}
               >
                 {t}
               </div>
@@ -223,17 +138,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
 
       {/* ── API Key Input ── */}
       <div>
-        <label
-          style={{
-            display: 'block',
-            fontSize: 11,
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.12em',
-            marginBottom: 6,
-            cursor: 'default',
-          }}
-        >
+        <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
           <span
             onMouseEnter={(e) =>
               showTooltip(
@@ -247,15 +152,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           </span>
           <button
             onClick={() => setShowApiKeyInfo(!showApiKeyInfo)}
-            style={{
-              marginLeft: 8,
-              background: 'transparent',
-              border: 'none',
-              color: accentColor,
-              cursor: 'pointer',
-              fontSize: 10,
-              fontFamily: 'inherit',
-            }}
+            className="ml-2 bg-transparent border-none cursor-pointer text-[10px] font-inherit"
+            style={{ color: accentColor }}
           >
             [?]
           </button>
@@ -266,25 +164,18 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           onChange={(e) => setParams({ ...params, apiKey: e.target.value })}
           onKeyDown={(e) => e.key === 'Enter' && onScan()}
           placeholder="Enter your OTX API key..."
-          style={{
-            ...inputBase,
-            border: `1px solid ${params.apiKey ? `${accentColor}50` : 'var(--input-border-default)'}`,
-            fontFamily: 'monospace',
-          }}
+          className="w-full box-border p-2.5 rounded text-[12px] font-mono font-inherit outline-none transition-colors bg-input-background text-text-primary placeholder:text-text-secondary"
+          style={{ border: `1px solid ${params.apiKey ? `${accentColor}50` : 'var(--input-border-default)'}` }}
         />
         {showApiKeyInfo && (
-          <div
-            style={{
-              marginTop: 8,
-              padding: '8px 12px',
-              background: 'var(--border)',
-              borderRadius: 4,
-              fontSize: 10,
-              color: 'var(--text-secondary)',
-            }}
-          >
+          <div className="mt-2 p-2 rounded text-[10px] bg-border text-text-secondary">
             🔐 Your API key is stored locally and never shared. Get yours at{' '}
-            <a href="https://otx.alienvault.com/" target="_blank" rel="noopener noreferrer" style={{ color: accentColor }}>
+            <a
+              href="https://otx.alienvault.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: accentColor }}
+            >
               otx.alienvault.com
             </a>{' '}
             → Profile → API Key
@@ -292,60 +183,52 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
         )}
       </div>
 
-      {/* ── Execute Button ── */}
-      <button
-        onClick={onScan}
-        disabled={scanning || !params.indicator.trim() || !params.apiKey.trim()}
-        style={{
-          width: '100%',
-          padding: '12px',
-background:
-            scanning || !params.indicator.trim() || !params.apiKey.trim()
-              ? 'var(--input-background)'
-              : `linear-gradient(135deg, ${accentColor}18, ${accentColor}08)`,
-          border: `1px solid ${scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'var(--input-border-default)' : `${accentColor}70`}`,
-          color: scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'var(--text-secondary)' : accentColor,
-          fontSize: 12,
-          fontWeight: 700,
-          letterSpacing: '0.15em',
-          cursor: scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'not-allowed' : 'pointer',
-          fontFamily: 'inherit',
-          boxShadow: scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'none' : `0 0 18px ${accentColor}20`,
-          transition: 'all 0.2s',
-          marginTop: 3,
-        }}
-      >
-        {scanning ? '▸ LOOKING UP...' : '▸ LOOKUP INDICATOR'}
-      </button>
+      {/* Footer with Save Profile and Execute buttons */}
+      <div className="flex justify-between items-center gap-3 pt-4 mt-2 border-t border-border">
+        <div className="flex-1" />
+        <div className="flex gap-3">
+          {(() => {
+            const isProfileExists = savedProfiles.some(
+              (profile) =>
+                profile.params.indicatorType === params.indicatorType &&
+                profile.params.apiKey === params.apiKey
+            );
+            const isSaveDisabled = scanning || !params.apiKey.trim() || isProfileExists;
+            return (
+              <button
+                onClick={onSaveProfile}
+                disabled={isSaveDisabled}
+                className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+              >
+                <Save size={14} />
+                {isProfileExists ? 'PROFILE EXISTS' : 'SAVE PROFILE'}
+              </button>
+            );
+          })()}
+          <button
+            onClick={onScan}
+            disabled={scanning || !params.indicator.trim() || !params.apiKey.trim()}
+            className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary text-text-foreground disabled:bg-input-background disabled:text-text-secondary disabled:cursor-not-allowed rounded"
+            style={{
+              border: `1px solid ${scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'var(--input-border-default)' : 'transparent'}`,
+              boxShadow: scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'none' : `0 0 18px ${accentColor}20`,
+            }}
+          >
+            <Play size={14} />
+            {scanning ? 'LOOKING UP...' : 'LOOKUP INDICATOR'}
+          </button>
+        </div>
+      </div>
 
       {/* ── Progress Bar ── */}
       {scanning && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-            <span
-              style={{
-                fontSize: 10,
-                color: 'var(--text-secondary)',
-                letterSpacing: '0.1em',
-                fontFamily: 'monospace',
-              }}
-            >
-              {params.indicator}
-            </span>
-            <span style={{ fontSize: 10, color: accentColor, fontFamily: 'monospace' }}>
-              {progress}%
-            </span>
+          <div className="flex justify-between mb-1">
+            <span className="text-[10px] tracking-wide font-mono text-text-secondary">{params.indicator}</span>
+            <span className="text-[10px] font-mono" style={{ color: accentColor }}>{progress}%</span>
           </div>
-          <div style={{ height: 1, background: 'var(--divider)', borderRadius: 1, overflow: 'hidden' }}>
-            <div
-              style={{
-                height: '100%',
-                width: `${progress}%`,
-                background: `linear-gradient(90deg, ${accentColor}60, ${accentColor})`,
-                boxShadow: `0 0 6px ${accentColor}`,
-                transition: 'width 0.3s ease',
-              }}
-            />
+          <div className="h-px rounded-sm overflow-hidden bg-divider">
+            <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${accentColor}60, ${accentColor})`, boxShadow: `0 0 6px ${accentColor}` }} />
           </div>
         </div>
       )}
@@ -353,26 +236,10 @@ background:
       {/* ── Lookup Log Output ────────────────────────────────────────── */}
       {(scanning || logOutput) && (
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: 11,
-              fontWeight: 700,
-              color: 'var(--text-secondary)',
-              letterSpacing: '0.12em',
-              marginBottom: 6,
-            }}
-          >
+          <label className="block text-xs font-bold tracking-wide mb-1.5 text-text-secondary">
             LOOKUP LOG OUTPUT
           </label>
-          <div
-            style={{
-              borderRadius: 5,
-              border: `1px solid ${accentColor}30`,
-              overflow: 'hidden',
-              minHeight: 250,
-            }}
-          >
+          <div className="rounded-md overflow-hidden" style={{ border: `1px solid ${accentColor}30`, minHeight: 250 }}>
             <CodeBlock
               code={logOutput || 'Waiting for lookup to start...'}
               language="plaintext"

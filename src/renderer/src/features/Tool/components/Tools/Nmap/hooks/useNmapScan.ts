@@ -23,6 +23,7 @@ export const useNmapScan = (
   const [logOutput, setLogOutput] = useState('');
   const progressRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const currentScanIdRef = useRef<string | null>(null);
 
   const handleScan = async (
     setHistory: React.Dispatch<React.SetStateAction<ScanResult[]>>,
@@ -34,33 +35,28 @@ export const useNmapScan = (
     setProgress(0);
     setLogOutput('');
 
-    let p = 0;
-    progressRef.current = setInterval(() => {
-      p += Math.random() * 8;
-      if (p >= 90) p = 90;
-      setProgress(Math.round(p));
-    }, 200);
-
     const startTime = Date.now();
     const flags = buildFlags(params);
 
-    // Build SSE URL
-    const flagsQuery = flags.join(',');
-    const streamUrl = getFullUrl(
-      `/api/v1/nmap/scan/stream?target=${encodeURIComponent(params.target)}&flags=${encodeURIComponent(flagsQuery)}`
-    );
+    // Build POST URL (streaming endpoint)
+    const scanUrl = getFullUrl('/api/v1/nmap/scan');
 
-    console.log('[Nmap SSE] Connecting to:', streamUrl);
+    console.log('[Nmap SSE] Connecting to:', scanUrl);
 
     // Create abort controller for cancellation
     abortControllerRef.current = new AbortController();
 
     try {
-      const response = await fetch(streamUrl, {
-        method: 'GET',
+      const response = await fetch(scanUrl, {
+        method: 'POST',
         headers: {
           'Accept': 'text/event-stream',
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          target: params.target,
+          flags: flags,
+        }),
         signal: abortControllerRef.current.signal,
       });
 
@@ -78,6 +74,7 @@ export const useNmapScan = (
       let buffer = '';
       let rawOutputLines: string[] = [];
       let done = false;
+      let currentEvent = '';
 
       while (!done) {
         const { value, done: streamDone } = await reader.read();
@@ -90,21 +87,48 @@ export const useNmapScan = (
         buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            rawOutputLines.push(data);
-            setLogOutput(prev => prev + data + '\n');
-          } else if (line.startsWith('event: done')) {
-            done = true;
-            break;
-          } else if (line.startsWith('event: error')) {
-            // Error event — the next data line will have the error message
-            // We'll handle it when we parse the data
+            
+            if (currentEvent === 'start') {
+              // Parse scan ID from start event
+              try {
+                const startData = JSON.parse(data);
+                if (startData.scanId) {
+                  currentScanIdRef.current = startData.scanId;
+                  console.log('[Nmap SSE] Scan started with ID:', currentScanIdRef.current);
+                }
+                setLogOutput(prev => prev + `[Scan started: ${startData.message || 'starting...'}]\n`);
+              } catch (e) {
+                // Fallback: just show the message
+                setLogOutput(prev => prev + `[Scan started: ${data}]\n`);
+              }
+            } else {
+              // Check if this line contains stats progress
+              if (data.includes('Stats:') && data.includes('% done')) {
+                // Extract percentage from stats line
+                const percentMatch = data.match(/(\d+(?:\.\d+)?)%\s+done/);
+                if (percentMatch) {
+                  const percent = parseFloat(percentMatch[1]);
+                  // Cap at 95 to leave room for final 100 on completion
+                  const cappedPercent = Math.min(percent, 95);
+                  setProgress(Math.round(cappedPercent));
+                }
+              }
+              rawOutputLines.push(data);
+              setLogOutput(prev => prev + data + '\n');
+            }
+            
+            if (currentEvent === 'done') {
+              done = true;
+              break;
+            }
           }
         }
       }
 
-      if (progressRef.current) clearInterval(progressRef.current);
       setProgress(100);
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(2) + 's';
@@ -141,7 +165,6 @@ export const useNmapScan = (
         setLogOutput(prev => prev + `\n[Error: ${error?.message || 'Unknown error'}]\n`);
       }
 
-      if (progressRef.current) clearInterval(progressRef.current);
       setProgress(100);
 
       const errorResult: ScanResult = {
@@ -163,6 +186,39 @@ export const useNmapScan = (
     }
   };
 
+  const cancelScan = async () => {
+    const scanId = currentScanIdRef.current;
+    if (!scanId) {
+      console.log('[Nmap] No active scan to cancel');
+      return;
+    }
+
+    console.log('[Nmap] Cancelling scan:', scanId);
+    
+    // Call backend cancel endpoint
+    try {
+      const cancelUrl = getFullUrl('/api/v1/nmap/scan/cancel');
+      await fetch(cancelUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ scanId }),
+      });
+    } catch (err) {
+      console.error('[Nmap] Cancel API call failed:', err);
+    }
+
+    // Abort the fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    currentScanIdRef.current = null;
+    setScanning(false);
+    setProgress(100);
+  };
+
   useEffect(() => {
     return () => {
       if (progressRef.current) clearInterval(progressRef.current);
@@ -180,5 +236,6 @@ export const useNmapScan = (
     results,
     logOutput,
     handleScan,
+    cancelScan,
   };
 };

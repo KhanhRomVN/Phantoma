@@ -4,7 +4,7 @@ import { AmassScanResult, ContextMenuState, TooltipState } from '../types';
 import { groupHistoryByDate } from '../utils';
 import ScanCard from '../components/ScanCard';
 import ResultsTable from '../components/ResultsTable';
-import ExportButtons from '../components/ExportButtons';
+import ExportButtons from '../../../../../../components/common/ExportButtons';
 
 interface HistoryTabProps {
   history: AmassScanResult[];
@@ -92,39 +92,39 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         </div>
 
         {/* Scan Header */}
-        <div style={{ padding: '16px', background: 'var(--card-background)', border: `1px solid ${accentColor}30`, borderRadius: 6 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+          <div className="flex justify-between items-center mb-3">
             <div>
-              <h3 style={{ margin: 0, fontSize: 16, color: 'var(--text-primary)' }}>{scan.target}</h3>
-              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>{scan.mode} • {scan.duration}</p>
+              <h3 className="m-0 text-base text-text-primary">{scan.target}</h3>
+              <p className="m-0 mt-1 text-[11px] text-text-secondary">{scan.mode} • {scan.duration}</p>
             </div>
-            <span style={{ padding: '4px 12px', borderRadius: 4, background: 'var(--border)', color: '#34d399', fontSize: 11, fontWeight: 700 }}>
+            <span className="px-3 py-1 rounded text-[11px] font-bold bg-border" style={{ color: '#34d399' }}>
               {new Date(scan.timestamp).toLocaleString()}
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${accentColor}20` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Clock size={14} color={accentColor} /><div><div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Duration</div><div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{scan.duration}</div></div></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Database size={14} color={accentColor} /><div><div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Subdomains</div><div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{scan.subdomains.length}</div></div></div>
-            {scan.stats && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={14} color={accentColor} /><div><div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Unique</div><div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{scan.stats.unique}</div></div></div>}
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3 mt-3 pt-3" style={{ borderTop: `1px solid ${accentColor}20` }}>
+            <div className="flex items-center gap-2"><Clock size={14} color={accentColor} /><div><div className="text-[10px] text-text-secondary">Duration</div><div className="text-[12px] text-text-primary">{scan.duration}</div></div></div>
+            <div className="flex items-center gap-2"><Database size={14} color={accentColor} /><div><div className="text-[10px] text-text-secondary">Subdomains</div><div className="text-[12px] text-text-primary">{scan.subdomains.length}</div></div></div>
+            {scan.stats && <div className="flex items-center gap-2"><Activity size={14} color={accentColor} /><div><div className="text-[10px] text-text-secondary">Unique</div><div className="text-[12px] text-text-primary">{scan.stats.unique}</div></div></div>}
           </div>
         </div>
 
         {/* Subdomains Table */}
-        <div style={{ padding: '16px', background: 'var(--card-background)', border: `1px solid ${accentColor}30`, borderRadius: 6 }}>
-          <h4 style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Globe size={14} style={{ color: 'var(--text-secondary)' }} /> SUBDOMAINS FOUND ({scan.subdomains.length})
+        <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+          <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
+            <Globe size={14} className="text-text-secondary" /> SUBDOMAINS FOUND ({scan.subdomains.length})
           </h4>
           <ResultsTable subdomains={scan.subdomains} accentColor={accentColor} />
         </div>
 
         {/* Raw Output */}
-        <div style={{ padding: '16px', background: 'var(--card-background)', border: `1px solid ${accentColor}30`, borderRadius: 6 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h4 style={{ margin: 0, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><FileText size={14} style={{ color: 'var(--text-secondary)' }} /> RAW OUTPUT</h4>
-            <button onClick={() => navigator.clipboard.writeText(scan.rawOutput.join('\n'))} style={{ padding: '6px', background: 'var(--border)', border: `1px solid ${accentColor}30`, borderRadius: 4, color: accentColor, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Copy to clipboard"><Copy size={14} /></button>
+        <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+          <div className="flex justify-between items-center mb-3">
+            <h4 className="m-0 text-[13px] flex items-center gap-2 text-text-primary"><FileText size={14} className="text-text-secondary" /> RAW OUTPUT</h4>
+            <button onClick={() => navigator.clipboard.writeText(scan.rawOutput.join('\n'))} className="p-1.5 rounded flex items-center justify-center cursor-pointer bg-border" style={{ border: `1px solid ${accentColor}30`, color: accentColor }} title="Copy to clipboard"><Copy size={14} /></button>
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-primary)', fontFamily: 'monospace', background: 'var(--input-background)', padding: 12, borderRadius: 4, maxHeight: 400, overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <div className="text-[10px] font-mono bg-input-background p-3 rounded max-h-[400px] overflow-y-auto whitespace-pre-wrap break-words">
             {scan.rawOutput.map((line, i) => {
               let color = 'var(--text-secondary)';
               if (line.includes('[INF]')) color = '#34d399';

@@ -39,169 +39,122 @@ const IndicatorCard: React.FC<IndicatorCardProps> = ({
 
   return (
     <div
+      className="rounded-md transition-all mb-2 bg-card-background"
       style={{
-        background: '#0d1117',
-        border: `1px solid ${isExpanded ? '#00e5ff' : '#1a2236'}`,
-        borderRadius: 6,
-        transition: 'all 0.15s',
-        marginBottom: 8,
+        border: `1px solid ${isExpanded ? accentColor : 'var(--border)'}`,
       }}
       onContextMenu={(e) => onContextMenu(e, scan)}
     >
       <div
-        style={{
-          padding: '12px 16px',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}
+        className="p-3 cursor-pointer flex justify-between items-center gap-3 flex-wrap"
         onClick={onToggle}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="flex flex-col gap-1 flex-[2]">
+          <div className="flex items-center gap-3">
             <div
+              className="w-2 h-2 rounded-full"
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
                 background: reputationColor,
                 boxShadow: `0 0 6px ${reputationColor}`,
               }}
             />
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+            <span className="text-[13px] font-bold text-text-primary">
               {scan.indicator}
             </span>
             <span
-              style={{
-                fontSize: 11,
-                color: '#64748b',
-                background: '#1a2236',
-                padding: '2px 8px',
-                borderRadius: 4,
-              }}
+              className="text-[11px] px-2 py-0.5 rounded bg-border text-text-secondary"
             >
               {scan.indicatorType.toUpperCase()}
             </span>
             <span
+              className="text-[10px] px-1.5 py-0.5 rounded font-bold"
               style={{
-                fontSize: 10,
                 color: reputationColor,
                 background: `${reputationColor}20`,
-                padding: '2px 6px',
-                borderRadius: 4,
-                fontWeight: 700,
               }}
             >
               {reputationIcon} {reputationLabel}
             </span>
           </div>
-          <div style={{ fontSize: 10, color: '#64748b', paddingLeft: 20 }}>
+          <div className="text-[10px] text-text-secondary pl-5">
             {formatDate(scan.timestamp)}
           </div>
         </div>
 
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, auto)',
-            gap: 20,
-            alignItems: 'center',
-          }}
+          className="grid grid-cols-3 gap-5 items-center"
         >
           <div>
-            <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Pulses</span>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{result?.pulses?.length || 0}</span>
+            <span className="text-[10px] block text-text-secondary">Pulses</span>
+            <span className="text-[11px] text-text-secondary">{result?.pulses?.length || 0}</span>
           </div>
           <div>
-            <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Malware Families</span>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{result?.malwareFamilies?.length || 0}</span>
+            <span className="text-[10px] block text-text-secondary">Malware Families</span>
+            <span className="text-[11px] text-text-secondary">{result?.malwareFamilies?.length || 0}</span>
           </div>
           <div>
-            <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>Related IOCs</span>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{result?.relatedIndicators || 0}</span>
+            <span className="text-[10px] block text-text-secondary">Related IOCs</span>
+            <span className="text-[11px] text-text-secondary">{result?.relatedIndicators || 0}</span>
           </div>
         </div>
       </div>
 
       {isExpanded && result && (
         <div
+          className="pt-3 px-4 pb-4 bg-input-background"
           style={{
             borderTop: `1px solid ${accentColor}30`,
-            padding: '12px 16px',
-            background: '#080b10',
           }}
         >
           {/* Reputation & Basic Info */}
-          <div style={{ marginBottom: 12 }}>
+          <div className="mb-3">
             <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#00e5ff',
-                marginBottom: 8,
-                letterSpacing: '0.1em',
-              }}
+              className="text-[11px] font-bold mb-2 tracking-wide"
+              style={{ color: accentColor }}
             >
               REPUTATION & ACTIVITY
             </div>
             <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: 8,
-              }}
+              className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2"
             >
               <div>
-                <span style={{ color: '#64748b' }}>Reputation:</span>{' '}
-                <span style={{ color: reputationColor, fontWeight: 700 }}>{reputationLabel}</span>
+                <span className="text-text-secondary">Reputation:</span>{' '}
+                <span className="font-bold" style={{ color: reputationColor }}>{reputationLabel}</span>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Activity Count:</span>{' '}
-                <span style={{ color: '#94a3b8' }}>{result.activityCount}</span>
+                <span className="text-text-secondary">Activity Count:</span>{' '}
+                <span className="text-text-secondary">{result.activityCount}</span>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>First Seen:</span>{' '}
-                <span style={{ color: '#94a3b8' }}>{result.firstSeen || 'N/A'}</span>
+                <span className="text-text-secondary">First Seen:</span>{' '}
+                <span className="text-text-secondary">{result.firstSeen || 'N/A'}</span>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Last Seen:</span>{' '}
-                <span style={{ color: '#94a3b8' }}>{result.lastSeen || 'N/A'}</span>
+                <span className="text-text-secondary">Last Seen:</span>{' '}
+                <span className="text-text-secondary">{result.lastSeen || 'N/A'}</span>
               </div>
             </div>
           </div>
 
           {/* Geo Location (for IP) */}
           {result.geoData && (
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#e2e8f0',
-                  marginBottom: 8,
-                  letterSpacing: '0.1em',
-                }}
+                className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
               >
                 GEO LOCATION
               </div>
               <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: 8,
-                }}
+                className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2"
               >
                 <div>
-                  <span style={{ color: '#64748b' }}>Country:</span>{' '}
-                  <span style={{ color: '#94a3b8' }}>{result.geoData.country} ({result.geoData.countryCode})</span>
+                  <span className="text-text-secondary">Country:</span>{' '}
+                  <span className="text-text-secondary">{result.geoData.country} ({result.geoData.countryCode})</span>
                 </div>
                 {result.geoData.city && (
                   <div>
-                    <span style={{ color: '#64748b' }}>City:</span>{' '}
-                    <span style={{ color: '#94a3b8' }}>{result.geoData.city}</span>
+                    <span className="text-text-secondary">City:</span>{' '}
+                    <span className="text-text-secondary">{result.geoData.city}</span>
                   </div>
                 )}
               </div>
@@ -210,30 +163,21 @@ const IndicatorCard: React.FC<IndicatorCardProps> = ({
 
           {/* Malware Families */}
           {result.malwareFamilies && result.malwareFamilies.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#e2e8f0',
-                  marginBottom: 8,
-                  letterSpacing: '0.1em',
-                }}
+                className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
               >
                 MALWARE FAMILIES ({result.malwareFamilies.length})
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {result.malwareFamilies.map((family, i) => (
                   <span
                     key={i}
+                    className="px-2 py-0.5 rounded text-[10px] font-bold"
                     style={{
-                      padding: '2px 8px',
                       background: '#ef444420',
                       border: '1px solid #ef444450',
-                      borderRadius: 4,
                       color: '#ef4444',
-                      fontSize: 10,
-                      fontWeight: 700,
                     }}
                   >
                     {family}
@@ -245,29 +189,21 @@ const IndicatorCard: React.FC<IndicatorCardProps> = ({
 
           {/* Industries Targeted */}
           {result.industries && result.industries.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#e2e8f0',
-                  marginBottom: 8,
-                  letterSpacing: '0.1em',
-                }}
+                className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
               >
                 TARGETED INDUSTRIES
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {result.industries.map((industry, i) => (
                   <span
                     key={i}
+                    className="px-2 py-0.5 rounded text-[10px]"
                     style={{
-                      padding: '2px 8px',
                       background: '#fbbf2420',
                       border: '1px solid #fbbf2450',
-                      borderRadius: 4,
                       color: '#fbbf24',
-                      fontSize: 10,
                     }}
                   >
                     {industry}
@@ -279,29 +215,21 @@ const IndicatorCard: React.FC<IndicatorCardProps> = ({
 
           {/* Target Countries */}
           {result.targetCountries && result.targetCountries.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#e2e8f0',
-                  marginBottom: 8,
-                  letterSpacing: '0.1em',
-                }}
+                className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
               >
                 TARGET COUNTRIES
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {result.targetCountries.map((country, i) => (
                   <span
                     key={i}
+                    className="px-2 py-0.5 rounded text-[10px]"
                     style={{
-                      padding: '2px 8px',
                       background: '#60a5fa20',
                       border: '1px solid #60a5fa50',
-                      borderRadius: 4,
                       color: '#60a5fa',
-                      fontSize: 10,
                     }}
                   >
                     {country}
@@ -313,50 +241,33 @@ const IndicatorCard: React.FC<IndicatorCardProps> = ({
 
           {/* Pulses (Threat Intelligence) */}
           {result.pulses && result.pulses.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#e2e8f0',
-                  marginBottom: 8,
-                  letterSpacing: '0.1em',
-                }}
+                className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
               >
                 RELATED PULSES ({result.pulses.length})
               </div>
-              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+              <div className="max-h-[200px] overflow-y-auto">
                 {result.pulses.slice(0, 5).map((pulse, i) => (
                   <div
                     key={i}
-                    style={{
-                      padding: '8px',
-                      background: '#0d1117',
-                      border: `1px solid ${accentColor}20`,
-                      borderRadius: 4,
-                      marginBottom: 6,
-                    }}
+                    className="p-2 rounded mb-1.5 bg-card-background"
+                    style={{ border: `1px solid ${accentColor}20` }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ color: '#00e5ff', fontWeight: 700 }}>{pulse.name}</span>
-                      <span style={{ fontSize: 9, color: '#64748b' }}>
+                    <div className="flex justify-between mb-1">
+                      <span className="font-bold" style={{ color: accentColor }}>{pulse.name}</span>
+                      <span className="text-[9px] text-text-secondary">
                         {new Date(pulse.modified).toLocaleDateString()}
                       </span>
                     </div>
-                    <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>
+                    <div className="text-[10px] text-text-secondary mb-1">
                       {pulse.description.substring(0, 100)}...
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    <div className="flex flex-wrap gap-1">
                       {pulse.tags.slice(0, 3).map((tag, j) => (
                         <span
                           key={j}
-                          style={{
-                            fontSize: 8,
-                            padding: '1px 4px',
-                            background: '#1a2236',
-                            borderRadius: 2,
-                            color: '#64748b',
-                          }}
+                          className="text-[8px] px-1 py-0.5 rounded bg-border text-text-secondary"
                         >
                           #{tag}
                         </span>
@@ -365,7 +276,7 @@ const IndicatorCard: React.FC<IndicatorCardProps> = ({
                   </div>
                 ))}
                 {result.pulses.length > 5 && (
-                  <div style={{ fontSize: 10, color: '#64748b', textAlign: 'center', marginTop: 4 }}>
+                  <div className="text-[10px] text-text-secondary text-center mt-1">
                     ... and {result.pulses.length - 5} more pulses
                   </div>
                 )}
@@ -376,27 +287,12 @@ const IndicatorCard: React.FC<IndicatorCardProps> = ({
           {/* Raw Output */}
           <div>
             <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#e2e8f0',
-                marginBottom: 8,
-                letterSpacing: '0.1em',
-              }}
+              className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
             >
               RAW OUTPUT
             </div>
             <div
-              style={{
-                fontSize: 10,
-                color: '#64748b',
-                fontFamily: 'monospace',
-                background: '#0d1117',
-                padding: 8,
-                borderRadius: 4,
-                maxHeight: 150,
-                overflowY: 'auto',
-              }}
+              className="text-[10px] font-mono bg-card-background p-2 rounded max-h-[150px] overflow-y-auto text-text-secondary"
             >
               {scan.rawOutput.slice(0, 10).map((line, i) => (
                 <div key={i}>{line}</div>

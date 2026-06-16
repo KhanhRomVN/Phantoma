@@ -5,14 +5,15 @@ import { useHistory } from './hooks/useHistory';
 import MarkdownBlock from '../../common/MarkdownBlock';
 import ExecutionTab from './tabs/ExecutionTab';
 import HistoryTab from './tabs/HistoryTab';
+import ProfilesTab from './tabs/ProfilesTab';
 import Tooltip from '../../common/Tooltip';
 import { TooltipState, ContextMenuState } from './types';
 import { NMAP_DOC } from './constants';
 
 interface NmapToolProps {
   accentColor?: string;
-  activeTab?: 'information' | 'execution' | 'history' | 'logs';
-  onTabChange?: (tab: 'information' | 'execution' | 'history' | 'logs') => void;
+  activeTab?: 'information' | 'execution' | 'history' | 'profiles' | 'logs';
+  onTabChange?: (tab: 'information' | 'execution' | 'history' | 'profiles' | 'logs') => void;
 }
 
 const NmapTool: React.FC<NmapToolProps> = ({
@@ -31,6 +32,7 @@ const NmapTool: React.FC<NmapToolProps> = ({
     progress,
     logOutput,
     handleScan: scanHandler,
+    cancelScan,
   } = useNmapScan(getFullUrl, onTabChange);
 
   const {
@@ -50,10 +52,21 @@ const NmapTool: React.FC<NmapToolProps> = ({
     filteredHistory,
   } = useHistory();
 
+  const [savedProfiles, setSavedProfiles] = useState<any[]>([]);
+  const [openSaveDialog, setOpenSaveDialog] = useState(false);
+
   const glow = accentColor + '25';
 
   const handleScan = () => {
     scanHandler(setHistory, setExpandedCardIndex);
+  };
+
+  const handleSaveProfile = () => {
+    // Switch to profiles tab and open save dialog
+    setOpenSaveDialog(true);
+    if (onTabChange) {
+      onTabChange('profiles');
+    }
   };
 
   const handleDeleteScan = (scan: any) => {
@@ -76,10 +89,13 @@ const NmapTool: React.FC<NmapToolProps> = ({
           progress={progress}
           logOutput={logOutput}
           onScan={handleScan}
+          onCancel={cancelScan}
+          onSaveProfile={handleSaveProfile}
           accentColor={accentColor}
           glow={glow}
           targetHistory={targetHistory}
           onTooltipShow={setTooltip}
+          savedProfiles={savedProfiles}
         />
       )}
 
@@ -101,6 +117,17 @@ const NmapTool: React.FC<NmapToolProps> = ({
           accentColor={accentColor}
           glow={glow}
           onTooltipShow={setTooltip}
+        />
+      )}
+
+      {activeTab === 'profiles' && (
+        <ProfilesTab
+          params={params}
+          onLoadProfile={(newParams) => setParams(newParams)}
+          accentColor={accentColor}
+          onProfilesChange={setSavedProfiles}
+          openSaveDialog={openSaveDialog}
+          onSaveDialogClosed={() => setOpenSaveDialog(false)}
         />
       )}
 

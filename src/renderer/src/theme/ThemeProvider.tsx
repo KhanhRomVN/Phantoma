@@ -49,36 +49,61 @@ export function ThemeProvider({
       cardBackground: '--card-background',
       inputBackground: '--input-background',
       modalBackground: '--modal-background',
-      dropdownContentBackground: '--dropdown-content-background',
+      dropdownBackground: '--dropdown-background',
       dropdownItemHover: '--dropdown-item-hover',
       sidebarBackground: '--sidebar-background',
       sidebarItemHover: '--sidebar-item-hover',
       sidebarItemFocus: '--sidebar-item-focus',
+      tableHeaderBackground: '--table-header-background',
+      tableFooterBackground: '--table-footer-background',
+      tableRowHover: '--table-row-hover',
     };
 
     const themeData = preset.tailwind;
     Object.entries(themeData).forEach(([key, value]) => {
       const cssVar = cssVarMap[key];
       if (cssVar && value) {
+        let r = '',
+          g = '',
+          b = '';
         // Check if value is already in rgb(r, g, b) format (for VSCode extension highlight)
-        const rgbStringMatch = (value as string).match(/^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/);
+        const rgbStringMatch = (value as string).match(
+          /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/,
+        );
         if (rgbStringMatch) {
           // Store as space-separated triplet for Tailwind opacity modifiers to work
           const triplet = `${rgbStringMatch[1]} ${rgbStringMatch[2]} ${rgbStringMatch[3]}`;
           root.style.setProperty(cssVar, triplet);
+          r = rgbStringMatch[1];
+          g = rgbStringMatch[2];
+          b = rgbStringMatch[3];
         } else {
           // Check if value is an RGB triplet (e.g., "20 28 40")
           const tripletMatch = (value as string).match(/^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})$/);
           if (tripletMatch) {
             // Store as-is (already space-separated)
             root.style.setProperty(cssVar, value as string);
+            r = tripletMatch[1];
+            g = tripletMatch[2];
+            b = tripletMatch[3];
           } else {
             // Fallback: set as raw value
             root.style.setProperty(cssVar, value as string);
           }
         }
+        // Set RGB format variable for inline style usage (e.g., var(--blue-rgb))
+        if (r && g && b) {
+          const rgbVar = `${cssVar}-rgb`;
+          root.style.setProperty(rgbVar, `rgb(${r}, ${g}, ${b})`);
+        }
       }
     });
+
+    // Apply typography (fontFamily) to root
+    if (preset.typography?.fontFamily) {
+      root.style.fontFamily = preset.typography.fontFamily;
+      root.style.setProperty('--font-family', preset.typography.fontFamily);
+    }
   };
 
   const applyPresetTheme = (preset: ThemeConfig) => {

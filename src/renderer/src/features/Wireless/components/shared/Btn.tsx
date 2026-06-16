@@ -18,18 +18,14 @@ export function Btn({ label, color = 'var(--primary)', onClick, disabled, size =
     <button
       onClick={onClick}
       disabled={disabled}
+      className="font-bold rounded font-mono tracking-[0.08em] transition-all duration-150"
       style={{
         fontSize: fs,
-        fontWeight: 700,
         padding: `${py}px ${px}px`,
-        borderRadius: 4,
         border: `1px solid ${disabled ? 'var(--border)' : `${color}30`}`,
         background: disabled ? 'transparent' : `${color}10`,
         color: disabled ? 'var(--text-secondary)' : color,
         cursor: disabled ? 'not-allowed' : 'pointer',
-        fontFamily: 'inherit',
-        letterSpacing: '0.08em',
-        transition: 'all 0.15s',
         opacity: disabled ? 0.5 : 1,
       }}
       onMouseEnter={(e) => {

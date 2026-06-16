@@ -34,6 +34,11 @@ export const buildFlags = (params: any): string[] => {
   if (!hasOX) {
     flags.push('-oX', '-');
   }
+  // Add stats flag for real-time progress if not already present
+  const hasStats = flags.some((f) => f === '--stats-every');
+  if (!hasStats) {
+    flags.push('--stats-every', '1s');
+  }
   return flags;
 };
 

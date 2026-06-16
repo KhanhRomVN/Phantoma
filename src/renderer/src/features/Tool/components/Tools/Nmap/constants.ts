@@ -3,10 +3,10 @@ import nmapDoc from '../../../docs/nmap.md?raw';
 export const NMAP_DOC = nmapDoc;
 
 export const SCAN_TYPES = [
-  { value: 'syn', label: 'SYN Scan', flag: '-sS', note: 'Stealth, requires root' },
-  { value: 'tcp', label: 'TCP Connect', flag: '-sT', note: 'Full handshake, no root' },
-  { value: 'udp', label: 'UDP Scan', flag: '-sU', note: 'UDP services, slower' },
-  { value: 'ping', label: 'Ping Sweep', flag: '-sn', note: 'Host discovery only' },
+  { value: 'syn', label: 'SYN Scan', flag: '-sS', note: 'QUÉT TCP ẩn (stealth): Gửi gói SYN, không hoàn thành TCP handshake → không bị ghi log. Quét nhanh, khó phát hiện. Cần quyền root. Phát hiện cổng TCP mở/đóng.' },
+  { value: 'tcp', label: 'TCP Connect', flag: '-sT', note: 'QUÉT TCP đầy đủ: Hoàn thành TCP handshake (SYN→SYN-ACK→ACK). Dễ bị phát hiện, ghi log đầy đủ. Không cần root. Phát hiện cổng TCP mở/đóng. Dùng khi không có root.' },
+  { value: 'udp', label: 'UDP Scan', flag: '-sU', note: 'QUÉT UDP: Gửi gói UDP đến cổng đích. Chậm hơn TCP do UDP không có handshake. Phát hiện dịch vụ UDP (DNS, SNMP, DHCP). Cổng mở thường không phản hồi, cổng đóng trả về ICMP port unreachable.' },
+  { value: 'ping', label: 'Ping Sweep', flag: '-sn', note: 'QUÉT HOST: Chỉ phát hiện host đang hoạt động trong mạng, KHÔNG quét cổng. Gửi ICMP echo, TCP SYN/ACK, UDP. Nhanh, xác định IP nào đang online. Dùng để lập bản đồ mạng trước khi quét chi tiết.' },
 ];
 
 export const TIMING_LABELS = [

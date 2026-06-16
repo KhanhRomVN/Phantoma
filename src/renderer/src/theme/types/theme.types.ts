@@ -20,6 +20,10 @@ export interface ThemeConfig {
   name: string;
   monaco: MonacoTheme;
   tailwind: ThemeColors;
+  accentColors: string[];
+  typography?: {
+    fontFamily: string;
+  };
 }
 
 export interface ThemePreset {

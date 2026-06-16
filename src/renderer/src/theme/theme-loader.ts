@@ -30,6 +30,13 @@ export interface ThemeConfig {
     sidebarBackground: string;
     sidebarItemHover: string;
     sidebarItemFocus: string;
+    tableHeaderBackground: string;
+    tableFooterBackground: string;
+    tableRowHover: string;
+  };
+  accentColors: string[];
+  typography?: {
+    fontFamily: string;
   };
 }
 

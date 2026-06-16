@@ -38,6 +38,7 @@
     --border-hover: 203 213 225;
     --border-focus: 203 213 225;
     --card-background: 255 255 255;
+    --card-background-hover: 248 250 252;
     --input-background: 255 255 255;
     --input-border-default: 226 232 240;
     --input-border-hover: 203 213 225;
@@ -103,6 +104,7 @@
     --border-hover: 65 141 254;
     --border-focus: 65 141 254;
     --card-background: 36 36 36;
+    --card-background-hover: 45 45 45;
     --input-background: 30 30 30;
     --input-border-default: 63 63 63;
     --input-border-hover: 65 141 254;
@@ -161,6 +163,16 @@
   }
   body {
     @apply bg-background text-text-primary;
+    font-family: var(--font-family, sans-serif);
+  }
+}
+
+/* Override Tailwind font classes to use the theme font */
+@layer utilities {
+  .font-mono,
+  .font-sans,
+  .font-serif {
+    font-family: var(--font-family, sans-serif) !important;
   }
 }
 

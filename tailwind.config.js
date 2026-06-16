@@ -6,8 +6,11 @@ module.exports = {
     'bg-card-background',
     'bg-input-background',
     'bg-modal-background',
-    'bg-dropdown-content-background',
+    'bg-dropdown-background',
     'bg-sidebar-background',
+    'bg-table-header-background',
+    'bg-table-footer-background',
+    'bg-table-row-hover',
   ],
   theme: {
     extend: {
@@ -27,8 +30,18 @@ module.exports = {
           DEFAULT: 'rgb(var(--border) / <alpha-value>)',
         },
         divider: 'rgb(var(--divider) / <alpha-value>)',
+        'card-background': 'rgb(var(--card-background) / <alpha-value>)',
+        'input-background': 'rgb(var(--input-background) / <alpha-value>)',
+        'modal-background': 'rgb(var(--modal-background) / <alpha-value>)',
+        'dropdown-background': 'rgb(var(--dropdown-background) / <alpha-value>)',
+        'tooltip-background': 'rgb(var(--tooltip-background) / <alpha-value>)',
+        'sidebar-background': 'rgb(var(--sidebar-background) / <alpha-value>)',
+        'table-header-background': 'rgb(var(--table-header-background) / <alpha-value>)',
+        'table-footer-background': 'rgb(var(--table-footer-background) / <alpha-value>)',
+        'table-row-hover': 'rgb(var(--table-row-hover) / <alpha-value>)',
         card: {
           background: 'rgb(var(--card-background) / <alpha-value>)',
+          hover: 'rgb(var(--card-background-hover) / <alpha-value>)',
         },
         input: {
           background: 'rgb(var(--input-background) / <alpha-value>)',
@@ -37,9 +50,7 @@ module.exports = {
           background: 'rgb(var(--modal-background) / <alpha-value>)',
         },
         dropdown: {
-          content: {
-            background: 'rgb(var(--dropdown-content-background) / <alpha-value>)',
-          },
+          background: 'rgb(var(--dropdown-background) / <alpha-value>)',
           item: {
             hover: 'rgb(var(--dropdown-item-hover) / <alpha-value>)',
           },
@@ -52,6 +63,17 @@ module.exports = {
           item: {
             hover: 'rgb(var(--sidebar-item-hover) / <alpha-value>)',
             focus: 'rgb(var(--sidebar-item-focus) / <alpha-value>)',
+          },
+        },
+        table: {
+          header: {
+            background: 'rgb(var(--table-header-background) / <alpha-value>)',
+          },
+          footer: {
+            background: 'rgb(var(--table-footer-background) / <alpha-value>)',
+          },
+          row: {
+            hover: 'rgb(var(--table-row-hover) / <alpha-value>)',
           },
         },
       },
