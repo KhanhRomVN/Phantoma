@@ -98,12 +98,6 @@ export function ThemeProvider({
         }
       }
     });
-
-    // Apply typography (fontFamily) to root
-    if (preset.typography?.fontFamily) {
-      root.style.fontFamily = preset.typography.fontFamily;
-      root.style.setProperty('--font-family', preset.typography.fontFamily);
-    }
   };
 
   const applyPresetTheme = (preset: ThemeConfig) => {

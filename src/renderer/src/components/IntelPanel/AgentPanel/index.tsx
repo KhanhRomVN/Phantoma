@@ -45,16 +45,16 @@ function MessageBubble({ msg }: { msg: Message }) {
         {!isUser && (
           <span className="text-[9px] font-bold text-cyan-400 uppercase tracking-wider">Agent</span>
         )}
-        <span className="text-[9px] text-[#3d4a61] font-mono">{msg.ts}</span>
+        <span className="text-[9px] text-text-secondary font-mono">{msg.ts}</span>
         {isUser && (
-          <span className="text-[9px] font-bold text-[#6b7a96] uppercase tracking-wider">You</span>
+          <span className="text-[9px] font-bold text-text-secondary uppercase tracking-wider">You</span>
         )}
       </div>
       <div className={cn(
         'text-[11px] leading-[1.55] px-2.5 py-2 rounded-md max-w-[92%] whitespace-pre-wrap break-words',
         isUser
-          ? 'bg-[#1a2035] border border-[#252e42] text-[#c5cfe0] rounded-br-sm'
-          : 'bg-cyan-500/6 border border-cyan-500/15 text-[#c5cfe0] rounded-bl-sm'
+          ? 'bg-sidebar-item-hover border border-border text-text-primary rounded-br-sm'
+          : 'bg-cyan-500/6 border border-cyan-500/15 text-text-primary rounded-bl-sm'
       )}>
         {msg.content}
       </div>
@@ -114,13 +114,13 @@ export function AgentPanel() {
   return (
     <div className="flex flex-col overflow-hidden" style={{ height: '70%' }}>
       {/* header */}
-      <div className="flex items-center gap-2 px-3 h-[38px] border-b border-[#1e2535] bg-[#0f1319] shrink-0">
+      <div className="flex items-center gap-2 px-3 h-[38px] border-b border-divider bg-background shrink-0">
         <svg className="w-3.5 h-3.5 text-cyan-400 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
           <rect x="2" y="3" width="12" height="10" rx="2"/>
           <path d="M5 7h6M5 10h3"/>
           <circle cx="12" cy="10" r="1" fill="currentColor"/>
         </svg>
-        <span className="font-[Rajdhani,sans-serif] text-[13px] font-bold tracking-wider text-[#c5cfe0] uppercase flex-1">
+        <span className="font-[Rajdhani,sans-serif] text-[13px] font-bold tracking-wider text-text-primary uppercase flex-1">
           Agent
         </span>
         <span className="flex items-center gap-1 text-[9px] text-green-400">
@@ -130,7 +130,7 @@ export function AgentPanel() {
       </div>
 
       {/* message list */}
-      <div className="flex-1 overflow-y-auto px-2.5 py-2.5 [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-thumb]:bg-[#252e42] [&::-webkit-scrollbar-thumb]:rounded-sm">
+      <div className="flex-1 overflow-y-auto px-2.5 py-2.5 [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm">
         {messages.map((m) => <MessageBubble key={m.id} msg={m} />)}
 
         {thinking && (
@@ -148,14 +148,14 @@ export function AgentPanel() {
 
       {/* input */}
       <div className="px-2.5 pb-2.5 shrink-0">
-        <div className="flex items-end gap-1.5 bg-[#111520] border border-[#252e42] rounded-md focus-within:border-cyan-500/40 transition-colors">
+        <div className="flex items-end gap-1.5 bg-card-background border border-border rounded-md focus-within:border-cyan-500/40 transition-colors">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
             placeholder="Ask agent... (Enter to send)"
             rows={2}
-            className="flex-1 bg-transparent resize-none px-2.5 py-2 text-[11px] text-[#c5cfe0] placeholder-[#3d4a61] outline-none font-mono leading-relaxed [&::-webkit-scrollbar]:w-0"
+            className="flex-1 bg-transparent resize-none px-2.5 py-2 text-[11px] text-text-primary placeholder-text-secondary outline-none font-mono leading-relaxed [&::-webkit-scrollbar]:w-0"
           />
           <button
             onClick={send}
@@ -164,7 +164,7 @@ export function AgentPanel() {
               'mb-1.5 mr-1.5 w-6 h-6 rounded flex items-center justify-center transition-all shrink-0',
               input.trim() && !thinking
                 ? 'bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25'
-                : 'text-[#3d4a61] cursor-not-allowed'
+                : 'text-text-secondary cursor-not-allowed'
             )}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -172,7 +172,7 @@ export function AgentPanel() {
             </svg>
           </button>
         </div>
-        <div className="text-[8.5px] text-[#3d4a61] mt-1 px-0.5">↵ send · Shift+↵ newline</div>
+        <div className="text-[8.5px] text-text-secondary mt-1 px-0.5">↵ send · Shift+↵ newline</div>
       </div>
     </div>
   )

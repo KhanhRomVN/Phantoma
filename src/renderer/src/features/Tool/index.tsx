@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Wifi, Globe, Bug, Eye, Shield, Server, Home, ChevronRight } from 'lucide-react';
+import { Home, ChevronRight } from 'lucide-react';
 import { TOOLS_LIST } from './data/toolsList';
-import { CATEGORY_META } from './constants';
 import { ToolIcon } from './utils/iconHelpers';
 import { useToolManager } from './hooks/useToolManager';
 import { ServerConfigProvider } from './context/ServerConfigContext';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useAccentColors } from '../../shared/hooks/useAccentColors';
 
 interface ToolManagerProps {
   activeToolId?: string;
@@ -15,15 +15,11 @@ interface ToolManagerProps {
 const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onToolChange }) => {
   const {
     selectedTool,
-    activeCategory,
     searchQuery,
     currentTool,
     ToolComponent,
-    catMeta,
-    categories,
     filteredTools,
     handleToolSelect,
-    setActiveCategory,
     setSearchQuery,
   } = useToolManager(activeToolId, onToolChange);
 
@@ -31,37 +27,14 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
     'information' | 'execution' | 'history' | 'profiles'
   >('information');
 
-  // Get current theme for accent colors
-  const { currentPreset } = useTheme();
+  // Get accent colors from shared hook
+  const { UNIFIED_ACCENT, PRIMARY_RGB, getColorByIndex } = useAccentColors();
 
-  // Generate random color mapping for tool categories based on theme accentColors
-  const categoryColorMap = useMemo(() => {
-    const accentColors = currentPreset?.accentColors || [
-      'rgb(100, 150, 255)',
-      'rgb(255, 200, 100)',
-      'rgb(100, 255, 100)',
-      'rgb(200, 100, 255)',
-      'rgb(255, 150, 50)',
-      'rgb(255, 68, 68)',
-      'rgb(255, 120, 200)',
-      'rgb(80, 220, 255)',
-    ];
-
-    // Get unique categories from tools
-    const categories = [...new Set(TOOLS_LIST.map((t) => t.category))];
-
-    // Shuffle accent colors and assign to categories
-    const shuffled = [...accentColors].sort(() => Math.random() - 0.5);
-    const map: Record<string, string> = {};
-    categories.forEach((cat, index) => {
-      map[cat] = shuffled[index % shuffled.length];
-    });
-    map['default'] = shuffled[0] || 'rgb(150, 150, 150)';
-    return map;
-  }, [currentPreset]);
-
-  // Unified accent color from Tailwind theme (--primary: 54 134 255)
-  const UNIFIED_ACCENT = '#3686ff';
+  // Get color for a tool based on its index in the full list
+  const getToolColor = (toolId: string) => {
+    const index = TOOLS_LIST.findIndex((t) => t.id === toolId);
+    return getColorByIndex(index >= 0 ? index : 0);
+  };
 
   // Scanline CSS baked inline để không cần external styles
   const scanlineStyle: React.CSSProperties = {
@@ -71,12 +44,12 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
   };
 
   return (
-    <div className="flex w-full h-full overflow-hidden font-['JetBrains_Mono'] font-['Fira_Code'] monospace relative">
+    <div className="flex w-full h-full overflow-hidden relative">
       {/* Scanline overlay */}
       <div style={{ ...scanlineStyle, position: 'absolute', inset: 0, zIndex: 0 }} />
 
       {/* ─── LEFT PANEL ─── */}
-      <div className="w-[390px] shrink-0 flex flex-col border-r border-[var(--divider)] z-10 overflow-hidden">
+      <div className="w-[390px] shrink-0 flex flex-col border-r border-border z-10 overflow-hidden">
         {/* Topbar */}
         <div className="h-[37px] shrink-0 px-5 flex items-center border-b border-border">
           <span className="text-text-secondary text-sm">Tools</span>
@@ -98,14 +71,16 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
         <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-[3px]">
           {filteredTools.map((tool) => {
             const isSelected = selectedTool === tool.id;
-            // Get accent color from random mapping based on theme
-            const accentColor = categoryColorMap[tool.category] || categoryColorMap.default;
+            // Get accent color based on tool index in full list
+            const accentColor = getToolColor(tool.id);
             return (
               <button
                 key={tool.id}
                 onClick={() => handleToolSelect(tool.id)}
                 className={`flex items-center gap-2.5 px-2.5 py-2 border border-transparent rounded-r-[4px] cursor-pointer text-left transition-all duration-150 shadow-none font-inherit ${
-                  isSelected ? 'bg-[var(--sidebar-item-hover)]' : 'bg-transparent hover:bg-[var(--sidebar-item-hover)]'
+                  isSelected
+                    ? 'bg-[var(--sidebar-item-hover)]'
+                    : 'bg-transparent hover:bg-[var(--sidebar-item-hover)]'
                 }`}
                 style={{
                   borderLeft: `2px solid ${isSelected ? accentColor : 'transparent'}`,
@@ -162,17 +137,16 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
           </div>
         </div>
 
-        {currentTool && catMeta ? (
+        {currentTool ? (
           <>
             {/* Tool Header - Thống nhất màu nền */}
             <div className="px-5 py-3 border-b border-[var(--divider)] flex items-start gap-4 shrink-0 relative">
-              {/* Big icon - màu accent từ category mapping */}
+              {/* Big icon - màu accent based on tool index */}
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center text-[22px] shrink-0 self-center"
                 style={{
                   background: (() => {
-                    const color =
-                      categoryColorMap[currentTool.category] || categoryColorMap.default;
+                    const color = getToolColor(currentTool.id);
                     const rgbMatch = color.match(/\d+/g);
                     if (rgbMatch) {
                       const r = parseInt(rgbMatch[0]);
@@ -182,14 +156,11 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                     }
                     return 'var(--card-background)';
                   })(),
-                  border: `1px solid ${categoryColorMap[currentTool.category] || categoryColorMap.default}40`,
-                  color: categoryColorMap[currentTool.category] || categoryColorMap.default,
+                  border: `1px solid ${getToolColor(currentTool.id)}40`,
+                  color: getToolColor(currentTool.id),
                 }}
               >
-                <ToolIcon
-                  tool={currentTool}
-                  color={categoryColorMap[currentTool.category] || categoryColorMap.default}
-                />
+                <ToolIcon tool={currentTool} color={getToolColor(currentTool.id)} />
               </div>
 
               <div className="flex-1 min-w-0">
@@ -205,29 +176,37 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
 
                 <div className="flex gap-1.25 flex-wrap items-center">
                   {currentTool.tags.map((tag, index) => {
-                    // Get color from accentColors based on index
-                    const accentColors = currentPreset?.accentColors || [
-                      'rgb(100, 150, 255)',
-                      'rgb(255, 200, 100)',
-                      'rgb(100, 255, 100)',
-                      'rgb(200, 100, 255)',
-                      'rgb(255, 150, 50)',
-                      'rgb(255, 68, 68)',
-                    ];
-                    const color = accentColors[index % accentColors.length];
+                    // Use theme accentColors or fallback to primary
+                    const color = getColorByIndex(index);
                     // Parse RGB values from color string
                     const rgbMatch = color.match(/\d+/g);
-                    const r = rgbMatch ? parseInt(rgbMatch[0]) : 100;
-                    const g = rgbMatch ? parseInt(rgbMatch[1]) : 150;
-                    const b = rgbMatch ? parseInt(rgbMatch[2]) : 255;
+                    if (rgbMatch) {
+                      const r = parseInt(rgbMatch[0]);
+                      const g = parseInt(rgbMatch[1]);
+                      const b = parseInt(rgbMatch[2]);
+                      return (
+                        <span
+                          key={tag}
+                          className="px-[7px] py-0.5 rounded-[3px] text-[9px] tracking-[0.06em]"
+                          style={{
+                            background: `rgba(${r}, ${g}, ${b}, 0.2)`,
+                            border: `1px solid rgba(${r}, ${g}, ${b}, 0.4)`,
+                            color: `rgb(${r}, ${g}, ${b})`,
+                          }}
+                        >
+                          #{tag}
+                        </span>
+                      );
+                    }
+                    // Fallback if color parsing fails
                     return (
                       <span
                         key={tag}
                         className="px-[7px] py-0.5 rounded-[3px] text-[9px] tracking-[0.06em]"
                         style={{
-                          background: `rgba(${r}, ${g}, ${b}, 0.2)`,
-                          border: `1px solid rgba(${r}, ${g}, ${b}, 0.4)`,
-                          color: `rgb(${r}, ${g}, ${b})`,
+                          background: `rgba(${PRIMARY_RGB}, 0.2)`,
+                          border: `1px solid rgba(${PRIMARY_RGB}, 0.4)`,
+                          color: UNIFIED_ACCENT,
                         }}
                       >
                         #{tag}
@@ -288,9 +267,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-[12px] text-[#1e293b] tracking-[0.15em]">
-              // SELECT A TOOL
-            </p>
+            <p className="text-[12px] text-[#1e293b] tracking-[0.15em]">// SELECT A TOOL</p>
           </div>
         )}
       </div>

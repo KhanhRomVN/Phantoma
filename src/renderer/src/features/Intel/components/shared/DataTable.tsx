@@ -23,7 +23,7 @@ function ConfidenceCell({ value }: { value: number }) {
   const color = pct >= 70 ? '#30d158' : pct >= 40 ? '#f5a623' : '#ff2d55';
   return (
     <div className="flex items-center gap-1.5">
-      <div className="w-10 h-1.5 bg-[#111827] rounded-full overflow-hidden">
+      <div className="w-10 h-1.5 bg-border rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all"
           style={{ width: `${pct}%`, backgroundColor: color }}
@@ -49,34 +49,34 @@ export function DataTable({
     <div className="overflow-x-auto">
       <table className="w-full text-[11px] font-mono border-collapse">
         <thead>
-          <tr className="border-b border-[#1c2333]">
+          <tr className="border-b border-border">
             {columns.includes('value') && (
-              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-[#6a7a9a] font-medium">
+              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-text-secondary font-medium">
                 Value
               </th>
             )}
             {columns.includes('category') && (
-              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-[#6a7a9a] font-medium w-[100px]">
+              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-text-secondary font-medium w-[100px]">
                 Category
               </th>
             )}
             {columns.includes('metadata') && (
-              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-[#6a7a9a] font-medium w-[120px]">
+              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-text-secondary font-medium w-[120px]">
                 Details
               </th>
             )}
             {columns.includes('confidence') && (
-              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-[#6a7a9a] font-medium w-[90px]">
+              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-text-secondary font-medium w-[90px]">
                 Conf
               </th>
             )}
             {columns.includes('source') && (
-              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-[#6a7a9a] font-medium w-[110px]">
+              <th className="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-text-secondary font-medium w-[110px]">
                 Source
               </th>
             )}
             {columns.includes('risk') && (
-              <th className="text-right py-2 px-2 text-[10px] uppercase tracking-wider text-[#6a7a9a] font-medium w-[50px]">
+              <th className="text-right py-2 px-2 text-[10px] uppercase tracking-wider text-text-secondary font-medium w-[50px]">
                 Risk
               </th>
             )}
@@ -86,18 +86,18 @@ export function DataTable({
           {display.map((dp) => (
             <tr
               key={dp.id}
-              className="border-b border-[#111827] hover:bg-[#0d1017] transition-colors"
+              className="border-b border-border hover:bg-card-background transition-colors"
               style={{ opacity: dp.isNoise ? 0.4 : 1 }}
             >
               {columns.includes('value') && (
                 <td
                   className="py-1.5 px-2 max-w-[400px] truncate"
-                  style={{ color: dp.isNoise ? '#3a4558' : '#c8d6f0' }}
+                  style={{ color: dp.isNoise ? 'var(--text-secondary)' : 'var(--text-primary)' }}
                   title={dp.displayValue || String(dp.value)}
                 >
                   {dp.displayValue || String(dp.value)}
                   {dp.isNoise && (
-                    <span className="ml-1.5 text-[9px] text-[#6a7a9a] bg-[#1c2333] px-1 rounded">
+                    <span className="ml-1.5 text-[9px] text-text-secondary bg-border px-1 rounded">
                       NOISE
                     </span>
                   )}
@@ -108,9 +108,9 @@ export function DataTable({
                   <span
                     className="text-[9px] px-1.5 py-0.5 rounded"
                     style={{
-                      color: dp.verificationStatus === 'verified' ? '#30d158' : '#6a7a9a',
+                      color: dp.verificationStatus === 'verified' ? 'var(--success)' : 'var(--text-secondary)',
                       backgroundColor:
-                        dp.verificationStatus === 'verified' ? '#30d15815' : '#1c2333',
+                        dp.verificationStatus === 'verified' ? 'var(--success)15' : 'var(--border)',
                     }}
                   >
                     {dp.label}
@@ -118,7 +118,7 @@ export function DataTable({
                 </td>
               )}
               {columns.includes('metadata') && (
-                <td className="py-1.5 px-2 text-[10px] text-[#3a4558]">
+                <td className="py-1.5 px-2 text-[10px] text-text-secondary">
                   {dp.metadata
                     ? Object.entries(dp.metadata)
                         .filter(([, v]) => v !== undefined && v !== null && typeof v !== 'object')
@@ -138,7 +138,7 @@ export function DataTable({
               )}
               {columns.includes('source') && (
                 <td className="py-1.5 px-2">
-                  <span className="text-[10px] text-[#3a4558] truncate block max-w-[100px]">
+                  <span className="text-[10px] text-text-secondary truncate block max-w-[100px]">
                     {dp.source.name}
                   </span>
                 </td>
@@ -153,7 +153,7 @@ export function DataTable({
                       {dp.riskScore}
                     </span>
                   ) : (
-                    <span className="text-[10px] text-[#3a4558]">—</span>
+                    <span className="text-[10px] text-text-secondary">—</span>
                   )}
                 </td>
               )}
@@ -162,7 +162,7 @@ export function DataTable({
         </tbody>
       </table>
       {maxRows && dataPoints.length > maxRows && (
-        <div className="text-[10px] font-mono text-[#6a7a9a] text-center py-2 border-t border-[#1c2333]">
+        <div className="text-[10px] font-mono text-text-secondary text-center py-2 border-t border-border">
           +{dataPoints.length - maxRows} more rows
         </div>
       )}

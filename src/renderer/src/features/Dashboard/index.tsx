@@ -238,7 +238,7 @@ function DonutChart() {
   return (
     <div className="flex items-center gap-3">
       <svg viewBox="0 0 80 80" className="w-20 h-20 shrink-0">
-        <circle cx="40" cy="40" r="32" fill="none" stroke="#111827" strokeWidth="10" />
+        <circle cx="40" cy="40" r="32" fill="none" stroke="var(--border)" strokeWidth="10" />
         {slices.map((s, i) => {
           const pct = s.val / total;
           const dash = pct * circ;
@@ -265,12 +265,12 @@ function DonutChart() {
           textAnchor="middle"
           fontSize="12"
           fontWeight="bold"
-          fill="#c8d6f0"
+          fill="var(--text-primary)"
           fontFamily="monospace"
         >
           {total}
         </text>
-        <text x="40" y="49" textAnchor="middle" fontSize="6" fill="#3a4558" fontFamily="monospace">
+        <text x="40" y="49" textAnchor="middle" fontSize="6" fill="var(--text-secondary)" fontFamily="monospace">
           VULNS
         </text>
       </svg>
@@ -278,7 +278,7 @@ function DonutChart() {
         {slices.map((s) => (
           <div key={s.label} className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
-            <span className="text-[9px] font-mono text-[#3a4558]">{s.label}</span>
+            <span className="text-[9px] font-mono text-text-secondary">{s.label}</span>
             <span className="text-[9px] font-bold font-mono ml-auto" style={{ color: s.color }}>
               {s.val}
             </span>
@@ -312,7 +312,7 @@ function RiskGauge({ score }: { score: number }) {
       <path
         d="M 8 36 A 28 28 0 0 1 64 36"
         fill="none"
-        stroke="#111827"
+        stroke="var(--border)"
         strokeWidth="7"
         strokeLinecap="round"
       />
@@ -335,7 +335,7 @@ function RiskGauge({ score }: { score: number }) {
       >
         {score}
       </text>
-      <text x="36" y="41" textAnchor="middle" fontSize="5.5" fill="#3a4558" fontFamily="monospace">
+      <text x="36" y="41" textAnchor="middle" fontSize="5.5" fill="var(--text-secondary)" fontFamily="monospace">
         RISK SCORE
       </text>
     </svg>
@@ -360,7 +360,7 @@ function ActivityBar({ data }: { data: number[] }) {
           className="flex-1 rounded-sm"
           style={{
             height: `${(v / max) * 100}%`,
-            background: i === data.length - 1 ? '#0af' : '#1c2333',
+            background: i === data.length - 1 ? '#0af' : 'var(--border)',
           }}
         />
       ))}
@@ -385,18 +385,18 @@ function StatBox({
   spark?: number[];
 }) {
   return (
-    <div className="bg-[#0d1017] border border-[#1c2333] rounded p-2.5 flex flex-col gap-1">
-      <div className="text-[8.5px] uppercase tracking-[0.12em] text-[#2a3548] font-mono">
+    <div className="bg-card-background border border-border rounded p-2.5 flex flex-col gap-1">
+      <div className="text-[8.5px] uppercase tracking-[0.12em] text-text-secondary font-mono">
         {label}
       </div>
       <div
         className="text-[20px] font-bold font-mono leading-none"
-        style={{ color: accent ?? '#c8d6f0' }}
+        style={{ color: accent ?? 'var(--text-primary)' }}
       >
         {value}
       </div>
       {spark && <Sparkline data={spark} color={accent ?? '#0af'} />}
-      {sub && !spark && <div className="text-[8.5px] text-[#2a3548] font-mono">{sub}</div>}
+      {sub && !spark && <div className="text-[8.5px] text-text-secondary font-mono">{sub}</div>}
     </div>
   );
 }
@@ -413,10 +413,10 @@ function SectionCard({
   className?: string;
 }) {
   return (
-    <div className={cn('bg-[#0d1017] border border-[#1c2333] rounded p-3', className)}>
+    <div className={cn('bg-card-background border border-border rounded p-3', className)}>
       <div className="flex items-center gap-1.5 mb-2.5">
         <div className="w-[3px] h-3 rounded-full" style={{ background: accent ?? '#0af' }} />
-        <span className="text-[9px] font-bold tracking-[0.12em] uppercase font-mono text-[#3a4558]">
+        <span className="text-[9px] font-bold tracking-[0.12em] uppercase font-mono text-text-secondary">
           {title}
         </span>
       </div>
@@ -427,18 +427,18 @@ function SectionCard({
 
 function SessionRow({ s }: { s: (typeof activeSessions)[0] }) {
   return (
-    <div className="flex items-center gap-2 py-1.5 border-b border-[#111827] last:border-0 group">
+    <div className="flex items-center gap-2 py-1.5 border-b border-border last:border-0 group">
       <div className="w-1.5 h-1.5 rounded-full bg-[#30d158] animate-pulse shrink-0" />
-      <span className="font-mono text-[10px] text-[#0af] w-32 shrink-0">{s.target}</span>
+      <span className="font-mono text-[10px] text-[var(--primary)] w-32 shrink-0">{s.target}</span>
       <span
         className="text-[10px] font-bold font-mono w-20 shrink-0"
         style={{ color: s.user === 'SYSTEM' || s.user === 'root' ? '#ff2d55' : '#f5a623' }}
       >
         {s.user}
       </span>
-      <span className="text-[9px] text-[#2a3548] font-mono w-16 shrink-0">{s.type}</span>
-      <span className="text-[9px] text-[#2a3548] flex-1 truncate">{s.platform}</span>
-      <span className="text-[9px] text-[#3a4558] font-mono w-12 text-right shrink-0">
+      <span className="text-[9px] text-text-secondary font-mono w-16 shrink-0">{s.type}</span>
+      <span className="text-[9px] text-text-secondary flex-1 truncate">{s.platform}</span>
+      <span className="text-[9px] text-text-secondary font-mono w-12 text-right shrink-0">
         {s.uptime}
       </span>
       <button
@@ -461,7 +461,7 @@ function LiveClock() {
     return () => clearInterval(t);
   }, []);
   return (
-    <span className="font-mono text-[10px] text-[#2a3548]">
+    <span className="font-mono text-[10px] text-text-secondary">
       {time.toISOString().replace('T', ' ').slice(0, 19)} UTC
     </span>
   );
@@ -504,11 +504,11 @@ function TerminalFeed() {
   return (
     <div ref={ref} className="flex-1 overflow-y-auto font-mono text-[9px] space-y-0.5 max-h-[80px]">
       {lines.map((l, i) => (
-        <div key={i} className={l.text.startsWith('[!]') ? 'text-[#f5a623]' : 'text-[#30d158]'}>
+        <div key={i} className={l.text.startsWith('[!]') ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
           {l.text}
         </div>
       ))}
-      <span className="text-[#30d158] animate-pulse">█</span>
+      <span className="text-[var(--success)] animate-pulse">█</span>
     </div>
   );
 }
@@ -525,19 +525,19 @@ export function Dashboard() {
 
   return (
     <div
-      className="flex flex-col flex-1 overflow-hidden bg-[#080b10]"
+      className="flex flex-col flex-1 overflow-hidden bg-background"
       style={{ fontFamily: '"JetBrains Mono", "Fira Code", ui-monospace, monospace' }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-3 h-[34px] bg-[#060810] border-b border-[#1c2333] shrink-0">
+      <div className="flex items-center gap-3 px-3 h-[34px] bg-background border-b border-border shrink-0">
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-[#30d158] animate-pulse" />
           <span className="text-[9px] font-bold text-[#30d158] font-mono tracking-widest uppercase">
             System Online
           </span>
         </div>
-        <div className="w-px h-3 bg-[#1c2333]" />
-        <span className="text-[9px] text-[#2a3548] font-mono">{greeting}, Operator</span>
+        <div className="w-px h-3 bg-border" />
+        <span className="text-[9px] text-text-secondary font-mono">{greeting}, Operator</span>
         <div className="ml-auto flex items-center gap-2">
           <LiveClock />
           <div className="w-px h-3 bg-[#1c2333]" />
@@ -551,7 +551,7 @@ export function Dashboard() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-2.5 bg-[#080b10] space-y-2">
+      <div className="flex-1 overflow-y-auto p-2.5 bg-background space-y-2">
         {/* Row 1 — Key stats */}
         <div className="grid grid-cols-7 gap-2">
           <StatBox
@@ -606,14 +606,14 @@ export function Dashboard() {
           {/* Vuln distribution */}
           <SectionCard title="Vulnerability Distribution" accent="#ff2d55">
             <DonutChart />
-            <div className="mt-2 pt-2 border-t border-[#111827] space-y-1">
+            <div className="mt-2 pt-2 border-t border-border space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-[8.5px] font-mono text-[#2a3548] w-16">Avg CVSS</span>
+                <span className="text-[8.5px] font-mono text-text-secondary w-16">Avg CVSS</span>
                 <MiniBar pct={74} color="#f5a623" />
                 <span className="text-[9px] font-bold font-mono text-[#f5a623]">7.4</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[8.5px] font-mono text-[#2a3548] w-16">Exploited</span>
+                <span className="text-[8.5px] font-mono text-text-secondary w-16">Exploited</span>
                 <MiniBar
                   pct={Math.round(
                     (topVulns.filter((v) => v.exploited).length / topVulns.length) * 100,
@@ -635,9 +635,9 @@ export function Dashboard() {
                 return (
                   <div
                     key={a.id}
-                    className="flex items-start gap-2 pb-1.5 border-b border-[#0d1017] last:border-0"
+                    className="flex items-start gap-2 pb-1.5 border-b border-card-background last:border-0"
                   >
-                    <span className="font-mono text-[8px] text-[#2a3548] w-12 shrink-0 mt-0.5">
+                    <span className="font-mono text-[8px] text-text-secondary w-12 shrink-0 mt-0.5">
                       {a.time}
                     </span>
                     <span
@@ -646,7 +646,7 @@ export function Dashboard() {
                     >
                       {a.type}
                     </span>
-                    <span className="text-[9px] text-[#6a7a9a] leading-tight">{a.message}</span>
+                    <span className="text-[9px] text-text-secondary leading-tight">{a.message}</span>
                   </div>
                 );
               })}
@@ -687,10 +687,10 @@ export function Dashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[8px] font-mono text-[#2a3548]">{v.cve}</span>
-                      <span className="text-[8px] text-[#0af] truncate">› {v.target}</span>
+                      <span className="text-[8px] font-mono text-text-secondary">{v.cve}</span>
+                      <span className="text-[8px] text-[var(--primary)] truncate">› {v.target}</span>
                     </div>
-                    <div className="mt-1 h-[2px] bg-[#111827] rounded-full overflow-hidden">
+                    <div className="mt-1 h-[2px] bg-border rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${(v.cvss / 10) * 100}%`, background: c }}
@@ -730,7 +730,7 @@ export function Dashboard() {
                 { label: 'Stealth', pct: 72, color: '#bf5af2' },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-2">
-                  <span className="text-[8.5px] font-mono text-[#2a3548] w-20 shrink-0">
+                  <span className="text-[8.5px] font-mono text-text-secondary w-20 shrink-0">
                     {item.label}
                   </span>
                   <MiniBar pct={item.pct} color={item.color} />
@@ -756,7 +756,7 @@ export function Dashboard() {
                 return (
                   <div key={m.name}>
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-[9px] font-mono text-[#6a7a9a]">{m.name}</span>
+<span className="text-[9px] font-mono text-text-secondary">{m.name}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-[8px] font-mono text-[#2a3548]">
                           {m.findings} findings
@@ -769,7 +769,7 @@ export function Dashboard() {
                         </span>
                       </div>
                     </div>
-                    <div className="h-[3px] bg-[#111827] rounded-full overflow-hidden">
+                    <div className="h-[3px] bg-border rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-1000"
                         style={{ width: `${m.progress}%`, background: c }}
@@ -789,13 +789,13 @@ export function Dashboard() {
                 return (
                   <div
                     key={i}
-                    className="flex items-center gap-2 py-1 border-b border-[#111827] last:border-0"
+                    className="flex items-center gap-2 py-1 border-b border-border last:border-0"
                   >
                     <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: c }} />
-                    <span className="font-mono text-[9.5px] text-[#0af] w-28 shrink-0">
+                    <span className="font-mono text-[9.5px] text-[var(--primary)] w-28 shrink-0">
                       {t.host}
                     </span>
-                    <span className="text-[8px] text-[#2a3548] w-16 shrink-0">
+                    <span className="text-[8px] text-text-secondary w-16 shrink-0">
                       {t.os} · {t.role}
                     </span>
                     <span className="text-[8px] font-mono text-[#ff6b35] w-8 shrink-0">
@@ -813,21 +813,21 @@ export function Dashboard() {
           {/* Live terminal feed + hourly activity */}
           <SectionCard title="Live Feed" accent="#30d158">
             <div className="mb-2">
-              <div className="text-[8px] font-mono text-[#2a3548] mb-1">
+              <div className="text-[8px] font-mono text-text-secondary mb-1">
                 Hourly activity (last 12h)
               </div>
               <ActivityBar data={hourlyData} />
             </div>
-            <div className="border-t border-[#111827] pt-2">
+            <div className="border-t border-border pt-2">
               <TerminalFeed />
             </div>
           </SectionCard>
         </div>
 
         {/* Row 5 — Quick actions */}
-        <div className="bg-[#0d1017] border border-[#1c2333] rounded p-2.5">
+        <div className="bg-card-background border border-border rounded p-2.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[8.5px] font-mono text-[#2a3548] uppercase tracking-wider mr-1">
+            <span className="text-[8.5px] font-mono text-text-secondary uppercase tracking-wider mr-1">
               Quick Actions
             </span>
             {[
@@ -840,7 +840,7 @@ export function Dashboard() {
             ].map((btn) => (
               <button
                 key={btn.label}
-                className="text-[9px] font-mono font-bold px-2.5 py-1 rounded border transition-all hover:opacity-90"
+                className="text-[9px] font-mono font-bold px-2.5 py-1 rounded border border-transparent transition-all hover:opacity-90"
                 style={{
                   color: btn.color,
                   borderColor: `${btn.color}30`,

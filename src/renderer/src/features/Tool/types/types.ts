@@ -21,7 +21,7 @@ export type SubMenuItem = {
 export type NavModuleConfig = { 
   id: PhantomModule; 
   title: string; 
-  activeClass: string; 
+  activeClass?: string; // Optional - if not provided, will be generated from theme accent colors
   dotColor?: string;
   children?: SubMenuItem[];
 }

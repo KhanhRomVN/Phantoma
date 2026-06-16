@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../../shared/lib/utils';
 import { NavModuleConfig, PhantomModule, SubMenuItem } from '../../features/Tool/types/types';
@@ -7,17 +7,17 @@ import {
   Crosshair as CrosshairIcon,
   Wrench as WrenchIcon,
 } from 'lucide-react';
+import { useTheme } from '../../theme/ThemeProvider';
+import { useAccentColors } from '../../shared/hooks/useAccentColors';
 
 const NAV_MODULES: NavModuleConfig[] = [
   {
     id: 'dashboard',
     title: 'Dashboard',
-    activeClass: 'bg-blue/10 text-blue border-blue/30',
   },
   {
     id: 'recon',
     title: 'Reconnaissance',
-    activeClass: 'bg-aqua/10 text-aqua border-aqua/30',
     children: [
       { id: 'recon-domain', title: 'Domain', disabled: false },
       { id: 'recon-ip', title: 'IP', disabled: false },
@@ -27,7 +27,6 @@ const NAV_MODULES: NavModuleConfig[] = [
   {
     id: 'scanner',
     title: 'Scanner',
-    activeClass: 'bg-orange/10 text-orange border-orange/30',
     children: [
       { id: 'scan-domain', title: 'Domain', disabled: false },
       { id: 'scan-network', title: 'Network', disabled: false },
@@ -37,17 +36,14 @@ const NAV_MODULES: NavModuleConfig[] = [
   {
     id: 'tools',
     title: 'Tools',
-    activeClass: 'bg-green/10 text-green border-green/30',
   },
   {
     id: 'emulate',
     title: 'Emulate',
-    activeClass: 'bg-purple/10 text-purple border-purple/30',
   },
   {
     id: 'wireless',
     title: 'Wireless',
-    activeClass: 'bg-yellow/10 text-yellow border-yellow/30',
   },
 ];
 
@@ -256,67 +252,13 @@ function NavIcon({ module }: { module: PhantomModule }) {
   }
 }
 
-// ─── NavButton ───────────────────────────────────────────────────────────────
-function NavButton({
-  module,
-  title,
-  isActive,
-  activeClass,
-  dotColor,
-  onClick,
-  expanded,
-}: {
-  module: PhantomModule;
-  title: string;
-  isActive: boolean;
-  activeClass: string;
-  dotColor?: string;
-  onClick: () => void;
-  expanded: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'relative w-full flex items-center gap-3 transition-all duration-200',
-        expanded ? 'px-3 py-2 rounded-lg' : 'w-9 h-9 px-0 rounded-md justify-center',
-        isActive
-          ? activeClass
-          : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover border-transparent',
-        !expanded && 'mx-auto',
-      )}
-    >
-      <div
-        className={cn(
-          'flex items-center justify-center shrink-0',
-          expanded ? 'w-5 h-5' : 'w-4 h-4',
-        )}
-      >
-        <NavIcon module={module} />
-      </div>
-      {expanded && (
-        <motion.span
-          initial={{ opacity: 0, width: 0 }}
-          animate={{ opacity: 1, width: 'auto' }}
-          exit={{ opacity: 0, width: 0 }}
-          className="text-[13px] font-medium truncate flex-1 text-left whitespace-nowrap overflow-hidden"
-        >
-          {title}
-        </motion.span>
-      )}
-      {dotColor && !isActive && expanded && (
-        <span className={cn('absolute top-2 right-2 w-1.5 h-1.5 rounded-full', dotColor)} />
-      )}
-    </button>
-  );
-}
-
 // ─── SubMenuItemButton ──────────────────────────────────────────────────────
 function SubMenuItemButton({
   item,
   onSelect,
   isActive,
   expanded,
+  moduleColor,
 }: {
   item: SubMenuItem;
   onSelect: () => void;
@@ -324,8 +266,14 @@ function SubMenuItemButton({
   isFirst?: boolean;
   isLast?: boolean;
   expanded: boolean;
+  moduleColor?: { base: string; bg: string; border: string; hover: string };
 }) {
   if (!expanded) return null;
+
+  // Parse RGB for hover opacity
+  const color = moduleColor?.base || 'var(--text-primary)';
+  const bgColor = moduleColor?.bg || 'var(--sidebar-item-hover)';
+  const hoverBg = moduleColor?.hover || 'var(--sidebar-item-hover)';
 
   return (
     <button
@@ -333,24 +281,35 @@ function SubMenuItemButton({
       disabled={item.disabled}
       className={cn(
         'w-full flex items-center gap-2 pl-6 py-1.5 text-left transition-all duration-200 text-sm',
-        isActive && !item.disabled
-          ? 'text-text-primary'
-          : item.disabled
-            ? 'text-border cursor-not-allowed opacity-50'
-            : 'text-text-secondary hover:text-text-primary',
+        !isActive && !item.disabled && 'text-text-secondary hover:text-text-primary',
+        item.disabled && 'text-text-secondary cursor-not-allowed opacity-50',
       )}
+      style={
+        isActive && !item.disabled
+          ? {
+              background: bgColor,
+              color: color,
+            }
+          : undefined
+      }
     >
       <span
         className={cn(
           'w-1.5 h-1.5 rounded-full shrink-0',
-          isActive && !item.disabled
-            ? 'bg-text-primary ring-1 ring-text-primary ring-opacity-50'
-            : item.disabled
-              ? 'bg-border'
-              : 'bg-divider',
+          item.disabled ? 'bg-border' : 'bg-divider',
         )}
+        style={
+          isActive && !item.disabled
+            ? {
+                background: color,
+                boxShadow: `0 0 0 1px ${color}40`,
+              }
+            : undefined
+        }
       />
-      <span className="text-[13px]">{item.title}</span>
+      <span className="text-[13px]" style={isActive && !item.disabled ? { color } : undefined}>
+        {item.title}
+      </span>
       {item.disabled && <span className="ml-auto text-[8px] text-border">(soon)</span>}
     </button>
   );
@@ -370,6 +329,39 @@ export function ModuleBar({
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const expanded = isHovered;
+  const { currentPreset } = useTheme();
+  const { accentColors, UNIFIED_ACCENT, toRgba } = useAccentColors();
+
+  // Generate accent colors for each module using theme accentColors
+  const moduleAccentColors = useMemo(() => {
+    return NAV_MODULES.reduce(
+      (acc, module, index) => {
+        const color = accentColors[index % accentColors.length];
+        // Parse RGB values to create opacity variants
+        const rgbMatch = color.match(/\d+/g);
+        if (rgbMatch) {
+          const r = rgbMatch[0];
+          const g = rgbMatch[1];
+          const b = rgbMatch[2];
+          acc[module.id] = {
+            base: color,
+            bg: `rgba(${r}, ${g}, ${b}, 0.1)`,
+            border: `rgba(${r}, ${g}, ${b}, 0.3)`,
+            hover: `rgba(${r}, ${g}, ${b}, 0.2)`,
+          };
+        } else {
+          acc[module.id] = {
+            base: color,
+            bg: 'var(--sidebar-item-hover)',
+            border: 'var(--divider)',
+            hover: 'var(--sidebar-item-hover)',
+          };
+        }
+        return acc;
+      },
+      {} as Record<PhantomModule, { base: string; bg: string; border: string; hover: string }>,
+    );
+  }, [accentColors]);
 
   const handleSubItemClick = (item: NavModuleConfig, subItem: SubMenuItem) => {
     if (subItem.disabled) return;
@@ -388,7 +380,8 @@ export function ModuleBar({
       animate={{ width: expanded ? 240 : 48 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <div className="h-full shrink-0 bg-sidebar-background border-r border-border flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
+      {/* Border-left with divider */}
+      <div className="h-full shrink-0 bg-sidebar-background border border-l-2 border-border flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
         <div
           className={cn(
             'w-full h-[37px] flex items-center shrink-0',
@@ -402,54 +395,128 @@ export function ModuleBar({
         <div
           className={cn('flex flex-col gap-1 w-full py-2', expanded ? 'px-2' : 'px-0 items-center')}
         >
-          {NAV_MODULES.map((item) => (
-            <div key={item.id}>
-              <NavButton
-                module={item.id}
-                title={item.title}
-                isActive={active === item.id}
-                activeClass={item.activeClass}
-                dotColor={item.dotColor}
-                onClick={() => onSelect(item.id)}
-                expanded={expanded}
-              />
-              {expanded &&
-                item.id === active &&
-                activeModuleWithChildren?.id === item.id &&
-                item.children && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="relative mt-1 overflow-hidden"
+          {NAV_MODULES.map((item) => {
+            const moduleColor = moduleAccentColors[item.id];
+            const isActive = active === item.id;
+
+            return (
+              <div key={item.id}>
+                <button
+                  onClick={() => onSelect(item.id)}
+                  className={cn(
+                    'relative w-full flex items-center gap-3 transition-all duration-200',
+                    expanded ? 'px-3 py-2 rounded-lg' : 'w-9 h-9 px-0 rounded-md justify-center',
+                    !expanded && 'mx-auto',
+                    !isActive && 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                    !expanded && 'border-l-2 border-solid',
+                    !expanded && 'border-transparent',
+                  )}
+                  style={
+                    isActive
+                      ? {
+                          background: moduleColor?.bg || 'var(--sidebar-item-hover)',
+                          color: moduleColor?.base || 'var(--text-primary)',
+                        }
+                      : undefined
+                  }
+                >
+                  <div
+                    className={cn(
+                      'flex items-center justify-center shrink-0',
+                      expanded ? 'w-5 h-5' : 'w-4 h-4',
+                    )}
                   >
-                    {item.children.map((child, index) => (
-                      <SubMenuItemButton
-                        key={child.id}
-                        item={child}
-                        isActive={child.id === activeSubItem}
-                        isFirst={index === 0}
-                        isLast={index === item.children!.length - 1}
-                        onSelect={() => handleSubItemClick(item, child)}
-                        expanded={expanded}
-                      />
-                    ))}
-                  </motion.div>
-                )}
-            </div>
-          ))}
+                    <NavIcon module={item.id} />
+                  </div>
+                  {expanded && (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      exit={{ opacity: 0, width: 0 }}
+                      className={cn(
+                        'text-[13px] font-medium truncate flex-1 text-left whitespace-nowrap overflow-hidden',
+                      )}
+                      style={isActive ? { color: moduleColor?.base || 'var(--text-primary)' } : undefined}
+                    >
+                      {item.title}
+                    </motion.span>
+                  )}
+                  {item.dotColor && !isActive && expanded && (
+                    <span
+                      className={cn(
+                        'absolute top-2 right-2 w-1.5 h-1.5 rounded-full',
+                        item.dotColor,
+                      )}
+                    />
+                  )}
+                </button>
+                {expanded &&
+                  item.id === active &&
+                  activeModuleWithChildren?.id === item.id &&
+                  item.children && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="relative mt-1 overflow-hidden"
+                    >
+                      {item.children.map((child, index) => (
+                        <SubMenuItemButton
+                          key={child.id}
+                          item={child}
+                          isActive={child.id === activeSubItem}
+                          isFirst={index === 0}
+                          isLast={index === item.children!.length - 1}
+                          onSelect={() => handleSubItemClick(item, child)}
+                          expanded={expanded}
+                          moduleColor={moduleColor}
+                        />
+                      ))}
+                    </motion.div>
+                  )}
+              </div>
+            );
+          })}
         </div>
 
         <div className="mt-auto flex flex-col gap-1 px-2 pb-3">
-          <NavButton
-            module={'settings' as PhantomModule}
-            title="Settings"
-            isActive={active === 'settings'}
-            activeClass="bg-primary/10 text-primary border-primary/30"
+          <button
             onClick={() => onSelect('settings' as PhantomModule)}
-            expanded={expanded}
-          />
+            className={cn(
+              'relative w-full flex items-center gap-3 transition-all duration-200',
+              expanded ? 'px-3 py-2 rounded-lg' : 'w-9 h-9 px-0 rounded-md justify-center',
+              !expanded && 'mx-auto',
+              active === 'settings'
+                ? 'bg-[rgba(var(--primary),0.1)] text-[rgb(var(--primary))]'
+                : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+              !expanded && 'border-l-2 border-solid',
+              !expanded &&
+                (active === 'settings' ? 'border-[rgb(var(--primary))]' : 'border-transparent'),
+            )}
+          >
+            <div
+              className={cn(
+                'flex items-center justify-center shrink-0',
+                expanded ? 'w-5 h-5' : 'w-4 h-4',
+              )}
+            >
+              <SettingsIcon className="w-4 h-4" strokeWidth={1.3} />
+            </div>
+            {expanded && (
+              <motion.span
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                className={cn(
+                  'text-[13px] font-medium truncate flex-1 text-left whitespace-nowrap overflow-hidden',
+                  active === 'settings' ? 'text-[rgb(var(--primary))]' : 'text-text-secondary',
+                )}
+              >
+                Settings
+              </motion.span>
+            )}
+          </button>
         </div>
       </div>
     </motion.div>
