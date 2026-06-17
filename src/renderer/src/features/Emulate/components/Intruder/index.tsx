@@ -32,7 +32,7 @@ function Badge({ count, className }: { count: number; className?: string }) {
     <span
       className={cn(
         'ml-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-medium',
-        className || 'bg-[var(--primary)]/20 text-[var(--primary)]',
+        className || 'bg-primary/20 text-primary',
       )}
     >
       {count > 99 ? '99+' : count}
@@ -105,7 +105,7 @@ function TextSelectionMenu({
           onAddToCrypto();
           onClose();
         }}
-        className="w-full px-3 py-1.5 text-xs text-left hover:bg-[var(--accent-pink)]/10 hover:text-[var(--accent-pink)] transition-colors flex items-center gap-2"
+className="w-full px-3 py-1.5 text-xs text-left hover:bg-error/10 hover:text-error transition-colors"
       >
         <KeyRound className="w-3 h-3" />
         {t.requestDetails.addToCrypto}
@@ -313,10 +313,10 @@ export function RequestDetails({
 
   // Define accent colors as CSS variables for dynamic usage
   const tabAccents = {
-    headers: { color: 'var(--accent-blue)', border: 'var(--accent-blue)' },
-    body: { color: 'var(--accent-pink)', border: 'var(--accent-pink)' },
+    headers: { color: 'var(--info)', border: 'var(--info)' },
+    body: { color: 'var(--error)', border: 'var(--error)' },
     network: { color: 'var(--accent-cyan)', border: 'var(--accent-cyan)' },
-    composer: { color: 'var(--accent-blue)', border: 'var(--accent-blue)' },
+    composer: { color: 'var(--info)', border: 'var(--info)' },
     security: { color: 'var(--error)', border: 'var(--error)' },
     cookies: { color: 'var(--warning)', border: 'var(--warning)' },
   };

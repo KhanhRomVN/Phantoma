@@ -502,13 +502,13 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
     switch (activeTab) {
       case 'params':
         return (
-          <div className="h-full bg-[var(--accent-blue)]/5">
+          <div className="h-full bg-info/5">
             <KeyValueTable items={params} onChange={setParams} />
           </div>
         );
       case 'headers':
         return (
-          <div className="h-full bg-[var(--accent-green)]/5">
+          <div className="h-full bg-success/5">
             <KeyValueTable items={headers} onChange={setHeaders} />
           </div>
         );
@@ -612,12 +612,12 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
                 const Icon = tab.icon;
                 // Map tab to accent color CSS variable
                 const accentMap: Record<string, string> = {
-                  params: 'var(--accent-blue)',
+                  params: 'var(--info)',
                   headers: 'var(--accent-green)',
-                  body: 'var(--accent-pink)',
+                  body: 'var(--error)',
                 };
                 const accentColor = accentMap[tab.id] || 'var(--primary)';
-                
+
                 return (
                   <button
                     key={tab.id}
@@ -664,7 +664,7 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
 
         {/* Resize Handle */}
         <div
-          className="w-1 cursor-col-resize hover:bg-[var(--primary)]/50 transition-colors shrink-0 bg-[var(--border)]/30"
+          className="w-1 cursor-col-resize hover:bg-primary/50 transition-colors shrink-0 bg-border/30"
           onMouseDown={handleMouseDown}
         />
 
@@ -681,8 +681,8 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
                 className={cn(
                   'px-2 py-1 text-xs font-medium transition-all rounded',
                   responseTab === 'body'
-                    ? 'bg-[var(--primary)]/20 text-[var(--primary)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-text-secondary hover:text-text-primary',
                 )}
               >
                 Body
@@ -692,8 +692,8 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
                 className={cn(
                   'px-2 py-1 text-xs font-medium transition-all rounded',
                   responseTab === 'headers'
-                    ? 'bg-[var(--primary)]/20 text-[var(--primary)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-text-secondary hover:text-text-primary',
                 )}
               >
                 Headers
@@ -702,7 +702,7 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
               <div className="relative">
                 <button
                   onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
-                  className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-all"
+                  className="p-1.5 rounded-lg text-text-secondary hover:text-primary hover:bg-primary/10 transition-all"
                   title="Request History"
                 >
                   <svg
@@ -734,7 +734,7 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
                           placeholder="Search history..."
                           value={historySearch}
                           onChange={(e) => setHistorySearch(e.target.value)}
-                          className="w-full px-2 py-1 text-xs bg-[var(--table-headerBg)] border border-[var(--input-border-default)] rounded outline-none focus:border-[var(--primary)]"
+                          className="w-full px-2 py-1 text-xs bg-table-header-background border border-input-border-default rounded outline-none focus:border-primary"
                         />
                       </div>
                       <div className="max-h-64 overflow-y-auto">
@@ -760,8 +760,8 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
                                   <span
                                     className={cn(
                                       'text-[10px] font-mono',
-                                      item.status >= 200 && item.status < 300 && 'text-[var(--success)]',
-                                      item.status >= 400 && 'text-[var(--error)]',
+                                      item.status >= 200 && item.status < 300 && 'text-success',
+                                      item.status >= 400 && 'text-error',
                                     )}
                                   >
                                     {item.status}
@@ -896,8 +896,8 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
             style={{ height: '50%' }}
           >
             <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
-              <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-[var(--accent-blue)]/15 border border-[var(--accent-blue)]/25 shrink-0">
-                <Send className="w-4 h-4 text-[var(--accent-blue)]" />
+              <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-info/15 border border-info/25 shrink-0">
+                <Send className="w-4 h-4 text-info" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-bold text-text-primary">Save to Collection</h3>
@@ -905,7 +905,7 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
               </div>
               <button
                 onClick={() => setIsDrawerOpen(false)}
-                className="p-1.5 rounded-lg bg-[var(--sidebar-itemHover)] text-[var(--text-secondary)] hover:text-[var(--error)] hover:bg-[var(--error)]/10 transition-all shrink-0"
+                className="p-1.5 rounded-lg bg-sidebar-item-hover text-text-secondary hover:text-error hover:bg-error/10 transition-all shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -921,7 +921,7 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
                   placeholder="e.g. Login API, Get User Info..."
-                  className="w-full bg-[var(--table-headerBg)] border border-[var(--input-border-default)] rounded-lg px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--primary)]"
+                  className="w-full bg-table-header-background border border-input-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-primary"
                 />
               </div>
               <div>
@@ -941,14 +941,14 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
             <div className="px-5 py-4 border-t border-divider flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => setIsDrawerOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--sidebar-itemHover)] transition-colors"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmSave}
                 disabled={!tempName.trim()}
-                className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-[var(--primary)] hover:bg-[var(--primary)]/90 disabled:opacity-50 transition-all"
+                className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-primary hover:bg-primary/90 disabled:opacity-50 transition-all"
               >
                 Save to Collection
               </button>

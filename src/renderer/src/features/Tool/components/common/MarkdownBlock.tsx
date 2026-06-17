@@ -7,23 +7,21 @@ interface MarkdownBlockProps {
   accentColor?: string;
 }
 
-const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'rgb(var(--primary))' }) => {
+const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
+  content,
+  accentColor = 'rgb(var(--primary))',
+}) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div
-        style={{
-          padding: '12px 16px',
-          background: 'rgb(var(--card-background))',
-          borderRadius: 6,
-        }}
-      >
+      <div>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
             h1: ({ children }) => (
               <h1
                 style={{
-                  fontSize: 16,
+                  fontSize: 24,
+                  fontWeight: 700,
                   color: 'rgb(var(--text-primary))',
                   marginBottom: 12,
                   letterSpacing: '0.1em',
@@ -35,7 +33,8 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'r
             h2: ({ children }) => (
               <h2
                 style={{
-                  fontSize: 14,
+                  fontSize: 20,
+                  fontWeight: 600,
                   color: 'rgb(var(--text-primary))',
                   marginTop: 16,
                   marginBottom: 8,
@@ -47,7 +46,8 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'r
             h3: ({ children }) => (
               <h3
                 style={{
-                  fontSize: 13,
+                  fontSize: 16,
+                  fontWeight: 600,
                   color: 'rgb(var(--text-primary))',
                   marginBottom: 8,
                 }}
@@ -58,7 +58,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'r
             p: ({ children }) => (
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: 15,
                   color: 'rgb(var(--text-secondary))',
                   lineHeight: 1.6,
                   marginBottom: 12,
@@ -70,10 +70,11 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'r
             ul: ({ children }) => (
               <ul
                 style={{
-                  fontSize: 11,
+                  fontSize: 15,
                   color: 'rgb(var(--text-secondary))',
                   margin: '8px 0',
                   paddingLeft: 20,
+                  listStyleType: 'disc',
                 }}
               >
                 {children}
@@ -85,7 +86,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'r
               return isBlock ? (
                 <pre
                   style={{
-                    fontSize: 11,
+                    fontSize: 14,
                     color: 'rgb(var(--text-primary))',
                     background: 'rgb(var(--input-background))',
                     padding: 12,
@@ -99,9 +100,8 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'r
               ) : (
                 <code
                   style={{
-                    fontSize: 11,
+                    fontSize: 14,
                     color: accentColor,
-                    background: 'rgb(var(--input-background))',
                     padding: '2px 4px',
                     borderRadius: 3,
                   }}
@@ -112,7 +112,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'r
             },
             table: ({ children }) => (
               <div style={{ overflowX: 'auto', margin: '12px 0' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15 }}>
                   {children}
                 </table>
               </div>
@@ -124,7 +124,6 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({ content, accentColor = 'r
                   padding: '8px',
                   color: 'rgb(var(--text-primary))',
                   borderBottom: `1px solid ${accentColor}30`,
-                  backgroundColor: `${accentColor}10`,
                 }}
               >
                 {children}

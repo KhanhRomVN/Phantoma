@@ -118,7 +118,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           }}
         />
         {showIndicatorSuggestions && indicatorHistory.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto border border-border" style={{ background: 'rgb(10, 15, 25)' }}>
+          <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto border border-border bg-[#0a0f19]">
             {indicatorHistory.map((t, i) => (
               <div
                 key={i}

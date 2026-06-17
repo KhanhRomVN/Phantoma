@@ -90,7 +90,7 @@ export const ContextMenuContent = ({ children, className }: ContextMenuContentPr
   return (
     <div
       className={cn(
-        'bg-[var(--dialog-background)] border border-[var(--border)] rounded-md shadow-lg py-1 min-w-[160px]',
+        'bg-modal-background border border-border rounded-md shadow-lg py-1 min-w-[160px]',
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -121,7 +121,7 @@ export const ContextMenuItem = ({
   return (
     <div
       className={cn(
-        'px-3 py-1.5 text-sm hover:bg-[var(--sidebar-itemHover)] cursor-pointer flex items-center',
+        'px-3 py-1.5 text-sm hover:bg-sidebar-item-hover cursor-pointer flex items-center',
         className,
       )}
       onClick={handleClick}
@@ -132,5 +132,5 @@ export const ContextMenuItem = ({
 };
 
 export const ContextMenuSeparator = () => {
-  return <div className="h-px bg-[var(--divider)] my-1" />;
+  return <div className="h-px bg-divider my-1" />;
 };

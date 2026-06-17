@@ -224,11 +224,11 @@ export default function Emulate({
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100%', background: 'var(--background)' }}>
+    <div className="flex h-full bg-background">
       {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Horizontal Chrome-style Tab Bar for Targets */}
-        <div style={{ display: 'flex', height: 40, borderBottom: '1px solid var(--border)', flexShrink: 0, overflowX: 'auto' }}>
+        <div className="flex h-10 border-b border-border shrink-0 overflow-x-auto">
           {targetTabs.map((tab, index) => (
             <button
               key={tab.id}
@@ -285,9 +285,9 @@ export default function Emulate({
             >
               {tab.url &&
                 (tab.favicon ? (
-                  <img src={tab.favicon} alt={tab.title} style={{ width: 12, height: 12 }} />
+                  <img src={tab.favicon} alt={tab.title} className="w-3 h-3" />
                 ) : (
-                  <Code style={{ width: 12, height: 12 }} />
+                  <Code className="w-3 h-3" />
                 ))}
               <span>{tab.title}</span>
               {!(index === 0 && tab.title === 'Chưa chọn target') && tab.id !== 'default' && (
@@ -416,7 +416,7 @@ export default function Emulate({
           <>
             {selectedTool === 'intruder' && (
               <>
-                <div style={{ flex: 1, minHeight: 0, borderBottom: '1px solid var(--border)' }}>
+                <div className="flex-1 min-h-0 border-b border-border">
                   <RequestList
                     filteredRequests={filteredRequests}
                     requests={requests}
@@ -442,7 +442,7 @@ export default function Emulate({
                     browserViewUrl={null}
                   />
                 </div>
-                <div style={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <RequestDetails
                     request={mockRequests.find((r) => r.id === selectedId) || null}
                     searchTerm={searchTerm}
@@ -461,7 +461,7 @@ export default function Emulate({
               </>
             )}
             {selectedTool === 'wasm' && (
-              <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div className="flex-1 overflow-hidden">
                 <WasmPanel />
               </div>
             )}
@@ -486,7 +486,7 @@ export default function Emulate({
               </div>
             )}
             {selectedTool === 'setting' && (
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+              <div className="flex-1 flex items-center justify-center text-text-secondary">
                 Settings Content - Coming Soon
               </div>
             )}
@@ -518,7 +518,7 @@ export default function Emulate({
         });
         return shouldShowToolbar;
       })() && (
-        <div style={{ width: 48, borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0', gap: 4, flexShrink: 0 }}>
+        <div className="w-12 border-l border-border flex flex-col items-center py-2 gap-1 shrink-0">
           {tools.map((tool) => (
             <button
               key={tool.id}

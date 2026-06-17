@@ -86,7 +86,7 @@ export const ResizableSplit = ({
       </div>
       <div
         className={cn(
-          'bg-[var(--divider)] hover:bg-[var(--accent-purple)] transition-colors cursor-col-resize shrink-0',
+          'bg-divider hover:bg-info transition-colors cursor-col-resize shrink-0',
           isVertical ? 'w-px hover:w-0.5' : 'h-px hover:h-0.5',
         )}
         style={isVertical ? { width: '1px' } : { height: '1px' }}

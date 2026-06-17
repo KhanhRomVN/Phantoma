@@ -227,18 +227,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
         />
         {showTargetSuggestions && targetHistory.length > 0 && (
           <div
+            className="absolute top-full left-0 right-0 mt-1 rounded z-10 max-h-[180px] overflow-y-auto"
             style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: 3,
               background: 'rgb(10, 15, 25)',
               border: `1px solid ${accentColor}30`,
-              borderRadius: 4,
-              zIndex: 10,
-              maxHeight: 180,
-              overflowY: 'auto',
             }}
           >
             {targetHistory.map((t, i) => (
@@ -450,7 +442,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               className="w-full box-border p-2.5 rounded text-[12px] font-inherit outline-none transition-colors bg-input-background border border-input-border-default text-text-primary placeholder:text-text-secondary"
             />
             {showSourceSuggestions && filteredSources.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[150px] overflow-y-auto border border-border" style={{ background: 'rgb(10, 15, 25)' }}>
+              <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[150px] overflow-y-auto border border-border bg-[#0a0f19]">
                 {filteredSources.filter(src => !params.includeSources.split(',').map(s => s.trim()).includes(src)).slice(0, 10).map((src, i) => (
                   <div key={i} onClick={() => {
                     const currentSources = params.includeSources.split(',').filter(s => s.trim());
@@ -509,7 +501,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               className="w-full box-border p-2.5 rounded text-[12px] font-mono font-inherit outline-none transition-colors bg-input-background border border-input-border-default text-text-primary placeholder:text-text-secondary"
             />
             {showFlagSuggestions && (
-              <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[150px] overflow-y-auto border border-border" style={{ background: 'rgb(10, 15, 25)' }}>
+              <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[150px] overflow-y-auto border border-border bg-[#0a0f19]">
                 {COMMON_FLAGS.filter(flag => 
                   !params.additionalFlags.includes(flag.value) &&
                   (flag.label.toLowerCase().includes(params.additionalFlags.toLowerCase()) ||

@@ -79,8 +79,8 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                 onClick={() => handleToolSelect(tool.id)}
                 className={`flex items-center gap-2.5 px-2.5 py-2 border border-transparent rounded-r-[4px] cursor-pointer text-left transition-all duration-150 shadow-none font-inherit ${
                   isSelected
-                    ? 'bg-[var(--sidebar-item-hover)]'
-                    : 'bg-transparent hover:bg-[var(--sidebar-item-hover)]'
+                    ? 'bg-sidebar-item-hover'
+                    : 'bg-transparent hover:bg-sidebar-item-hover'
                 }`}
                 style={{
                   borderLeft: `2px solid ${isSelected ? accentColor : 'transparent'}`,
@@ -89,7 +89,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                 {/* Icon with favicon support */}
                 <div
                   className={`w-7 h-7 rounded-[4px] flex items-center justify-center text-[13px] shrink-0 shadow-none overflow-hidden border border-border ${
-                    isSelected ? 'bg-[var(--sidebar-item-hover)]' : 'bg-card-background'
+                    isSelected ? 'bg-sidebar-item-hover' : 'bg-card-background'
                   }`}
                   style={{ color: accentColor }}
                 >
@@ -140,7 +140,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
         {currentTool ? (
           <>
             {/* Tool Header - Thống nhất màu nền */}
-            <div className="px-5 py-3 border-b border-[var(--divider)] flex items-start gap-4 shrink-0 relative">
+            <div className="px-5 py-3 border-b border-divider flex items-start gap-4 shrink-0 relative">
               {/* Big icon - màu accent based on tool index */}
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center text-[22px] shrink-0 self-center"
@@ -227,7 +227,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
             </div>
 
             {/* Tab Bar - Thống nhất màu sắc */}
-            <div className="flex border-b border-[var(--divider)] px-5 gap-1">
+            <div className="flex border-b border-divider px-5 gap-1">
               {[
                 { id: 'information', label: 'INFORMATION' },
                 { id: 'execution', label: 'EXECUTION' },

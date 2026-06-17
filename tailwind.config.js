@@ -19,6 +19,10 @@ module.exports = {
         primary: {
           DEFAULT: 'rgb(var(--primary) / <alpha-value>)',
         },
+        success: 'rgb(var(--success) / <alpha-value>)',
+        error: 'rgb(var(--error) / <alpha-value>)',
+        warn: 'rgb(var(--warn) / <alpha-value>)',
+        info: 'rgb(var(--info) / <alpha-value>)',
         background: 'rgb(var(--background) / <alpha-value>)',
         foreground: 'rgb(var(--foreground) / <alpha-value>)',
         text: {

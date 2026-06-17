@@ -101,17 +101,8 @@ export function ComposerPanel({ appId = '', onSelectRequest, onClose }: Composer
     <div className="flex flex-col h-full relative">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 36,
-          height: 40,
-          borderRadius: 8,
-          background: 'var(--accent-orange)/15',
-          border: '1px solid var(--accent-orange)/25',
-        }}>
-          <Bookmark style={{ width: 16, height: 16, color: 'var(--accent-orange)' }} />
+        <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-orange-500/15 border border-orange-500/25 shrink-0">
+          <Bookmark className="w-4 h-4 text-orange-400" />
         </div>
         <div className="flex-1">
           <h2 className="text-base font-bold text-text-primary">Composer</h2>
@@ -169,17 +160,8 @@ export function ComposerPanel({ appId = '', onSelectRequest, onClose }: Composer
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {filteredRequests.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 py-20 gap-3">
-            <div style={{
-              width: 56,
-              height: 56,
-              borderRadius: 12,
-              background: 'var(--accent-orange)/10',
-              border: '1px solid var(--accent-orange)/20',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <Bookmark style={{ width: 28, height: 28, color: 'var(--accent-orange)/50' }} />
+            <div className="w-14 h-14 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+              <Bookmark className="w-7 h-7 text-orange-400/50" />
             </div>
             <div className="text-center">
               <p className="text-sm font-medium text-text-primary">No saved requests</p>

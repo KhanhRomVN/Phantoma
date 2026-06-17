@@ -46,7 +46,7 @@ function HighlightText({ text, searchTerm, className, highlightClassName }: High
           <mark
             key={i}
             className={cn(
-              'bg-[var(--warning)]/30 text-[var(--text-primary)] rounded-sm px-0.5 mx-[-2px]',
+              'bg-warning/30 text-text-primary rounded-sm px-0.5 mx-[-2px]',
               highlightClassName,
             )}
           >
@@ -76,7 +76,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
             <div className="space-y-4">
               {Object.entries(analysis.headers.request).map(([section, headers]) => (
                 <div key={section}>
-                  <h4 className="text-[10px] font-bold text-[var(--primary)]/80 uppercase tracking-wider mb-1.5">
+                  <h4 className="text-[10px] font-bold text-primary/80 uppercase tracking-wider mb-1.5">
                     {section}
                   </h4>
                   <div className="border border-divider/40 rounded-md bg-table-bodyBg overflow-hidden text-xs">
@@ -95,9 +95,9 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                                 className={cn(
                                   'text-[9px] px-1 py-0.5 rounded uppercase font-bold tracking-tight',
                                   h.status === 'good'
-                                    ? 'bg-[var(--success)]/15 text-[var(--success)]'
+                                    ? 'bg-success/15 text-success'
                                     : h.status === 'warning'
-                                      ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
+                                      ? 'bg-warning/15 text-warning'
                                       : 'bg-secondary text-text-secondary',
                                 )}
                               >
@@ -157,7 +157,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
             <div className="space-y-4">
               {Object.entries(analysis.headers.response).map(([section, headers]) => (
                 <div key={section}>
-                  <h4 className="text-[10px] font-bold text-[var(--primary)]/80 uppercase tracking-wider mb-1.5">
+                  <h4 className="text-[10px] font-bold text-primary/80 uppercase tracking-wider mb-1.5">
                     {section}
                   </h4>
                   <div className="border border-divider/40 rounded-md bg-table-bodyBg overflow-hidden text-xs">
@@ -239,7 +239,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
             {analysis.headers.missing.map((h, i) => (
               <div
                 key={i}
-                className="flex flex-col bg-[var(--warning)]/5 hover:bg-[var(--warning)]/10 transition-colors border border-[var(--warning)]/20 p-2 rounded text-xs relative group"
+                className="flex flex-col bg-warning/5 hover:bg-warning/10 transition-colors border border-warning/20 p-2 rounded text-xs relative group"
               >
                 <div className="flex justify-between items-center mb-1.5">
                   <span className="font-bold font-mono text-xs">{h.name}</span>

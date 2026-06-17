@@ -156,6 +156,11 @@ export const SoftLight: ThemeConfig = {
     //
     primary: 'rgb(90, 108, 138)',
     //
+    success: 'rgb(45, 122, 74)',
+    error: 'rgb(192, 57, 43)',
+    warn: 'rgb(210, 140, 60)',
+    info: 'rgb(90, 108, 138)',
+    //
     background: 'rgb(245, 240, 235)',
     foreground: 'rgb(61, 61, 61)',
     //

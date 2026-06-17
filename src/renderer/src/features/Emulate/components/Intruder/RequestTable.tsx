@@ -25,13 +25,10 @@ import {
   List,
   Play,
   Pause,
-  Regex,
-  Search,
   ShieldAlert,
   Star,
   Target,
   Trash2,
-  Type,
   Zap,
 } from 'lucide-react';
 import { useDebounce } from 'use-debounce';
@@ -44,7 +41,6 @@ import {
   ContextMenuSeparator,
 } from '../common/ContextMenu';
 import { SearchInput } from '../common/SearchInput';
-import { MethodBadge } from '../common/MethodBadge';
 
 // Custom DropdownMenu components
 interface DropdownMenuProps {
@@ -66,6 +62,7 @@ const DropdownMenu = ({ children }: DropdownMenuProps) => {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
+    return undefined;
   }, [open]);
 
   const childrenArray = React.Children.toArray(children);
@@ -103,19 +100,17 @@ const DropdownMenuTrigger = ({
 
 const DropdownMenuContent = ({
   children,
-  align,
   sideOffset,
   className,
 }: {
   children: React.ReactNode;
-  align?: string;
   sideOffset?: number;
   className?: string;
 }) => {
   return (
     <div
       className={cn(
-        'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--dialog-background)] border border-[var(--border)] rounded-lg shadow-xl min-w-[340px]',
+        'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-modal-background border border-border rounded-lg shadow-xl min-w-[340px]',
         className,
       )}
       style={{ marginBottom: sideOffset || 8 }}
@@ -382,8 +377,8 @@ export function RequestTable({
             className={cn(
               'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all cursor-pointer select-none',
               table.getIsAllRowsSelected()
-                ? 'bg-[var(--primary)] border-[var(--primary)] text-zinc-950 shadow-sm shadow-[var(--primary)]/20'
-                : 'border-[var(--border)] bg-[var(--card-background)]/50 hover:border-[var(--border-hover)] text-transparent',
+                ? 'bg-primary border-primary text-zinc-950 shadow-sm shadow-primary/20'
+                : 'border-border bg-card-background/50 hover:border-border-hover text-transparent',
             )}
           >
             <Check className="w-2.5 h-2.5 stroke-[3.5]" />
@@ -398,8 +393,8 @@ export function RequestTable({
             className={cn(
               'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all cursor-pointer select-none',
               row.getIsSelected()
-                ? 'bg-[var(--primary)] border-[var(--primary)] text-zinc-950 shadow-sm shadow-[var(--primary)]/20'
-                : 'border-[var(--border)] bg-[var(--card-background)]/50 hover:border-[var(--border-hover)] text-transparent',
+                ? 'bg-primary border-primary text-zinc-950 shadow-sm shadow-primary/20'
+                : 'border-border bg-card-background/50 hover:border-border-hover text-transparent',
             )}
           >
             <Check className="w-2.5 h-2.5 stroke-[3.5]" />
@@ -420,7 +415,7 @@ export function RequestTable({
             </button>
           );
         },
-        cell: ({ row }) => <span className="text-[var(--text-primary)]">{row.getValue('id')}</span>,
+        cell: ({ row }) => <span className="text-text-primary">{row.getValue('id')}</span>,
         // Hiding detailed ID column to save space, but keeping it in data model
         size: 0,
         enableHiding: true,
@@ -451,7 +446,7 @@ export function RequestTable({
         header: t.requestTable.host,
         size: 200,
         cell: ({ row }) => (
-          <span className="truncate block w-full text-[var(--text-primary)]" title={row.getValue('host')}>
+          <span className="truncate block w-full text-text-primary" title={row.getValue('host')}>
             {row.getValue('host')}
           </span>
         ),
@@ -461,7 +456,7 @@ export function RequestTable({
         header: t.requestTable.path,
         size: 400,
         cell: ({ row }) => (
-          <span className="truncate block w-full text-[var(--text-primary)]" title={row.getValue('path')}>
+          <span className="truncate block w-full text-text-primary" title={row.getValue('path')}>
             {row.getValue('path')}
           </span>
         ),
@@ -478,16 +473,16 @@ export function RequestTable({
 
           if (isPending) {
             return (
-              <div className="flex items-center gap-1.5 text-[var(--text-primary)]" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-1.5 text-text-primary" onClick={(e) => e.stopPropagation()}>
                 <svg
-                  className="w-3.5 h-3.5 text-[var(--warning)] animate-pulse shrink-0"
+                  className="w-3.5 h-3.5 text-warning animate-pulse shrink-0"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
                   <rect x="6" y="5" width="4" height="14" rx="1" />
                   <rect x="14" y="5" width="4" height="14" rx="1" />
                 </svg>
-                <span className="text-[var(--warning)] font-bold animate-pulse text-xs tracking-wider">
+                <span className="text-warning font-bold animate-pulse text-xs tracking-wider">
                   {t.requestTable.held}
                 </span>
                 <button
@@ -495,7 +490,7 @@ export function RequestTable({
                     e.stopPropagation();
                     onForward?.(id);
                   }}
-                  className="px-2 py-0.5 bg-[var(--success)]/20 text-[var(--success)] hover:bg-[var(--success)]/30 rounded text-[10px] font-bold border border-[var(--success)]/40 transition-colors"
+                  className="px-2 py-0.5 bg-success/20 text-success hover:bg-success/30 rounded text-[10px] font-bold border border-success/40 transition-colors"
                   title="Forward Request to Server"
                 >
                   ▶ {t.requestTable.fwd}
@@ -505,7 +500,7 @@ export function RequestTable({
                     e.stopPropagation();
                     onDrop?.(id);
                   }}
-                  className="px-2 py-0.5 bg-[var(--error)]/20 text-[var(--error)] hover:bg-[var(--error)]/30 rounded text-[10px] font-bold border border-[var(--error)]/40 transition-colors"
+                  className="px-2 py-0.5 bg-error/20 text-error hover:bg-error/30 rounded text-[10px] font-bold border border-error/40 transition-colors"
                   title="Drop Request"
                 >
                   ✕ {t.requestTable.drop}
@@ -514,10 +509,10 @@ export function RequestTable({
             );
           }
 
-          let colorClass = 'text-[var(--text-primary)]';
-          if (status >= 200 && status < 300) colorClass = 'text-[var(--success)]';
-          else if (status >= 300 && status < 400) colorClass = 'text-[var(--accent-blue)]';
-          else if (status >= 400) colorClass = 'text-[var(--error)]';
+          let colorClass = 'text-text-primary';
+          if (status >= 200 && status < 300) colorClass = 'text-success';
+          else if (status >= 300 && status < 400) colorClass = 'text-info';
+          else if (status >= 400) colorClass = 'text-error';
           return <span className={colorClass}>{status || t.requestTable.pending}</span>;
         },
       },
@@ -525,7 +520,7 @@ export function RequestTable({
         accessorKey: 'type',
         header: t.requestTable.type,
         size: 80,
-        cell: ({ row }) => <span className="text-[var(--text-primary)]">{row.getValue('type')}</span>,
+        cell: ({ row }) => <span className="text-text-primary">{row.getValue('type')}</span>,
       },
       {
         id: 'tags',
@@ -634,13 +629,13 @@ export function RequestTable({
         accessorKey: 'size',
         header: t.requestTable.size,
         size: 95,
-        cell: ({ row }) => <span className="text-[var(--text-primary)]">{row.getValue('size')}</span>,
+        cell: ({ row }) => <span className="text-text-primary">{row.getValue('size')}</span>,
       },
       {
         accessorKey: 'time',
         header: t.requestTable.time,
         size: 95,
-        cell: ({ row }) => <span className="text-[var(--text-primary)]">{row.getValue('time')}</span>,
+        cell: ({ row }) => <span className="text-text-primary">{row.getValue('time')}</span>,
       },
     ],
     [pendingActionIds, onForward, onDrop, highlightedIds, toggleHighlight, t],
@@ -804,7 +799,7 @@ export function RequestTable({
           animation: intercept-border-pulse 1.5s ease-in-out infinite;
         }
       `}</style>
-      <div className="h-10 flex items-center px-2 border-b border-[var(--divider)]/40 gap-2 shrink-0">
+      <div className="h-10 flex items-center px-2 border-b border-divider/40 gap-2 shrink-0">
         <SearchInput
           value={searchTerm}
           onChange={onSearchChange}
@@ -820,7 +815,7 @@ export function RequestTable({
           className="flex-1"
           inputClassName="h-8 text-xs bg-transparent border-none pl-0"
         />
-        <div className="flex items-center gap-1 border-l border-[var(--divider)] pl-2 h-full">
+        <div className="flex items-center gap-1 border-l border-divider pl-2 h-full">
           <button
             onClick={() => {
               setIsTargetActive(!isTargetActive);
@@ -829,8 +824,8 @@ export function RequestTable({
             className={cn(
               'p-1.5 rounded transition-all duration-300',
               isTargetActive
-                ? 'bg-[var(--warning)]/30 text-[var(--warning)] hover:bg-[var(--warning)]/40'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-itemHover)] hover:text-[var(--text-primary)]',
+                ? 'bg-warning/30 text-warning hover:bg-warning/40'
+                : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
             )}
             title={isTargetActive ? 'Deactivate target' : 'Activate target'}
           >
@@ -844,8 +839,8 @@ export function RequestTable({
             className={cn(
               'p-1.5 rounded transition-all duration-300 flex items-center gap-1',
               isInterceptActive
-                ? 'bg-[var(--error)]/30 text-[var(--error)] hover:bg-[var(--error)]/40'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-itemHover)] hover:text-[var(--text-primary)]',
+                ? 'bg-error/30 text-error hover:bg-error/40'
+                : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
             )}
             title={
               isInterceptActive
@@ -866,7 +861,7 @@ export function RequestTable({
         onScroll={handleScroll}
         className="flex-1 flex flex-col overflow-auto relative"
       >
-        <div className="flex h-10 min-h-10 flex-shrink-0 bg-[var(--table-headerBg)] text-sm font-semibold text-[var(--text-secondary)] border-b border-[var(--divider)]/20 sticky top-0 z-10 w-full min-w-max">
+        <div className="flex h-10 min-h-10 flex-shrink-0 bg-table-header-background text-sm font-semibold text-text-secondary border-b border-divider/20 sticky top-0 z-10 w-full min-w-max">
           {table.getHeaderGroups().map((headerGroup) => (
             <div key={headerGroup.id} className="flex w-full h-full">
               {headerGroup.headers.map((header) => {
@@ -938,14 +933,14 @@ export function RequestTable({
                     className={cn(
                       'flex items-center border-b border-divider/20 transition-colors cursor-pointer text-xs absolute left-0 top-0',
                       isPending
-                        ? 'bg-[var(--warning)]/15 hover:bg-[var(--warning)]/25 border-l-4 border-l-[var(--warning)] intercept-pending-row'
+                        ? 'bg-warning/15 hover:bg-warning/25 border-l-4 border-l-warning intercept-pending-row'
                         : isIntercepted
-                          ? 'bg-[var(--error)]/15 hover:bg-[var(--error)]/25 border-l-4 border-l-[var(--error)]'
+                          ? 'bg-error/15 hover:bg-error/25 border-l-4 border-l-error'
                           : isHighlighted
-                            ? 'bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 border-l-2 border-l-[var(--primary)]'
-                            : 'hover:bg-[var(--table-hoverItemBodyBg)]',
+                            ? 'bg-primary/10 hover:bg-primary/20 border-l-2 border-l-primary'
+                            : 'hover:bg-table-row-hover',
                       row.original.id === selectedId &&
-                        'bg-[var(--primary)]/15 text-[var(--text-primary)] hover:bg-[var(--primary)]/20',
+                        'bg-primary/15 text-text-primary hover:bg-primary/20',
                     )}
                     style={{
                       height: `${virtualRow.size}px`,
@@ -1122,37 +1117,37 @@ export function RequestTable({
         )}
       </div>
       {Object.keys(rowSelection).length > 0 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--dialog-background)] border border-[var(--border)]/80 rounded-full shadow-2xl px-4 py-2 flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <span className="text-xs font-medium text-[var(--text-secondary)]">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-modal-background border border-border/80 rounded-full shadow-2xl px-4 py-2 flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <span className="text-xs font-medium text-text-secondary">
             {t.requestTable.selected.replace('{count}', String(Object.keys(rowSelection).length))}
           </span>
-          <div className="w-[1px] h-3.5 bg-[var(--border)]" />
+          <div className="w-[1px] h-3.5 bg-border" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="text-xs text-[var(--primary)] hover:text-[var(--primary)]/80 font-semibold transition-colors flex items-center gap-1.5 focus:outline-none">
+              <button className="text-xs text-primary hover:text-primary/80 font-semibold transition-colors flex items-center gap-1.5 focus:outline-none">
                 {t.requestTable.copySelectedBtn}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" sideOffset={10} className="min-w-[340px]">
+            <DropdownMenuContent sideOffset={10} className="min-w-[340px]">
               <div className="flex items-center gap-2 px-2.5 py-2">
-                <div className="w-7 h-7 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/20 flex items-center justify-center shrink-0">
-                  <Copy className="w-3.5 h-3.5 text-[var(--primary)]" />
+                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <Copy className="w-3.5 h-3.5 text-primary" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-[var(--text-primary)]">
+                  <div className="text-xs font-semibold text-text-primary">
                     {t.requestTable.copySelectedBtn}
                   </div>
-                  <div className="text-[10px] text-[var(--text-secondary)]">
+                  <div className="text-[10px] text-text-secondary">
                     {Object.keys(rowSelection).length}{' '}
                     {t.requestTable.selected.replace('{count}', '')}
                   </div>
                 </div>
               </div>
 
-              <div className="h-px bg-[var(--divider)]/60 mx-1" />
+              <div className="h-px bg-divider/60 mx-1" />
 
               <div className="px-2 pt-2 pb-1">
-                <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2 px-1">
+                <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2 px-1">
                   {(t.requestTable as any).copySections || 'Sections'}
                 </div>
                 <div className="space-y-0.5">
@@ -1189,14 +1184,14 @@ export function RequestTable({
                       className={cn(
                         'w-full flex items-center gap-5 px-2.5 py-2 rounded-lg transition-all duration-150 text-xs',
                         copySections[key]
-                          ? 'bg-[var(--card-background)]/80 text-[var(--text-primary)]'
-                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card-background)]/40',
+                          ? 'bg-card-background/80 text-text-primary'
+                          : 'text-text-secondary hover:text-text-primary hover:bg-card-background/40',
                       )}
                     >
                       <Icon
                         className={cn(
                           'w-3.5 h-3.5 shrink-0 transition-colors',
-                          copySections[key] ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]',
+                          copySections[key] ? 'text-primary' : 'text-text-secondary',
                         )}
                       />
                       <span className="flex-1 text-left">{label}</span>
@@ -1204,16 +1199,16 @@ export function RequestTable({
                         className={cn(
                           'w-7 h-4 rounded-md relative transition-all duration-200 shrink-0',
                           copySections[key]
-                            ? 'bg-[var(--primary)]/40 border border-[var(--primary)]/50'
-                            : 'bg-[var(--border)]/50 border border-[var(--border)]/50',
+                            ? 'bg-primary/40 border border-primary/50'
+                            : 'bg-border/50 border border-border/50',
                         )}
                       >
                         <div
                           className={cn(
                             'absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-sm transition-all duration-200 shadow-sm',
                             copySections[key]
-                              ? 'left-[calc(100%-0.85rem)] bg-[var(--primary)]'
-                              : 'left-0.5 bg-[var(--text-secondary)]',
+                              ? 'left-[calc(100%-0.85rem)] bg-primary'
+                              : 'left-0.5 bg-text-secondary',
                           )}
                         />
                       </div>
@@ -1222,13 +1217,13 @@ export function RequestTable({
                 </div>
               </div>
 
-              <div className="h-px bg-[var(--divider)]/60 mx-1 mt-1" />
+              <div className="h-px bg-divider/60 mx-1 mt-1" />
 
               <div className="px-2 pt-2 pb-1">
-                <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2 px-1">
+                <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2 px-1">
                   {(t.requestTable as any).copyFormatLabel || 'Format'}
                 </div>
-                <div className="flex gap-1 p-0.5 bg-[var(--dialog-background)] rounded-lg border border-[var(--border)]">
+                <div className="flex gap-1 p-0.5 bg-modal-background rounded-lg border border-border">
                   <button
                     onClick={(e: React.MouseEvent) => {
                       e.preventDefault();
@@ -1238,11 +1233,11 @@ export function RequestTable({
                     className={cn(
                       'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all duration-150',
                       copyFormat === 'json'
-                        ? 'bg-[var(--card-background)] text-[var(--text-primary)] shadow-sm'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                        ? 'bg-card-background text-text-primary shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary',
                     )}
                   >
-                    <span className="text-[10px] font-mono font-bold bg-[var(--primary)]/10 text-[var(--primary)] px-1 rounded">
+                    <span className="text-[10px] font-mono font-bold bg-primary/10 text-primary px-1 rounded">
                       &#123;&#125;
                     </span>
                     JSON
@@ -1256,17 +1251,17 @@ export function RequestTable({
                     className={cn(
                       'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all duration-150',
                       copyFormat === 'markdown'
-                        ? 'bg-[var(--card-background)] text-[var(--text-primary)] shadow-sm'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                        ? 'bg-card-background text-text-primary shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary',
                     )}
                   >
-<span className="text-[10px] font-mono font-bold text-[var(--warning)]/80">M↓</span>
+<span className="text-[10px] font-mono font-bold text-warning/80">M↓</span>
                     Markdown
                   </button>
                 </div>
               </div>
 
-              <div className="h-px bg-[var(--divider)]/60 mx-1 mt-1" />
+              <div className="h-px bg-divider/60 mx-1 mt-1" />
 
               <div className="px-2 py-2">
                 <button
@@ -1275,7 +1270,7 @@ export function RequestTable({
                     e.stopPropagation();
                     handleCopySelectedWithOptions();
                   }}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white text-xs font-semibold transition-all duration-150 active:scale-[0.98] shadow-sm shadow-[var(--primary)]/20"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-semibold transition-all duration-150 active:scale-[0.98] shadow-sm shadow-primary/20"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   {(t.requestTable as any).copyToClipboard || 'Copy to Clipboard'}
@@ -1285,7 +1280,7 @@ export function RequestTable({
           </DropdownMenu>
           <button
             onClick={() => setRowSelection({})}
-            className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="text-xs text-text-secondary hover:text-text-primary transition-colors"
           >
             {t.requestTable.deselect}
           </button>
@@ -1294,7 +1289,7 @@ export function RequestTable({
       {showScrollToSelected && (
         <button
           onClick={scrollToSelected}
-          className="absolute bottom-4 right-4 z-40 w-8 h-8 rounded-full bg-[var(--primary)] text-zinc-950 flex items-center justify-center shadow-lg hover:bg-[var(--primary)]/85 active:scale-95 transition-all cursor-pointer border border-[var(--primary)]/20"
+          className="absolute bottom-4 right-4 z-40 w-8 h-8 rounded-full bg-primary text-zinc-950 flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
           title="Scroll to focused request"
         >
           <Target className="w-4 h-4" />

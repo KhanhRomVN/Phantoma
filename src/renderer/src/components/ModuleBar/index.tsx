@@ -10,6 +10,47 @@ import {
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAccentColors } from '../../shared/hooks/useAccentColors';
 
+// ─── Color Helper ──────────────────────────────────────────────────────────
+// Helper to get color for a module (deterministic based on module id)
+// This needs to be defined before the components that use it
+let accentColorsCache: string[] = ['rgb(54, 134, 255)'];
+let unifiedAccentCache = 'rgb(54, 134, 255)';
+
+export const setAccentColorsForModuleBar = (colors: string[], unified: string) => {
+  accentColorsCache = colors.length > 0 ? colors : [unified];
+  unifiedAccentCache = unified;
+};
+
+const getModuleColor = (moduleId: PhantomModule) => {
+  // Use module id to deterministically pick a color
+  let hash = 0;
+  for (let i = 0; i < moduleId.length; i++) {
+    hash = moduleId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % accentColorsCache.length;
+  const color = accentColorsCache[index] || accentColorsCache[0] || unifiedAccentCache;
+
+  // Parse RGB values to create opacity variants
+  const rgbMatch = color.match(/\d+/g);
+  if (rgbMatch && rgbMatch.length >= 3) {
+    const r = rgbMatch[0];
+    const g = rgbMatch[1];
+    const b = rgbMatch[2];
+    return {
+      base: color,
+      bg: `rgba(${r}, ${g}, ${b}, 0.1)`,
+      border: `rgba(${r}, ${g}, ${b}, 0.3)`,
+      hover: `rgba(${r}, ${g}, ${b}, 0.2)`,
+    };
+  }
+  return {
+    base: color || unifiedAccentCache,
+    bg: 'var(--sidebar-item-hover)',
+    border: 'var(--divider)',
+    hover: 'var(--sidebar-item-hover)',
+  };
+};
+
 const NAV_MODULES: NavModuleConfig[] = [
   {
     id: 'dashboard',
@@ -258,7 +299,6 @@ function SubMenuItemButton({
   onSelect,
   isActive,
   expanded,
-  moduleColor,
 }: {
   item: SubMenuItem;
   onSelect: () => void;
@@ -266,14 +306,9 @@ function SubMenuItemButton({
   isFirst?: boolean;
   isLast?: boolean;
   expanded: boolean;
-  moduleColor?: { base: string; bg: string; border: string; hover: string };
+  moduleId: PhantomModule;
 }) {
   if (!expanded) return null;
-
-  // Parse RGB for hover opacity
-  const color = moduleColor?.base || 'var(--text-primary)';
-  const bgColor = moduleColor?.bg || 'var(--sidebar-item-hover)';
-  const hoverBg = moduleColor?.hover || 'var(--sidebar-item-hover)';
 
   return (
     <button
@@ -284,32 +319,14 @@ function SubMenuItemButton({
         !isActive && !item.disabled && 'text-text-secondary hover:text-text-primary',
         item.disabled && 'text-text-secondary cursor-not-allowed opacity-50',
       )}
-      style={
-        isActive && !item.disabled
-          ? {
-              background: bgColor,
-              color: color,
-            }
-          : undefined
-      }
     >
       <span
         className={cn(
           'w-1.5 h-1.5 rounded-full shrink-0',
           item.disabled ? 'bg-border' : 'bg-divider',
         )}
-        style={
-          isActive && !item.disabled
-            ? {
-                background: color,
-                boxShadow: `0 0 0 1px ${color}40`,
-              }
-            : undefined
-        }
       />
-      <span className="text-[13px]" style={isActive && !item.disabled ? { color } : undefined}>
-        {item.title}
-      </span>
+      <span className="text-[13px] font-semibold">{item.title}</span>
       {item.disabled && <span className="ml-auto text-[8px] text-border">(soon)</span>}
     </button>
   );
@@ -332,36 +349,11 @@ export function ModuleBar({
   const { currentPreset } = useTheme();
   const { accentColors, UNIFIED_ACCENT, toRgba } = useAccentColors();
 
-  // Generate accent colors for each module using theme accentColors
-  const moduleAccentColors = useMemo(() => {
-    return NAV_MODULES.reduce(
-      (acc, module, index) => {
-        const color = accentColors[index % accentColors.length];
-        // Parse RGB values to create opacity variants
-        const rgbMatch = color.match(/\d+/g);
-        if (rgbMatch) {
-          const r = rgbMatch[0];
-          const g = rgbMatch[1];
-          const b = rgbMatch[2];
-          acc[module.id] = {
-            base: color,
-            bg: `rgba(${r}, ${g}, ${b}, 0.1)`,
-            border: `rgba(${r}, ${g}, ${b}, 0.3)`,
-            hover: `rgba(${r}, ${g}, ${b}, 0.2)`,
-          };
-        } else {
-          acc[module.id] = {
-            base: color,
-            bg: 'var(--sidebar-item-hover)',
-            border: 'var(--divider)',
-            hover: 'var(--sidebar-item-hover)',
-          };
-        }
-        return acc;
-      },
-      {} as Record<PhantomModule, { base: string; bg: string; border: string; hover: string }>,
-    );
-  }, [accentColors]);
+  // Update the global color cache for getModuleColor
+  // We need to do this on each render to keep colors in sync with theme
+  if (typeof accentColors !== 'undefined' && accentColors.length > 0) {
+    setAccentColorsForModuleBar(accentColors, UNIFIED_ACCENT);
+  }
 
   const handleSubItemClick = (item: NavModuleConfig, subItem: SubMenuItem) => {
     if (subItem.disabled) return;
@@ -381,7 +373,7 @@ export function ModuleBar({
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
       {/* Border-left with divider */}
-      <div className="h-full shrink-0 bg-sidebar-background border border-l-2 border-border flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
+      <div className="h-full shrink-0 bg-sidebar-background border border-l border-border flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
         <div
           className={cn(
             'w-full h-[37px] flex items-center shrink-0',
@@ -396,7 +388,7 @@ export function ModuleBar({
           className={cn('flex flex-col gap-1 w-full py-2', expanded ? 'px-2' : 'px-0 items-center')}
         >
           {NAV_MODULES.map((item) => {
-            const moduleColor = moduleAccentColors[item.id];
+            const moduleColor = getModuleColor(item.id);
             const isActive = active === item.id;
 
             return (
@@ -407,16 +399,17 @@ export function ModuleBar({
                     'relative w-full flex items-center gap-3 transition-all duration-200',
                     expanded ? 'px-3 py-2 rounded-lg' : 'w-9 h-9 px-0 rounded-md justify-center',
                     !expanded && 'mx-auto',
-                    !isActive && 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                    !isActive &&
+                      'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                    isActive && 'text-[--module-color]',
                     !expanded && 'border-l-2 border-solid',
                     !expanded && 'border-transparent',
                   )}
                   style={
                     isActive
-                      ? {
-                          background: moduleColor?.bg || 'var(--sidebar-item-hover)',
-                          color: moduleColor?.base || 'var(--text-primary)',
-                        }
+                      ? ({
+                          '--module-color': moduleColor?.base || 'var(--text-primary)',
+                        } as React.CSSProperties)
                       : undefined
                   }
                 >
@@ -434,9 +427,11 @@ export function ModuleBar({
                       animate={{ opacity: 1, width: 'auto' }}
                       exit={{ opacity: 0, width: 0 }}
                       className={cn(
-                        'text-[13px] font-medium truncate flex-1 text-left whitespace-nowrap overflow-hidden',
+                        'text-[13px] font-semibold truncate flex-1 text-left whitespace-nowrap overflow-hidden',
                       )}
-                      style={isActive ? { color: moduleColor?.base || 'var(--text-primary)' } : undefined}
+                      style={
+                        isActive ? { color: moduleColor?.base || 'var(--text-primary)' } : undefined
+                      }
                     >
                       {item.title}
                     </motion.span>
@@ -470,7 +465,7 @@ export function ModuleBar({
                           isLast={index === item.children!.length - 1}
                           onSelect={() => handleSubItemClick(item, child)}
                           expanded={expanded}
-                          moduleColor={moduleColor}
+                          moduleId={item.id}
                         />
                       ))}
                     </motion.div>

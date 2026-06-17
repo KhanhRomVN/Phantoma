@@ -181,7 +181,7 @@ function Combobox({
       {isOpen && (
         <div className="absolute z-50 w-full mt-1 bg-dialog-background border border-divider rounded-lg shadow-lg max-h-64 overflow-y-auto">
           {filteredItems.length === 0 ? (
-            <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-secondary)' }}>No matching requests</div>
+            <div className="px-3 py-2 text-xs text-text-secondary">No matching requests</div>
           ) : (
             filteredItems.map((item) => (
               <button

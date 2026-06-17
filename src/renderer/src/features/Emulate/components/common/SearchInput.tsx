@@ -43,8 +43,8 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           className={cn(
             'p-1 rounded transition-colors',
             matchCase
-              ? 'bg-[var(--primary)]/20 text-[var(--primary)] hover:bg-[var(--primary)]/30'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-itemHover)] hover:text-[var(--text-primary)]',
+              ? 'bg-primary/20 text-primary hover:bg-primary/30'
+              : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
           )}
           title="Match case"
         >
@@ -57,8 +57,8 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           className={cn(
             'p-1 rounded transition-colors',
             matchWholeWord
-              ? 'bg-[var(--primary)]/20 text-[var(--primary)] hover:bg-[var(--primary)]/30'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-itemHover)] hover:text-[var(--text-primary)]',
+              ? 'bg-primary/20 text-primary hover:bg-primary/30'
+              : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
           )}
           title="Match whole word"
         >
@@ -71,8 +71,8 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           className={cn(
             'p-1 rounded transition-colors',
             useRegex
-              ? 'bg-[var(--success)]/20 text-[var(--success)] hover:bg-[var(--success)]/30'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-itemHover)] hover:text-[var(--text-primary)]',
+              ? 'bg-success/20 text-success hover:bg-success/30'
+              : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
           )}
           title="Use regular expression"
         >
@@ -92,7 +92,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
-            'w-full pl-8 pr-16 py-1.5 text-xs bg-[var(--background)] border border-[var(--border)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--primary)]',
+            'w-full pl-8 pr-16 py-1.5 text-xs bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary',
             inputClassName,
           )}
         />
@@ -107,14 +107,14 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   return (
     <div className={cn('flex items-center gap-2 flex-1', className)}>
       <div className="relative flex-1">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-secondary)]" />
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
         <input
           type="text"
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
-            'w-full h-9 bg-[var(--input-background)] border border-[var(--input-border-default)] rounded-md pl-8 pr-3 text-sm text-[var(--text-primary)] focus:border-[var(--primary)]/50 outline-none',
+            'w-full h-9 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-primary/50 outline-none',
             inputClassName,
           )}
         />

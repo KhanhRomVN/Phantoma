@@ -35,7 +35,7 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
           <span className="text-[11px] font-mono text-text-secondary uppercase tracking-wide">
             Domain
           </span>
-          <span className="text-[12px] font-mono text-[var(--primary)]">{result.query.value}</span>
+          <span className="text-[12px] font-mono text-primary">{result.query.value}</span>
         </div>
         <div className="flex justify-between items-center py-1 border-b border-[#111827]">
           <span className="text-[11px] font-mono text-text-secondary uppercase tracking-wide">
@@ -146,7 +146,7 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
           <SectionHeader accent="var(--warning)">Warnings ({result.warnings.length})</SectionHeader>
           <div className="space-y-1">
             {result.warnings.slice(0, 5).map((w, i) => (
-              <div key={i} className="text-[11px] font-mono text-[var(--warning)] py-0.5">
+              <div key={i} className="text-[11px] font-mono text-warning py-0.5">
                 ⚠ {w}
               </div>
             ))}

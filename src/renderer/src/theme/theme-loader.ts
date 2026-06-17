@@ -16,6 +16,10 @@ export interface ThemeConfig {
   };
   tailwind: {
     primary: string;
+    success: string;
+    error: string;
+    warn: string;
+    info: string;
     background: string;
     foreground: string;
     textPrimary: string;

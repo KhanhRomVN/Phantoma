@@ -17,7 +17,7 @@ export function NetworkDetails({ request }: NetworkDetailsProps) {
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {/* Connection Info */}
-        <div className="p-2.5 bg-[var(--card-background)]/20 rounded-lg border border-[var(--divider)]/50">
+        <div className="p-2.5 bg-card-background/20 rounded-lg border border-divider/50">
           <h3 className="text-[10px] font-bold text-text-secondary uppercase mb-1.5 flex items-center gap-1.5">
             <Activity className="w-3 h-3" /> Connection
           </h3>
@@ -44,7 +44,7 @@ export function NetworkDetails({ request }: NetworkDetailsProps) {
                 className={cn(
                   'font-bold',
                   analysis.network.connection.connectionReused
-                    ? 'text-[var(--success)]'
+                    ? 'text-success'
                     : 'text-text-secondary',
                 )}
               >
@@ -55,7 +55,7 @@ export function NetworkDetails({ request }: NetworkDetailsProps) {
         </div>
 
         {/* DNS Info */}
-        <div className="p-2.5 bg-[var(--card-background)]/20 rounded-lg border border-[var(--divider)]/50">
+        <div className="p-2.5 bg-card-background/20 rounded-lg border border-divider/50">
           <h3 className="text-[10px] font-bold text-text-secondary uppercase mb-1.5 flex items-center gap-1.5">
             <Globe className="w-3 h-3" /> DNS Resolution
           </h3>
@@ -91,7 +91,7 @@ export function NetworkDetails({ request }: NetworkDetailsProps) {
         </div>
 
         {/* Geolocation */}
-        <div className="p-2.5 bg-[var(--card-background)]/20 rounded-lg border border-[var(--border)]/50 md:col-span-2">
+        <div className="p-2.5 bg-card-background/20 rounded-lg border border-border/50 md:col-span-2">
           <h3 className="text-[10px] font-bold text-text-secondary uppercase mb-1.5 flex items-center gap-1.5">
             <MapPin className="w-3 h-3" /> Geolocation
           </h3>

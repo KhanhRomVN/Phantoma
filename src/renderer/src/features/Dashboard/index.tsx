@@ -429,7 +429,7 @@ function SessionRow({ s }: { s: (typeof activeSessions)[0] }) {
   return (
     <div className="flex items-center gap-2 py-1.5 border-b border-border last:border-0 group">
       <div className="w-1.5 h-1.5 rounded-full bg-[#30d158] animate-pulse shrink-0" />
-      <span className="font-mono text-[10px] text-[var(--primary)] w-32 shrink-0">{s.target}</span>
+      <span className="font-mono text-[10px] text-primary w-32 shrink-0">{s.target}</span>
       <span
         className="text-[10px] font-bold font-mono w-20 shrink-0"
         style={{ color: s.user === 'SYSTEM' || s.user === 'root' ? '#ff2d55' : '#f5a623' }}
@@ -442,8 +442,7 @@ function SessionRow({ s }: { s: (typeof activeSessions)[0] }) {
         {s.uptime}
       </span>
       <button
-        className="text-[8px] font-mono font-bold px-2 py-0.5 rounded border opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ color: '#0af', borderColor: '#0af30', background: '#0af10' }}
+        className="text-[8px] font-mono font-bold px-2 py-0.5 rounded border opacity-0 group-hover:opacity-100 transition-opacity text-[#0af] border-[#0af30] bg-[#0af10]"
       >
         INTERACT
       </button>
@@ -504,11 +503,11 @@ function TerminalFeed() {
   return (
     <div ref={ref} className="flex-1 overflow-y-auto font-mono text-[9px] space-y-0.5 max-h-[80px]">
       {lines.map((l, i) => (
-        <div key={i} className={l.text.startsWith('[!]') ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
+        <div key={i} className={l.text.startsWith('[!]') ? 'text-warning' : 'text-success'}>
           {l.text}
         </div>
       ))}
-      <span className="text-[var(--success)] animate-pulse">█</span>
+      <span className="text-success animate-pulse">█</span>
     </div>
   );
 }
@@ -524,10 +523,7 @@ export function Dashboard() {
   }, []);
 
   return (
-    <div
-      className="flex flex-col flex-1 overflow-hidden bg-background"
-      style={{ fontFamily: '"JetBrains Mono", "Fira Code", ui-monospace, monospace' }}
-    >
+    <div className="flex flex-col flex-1 overflow-hidden bg-background font-mono">
       {/* Header */}
       <div className="flex items-center gap-3 px-3 h-[34px] bg-background border-b border-border shrink-0">
         <div className="flex items-center gap-1.5">
@@ -541,10 +537,7 @@ export function Dashboard() {
         <div className="ml-auto flex items-center gap-2">
           <LiveClock />
           <div className="w-px h-3 bg-[#1c2333]" />
-          <button
-            className="text-[9px] font-mono font-bold px-2.5 py-1 rounded border"
-            style={{ color: '#0af', borderColor: '#0af30', background: '#0af10' }}
-          >
+          <button className="text-[9px] font-mono font-bold px-2.5 py-1 rounded border text-[#0af] border-[#0af30] bg-[#0af10]">
             ⟳ REFRESH
           </button>
         </div>
@@ -688,7 +681,7 @@ export function Dashboard() {
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[8px] font-mono text-text-secondary">{v.cve}</span>
-                      <span className="text-[8px] text-[var(--primary)] truncate">› {v.target}</span>
+                      <span className="text-[8px] text-primary truncate">› {v.target}</span>
                     </div>
                     <div className="mt-1 h-[2px] bg-border rounded-full overflow-hidden">
                       <div
@@ -792,7 +785,7 @@ export function Dashboard() {
                     className="flex items-center gap-2 py-1 border-b border-border last:border-0"
                   >
                     <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: c }} />
-                    <span className="font-mono text-[9.5px] text-[var(--primary)] w-28 shrink-0">
+                    <span className="font-mono text-[9.5px] text-primary w-28 shrink-0">
                       {t.host}
                     </span>
                     <span className="text-[8px] text-text-secondary w-16 shrink-0">

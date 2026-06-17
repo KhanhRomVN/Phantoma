@@ -44,7 +44,7 @@ export function PMKIDPanel({ networks, onAction }: PMKIDPanelProps) {
 
   return (
     <Panel title="PMKID Attack · hcxdumptool — No Deauth Required" accent="var(--accent-purple)">
-      <div className="text-[9px] text-text-secondary mb-3 leading-relaxed py-2 px-2.5 bg-accent-purple/5 border border-accent-purple/20 rounded">
+      <div className="text-[9px] text-text-secondary mb-3 leading-relaxed py-2 px-2.5 bg-info border border-accent-purple/20 rounded">
         PMKID attacks capture the RSN IE PMKID from beacon/association frames — no client needed, no
         deauth sent. Use <span className="text-accent-purple">hcxdumptool</span> to capture, then
         crack with <span className="text-accent-purple">hashcat -m 22000</span>.
@@ -72,9 +72,7 @@ export function PMKIDPanel({ networks, onAction }: PMKIDPanelProps) {
               <span className="text-text-secondary">{net.signal}dBm</span>
             </div>
             {net.pmkidFile && (
-              <div className="text-[8px] text-accent-purple mb-1.5">
-                → {net.pmkidFile}
-              </div>
+              <div className="text-[8px] text-accent-purple mb-1.5">→ {net.pmkidFile}</div>
             )}
             {net.crackedPassword && (
               <div className="text-[9px] text-success font-bold mb-1.5">

@@ -40,6 +40,10 @@ export function ThemeProvider({
     const root = window.document.documentElement;
     const cssVarMap: Record<string, string> = {
       primary: '--primary',
+      success: '--success',
+      error: '--error',
+      warn: '--warn',
+      info: '--info',
       background: '--background',
       foreground: '--foreground',
       textPrimary: '--text-primary',

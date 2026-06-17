@@ -193,7 +193,7 @@ function ListFilterSection({
         <div className="flex gap-1.5 relative w-full items-center">
           <div className="flex-1">
             <input
-              className="w-full bg-[var(--input-background)] border border-[var(--input-border-default)] hover:border-[var(--input-border-hover)] focus:border-[var(--primary)]/70 rounded px-3 py-2 text-xs focus:bg-[var(--input-background)]/80 outline-none h-10 transition-all text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+              className="w-full bg-input-background border border-input-border-default hover:border-input-border-hover focus:border-primary/70 rounded px-3 py-2 text-xs focus:bg-input-background/80 outline-none h-10 transition-all text-text-primary placeholder:text-text-secondary"
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);
@@ -216,7 +216,7 @@ function ListFilterSection({
           {showSuggestions && (
             <button
               onClick={() => setShowSuggestions(false)}
-              className="bg-[var(--input-background)] hover:bg-[var(--error)]/10 border border-[var(--input-border-default)] hover:border-[var(--error)]/40 rounded text-[var(--text-secondary)] hover:text-[var(--error)] w-10 h-10 flex items-center justify-center transition-colors shrink-0"
+              className="bg-input-background hover:bg-error/10 border border-input-border-default hover:border-error/40 rounded text-text-secondary hover:text-error w-10 h-10 flex items-center justify-center transition-colors shrink-0"
               title={t.networkFilter.closeSuggestions}
             >
               <X className="w-4 h-4" />
@@ -226,7 +226,7 @@ function ListFilterSection({
           {showSuggestions && filteredSuggestions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="absolute top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto bg-[var(--dialog-background)] border border-[var(--divider)] rounded-md shadow-xl z-50"
+              className="absolute top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto bg-modal-background border border-divider rounded-md shadow-xl z-50"
             >
               <div className="p-1 flex flex-col gap-1">
                 {filteredSuggestions.map((suggestion) => {
@@ -239,8 +239,8 @@ function ListFilterSection({
                       className={cn(
                         'w-full text-left px-2 py-2 text-xs rounded transition-colors flex items-center justify-between gap-2 min-w-0',
                         isAlreadyAdded
-                          ? 'bg-[var(--primary)]/20 text-[var(--primary)] font-medium hover:bg-[var(--primary)]/30'
-                          : 'hover:bg-[var(--sidebar-itemHover)]/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                          ? 'bg-primary/20 text-primary font-medium hover:bg-primary/30'
+                          : 'hover:bg-sidebar-item-hover/40 text-text-secondary hover:text-text-primary',
                       )}
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -327,8 +327,8 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
   const typeConfig: Record<string, { label: string; color: string; bgColor: string }> = {
     xhr: {
       label: t.networkFilter.types.xhr,
-      color: 'var(--accent-cyan)',
-      bgColor: 'var(--accent-cyan)',
+      color: 'var(--info)',
+      bgColor: 'var(--info)',
     },
     js: {
       label: t.networkFilter.types.js,
@@ -337,8 +337,8 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
     },
     css: {
       label: t.networkFilter.types.css,
-      color: 'var(--accent-blue)',
-      bgColor: 'var(--accent-blue)',
+      color: 'var(--info)',
+      bgColor: 'var(--info)',
     },
     img: {
       label: t.networkFilter.types.img,
@@ -347,8 +347,8 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
     },
     media: {
       label: t.networkFilter.types.media,
-      color: 'var(--accent-pink)',
-      bgColor: 'var(--accent-pink)',
+      color: 'var(--error)',
+      bgColor: 'var(--error)',
     },
     font: {
       label: t.networkFilter.types.font,
@@ -383,14 +383,14 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
   };
 
   const methodColors: Record<string, { color: string; bgColor: string }> = {
-    GET: { color: 'var(--accent-blue)', bgColor: 'var(--accent-blue)' },
+    GET: { color: 'var(--info)', bgColor: 'var(--info)' },
     POST: { color: 'var(--accent-green)', bgColor: 'var(--accent-green)' },
     PUT: { color: 'var(--accent-orange)', bgColor: 'var(--accent-orange)' },
     PATCH: { color: 'var(--accent-amber)', bgColor: 'var(--accent-amber)' },
     DELETE: { color: 'var(--error)', bgColor: 'var(--error)' },
     HEAD: { color: 'var(--text-secondary)', bgColor: 'var(--text-secondary)' },
     OPTIONS: { color: 'var(--accent-purple)', bgColor: 'var(--accent-purple)' },
-    TRACE: { color: 'var(--accent-indigo)', bgColor: 'var(--accent-indigo)' },
+    TRACE: { color: 'var(--info)', bgColor: 'var(--info)' },
     CONNECT: { color: 'var(--accent-rose)', bgColor: 'var(--accent-rose)' },
   };
 

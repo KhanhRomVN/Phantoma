@@ -156,6 +156,11 @@ export const MidnightBlue: ThemeConfig = {
     //
     primary: 'rgb(10, 132, 255)',
     //
+    success: 'rgb(48, 209, 88)',
+    error: 'rgb(255, 45, 85)',
+    warn: 'rgb(255, 159, 10)',
+    info: 'rgb(10, 132, 255)',
+    //
     background: 'rgb(15, 19, 25)',
     foreground: 'rgb(200, 214, 240)',
     //

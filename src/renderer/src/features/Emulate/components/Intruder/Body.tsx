@@ -58,27 +58,27 @@ function HexViewer({ data, className }: HexViewerProps) {
   return (
     <div
       className={cn(
-        'font-mono text-xs overflow-auto h-full bg-[var(--background)] p-4 select-text',
+        'font-mono text-xs overflow-auto h-full bg-background p-4 select-text',
         className,
       )}
     >
       <div className="flex">
         {/* Offset Column */}
-        <div className="flex flex-col text-[var(--text-secondary)] select-none mr-4 border-r border-[var(--border)] pr-2 text-right">
+        <div className="flex flex-col text-text-secondary select-none mr-4 border-r border-border pr-2 text-right">
           {hexLines.map((_, i) => (
             <div key={i}>{(i * 16).toString(16).padStart(8, '0').toUpperCase()}</div>
           ))}
         </div>
 
         {/* Hex Column */}
-        <div className="flex flex-col text-[var(--text-primary)] mr-4 whitespace-pre">
+        <div className="flex flex-col text-text-primary mr-4 whitespace-pre">
           {hexLines.map((line, i) => (
             <div key={i}>{line}</div>
           ))}
         </div>
 
         {/* ASCII Column */}
-        <div className="flex flex-col text-[var(--success)] border-l border-[var(--divider)] pl-4 whitespace-pre">
+        <div className="flex flex-col text-success border-l border-divider pl-4 whitespace-pre">
           {asciiLines.map((line, i) => (
             <div key={i}>{line}</div>
           ))}
@@ -186,7 +186,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
               </div>
             </div>
 
-            <div className="flex-1 bg-[var(--card-background)]/20 border border-[var(--border)]/50 rounded-md overflow-hidden relative min-h-0">
+            <div className="flex-1 bg-card-background/20 border border-border/50 rounded-md overflow-hidden relative min-h-0">
               <CodeBlock
                 ref={requestBlockRef}
                 code={requestBodyContent}
@@ -217,7 +217,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
                 )}
                 <div className="w-[1px] h-3 bg-divider/50 mx-1" />
                 {isResponseBinary && (
-                  <span className="bg-[var(--accent-indigo)]/10 text-[var(--accent-indigo)] px-1.5 py-0.5 rounded font-bold uppercase">
+                  <span className="bg-info/10 text-info px-1.5 py-0.5 rounded font-bold uppercase">
                     BINARY
                   </span>
                 )}

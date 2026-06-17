@@ -125,17 +125,8 @@ function AddJobDrawer({
       <div className="absolute inset-0 bg-black/40 z-40" onClick={onClose} />
       <div className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[85%]">
         <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 36,
-            height: 40,
-            borderRadius: 8,
-            background: 'var(--accent-amber)/15',
-            border: '1px solid var(--accent-amber)/25',
-          }}>
-            <Zap style={{ width: 16, height: 16, color: 'var(--accent-amber)' }} />
+          <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-amber-500/15 border border-amber-500/25 shrink-0">
+            <Zap className="w-4 h-4 text-amber-400" />
           </div>
           <div className="flex-1">
             <h3 className="text-base font-bold text-text-primary">New Fuzzer Job</h3>

@@ -12,14 +12,14 @@ interface MethodBadgeProps {
 
 // Use CSS variables for method colors to follow theme
 const methodColors: Record<string, { color: string; bgColor: string }> = {
-  GET: { color: 'var(--accent-blue)', bgColor: 'var(--accent-blue)' },
+  GET: { color: 'var(--info)', bgColor: 'var(--info)' },
   POST: { color: 'var(--accent-green)', bgColor: 'var(--accent-green)' },
   PUT: { color: 'var(--accent-orange)', bgColor: 'var(--accent-orange)' },
   DELETE: { color: 'var(--error)', bgColor: 'var(--error)' },
   PATCH: { color: 'var(--accent-purple)', bgColor: 'var(--accent-purple)' },
   HEAD: { color: 'var(--text-secondary)', bgColor: 'var(--text-secondary)' },
   OPTIONS: { color: 'var(--accent-cyan)', bgColor: 'var(--accent-cyan)' },
-  TRACE: { color: 'var(--accent-indigo)', bgColor: 'var(--accent-indigo)' },
+  TRACE: { color: 'var(--info)', bgColor: 'var(--info)' },
   CONNECT: { color: 'var(--accent-rose)', bgColor: 'var(--accent-rose)' },
 };
 

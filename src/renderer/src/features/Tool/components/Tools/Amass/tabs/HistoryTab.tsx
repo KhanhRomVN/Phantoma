@@ -78,12 +78,13 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
     const scan = selectedScanForDetail;
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="flex flex-col gap-4">
         {/* Header with Back button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 12 }}>
+        <div className="flex justify-start items-center gap-3">
           <button
             onClick={() => { setShowDetailView(false); setSelectedScanForDetail(null); }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--card-background)', border: `1px solid ${accentColor}30`, borderRadius: 4, color: accentColor, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded bg-card-background text-[11px] font-bold cursor-pointer font-inherit"
+            style={{ border: `1px solid ${accentColor}30`, color: accentColor }}
           >
             <ArrowLeft size={14} />
             BACK TO HISTORY
@@ -143,21 +144,21 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
   }
 
   return (
-    <div ref={historyContainerRef} style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+    <div ref={historyContainerRef} className="flex flex-col gap-3 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
       {/* Search Bar */}
-      <div style={{ position: 'relative', marginBottom: 8 }}>
-        <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
-        <input type="text" value={historySearchQuery} onChange={(e) => setHistorySearchQuery(e.target.value)} placeholder="Search by target, mode, or subdomain..." style={{ width: '100%', padding: '8px 12px 8px 32px', background: 'var(--input-background)', border: `1px solid ${historySearchQuery ? accentColor + '50' : 'var(--input-border-default)'}`, borderRadius: 4, color: 'var(--text-primary)', fontSize: 11, outline: 'none', fontFamily: 'inherit' }} />
+      <div className="relative mb-2">
+        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+        <input type="text" value={historySearchQuery} onChange={(e) => setHistorySearchQuery(e.target.value)} placeholder="Search by target, mode, or subdomain..." className="w-full py-2 px-3 pl-8 bg-input-background rounded text-text-primary text-[11px] outline-none font-inherit" style={{ border: `1px solid ${historySearchQuery ? accentColor + '50' : 'var(--input-border-default)'}` }} />
       </div>
 
       {filteredHistory.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)', fontSize: 12 }}>
+        <div className="text-center py-10 text-text-secondary text-xs">
           {history.length === 0 ? 'No scan history yet. Run a scan to see results here.' : 'No matching scans found.'}
         </div>
       ) : (
         Object.entries(groupedHistory).map(([dateLabel, scans]) => (
           <div key={dateLabel}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: accentColor, letterSpacing: '0.1em', padding: '8px 0 4px 0', borderBottom: `1px solid ${accentColor}30`, marginBottom: 8 }}>{dateLabel}</div>
+            <div className="text-[11px] font-bold py-2 pb-1 mb-2" style={{ color: accentColor, letterSpacing: '0.1em', borderBottom: `1px solid ${accentColor}30` }}>{dateLabel}</div>
             {scans.map((scan, idx) => {
               const globalIdx = history.findIndex((h) => h.timestamp === scan.timestamp);
               const isExpanded = expandedCardIndex === globalIdx;
@@ -171,9 +172,9 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
 
       {/* Context Menu */}
       {contextMenu?.visible && contextMenu.scan && (
-        <div style={{ position: 'fixed', top: contextMenu.y, left: contextMenu.x, background: 'var(--dropdown-background)', border: `1px solid ${accentColor}50`, borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 1000, minWidth: 160, overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => handleViewDetails(contextMenu.scan!)} style={{ width: '100%', padding: '10px 16px', background: 'transparent', border: 'none', color: accentColor, fontSize: 12, fontWeight: 700, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s', display: 'flex', alignItems: 'center', gap: 8 }} onMouseEnter={(e) => { e.currentTarget.style.background = `${accentColor}10`; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}><Eye size={14} /> View Details</button>
-          <button onClick={() => { onDeleteScan(contextMenu.scan!); }} style={{ width: '100%', padding: '10px 16px', background: 'transparent', border: 'none', borderTop: `1px solid ${accentColor}20`, color: '#ef4444', fontSize: 12, fontWeight: 700, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s', display: 'flex', alignItems: 'center', gap: 8 }} onMouseEnter={(e) => { e.currentTarget.style.background = '#ef444410'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}><Trash2 size={14} /> Delete</button>
+        <div className="fixed rounded-md shadow-lg z-[1000] min-w-[160px] overflow-hidden" style={{ top: contextMenu.y, left: contextMenu.x, background: 'var(--dropdown-background)', border: `1px solid ${accentColor}50`, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => handleViewDetails(contextMenu.scan!)} className="w-full px-4 py-2.5 bg-transparent border-none text-left cursor-pointer font-inherit transition-colors duration-150 flex items-center gap-2 text-xs font-bold" style={{ color: accentColor }} onMouseEnter={(e) => { e.currentTarget.style.background = `${accentColor}10`; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}><Eye size={14} /> View Details</button>
+          <button onClick={() => { onDeleteScan(contextMenu.scan!); onContextMenuChange(null); }} className="w-full px-4 py-2.5 bg-transparent border-none border-t border-[#ef4444]/20 text-left cursor-pointer font-inherit transition-colors duration-150 flex items-center gap-2 text-xs font-bold text-red-500" onMouseEnter={(e) => { e.currentTarget.style.background = '#ef444410'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}><Trash2 size={14} /> Delete</button>
         </div>
       )}
     </div>

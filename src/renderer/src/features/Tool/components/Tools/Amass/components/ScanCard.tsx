@@ -76,7 +76,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
           </div>
           <div>
             <span className="text-[10px] block text-text-secondary">Subdomains</span>
-            <span className="text-[11px]" style={{ color: '#34d399' }}>{uniqueSubdomains}</span>
+            <span className="text-[11px] text-[#34d399]">{uniqueSubdomains}</span>
           </div>
           {scan.stats && (
             <div>

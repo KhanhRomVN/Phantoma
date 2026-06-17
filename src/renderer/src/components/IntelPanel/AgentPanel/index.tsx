@@ -1,6 +1,7 @@
-// src/renderer/src/features/Tool/components/RightPanel/AgentPanel/index.tsx
+// src/renderer/src/components/IntelPanel/AgentPanel/index.tsx
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '../../../shared/lib/utils';
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type MessageRole = 'user' | 'agent'
@@ -112,7 +113,7 @@ export function AgentPanel() {
   }
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: '70%' }}>
+    <div className="flex flex-col overflow-hidden h-full bg-background">
       {/* header */}
       <div className="flex items-center gap-2 px-3 h-[38px] border-b border-divider bg-background shrink-0">
         <svg className="w-3.5 h-3.5 text-cyan-400 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
@@ -121,11 +122,14 @@ export function AgentPanel() {
           <circle cx="12" cy="10" r="1" fill="currentColor"/>
         </svg>
         <span className="font-[Rajdhani,sans-serif] text-[13px] font-bold tracking-wider text-text-primary uppercase flex-1">
-          Agent
+          Agent Conversation
         </span>
         <span className="flex items-center gap-1 text-[9px] text-green-400">
           <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
           online
+        </span>
+        <span className="text-[9px] text-text-secondary font-mono">
+          {messages.length} messages
         </span>
       </div>
 
@@ -172,7 +176,10 @@ export function AgentPanel() {
             </svg>
           </button>
         </div>
-        <div className="text-[8.5px] text-text-secondary mt-1 px-0.5">↵ send · Shift+↵ newline</div>
+        <div className="flex justify-between text-[8.5px] text-text-secondary mt-1 px-0.5">
+          <span>↵ send · Shift+↵ newline</span>
+          <span className="font-mono">{messages.filter(m => m.role === 'user').length} requests · {messages.filter(m => m.role === 'agent').length} responses</span>
+        </div>
       </div>
     </div>
   )

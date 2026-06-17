@@ -412,22 +412,11 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
                 e.currentTarget.style.background = 'var(--background)';
               }}
             >
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '8px',
-                  background: 'var(--card-background)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Plus style={{ width: 14, height: 14, color: 'var(--text-secondary)' }} />
+              <div className="w-7 h-7 rounded-lg bg-card-background flex items-center justify-center shrink-0">
+                <Plus className="w-3.5 h-3.5 text-text-secondary" />
               </div>
-              <div style={{ flex: 1, textAlign: 'left' }}>
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Add Target</span>
+              <div className="flex-1 text-left">
+                <span className="text-xs font-medium text-text-secondary">Add Target</span>
               </div>
             </button>
           </div>
@@ -459,9 +448,9 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
                 }}
               >
                 {/* App info */}
-                <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.name}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                <div className="px-3 py-2 border-b border-border mb-1">
+                  <div className="text-xs font-semibold text-text-primary truncate">{app.name}</div>
+                  <div className="text-[10px] text-text-secondary truncate mt-0.5">
                     {app.url || (app.platform === 'cli' ? 'CLI Command' : 'Native App')}
                   </div>
                 </div>

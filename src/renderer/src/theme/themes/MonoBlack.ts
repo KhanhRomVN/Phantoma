@@ -156,6 +156,11 @@ export const MonoBlack: ThemeConfig = {
     //
     primary: 'rgb(255, 255, 255)',
     //
+    success: 'rgb(100, 255, 100)',
+    error: 'rgb(255, 68, 68)',
+    warn: 'rgb(255, 200, 100)',
+    info: 'rgb(100, 150, 255)',
+    //
     background: 'rgb(0, 0, 0)',
     foreground: 'rgb(255, 255, 255)',
     //

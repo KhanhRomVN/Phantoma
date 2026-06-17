@@ -156,6 +156,11 @@ export const CrispWhite: ThemeConfig = {
     //
     primary: 'rgb(0, 102, 204)',
     //
+    success: 'rgb(0, 136, 68)',
+    error: 'rgb(221, 34, 34)',
+    warn: 'rgb(204, 102, 0)',
+    info: 'rgb(0, 102, 204)',
+    //
     background: 'rgb(255, 255, 255)',
     foreground: 'rgb(34, 34, 34)',
     //
