@@ -150,7 +150,14 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
   const [requests, setRequests] = useState<NetworkRequest[]>(mockRequests);
   const [cdpRequests, setCdpRequests] = useState<NetworkRequest[]>([]);
   const [cdpRequestMap, setCdpRequestMap] = useState<Map<string, NetworkRequest>>(new Map());
-  const [requestTimestampMap] = useState<Map<string, number>>(new Map());
+  // Use a Map stored on window to ensure it survives re-renders and component lifecycle
+  // This must be initialized once and never re-created
+  if (!(window as any)._phantomaCdpTimestamps) {
+    (window as any)._phantomaCdpTimestamps = new Map<string, number>();
+  }
+  // Store reference to avoid re-reading from window
+  const requestTimestampMap = (window as any)._phantomaCdpTimestamps;
+  console.log('[CDP] Timestamp map size:', requestTimestampMap.size);
   const [selectedId, setSelectedId] = useState<string | null>('1');
   const [searchTerm, setSearchTerm] = useState('');
   const [interceptedIds] = useState<Set<string>>(new Set());
@@ -169,6 +176,17 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
 
   const handleDeleteRequest = (id: string) => {
     console.log('Delete request:', id);
+  };
+
+  // Clear all requests (used when stopping CDP/proxy session)
+  const clearRequests = () => {
+    console.log('[Emulate] Clearing all requests...');
+    setRequests([]);
+    setFilteredRequests([]);
+    setCdpRequests([]);
+    setCdpRequestMap(new Map());
+    requestTimestampMap.clear();
+    setSelectedId(null);
   };
 
   const handleSetCompare1 = (req: NetworkRequest | null) => {
@@ -301,11 +319,7 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
   useEffect(() => {
     console.log('[CDP] Setting up event listeners...');
     const handleCdpRequest = (event: any, data: any) => {
-      console.log('[CDP] Request received - RAW DATA:', JSON.stringify(data, null, 2));
-      console.log('[CDP] Request - data.id:', data.id);
-      console.log('[CDP] Request - data.url:', data.url);
-      console.log('[CDP] Request - data.method:', data.method);
-      console.log('[CDP] Request - data.headers:', data.headers);
+      // Removed debug log for cleaner console
       // Convert CDP request to NetworkRequest format
       let host = '';
       let path = '';
@@ -337,7 +351,7 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
       const type = resourceTypeMap[data.resourceType] || 'other';
       const id = data.id || `cdp-${Date.now()}-${Math.random()}`;
       const requestTimestamp = data.timestamp || Date.now();
-      // Store timestamp for time calculation
+      // Store timestamp for time calculation using global Map
       requestTimestampMap.set(id, requestTimestamp);
 
       const req: NetworkRequest = {
@@ -357,7 +371,7 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
         requestBody: data.requestBody || '',
         responseBody: '',
       };
-      console.log('[CDP] Converted request:', JSON.stringify(req, null, 2));
+      
 
       setCdpRequestMap((prev) => {
         const newMap = new Map(prev);
@@ -382,11 +396,6 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
     };
 
     const handleCdpResponse = (event: any, data: any) => {
-      console.log('[CDP] Response received - RAW DATA:', JSON.stringify(data, null, 2));
-      console.log('[CDP] Response - data.id:', data.id);
-      console.log('[CDP] Response - data.statusCode:', data.statusCode);
-      console.log('[CDP] Response - data.headers:', data.headers);
-      console.log('[CDP] Response - data.mimeType:', data.mimeType);
       setCdpRequestMap((prev) => {
         const newMap = new Map(prev);
         const existing = newMap.get(data.id);
@@ -428,18 +437,55 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
       });
     };
 
-    const handleCdpResponseBody = (event: any, data: any) => {
-      console.log('[CDP] Response body received for id:', data.id);
-      console.log('[CDP] Body - data.size:', data.size);
-      console.log('[CDP] Body - data.body length:', data.body?.length || 0);
-      
-      // Calculate time from request to response
-      const requestTimestamp = requestTimestampMap.get(data.id);
+const handleCdpResponseBody = (event: any, data: any) => {
+      // Try to get timestamp, if not found, retry after a short delay
+      let requestTimestamp = requestTimestampMap.get(data.id);
       let timeMs = 0;
+      let timeCalculated = false;
+      
       if (requestTimestamp) {
-        timeMs = (data.timestamp || Date.now()) - requestTimestamp;
-        // Clean up map entry
+        const currentTime = data.timestamp || Date.now();
+        timeMs = currentTime - requestTimestamp;
         requestTimestampMap.delete(data.id);
+        timeCalculated = true;
+      } else {
+        // Retry after 500ms to allow request to be processed
+        setTimeout(() => {
+          const retryTimestamp = requestTimestampMap.get(data.id);
+          if (retryTimestamp) {
+            const currentTime = data.timestamp || Date.now();
+            const retryTimeMs = currentTime - retryTimestamp;
+            // Update time if we have the request in state
+            setRequests((prev) => {
+              return prev.map((r) => {
+                if (r.id === data.id) {
+                  const timeStr = retryTimeMs >= 1000 ? `${(retryTimeMs / 1000).toFixed(2)}s` : `${retryTimeMs}ms`;
+                  return { ...r, time: timeStr };
+                }
+                return r;
+              });
+            });
+            setCdpRequests((prev) => {
+              return prev.map((r) => {
+                if (r.id === data.id) {
+                  const timeStr = retryTimeMs >= 1000 ? `${(retryTimeMs / 1000).toFixed(2)}s` : `${retryTimeMs}ms`;
+                  return { ...r, time: timeStr };
+                }
+                return r;
+              });
+            });
+            setCdpRequestMap((prev) => {
+              const newMap = new Map(prev);
+              const existing = newMap.get(data.id);
+              if (existing) {
+                const timeStr = retryTimeMs >= 1000 ? `${(retryTimeMs / 1000).toFixed(2)}s` : `${retryTimeMs}ms`;
+                newMap.set(data.id, { ...existing, time: timeStr });
+              }
+              return newMap;
+            });
+            requestTimestampMap.delete(data.id);
+          }
+        }, 100);
       }
       const timeStr = timeMs >= 1000 ? `${(timeMs / 1000).toFixed(2)}s` : `${timeMs}ms`;
 
@@ -491,20 +537,13 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
       console.log('[CDP] Error:', data);
     };
 
-    // Register IPC listeners
-    console.log('[CDP] Registering IPC listeners...');
-    console.log('[CDP] window.api.on available?', typeof window.api.on === 'function');
     window.api.on?.('cdp:request', handleCdpRequest);
     window.api.on?.('cdp:response', handleCdpResponse);
     window.api.on?.('cdp:response-body', handleCdpResponseBody);
     window.api.on?.('cdp:error', handleCdpError);
-    console.log('[CDP] Listeners registered for cdp:request, cdp:response, cdp:response-body, cdp:error');
 
     return () => {
-      console.log('[CDP] Cleaning up listeners...');
-      // Note: window.api.off is not implemented in preload, but we keep this for consistency
-      // Since .on doesn't return a cleanup function, we can't remove listeners easily.
-      // This is a known limitation - listeners will be cleaned up when component unmounts.
+      // Note: window.api.off is not implemented in preload
     };
   }, []);
 
@@ -1079,6 +1118,7 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
                     onDeleteWsConnection={handleDeleteWsConnection}
                     browserViewUrl={null}
                     onLaunchTarget={handleLaunchTarget}
+                    onClearRequests={clearRequests}
                     currentTargetAppId={activeTargetId || undefined}
                     currentTargetUrl={targetTabs.find(tab => tab.id === activeTargetId)?.url}
                   />

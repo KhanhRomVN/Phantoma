@@ -657,6 +657,7 @@ interface RequestListProps {
   onDeleteWsConnection: (id: string) => void;
   browserViewUrl: string | null;
   onLaunchTarget?: (appId: string, proxyUrl: string, customUrl?: string, mode?: 'browser' | 'electron' | 'native' | 'cdp') => Promise<void>;
+  onClearRequests?: () => void;
   currentTargetAppId?: string;
   currentTargetUrl?: string;
 }
@@ -682,6 +683,7 @@ export function RequestList({
   onSelectionChange,
   browserViewUrl,
   onLaunchTarget,
+  onClearRequests,
   currentTargetAppId,
   currentTargetUrl,
 }: RequestListProps) {
@@ -726,6 +728,7 @@ export function RequestList({
           onSendToFuzzer={onSendToFuzzer}
           onSelectionChange={onSelectionChange}
           onLaunchTarget={onLaunchTarget}
+          onClearRequests={onClearRequests}
           currentTargetAppId={currentTargetAppId}
           currentTargetUrl={currentTargetUrl}
         />

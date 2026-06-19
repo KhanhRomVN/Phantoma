@@ -146,9 +146,8 @@ export class CdpManager extends EventEmitter {
     // Enable Runtime domain
     try {
       await this.send('Runtime.enable', {});
-      console.log('[CDP] Runtime domain enabled');
     } catch (e) {
-      console.log('[CDP] Runtime.enable not supported, continuing...');
+      // Ignore
     }
 
     // Enable network domain with interception for full request capture
@@ -158,7 +157,7 @@ export class CdpManager extends EventEmitter {
         maxResourceBufferSize: 5000000,
         maxPostDataSize: 5000000,
       });
-      console.log('[CDP] Network domain enabled', result);
+      console.log('[CDP] Network domain enabled');
     } catch (e) {
       console.error('[CDP] Failed to enable network:', e);
     }
@@ -188,7 +187,7 @@ export class CdpManager extends EventEmitter {
     // Body capture is done via Network.getResponseBody in loadingFinished.
     console.log('[CDP] Request interception disabled (not needed for monitoring)');
 
-    console.log('[CDP] Network initialization complete');
+    
   }
 
   private send(method: string, params: any = {}): Promise<any> {
@@ -201,7 +200,6 @@ export class CdpManager extends EventEmitter {
       this.pendingRequests.set(id, { resolve, reject });
 
       const request: CdpRequest = { id, method, params };
-      console.log(`[CDP] Sending command: ${method}`, JSON.stringify(params).substring(0, 200));
       this.ws.send(JSON.stringify(request));
     });
   }
@@ -221,7 +219,6 @@ export class CdpManager extends EventEmitter {
 
       // Handle Events
       if (data.method) {
-        console.log(`[CDP] Raw event received: ${data.method}`);
         this.emit(data.method, data.params);
         this.handleNetworkEvent(data.method, data.params);
       }
@@ -236,38 +233,26 @@ export class CdpManager extends EventEmitter {
       return;
     }
 
-    console.log(`[CDP] Network event received: ${method}`, params?.request?.url || params?.url || params?.response?.url || '');
-
     switch (method) {
       case 'Network.requestWillBeSent':
-        console.log('[CDP] ✅ Handling requestWillBeSent');
         this.handleRequestWillBeSent(params);
         break;
       case 'Network.responseReceived':
-        console.log('[CDP] ✅ Handling responseReceived');
         this.handleResponseReceived(params);
         break;
       case 'Network.loadingFinished':
-        console.log('[CDP] ✅ Handling loadingFinished');
         this.handleLoadingFinished(params);
         break;
       case 'Network.loadingFailed':
-        console.log('[CDP] ❌ Handling loadingFailed');
         this.handleLoadingFailed(params);
         break;
       default:
-        // Only log unknown events if they seem network-related
-        if (method.startsWith('Network.')) {
-          console.log(`[CDP] Unhandled network event: ${method}`);
-        }
         break;
     }
   }
 
   private handleRequestWillBeSent(params: any) {
     const { requestId, request, initiator, type } = params;
-    
-    console.log(`[CDP] Request will be sent: ${request.method} ${request.url} (type: ${type})`);
 
     // Normalize to Phantoma format
     this.sendToRenderer('cdp:request', {
@@ -363,12 +348,10 @@ export class CdpManager extends EventEmitter {
   }
 
   private sendToRenderer(channel: string, data: any) {
-    console.log(`[CDP] sendToRenderer: channel=${channel}`, data);
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      console.log(`[CDP] Sending ${channel} to renderer`);
       this.mainWindow.webContents.send(channel, data);
     } else {
-      console.warn(`[CDP] Cannot send ${channel}: mainWindow=${!!this.mainWindow}, destroyed=${this.mainWindow?.isDestroyed()}`);
+      console.warn(`[CDP] Cannot send ${channel}: mainWindow not available`);
     }
   }
 }

@@ -144,6 +144,7 @@ interface RequestTableProps {
   onSendToFuzzer?: (req: NetworkRequest) => void;
   onSelectionChange?: (selectedIds: string[]) => void;
   onLaunchTarget?: (appId: string, proxyUrl: string, customUrl?: string, mode?: 'browser' | 'electron' | 'native' | 'cdp') => Promise<void>;
+  onClearRequests?: () => void;
   currentTargetAppId?: string;
   currentTargetUrl?: string;
 }
@@ -166,18 +167,11 @@ export function RequestTable({
   onSendToFuzzer,
   onSelectionChange,
   onLaunchTarget,
+  onClearRequests,
   currentTargetAppId,
   currentTargetUrl,
 }: RequestTableProps) {
-  // DEBUG: Log incoming requests
-  console.log('[RequestTable] Rendering with requests:', {
-    count: requests.length,
-    firstRequest: requests[0],
-    allRequests: requests.map(r => ({ id: r.id, method: r.method, url: r.url, host: r.host, status: r.status })),
-    appId: _appId,
-    currentTargetAppId,
-    currentTargetUrl,
-  });
+  
 
   const { getColorByIndex } = useAccentColors();
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -917,6 +911,8 @@ export function RequestTable({
                   // Stop: disconnect CDP or stop proxy
                   setIsTargetActive(false);
                   setActiveTargetMode(null);
+                  // Clear all requests data
+                  onClearRequests?.();
                   // Call disconnect handlers
                   if (activeTargetMode === 'cdp') {
                     window.api.invoke('cdp:disconnect').catch(() => {});
@@ -956,6 +952,8 @@ export function RequestTable({
                     console.log('[Target] currentTargetAppId:', currentTargetAppId);
                     console.log('[Target] currentTargetUrl:', currentTargetUrl);
                     console.log('[Target] onLaunchTarget exists:', !!onLaunchTarget);
+                    // Clear old requests before starting new session
+                    onClearRequests?.();
                     setIsTargetActive(true);
                     setActiveTargetMode('mitm');
                     setIsTargetDropdownOpen(false);
@@ -995,6 +993,8 @@ export function RequestTable({
                     console.log('[Target] currentTargetAppId:', currentTargetAppId);
                     console.log('[Target] currentTargetUrl:', currentTargetUrl);
                     console.log('[Target] onLaunchTarget exists:', !!onLaunchTarget);
+                    // Clear old requests before starting new session
+                    onClearRequests?.();
                     setIsTargetActive(true);
                     setActiveTargetMode('cdp');
                     setIsTargetDropdownOpen(false);
