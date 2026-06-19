@@ -267,7 +267,7 @@ export class CdpManager extends EventEmitter {
     });
   }
 
-  private handleResponseReceived(params: any) {
+  private async handleResponseReceived(params: any) {
     const { requestId, response, timestamp } = params;
 
     this.sendToRenderer('cdp:response', {
@@ -278,27 +278,45 @@ export class CdpManager extends EventEmitter {
       timestamp: Date.now(),
       responseTimestamp: timestamp, // CDP monotonic time
     });
+
+    // Try to get body early for script and stylesheet resources
+    const resourceType = response.resourceType || response.type || '';
+    if (resourceType === 'Script' || resourceType === 'Stylesheet' || resourceType === 'Document') {
+      // Check if WebSocket is connected
+      if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
+      // Wait a tiny bit for the body to be available
+      setTimeout(async () => {
+        try {
+          const result = await this.send('Network.getResponseBody', { requestId });
+          const { body, base64Encoded } = result;
+          // Only send if we got a body
+          if (body && body.length > 0) {
+            this.sendToRenderer('cdp:response-body', {
+              id: requestId,
+              body: body,
+              isBinary: base64Encoded,
+              size: body.length,
+              timestamp: Date.now(),
+              loadingTimestamp: timestamp,
+            });
+          }
+        } catch (e) {
+          // Silent fail - will retry in loadingFinished
+          // console.debug(`[CDP] Early body fetch failed for ${requestId}, will retry later`);
+        }
+      }, 50);
+    }
   }
 
   private async handleLoadingFinished(params: any) {
     const { requestId, encodedDataLength, timestamp } = params;
 
-    try {
-      // Fetch body
-      const result = await this.send('Network.getResponseBody', { requestId });
-      const { body, base64Encoded } = result;
-
-      this.sendToRenderer('cdp:response-body', {
-        id: requestId,
-        body: body, // Ensure frontend handles base64 if base64Encoded is true
-        isBinary: base64Encoded,
-        size: encodedDataLength, // Approximate
-        timestamp: Date.now(),
-        loadingTimestamp: timestamp,
-      });
-    } catch (e) {
-      console.error(`[CDP] Failed to get body for ${requestId}:`, e);
-      // Still send size even if body fetch fails
+    // Check if WebSocket is still connected before trying to fetch body
+    if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.warn(`[CDP] WebSocket not connected, skipping body fetch for ${requestId}`);
       this.sendToRenderer('cdp:response-body', {
         id: requestId,
         body: '',
@@ -307,7 +325,53 @@ export class CdpManager extends EventEmitter {
         timestamp: Date.now(),
         loadingTimestamp: timestamp,
       });
+      return;
     }
+
+    // Try multiple times to get body with delay
+    const maxRetries = 3;
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+        }
+        // Fetch body
+        const result = await this.send('Network.getResponseBody', { requestId });
+        const { body, base64Encoded } = result;
+
+        this.sendToRenderer('cdp:response-body', {
+          id: requestId,
+          body: body,
+          isBinary: base64Encoded,
+          size: encodedDataLength,
+          timestamp: Date.now(),
+          loadingTimestamp: timestamp,
+        });
+        return;
+      } catch (e: any) {
+        lastError = e;
+        // If error is about missing resource, break early (no point retrying)
+        if (e.code === -32000 && e.message?.includes('No resource')) {
+          console.warn(`[CDP] Resource not found for ${requestId}, skipping retry`);
+          break;
+        }
+        console.warn(`[CDP] Failed to get body for ${requestId} (attempt ${attempt + 1}/${maxRetries}):`, e.message || e);
+      }
+    }
+
+    // All retries failed
+    console.error(`[CDP] Failed to get body for ${requestId} after ${maxRetries} attempts:`, lastError);
+    this.sendToRenderer('cdp:response-body', {
+      id: requestId,
+      body: '',
+      isBinary: false,
+      size: encodedDataLength,
+      timestamp: Date.now(),
+      loadingTimestamp: timestamp,
+    });
   }
 
   private handleLoadingFailed(params: any) {

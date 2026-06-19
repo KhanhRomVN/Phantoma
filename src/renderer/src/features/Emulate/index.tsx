@@ -1168,7 +1168,7 @@ const handleCdpResponseBody = (event: any, data: any) => {
             )}
             {selectedTool === 'source' && (
               <div className="flex-1 overflow-hidden">
-                <SourcesPanel />
+                <SourcesPanel requests={requests} />
               </div>
             )}
             {selectedTool === 'log' && (
