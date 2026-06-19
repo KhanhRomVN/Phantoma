@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { MidnightBlue } from '../../../theme/themes/MidnightBlue';
+import { useTheme } from '../../../theme/ThemeProvider';
+import { ThemeConfig } from '../../../theme/types/theme.types';
 
 // Define Window interface to include require for AMD loader
 declare global {
@@ -51,16 +52,22 @@ interface CodeBlockProps {
   onChange?: (value: string) => void;
 }
 
-const SYSTEMA_THEME = {
-  base: MidnightBlue.monaco.base,
-  inherit: MidnightBlue.monaco.inherit,
-  rules: MidnightBlue.monaco.rules.map((rule: any) => ({
-    token: rule.token,
-    foreground: rule.foreground,
-    background: rule.background,
-    fontStyle: rule.fontStyle,
-  })),
-  colors: MidnightBlue.monaco.colors,
+// Helper to convert theme to Monaco format
+const convertThemeToMonaco = (theme: any) => {
+  const monacoTheme = theme.monaco;
+  // Type assertion to handle Monaco's base type requirements
+  const base = monacoTheme.base as 'vs' | 'vs-dark' | 'hc-black' || 'vs-dark';
+  return {
+    base,
+    inherit: monacoTheme.inherit !== undefined ? monacoTheme.inherit : true,
+    rules: monacoTheme.rules.map((rule: any) => ({
+      token: rule.token,
+      foreground: rule.foreground,
+      background: rule.background,
+      fontStyle: rule.fontStyle,
+    })),
+    colors: monacoTheme.colors || {},
+  };
 };
 
 const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
@@ -80,6 +87,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
     },
     ref,
   ) => {
+    const { currentPreset } = useTheme();
     const editorRef = useRef<HTMLDivElement>(null);
     const editorInstance = useRef<any>(null);
     const decorationsRef = useRef<string[]>([]);
@@ -128,7 +136,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
     useEffect(() => {
       let mounted = true;
 
-      const initMonaco = () => {
+      const initMonaco = async () => {
         if (!editorRef.current) return;
 
         try {
@@ -136,33 +144,68 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             editorInstance.current.dispose();
           }
 
-          let themeName = 'intel-black';
-
-          // Always define our custom theme
-          if (window.monaco) {
-            const customRules =
-              themeConfig?.rules?.map((r) => ({
-                token: r.token,
-                foreground: r.foreground?.replace('#', ''),
-                background: r.background?.replace('#', ''),
-                fontStyle: r.fontStyle,
-              })) || [];
-
-            window.monaco.editor.defineTheme(themeName, {
-              ...SYSTEMA_THEME,
-              rules: [...SYSTEMA_THEME.rules, ...customRules], // Allow overrides
-              colors: {
-                ...SYSTEMA_THEME.colors,
-                ...(themeConfig?.background ? { 'editor.background': themeConfig.background } : {}),
-                ...(themeConfig?.foreground ? { 'editor.foreground': themeConfig.foreground } : {}),
-              },
-            });
+          // Get the active theme from the theme system
+          const activeThemeName = 'systema-active-theme';
+          
+          // Build the theme from the current preset
+          let monacoTheme: any;
+          
+          if (currentPreset && currentPreset.monaco) {
+            // Convert the theme to Monaco format
+            monacoTheme = convertThemeToMonaco(currentPreset);
+          } else {
+            // Fallback: Use MidnightBlue theme as default
+            try {
+              const { MidnightBlue } = await import('../../../theme/themes/MidnightBlue');
+              monacoTheme = convertThemeToMonaco(MidnightBlue);
+            } catch (e) {
+              console.warn('Failed to load MidnightBlue theme, using fallback:', e);
+              // Hardcoded fallback
+              monacoTheme = {
+                base: 'vs-dark',
+                inherit: true,
+                rules: [
+                  { token: 'string.key.json', foreground: 'e06c75' },
+                  { token: 'string.value.json', foreground: '98c379' },
+                  { token: 'number', foreground: 'd19a66' },
+                  { token: 'keyword.json', foreground: '56b6c2' },
+                  { token: 'delimiter', foreground: 'abb2bf' },
+                ],
+                colors: {
+                  'editor.foreground': '#abb2bf',
+                  'editor.background': '#1e1e1e',
+                },
+              };
+            }
           }
+          
+          // Apply custom overrides from themeConfig
+          const customRules =
+            themeConfig?.rules?.map((r) => ({
+              token: r.token,
+              foreground: r.foreground?.replace('#', ''),
+              background: r.background?.replace('#', ''),
+              fontStyle: r.fontStyle,
+            })) || [];
+
+          // Merge with themeConfig overrides
+          const finalTheme = {
+            ...monacoTheme,
+            rules: [...monacoTheme.rules, ...customRules],
+            colors: {
+              ...monacoTheme.colors,
+              ...(themeConfig?.background ? { 'editor.background': themeConfig.background } : {}),
+              ...(themeConfig?.foreground ? { 'editor.foreground': themeConfig.foreground } : {}),
+            },
+          };
+
+          // Register the theme
+          window.monaco.editor.defineTheme(activeThemeName, finalTheme);
 
           editorInstance.current = window.monaco.editor.create(editorRef.current, {
             value: code,
             language: language,
-            theme: themeName,
+            theme: activeThemeName,
             readOnly: editorOptions?.readOnly ?? false,
             minimap: { enabled: false },
             scrollBeyondLastLine: false,

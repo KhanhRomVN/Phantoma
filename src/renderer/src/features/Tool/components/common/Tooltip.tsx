@@ -11,7 +11,7 @@ interface TooltipProps {
   accentColor: string;
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ tooltip, accentColor }) => {
+const Tooltip: React.FC<TooltipProps> = ({ tooltip }) => {
   if (!tooltip) return null;
 
   return (

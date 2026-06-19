@@ -1,6 +1,7 @@
 import type { ReconResult } from '../../types/domain/recon-result';
 import { StatBox } from '../shared/StatBox';
 import { SectionHeader } from '../shared/SectionHeader';
+import { cn } from '../../../../shared/lib/utils';
 
 interface OverviewProps {
   result: ReconResult;
@@ -58,8 +59,10 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
             Confidence
           </span>
           <span
-            className="text-[12px] font-mono"
-            style={{ color: result.overallConfidence >= 0.7 ? 'var(--success)' : 'var(--warning)' }}
+            className={cn(
+              'text-[12px] font-mono',
+              result.overallConfidence >= 0.7 ? 'text-success' : 'text-warning'
+            )}
           >
             {Math.round(result.overallConfidence * 100)}%
           </span>
@@ -91,21 +94,14 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
                 </span>
                 {entity.riskScore !== undefined && (
                   <span
-                    className="text-[9px] font-mono px-1 rounded"
-                    style={{
-                      color:
-                        entity.riskScore >= 75
-                          ? 'var(--error)'
-                          : entity.riskScore >= 50
-                            ? 'var(--warning)'
-                            : 'var(--success)',
-                      backgroundColor:
-                        entity.riskScore >= 75
-                          ? 'var(--error)15'
-                          : entity.riskScore >= 50
-                            ? 'var(--warning)15'
-                            : 'var(--success)15',
-                    }}
+                    className={cn(
+                      'text-[9px] font-mono px-1 rounded',
+                      entity.riskScore >= 75
+                        ? 'text-error bg-error/15'
+                        : entity.riskScore >= 50
+                          ? 'text-warning bg-warning/15'
+                          : 'text-success bg-success/15'
+                    )}
                   >
                     R{entity.riskScore}
                   </span>

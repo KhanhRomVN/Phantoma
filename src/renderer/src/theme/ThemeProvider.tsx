@@ -55,6 +55,7 @@ export function ThemeProvider({
       modalBackground: '--modal-background',
       dropdownBackground: '--dropdown-background',
       dropdownItemHover: '--dropdown-item-hover',
+      tooltipBackground: '--tooltip-background',
       sidebarBackground: '--sidebar-background',
       sidebarItemHover: '--sidebar-item-hover',
       sidebarItemFocus: '--sidebar-item-focus',

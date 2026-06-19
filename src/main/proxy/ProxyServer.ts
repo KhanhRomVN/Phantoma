@@ -434,17 +434,18 @@ export class ProxyServer extends EventEmitter {
       }
 
       // Danh sách các domain bỏ qua giải mã SSL (bypassed domains)
-      const bypassList = [
-        'cloudflare.com',
+      // Removed all domains to enable SSL decryption for capturing HTTPS traffic
+      const bypassList: string[] = [
+        // Cloudflare challenges - hard to intercept
         'challenges.cloudflare.com',
         'ai.cloudflare.com',
         'hcaptcha.com',
         'recaptcha.net',
-        'google.com/recaptcha',
         'turnstile.cloudflare.com',
-        'openai.com',
-        'chatgpt.com',
-        'google-analytics.com',
+        // Special cases - non-standard ports or protocols (CDP doesn't capture these)
+        'mtalk.google.com', // GCM on port 5228
+        'safebrowsingohttpgateway.googleapis.com', // Safe browsing
+        // Keep only essential bypasses
       ];
 
       const shouldBypass = bypassList.some((domain) => {

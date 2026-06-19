@@ -394,8 +394,7 @@ export function ComparePanel({
         <>
           <div className="absolute inset-0 bg-black/40 z-40" onClick={() => setDrawerOpen(false)} />
           <div
-            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300"
-            style={{ height: '60%' }}
+            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 h-[60%]"
           >
             <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
               <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-purple-500/15 border border-purple-500/25 shrink-0">

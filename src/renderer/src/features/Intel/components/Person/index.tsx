@@ -425,13 +425,11 @@ export default function PersonRecon({ initialEmail = 'phantoma@gmail.com' }: Per
                 }}
                 placeholder="user@domain.com"
                 spellCheck={false}
-                className="flex-1 h-7 bg-[#040608] border border-[#1c2333] rounded px-2 text-[11px] font-mono text-[#0af] outline-none placeholder:text-[#3a4558]"
-                style={{ caretColor: '#0af' }}
+                className="flex-1 h-7 bg-[#040608] border border-[#1c2333] rounded px-2 text-[11px] font-mono text-primary outline-none placeholder:text-[#3a4558] caret-primary"
               />
               <button
                 onClick={addEmail}
-                className="h-7 w-7 rounded text-[11px] font-bold font-mono transition-colors"
-                style={{ background: '#00aaff15', border: '1px solid #00aaff33', color: '#0af' }}
+                className="h-7 w-7 rounded text-[11px] font-bold font-mono transition-colors bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20"
               >
                 +
               </button>
@@ -440,7 +438,7 @@ export default function PersonRecon({ initialEmail = 'phantoma@gmail.com' }: Per
         )}
 
         {/* Session list */}
-        <div className="overflow-y-auto p-1.5 space-y-1 shrink-0" style={{ maxHeight: '35%' }}>
+        <div className="overflow-y-auto p-1.5 space-y-1 shrink-0 max-h-[35%]">
           {sessions.map((sess) => {
             const statusMeta = STATUS_META[sess.status];
             const isActive = sess.email === activeEmail;
@@ -640,8 +638,7 @@ export default function PersonRecon({ initialEmail = 'phantoma@gmail.com' }: Per
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search data..."
                   spellCheck={false}
-                  className="w-[320px] h-7 bg-[#040608] border border-[#1c2333] rounded pl-6 pr-2 text-[11px] font-mono text-[#c8d6f0] outline-none placeholder:text-[#6a7a9a] focus:border-[#00aaff33] transition-colors"
-                  style={{ caretColor: '#0af' }}
+                  className="w-[320px] h-7 bg-[#040608] border border-[#1c2333] rounded pl-6 pr-2 text-[11px] font-mono text-text-primary outline-none placeholder:text-text-secondary focus:border-primary/20 transition-colors caret-primary"
                 />
                 {searchQuery && (
                   <button

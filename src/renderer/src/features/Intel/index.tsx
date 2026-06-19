@@ -484,13 +484,11 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                   }}
                   placeholder="example.com"
                   spellCheck={false}
-                  className="flex-1 h-7 bg-[#040608] border border-[#1c2333] rounded px-2 text-[11px] font-mono text-[#0af] outline-none placeholder:text-[#3a4558]"
-                  style={{ caretColor: '#0af' }}
+                  className="flex-1 h-7 bg-[#040608] border border-[#1c2333] rounded px-2 text-[11px] font-mono text-primary outline-none placeholder:text-[#3a4558] caret-primary"
                 />
                 <button
                   onClick={addDomain}
-                  className="h-7 w-7 rounded text-[11px] font-bold font-mono transition-colors"
-                  style={{ background: '#0af15', border: '1px solid #0af30', color: '#0af' }}
+                  className="h-7 w-7 rounded text-[11px] font-bold font-mono transition-colors bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20"
                 >
                   +
                 </button>
@@ -537,8 +535,10 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                       title={statusMeta.label}
                     />
                     <span
-                      className="text-[12px] font-mono font-semibold truncate flex-1 min-w-0 leading-tight"
-                      style={{ color: isActive ? '#e4e4e7' : '#a1a1aa' }}
+                      className={cn(
+                        'text-[12px] font-mono font-semibold truncate flex-1 min-w-0 leading-tight',
+                        isActive ? 'text-text-primary' : 'text-text-secondary'
+                      )}
                     >
                       {sess.domain}
                     </span>
@@ -707,8 +707,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search data (regex supported)..."
                       spellCheck={false}
-                      className="w-[280px] h-7 bg-transparent pl-6 pr-2 text-[11px] font-mono text-[#c8d6f0] outline-none placeholder:text-[#6a7a9a]"
-                      style={{ caretColor: '#0af' }}
+                      className="w-[280px] h-7 bg-transparent pl-6 pr-2 text-[11px] font-mono text-text-primary outline-none placeholder:text-text-secondary caret-primary"
                     />
                     {searchQuery && (
                       <button

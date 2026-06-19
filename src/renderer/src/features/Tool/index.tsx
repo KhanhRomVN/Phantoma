@@ -143,7 +143,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
             <div className="px-5 py-3 border-b border-divider flex items-start gap-4 shrink-0 relative">
               {/* Big icon - màu accent based on tool index */}
               <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center text-[22px] shrink-0 self-center"
+                className="w-11 h-11 rounded-lg flex items-center justify-center text-[19px] shrink-0 self-center"
                 style={{
                   background: (() => {
                     const color = getToolColor(currentTool.id);
@@ -164,65 +164,64 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2.5 mb-1">
+                <div className="flex items-center gap-2.5 mb-1 flex-wrap">
                   <h2 className="m-0 text-[18px] font-extrabold text-text-primary tracking-[0.1em] font-inherit">
                     {currentTool.name.toUpperCase()}
                   </h2>
-                </div>
-
-                <p className="m-0 mb-2 text-[11px] text-[#64748b] leading-1.5 font-inherit">
-                  {currentTool.description}
-                </p>
-
-                <div className="flex gap-1.25 flex-wrap items-center">
-                  {currentTool.tags.map((tag, index) => {
-                    // Use theme accentColors or fallback to primary
-                    const color = getColorByIndex(index);
-                    // Parse RGB values from color string
-                    const rgbMatch = color.match(/\d+/g);
-                    if (rgbMatch) {
-                      const r = parseInt(rgbMatch[0]);
-                      const g = parseInt(rgbMatch[1]);
-                      const b = parseInt(rgbMatch[2]);
+                  <div className="flex gap-2 flex-wrap items-center">
+                    {currentTool.tags.map((tag, index) => {
+                      // Use theme accentColors or fallback to primary
+                      const color = getColorByIndex(index);
+                      // Parse RGB values from color string
+                      const rgbMatch = color.match(/\d+/g);
+                      if (rgbMatch) {
+                        const r = parseInt(rgbMatch[0]);
+                        const g = parseInt(rgbMatch[1]);
+                        const b = parseInt(rgbMatch[2]);
+                        return (
+                          <span
+                            key={tag}
+                            className="px-[7px] py-0.5 rounded-[3px] text-[9px] tracking-[0.06em]"
+                            style={{
+                              background: `rgba(${r}, ${g}, ${b}, 0.2)`,
+                              border: `1px solid rgba(${r}, ${g}, ${b}, 0.4)`,
+                              color: `rgb(${r}, ${g}, ${b})`,
+                            }}
+                          >
+                            #{tag}
+                          </span>
+                        );
+                      }
+                      // Fallback if color parsing fails
                       return (
                         <span
                           key={tag}
                           className="px-[7px] py-0.5 rounded-[3px] text-[9px] tracking-[0.06em]"
                           style={{
-                            background: `rgba(${r}, ${g}, ${b}, 0.2)`,
-                            border: `1px solid rgba(${r}, ${g}, ${b}, 0.4)`,
-                            color: `rgb(${r}, ${g}, ${b})`,
+                            background: `rgba(${PRIMARY_RGB}, 0.2)`,
+                            border: `1px solid rgba(${PRIMARY_RGB}, 0.4)`,
+                            color: UNIFIED_ACCENT,
                           }}
                         >
                           #{tag}
                         </span>
                       );
-                    }
-                    // Fallback if color parsing fails
-                    return (
+                    })}
+                    {currentTool.websiteUrl && (
                       <span
-                        key={tag}
-                        className="px-[7px] py-0.5 rounded-[3px] text-[9px] tracking-[0.06em]"
-                        style={{
-                          background: `rgba(${PRIMARY_RGB}, 0.2)`,
-                          border: `1px solid rgba(${PRIMARY_RGB}, 0.4)`,
-                          color: UNIFIED_ACCENT,
-                        }}
+                        className="px-[7px] py-0.5 rounded-[3px] text-[9px] tracking-[0.06em] cursor-pointer transition-all duration-150 bg-card-background border border-border text-text-secondary hover:bg-sidebar-item-hover"
+                        onClick={() => window.open(currentTool.websiteUrl, '_blank')}
+                        title={`Open ${currentTool.name} website`}
                       >
-                        #{tag}
+                        {currentTool.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                       </span>
-                    );
-                  })}
-                  {currentTool.websiteUrl && (
-                    <span
-                      className="px-[7px] py-0.5 rounded-[3px] text-[9px] tracking-[0.06em] cursor-pointer transition-all duration-150 bg-card-background border border-border text-text-secondary hover:bg-sidebar-item-hover"
-                      onClick={() => window.open(currentTool.websiteUrl, '_blank')}
-                      title={`Open ${currentTool.name} website`}
-                    >
-                      {currentTool.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                    </span>
-                  )}
+                    )}
+                  </div>
                 </div>
+
+                <p className="m-0 text-[12px] text-[#64748b] leading-1.5 font-inherit">
+                  {currentTool.description}
+                </p>
               </div>
             </div>
 

@@ -441,9 +441,7 @@ function SessionRow({ s }: { s: (typeof activeSessions)[0] }) {
       <span className="text-[9px] text-text-secondary font-mono w-12 text-right shrink-0">
         {s.uptime}
       </span>
-      <button
-        className="text-[8px] font-mono font-bold px-2 py-0.5 rounded border opacity-0 group-hover:opacity-100 transition-opacity text-[#0af] border-[#0af30] bg-[#0af10]"
-      >
+      <button className="text-[8px] font-mono font-bold px-2 py-0.5 rounded border opacity-0 group-hover:opacity-100 transition-opacity text-primary border-primary/30 bg-primary/10 hover:bg-primary/20">
         INTERACT
       </button>
     </div>
@@ -663,14 +661,7 @@ export function Dashboard() {
                       </span>
                       <div className="flex items-center gap-1">
                         {v.exploited && (
-                          <span
-                            className="text-[7px] font-bold px-1 rounded"
-                            style={{
-                              color: '#ff2d55',
-                              background: '#ff2d5515',
-                              border: '1px solid #ff2d5530',
-                            }}
-                          >
+                          <span className="text-[7px] font-bold px-1 rounded text-error bg-error/15 border border-error/30">
                             PWNED
                           </span>
                         )}

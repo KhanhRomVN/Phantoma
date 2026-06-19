@@ -369,10 +369,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
         />
         {showTargetSuggestions && targetHistory.length > 0 && (
           <div
-            className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto border border-border"
-            style={{ 
-              background: 'rgb(10, 15, 25)'
-            }}
+            className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto border border-border bg-dropdown-background"
           >
             {targetHistory.map((t, i) => (
               <div
@@ -381,14 +378,10 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   setParams({ ...params, target: t });
                   setShowTargetSuggestions(false);
                 }}
-                className="p-2 cursor-pointer text-[12px] transition-colors text-text-primary"
+                className="p-2 cursor-pointer text-[12px] transition-colors text-text-primary hover:bg-dropdown-item-hover"
                 style={{
                   borderBottom: i < targetHistory.length - 1 ? '1px solid var(--border)' : 'none',
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = 'var(--dropdown-item-hover)')
-                }
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 {t}
               </div>
@@ -610,15 +603,14 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   )}
                 </div>
                 {showSuggestions && allFlags.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[200px] overflow-y-auto border border-border shadow-lg"
-                       style={{ background: 'rgb(10, 15, 25)' }}>
+                  <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[200px] overflow-y-auto border border-border shadow-lg bg-dropdown-background">
                     {allFlags.map((flag) => {
                       const isActive = activeFlagsInCat.some((f) => f.value === flag.value);
                       return (
                         <div
                           key={flag.value}
                           onClick={() => toggleFlag(flag.value)}
-                          className={`p-2 cursor-pointer text-[12px] transition-colors hover:bg-dropdown-item-hover text-text-primary ${
+                          className={`p-2 cursor-pointer text-[12px] transition-colors text-text-primary ${
                             isActive ? 'bg-primary/10 text-primary' : ''
                           }`}
                         >

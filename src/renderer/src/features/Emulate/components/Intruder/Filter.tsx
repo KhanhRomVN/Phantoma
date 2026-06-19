@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { X, Globe, Link } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { Favicon } from '../../../../shared/utils/faviconUtils';
 import { useI18n } from '../../../../i18n/i18nContext';
 import { getRequestCategory } from '../../utils/requestHelpers';
+import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 export interface NetworkRequest {
   id: string;
@@ -304,6 +305,7 @@ function ListFilterSection({
 
 export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilterProps) {
   const { t } = useI18n();
+  const { accentColors, getColorByIndex } = useAccentColors();
 
   const allHosts = Array.from(new Set(requests.map((r) => r.host).filter(Boolean)));
 
@@ -323,82 +325,96 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
     new Set(requests.map((r) => getRequestCategory(r)).filter(Boolean)),
   ).sort();
 
-  // Use CSS variables for colors instead of hardcoded Tailwind classes
-  const typeConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-    xhr: {
-      label: t.networkFilter.types.xhr,
-      color: 'var(--info)',
-      bgColor: 'var(--info)',
-    },
-    js: {
-      label: t.networkFilter.types.js,
-      color: 'var(--accent-amber)',
-      bgColor: 'var(--accent-amber)',
-    },
-    css: {
-      label: t.networkFilter.types.css,
-      color: 'var(--info)',
-      bgColor: 'var(--info)',
-    },
-    img: {
-      label: t.networkFilter.types.img,
-      color: 'var(--accent-purple)',
-      bgColor: 'var(--accent-purple)',
-    },
-    media: {
-      label: t.networkFilter.types.media,
-      color: 'var(--error)',
-      bgColor: 'var(--error)',
-    },
-    font: {
-      label: t.networkFilter.types.font,
-      color: 'var(--accent-orange)',
-      bgColor: 'var(--accent-orange)',
-    },
-    doc: {
-      label: t.networkFilter.types.doc,
-      color: 'var(--accent-green)',
-      bgColor: 'var(--accent-green)',
-    },
-    ws: {
-      label: t.networkFilter.types.ws,
-      color: 'var(--accent-teal)',
-      bgColor: 'var(--accent-teal)',
-    },
-    wasm: {
-      label: t.networkFilter.types.wasm,
-      color: 'var(--accent-violet)',
-      bgColor: 'var(--accent-violet)',
-    },
-    manifest: {
-      label: t.networkFilter.types.manifest,
-      color: 'var(--accent-lime)',
-      bgColor: 'var(--accent-lime)',
-    },
-    other: {
-      label: t.networkFilter.types.other,
-      color: 'var(--text-secondary)',
-      bgColor: 'var(--text-secondary)',
-    },
-  };
+  // Generate color mappings using accentColors from theme
+  const typeConfig: Record<string, { label: string; color: string; bgColor: string }> = useMemo(() => {
+    const getColor = (index: number) => {
+      const color = getColorByIndex(index);
+      return color;
+    };
 
-  const methodColors: Record<string, { color: string; bgColor: string }> = {
-    GET: { color: 'var(--info)', bgColor: 'var(--info)' },
-    POST: { color: 'var(--accent-green)', bgColor: 'var(--accent-green)' },
-    PUT: { color: 'var(--accent-orange)', bgColor: 'var(--accent-orange)' },
-    PATCH: { color: 'var(--accent-amber)', bgColor: 'var(--accent-amber)' },
-    DELETE: { color: 'var(--error)', bgColor: 'var(--error)' },
-    HEAD: { color: 'var(--text-secondary)', bgColor: 'var(--text-secondary)' },
-    OPTIONS: { color: 'var(--accent-purple)', bgColor: 'var(--accent-purple)' },
-    TRACE: { color: 'var(--info)', bgColor: 'var(--info)' },
-    CONNECT: { color: 'var(--accent-rose)', bgColor: 'var(--accent-rose)' },
-  };
+    return {
+      xhr: {
+        label: t.networkFilter.types.xhr,
+        color: getColor(0),
+        bgColor: getColor(0),
+      },
+      js: {
+        label: t.networkFilter.types.js,
+        color: getColor(1),
+        bgColor: getColor(1),
+      },
+      css: {
+        label: t.networkFilter.types.css,
+        color: getColor(2),
+        bgColor: getColor(2),
+      },
+      img: {
+        label: t.networkFilter.types.img,
+        color: getColor(3),
+        bgColor: getColor(3),
+      },
+      media: {
+        label: t.networkFilter.types.media,
+        color: getColor(4),
+        bgColor: getColor(4),
+      },
+      font: {
+        label: t.networkFilter.types.font,
+        color: getColor(5),
+        bgColor: getColor(5),
+      },
+      doc: {
+        label: t.networkFilter.types.doc,
+        color: getColor(6),
+        bgColor: getColor(6),
+      },
+      ws: {
+        label: t.networkFilter.types.ws,
+        color: getColor(7),
+        bgColor: getColor(7),
+      },
+      wasm: {
+        label: t.networkFilter.types.wasm,
+        color: getColor(8),
+        bgColor: getColor(8),
+      },
+      manifest: {
+        label: t.networkFilter.types.manifest,
+        color: getColor(9),
+        bgColor: getColor(9),
+      },
+      other: {
+        label: t.networkFilter.types.other,
+        color: getColor(10),
+        bgColor: getColor(10),
+      },
+    };
+  }, [t, getColorByIndex]);
+
+  const methodColors: Record<string, { color: string; bgColor: string }> = useMemo(() => {
+    const getColor = (index: number) => {
+      const color = getColorByIndex(index);
+      return color;
+    };
+
+    return {
+      GET: { color: getColor(0), bgColor: getColor(0) },
+      POST: { color: getColor(1), bgColor: getColor(1) },
+      PUT: { color: getColor(2), bgColor: getColor(2) },
+      PATCH: { color: getColor(3), bgColor: getColor(3) },
+      DELETE: { color: getColor(4), bgColor: getColor(4) },
+      HEAD: { color: getColor(5), bgColor: getColor(5) },
+      OPTIONS: { color: getColor(6), bgColor: getColor(6) },
+      TRACE: { color: getColor(7), bgColor: getColor(7) },
+      CONNECT: { color: getColor(8), bgColor: getColor(8) },
+    };
+  }, [getColorByIndex]);
 
   return (
-    <div className="h-full overflow-y-auto min-h-0 border-l border-border/50 flex flex-col font-sans select-none">
-      <div className="p-4 space-y-6">
+    <div className="h-full overflow-y-auto min-h-0 border-l border-border/50 font-sans select-none">
+      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Method */}
-        <section>
+        <section className="min-w-0">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold">{t.networkFilter.method}</h3>
           </div>
@@ -441,15 +457,17 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
         </section>
 
         {/* Host */}
-        <ListFilterSection
-          title={t.networkFilter.host}
-          lists={filter.host}
-          onChange={(newHost) => onChange({ ...filter, host: newHost })}
-          allItems={allHosts}
-        />
+        <section className="min-w-0 col-span-1 md:col-span-2">
+          <ListFilterSection
+            title={t.networkFilter.host}
+            lists={filter.host}
+            onChange={(newHost) => onChange({ ...filter, host: newHost })}
+            allItems={allHosts}
+          />
+        </section>
 
         {/* Status */}
-        <section>
+        <section className="min-w-0 col-span-1 md:col-span-2">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold">{t.networkFilter.status}</h3>
           </div>
@@ -500,7 +518,7 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
         </section>
 
         {/* Type */}
-        <section>
+        <section className="min-w-0 col-span-1 md:col-span-2">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold">{t.networkFilter.type}</h3>
           </div>

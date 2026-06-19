@@ -30,9 +30,16 @@ import {
   Target,
   Trash2,
   Zap,
+  CaseSensitive,
+  Type,
+  Regex,
+  Shield,
+  Monitor,
+  CircleDashed,
 } from 'lucide-react';
 import { useDebounce } from 'use-debounce';
 import { useI18n } from '../../../../i18n/i18nContext';
+import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -40,7 +47,6 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from '../common/ContextMenu';
-import { SearchInput } from '../common/SearchInput';
 
 // Custom DropdownMenu components
 interface DropdownMenuProps {
@@ -137,6 +143,9 @@ interface RequestTableProps {
   onAnalyzeRequest?: (req: NetworkRequest) => void;
   onSendToFuzzer?: (req: NetworkRequest) => void;
   onSelectionChange?: (selectedIds: string[]) => void;
+  onLaunchTarget?: (appId: string, proxyUrl: string, customUrl?: string, mode?: 'browser' | 'electron' | 'native' | 'cdp') => Promise<void>;
+  currentTargetAppId?: string;
+  currentTargetUrl?: string;
 }
 
 export function RequestTable({
@@ -156,13 +165,30 @@ export function RequestTable({
   onAnalyzeRequest,
   onSendToFuzzer,
   onSelectionChange,
+  onLaunchTarget,
+  currentTargetAppId,
+  currentTargetUrl,
 }: RequestTableProps) {
+  // DEBUG: Log incoming requests
+  console.log('[RequestTable] Rendering with requests:', {
+    count: requests.length,
+    firstRequest: requests[0],
+    allRequests: requests.map(r => ({ id: r.id, method: r.method, url: r.url, host: r.host, status: r.status })),
+    appId: _appId,
+    currentTargetAppId,
+    currentTargetUrl,
+  });
+
+  const { getColorByIndex } = useAccentColors();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [matchCase, setMatchCase] = useState(false);
   const [matchWholeWord, setMatchWholeWord] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
   const [isTargetActive, setIsTargetActive] = useState(false);
+  const [isTargetDropdownOpen, setIsTargetDropdownOpen] = useState(false);
   const [isInterceptActive, setIsInterceptActive] = useState(false);
+  const [activeTargetMode, setActiveTargetMode] = useState<'mitm' | 'cdp' | null>(null);
+  const targetDropdownRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [rowSelection, setRowSelection] = useState({});
   const [contextMenuPage, setContextMenuPage] = useState<string | null>(null);
@@ -473,7 +499,10 @@ export function RequestTable({
 
           if (isPending) {
             return (
-              <div className="flex items-center gap-1.5 text-text-primary" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="flex items-center gap-1.5 text-text-primary"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <svg
                   className="w-3.5 h-3.5 text-warning animate-pulse shrink-0"
                   fill="currentColor"
@@ -777,6 +806,20 @@ export function RequestTable({
     onSelectionChange?.(Object.keys(rowSelection));
   }, [rowSelection, onSelectionChange]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (targetDropdownRef.current && !targetDropdownRef.current.contains(e.target as Node)) {
+        setIsTargetDropdownOpen(false);
+      }
+    };
+    if (isTargetDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return undefined;
+  }, [isTargetDropdownOpen]);
+
   const scrollToSelected = () => {
     const idx = rows.findIndex((row) => row.original.id === selectedId);
     if (idx !== -1) {
@@ -799,61 +842,250 @@ export function RequestTable({
           animation: intercept-border-pulse 1.5s ease-in-out infinite;
         }
       `}</style>
-      <div className="h-10 flex items-center px-2 border-b border-divider/40 gap-2 shrink-0">
-        <SearchInput
-          value={searchTerm}
-          onChange={onSearchChange}
-          placeholder={t.requestList.filter}
-          matchCase={matchCase}
-          onMatchCaseChange={setMatchCase}
-          matchWholeWord={matchWholeWord}
-          onMatchWholeWordChange={setMatchWholeWord}
-          useRegex={useRegex}
-          onUseRegexChange={setUseRegex}
-          showButtons={true}
-          buttonPosition="outside"
-          className="flex-1"
-          inputClassName="h-8 text-xs bg-transparent border-none pl-0"
-        />
+      <div className="h-10 flex items-center px-2 border-b border-divider gap-2 shrink-0">
+        <div className="flex-1 flex items-center gap-2 bg-input-background border border-border rounded px-3 h-7">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder={t.requestList.filter}
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full h-full bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-text-secondary"
+            />
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {searchTerm && (
+              <span className="text-[10px] text-text-secondary whitespace-nowrap mr-0.5">
+                {table.getFilteredRowModel().rows.length === 0
+                  ? 'No results'
+                  : `Found ${table.getFilteredRowModel().rows.length} requests`}
+              </span>
+            )}
+            <button
+              onClick={() => setMatchCase(!matchCase)}
+              className={cn(
+                'p-1 rounded transition-colors',
+                matchCase
+                  ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                  : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+              )}
+              title="Match case"
+            >
+              <CaseSensitive className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setMatchWholeWord(!matchWholeWord)}
+              className={cn(
+                'p-1 rounded transition-colors',
+                matchWholeWord
+                  ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                  : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+              )}
+              title="Match whole word"
+            >
+              <Type className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setUseRegex(!useRegex)}
+              className={cn(
+                'p-1 rounded transition-colors',
+                useRegex
+                  ? 'bg-success/20 text-success hover:bg-success/30'
+                  : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+              )}
+              title="Use regular expression"
+            >
+              <Regex className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-1 border-l border-divider pl-2 h-full">
-          <button
-            onClick={() => {
-              setIsTargetActive(!isTargetActive);
-              console.log('[Target] Target button clicked - state toggled');
-            }}
-            className={cn(
-              'p-1.5 rounded transition-all duration-300',
-              isTargetActive
-                ? 'bg-warning/30 text-warning hover:bg-warning/40'
-                : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+          {/* Start/Stop Target button */}
+          <div ref={targetDropdownRef} className="relative flex items-center gap-0.5">
+            {isTargetActive && activeTargetMode && (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary bg-card-background/30 border border-border/30 rounded">
+                <span className={cn(
+                  'w-1.5 h-1.5 rounded-full animate-pulse',
+                  activeTargetMode === 'cdp' ? 'bg-blue-400' : 'bg-amber-400'
+                )} />
+                Running by {activeTargetMode.toUpperCase()}
+              </span>
             )}
-            title={isTargetActive ? 'Deactivate target' : 'Activate target'}
-          >
-            <Target className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => {
-              setIsInterceptActive(!isInterceptActive);
-              console.log('[Intercept] Intercept button clicked - state toggled');
-            }}
-            className={cn(
-              'p-1.5 rounded transition-all duration-300 flex items-center gap-1',
-              isInterceptActive
-                ? 'bg-error/30 text-error hover:bg-error/40'
-                : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+            <button
+              onClick={() => {
+                if (isTargetActive) {
+                  // Stop: disconnect CDP or stop proxy
+                  setIsTargetActive(false);
+                  setActiveTargetMode(null);
+                  // Call disconnect handlers
+                  if (activeTargetMode === 'cdp') {
+                    window.api.invoke('cdp:disconnect').catch(() => {});
+                  } else if (activeTargetMode === 'mitm') {
+                    window.api.invoke('proxy:stop-session', 'default').catch(() => {});
+                  }
+                  console.log('[Target] Stopped');
+                } else {
+                  setIsTargetDropdownOpen(!isTargetDropdownOpen);
+                }
+              }}
+              className={cn(
+                'flex items-center gap-1 px-2 py-1 rounded transition-all duration-300 text-xs font-medium',
+                isTargetActive
+                  ? 'bg-error/20 text-error hover:bg-error/30'
+                  : 'bg-transparent text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+              )}
+              title={isTargetActive ? 'Stop target' : 'Start target'}
+            >
+              {isTargetActive ? (
+                <>
+                  <Pause className="w-3.5 h-3.5" />
+                  <span>Stop</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5" />
+                  <span>Start</span>
+                </>
+              )}
+            </button>
+            {isTargetDropdownOpen && !isTargetActive && (
+              <div className="fixed mt-1 rounded-md border border-border bg-dropdown-background shadow-lg z-[9999] min-w-[220px] overflow-hidden" style={{ top: targetDropdownRef.current ? targetDropdownRef.current.getBoundingClientRect().bottom + 4 : 0, left: targetDropdownRef.current ? targetDropdownRef.current.getBoundingClientRect().left : 0 }}>
+                <button
+                  onClick={() => {
+                    console.log('[Target] MITM selected');
+                    console.log('[Target] currentTargetAppId:', currentTargetAppId);
+                    console.log('[Target] currentTargetUrl:', currentTargetUrl);
+                    console.log('[Target] onLaunchTarget exists:', !!onLaunchTarget);
+                    setIsTargetActive(true);
+                    setActiveTargetMode('mitm');
+                    setIsTargetDropdownOpen(false);
+                    // Start MITM proxy
+                    window.api.invoke('proxy:create-session', 'default').then(async () => {
+                      console.log('[Target] MITM proxy started successfully');
+                      // Launch target app/browser
+                      if (onLaunchTarget && currentTargetAppId) {
+                        console.log('[Target] Launching target with appId:', currentTargetAppId);
+                        await onLaunchTarget(
+                          currentTargetAppId,
+                          'http://127.0.0.1:8081',
+                          currentTargetUrl,
+                          'browser'
+                        );
+                        console.log('[Target] Launch completed');
+                      } else {
+                        console.warn('[Target] Cannot launch: onLaunchTarget or currentTargetAppId missing');
+                        console.warn('[Target] onLaunchTarget:', !!onLaunchTarget);
+                        console.warn('[Target] currentTargetAppId:', currentTargetAppId);
+                      }
+                    }).catch((err) => {
+                      console.error('[Target] Failed to start MITM:', err);
+                      setIsTargetActive(false);
+                      setActiveTargetMode(null);
+                    });
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all border-b border-border last:border-b-0"
+                >
+                  <Shield className="w-3.5 h-3.5 text-amber-400" />
+                  <span>MITM</span>
+                  <span className="text-text-secondary text-[10px]">(Man-in-the-Middle)</span>
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('[Target] CDP selected');
+                    console.log('[Target] currentTargetAppId:', currentTargetAppId);
+                    console.log('[Target] currentTargetUrl:', currentTargetUrl);
+                    console.log('[Target] onLaunchTarget exists:', !!onLaunchTarget);
+                    setIsTargetActive(true);
+                    setActiveTargetMode('cdp');
+                    setIsTargetDropdownOpen(false);
+                    // Launch target with CDP mode first, then connect
+                    if (onLaunchTarget && currentTargetAppId) {
+                      console.log('[Target] Launching target with CDP mode');
+                      // Store the CDP port from launch result
+                      let cdpPort = 9223; // default fallback
+                      onLaunchTarget(
+                        currentTargetAppId,
+                        'http://127.0.0.1:8081',
+                        currentTargetUrl,
+                        'cdp'
+                      ).then(async () => {
+                        console.log('[Target] Browser launched with CDP, connecting...');
+                        // Wait a bit for Chrome to start
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        // Get the actual CDP port from the launch (or use default)
+                        // The port is logged in main process as "[Launch] CDP port assigned: X"
+                        // We need to get it from the renderer or use a fixed port
+                        // For now, we'll try to connect on the port that was assigned
+                        // The main process will handle the actual port via findAvailablePort
+                        // We'll try connecting on 9223 first, then fallback to 9222
+                        const ports = [9223, 9224, 9225, 9222];
+                        let connected = false;
+                        for (const port of ports) {
+                          try {
+                            console.log(`[Target] Trying CDP connect on port ${port}...`);
+                            const result = await window.api.invoke('cdp:connect', port);
+                            if (result?.success) {
+                              console.log('[Target] CDP connected on port', result.port);
+                              connected = true;
+                              // Use reload instead of navigate to avoid changing Phantoma's main window
+                              console.log('[Target] Reloading page to capture network events');
+                              const reloadResult = await window.api.invoke('cdp:reload');
+                              console.log('[Target] Reload result:', reloadResult);
+                              break;
+                            }
+                          } catch (e) {
+                            console.log(`[Target] Failed to connect on port ${port}:`, e);
+                          }
+                        }
+                        if (!connected) {
+                          console.error('[Target] Failed to connect CDP on any port');
+                          setIsTargetActive(false);
+                          setActiveTargetMode(null);
+                        }
+                      }).catch((err) => {
+                        console.error('[Target] Failed to launch with CDP:', err);
+                        setIsTargetActive(false);
+                        setActiveTargetMode(null);
+                      });
+                    } else {
+                      console.warn('[Target] Cannot launch: onLaunchTarget or currentTargetAppId missing');
+                      setIsTargetActive(false);
+                      setActiveTargetMode(null);
+                    }
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
+                >
+                  <Monitor className="w-3.5 h-3.5 text-blue-400" />
+                  <span>CDP</span>
+                  <span className="text-text-secondary text-[10px]">(Chrome DevTools Protocol)</span>
+                </button>
+              </div>
             )}
-            title={
-              isInterceptActive
-                ? 'Pause intercept (click to resume)'
-                : 'Start intercept (click to pause)'
-            }
-          >
-            {isInterceptActive ? (
-              <Pause className="w-3.5 h-3.5" />
-            ) : (
-              <Play className="w-3.5 h-3.5" />
-            )}
-          </button>
+          </div>
+
+          {/* Start Intercept button - only shows when MITM is active (Stop state) */}
+          {isTargetActive && activeTargetMode === 'mitm' && (
+            <button
+              onClick={() => {
+                setIsInterceptActive(!isInterceptActive);
+                window.api.invoke('proxy:set-intercept', !isInterceptActive, 'default').then(() => {
+                  console.log('[Intercept] Intercept toggled to', !isInterceptActive);
+                }).catch((err) => {
+                  console.error('[Intercept] Failed to toggle intercept:', err);
+                });
+              }}
+              className={cn(
+                'flex items-center gap-1 px-2 py-1 rounded transition-all duration-300 text-xs font-medium',
+                isInterceptActive
+                  ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                  : 'bg-transparent text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+              )}
+              title={isInterceptActive ? 'Stop intercept' : 'Start intercept'}
+            >
+              <CircleDashed className="w-3.5 h-3.5" />
+              <span>{isInterceptActive ? 'Intercepting' : 'Intercept'}</span>
+            </button>
+          )}
         </div>
       </div>
       <div
@@ -861,7 +1093,7 @@ export function RequestTable({
         onScroll={handleScroll}
         className="flex-1 flex flex-col overflow-auto relative"
       >
-        <div className="flex h-10 min-h-10 flex-shrink-0 bg-table-header-background text-sm font-semibold text-text-secondary border-b border-divider/20 sticky top-0 z-10 w-full min-w-max">
+        <div className="flex h-10 min-h-10 flex-shrink-0 bg-table-header-background text-sm font-semibold text-text-secondary border-b border-divider/20 sticky top-0 z-10 w-full">
           {table.getHeaderGroups().map((headerGroup) => (
             <div key={headerGroup.id} className="flex w-full h-full">
               {headerGroup.headers.map((header) => {
@@ -898,7 +1130,6 @@ export function RequestTable({
           style={{
             height: `${rowVirtualizer.getTotalSize()}px`,
             position: 'relative',
-            minWidth: 'max-content',
             width: '100%',
           }}
         >
@@ -921,15 +1152,7 @@ export function RequestTable({
                 <ContextMenuTrigger asChild>
                   <div
                     data-state={row.getValue('id') === selectedId ? 'selected' : undefined}
-                    draggable="true"
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('application/requestId', row.original.id);
-                      e.dataTransfer.setData(
-                        'application/requestData',
-                        JSON.stringify(row.original),
-                      );
-                      e.dataTransfer.effectAllowed = 'move';
-                    }}
+                    onDragStart={(e) => e.preventDefault()}
                     className={cn(
                       'flex items-center border-b border-divider/20 transition-colors cursor-pointer text-xs absolute left-0 top-0',
                       isPending
@@ -946,7 +1169,6 @@ export function RequestTable({
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start}px)`,
                       width: '100%',
-                      minWidth: 'max-content',
                     }}
                     onClick={() => onSelect(row.original.id)}
                   >
@@ -1255,7 +1477,7 @@ export function RequestTable({
                         : 'text-text-secondary hover:text-text-primary',
                     )}
                   >
-<span className="text-[10px] font-mono font-bold text-warning/80">M↓</span>
+                    <span className="text-[10px] font-mono font-bold text-warning/80">M↓</span>
                     Markdown
                   </button>
                 </div>

@@ -119,6 +119,17 @@ const wsManager = SingletonWSManager.getInstance();
 let activeChildProcess: ChildProcess | null = null;
 let activeProxyUrl: string | null = null;
 
+// Ensure certificate directory exists for http-mitm-proxy
+const certDir = path.join(process.cwd(), '.http-mitm-proxy', 'certs');
+try {
+  if (!fs.existsSync(certDir)) {
+    fs.mkdirSync(certDir, { recursive: true });
+    console.log('[Cert] Created certificate directory:', certDir);
+  }
+} catch (e) {
+  console.error('[Cert] Failed to create certificate directory:', e);
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -377,6 +388,72 @@ app.whenReady().then(async () => {
     return await proxyManager.createSession(appId);
   });
 
+  // CDP IPC
+  let cdpConnected = false;
+  let cdpPort = 0;
+
+  ipcMain.handle('cdp:connect', async (_, port: number) => {
+    try {
+      const success = await cdpManager.connect(port);
+      if (success) {
+        cdpConnected = true;
+        cdpPort = port;
+        console.log(`[CDP] Connected to port ${port}`);
+        return { success: true, port };
+      }
+      return { success: false, error: 'Connection failed' };
+    } catch (e: any) {
+      console.error('[CDP] Connection error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('cdp:disconnect', async () => {
+    try {
+      // Close WebSocket if exists
+      if (cdpManager['ws']) {
+        cdpManager['ws'].close();
+        cdpManager['ws'] = null;
+        cdpManager['isConnected'] = false;
+      }
+      cdpConnected = false;
+      cdpPort = 0;
+      console.log('[CDP] Disconnected');
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('cdp:status', async () => {
+    return {
+      connected: cdpConnected,
+      port: cdpPort,
+    };
+  });
+
+  ipcMain.handle('cdp:navigate', async (_, url: string) => {
+    console.log(`[IPC] cdp:navigate called with URL: ${url}`);
+    try {
+      const result = await cdpManager.navigate(url);
+      return { success: result };
+    } catch (e: any) {
+      console.error('[IPC] cdp:navigate error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('cdp:reload', async () => {
+    console.log('[IPC] cdp:reload called');
+    try {
+      const result = await cdpManager.reload();
+      return { success: result };
+    } catch (e: any) {
+      console.error('[IPC] cdp:reload error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
   // Inspector Request Handler
   ipcMain.handle('inspector:send-request', async (_, payload) => {
     return await handleInspectorRequest(payload);
@@ -482,8 +559,15 @@ app.whenReady().then(async () => {
   });
 
   // Helper to launch browser
-  const launchBrowser = (url: string, profileName: string, proxyUrl: string) => {
-    activeProxyUrl = proxyUrl;
+  const launchBrowser = (url: string, profileName: string, proxyUrl: string, cdpPort?: number) => {
+    // For CDP mode, we don't want to use the proxy because CDP captures requests directly
+    const useProxy = !cdpPort;
+    if (useProxy) {
+      activeProxyUrl = proxyUrl;
+    } else {
+      console.log(`[LaunchBrowser] CDP mode: launching without proxy for ${profileName}`);
+    }
+    
     const userDataDir = path.join(app.getPath('userData'), 'profiles', profileName);
     fs.mkdirSync(userDataDir, { recursive: true });
 
@@ -504,31 +588,48 @@ app.whenReady().then(async () => {
       return false;
     }
 
+    const args = [
+      '--ignore-certificate-errors',
+      '--ignore-certificate-errors-spki-list',
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-http2',
+      '--disable-quic',
+      `--user-data-dir=${userDataDir}`,
+      url,
+    ];
+
+    // Only add proxy flag if NOT in CDP mode
+    if (useProxy) {
+      args.push(`--proxy-server=${proxyUrl}`);
+    }
+
+    // Add CDP remote debugging if port is specified
+    if (cdpPort) {
+      args.push(`--remote-debugging-port=${cdpPort}`);
+      console.log(`[LaunchBrowser] CDP enabled on port ${cdpPort}`);
+    }
+
     const child = spawn(
       executable,
-      [
-        '--proxy-server=' + proxyUrl,
-        '--ignore-certificate-errors',
-        '--no-first-run',
-        '--no-default-browser-check',
-        '--disable-http2',
-        '--disable-quic',
-        `--user-data-dir=${userDataDir}`,
-        url,
-      ],
+      args,
       {
         detached: true,
         stdio: 'ignore',
       },
     );
     activeChildProcess = child;
-    console.log(`[LaunchBrowser] Spawned browser PID: ${child.pid}, profile: ${profileName}, proxy: ${proxyUrl}`);
+    
+    const mode = cdpPort ? 'CDP' : 'Proxy';
+    console.log(`[LaunchBrowser] Spawned browser PID: ${child.pid}, profile: ${profileName}, mode: ${mode}${useProxy ? `, proxy: ${proxyUrl}` : ''}`);
 
     child.on('exit', (code, signal) => {
       console.log(`[LaunchBrowser] Browser exited: PID=${child.pid}, code=${code}, signal=${signal}, profile=${profileName}`);
       if (activeChildProcess === child) {
         activeChildProcess = null;
-        activeProxyUrl = null;
+        if (useProxy) {
+          activeProxyUrl = null;
+        }
         // Notify renderer that the browser was closed
         const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
         if (win) {
@@ -807,8 +908,11 @@ app.whenReady().then(async () => {
           // Use forceMode if provided, otherwise default to userApp.mode
           const modeToUse = forceMode || userApp.mode;
 
-          if (modeToUse === 'browser') {
-            return launchBrowser(userApp.url, userApp.id, proxyUrl);
+          if (modeToUse === 'browser' || modeToUse === 'cdp') {
+            // For CDP mode, launch with remote debugging port (avoid conflict with Phantoma's 9222)
+            const cdpPort = modeToUse === 'cdp' ? await findAvailablePort(9223) : undefined;
+            console.log(`[Launch] CDP port assigned: ${cdpPort} for ${userApp.id}`);
+            return launchBrowser(userApp.url, userApp.id, proxyUrl, cdpPort);
           } else if (modeToUse === 'electron') {
             activeProxyUrl = proxyUrl;
             const win = await createGenericWebWindow(userApp.id, userApp.url, proxyUrl, {
@@ -1242,38 +1346,68 @@ app.whenReady().then(async () => {
   });
 
   // Certificate Installation IPC
-  ipcMain.handle('cert:install-system-ca', async () => {
+  let certInstalled = false;
+
+  const installSystemCA = async (): Promise<boolean> => {
     try {
       const caPath = path.join(process.cwd(), '.http-mitm-proxy', 'certs', 'ca.pem');
       const destPath = '/usr/local/share/ca-certificates/phantoma.crt';
 
       if (!fs.existsSync(caPath)) {
-        throw new Error('CA certificate not found. Please start the proxy first.');
+        console.log('[Cert] CA certificate not found yet, skipping installation');
+        return false;
       }
 
-      // Detect if pkexec or sudo is available (Linux)
-      // We'll use a complex command to copy and update
+      // Check if certificate is already installed
+      if (fs.existsSync(destPath)) {
+        console.log('[Cert] Certificate already installed at:', destPath);
+        return true;
+      }
+
+      console.log(`[Cert] Installing CA certificate from ${caPath} to ${destPath}`);
+
+      // Use pkexec or sudo with timeout
       const command = `pkexec sh -c "cp '${caPath}' '${destPath}' && update-ca-certificates"`;
 
-      console.log(`[Cert] Executing installation: ${command}`);
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.warn('[Cert] Installation timed out after 30s');
+          resolve(false);
+        }, 30000);
 
-      return new Promise((resolve, reject) => {
         execAsync(command, (error, stdout, stderr) => {
+          clearTimeout(timeout);
           if (error) {
-            console.error('[Cert] Installation failed:', error);
+            console.error('[Cert] Installation failed:', error.message);
             console.error('[Cert] stderr:', stderr);
-            reject(new Error(`Installation failed: ${stderr || error.message}`));
+            resolve(false);
             return;
           }
           console.log('[Cert] Installation successful:', stdout);
+          certInstalled = true;
           resolve(true);
         });
       });
     } catch (e: any) {
       console.error('[Cert] Error installing CA:', e);
-      throw e;
+      return false;
     }
+  };
+
+  ipcMain.handle('cert:install-system-ca', async () => {
+    return await installSystemCA();
   });
+
+  // Auto-install certificate when proxy session is created
+  const originalCreateSession = proxyManager.createSession.bind(proxyManager);
+  proxyManager.createSession = async (id: string) => {
+    console.log(`[ProxyManager] createSession called for id="${id}", attempting auto-cert-install...`);
+    // Try to install certificate (non-blocking)
+    installSystemCA().catch((e) => {
+      console.error('[Cert] Auto-install failed:', e);
+    });
+    return originalCreateSession(id);
+  };
 
   ipcMain.handle('fs:delete', async (_, targetPath: string) => {
     try {

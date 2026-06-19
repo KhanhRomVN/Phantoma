@@ -6,11 +6,12 @@ interface DataPointRowProps {
 
 function ConfidenceBadge({ value }: { value: number }) {
   const pct = Math.round(value * 100);
-  const color = pct >= 70 ? '#30d158' : pct >= 40 ? '#f5a623' : '#ff2d55';
+  const color = pct >= 70 ? 'var(--success)' : pct >= 40 ? 'var(--warning)' : 'var(--error)';
+  const bgColor = pct >= 70 ? 'var(--success)15' : pct >= 40 ? 'var(--warning)15' : 'var(--error)15';
   return (
     <span
       className="text-[9px] font-mono px-1 py-0.5 rounded border ml-1 shrink-0"
-      style={{ color, borderColor: color, backgroundColor: `${color}15` }}
+      style={{ color, borderColor: color, backgroundColor: bgColor }}
     >
       {pct}%
     </span>
@@ -23,7 +24,7 @@ export function DataPointRow({ dataPoint }: DataPointRowProps) {
   return (
     <div className="flex items-center gap-2 px-2 py-1.5 bg-card-background border border-border rounded text-[11px] font-mono hover:border-border transition-colors">
       <div className="flex-1 min-w-0 flex items-center gap-2">
-        <span className="truncate" style={{ color: isNoise ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+        <span className={cn("truncate", isNoise ? 'text-text-secondary' : 'text-text-primary')}>
           {displayValue || String(dataPoint.value || '')}
         </span>
         {isNoise && (
@@ -38,8 +39,8 @@ export function DataPointRow({ dataPoint }: DataPointRowProps) {
           <span
             className="text-[9px] font-mono px-1 rounded"
             style={{
-              color: riskScore >= 75 ? '#ff2d55' : '#f5a623',
-              backgroundColor: riskScore >= 75 ? '#ff2d5515' : '#f5a62315',
+              color: riskScore >= 75 ? 'var(--error)' : 'var(--warning)',
+              backgroundColor: riskScore >= 75 ? 'var(--error)15' : 'var(--warning)15',
             }}
           >
             R{riskScore}

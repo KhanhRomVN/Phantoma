@@ -259,6 +259,7 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
       return [];
     },
   );
+
   const [body, setBody] = useState(initialRequest?.requestBody || '');
   const [responseTab, setResponseTab] = useState<'body' | 'headers'>('body');
   const responseBlockRef = useRef<CodeBlockRef>(null);
@@ -610,48 +611,36 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 const Icon = tab.icon;
-                // Map tab to accent color CSS variable
+                // Map tab to accent color
                 const accentMap: Record<string, string> = {
                   params: 'var(--info)',
                   headers: 'var(--accent-green)',
                   body: 'var(--error)',
                 };
                 const accentColor = accentMap[tab.id] || 'var(--primary)';
+                const bgActive = isActive ? 'var(--table-body-bg)' : 'transparent';
+                const colorActive = isActive ? accentColor : `${accentColor}80`;
+                const borderActive = isActive
+                  ? `2px solid ${accentColor}`
+                  : '2px solid transparent';
 
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      'py-2 text-xs font-medium transition-all text-center flex items-center justify-center gap-2 cursor-pointer border-none',
+                      isActive
+                        ? 'bg-table-bodyBg'
+                        : 'hover:text-text-primary hover:bg-sidebar-item-hover',
+                    )}
                     style={{
-                      padding: '8px 0',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      transition: 'all 0.2s',
-                      textAlign: 'center',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      background: isActive ? 'var(--table-body-bg)' : 'transparent',
-                      color: isActive ? accentColor : `${accentColor}80`,
-                      borderBottom: isActive ? `2px solid ${accentColor}` : '2px solid transparent',
-                      cursor: 'pointer',
-                      border: 'none',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.color = 'var(--text-primary)';
-                        e.currentTarget.style.background = 'var(--sidebar-item-hover)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.color = `${accentColor}80`;
-                        e.currentTarget.style.background = 'transparent';
-                      }
+                      background: bgActive,
+                      color: colorActive,
+                      borderBottom: borderActive,
                     }}
                   >
-                    <Icon style={{ width: 14, height: 14 }} />
+                    <Icon className="w-3.5 h-3.5" />
                     {tab.label}
                   </button>
                 );
@@ -891,10 +880,7 @@ export function Composer({ appId, initialRequest }: ComposerProps) {
             className="absolute inset-0 bg-black/40 z-40"
             onClick={() => setIsDrawerOpen(false)}
           />
-          <div
-            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300"
-            style={{ height: '50%' }}
-          >
+          <div className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 h-[50%]">
             <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
               <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-info/15 border border-info/25 shrink-0">
                 <Send className="w-4 h-4 text-info" />

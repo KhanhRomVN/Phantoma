@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { cn } from '../../../../shared/lib/utils';
+import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 interface LogEntry {
   timestamp: string;
@@ -60,6 +61,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
   const [matchCase, setMatchCase] = useState(false);
   const [matchWholeWord, setMatchWholeWord] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
+  const { UNIFIED_ACCENT, toRgba } = useAccentColors();
 
   useEffect(() => {
     if (!emulatorSerial) return;
@@ -315,17 +317,8 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
     <div className="flex flex-col h-full bg-table-bodyBg">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 36,
-          height: 40,
-          borderRadius: 8,
-          background: 'var(--accent-green)/15',
-          border: '1px solid var(--accent-green)/25',
-        }}>
-          <Search style={{ width: 16, height: 16, color: 'var(--accent-green)' }} />
+        <div className="flex items-center justify-center w-9 h-10 rounded-lg border border-accent-green/25 bg-accent-green/15">
+          <Search className="w-4 h-4 text-accent-green" />
         </div>
         <div className="flex-1">
           <h2 className="text-base font-bold text-text-primary">Log Viewer</h2>
@@ -355,78 +348,36 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
           <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
             <button
               onClick={() => setMatchCase(!matchCase)}
-              style={{
-                padding: 2,
-                borderRadius: 4,
-                background: matchCase ? 'var(--primary)/20' : 'transparent',
-                color: matchCase ? 'var(--primary)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                border: 'none',
-              }}
-              onMouseEnter={(e) => {
-                if (!matchCase) {
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                  e.currentTarget.style.background = 'var(--sidebar-item-hover)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!matchCase) {
-                  e.currentTarget.style.color = 'var(--text-secondary)';
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
+              className={cn(
+                'p-0.5 rounded cursor-pointer border-none transition-all',
+                matchCase
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+              )}
             >
-              <CaseSensitive style={{ width: 12, height: 12 }} />
+              <CaseSensitive className="w-3 h-3" />
             </button>
             <button
               onClick={() => setMatchWholeWord(!matchWholeWord)}
-              style={{
-                padding: 2,
-                borderRadius: 4,
-                background: matchWholeWord ? 'var(--primary)/20' : 'transparent',
-                color: matchWholeWord ? 'var(--primary)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                border: 'none',
-              }}
-              onMouseEnter={(e) => {
-                if (!matchWholeWord) {
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                  e.currentTarget.style.background = 'var(--sidebar-item-hover)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!matchWholeWord) {
-                  e.currentTarget.style.color = 'var(--text-secondary)';
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
+              className={cn(
+                'p-0.5 rounded cursor-pointer border-none transition-all',
+                matchWholeWord
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+              )}
             >
-              <WholeWord style={{ width: 12, height: 12 }} />
+              <WholeWord className="w-3 h-3" />
             </button>
             <button
               onClick={() => setUseRegex(!useRegex)}
-              style={{
-                padding: 2,
-                borderRadius: 4,
-                background: useRegex ? 'var(--success)/20' : 'transparent',
-                color: useRegex ? 'var(--success)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                border: 'none',
-              }}
-              onMouseEnter={(e) => {
-                if (!useRegex) {
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                  e.currentTarget.style.background = 'var(--sidebar-item-hover)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!useRegex) {
-                  e.currentTarget.style.color = 'var(--text-secondary)';
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
+              className={cn(
+                'p-0.5 rounded cursor-pointer border-none transition-all',
+                useRegex
+                  ? 'bg-success/20 text-success'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+              )}
             >
-              <Regex style={{ width: 12, height: 12 }} />
+              <Regex className="w-3 h-3" />
             </button>
           </div>
         </div>

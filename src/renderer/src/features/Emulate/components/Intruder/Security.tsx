@@ -69,8 +69,6 @@ const ISSUE_TAB: Record<string, 'headers' | 'body'> = {
   'missing-sri': 'body',
 };
 
-const COL = { sev: 90, issue: 200, evidence: 180 };
-
 function IssueRow({
   issue,
   onJump,
@@ -87,7 +85,7 @@ function IssueRow({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div className="flex items-center border-b border-divider/20 hover:bg-secondary/30 transition-colors text-xs cursor-default">
-          <div className="shrink-0 px-3 py-2" style={{ width: COL.sev }}>
+          <div className="shrink-0 px-3 py-2 w-[90px]">
             <span
               className={cn(
                 'inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border',
@@ -98,14 +96,11 @@ function IssueRow({
               {cfg.label}
             </span>
           </div>
-          <div
-            className="shrink-0 px-3 py-2 font-medium text-text-primary"
-            style={{ width: COL.issue }}
-          >
+          <div className="shrink-0 px-3 py-2 font-medium text-text-primary w-[200px]">
             {issue.title}
           </div>
           <div className="flex-1 px-3 py-2 text-text-secondary">{issue.description}</div>
-          <div className="shrink-0 px-3 py-2" style={{ width: COL.evidence }}>
+          <div className="shrink-0 px-3 py-2 w-[180px]">
             {issue.evidence ? (
               <code className="text-[10px] font-mono text-text-secondary truncate block">
                 {issue.evidence}
@@ -154,16 +149,10 @@ export function SecurityDetails({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex shrink-0 border-b border-divider/30 bg-table-headerBg text-[10px] uppercase text-text-secondary font-semibold">
-        <div className="shrink-0 px-3 py-2" style={{ width: COL.sev }}>
-          Severity
-        </div>
-        <div className="shrink-0 px-3 py-2" style={{ width: COL.issue }}>
-          Issue
-        </div>
+        <div className="shrink-0 px-3 py-2 w-[90px]">Severity</div>
+        <div className="shrink-0 px-3 py-2 w-[200px]">Issue</div>
         <div className="flex-1 px-3 py-2">Description</div>
-        <div className="shrink-0 px-3 py-2" style={{ width: COL.evidence }}>
-          Evidence
-        </div>
+        <div className="shrink-0 px-3 py-2 w-[180px]">Evidence</div>
       </div>
       {/* Rows */}
       <div className="flex-1 overflow-auto">

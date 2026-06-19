@@ -3,6 +3,7 @@ import { NetworkRequest } from '../../../../types/inspector';
 import { FileCode, Download, Search, Cpu, X } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { detectWasmModules, WasmItem } from '../../../../utils/detectors';
+import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 interface WasmPanelProps {
   requests?: NetworkRequest[];
@@ -55,12 +56,10 @@ function WasmCard({
 }
 
 export function WasmPanel({ requests = [], onClose }: WasmPanelProps) {
-  const [wasmItems, setWasmItems] = useState<WasmItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const { UNIFIED_ACCENT, toRgba } = useAccentColors();
 
-  useEffect(() => {
-    setWasmItems(detectWasmModules(requests));
-  }, [requests]);
+  const wasmItems = useMemo(() => detectWasmModules(requests), [requests]);
 
   const filtered = useMemo(
     () =>
@@ -92,18 +91,8 @@ export function WasmPanel({ requests = [], onClose }: WasmPanelProps) {
     <div className="flex flex-col h-full">
       {/* Header - horizontal */}
       <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 36,
-          height: 40,
-          borderRadius: 8,
-          background: 'var(--accent-purple)/15',
-          border: '1px solid var(--accent-purple)/25',
-          flexShrink: 0,
-        }}>
-          <FileCode style={{ width: 16, height: 16, color: 'var(--accent-purple)' }} />
+        <div className="flex items-center justify-center w-9 h-10 rounded-lg border border-accent-purple/25 bg-accent-purple/15 shrink-0">
+          <FileCode className="w-4 h-4 text-accent-purple" />
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-base font-bold text-text-primary">WASM Modules</h2>

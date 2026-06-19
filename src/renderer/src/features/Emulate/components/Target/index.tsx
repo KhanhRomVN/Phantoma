@@ -15,6 +15,7 @@ import { cn } from '../../../../shared/lib/utils';
 import { AddTargetModal } from './AddTargetModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { ConfirmLaunchModal } from './ConfirmLaunchModal';
+import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 const PLATFORM_TABS: { id: AppPlatform; icon: React.ElementType; label: string; color: string }[] =
   [
@@ -74,6 +75,7 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
     null,
   );
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { getColorByIndex, toRgba } = useAccentColors();
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -239,48 +241,45 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
               };
               const accentColor = colorMap[color]?.active || 'var(--primary)';
               
+              const bgActive = toRgba(accentColor, 0.12);
+              const bgInactive = toRgba(accentColor, 0.05);
+              const bgHover = toRgba(accentColor, 0.08);
+              const bgActiveBadge = toRgba(accentColor, 0.18);
+              const bgInactiveBadge = toRgba(accentColor, 0.08);
               return (
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2 h-7 rounded-lg text-[11px] font-medium transition-all border-none cursor-pointer',
+                    isActive
+                      ? `text-[${accentColor}]`
+                      : `text-[${accentColor}80] hover:text-[${accentColor}]`
+                  )}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '0 8px',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 500,
-                    transition: 'all 0.2s',
-                    height: '28px',
-                    background: isActive ? `${accentColor}20` : `${accentColor}08`,
-                    color: isActive ? accentColor : `${accentColor}80`,
-                    border: 'none',
-                    cursor: 'pointer',
+                    background: isActive ? bgActive : bgInactive,
+                    color: isActive ? accentColor : undefined,
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.background = `${accentColor}15`;
+                      e.currentTarget.style.background = bgHover;
                       e.currentTarget.style.color = accentColor;
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.background = `${accentColor}08`;
+                      e.currentTarget.style.background = bgInactive;
                       e.currentTarget.style.color = `${accentColor}80`;
                     }
                   }}
                 >
-                  <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
                   <span>{label}</span>
                   {count > 0 && (
                     <span
+                      className="text-[9px] px-1 rounded-full font-medium"
                       style={{
-                        fontSize: '9px',
-                        padding: '0 4px',
-                        borderRadius: '9999px',
-                        fontWeight: 500,
-                        background: isActive ? `${accentColor}30` : `${accentColor}15`,
+                        background: isActive ? bgActiveBadge : bgInactiveBadge,
                         color: isActive ? accentColor : `${accentColor}80`,
                       }}
                     >
@@ -392,25 +391,7 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
                 setEditingApp(null);
                 setIsAddModalOpen(true);
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                borderRadius: '8px',
-                border: '1px dashed var(--border)',
-                background: 'var(--background)',
-                transition: 'all 0.2s',
-                cursor: 'pointer',
-                padding: '6px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--primary)';
-                e.currentTarget.style.background = 'var(--card-background)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border)';
-                e.currentTarget.style.background = 'var(--background)';
-              }}
+              className="flex items-center gap-1.5 rounded-lg border border-dashed border-border bg-background transition-all cursor-pointer p-1.5 hover:border-primary hover:bg-card-background"
             >
               <div className="w-7 h-7 rounded-lg bg-card-background flex items-center justify-center shrink-0">
                 <Plus className="w-3.5 h-3.5 text-text-secondary" />
@@ -434,15 +415,8 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
             return (
               <div
                 ref={contextMenuRef}
+                className="fixed z-50 bg-dialog-background border border-border rounded-lg shadow-xl py-1 min-w-[180px]"
                 style={{
-                  position: 'fixed',
-                  zIndex: 50,
-                  background: 'var(--dialog-background)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
-                  padding: '4px 0',
-                  minWidth: '180px',
                   left: contextMenu.x,
                   top: contextMenu.y,
                 }}

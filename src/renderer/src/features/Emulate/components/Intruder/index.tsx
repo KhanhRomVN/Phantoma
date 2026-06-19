@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { NetworkRequest } from '../../../../types/inspector';
 import { cn } from '../../../../shared/lib/utils';
 import {
@@ -25,6 +25,7 @@ import { Composer } from './Composer';
 import { CookieDetails } from './Cookie';
 import { useI18n } from '../../../../i18n/i18nContext';
 import { ResizableSplit } from '../common/ResizableSplit';
+import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 function Badge({ count, className }: { count: number; className?: string }) {
   if (count === 0) return null;
@@ -105,7 +106,7 @@ function TextSelectionMenu({
           onAddToCrypto();
           onClose();
         }}
-className="w-full px-3 py-1.5 text-xs text-left hover:bg-error/10 hover:text-error transition-colors"
+        className="w-full px-3 py-1.5 text-xs text-left hover:bg-error/10 hover:text-error transition-colors"
       >
         <KeyRound className="w-3 h-3" />
         {t.requestDetails.addToCrypto}
@@ -144,6 +145,7 @@ export function RequestDetails({
   const [internalActiveTab, setInternalActiveTab] = useState('headers');
   const [isRawMode, setIsRawMode] = useState(false);
   const { t } = useI18n();
+  const { getColorByIndex, toRgba } = useAccentColors();
 
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
@@ -311,15 +313,17 @@ export function RequestDetails({
     matches.body = getBodyMatchCount(request.requestBody) + getBodyMatchCount(request.responseBody);
   }
 
-  // Define accent colors as CSS variables for dynamic usage
-  const tabAccents = {
-    headers: { color: 'var(--info)', border: 'var(--info)' },
-    body: { color: 'var(--error)', border: 'var(--error)' },
-    network: { color: 'var(--accent-cyan)', border: 'var(--accent-cyan)' },
-    composer: { color: 'var(--info)', border: 'var(--info)' },
-    security: { color: 'var(--error)', border: 'var(--error)' },
-    cookies: { color: 'var(--warning)', border: 'var(--warning)' },
-  };
+  // Use accent colors from theme for dynamic tab colors
+  const tabAccents = useMemo(() => {
+    return {
+      headers: { color: getColorByIndex(0), border: getColorByIndex(0) },
+      body: { color: getColorByIndex(1), border: getColorByIndex(1) },
+      network: { color: getColorByIndex(2), border: getColorByIndex(2) },
+      composer: { color: getColorByIndex(3), border: getColorByIndex(3) },
+      security: { color: getColorByIndex(4), border: getColorByIndex(4) },
+      cookies: { color: getColorByIndex(5), border: getColorByIndex(5) },
+    };
+  }, [getColorByIndex]);
 
   const tabs = [
     {
@@ -482,100 +486,53 @@ export function RequestDetails({
               const isActive = activeTab === tab.id;
               const accent = tabAccents[tab.accentKey];
               const accentColor = accent?.color || 'var(--primary)';
-              const borderColor = accent?.border || 'var(--primary)';
 
               if (isActive) {
+                const bgColor = toRgba(accentColor, 0.12);
                 return (
                   <div
                     key={tab.id}
+                    className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all border-b-2 text-[var(--accent)] bg-[var(--accent)]/12"
                     style={{
-                      display: 'flex',
-                      height: '100%',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '0 12px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      borderBottom: `2px solid ${borderColor}`,
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.2s',
-                      background: 'var(--table-body-bg)',
+                      borderBottomColor: accentColor,
+                      background: bgColor,
                       color: accentColor,
                     }}
                   >
-                    <Icon style={{ width: 14, height: 14 }} />
+                    <Icon className="w-3.5 h-3.5" />
                     {tab.label}
                     <Badge count={tab.count} className={undefined} />
 
                     {tab.id !== 'composer' && tab.id !== 'security' && tab.id !== 'cookies' && (
-                      <div
-                        style={{
-                          marginLeft: 8,
-                          paddingLeft: 8,
-                          borderLeft: '1px solid currentColor',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          opacity: 0.7,
-                        }}
-                      >
+                      <div className="ml-2 pl-2 border-l border-current flex items-center gap-1 opacity-70">
                         {currentTabHasMatches && (
                           <button
                             onClick={scrollToNextMatch}
-                            style={{
-                              padding: 2,
-                              borderRadius: 4,
-                              background: 'transparent',
-                              color: 'var(--text-secondary)',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = accentColor;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                            }}
+                            className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary hover:text-[var(--accent)]"
                             title={t.requestDetails.nextMatch}
                           >
-                            <ScanEye style={{ width: 14, height: 14 }} />
+                            <ScanEye className="w-3.5 h-3.5" />
                           </button>
                         )}
 
                         <button
                           onClick={handleCopy}
-                          style={{
-                            padding: 2,
-                            borderRadius: 4,
-                            background: 'transparent',
-                            color: 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = accentColor;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = 'var(--text-secondary)';
-                          }}
+                          className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary hover:text-[var(--accent)]"
                           title={t.requestDetails.copyTab}
                         >
-                          <Copy style={{ width: 14, height: 14 }} />
+                          <Copy className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setIsRawMode(!isRawMode)}
+                          className="p-0.5 rounded bg-transparent cursor-pointer transition-all"
                           style={{
-                            padding: 2,
-                            borderRadius: 4,
-                            background: isRawMode ? `${accentColor}20` : 'transparent',
+                            background: isRawMode ? toRgba(accentColor, 0.2) : 'transparent',
                             color: isRawMode ? accentColor : 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
                           }}
                           onMouseEnter={(e) => {
                             if (!isRawMode) {
                               e.currentTarget.style.color = accentColor;
-                              e.currentTarget.style.background = `${accentColor}10`;
+                              e.currentTarget.style.background = toRgba(accentColor, 0.08);
                             }
                           }}
                           onMouseLeave={(e) => {
@@ -586,7 +543,7 @@ export function RequestDetails({
                           }}
                           title={t.requestDetails.toggleRaw}
                         >
-                          <Flower2 style={{ width: 14, height: 14 }} />
+                          <Flower2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
@@ -594,35 +551,15 @@ export function RequestDetails({
                 );
               }
 
+              const tabAccent = tabAccents[tab.accentKey];
+              const hoverBg = toRgba(tabAccent.color, 0.08);
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    display: 'flex',
-                    height: '100%',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '0 12px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    borderBottom: '2px solid transparent',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.2s',
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                    e.currentTarget.style.background = 'var(--secondary)/40';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                    e.currentTarget.style.background = 'transparent';
-                  }}
+                  className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all bg-transparent border-b-2 border-transparent text-text-secondary cursor-pointer hover:text-text-primary hover:bg-[var(--accent)]/8"
                 >
-                  <Icon style={{ width: 14, height: 14 }} />
+                  <Icon className="w-3.5 h-3.5" />
                   {tab.label}
                   <Badge count={tab.count} />
                 </button>
@@ -719,6 +656,9 @@ interface RequestListProps {
   onSelectWsConnection: (id: string | null) => void;
   onDeleteWsConnection: (id: string) => void;
   browserViewUrl: string | null;
+  onLaunchTarget?: (appId: string, proxyUrl: string, customUrl?: string, mode?: 'browser' | 'electron' | 'native' | 'cdp') => Promise<void>;
+  currentTargetAppId?: string;
+  currentTargetUrl?: string;
 }
 
 export function RequestList({
@@ -741,6 +681,9 @@ export function RequestList({
   onSendToFuzzer,
   onSelectionChange,
   browserViewUrl,
+  onLaunchTarget,
+  currentTargetAppId,
+  currentTargetUrl,
 }: RequestListProps) {
   const [view, setView] = useState<'table' | 'timeline' | 'websocket' | 'browser'>('table');
   const { t } = useI18n();
@@ -782,6 +725,9 @@ export function RequestList({
           onAnalyzeRequest={onAnalyzeRequest}
           onSendToFuzzer={onSendToFuzzer}
           onSelectionChange={onSelectionChange}
+          onLaunchTarget={onLaunchTarget}
+          currentTargetAppId={currentTargetAppId}
+          currentTargetUrl={currentTargetUrl}
         />
       </div>
     </div>

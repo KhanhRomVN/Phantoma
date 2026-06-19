@@ -98,6 +98,19 @@ function getLanguage(contentType?: string): string {
   return 'text';
 }
 
+function formatJsonIfValid(content: string): string {
+  if (!content) return content;
+  const trimmed = content.trim();
+  try {
+    // Try to parse as JSON and format it
+    const parsed = JSON.parse(trimmed);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    // Not valid JSON, return original
+    return content;
+  }
+}
+
 export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
   ({ request, searchTerm }, ref) => {
     const analysis = request.analysis;
@@ -125,13 +138,18 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
       },
     }));
 
+    // Fallback: Use raw request data when analysis is not available
     const requestBodyContent = analysis?.body?.request?.formatted
       ? JSON.stringify(analysis.body.request.formatted, null, 2)
-      : analysis?.body?.request?.raw || 'No Content';
+      : analysis?.body?.request?.raw 
+        ? formatJsonIfValid(analysis.body.request.raw)
+        : formatJsonIfValid(request.requestBody || 'No Content');
 
     const responseBodyContent = analysis?.body?.response?.formatted
       ? JSON.stringify(analysis.body.response.formatted, null, 2)
-      : analysis?.body?.response?.raw || 'No Content';
+      : analysis?.body?.response?.raw
+        ? formatJsonIfValid(analysis.body.response.raw)
+        : formatJsonIfValid(request.responseBody || 'No Content');
 
     const requestLanguage = getLanguage(analysis?.body?.request?.contentType);
     const responseLanguage = getLanguage(analysis?.body?.response?.contentType);

@@ -41,7 +41,7 @@ export const ResizableSplit = ({
       const containerRect = containerRef.current.getBoundingClientRect();
       let newSize: number;
 
-      if (direction === 'vertical') {
+      if (direction === 'horizontal') {
         const deltaX = e.clientX - startXRef.current;
         const deltaPercent = (deltaX / containerRect.width) * 100;
         newSize = startSizeRef.current + deltaPercent;
@@ -73,23 +73,32 @@ export const ResizableSplit = ({
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const [firstChild, secondChild] = children;
-  const isVertical = direction === 'vertical';
+  // Force horizontal layout when direction is 'horizontal'
+  const isHorizontal = direction === 'horizontal';
 
   return (
     <div
       ref={containerRef}
       className="flex w-full h-full overflow-hidden"
-      style={{ flexDirection: isVertical ? 'row' : 'column' }}
+      style={{ flexDirection: isHorizontal ? 'row' : 'column' }}
     >
-      <div style={{ flexBasis: `${splitSize}%`, flexGrow: 0, flexShrink: 0, overflow: 'auto' }}>
+      <div 
+        style={{ 
+          flexBasis: `${splitSize}%`, 
+          flexGrow: 0, 
+          flexShrink: 0, 
+          overflow: 'auto',
+          ...(isHorizontal ? { height: '100%' } : { width: '100%' })
+        }}
+      >
         {firstChild}
       </div>
       <div
         className={cn(
-          'bg-divider hover:bg-info transition-colors cursor-col-resize shrink-0',
-          isVertical ? 'w-px hover:w-0.5' : 'h-px hover:h-0.5',
+          'bg-divider hover:bg-info transition-colors shrink-0',
+          isHorizontal ? 'cursor-col-resize w-px hover:w-0.5' : 'cursor-row-resize h-px hover:h-0.5',
         )}
-        style={isVertical ? { width: '1px' } : { height: '1px' }}
+        style={isHorizontal ? { width: '1px', height: '100%' } : { height: '1px', width: '100%' }}
         onMouseDown={handleMouseDown}
       />
       <div style={{ flex: 1, overflow: 'auto' }}>{secondChild}</div>

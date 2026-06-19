@@ -7,10 +7,12 @@ module.exports = {
     'bg-input-background',
     'bg-modal-background',
     'bg-dropdown-background',
+    'bg-dropdown-item-hover',
     'bg-sidebar-background',
     'bg-table-header-background',
     'bg-table-footer-background',
     'bg-table-row-hover',
+    'bg-tooltip-background',
   ],
   theme: {
     extend: {

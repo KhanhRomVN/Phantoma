@@ -64,6 +64,24 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
   const analysis = request.analysis;
   const { t } = useI18n();
 
+  // Fallback: Convert raw headers to the format expected by the UI
+  const getHeadersSections = (headers: Record<string, string> | undefined): Record<string, any[]> => {
+    if (!headers || Object.keys(headers).length === 0) return {};
+    
+    // Group headers into sections (e.g., "Request Headers")
+    const sections: Record<string, any[]> = {
+      'Headers': Object.entries(headers).map(([name, value]) => ({
+        name,
+        value: String(value),
+        status: 'good',
+      }))
+    };
+    return sections;
+  };
+
+  const requestHeadersSections = analysis?.headers?.request || getHeadersSections(request.requestHeaders);
+  const responseHeadersSections = analysis?.headers?.response || getHeadersSections(request.responseHeaders);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
@@ -72,9 +90,9 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
           <h3 className="text-[10px] font-bold text-text-secondary uppercase pb-1.5 border-b border-divider/50">
             {t.requestDetails.requestHeaders}
           </h3>
-          {analysis?.headers?.request ? (
+          {requestHeadersSections && Object.keys(requestHeadersSections).length > 0 ? (
             <div className="space-y-4">
-              {Object.entries(analysis.headers.request).map(([section, headers]) => (
+              {Object.entries(requestHeadersSections).map(([section, headers]) => (
                 <div key={section}>
                   <h4 className="text-[10px] font-bold text-primary/80 uppercase tracking-wider mb-1.5">
                     {section}
@@ -90,20 +108,6 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                             <span className="font-bold font-mono text-xs break-all text-text-primary/90">
                               <HighlightText text={h.name} searchTerm={searchTerm} />
                             </span>
-                            {h.status && (
-                              <span
-                                className={cn(
-                                  'text-[9px] px-1 py-0.5 rounded uppercase font-bold tracking-tight',
-                                  h.status === 'good'
-                                    ? 'bg-success/15 text-success'
-                                    : h.status === 'warning'
-                                      ? 'bg-warning/15 text-warning'
-                                      : 'bg-secondary text-text-secondary',
-                                )}
-                              >
-                                {h.status}
-                              </span>
-                            )}
                           </div>
                           {h.description && (
                             <div
@@ -153,9 +157,9 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
           <h3 className="text-[10px] font-bold text-text-secondary uppercase pb-1.5 border-b border-divider/50">
             {t.requestDetails.responseHeaders}
           </h3>
-          {analysis?.headers?.response ? (
+          {responseHeadersSections && Object.keys(responseHeadersSections).length > 0 ? (
             <div className="space-y-4">
-              {Object.entries(analysis.headers.response).map(([section, headers]) => (
+              {Object.entries(responseHeadersSections).map(([section, headers]) => (
                 <div key={section}>
                   <h4 className="text-[10px] font-bold text-primary/80 uppercase tracking-wider mb-1.5">
                     {section}
@@ -171,20 +175,6 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                             <span className="font-bold font-mono text-xs break-all text-text-primary/90">
                               <HighlightText text={h.name} searchTerm={searchTerm} />
                             </span>
-                            {h.status && (
-                              <span
-                                className={cn(
-                                  'text-[9px] px-1 py-0.5 rounded uppercase font-bold tracking-tight',
-                                  h.status === 'good'
-                                    ? 'bg-success/15 text-success'
-                                    : h.status === 'warning'
-                                      ? 'bg-warning/15 text-warning'
-                                      : 'bg-secondary text-text-secondary',
-                                )}
-                              >
-                                {h.status}
-                              </span>
-                            )}
                           </div>
                           {h.description && (
                             <div
