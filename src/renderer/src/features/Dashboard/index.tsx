@@ -521,7 +521,7 @@ export function Dashboard() {
   }, []);
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-background font-mono">
+    <div className="flex flex-col flex-1 h-full overflow-hidden bg-background font-mono">
       {/* Header */}
       <div className="flex items-center gap-3 px-3 h-[34px] bg-background border-b border-border shrink-0">
         <div className="flex items-center gap-1.5">

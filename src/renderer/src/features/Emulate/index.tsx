@@ -17,8 +17,6 @@ import {
   Smartphone,
   Terminal,
   Square,
-  Trash2,
-  PenSquare as EditIcon,
   Play,
   ChevronRight,
 } from 'lucide-react';
@@ -39,7 +37,6 @@ import type { NetworkRequest, WebSocketConnection } from '../../types/inspector'
 import type { UserApp, AppPlatform } from '../../types/apps';
 import { useTheme } from '../../theme/ThemeProvider';
 import { cn } from '../../shared/lib/utils';
-import { useAccentColors } from '../../shared/hooks/useAccentColors';
 import { AddTargetModal } from './components/Target/AddTargetModal';
 import { ConfirmDeleteModal } from './components/Target/ConfirmDeleteModal';
 import { ConfirmLaunchModal } from './components/Target/ConfirmLaunchModal';
@@ -123,7 +120,7 @@ export default function Emulate({
     loadPersistedActiveTab(initialTabs),
   );
 
-  // Persist tabs whenever they change
+  // Persist tabs whenever they change (still needed for cross-session persistence)
   React.useEffect(() => {
     try {
       // Don't persist the default tab
@@ -146,7 +143,8 @@ export default function Emulate({
       console.error('Failed to save active tab:', e);
     }
   }, [activeTargetId]);
-const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockRequests);
+
+  const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockRequests);
   const [requests, setRequests] = useState<NetworkRequest[]>(mockRequests);
   const [cdpRequests, setCdpRequests] = useState<NetworkRequest[]>([]);
   const [cdpRequestMap, setCdpRequestMap] = useState<Map<string, NetworkRequest>>(new Map());
@@ -276,7 +274,9 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
 
       // Host filter (whitelist)
       if (filter.host.whitelist.length > 0) {
-        const hostMatch = filter.host.whitelist.some((h) => req.host?.toLowerCase().includes(h.toLowerCase()));
+        const hostMatch = filter.host.whitelist.some((h) =>
+          req.host?.toLowerCase().includes(h.toLowerCase()),
+        );
         if (!hostMatch) return false;
       }
 
@@ -289,17 +289,17 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
       // Type filter
       const type = req.type?.toLowerCase() || '';
       const typeMap: Record<string, string> = {
-        'xhr': 'xhr',
-        'js': 'js',
-        'css': 'css',
-        'img': 'img',
-        'media': 'media',
-        'font': 'font',
-        'doc': 'doc',
-        'ws': 'ws',
-        'wasm': 'wasm',
-        'manifest': 'manifest',
-        'other': 'other',
+        xhr: 'xhr',
+        js: 'js',
+        css: 'css',
+        img: 'img',
+        media: 'media',
+        font: 'font',
+        doc: 'doc',
+        ws: 'ws',
+        wasm: 'wasm',
+        manifest: 'manifest',
+        other: 'other',
       };
       const typeKey = typeMap[type] || 'other';
       if (filter.type[typeKey as keyof typeof filter.type] === false) {
@@ -354,6 +354,16 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
       // Store timestamp for time calculation using global Map
       requestTimestampMap.set(id, requestTimestamp);
 
+      // Debug: log initiator received from CDP
+      if (data.initiator) {
+        console.log('[Emulate] 📥 Received initiator for', data.url, ':', {
+          type: data.initiator.type,
+          url: data.initiator.url,
+          hasStack: !!data.initiator.stack,
+          stackLength: data.initiator.stack?.length || 0,
+        });
+      }
+
       const req: NetworkRequest = {
         id: id,
         method: data.method || 'GET',
@@ -370,9 +380,8 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
         responseHeaders: {},
         requestBody: data.requestBody || '',
         responseBody: '',
+        initiator: data.initiator, // Store initiator from CDP
       };
-      
-
       setCdpRequestMap((prev) => {
         const newMap = new Map(prev);
         newMap.set(req.id, req);
@@ -437,12 +446,12 @@ const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockR
       });
     };
 
-const handleCdpResponseBody = (event: any, data: any) => {
+    const handleCdpResponseBody = (event: any, data: any) => {
       // Try to get timestamp, if not found, retry after a short delay
       let requestTimestamp = requestTimestampMap.get(data.id);
       let timeMs = 0;
       let timeCalculated = false;
-      
+
       if (requestTimestamp) {
         const currentTime = data.timestamp || Date.now();
         timeMs = currentTime - requestTimestamp;
@@ -459,7 +468,10 @@ const handleCdpResponseBody = (event: any, data: any) => {
             setRequests((prev) => {
               return prev.map((r) => {
                 if (r.id === data.id) {
-                  const timeStr = retryTimeMs >= 1000 ? `${(retryTimeMs / 1000).toFixed(2)}s` : `${retryTimeMs}ms`;
+                  const timeStr =
+                    retryTimeMs >= 1000
+                      ? `${(retryTimeMs / 1000).toFixed(2)}s`
+                      : `${retryTimeMs}ms`;
                   return { ...r, time: timeStr };
                 }
                 return r;
@@ -468,7 +480,10 @@ const handleCdpResponseBody = (event: any, data: any) => {
             setCdpRequests((prev) => {
               return prev.map((r) => {
                 if (r.id === data.id) {
-                  const timeStr = retryTimeMs >= 1000 ? `${(retryTimeMs / 1000).toFixed(2)}s` : `${retryTimeMs}ms`;
+                  const timeStr =
+                    retryTimeMs >= 1000
+                      ? `${(retryTimeMs / 1000).toFixed(2)}s`
+                      : `${retryTimeMs}ms`;
                   return { ...r, time: timeStr };
                 }
                 return r;
@@ -478,7 +493,8 @@ const handleCdpResponseBody = (event: any, data: any) => {
               const newMap = new Map(prev);
               const existing = newMap.get(data.id);
               if (existing) {
-                const timeStr = retryTimeMs >= 1000 ? `${(retryTimeMs / 1000).toFixed(2)}s` : `${retryTimeMs}ms`;
+                const timeStr =
+                  retryTimeMs >= 1000 ? `${(retryTimeMs / 1000).toFixed(2)}s` : `${retryTimeMs}ms`;
                 newMap.set(data.id, { ...existing, time: timeStr });
               }
               return newMap;
@@ -586,27 +602,34 @@ const handleCdpResponseBody = (event: any, data: any) => {
   };
 
   // Wrapper function to launch app - used by RequestTable via onLaunchTarget
-  const handleLaunchTarget = async (appId: string, proxyUrl: string, customUrl?: string, mode?: 'browser' | 'electron' | 'native' | 'cdp') => {
+  const handleLaunchTarget = async (
+    appId: string,
+    proxyUrl: string,
+    customUrl?: string,
+    mode?: 'browser' | 'electron' | 'native' | 'cdp',
+  ) => {
     console.log('[Emulate] handleLaunchTarget called with:', { appId, proxyUrl, customUrl, mode });
-    
+
     // Wait a bit for proxy to be fully ready
     console.log('[Emulate] Waiting 500ms for proxy to be ready...');
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     // Always use IPC directly for launching (bypass onSelectApp from parent)
     console.log('[Emulate] Using IPC: window.api.invoke(app:launch)');
     try {
       const result = await window.api.invoke('app:launch', appId, proxyUrl, customUrl, mode);
       console.log('[Emulate] app:launch result:', result);
-      
+
       if (result) {
         // Add to active tabs if launch succeeded
-        const app = apps.find(a => a.id === appId);
+        const app = apps.find((a) => a.id === appId);
         if (app) {
           const newTab: TargetTab = {
             id: app.id,
             title: app.name,
-            favicon: app.url ? `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}&sz=32` : undefined,
+            favicon: app.url
+              ? `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}&sz=32`
+              : undefined,
             url: app.url,
           };
           setTargetTabs((prev) => {
@@ -648,21 +671,36 @@ const handleCdpResponseBody = (event: any, data: any) => {
       setAppToLaunch(app);
       setIsLaunchModalOpen(true);
     } else {
-      handleLaunchTarget(app.id, 'http://127.0.0.1:8081', app.url, app.platform === 'web' ? 'browser' : 'electron');
+      handleLaunchTarget(
+        app.id,
+        'http://127.0.0.1:8081',
+        app.url,
+        app.platform === 'web' ? 'browser' : 'electron',
+      );
     }
   };
 
   const handleClearAndLaunch = async () => {
     if (appToLaunch) {
       await onStopSession();
-      await handleLaunchTarget(appToLaunch.id, 'http://127.0.0.1:8081', appToLaunch.url, appToLaunch.platform === 'web' ? 'browser' : 'electron');
+      await handleLaunchTarget(
+        appToLaunch.id,
+        'http://127.0.0.1:8081',
+        appToLaunch.url,
+        appToLaunch.platform === 'web' ? 'browser' : 'electron',
+      );
       setAppToLaunch(null);
     }
   };
 
   const handleKeepAndLaunch = async () => {
     if (appToLaunch) {
-      await handleLaunchTarget(appToLaunch.id, 'http://127.0.0.1:8081', appToLaunch.url, appToLaunch.platform === 'web' ? 'browser' : 'electron');
+      await handleLaunchTarget(
+        appToLaunch.id,
+        'http://127.0.0.1:8081',
+        appToLaunch.url,
+        appToLaunch.platform === 'web' ? 'browser' : 'electron',
+      );
       setAppToLaunch(null);
     }
   };
@@ -706,6 +744,27 @@ const handleCdpResponseBody = (event: any, data: any) => {
   };
 
   const activeTargets = targetTabs.filter((tab) => tab.id !== 'default');
+
+  // Listen for navigate-to-source events from Initiator tab
+  useEffect(() => {
+    const handleNavigateToSource = (event: CustomEvent) => {
+      const { url, line, col, functionName } = event.detail;
+      console.log('[Emulate] 📍 Navigate to source:', { url, line, col, functionName });
+
+      // Switch to source tab
+      setSelectedTool('source');
+
+      // Dispatch event for SourcesPanel to handle highlighting
+      window.dispatchEvent(new CustomEvent('source-highlight', {
+        detail: { url, line, col, functionName }
+      }));
+    };
+
+    window.addEventListener('navigate-to-source', handleNavigateToSource as EventListener);
+    return () => {
+      window.removeEventListener('navigate-to-source', handleNavigateToSource as EventListener);
+    };
+  }, []);
 
   return (
     <div className="flex h-full bg-background">
@@ -1120,7 +1179,7 @@ const handleCdpResponseBody = (event: any, data: any) => {
                     onLaunchTarget={handleLaunchTarget}
                     onClearRequests={clearRequests}
                     currentTargetAppId={activeTargetId || undefined}
-                    currentTargetUrl={targetTabs.find(tab => tab.id === activeTargetId)?.url}
+                    currentTargetUrl={targetTabs.find((tab) => tab.id === activeTargetId)?.url}
                   />
                 </div>
                 <div className="flex-1 min-h-0">

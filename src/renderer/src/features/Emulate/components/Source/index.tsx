@@ -4,6 +4,7 @@ import { FileCode, Search, Folder, FolderOpen, ChevronRight, ChevronDown } from 
 import { cn } from '../../../../shared/lib/utils';
 import { ResizableSplit } from '../common/ResizableSplit';
 import { CodeBlock } from '../../../../components/common/CodeBlock';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
 
 interface SourceFile {
   id: string;
@@ -400,12 +401,14 @@ function SourceView({
   );
 }
 
+const STORAGE_KEY = 'phantoma-source-state';
+
 export function SourcesPanel({ requests = [], onClose }: SourcesPanelProps) {
-  const [selectedContent, setSelectedContent] = useState<{
+  const [selectedContent, setSelectedContent] = useLocalStorage<{
     content: string;
     fileName: string;
     language: string;
-  } | null>(null);
+  } | null>(STORAGE_KEY, null);
 
   const sourceFiles = useMemo(() => {
     const files: SourceFile[] = [];

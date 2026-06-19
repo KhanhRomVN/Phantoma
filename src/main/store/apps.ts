@@ -8,7 +8,7 @@ export interface UserApp {
   name: string;
   url?: string; // For web apps
   executablePath?: string; // For PC apps (future)
-  mode: 'browser' | 'electron' | 'native';
+  mode: 'browser' | 'electron' | 'native' | 'cdp';
   platform: 'web' | 'pc' | 'android' | 'cli';
   icon?: string;
   category?: string;

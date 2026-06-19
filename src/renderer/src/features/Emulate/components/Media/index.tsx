@@ -72,11 +72,9 @@ export function MediaPanel({ requests = [], onClose }: MediaPanelProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [showFilterSettings, setShowFilterSettings] = useState(false);
-  const [mediaFilters, setMediaFilters] = useState({
-    images: true,
-    videos: true,
-    audio: true,
-  });
+  const [mediaFilters, setMediaFilters] = useState<{ images: boolean; videos: boolean; audio: boolean }>(
+    { images: true, videos: true, audio: true }
+  );
   const [selectedSource, setSelectedSource] = useState<string>('all');
   const [mediaSearchTerm, setMediaSearchTerm] = useState('');
   const [cacheManifest, setCacheManifest] = useState<Record<string, { size?: number }>>({});

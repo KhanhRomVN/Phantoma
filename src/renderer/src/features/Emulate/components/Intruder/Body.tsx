@@ -88,13 +88,76 @@ function HexViewer({ data, className }: HexViewerProps) {
   );
 }
 
-function getLanguage(contentType?: string): string {
-  if (!contentType) return 'text';
-  if (contentType.includes('json')) return 'json';
-  if (contentType.includes('html')) return 'html';
-  if (contentType.includes('xml')) return 'xml';
-  if (contentType.includes('javascript') || contentType.includes('js')) return 'javascript';
-  if (contentType.includes('css')) return 'css';
+import hljs from 'highlight.js';
+
+function getLanguage(contentType?: string, content?: string): string {
+  // Check content type first
+  if (contentType) {
+    if (contentType.includes('json')) return 'json';
+    if (contentType.includes('html')) return 'html';
+    if (contentType.includes('xml')) return 'xml';
+    if (contentType.includes('javascript') || contentType.includes('js')) return 'javascript';
+    if (contentType.includes('css')) return 'css';
+  }
+  
+  // If no content type or unknown, try to detect from content
+  if (content) {
+    try {
+      const result = hljs.highlightAuto(content);
+      // Only use detected language if confidence is reasonable
+      // hljs returns a relevance score, we can check if it's high enough
+      if (result.language && result.relevance > 5) {
+        // Map highlight.js language names to Monaco language names
+        const langMap: Record<string, string> = {
+          'json': 'json',
+          'html': 'html',
+          'xml': 'xml',
+          'javascript': 'javascript',
+          'js': 'javascript',
+          'typescript': 'typescript',
+          'css': 'css',
+          'python': 'python',
+          'java': 'java',
+          'c': 'c',
+          'cpp': 'cpp',
+          'csharp': 'csharp',
+          'go': 'go',
+          'rust': 'rust',
+          'php': 'php',
+          'ruby': 'ruby',
+          'sql': 'sql',
+          'yaml': 'yaml',
+          'toml': 'toml',
+          'markdown': 'markdown',
+          'bash': 'bash',
+          'shell': 'bash',
+        };
+        return langMap[result.language] || result.language || 'text';
+      }
+    } catch {
+      // Highlight.js detection failed, fallback to simple detection
+      const trimmed = content.trim();
+      // Check if it looks like JSON
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        try {
+          JSON.parse(trimmed);
+          return 'json';
+        } catch {
+          // Not valid JSON, continue
+        }
+      }
+      // Check if it looks like HTML
+      if (trimmed.startsWith('<') && trimmed.includes('>')) {
+        return 'html';
+      }
+      // Check if it looks like XML
+      if (trimmed.startsWith('<?xml') || trimmed.startsWith('<')) {
+        return 'xml';
+      }
+    }
+  }
+  
   return 'text';
 }
 
@@ -151,8 +214,14 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
         ? formatJsonIfValid(analysis.body.response.raw)
         : formatJsonIfValid(request.responseBody || 'No Content');
 
-    const requestLanguage = getLanguage(analysis?.body?.request?.contentType);
-    const responseLanguage = getLanguage(analysis?.body?.response?.contentType);
+    const requestLanguage = getLanguage(
+      analysis?.body?.request?.contentType,
+      requestBodyContent
+    );
+    const responseLanguage = getLanguage(
+      analysis?.body?.response?.contentType,
+      responseBodyContent
+    );
 
     const isResponseBinary = analysis?.body?.response?.isBinary;
 
@@ -210,7 +279,8 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
                 code={requestBodyContent}
                 language={requestLanguage}
                 className="absolute inset-0"
-                themeConfig={{ background: '#00000000' }}
+                showLineNumbers
+                wordWrap="on"
                 searchTerm={searchTerm}
                 editorOptions={readonlyOptions}
               />
@@ -263,7 +333,8 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
                   code={responseBodyContent}
                   language={responseLanguage}
                   className="absolute inset-0"
-                  themeConfig={{ background: '#00000000' }}
+                  showLineNumbers
+                  wordWrap="on"
                   searchTerm={searchTerm}
                   editorOptions={readonlyOptions}
                 />

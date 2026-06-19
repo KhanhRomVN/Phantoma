@@ -13,6 +13,7 @@ import {
   Send,
   ShieldAlert,
   Cookie,
+  GitBranch,
 } from 'lucide-react';
 
 import { HeadersDetails } from './Headers';
@@ -23,6 +24,7 @@ import { InspectorFilter, NetworkFilter } from './Filter';
 import { CodeBlock } from '../../../../components/common/CodeBlock';
 import { Composer } from './Composer';
 import { CookieDetails } from './Cookie';
+import { InitiatorDetails } from './Initiator';
 import { useI18n } from '../../../../i18n/i18nContext';
 import { ResizableSplit } from '../common/ResizableSplit';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
@@ -296,6 +298,7 @@ export function RequestDetails({
       : 0,
     body: 0,
     network: 0,
+    initiator: request?.initiator ? 1 : 0,
   };
 
   if (request && request.analysis) {
@@ -322,6 +325,7 @@ export function RequestDetails({
       composer: { color: getColorByIndex(3), border: getColorByIndex(3) },
       security: { color: getColorByIndex(4), border: getColorByIndex(4) },
       cookies: { color: getColorByIndex(5), border: getColorByIndex(5) },
+      initiator: { color: getColorByIndex(6), border: getColorByIndex(6) },
     };
   }, [getColorByIndex]);
 
@@ -349,6 +353,14 @@ export function RequestDetails({
       count: matches.network,
       importantCount: 0,
       accentKey: 'network' as const,
+    },
+    {
+      id: 'initiator',
+      label: 'Initiator',
+      icon: GitBranch,
+      count: request?.initiator ? 1 : 0,
+      importantCount: 0,
+      accentKey: 'headers' as const,
     },
     ...(showComposerTab
       ? [
@@ -463,6 +475,9 @@ export function RequestDetails({
           )}
           {activeTab === 'network' && request && <NetworkDetailsSub request={request} />}
           {activeTab === 'security' && request && <SecurityDetails request={request} />}
+          {activeTab === 'initiator' && request && (
+            <InitiatorDetails request={request} searchTerm={searchTerm} />
+          )}
         </div>
       )}
     </div>
@@ -621,6 +636,7 @@ export { BodyDetails } from './Body';
 export { Composer } from './Composer';
 export { HeadersDetails } from './Headers';
 export { CookieDetails } from './Cookie';
+export { InitiatorDetails } from './Initiator';
 export { NetworkFilter, initialFilterState } from './Filter';
 export type { InspectorFilter, NetworkRequest as FilterNetworkRequest } from './Filter';
 export { NetworkDetails } from './Network';
@@ -656,7 +672,12 @@ interface RequestListProps {
   onSelectWsConnection: (id: string | null) => void;
   onDeleteWsConnection: (id: string) => void;
   browserViewUrl: string | null;
-  onLaunchTarget?: (appId: string, proxyUrl: string, customUrl?: string, mode?: 'browser' | 'electron' | 'native' | 'cdp') => Promise<void>;
+  onLaunchTarget?: (
+    appId: string,
+    proxyUrl: string,
+    customUrl?: string,
+    mode?: 'browser' | 'electron' | 'native' | 'cdp',
+  ) => Promise<void>;
   onClearRequests?: () => void;
   currentTargetAppId?: string;
   currentTargetUrl?: string;

@@ -17,6 +17,8 @@ export class CdpManager extends EventEmitter {
   >();
   private mainWindow: BrowserWindow | null = null;
   private isConnected = false;
+  private scriptIdMap = new Map<string, string>(); // requestId -> scriptId
+  private requestIdMap = new Map<string, string>(); // hash requestId -> numeric requestId
 
   constructor() {
     super();
@@ -26,29 +28,14 @@ export class CdpManager extends EventEmitter {
     this.mainWindow = window;
   }
 
-  public async connect(port: number, retries = 5, delay = 1000): Promise<boolean> {
-    console.log(`[CDP] Connecting to localhost:${port}... (Retries left: ${retries})`);
-
+public async connect(port: number, retries = 5, delay = 1000): Promise<boolean> {
     try {
-      // First, get the list of targets (pages)
       const targetsResponse = await fetch(`http://127.0.0.1:${port}/json/list`);
       if (!targetsResponse.ok) throw new Error(`HTTP ${targetsResponse.status} from /json/list`);
 
       const targets = (await targetsResponse.json()) as any[];
-      console.log(`[CDP] Found ${targets.length} targets`);
-
-      // Find a page target (type: 'page') - prefer targets that are NOT Phantoma
-      // Phantoma's main window has title containing "Phantoma" or URL containing localhost:5173
-      // We want to connect to the browser page (e.g., DeepSeek) not Phantoma itself
       const allPageTargets = targets.filter((t) => t.type === 'page');
-      console.log(`[CDP] Found ${allPageTargets.length} page targets`);
       
-      // Log all page targets for debugging
-      allPageTargets.forEach((t, i) => {
-        console.log(`[CDP] Page target ${i + 1}: id=${t.id}, title="${t.title || 'untitled'}", url="${t.url || 'unknown'}"`);
-      });
-      
-      // Prefer targets that are NOT Phantoma
       let pageTarget = allPageTargets.find(
         (t) => 
           t.title && 
@@ -57,46 +44,35 @@ export class CdpManager extends EventEmitter {
           !t.url.includes('localhost:5173')
       );
       
-      // If no suitable target found, fallback to any page target
       if (!pageTarget && allPageTargets.length > 0) {
         console.warn('[CDP] No non-Phantoma page target found, using first available page target');
         pageTarget = allPageTargets[0];
       }
       
       if (!pageTarget) {
-        console.warn('[CDP] No page target found, waiting for a page to open...');
-        // If no page, we need to wait or try the browser target
-        // Fallback: use the browser target if available
         const browserTarget = targets.find((t) => t.type === 'browser');
         if (!browserTarget) {
           console.error('[CDP] No targets found');
           return false;
         }
-        console.log(`[CDP] Using browser target: ${browserTarget.id}`);
         return this.connectToTarget(browserTarget.webSocketDebuggerUrl, retries, delay);
       }
 
-      console.log(`[CDP] Selected page target: ${pageTarget.id} - ${pageTarget.title || 'untitled'} (url: ${pageTarget.url || 'unknown'})`);
       return this.connectToTarget(pageTarget.webSocketDebuggerUrl, retries, delay);
     } catch (error) {
       console.error('[CDP] Failed to get targets:', error);
       if (retries > 0) {
-        console.log(`[CDP] Retrying in ${delay}ms...`);
         await new Promise((r) => setTimeout(r, delay));
         return this.connect(port, retries - 1, delay);
       }
       return false;
     }
   }
-
   private async connectToTarget(wsUrl: string, retries = 5, delay = 1000): Promise<boolean> {
-    console.log(`[CDP] Connecting to target WebSocket: ${wsUrl}`);
-
     return new Promise((resolve) => {
       this.ws = new WebSocket(wsUrl);
 
       this.ws.on('open', async () => {
-        console.log('[CDP] Connected to target WebSocket');
         this.isConnected = true;
         try {
           await this.initializeNetwork();
@@ -117,12 +93,10 @@ export class CdpManager extends EventEmitter {
       });
 
       this.ws.on('close', () => {
-        console.log('[CDP] Disconnected from target');
         this.isConnected = false;
         this.ws = null;
       });
 
-      // Timeout after 10 seconds
       setTimeout(() => {
         if (!this.isConnected) {
           console.warn('[CDP] Connection timeout');
@@ -132,64 +106,49 @@ export class CdpManager extends EventEmitter {
     });
   }
 
-  private async initializeNetwork() {
-    console.log('[CDP] Initializing network domain...');
-    
-    // Enable Page domain first (required for network events in some cases)
+private async initializeNetwork() {
     try {
       await this.send('Page.enable', {});
-      console.log('[CDP] Page domain enabled');
     } catch (e) {
-      console.log('[CDP] Page.enable not supported, continuing...');
+      // Ignore
     }
 
-    // Enable Runtime domain
+    try {
+      await this.send('Debugger.enable', {});
+    } catch (e) {
+      // Ignore
+    }
+
     try {
       await this.send('Runtime.enable', {});
     } catch (e) {
       // Ignore
     }
 
-    // Enable network domain with interception for full request capture
     try {
-      const result = await this.send('Network.enable', {
+      await this.send('Network.enable', {
         maxTotalBufferSize: 10000000,
         maxResourceBufferSize: 5000000,
         maxPostDataSize: 5000000,
       });
-      console.log('[CDP] Network domain enabled');
     } catch (e) {
       console.error('[CDP] Failed to enable network:', e);
     }
     
-    // Set accepted encodings for better response handling
     try {
       await this.send('Network.setAcceptedEncodings', {
         encodings: ['gzip', 'br', 'deflate']
       });
-      console.log('[CDP] Accepted encodings set');
     } catch (e) {
-      console.log('[CDP] setAcceptedEncodings not supported, continuing...');
+      // Ignore
     }
     
-    // Try to ensure we get all request events
     try {
-      // This helps ensure requestWillBeSent events are sent
       await this.send('Network.setBypassServiceWorker', { bypass: true });
-      console.log('[CDP] Service worker bypass set');
     } catch (e) {
-      console.log('[CDP] setBypassServiceWorker not supported, continuing...');
+      // Ignore
     }
-
-    // NOTE: Request interception is DISABLED because it blocks all requests
-    // and requires calling continueInterceptedRequest for each request.
-    // Network.enable alone is sufficient to capture requestWillBeSent events.
-    // Body capture is done via Network.getResponseBody in loadingFinished.
-    console.log('[CDP] Request interception disabled (not needed for monitoring)');
-
-    
   }
-
   private send(method: string, params: any = {}): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -212,8 +171,11 @@ export class CdpManager extends EventEmitter {
       if (data.id && this.pendingRequests.has(data.id)) {
         const { resolve, reject } = this.pendingRequests.get(data.id)!;
         this.pendingRequests.delete(data.id);
-        if (data.error) reject(data.error);
-        else resolve(data.result);
+        if (data.error) {
+          reject(data.error);
+        } else {
+          resolve(data.result);
+        }
         return;
       }
 
@@ -221,6 +183,10 @@ export class CdpManager extends EventEmitter {
       if (data.method) {
         this.emit(data.method, data.params);
         this.handleNetworkEvent(data.method, data.params);
+        // Handle Debugger.scriptParsed to map scriptId to requestId
+        if (data.method === 'Debugger.scriptParsed') {
+          this.handleScriptParsed(data.params);
+        }
       }
     } catch (e) {
       console.error('[CDP] Error handling message:', e);
@@ -251,24 +217,83 @@ export class CdpManager extends EventEmitter {
     }
   }
 
+  private handleScriptParsed(params: any) {
+    const { scriptId, url, embedderName } = params;
+    if (url) {
+      this.scriptIdMap.set(url, scriptId);
+    }
+  }
+
   private handleRequestWillBeSent(params: any) {
-    const { requestId, request, initiator, type } = params;
+    const { requestId, request, initiator, type, loaderId } = params;
+
+    // Store URL to scriptId mapping if this is a script
+    if (type === 'Script' && request.url) {
+      this.scriptIdMap.set(`request:${requestId}`, request.url);
+    }
+
+    // Store mapping for requestId if it's a numeric type (for later lookup by hash)
+    if (typeof requestId === 'string' && requestId.includes('.')) {
+      this.requestIdMap.set(`numeric:${requestId}`, requestId);
+    }
+
+    // Debug: Log raw initiator from CDP
+    if (initiator) {
+      console.log('[CDP] 🔍 Raw initiator:', JSON.stringify(initiator, null, 2));
+    }
+
+    // Build full initiator object with all available data
+    let initiatorData: any = null;
+    if (initiator) {
+      initiatorData = {
+        type: initiator.type || 'other',
+        url: initiator.url || undefined,
+        lineNumber: initiator.lineNumber ?? undefined,
+        columnNumber: initiator.columnNumber ?? undefined,
+        functionName: initiator.functionName || undefined,
+      };
+
+      // Include stack trace if available
+      if (initiator.stack && initiator.stack.callFrames) {
+        initiatorData.stack = initiator.stack.callFrames.map((frame: any) => ({
+          functionName: frame.functionName || '(anonymous)',
+          url: frame.url || '',
+          lineNumber: frame.lineNumber || 0,
+          columnNumber: frame.columnNumber || 0,
+        }));
+        console.log('[CDP] 📚 Stack frames:', initiatorData.stack.length);
+      }
+
+      console.log('[CDP] 📤 Sending initiator to renderer:', {
+        type: initiatorData.type,
+        url: initiatorData.url,
+        hasStack: !!initiatorData.stack,
+        stackLength: initiatorData.stack?.length || 0,
+      });
+    }
 
     // Normalize to Phantoma format
     this.sendToRenderer('cdp:request', {
-      id: requestId, // CDP RequestId matches across events
+      id: requestId,
       method: request.method,
       url: request.url,
       headers: request.headers,
-      timestamp: Date.now(), // Approximate, strictly we should map monotonic time
+      timestamp: Date.now(),
       requestBody: request.postData || '',
-      initiator: initiator?.type,
-      resourceType: type || 'Other', // Document, XHR, Fetch, Script, Stylesheet, Image, Media, Font, WebSocket, Other
+      initiator: initiatorData,
+      resourceType: type || 'Other',
     });
   }
 
   private async handleResponseReceived(params: any) {
     const { requestId, response, timestamp } = params;
+
+    // Store mapping: if requestId is hash, try to find numeric version
+    if (typeof requestId === 'string' && !requestId.includes('.')) {
+      if (response.url) {
+        this.requestIdMap.set(`hash:${requestId}`, response.url);
+      }
+    }
 
     this.sendToRenderer('cdp:response', {
       id: requestId,
@@ -276,23 +301,20 @@ export class CdpManager extends EventEmitter {
       headers: response.headers,
       mimeType: response.mimeType,
       timestamp: Date.now(),
-      responseTimestamp: timestamp, // CDP monotonic time
+      responseTimestamp: timestamp,
     });
 
     // Try to get body early for script and stylesheet resources
     const resourceType = response.resourceType || response.type || '';
     if (resourceType === 'Script' || resourceType === 'Stylesheet' || resourceType === 'Document') {
-      // Check if WebSocket is connected
       if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
         return;
       }
 
-      // Wait a tiny bit for the body to be available
       setTimeout(async () => {
         try {
           const result = await this.send('Network.getResponseBody', { requestId });
           const { body, base64Encoded } = result;
-          // Only send if we got a body
           if (body && body.length > 0) {
             this.sendToRenderer('cdp:response-body', {
               id: requestId,
@@ -305,7 +327,6 @@ export class CdpManager extends EventEmitter {
           }
         } catch (e) {
           // Silent fail - will retry in loadingFinished
-          // console.debug(`[CDP] Early body fetch failed for ${requestId}, will retry later`);
         }
       }, 50);
     }
@@ -316,7 +337,6 @@ export class CdpManager extends EventEmitter {
 
     // Check if WebSocket is still connected before trying to fetch body
     if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn(`[CDP] WebSocket not connected, skipping body fetch for ${requestId}`);
       this.sendToRenderer('cdp:response-body', {
         id: requestId,
         body: '',
@@ -331,14 +351,13 @@ export class CdpManager extends EventEmitter {
     // Try multiple times to get body with delay
     const maxRetries = 3;
     let lastError: any = null;
+    let bodyFetched = false;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         if (attempt > 0) {
-          // Wait a bit before retrying
-          await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+          await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
         }
-        // Fetch body
         const result = await this.send('Network.getResponseBody', { requestId });
         const { body, base64Encoded } = result;
 
@@ -350,20 +369,52 @@ export class CdpManager extends EventEmitter {
           timestamp: Date.now(),
           loadingTimestamp: timestamp,
         });
+        bodyFetched = true;
         return;
       } catch (e: any) {
         lastError = e;
-        // If error is about missing resource, break early (no point retrying)
         if (e.code === -32000 && e.message?.includes('No resource')) {
-          console.warn(`[CDP] Resource not found for ${requestId}, skipping retry`);
           break;
         }
-        console.warn(`[CDP] Failed to get body for ${requestId} (attempt ${attempt + 1}/${maxRetries}):`, e.message || e);
       }
     }
 
-    // All retries failed
-    console.error(`[CDP] Failed to get body for ${requestId} after ${maxRetries} attempts:`, lastError);
+    // If Network.getResponseBody failed, try Debugger.getScriptSource for scripts ONLY
+    if (!bodyFetched) {
+      let requestUrl: string | undefined;
+
+      const numericKey = `request:${requestId}`;
+      requestUrl = this.scriptIdMap.get(numericKey);
+
+      if (!requestUrl) {
+        const hashUrl = this.requestIdMap.get(`hash:${requestId}`);
+        if (hashUrl) {
+          requestUrl = hashUrl;
+        }
+      }
+
+      const scriptId = requestUrl ? this.scriptIdMap.get(requestUrl) : undefined;
+
+      if (requestUrl && scriptId) {
+        try {
+          const result = await this.send('Debugger.getScriptSource', { scriptId });
+          if (result && result.scriptSource) {
+            this.sendToRenderer('cdp:response-body', {
+              id: requestId,
+              body: result.scriptSource,
+              isBinary: false,
+              size: result.scriptSource.length,
+              timestamp: Date.now(),
+              loadingTimestamp: timestamp,
+            });
+            return;
+          }
+        } catch (e) {
+          // Silent fail
+        }
+      }
+    }
+
     this.sendToRenderer('cdp:response-body', {
       id: requestId,
       body: '',
@@ -385,9 +436,7 @@ export class CdpManager extends EventEmitter {
       return false;
     }
     try {
-      console.log(`[CDP] Navigating to: ${url}`);
-      const result = await this.send('Page.navigate', { url });
-      console.log('[CDP] Navigation result:', result);
+      await this.send('Page.navigate', { url });
       return true;
     } catch (e) {
       console.error('[CDP] Navigation failed:', e);
@@ -401,9 +450,7 @@ export class CdpManager extends EventEmitter {
       return false;
     }
     try {
-      console.log('[CDP] Reloading page...');
       await this.send('Page.reload', { ignoreCache: true });
-      console.log('[CDP] Reload successful');
       return true;
     } catch (e) {
       console.error('[CDP] Reload failed:', e);

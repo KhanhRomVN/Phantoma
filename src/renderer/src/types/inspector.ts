@@ -1,6 +1,22 @@
 import { RequestAnalysis } from './analysis';
 import { SecurityIssue } from '../features/Tool/utils/securityScanner';
 
+export interface InitiatorStackFrame {
+  functionName: string;
+  url: string;
+  lineNumber: number;
+  columnNumber: number;
+}
+
+export interface InitiatorInfo {
+  type: 'script' | 'parser' | 'navigation' | 'preload' | 'other' | string;
+  url?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+  functionName?: string;
+  stack?: InitiatorStackFrame[];
+}
+
 export interface NetworkRequest {
   id: string;
   method: string;
@@ -27,7 +43,7 @@ export interface NetworkRequest {
   connection?: string;
   analysis?: RequestAnalysis;
   isIntercepted?: boolean;
-  initiator?: string;
+  initiator?: InitiatorInfo | null;
   securityIssues?: SecurityIssue[];
 }
 

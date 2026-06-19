@@ -398,7 +398,6 @@ app.whenReady().then(async () => {
       if (success) {
         cdpConnected = true;
         cdpPort = port;
-        console.log(`[CDP] Connected to port ${port}`);
         return { success: true, port };
       }
       return { success: false, error: 'Connection failed' };
@@ -418,7 +417,6 @@ app.whenReady().then(async () => {
       }
       cdpConnected = false;
       cdpPort = 0;
-      console.log('[CDP] Disconnected');
       return { success: true };
     } catch (e: any) {
       return { success: false, error: e.message };
@@ -567,7 +565,7 @@ app.whenReady().then(async () => {
     } else {
       console.log(`[LaunchBrowser] CDP mode: launching without proxy for ${profileName}`);
     }
-    
+
     const userDataDir = path.join(app.getPath('userData'), 'profiles', profileName);
     fs.mkdirSync(userDataDir, { recursive: true });
 
@@ -610,21 +608,21 @@ app.whenReady().then(async () => {
       console.log(`[LaunchBrowser] CDP enabled on port ${cdpPort}`);
     }
 
-    const child = spawn(
-      executable,
-      args,
-      {
-        detached: true,
-        stdio: 'ignore',
-      },
-    );
+    const child = spawn(executable, args, {
+      detached: true,
+      stdio: 'ignore',
+    });
     activeChildProcess = child;
-    
+
     const mode = cdpPort ? 'CDP' : 'Proxy';
-    console.log(`[LaunchBrowser] Spawned browser PID: ${child.pid}, profile: ${profileName}, mode: ${mode}${useProxy ? `, proxy: ${proxyUrl}` : ''}`);
+    console.log(
+      `[LaunchBrowser] Spawned browser PID: ${child.pid}, profile: ${profileName}, mode: ${mode}${useProxy ? `, proxy: ${proxyUrl}` : ''}`,
+    );
 
     child.on('exit', (code, signal) => {
-      console.log(`[LaunchBrowser] Browser exited: PID=${child.pid}, code=${code}, signal=${signal}, profile=${profileName}`);
+      console.log(
+        `[LaunchBrowser] Browser exited: PID=${child.pid}, code=${code}, signal=${signal}, profile=${profileName}`,
+      );
       if (activeChildProcess === child) {
         activeChildProcess = null;
         if (useProxy) {
@@ -1294,9 +1292,12 @@ app.whenReady().then(async () => {
     return userAppStore.addApp(appData);
   });
 
-  ipcMain.handle('apps:update', async (_, id: string, updates: Partial<Omit<UserApp, 'id' | 'createdAt'>>) => {
-    return userAppStore.updateApp(id, updates);
-  });
+  ipcMain.handle(
+    'apps:update',
+    async (_, id: string, updates: Partial<Omit<UserApp, 'id' | 'createdAt'>>) => {
+      return userAppStore.updateApp(id, updates);
+    },
+  );
 
   ipcMain.handle('apps:delete', (_, id: string) => {
     return userAppStore.deleteApp(id);
@@ -1401,7 +1402,9 @@ app.whenReady().then(async () => {
   // Auto-install certificate when proxy session is created
   const originalCreateSession = proxyManager.createSession.bind(proxyManager);
   proxyManager.createSession = async (id: string) => {
-    console.log(`[ProxyManager] createSession called for id="${id}", attempting auto-cert-install...`);
+    console.log(
+      `[ProxyManager] createSession called for id="${id}", attempting auto-cert-install...`,
+    );
     // Try to install certificate (non-blocking)
     installSystemCA().catch((e) => {
       console.error('[Cert] Auto-install failed:', e);
@@ -1962,16 +1965,22 @@ app.whenReady().then(async () => {
             fingerprint256: cert.fingerprint256,
             serialNumber: cert.serialNumber,
             subjectaltname: (cert as any).subjectaltname,
-            infoAccess: (cert as any).infoAccess ? JSON.stringify((cert as any).infoAccess) : undefined,
+            infoAccess: (cert as any).infoAccess
+              ? JSON.stringify((cert as any).infoAccess)
+              : undefined,
             ext_key_usage: (cert as any).ext_key_usage,
           };
-          result.selfSigned = cert.subject?.CN === cert.issuer?.CN && cert.subject?.O === cert.issuer?.O;
+          result.selfSigned =
+            cert.subject?.CN === cert.issuer?.CN && cert.subject?.O === cert.issuer?.O;
         }
         socket.destroy();
         resolve(result);
       });
       socket.on('error', (err) => resolve({ error: err.message }));
-      socket.setTimeout(6000, () => { socket.destroy(); resolve({ error: 'timeout' }); });
+      socket.setTimeout(6000, () => {
+        socket.destroy();
+        resolve({ error: 'timeout' });
+      });
     });
   });
 

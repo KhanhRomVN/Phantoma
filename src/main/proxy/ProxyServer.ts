@@ -83,23 +83,18 @@ export class ProxyServer extends EventEmitter {
   public start(port: number = 8081): Promise<void> {
     return new Promise(async (resolve, reject) => {
       if (this.isRunning) {
-        console.log(`[ProxyServer] Already running, resolving start()`);
         resolve();
         return;
       }
       this.port = port;
-      console.log(`[ProxyServer] Starting WSS on port ${port + 1}...`);
       await this.startWss(port + 1);
-      console.log(`[ProxyServer] WSS started, setting up listeners...`);
       this.setupListeners();
-      console.log(`[ProxyServer] Starting proxy on port ${port}...`);
       this.proxy.onError((_ctx: any, err: any) => {
         console.error(`[ProxyServer] Error on proxy:`, err || _ctx);
         reject(err || _ctx);
       });
       this.proxy.listen({ port, host: '0.0.0.0' }, () => {
         this.isRunning = true;
-        console.log(`[ProxyServer] Proxy listening on port ${port}`);
         this.emit('started', port);
         resolve();
       });
@@ -107,22 +102,15 @@ export class ProxyServer extends EventEmitter {
   }
 
   public async stop(): Promise<void> {
-    console.log(`[ProxyServer] stop() called, isRunning=${this.isRunning}, port=${this.port}`);
     if (!this.isRunning) {
-      console.log('[ProxyServer] Already stopped, returning');
       return;
     }
     this.isRunning = false;
 
-    // Close WebSocket server first
     if (this.wss) {
-      console.log('[ProxyServer] Closing WSS...');
       try {
         await new Promise<void>((resolve) => {
-          this.wss!.close(() => {
-            console.log('[ProxyServer] WSS closed');
-            resolve();
-          });
+          this.wss!.close(() => resolve());
         });
       } catch (e) {
         console.error('[ProxyServer] Error closing WSS:', e);
@@ -130,30 +118,23 @@ export class ProxyServer extends EventEmitter {
       this.wss = null;
     }
 
-    // Close proxy server and wait for it to fully release the port
-    // Use a timeout to prevent hanging if the callback is never called
-    console.log('[ProxyServer] Closing proxy server on port', this.port);
     try {
       await new Promise<void>((resolve) => {
         let resolved = false;
         const done = () => {
           if (!resolved) {
             resolved = true;
-            console.log('[ProxyServer] Proxy close done (port released)');
             resolve();
           }
         };
 
-        // Set a timeout to prevent hanging indefinitely
         const timeout = setTimeout(() => {
-          console.warn('[ProxyServer] close() timed out after 3s, forcing resolve');
           done();
         }, 3000);
 
         try {
           this.proxy.close(() => {
             clearTimeout(timeout);
-            console.log('[ProxyServer] proxy.close() callback fired');
             done();
           });
         } catch (e) {
@@ -165,7 +146,6 @@ export class ProxyServer extends EventEmitter {
     } catch (e) {
       console.error('[ProxyServer] Error during stop:', e);
     }
-    console.log('[ProxyServer] stop() completed');
   }
 
   public setBreakpointRules(rules: BreakpointRule[]) {
@@ -209,13 +189,9 @@ export class ProxyServer extends EventEmitter {
   }
 
   public setIntercept(enabled: boolean) {
-    console.log(
-      `[Intercept] setIntercept(${enabled}), pending=${this.pendingRequests.size}, wsClients=${this.wss?.clients.size ?? 0}`,
-    );
     this.isIntercepting = enabled;
     this.broadcastIntercept();
     if (!enabled) {
-      console.log(`[Intercept] Resuming ${this.pendingRequests.size} held requests`);
       this.pendingRequests.forEach(({ proceed }) => proceed());
       this.pendingRequests.clear();
     }
@@ -943,7 +919,6 @@ export class ProxyServer extends EventEmitter {
       };
 
       if (this.isIntercepting) {
-        console.log(`[Intercept] Holding request ${requestId} ${method} ${url}`);
         await new Promise<void>((resolve, reject) => {
           this.pendingRequests.set(requestId, {
             proceed: resolve,
@@ -954,13 +929,8 @@ export class ProxyServer extends EventEmitter {
             },
           });
         })
-          .then(() => {
-            console.log(`[Intercept] Resuming request ${requestId}`);
-            proceed();
-          })
-          .catch(() => {
-            console.log(`[Intercept] Dropped request ${requestId}`);
-          });
+          .then(() => proceed())
+          .catch(() => {});
       } else {
         proceed();
       }
