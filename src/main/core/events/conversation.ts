@@ -2,7 +2,6 @@ import { ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import * as crypto from 'crypto';
 
 const CONTEXT_ROOT = path.join(os.homedir(), 'khanhromvn-phantoma');
 const MAX_HISTORY = 50;
@@ -39,18 +38,21 @@ export function setupConversationHandlers() {
   });
 
   // Save full conversation (overwrite)
-  ipcMain.handle('chat:save', async (_e, conversationId: string, data: { messages: any[]; metadata: any }) => {
-    try {
-      const dir = getProjectDir();
-      ensureDir(dir);
-      const filePath = path.join(dir, `${conversationId}.json`);
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-      enforceLimit(dir);
-      return { success: true };
-    } catch (e: any) {
-      return { success: false, error: String(e) };
-    }
-  });
+  ipcMain.handle(
+    'chat:save',
+    async (_e, conversationId: string, data: { messages: any[]; metadata: any }) => {
+      try {
+        const dir = getProjectDir();
+        ensureDir(dir);
+        const filePath = path.join(dir, `${conversationId}.json`);
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+        enforceLimit(dir);
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: String(e) };
+      }
+    },
+  );
 
   // Get full conversation
   ipcMain.handle('chat:get', async (_e, conversationId: string) => {
@@ -90,11 +92,19 @@ export function setupConversationHandlers() {
             const userMsgs = parsed.filter((m: any) => m.role === 'user');
             const title = (userMsgs[0]?.content || '').replace(/\n/g, ' ').trim().substring(0, 100);
             const lastTs = parsed[parsed.length - 1]?.timestamp || 0;
-            history.push({ id, title: title || 'Conversation', timestamp: lastTs, lastModified: lastTs, messageCount: parsed.length });
+            history.push({
+              id,
+              title: title || 'Conversation',
+              timestamp: lastTs,
+              lastModified: lastTs,
+              messageCount: parsed.length,
+            });
           }
         } catch {}
       }
-      history.sort((a, b) => (b.lastModified || b.timestamp || 0) - (a.lastModified || a.timestamp || 0));
+      history.sort(
+        (a, b) => (b.lastModified || b.timestamp || 0) - (a.lastModified || a.timestamp || 0),
+      );
       return { success: true, data: history };
     } catch (e: any) {
       return { success: false, error: String(e) };
@@ -128,7 +138,8 @@ export function setupConversationHandlers() {
 
 function enforceLimit(dir: string) {
   try {
-    const files = fs.readdirSync(dir)
+    const files = fs
+      .readdirSync(dir)
       .filter((f) => f.endsWith('.json'))
       .map((f) => ({ name: f, mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
       .sort((a, b) => b.mtime - a.mtime);

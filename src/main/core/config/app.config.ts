@@ -1,4 +1,4 @@
 export const appConfig = {
-  name: 'Template Electron',
-  appId: 'com.electron.template',
+  name: 'Phantoma',
+  appId: 'com.khanhromvn.phantoma',
 };

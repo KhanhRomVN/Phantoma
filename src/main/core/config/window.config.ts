@@ -3,5 +3,5 @@ export const windowConfig = {
   defaultHeight: 800,
   minWidth: 800,
   minHeight: 600,
-  title: 'Template Electron',
+  title: 'Phantoma',
 };
