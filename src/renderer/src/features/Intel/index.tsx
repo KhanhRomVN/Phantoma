@@ -28,6 +28,7 @@ import { getTabIcon } from './constants/icons';
 
 import IpRecon from './components/IP';
 import PersonRecon from './components/Person';
+import { useModulePersistence } from '../../hooks/useModulePersistence';
 
 interface DomainSession {
   id: string;
@@ -59,15 +60,49 @@ const DEFAULT_SESSIONS: DomainSession[] = [
   },
 ];
 
-const DATA_CACHE: Record<string, Record<string, unknown>> = {};
+interface DomainReconState {
+  sessions: DomainSession[];
+  activeDomain: string;
+  searchQuery: string;
+  showLog: boolean;
+  matchCase: boolean;
+  matchWholeWord: boolean;
+  useRegex: boolean;
+  currentMatchIndex: number;
+  dataCache: Record<string, Record<string, unknown>>;
+}
 
 interface DomainReconProps {
   initialDomain?: string;
 }
 
 function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
-  // Session management
-  const [sessions, setSessions] = useState<DomainSession[]>(DEFAULT_SESSIONS);
+  // Persistence state
+  const [state, setState] = useModulePersistence<DomainReconState>('recon', {
+    sessions: DEFAULT_SESSIONS,
+    activeDomain: initialDomain,
+    searchQuery: '',
+    showLog: false,
+    matchCase: false,
+    matchWholeWord: false,
+    useRegex: false,
+    currentMatchIndex: 0,
+    dataCache: {},
+  });
+
+  const {
+    sessions,
+    activeDomain,
+    searchQuery,
+    showLog,
+    matchCase,
+    matchWholeWord,
+    useRegex,
+    currentMatchIndex,
+    dataCache,
+  } = state;
+
+  // Local UI state (không cần persistence)
   const [showAddForm, setShowAddForm] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [contextMenu, setContextMenu] = useState<{
@@ -76,9 +111,8 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
     sessionId: string;
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  // Active domain
-  const [activeDomain, setActiveDomain] = useState<string>(initialDomain);
+  const [showTabsDropdown, setShowTabsDropdown] = useState(false);
+  const [totalMatches, setTotalMatches] = useState(0);
 
   // Domain recon hook
   const {
@@ -95,23 +129,14 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
     setActiveTab,
   } = useDomainRecon();
 
-  // Search state — simple regex filter, no separate search mode
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showTabsDropdown, setShowTabsDropdown] = useState(false);
-
-  // Log panel state
-  const [showLog, setShowLog] = useState(false);
-
-  // Search options for Log
-  const [matchCase, setMatchCase] = useState(false);
-  const [matchWholeWord, setMatchWholeWord] = useState(false);
-  const [useRegex, setUseRegex] = useState(false);
-  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
-  const [totalMatches, setTotalMatches] = useState(0);
+  // Hàm cập nhật state với partial
+  const updateReconState = (data: Partial<DomainReconState>) => {
+    setState(data);
+  };
 
   // Load data when active domain changes
   useEffect(() => {
-    const cached = DATA_CACHE[activeDomain];
+    const cached = dataCache[activeDomain];
     if (cached) {
       loadData(cached);
       return;
@@ -120,12 +145,13 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
       import('./data/domain/phantoma.com.json')
         .then((mod) => {
           const data = mod.default as unknown as Record<string, unknown>;
-          DATA_CACHE['phantoma.com'] = data;
+          const newCache = { ...dataCache, 'phantoma.com': data };
+          updateReconState({ dataCache: newCache });
           loadData(data);
         })
         .catch((err) => console.error('Failed to load mock data:', err));
     }
-  }, [activeDomain, loadData]);
+  }, [activeDomain, dataCache, loadData]);
 
   // Context menu click outside
   useEffect(() => {
@@ -157,14 +183,14 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
       status: 'queued',
       progress: 0,
     };
-    setSessions((prev) => [...prev, sess]);
+    updateReconState({ sessions: [...sessions, sess] });
     setNewDomain('');
     setShowAddForm(false);
   }, [newDomain, sessions]);
 
   const removeDomain = useCallback((id: string) => {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
-  }, []);
+    updateReconState({ sessions: sessions.filter((s) => s.id !== id) });
+  }, [sessions]);
 
   const handleContextMenu = (e: React.MouseEvent, sessionId: string) => {
     e.preventDefault();
@@ -172,7 +198,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
   };
 
   const handleClearSearch = () => {
-    setSearchQuery('');
+    updateReconState({ searchQuery: '' });
   };
 
   const activeGroup = categoryGroups.find((g) => g.id === activeTab);
@@ -199,12 +225,14 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
   const logRef = useRef<HTMLDivElement>(null);
   const [logMatches, setLogMatches] = useState<any[]>([]);
 
+  const logMatchesRef = useRef<any[]>([]);
+
   const handleMatchesFound = useCallback(
     (matches: any[], total: number) => {
-      setLogMatches(matches);
+      logMatchesRef.current = matches;
       setTotalMatches(total);
       if (total > 0 && currentMatchIndex >= total) {
-        setCurrentMatchIndex(0);
+        updateReconState({ currentMatchIndex: 0 });
       }
     },
     [currentMatchIndex],
@@ -212,26 +240,26 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
 
   // Sync navigation from header to Log component
   const handlePrevMatch = useCallback(() => {
-    if (logMatches.length > 0) {
+    if (logMatchesRef.current.length > 0) {
       const newIndex = currentMatchIndex - 1;
       if (newIndex < 0) {
-        setCurrentMatchIndex(logMatches.length - 1);
+        updateReconState({ currentMatchIndex: logMatchesRef.current.length - 1 });
       } else {
-        setCurrentMatchIndex(newIndex);
+        updateReconState({ currentMatchIndex: newIndex });
       }
     }
-  }, [currentMatchIndex, logMatches.length]);
+  }, [currentMatchIndex]);
 
   const handleNextMatch = useCallback(() => {
-    if (logMatches.length > 0) {
+    if (logMatchesRef.current.length > 0) {
       const newIndex = currentMatchIndex + 1;
-      if (newIndex >= logMatches.length) {
-        setCurrentMatchIndex(0);
+      if (newIndex >= logMatchesRef.current.length) {
+        updateReconState({ currentMatchIndex: 0 });
       } else {
-        setCurrentMatchIndex(newIndex);
+        updateReconState({ currentMatchIndex: newIndex });
       }
     }
-  }, [currentMatchIndex, logMatches.length]);
+  }, [currentMatchIndex]);
 
   // Render main content
   const renderContent = () => {
@@ -247,7 +275,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
           useRegex={useRegex}
           currentMatchIndex={currentMatchIndex}
           onMatchesFound={handleMatchesFound}
-          onNavigate={(index) => setCurrentMatchIndex(index)}
+          onNavigate={(index) => updateReconState({ currentMatchIndex: index })}
         />
       );
     }
@@ -512,7 +540,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
               return (
                 <div
                   key={sess.id}
-                  onClick={() => setActiveDomain(sess.domain)}
+                  onClick={() => updateReconState({ activeDomain: sess.domain })}
                   onContextMenu={(e) => handleContextMenu(e, sess.id)}
                   className={cn(
                     'group px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 relative',
@@ -645,7 +673,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                   <div className="absolute left-0 top-8 z-50 w-52 bg-[#0d1017] border border-[#1c2333] rounded shadow-lg py-1">
                     <button
                       onClick={() => {
-                        setShowLog(true);
+                        updateReconState({ showLog: true });
                         setShowTabsDropdown(false);
                       }}
                       className={cn(
@@ -704,7 +732,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                     <input
                       type="text"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => updateReconState({ searchQuery: e.target.value })}
                       placeholder="Search data (regex supported)..."
                       spellCheck={false}
                       className="w-[280px] h-7 bg-transparent pl-6 pr-2 text-[11px] font-mono text-text-primary outline-none placeholder:text-text-secondary caret-primary"
@@ -730,7 +758,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                   <div className="w-px h-5 bg-[#1c2333]" />
                   <div className="flex items-center gap-0.5 px-1">
                     <button
-                      onClick={() => setMatchCase(!matchCase)}
+                      onClick={() => updateReconState({ matchCase: !matchCase })}
                       className={cn(
                         'h-6 w-6 flex items-center justify-center rounded text-[10px] font-mono transition-colors',
                         matchCase
@@ -742,7 +770,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                       Aa
                     </button>
                     <button
-                      onClick={() => setMatchWholeWord(!matchWholeWord)}
+                      onClick={() => updateReconState({ matchWholeWord: !matchWholeWord })}
                       className={cn(
                         'h-6 w-6 flex items-center justify-center rounded text-[10px] font-mono transition-colors',
                         matchWholeWord
@@ -754,7 +782,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                       Ab|
                     </button>
                     <button
-                      onClick={() => setUseRegex(!useRegex)}
+                      onClick={() => updateReconState({ useRegex: !useRegex })}
                       className={cn(
                         'h-6 w-6 flex items-center justify-center rounded text-[10px] font-mono transition-colors',
                         useRegex
@@ -821,7 +849,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                   </div>
                 )}
                 <button
-                  onClick={() => setShowLog(!showLog)}
+                  onClick={() => updateReconState({ showLog: !showLog })}
                   className={cn(
                     'h-7 w-7 flex items-center justify-center rounded transition-colors',
                     showLog
@@ -861,9 +889,23 @@ const VIEW_CONFIG: Record<
 
 const TARGET_LIST_VIEWS = new Set(Object.keys(VIEW_CONFIG));
 
-export function Recon({ activeSubItem }: ReconProps) {
-  // Normalize sub-item: null/undefined defaults to domain recon
-  const subItem = activeSubItem || 'recon-domain';
+interface ReconState {
+  activeSubItem: string;
+}
+
+export function Recon({ activeSubItem: propSubItem }: ReconProps) {
+  const [state, setState] = useModulePersistence<ReconState>('recon', {
+    activeSubItem: propSubItem || 'recon-domain',
+  });
+
+  // Đồng bộ prop với state
+  useEffect(() => {
+    if (propSubItem && propSubItem !== state.activeSubItem) {
+      setState({ activeSubItem: propSubItem });
+    }
+  }, [propSubItem]);
+
+  const subItem = state.activeSubItem;
 
   switch (subItem) {
     case 'recon-domain':

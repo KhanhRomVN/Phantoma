@@ -5,7 +5,7 @@ import { INDICATOR_TYPES } from '../constants';
 
 export const useAlienvaultScan = (
   getFullUrl: (path: string) => string,
-  onTabChange?: (tab: 'information' | 'execution' | 'history' | 'logs') => void
+  onTabChange?: (tab: 'information' | 'execution' | 'history' | 'logs') => void,
 ) => {
   // Load saved API key from localStorage
   const getSavedApiKey = (): string => {
@@ -33,7 +33,7 @@ export const useAlienvaultScan = (
 
   const handleScan = async (
     setHistory: React.Dispatch<React.SetStateAction<ScanResult[]>>,
-    setExpandedCardIndex: React.Dispatch<React.SetStateAction<number | null>>
+    setExpandedCardIndex: React.Dispatch<React.SetStateAction<number | null>>,
   ) => {
     if (!params.indicator.trim()) return;
     if (!params.apiKey.trim()) {
@@ -57,9 +57,6 @@ export const useAlienvaultScan = (
 
     try {
       const url = getFullUrl('/api/v1/alienvault/scan');
-      console.log('[AlienVault] Fetching URL:', url);
-      console.log('[AlienVault] Request body:', requestBody);
-
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -67,8 +64,6 @@ export const useAlienvaultScan = (
         },
         body: JSON.stringify(requestBody),
       });
-
-      console.log('[AlienVault] Response status:', response.status, response.statusText);
 
       if (progressRef.current) clearInterval(progressRef.current);
       setProgress(100);
@@ -80,15 +75,8 @@ export const useAlienvaultScan = (
       }
 
       const rawText = await response.text();
-      console.log('[AlienVault] Raw response text length:', rawText.length);
-      console.log('[AlienVault] Raw response text:', rawText);
-
       const parsedResponse = JSON.parse(rawText);
-      console.log('[AlienVault] Parsed response:', parsedResponse);
-      
       const responseData = parsedResponse.data || parsedResponse;
-      console.log('[AlienVault] Response data (result):', responseData);
-      
       const duration = ((Date.now() - startTime) / 1000).toFixed(2) + 's';
 
       let rawOutputLines: string[] = [`AlienVault OTX lookup for ${params.indicator}`];

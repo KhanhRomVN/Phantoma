@@ -5,7 +5,7 @@ import { MODES } from '../constants';
 
 export const useAmassScan = (
   getFullUrl: (path: string) => string,
-  onTabChange?: (tab: 'information' | 'execution' | 'history' | 'logs') => void
+  onTabChange?: (tab: 'information' | 'execution' | 'history' | 'logs') => void,
 ) => {
   const [params, setParams] = useState<AmassScanParams>({
     target: '',
@@ -31,7 +31,7 @@ export const useAmassScan = (
 
   const handleScan = async (
     setHistory: React.Dispatch<React.SetStateAction<AmassScanResult[]>>,
-    setExpandedCardIndex: React.Dispatch<React.SetStateAction<number | null>>
+    setExpandedCardIndex: React.Dispatch<React.SetStateAction<number | null>>,
   ) => {
     if (!params.target.trim()) return;
     setScanning(true);
@@ -52,10 +52,8 @@ export const useAmassScan = (
     // Build SSE URL
     const flagsQuery = flags.join(',');
     const streamUrl = getFullUrl(
-      `/api/v1/amass/scan/stream?target=${encodeURIComponent(params.target)}&flags=${encodeURIComponent(flagsQuery)}`
+      `/api/v1/amass/scan/stream?target=${encodeURIComponent(params.target)}&flags=${encodeURIComponent(flagsQuery)}`,
     );
-
-    console.log('[Amass SSE] Connecting to:', streamUrl);
 
     abortControllerRef.current = new AbortController();
 
@@ -63,7 +61,7 @@ export const useAmassScan = (
       const response = await fetch(streamUrl, {
         method: 'GET',
         headers: {
-          'Accept': 'text/event-stream',
+          Accept: 'text/event-stream',
         },
         signal: abortControllerRef.current.signal,
       });
@@ -95,7 +93,7 @@ export const useAmassScan = (
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
             rawOutputLines.push(data);
-            setLogOutput(prev => prev + data + '\n');
+            setLogOutput((prev) => prev + data + '\n');
           } else if (line.startsWith('event: done')) {
             done = true;
             break;
@@ -139,11 +137,10 @@ export const useAmassScan = (
       if (onTabChange) onTabChange('history');
     } catch (error: any) {
       if (error?.name === 'AbortError') {
-        console.log('[Amass SSE] Scan aborted');
-        setLogOutput(prev => prev + '\n[Scan aborted by user]\n');
+        setLogOutput((prev) => prev + '\n[Scan aborted by user]\n');
       } else {
         console.error('Amass scan failed:', error);
-        setLogOutput(prev => prev + `\n[Error: ${error?.message || 'Unknown error'}]\n`);
+        setLogOutput((prev) => prev + `\n[Error: ${error?.message || 'Unknown error'}]\n`);
       }
 
       if (progressRef.current) clearInterval(progressRef.current);

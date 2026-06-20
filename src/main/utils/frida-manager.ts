@@ -25,8 +25,6 @@ export const ELECTRON_SSL_BYPASS_SCRIPT = `
 
 rpc.exports = {
   init: function(stage) {
-    console.log("[*] Initializing Electron SSL Bypass...");
-    
     // Helper to hook verification functions
     function hookVerify(name, retval) {
       var matches = [];
@@ -54,10 +52,8 @@ rpc.exports = {
               // Special case: SSL_set_verify / SSL_CTX_set_verify (arg[1] is mode)
               if (match.name.indexOf('set_verify') !== -1) {
                  // SSL_VERIFY_NONE = 0
-                 // console.log("[+] Overriding verify mode to NONE in " + match.name);
                  args[1] = ptr(0); 
               }
-              console.log("[+] Bypassing verification in " + match.name);
             },
             onLeave: function(retval_ptr) {
               if (retval !== undefined) {
@@ -65,7 +61,6 @@ rpc.exports = {
               }
             }
           });
-          console.log("[+] Hooked " + match.name + " (" + match.moduleName + ")");
         } catch (e) {
           // console.error("[-] Failed to hook " + match.name + ": " + e.message);
         }
@@ -111,7 +106,6 @@ rpc.exports = {
              onEnter: function(args) {
                if (args[1].toInt32() === 64 || args[1].toInt32() === 81) { // VERIFYPEER or VERIFYHOST
                   args[2] = ptr(0);
-                  console.log("[+] Bypassing Curl SSL verification");
                }
              }
            });
@@ -125,7 +119,6 @@ rpc.exports = {
     Process.enumerateModules().forEach(m => {
       const name = m.name.toLowerCase();
       if (name.includes('antigravity') || name.includes('ssl') || name.includes('crypto') || name.includes('gnutls') || name.includes('curl')) {
-        // console.log("[*] Deep scanning " + m.name + "...");
         try {
           const found = [];
           m.enumerateExports().forEach(e => found.push(e));
@@ -147,7 +140,6 @@ rpc.exports = {
       }
     });
 
-    console.log("[*] Hooks verification complete.");
   }
 };
 `;
@@ -186,11 +178,8 @@ export async function downloadFridaServer(
 
   // Check if already downloaded
   if (fs.existsSync(serverPath)) {
-    console.log(`Frida server already exists at: ${serverPath}`);
     return serverPath;
   }
-
-  console.log(`Downloading Frida server for ${architecture}...`);
 
   const xzPath = serverPath + '.xz';
 
@@ -260,7 +249,6 @@ export async function downloadFridaServer(
     await execAsync(`xz -d "${xzPath}"`);
     // Make executable
     fs.chmodSync(serverPath, 0o755);
-    console.log(`Frida server downloaded and extracted to: ${serverPath}`);
     return serverPath;
   } catch (error) {
     throw new Error(`Failed to decompress Frida server: ${error}`);
@@ -373,20 +361,15 @@ export async function startFridaServer(serial: string): Promise<boolean> {
   try {
     // Check if already running
     if (await isFridaRunning(serial)) {
-      console.log('Frida server already running');
       return true;
     }
 
     // Start in background (Try with root first)
     try {
-      console.log('Attempting to start Frida server as root...');
       await execAsync(
         `adb -s "${serial}" shell "su -c '/data/local/tmp/frida-server > /dev/null 2>&1 &'"`,
       );
     } catch (rootError) {
-      console.log(
-        'Root start failed, falling back to non-root execution (may have limited permissions)...',
-      );
       await execAsync(`adb -s "${serial}" shell "/data/local/tmp/frida-server > /dev/null 2>&1 &"`);
     }
 
@@ -396,7 +379,6 @@ export async function startFridaServer(serial: string): Promise<boolean> {
     // Verify it's running
     const isRunning = await isFridaRunning(serial);
     if (isRunning) {
-      console.log('Frida server started successfully');
     } else {
       console.error('Frida server failed to start');
     }
@@ -414,7 +396,6 @@ export async function startFridaServer(serial: string): Promise<boolean> {
 export async function stopFridaServer(serial: string): Promise<boolean> {
   try {
     await execAsync(`adb -s "${serial}" shell "pkill frida-server"`);
-    console.log('Frida server stopped');
     return true;
   } catch (error) {
     console.error('Failed to stop Frida server:', error);
@@ -500,15 +481,7 @@ export async function injectSSLBypass(
         reject(err);
       });
 
-      fridaProcess.on('close', (code) => {
-        if (code !== 0 && code !== null) {
-          // Only log if it wasn't a manual kill or success?
-          // With -f, it should stay running. If it closes, it might be an error.
-          console.log(`Frida process exited with code ${code}`);
-          // If we haven't resolved yet (e.g. immediate failure)
-          // If already resolved, this does nothing which is fine.
-        }
-      });
+      fridaProcess.on('close', () => {});
     });
   } catch (error: any) {
     const msg = error.message || '';
@@ -656,7 +629,6 @@ export async function injectCustomScript(
 
       fridaProcess.on('close', (code) => {
         if (code !== 0 && code !== null) {
-          console.log(`Frida process exited with code ${code}`);
         }
       });
     });

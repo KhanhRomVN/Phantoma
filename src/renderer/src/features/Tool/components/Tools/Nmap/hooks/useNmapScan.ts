@@ -5,7 +5,7 @@ import { SCAN_TYPES } from '../constants';
 
 export const useNmapScan = (
   getFullUrl: (path: string) => string,
-  onTabChange?: (tab: 'information' | 'execution' | 'history' | 'logs') => void
+  onTabChange?: (tab: 'information' | 'execution' | 'history' | 'logs') => void,
 ) => {
   const [params, setParams] = useState<NmapScanParams>({
     target: '',
@@ -27,7 +27,7 @@ export const useNmapScan = (
 
   const handleScan = async (
     setHistory: React.Dispatch<React.SetStateAction<ScanResult[]>>,
-    setExpandedCardIndex: React.Dispatch<React.SetStateAction<number | null>>
+    setExpandedCardIndex: React.Dispatch<React.SetStateAction<number | null>>,
   ) => {
     if (!params.target.trim()) return;
     setScanning(true);
@@ -41,8 +41,6 @@ export const useNmapScan = (
     // Build POST URL (streaming endpoint)
     const scanUrl = getFullUrl('/api/v1/nmap/scan');
 
-    console.log('[Nmap SSE] Connecting to:', scanUrl);
-
     // Create abort controller for cancellation
     abortControllerRef.current = new AbortController();
 
@@ -50,7 +48,7 @@ export const useNmapScan = (
       const response = await fetch(scanUrl, {
         method: 'POST',
         headers: {
-          'Accept': 'text/event-stream',
+          Accept: 'text/event-stream',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -91,19 +89,20 @@ export const useNmapScan = (
             currentEvent = line.slice(7).trim();
           } else if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            
+
             if (currentEvent === 'start') {
               // Parse scan ID from start event
               try {
                 const startData = JSON.parse(data);
                 if (startData.scanId) {
                   currentScanIdRef.current = startData.scanId;
-                  console.log('[Nmap SSE] Scan started with ID:', currentScanIdRef.current);
                 }
-                setLogOutput(prev => prev + `[Scan started: ${startData.message || 'starting...'}]\n`);
+                setLogOutput(
+                  (prev) => prev + `[Scan started: ${startData.message || 'starting...'}]\n`,
+                );
               } catch (e) {
                 // Fallback: just show the message
-                setLogOutput(prev => prev + `[Scan started: ${data}]\n`);
+                setLogOutput((prev) => prev + `[Scan started: ${data}]\n`);
               }
             } else {
               // Check if this line contains stats progress
@@ -118,9 +117,9 @@ export const useNmapScan = (
                 }
               }
               rawOutputLines.push(data);
-              setLogOutput(prev => prev + data + '\n');
+              setLogOutput((prev) => prev + data + '\n');
             }
-            
+
             if (currentEvent === 'done') {
               done = true;
               break;
@@ -158,11 +157,10 @@ export const useNmapScan = (
       if (onTabChange) onTabChange('history');
     } catch (error: any) {
       if (error?.name === 'AbortError') {
-        console.log('[Nmap SSE] Scan aborted');
-        setLogOutput(prev => prev + '\n[Scan aborted by user]\n');
+        setLogOutput((prev) => prev + '\n[Scan aborted by user]\n');
       } else {
         console.error('Nmap scan failed:', error);
-        setLogOutput(prev => prev + `\n[Error: ${error?.message || 'Unknown error'}]\n`);
+        setLogOutput((prev) => prev + `\n[Error: ${error?.message || 'Unknown error'}]\n`);
       }
 
       setProgress(100);
@@ -189,12 +187,9 @@ export const useNmapScan = (
   const cancelScan = async () => {
     const scanId = currentScanIdRef.current;
     if (!scanId) {
-      console.log('[Nmap] No active scan to cancel');
       return;
     }
 
-    console.log('[Nmap] Cancelling scan:', scanId);
-    
     // Call backend cancel endpoint
     try {
       const cancelUrl = getFullUrl('/api/v1/nmap/scan/cancel');
@@ -213,7 +208,7 @@ export const useNmapScan = (
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     currentScanIdRef.current = null;
     setScanning(false);
     setProgress(100);

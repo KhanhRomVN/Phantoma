@@ -238,8 +238,6 @@ export class ProxyServer extends EventEmitter {
 
     this.proxy.onConnect((req: any, socket: any, _head: any, callback: any) => {
       const hostUrl = req.url || '';
-      console.log(`[ProxyServer Connect] ${hostUrl} (Host: ${req.headers.host})`);
-
       if (!hostUrl) {
         return callback();
       }
@@ -251,7 +249,6 @@ export class ProxyServer extends EventEmitter {
       const isWebSocket = req.headers?.upgrade?.toLowerCase() === 'websocket';
 
       if (isWebSocket) {
-        console.log(`[ProxyServer WS] WebSocket upgrade: ${hostUrl}`);
         const wsId = `ws-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
         const wsUrl = `wss://${host}${req.url || ''}`;
         const wsPath = req.url || '/';
@@ -434,8 +431,6 @@ export class ProxyServer extends EventEmitter {
       });
 
       if (shouldBypass) {
-        console.log(`[ProxyServer Connect] Bypassing SSL decryption (tunneling) for: ${hostUrl}`);
-
         const conn = net.connect(
           {
             port,
@@ -828,23 +823,9 @@ export class ProxyServer extends EventEmitter {
               }
             } else if (contentEncoding === 'zstd') {
               // Use @mongodb-js/zstd for decompression
-              const firstBytes = buffer.slice(0, 16).toString('hex');
-              console.log('[Proxy] ZSTD request debug:', {
-                encoding: contentEncoding,
-                size: buffer.length,
-                firstBytes,
-                contentType: req.headers['content-type'],
-              });
-
               try {
                 const decompressed = await decompress(buffer);
                 body = Buffer.from(decompressed).toString('utf8');
-                console.log(
-                  '[Proxy] Successfully decompressed zstd request:',
-                  body.length,
-                  'bytes',
-                );
-                console.log('[Proxy] Decompressed content preview:', body.slice(0, 200));
               } catch (e) {
                 console.error('[Proxy] ZSTD decompress failed:', e);
                 decompressionFailed = true;

@@ -84,7 +84,6 @@ class MediaCache {
         size: buffer.length,
       };
       this.saveManifest();
-      console.log(`[MediaCache] Saved ${requestId} (${filename}) to disk. Size: ${buffer.length}`);
     } catch (e) {
       console.error(`[MediaCache] Failed to save media ${requestId}:`, e);
     }

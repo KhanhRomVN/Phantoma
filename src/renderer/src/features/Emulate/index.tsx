@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useModulePersistence } from '../../hooks/useModulePersistence';
 import {
   LayoutPanelLeft,
   Cpu,
@@ -74,6 +75,19 @@ type ToolType =
   | 'source'
   | 'log';
 
+interface EmulateState {
+  selectedTool: ToolType;
+  targetTabs: TargetTab[];
+  activeTargetId: string | null;
+  requests: NetworkRequest[];
+  selectedId: string | null;
+  searchTerm: string;
+  isTargetActive: boolean;
+  activeTargetMode: 'mitm' | 'cdp' | null;
+  isInterceptActive: boolean;
+  filter: InspectorFilter;
+}
+
 export default function Emulate({
   activeAppId = '',
   activeAppName = '',
@@ -83,69 +97,135 @@ export default function Emulate({
   const { currentPreset } = useTheme();
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
 
-  const [selectedTool, setSelectedTool] = useState<ToolType>('intruder');
-  const [showTargetPanel, setShowTargetPanel] = useState(false);
+  const [state, setState] = useModulePersistence<EmulateState>('emulate', {
+    selectedTool: 'intruder',
+    targetTabs: [{ id: 'default', title: 'Chưa chọn target', favicon: undefined, url: undefined }],
+    activeTargetId: null,
+    requests: [],
+    selectedId: null,
+    searchTerm: '',
+    isTargetActive: false,
+    activeTargetMode: null,
+    isInterceptActive: false,
+    filter: initialFilterState,
+  });
 
-  // Load persisted tabs from localStorage
+  const {
+    selectedTool,
+    targetTabs: persistedTargetTabs,
+    activeTargetId: persistedActiveTargetId,
+    requests: persistedRequests,
+    selectedId: persistedSelectedId,
+    searchTerm: persistedSearchTerm,
+    filter: persistedFilter,
+  } = state;
+
+  // Load persisted tabs from backend via IPC
   const loadPersistedTabs = (): TargetTab[] => {
-    try {
-      const saved = localStorage.getItem('phantoma-emulate-tabs');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load persisted tabs:', e);
-    }
+    // Will be loaded via IPC in useEffect
     return [{ id: 'default', title: 'Chưa chọn target', favicon: undefined, url: undefined }];
   };
 
   const loadPersistedActiveTab = (tabs: TargetTab[]): string | null => {
-    try {
-      const savedId = localStorage.getItem('phantoma-emulate-active-tab');
-      if (savedId && tabs.some((tab) => tab.id === savedId)) {
-        return savedId;
-      }
-    } catch (e) {
-      console.error('Failed to load persisted active tab:', e);
-    }
+    // Will be loaded via IPC in useEffect
     return tabs.length > 0 ? tabs[0].id : null;
   };
 
-  const initialTabs = loadPersistedTabs();
-  const [targetTabs, setTargetTabs] = useState<TargetTab[]>(initialTabs);
-  const [activeTargetId, setActiveTargetId] = useState<string | null>(() =>
-    loadPersistedActiveTab(initialTabs),
-  );
+  // State để lưu dữ liệu từ IPC
+  const [loadedFromIPC, setLoadedFromIPC] = useState(false);
+  const [initialTabs, setInitialTabs] = useState<TargetTab[]>([
+    { id: 'default', title: 'Chưa chọn target', favicon: undefined, url: undefined },
+  ]);
+  const [initialActiveId, setInitialActiveId] = useState<string | null>(null);
 
-  // Persist tabs whenever they change (still needed for cross-session persistence)
+  // Load dữ liệu từ IPC khi component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const result = await window.api.invoke('emulate:get-active-targets');
+
+        if (result && result.targets && result.targets.length > 0) {
+          setInitialTabs(result.targets);
+          setInitialActiveId(result.activeId || result.targets[0].id);
+          // Cập nhật Zustand với dữ liệu từ IPC
+          setState((prev) => ({
+            ...prev,
+            targetTabs: result.targets,
+            activeTargetId: result.activeId || result.targets[0].id,
+          }));
+        } else {
+          // Không có dữ liệu, dùng default
+          setInitialTabs([
+            { id: 'default', title: 'Chưa chọn target', favicon: undefined, url: undefined },
+          ]);
+          setInitialActiveId(null);
+        }
+        setLoadedFromIPC(true);
+      } catch (error) {
+        console.error('[DEBUG] Failed to load active targets from IPC:', error);
+        setLoadedFromIPC(true);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Sử dụng useMemo để tính toán lại khi persisted state thay đổi
+  const targetTabs = useMemo(() => {
+    const result = persistedTargetTabs.length > 0 ? persistedTargetTabs : initialTabs;
+    return result;
+  }, [persistedTargetTabs, initialTabs]);
+
+  const activeTargetId = useMemo(() => {
+    const result = persistedActiveTargetId !== null ? persistedActiveTargetId : initialActiveId;
+    return result;
+  }, [persistedActiveTargetId, initialActiveId]);
+
+  const requests = useMemo(() => {
+    return persistedRequests.length > 0 ? persistedRequests : mockRequests;
+  }, [persistedRequests]);
+
+  const selectedId = useMemo(() => {
+    return persistedSelectedId !== null ? persistedSelectedId : '1';
+  }, [persistedSelectedId]);
+
+  const searchTerm = useMemo(() => {
+    return persistedSearchTerm || '';
+  }, [persistedSearchTerm]);
+
+  const filter = useMemo(() => {
+    return persistedFilter || initialFilterState;
+  }, [persistedFilter]);
+
+  // Đồng bộ Zustand với localStorage khi khởi tạo (đảm bảo state nhất quán sau reload)
   React.useEffect(() => {
+    // Nếu Zustand rỗng nhưng localStorage có dữ liệu, cập nhật Zustand
+    if (
+      persistedTargetTabs.length === 0 &&
+      initialTabs.length > 0 &&
+      initialTabs[0].id !== 'default'
+    ) {
+      setState((prev) => ({ ...prev, targetTabs: initialTabs }));
+    }
+    if (persistedActiveTargetId === null && initialActiveId && initialActiveId !== 'default') {
+      setState((prev) => ({ ...prev, activeTargetId: initialActiveId }));
+    }
+  }, []);
+
+  // Persist tabs via IPC whenever they change
+  React.useEffect(() => {
+    if (!loadedFromIPC) return;
     try {
-      // Don't persist the default tab
       const tabsToSave = targetTabs.filter((tab) => tab.id !== 'default');
-      localStorage.setItem('phantoma-emulate-tabs', JSON.stringify(tabsToSave));
+      window.api
+        .invoke('emulate:set-active-targets', tabsToSave, activeTargetId)
+        .then(() => console.log('[DEBUG] Saved via IPC successfully'))
+        .catch((err) => console.error('[DEBUG] Failed to save via IPC:', err));
     } catch (e) {
       console.error('Failed to save tabs:', e);
     }
-  }, [targetTabs]);
-
-  // Persist active tab whenever it changes
-  React.useEffect(() => {
-    try {
-      if (activeTargetId && activeTargetId !== 'default') {
-        localStorage.setItem('phantoma-emulate-active-tab', activeTargetId);
-      } else {
-        localStorage.removeItem('phantoma-emulate-active-tab');
-      }
-    } catch (e) {
-      console.error('Failed to save active tab:', e);
-    }
-  }, [activeTargetId]);
+  }, [targetTabs, activeTargetId, loadedFromIPC]);
 
   const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockRequests);
-  const [requests, setRequests] = useState<NetworkRequest[]>(mockRequests);
   const [cdpRequests, setCdpRequests] = useState<NetworkRequest[]>([]);
   const [cdpRequestMap, setCdpRequestMap] = useState<Map<string, NetworkRequest>>(new Map());
   // Use a Map stored on window to ensure it survives re-renders and component lifecycle
@@ -155,30 +235,59 @@ export default function Emulate({
   }
   // Store reference to avoid re-reading from window
   const requestTimestampMap = (window as any)._phantomaCdpTimestamps;
-  console.log('[CDP] Timestamp map size:', requestTimestampMap.size);
-  const [selectedId, setSelectedId] = useState<string | null>('1');
-  const [searchTerm, setSearchTerm] = useState('');
   const [interceptedIds] = useState<Set<string>>(new Set());
   const [pendingActionIds] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<InspectorFilter>(initialFilterState);
   const [selectedWsId, setSelectedWsId] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const handleForward = (id: string) => {
-    console.log('Forward request:', id);
+  // Wrapper functions for state updates using setState
+  const setRequests = (
+    value: NetworkRequest[] | ((prev: NetworkRequest[]) => NetworkRequest[]),
+  ) => {
+    setState((prev) => {
+      const newRequests = typeof value === 'function' ? value(prev.requests) : value;
+      return { ...prev, requests: newRequests };
+    });
   };
 
-  const handleDrop = (id: string) => {
-    console.log('Drop request:', id);
+  const setSelectedId = (value: string | null) => {
+    setState((prev) => ({ ...prev, selectedId: value }));
   };
 
-  const handleDeleteRequest = (id: string) => {
-    console.log('Delete request:', id);
+  const setSearchTerm = (value: string) => {
+    setState((prev) => ({ ...prev, searchTerm: value }));
   };
+
+  const setFilter = (value: InspectorFilter | ((prev: InspectorFilter) => InspectorFilter)) => {
+    setState((prev) => {
+      const newFilter = typeof value === 'function' ? value(prev.filter) : value;
+      return { ...prev, filter: newFilter };
+    });
+  };
+
+  const setTargetTabs = (value: TargetTab[] | ((prev: TargetTab[]) => TargetTab[])) => {
+    setState((prev) => {
+      const newTabs = typeof value === 'function' ? value(prev.targetTabs) : value;
+      return { ...prev, targetTabs: newTabs };
+    });
+  };
+
+  const setActiveTargetId = (value: string | null) => {
+    setState((prev) => ({ ...prev, activeTargetId: value }));
+  };
+
+  const setSelectedTool = (value: ToolType) => {
+    setState((prev) => ({ ...prev, selectedTool: value }));
+  };
+
+  const handleForward = (id: string) => {};
+
+  const handleDrop = (id: string) => {};
+
+  const handleDeleteRequest = (id: string) => {};
 
   // Clear all requests (used when stopping CDP/proxy session)
   const clearRequests = () => {
-    console.log('[Emulate] Clearing all requests...');
     setRequests([]);
     setFilteredRequests([]);
     setCdpRequests([]);
@@ -187,25 +296,15 @@ export default function Emulate({
     setSelectedId(null);
   };
 
-  const handleSetCompare1 = (req: NetworkRequest | null) => {
-    console.log('Set compare 1:', req);
-  };
+  const handleSetCompare1 = (req: NetworkRequest | null) => {};
 
-  const handleSetCompare2 = (req: NetworkRequest | null) => {
-    console.log('Set compare 2:', req);
-  };
+  const handleSetCompare2 = (req: NetworkRequest | null) => {};
 
-  const handleAnalyzeRequest = (req: NetworkRequest) => {
-    console.log('Analyze request:', req);
-  };
+  const handleAnalyzeRequest = (req: NetworkRequest) => {};
 
-  const handleSendToFuzzer = (req: NetworkRequest) => {
-    console.log('Send to fuzzer:', req);
-  };
+  const handleSendToFuzzer = (req: NetworkRequest) => {};
 
-  const handleDeleteWsConnection = (id: string) => {
-    console.log('Delete WebSocket connection:', id);
-  };
+  const handleDeleteWsConnection = (id: string) => {};
 
   const tools: { id: ToolType; icon: React.ReactNode; label: string; color: string }[] = [
     {
@@ -241,12 +340,17 @@ export default function Emulate({
   const [appToDelete, setAppToDelete] = useState<UserApp | null>(null);
   const [isLaunchModalOpen, setIsLaunchModalOpen] = useState(false);
   const [appToLaunch, setAppToLaunch] = useState<UserApp | null>(null);
-  const [isLaunching, setIsLaunching] = useState(false);
+  const [isLaunching] = useState(false);
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
   const [createDrawerPlatform, setCreateDrawerPlatform] = useState<AppPlatform | null>(null);
   const [newTargetName, setNewTargetName] = useState('');
   const [newTargetUrl, setNewTargetUrl] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    app: UserApp;
+  } | null>(null);
 
   // Fetch apps from backend
   const fetchApps = async () => {
@@ -317,7 +421,6 @@ export default function Emulate({
 
   // CDP event listeners
   useEffect(() => {
-    console.log('[CDP] Setting up event listeners...');
     const handleCdpRequest = (event: any, data: any) => {
       // Removed debug log for cleaner console
       // Convert CDP request to NetworkRequest format
@@ -353,16 +456,6 @@ export default function Emulate({
       const requestTimestamp = data.timestamp || Date.now();
       // Store timestamp for time calculation using global Map
       requestTimestampMap.set(id, requestTimestamp);
-
-      // Debug: log initiator received from CDP
-      if (data.initiator) {
-        console.log('[Emulate] 📥 Received initiator for', data.url, ':', {
-          type: data.initiator.type,
-          url: data.initiator.url,
-          hasStack: !!data.initiator.stack,
-          stackLength: data.initiator.stack?.length || 0,
-        });
-      }
 
       const req: NetworkRequest = {
         id: id,
@@ -409,7 +502,6 @@ export default function Emulate({
         const newMap = new Map(prev);
         const existing = newMap.get(data.id);
         if (existing) {
-          console.log('[CDP] Found existing request for response:', data.id, existing);
           newMap.set(data.id, {
             ...existing,
             status: data.statusCode || 200,
@@ -509,7 +601,6 @@ export default function Emulate({
         const newMap = new Map(prev);
         const existing = newMap.get(data.id);
         if (existing) {
-          console.log('[CDP] Found existing request for body:', data.id);
           newMap.set(data.id, {
             ...existing,
             responseBody: data.body || '',
@@ -549,9 +640,7 @@ export default function Emulate({
       });
     };
 
-    const handleCdpError = (event: any, data: any) => {
-      console.log('[CDP] Error:', data);
-    };
+    const handleCdpError = (event: any, data: any) => {};
 
     window.api.on?.('cdp:request', handleCdpRequest);
     window.api.on?.('cdp:response', handleCdpResponse);
@@ -608,17 +697,12 @@ export default function Emulate({
     customUrl?: string,
     mode?: 'browser' | 'electron' | 'native' | 'cdp',
   ) => {
-    console.log('[Emulate] handleLaunchTarget called with:', { appId, proxyUrl, customUrl, mode });
-
     // Wait a bit for proxy to be fully ready
-    console.log('[Emulate] Waiting 500ms for proxy to be ready...');
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Always use IPC directly for launching (bypass onSelectApp from parent)
-    console.log('[Emulate] Using IPC: window.api.invoke(app:launch)');
     try {
       const result = await window.api.invoke('app:launch', appId, proxyUrl, customUrl, mode);
-      console.log('[Emulate] app:launch result:', result);
 
       if (result) {
         // Add to active tabs if launch succeeded
@@ -638,13 +722,11 @@ export default function Emulate({
             return [...prev, newTab];
           });
           setActiveTargetId(app.id);
-          setShowTargetPanel(false);
         }
       } else {
         console.warn('[Emulate] app:launch returned false');
         // Fallback: try using onSelectApp if available
         if (onSelectApp && onSelectApp.toString() !== 'async () => {}') {
-          console.log('[Emulate] Fallback: trying onSelectApp');
           try {
             await onSelectApp(appId, proxyUrl, customUrl, mode);
           } catch (e) {
@@ -656,7 +738,6 @@ export default function Emulate({
       console.error('[Emulate] IPC launch failed:', e);
       // Fallback: try using onSelectApp if available
       if (onSelectApp && onSelectApp.toString() !== 'async () => {}') {
-        console.log('[Emulate] Fallback: trying onSelectApp');
         try {
           await onSelectApp(appId, proxyUrl, customUrl, mode);
         } catch (e2) {
@@ -745,11 +826,17 @@ export default function Emulate({
 
   const activeTargets = targetTabs.filter((tab) => tab.id !== 'default');
 
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   // Listen for navigate-to-source events from Initiator tab
   useEffect(() => {
     const handleNavigateToSource = (event: CustomEvent) => {
       const { url, line, col, functionName } = event.detail;
-      console.log('[Emulate] 📍 Navigate to source:', { url, line, col, functionName });
 
       // Switch to source tab
       setSelectedTool('source');
@@ -865,7 +952,6 @@ export default function Emulate({
                       key={tab.id}
                       onClick={() => {
                         setActiveTargetId(tab.id);
-                        setShowTargetPanel(false);
                       }}
                       className={cn(
                         'flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all text-sm',
@@ -961,10 +1047,35 @@ export default function Emulate({
                   return (
                     <div
                       key={app.id}
+                      onClick={() => {
+                        if (!isOpen) {
+                          const newTab: TargetTab = {
+                            id: app.id,
+                            title: app.name,
+                            favicon: app.url
+                              ? `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}&sz=32`
+                              : undefined,
+                            url: app.url,
+                          };
+                          setTargetTabs((prev) => {
+                            const exists = prev.some((t) => t.id === app.id);
+                            if (exists) return prev;
+                            return [...prev, newTab];
+                          });
+                          setActiveTargetId(app.id);
+                          // Quay về UI current target
+                          setSelectedPlatform(null);
+                          setTargetSearchQuery('');
+                        }
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setContextMenu({ x: e.clientX, y: e.clientY, app });
+                      }}
                       className={cn(
                         'flex items-center gap-2 px-3 py-2 rounded-md transition-all text-sm group',
                         isOpen
-                          ? 'bg-dropdown-item-hover/30 cursor-default'
+                          ? 'bg-dropdown-item-hover/30 cursor-pointer hover:bg-dropdown-item-hover/50'
                           : 'hover:bg-dropdown-item-hover cursor-pointer',
                       )}
                     >
@@ -986,15 +1097,6 @@ export default function Emulate({
                           <Square className="w-2 h-2 fill-current" /> Stop
                         </button>
                       )}
-                      {!isOpen && !isActive && (
-                        <button
-                          onClick={() => handleLaunchWithConfirm(app)}
-                          disabled={isLaunching}
-                          className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-medium text-primary bg-primary/10 border border-primary/30 hover:bg-primary/20 rounded transition-all shrink-0"
-                        >
-                          <Play className="w-2.5 h-2.5" /> Launch
-                        </button>
-                      )}
                     </div>
                   );
                 })}
@@ -1008,6 +1110,66 @@ export default function Emulate({
                 </div>
               )}
             </div>
+
+            {/* Context Menu */}
+            {contextMenu && (
+              <div
+                className="fixed z-50 bg-dropdown-background border border-border rounded-md shadow-lg py-1 min-w-[160px]"
+                style={{ top: contextMenu.y, left: contextMenu.x }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => {
+                    // Add to targets and launch
+                    const app = contextMenu.app;
+                    const newTab: TargetTab = {
+                      id: app.id,
+                      title: app.name,
+                      favicon: app.url
+                        ? `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}&sz=32`
+                        : undefined,
+                      url: app.url,
+                    };
+                    setTargetTabs((prev) => {
+                      const exists = prev.some((t) => t.id === app.id);
+                      if (exists) return prev;
+                      return [...prev, newTab];
+                    });
+                    setActiveTargetId(app.id);
+                    // Launch the target
+                    handleLaunchTarget(
+                      app.id,
+                      'http://127.0.0.1:8081',
+                      app.url,
+                      app.platform === 'web' ? 'browser' : 'electron',
+                    );
+                    // Quay về UI current target
+                    setSelectedPlatform(null);
+                    setTargetSearchQuery('');
+                    setContextMenu(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
+                >
+                  <Play className="w-3.5 h-3.5 text-primary" />
+                  <span>Chạy target</span>
+                </button>
+                <button
+                  onClick={() => {
+                    // Remove from active targets
+                    const newTabs = targetTabs.filter((t) => t.id !== contextMenu.app.id);
+                    setTargetTabs(newTabs);
+                    if (activeTargetId === contextMenu.app.id) {
+                      setActiveTargetId(newTabs.length > 0 ? newTabs[0].id : null);
+                    }
+                    setContextMenu(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-error hover:bg-dropdown-item-hover transition-all"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Xóa target</span>
+                </button>
+              </div>
+            )}
 
             {/* Bottom Drawer - slide up from bottom */}
             {showCreateDrawer && createDrawerPlatform === selectedPlatform && (

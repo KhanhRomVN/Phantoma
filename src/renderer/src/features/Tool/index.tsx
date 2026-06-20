@@ -21,11 +21,9 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
     filteredTools,
     handleToolSelect,
     setSearchQuery,
+    activeTab: toolActiveTab,
+    setActiveTab: setToolActiveTab,
   } = useToolManager(activeToolId, onToolChange);
-
-  const [toolActiveTab, setToolActiveTab] = useState<
-    'information' | 'execution' | 'history' | 'profiles'
-  >('information');
 
   // Get accent colors from shared hook
   const { UNIFIED_ACCENT, PRIMARY_RGB, getColorByIndex } = useAccentColors();

@@ -35,7 +35,6 @@ export class SingletonWSManager {
   public async initialize(): Promise<number> {
     try {
       this._currentPort = await this.startServer();
-      console.log(`[SingletonWSManager] Server started on port ${this._currentPort}`);
       return this._currentPort;
     } catch (error) {
       console.error('[SingletonWSManager] ❌ Failed to start server:', error);

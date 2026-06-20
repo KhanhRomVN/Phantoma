@@ -1,12 +1,29 @@
+import { useEffect } from 'react';
 import DomainScan from './Domain';
 import NetworkScan from './Network';
+import { useModulePersistence } from '../../hooks/useModulePersistence';
+
+interface ScanState {
+  activeSubItem: string;
+}
 
 interface ScanProps {
   activeSubItem?: string | null;
 }
 
-export default function Scan({ activeSubItem }: ScanProps) {
-  const subItem = activeSubItem || 'scan-domain';
+export default function Scan({ activeSubItem: propSubItem }: ScanProps) {
+  const [state, setState] = useModulePersistence<ScanState>('scanner', {
+    activeSubItem: propSubItem || 'scan-domain',
+  });
+
+  // Đồng bộ prop với state (khi prop thay đổi từ bên ngoài)
+  useEffect(() => {
+    if (propSubItem && propSubItem !== state.activeSubItem) {
+      setState({ activeSubItem: propSubItem });
+    }
+  }, [propSubItem]);
+
+  const subItem = state.activeSubItem;
 
   switch (subItem) {
     case 'scan-domain':

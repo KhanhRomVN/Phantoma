@@ -13,7 +13,7 @@ const Interface: React.FC = () => {
 
   useEffect(() => {
     setThemes(PRESET_THEMES);
-    
+
     // Apply saved font on mount using centralized function
     const savedFont = getStoredFont();
     if (savedFont) {
@@ -26,11 +26,8 @@ const Interface: React.FC = () => {
   };
 
   const handleFontChange = (fontValue: string) => {
-    console.log('🔤 [Interface] Font selection changed:', fontValue);
-    console.log('🔤 [Interface] Current selectedFont before:', selectedFont);
     setSelectedFont(fontValue);
     setStoredFont(fontValue);
-    console.log('🔤 [Interface] Font change complete. New font:', fontValue);
   };
 
   // Get the current display label for the selected font
@@ -42,7 +39,7 @@ const Interface: React.FC = () => {
   return (
     <div>
       <h3 className="text-base text-primary m-0 mb-4">Interface Settings</h3>
-      
+
       {/* Font Family Selection */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-text-primary tracking-wide mb-1.5">
@@ -56,19 +53,31 @@ const Interface: React.FC = () => {
             style={{ fontFamily: selectedFont }}
           >
             {FONTS.map((font) => (
-              <option key={font.fontFamily} value={font.fontFamily} style={{ fontFamily: font.fontFamily }}>
+              <option
+                key={font.fontFamily}
+                value={font.fontFamily}
+                style={{ fontFamily: font.fontFamily }}
+              >
                 {font.label}
               </option>
             ))}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-secondary">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
         </div>
         <p className="text-text-secondary text-xs mt-1.5 tracking-wide">
-          Preview: <span className="italic" style={{ fontFamily: selectedFont }}>The quick brown fox jumps over the lazy dog</span>
+          Preview:{' '}
+          <span className="italic" style={{ fontFamily: selectedFont }}>
+            The quick brown fox jumps over the lazy dog
+          </span>
         </p>
       </div>
 

@@ -25,8 +25,6 @@ export const FontProvider: React.FC<FontProviderProps> = ({
   // Initialize font on mount
   useEffect(() => {
     const initFont = () => {
-      console.log('🔤 [FontProvider] Initializing...');
-      
       // Initialize font system (injects @font-face and loads stored/default font)
       initFontSystem();
       
@@ -35,22 +33,17 @@ export const FontProvider: React.FC<FontProviderProps> = ({
       let font: FontDefinition | undefined;
 
       if (storedFontFamily) {
-        console.log('🔤 [FontProvider] Found stored fontFamily:', storedFontFamily);
         // Find font by stored fontFamily string
         font = FONTS.find((f) => f.fontFamily === storedFontFamily);
-        if (font) {
-          console.log('🔤 [FontProvider] Matched font:', font.id, font.label);
-        } else {
+        if (!font) {
           console.warn('🔤 [FontProvider] No font found for stored family:', storedFontFamily);
         }
       }
 
       if (!font) {
         // Fallback to default
-        console.log('🔤 [FontProvider] Using default font:', defaultFontId);
         font = getFontById(defaultFontId) || FONTS[0];
         if (font) {
-          console.log('🔤 [FontProvider] Default font selected:', font.id, font.label);
           setStoredFont(font.fontFamily);
         }
       }
@@ -58,26 +51,21 @@ export const FontProvider: React.FC<FontProviderProps> = ({
       if (font) {
         setCurrentFont(font);
         applyFont(font.fontFamily);
-        console.log('🔤 [FontProvider] Font applied successfully:', font.label);
       } else {
         console.error('🔤 [FontProvider] No font available!');
       }
 
       setIsLoading(false);
-      console.log('🔤 [FontProvider] Initialization complete. isLoading:', false);
     };
 
     initFont();
   }, [defaultFontId]);
 
   const setFont = (fontId: string) => {
-    console.log('🔤 [FontProvider] setFont called with ID:', fontId);
     const font = getFontById(fontId);
     if (font) {
-      console.log('🔤 [FontProvider] Font found:', font.id, font.label);
       setCurrentFont(font);
       setStoredFont(font.fontFamily);
-      console.log('🔤 [FontProvider] Font changed to:', font.label);
     } else {
       console.error('🔤 [FontProvider] Font not found for ID:', fontId);
     }

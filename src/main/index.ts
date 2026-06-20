@@ -30,6 +30,7 @@ import {
 import { cdpManager } from './features/cdpManager';
 import { findAvailablePort } from './utils/net';
 import { userAppStore, UserApp } from './store/apps';
+import { activeTargetStore, ActiveTargetTab } from './store/active-targets';
 import { scanInstalledApps } from './utils/app-scanner';
 import { spawn, ChildProcess, execSync } from 'child_process';
 import * as fs from 'fs';
@@ -124,7 +125,6 @@ const certDir = path.join(process.cwd(), '.http-mitm-proxy', 'certs');
 try {
   if (!fs.existsSync(certDir)) {
     fs.mkdirSync(certDir, { recursive: true });
-    console.log('[Cert] Created certificate directory:', certDir);
   }
 } catch (e) {
   console.error('[Cert] Failed to create certificate directory:', e);
@@ -200,13 +200,10 @@ app.whenReady().then(async () => {
           : `file://${target.startsWith('/') ? '' : '/'}${target}`;
       }
 
-      console.log(`[Protocol Media] Normalized: ${actualUrl} (Cached ID: ${cachedRequestId})`);
-
       // 2. Check Disk Cache first if we have a requestId
       if (cachedRequestId) {
         const cachedMedia = mediaCache.get(cachedRequestId);
         if (cachedMedia) {
-          console.log(`[Protocol Media] Serving from disk cache: ${cachedRequestId}`);
           const cleanHeaders = new Headers();
           cleanHeaders.set('content-type', cachedMedia.contentType);
           cleanHeaders.set('access-control-allow-origin', '*');
@@ -247,7 +244,6 @@ app.whenReady().then(async () => {
       if (cachedRequestId) {
         const cached = getCachedHeaders(cachedRequestId);
         if (cached) {
-          console.log(`[Protocol Media] Using cached headers for ${cachedRequestId}`);
           Object.entries(cached).forEach(([key, value]) => {
             // Forward everything except Host and a few sensitive ones that might conflict
             const k = key.toLowerCase();
@@ -431,7 +427,6 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('cdp:navigate', async (_, url: string) => {
-    console.log(`[IPC] cdp:navigate called with URL: ${url}`);
     try {
       const result = await cdpManager.navigate(url);
       return { success: result };
@@ -442,7 +437,6 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('cdp:reload', async () => {
-    console.log('[IPC] cdp:reload called');
     try {
       const result = await cdpManager.reload();
       return { success: result };
@@ -467,7 +461,6 @@ app.whenReady().then(async () => {
       // Check for GZIP magic bytes (0x1f, 0x8b)
       if (buffer.length > 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
         try {
-          console.log('[WASM Fetch] Detected GZIP signature, decompressing...');
           buffer = zlib.gunzipSync(buffer);
         } catch (decompressionError) {
           console.error('[WASM Fetch] Decompression failed:', decompressionError);
@@ -493,11 +486,9 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('proxy:set-intercept', async (_, enabled: boolean, appId: string) => {
-    console.log(`[IPC] proxy:set-intercept enabled=${enabled} appId="${appId}"`);
     const result = appId
       ? proxyManager.setIntercept(appId, enabled)
       : proxyManager.setInterceptAll(enabled);
-    console.log(`[IPC] proxy:set-intercept result=${result}`);
     return result;
   });
 
@@ -519,27 +510,21 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('proxy:stop', async () => {
-    console.log('[IPC] proxy:stop called');
     await proxyManager.stopAll();
     closeAllGenericWebWindows();
     if (activeChildProcess) {
-      console.log('[IPC] Killing active child process');
       activeChildProcess.kill();
       activeChildProcess = null;
     }
     if (activeProxyUrl) {
-      console.log(`[IPC] Purging processes with proxy ${activeProxyUrl}`);
       exec(`pkill -f -- "--proxy-server=${activeProxyUrl}"`);
       activeProxyUrl = null;
     }
-    console.log('[IPC] proxy:stop completed');
     return true;
   });
 
   ipcMain.handle('proxy:stop-session', async (_, appId: string) => {
-    console.log(`[IPC] proxy:stop-session called for "${appId}"`);
     await proxyManager.stopSession(appId);
-    console.log(`[IPC] proxy:stop-session completed for "${appId}"`);
     return true;
   });
 
@@ -562,8 +547,6 @@ app.whenReady().then(async () => {
     const useProxy = !cdpPort;
     if (useProxy) {
       activeProxyUrl = proxyUrl;
-    } else {
-      console.log(`[LaunchBrowser] CDP mode: launching without proxy for ${profileName}`);
     }
 
     const userDataDir = path.join(app.getPath('userData'), 'profiles', profileName);
@@ -605,7 +588,6 @@ app.whenReady().then(async () => {
     // Add CDP remote debugging if port is specified
     if (cdpPort) {
       args.push(`--remote-debugging-port=${cdpPort}`);
-      console.log(`[LaunchBrowser] CDP enabled on port ${cdpPort}`);
     }
 
     const child = spawn(executable, args, {
@@ -614,15 +596,7 @@ app.whenReady().then(async () => {
     });
     activeChildProcess = child;
 
-    const mode = cdpPort ? 'CDP' : 'Proxy';
-    console.log(
-      `[LaunchBrowser] Spawned browser PID: ${child.pid}, profile: ${profileName}, mode: ${mode}${useProxy ? `, proxy: ${proxyUrl}` : ''}`,
-    );
-
-    child.on('exit', (code, signal) => {
-      console.log(
-        `[LaunchBrowser] Browser exited: PID=${child.pid}, code=${code}, signal=${signal}, profile=${profileName}`,
-      );
+    child.on('exit', () => {
       if (activeChildProcess === child) {
         activeChildProcess = null;
         if (useProxy) {
@@ -631,13 +605,8 @@ app.whenReady().then(async () => {
         // Notify renderer that the browser was closed
         const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
         if (win) {
-          console.log(`[LaunchBrowser] Sending app:process-exit for "${profileName}"`);
           win.webContents.send('app:process-exit', profileName);
-        } else {
-          console.log('[LaunchBrowser] No main window found to send exit event');
         }
-      } else {
-        console.log('[LaunchBrowser] activeChildProcess !== child, not sending exit event');
       }
     });
 
@@ -673,11 +642,7 @@ app.whenReady().then(async () => {
 
           // CRITICAL: Force Node.js (Extension Host) to accept self-signed certificates
           env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
-          console.log(`[Launch] VSCode Proxy Env Injected: ${proxyUrl}`);
         }
-
-        console.log(`[Launch] VSCode Debug Port: ${debugPort}`);
 
         // Using 'code' command assuming it's in PATH
         const child = spawn(
@@ -748,7 +713,7 @@ app.whenReady().then(async () => {
           // CRITICAL: Force Node.js to accept the self-signed proxy certificate
           env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-          console.log(`[Launch] Antigravity Proxy: ${proxyUrl}`);
+          `[Launch] Antigravity Proxy: ${proxyUrl}`;
         }
 
         const args = [
@@ -770,13 +735,10 @@ app.whenReady().then(async () => {
         });
         activeChildProcess = child;
 
-        console.log(`[Launch] Antigravity PID: ${child.pid}`);
-
         // Inject SSL Bypass if PID exists
         if (child.pid) {
           // Add small delay to let process initialize
           setTimeout(() => {
-            console.log('[Launch] Injecting Deep SSL Bypass...');
             injectLocalSSLBypass(child.pid!, (msg) => console.log(`[SSL Bypass] ${msg}`));
           }, 2000);
         }
@@ -909,7 +871,6 @@ app.whenReady().then(async () => {
           if (modeToUse === 'browser' || modeToUse === 'cdp') {
             // For CDP mode, launch with remote debugging port (avoid conflict with Phantoma's 9222)
             const cdpPort = modeToUse === 'cdp' ? await findAvailablePort(9223) : undefined;
-            console.log(`[Launch] CDP port assigned: ${cdpPort} for ${userApp.id}`);
             return launchBrowser(userApp.url, userApp.id, proxyUrl, cdpPort);
           } else if (modeToUse === 'electron') {
             activeProxyUrl = proxyUrl;
@@ -942,12 +903,6 @@ app.whenReady().then(async () => {
 
             // CRITICAL: Force Node.js to accept the self-signed proxy certificate
             env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
-            console.log(`[Launch] Native App: ${userApp.name}`);
-            console.log(`[Launch] Exec: ${userApp.executablePath}`);
-            console.log(
-              `[Launch] Proxy Env: http_proxy=${env.http_proxy}, https_proxy=${env.https_proxy}, NODE_TLS_REJECT_UNAUTHORIZED=${env.NODE_TLS_REJECT_UNAUTHORIZED}`,
-            );
           }
 
           // CDP Support for Native Apps
@@ -958,8 +913,6 @@ app.whenReady().then(async () => {
           // For shell scripts, we hope they forward "$@" or we rely on env vars if possible (but CDP requires flag)
           // We will append it to args passed to spawn
           args.push(`--remote-debugging-port=${debugPort}`);
-
-          console.log(`[Launch] Native App CDP Port: ${debugPort}`);
 
           // Record existing PIDs to avoid injecting into the IDE/current instances
           let initialPids: string[] = [];
@@ -1000,7 +953,6 @@ app.whenReady().then(async () => {
 
             const pollAndInject = async () => {
               if (Date.now() - startTime > POLL_DURATION) {
-                console.log('[Launch] Finished polling for new Antigravity processes.');
                 return;
               }
 
@@ -1034,13 +986,7 @@ app.whenReady().then(async () => {
                         procName.includes('electron') ||
                         procName.includes('chrome')
                       ) {
-                        console.log(
-                          `[Launch] New PID detected: ${pidNum} (${procName}). Attempting injection...`,
-                        );
                         injectedPids.add(pid);
-                        injectLocalSSLBypass(pidNum, (msg: string) => {
-                          console.log(`[SSL Bypass ${pidNum}] ${msg}`);
-                        });
                       }
                     } catch (e) {
                       // Ignore errors
@@ -1054,7 +1000,6 @@ app.whenReady().then(async () => {
               setTimeout(pollAndInject, POLL_INTERVAL);
             };
 
-            console.log('[Launch] Starting persistent PID polling (15s)...');
             setTimeout(pollAndInject, 500);
           }
 
@@ -1183,7 +1128,6 @@ app.whenReady().then(async () => {
               cmd = `${terminal} -e "sh -c '${userApp.executablePath}; exec bash'"`;
             }
 
-            console.log(`[Launch] Spawning Terminal: ${cmd}`);
             spawn(cmd, [], {
               detached: true,
               shell: true,
@@ -1234,7 +1178,6 @@ app.whenReady().then(async () => {
       const ses = session.fromPartition(partition);
       await ses.clearStorageData();
       await ses.clearCache();
-      console.log(`[Session] Data cleared for app: ${appId} (partition: ${partition})`);
       return true;
     } catch (e: any) {
       console.error(`[Session] Failed to clear data for ${appId}:`, e);
@@ -1307,6 +1250,27 @@ app.whenReady().then(async () => {
     return await scanInstalledApps();
   });
 
+  // Active Targets IPC (for current target UI)
+  ipcMain.handle('emulate:get-active-targets', async () => {
+    return {
+      targets: activeTargetStore.getTargets(),
+      activeId: activeTargetStore.getActiveId(),
+    };
+  });
+
+  ipcMain.handle(
+    'emulate:set-active-targets',
+    async (_, targets: ActiveTargetTab[], activeId: string | null) => {
+      activeTargetStore.setTargets(targets, activeId);
+      return { success: true };
+    },
+  );
+
+  ipcMain.handle('emulate:clear-active-targets', async () => {
+    activeTargetStore.clear();
+    return { success: true };
+  });
+
   // ===== File System & Shell IPC Handlers =====
   ipcMain.handle('fs:read-file', async (_, filePath: string) => {
     try {
@@ -1355,17 +1319,13 @@ app.whenReady().then(async () => {
       const destPath = '/usr/local/share/ca-certificates/phantoma.crt';
 
       if (!fs.existsSync(caPath)) {
-        console.log('[Cert] CA certificate not found yet, skipping installation');
         return false;
       }
 
       // Check if certificate is already installed
       if (fs.existsSync(destPath)) {
-        console.log('[Cert] Certificate already installed at:', destPath);
         return true;
       }
-
-      console.log(`[Cert] Installing CA certificate from ${caPath} to ${destPath}`);
 
       // Use pkexec or sudo with timeout
       const command = `pkexec sh -c "cp '${caPath}' '${destPath}' && update-ca-certificates"`;
@@ -1384,7 +1344,6 @@ app.whenReady().then(async () => {
             resolve(false);
             return;
           }
-          console.log('[Cert] Installation successful:', stdout);
           certInstalled = true;
           resolve(true);
         });
@@ -1402,9 +1361,6 @@ app.whenReady().then(async () => {
   // Auto-install certificate when proxy session is created
   const originalCreateSession = proxyManager.createSession.bind(proxyManager);
   proxyManager.createSession = async (id: string) => {
-    console.log(
-      `[ProxyManager] createSession called for id="${id}", attempting auto-cert-install...`,
-    );
     // Try to install certificate (non-blocking)
     installSystemCA().catch((e) => {
       console.error('[Cert] Auto-install failed:', e);
@@ -1483,13 +1439,7 @@ app.whenReady().then(async () => {
     const execAsync = promisify(exec);
 
     try {
-      // Enable TCP/IP mode on port 5555
-      console.log(`[ADB Wireless] Enabling wireless mode for ${serial}`);
-      const { stdout: tcpipOutput } = await execAsync(`adb -s "${serial}" tcpip 5555`);
-      console.log(`[ADB Wireless] tcpip output:`, tcpipOutput.trim());
-
       // Wait longer for device to restart in tcpip mode and reconnect
-      console.log('[ADB Wireless] Waiting for device to reconnect...');
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
       // Retry logic for getting IP address (device needs time to reconnect)
@@ -1498,8 +1448,6 @@ app.whenReady().then(async () => {
 
       for (let i = 0; i < retries; i++) {
         try {
-          console.log(`[ADB Wireless] Attempt ${i + 1}/${retries} to get IP...`);
-
           // Try first method
           try {
             const { stdout: ipOutput } = await execAsync(
@@ -1508,12 +1456,9 @@ app.whenReady().then(async () => {
             );
             ip = ipOutput.trim();
             if (ip) {
-              console.log(`[ADB Wireless] Device IP (method 1): ${ip}`);
               break;
             }
-          } catch (err) {
-            console.log(`[ADB Wireless] Method 1 failed, trying alternative...`);
-          }
+          } catch (err) {}
 
           // Try alternative method
           try {
@@ -1523,16 +1468,12 @@ app.whenReady().then(async () => {
             );
             ip = altIpOutput.trim();
             if (ip) {
-              console.log(`[ADB Wireless] Device IP (method 2): ${ip}`);
               break;
             }
-          } catch (err) {
-            console.log(`[ADB Wireless] Method 2 also failed`);
-          }
+          } catch (err) {}
 
           // If no IP yet and not last retry, wait before next attempt
           if (!ip && i < retries - 1) {
-            console.log('[ADB Wireless] Waiting 2s before retry...');
             await new Promise((resolve) => setTimeout(resolve, 2000));
           }
         } catch (e) {
@@ -1541,7 +1482,6 @@ app.whenReady().then(async () => {
       }
 
       if (ip) {
-        console.log(`[ADB Wireless] Successfully retrieved IP: ${ip}`);
         return {
           success: true,
           ip,
@@ -1717,9 +1657,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(
     'mobile:configure-proxy',
     async (_, serial: string, proxyHost: string, proxyPort: number, fallbackName?: string) => {
-      console.log(`[Proxy] Configure request for serial: "${serial}", fallback: "${fallbackName}"`);
       const resolvedSerial = await resolveEmulatorSerial(serial, fallbackName);
-      console.log(`[Proxy] Resolved serial: "${resolvedSerial}"`);
       return await configureEmulatorProxy(resolvedSerial || serial, proxyHost, proxyPort);
     },
   );
@@ -1732,11 +1670,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(
     'mobile:setup-complete-proxy',
     async (_, serial: string, proxyHost: string, proxyPort: number, fallbackName?: string) => {
-      console.log(
-        `[Proxy] Setup complete request for serial: "${serial}", fallback: "${fallbackName}"`,
-      );
       const resolvedSerial = await resolveEmulatorSerial(serial, fallbackName);
-      console.log(`[Proxy] Resolved serial: "${resolvedSerial}"`);
       return await setupCompleteProxy(resolvedSerial || serial, proxyHost, proxyPort, (status) => {
         const win = windowManager.getMainWindow();
         if (win) {
@@ -1832,15 +1766,10 @@ app.whenReady().then(async () => {
     lastLogcatRequestTime = requestTime;
 
     try {
-      console.log(`[Logcat] ========== START REQUEST ==========`);
-      console.log(`[Logcat] Input serial: "${serial}" (ID: ${requestTime})`);
-
       const resolvedSerial = await resolveEmulatorSerial(serial);
-      console.log('[Logcat] Resolved serial from input:', resolvedSerial);
 
       // Check if this request is still the latest one
       if (lastLogcatRequestTime !== requestTime) {
-        console.log(`[Logcat] Request ID ${requestTime} is obsolete. Aborting start.`);
         return false;
       }
 
@@ -1852,7 +1781,6 @@ app.whenReady().then(async () => {
 
       // Stop any existing logcat process immediately before spawning a new one
       if (activeLogcatProcess) {
-        console.log('[Logcat] Stopping existing logcat process');
         try {
           activeLogcatProcess.kill();
         } catch (e) {
@@ -1861,15 +1789,9 @@ app.whenReady().then(async () => {
         activeLogcatProcess = null;
       }
 
-      // Start logcat process
-      console.log('[Logcat] Starting adb logcat for:', resolvedSerial);
-      console.log('[Logcat] Command: adb -s', resolvedSerial, 'logcat -v time');
-
       activeLogcatProcess = spawn('adb', ['-s', resolvedSerial, 'logcat', '-v', 'time'], {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
-
-      console.log('[Logcat] Process spawned, PID:', activeLogcatProcess.pid);
 
       let logcatBuffer = '';
       let lineCount = 0;
@@ -1886,16 +1808,9 @@ app.whenReady().then(async () => {
 
             if (line) {
               lineCount++;
-              if (lineCount <= 5) {
-                console.log(`[Logcat] Line ${lineCount}:`, line.substring(0, 100));
-              }
-
               const win = windowManager.getMainWindow();
               if (win && !win.isDestroyed()) {
                 win.webContents.send('mobile:logcat-output', line);
-                if (lineCount === 1) {
-                  console.log('[Logcat] First line sent to renderer successfully');
-                }
               } else {
                 console.error('[Logcat] ERROR: Main window not available!');
               }
@@ -1904,7 +1819,6 @@ app.whenReady().then(async () => {
             lineEnd = logcatBuffer.indexOf('\n');
           }
         });
-        console.log('[Logcat] stdout listener attached');
       } else {
         console.error('[Logcat] ERROR: Process stdout is null!');
       }
@@ -1916,7 +1830,6 @@ app.whenReady().then(async () => {
       }
 
       activeLogcatProcess.on('exit', (code) => {
-        console.log('[Logcat] Process exited with code:', code);
         if (activeLogcatProcess?.pid === code) {
           // Check purely illustrative, actually pid is not code
           activeLogcatProcess = null;
@@ -1928,8 +1841,6 @@ app.whenReady().then(async () => {
       activeLogcatProcess.on('error', (err) => {
         console.error('[Logcat] Process error:', err);
       });
-
-      console.log('[Logcat] ========== START COMPLETE ==========');
       return true;
     } catch (e) {
       console.error('[Logcat] Failed to start:', e);

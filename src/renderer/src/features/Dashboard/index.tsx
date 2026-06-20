@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { cn } from '../../shared/lib/utils';
+import { useModulePersistence } from '../../hooks/useModulePersistence';
 
 const stats = {
   totalVulns: 27,
@@ -513,12 +514,16 @@ function TerminalFeed() {
 // ============================================================================
 // MAIN EXPORT
 // ============================================================================
+interface DashboardState {
+  greeting: string;
+}
+
 export function Dashboard() {
-  const [greeting, setGreeting] = useState('');
-  useEffect(() => {
-    const h = new Date().getHours();
-    setGreeting(h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening');
-  }, []);
+  const [state, setState] = useModulePersistence<DashboardState>('dashboard', {
+    greeting: new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening',
+  });
+
+  const { greeting } = state;
 
   return (
     <div className="flex flex-col flex-1 h-full overflow-hidden bg-background font-mono">

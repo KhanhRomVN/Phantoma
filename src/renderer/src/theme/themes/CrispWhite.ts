@@ -174,7 +174,7 @@ export const CrispWhite: ThemeConfig = {
     cardBackground: 'rgb(255, 255, 255)',
     cardBackgroundHover: 'rgb(240, 242, 244)',
     //
-    inputBackground: 'rgb(205, 210, 215)',
+    inputBackground: 'rgb(235, 238, 242)',
     //
     modalBackground: 'rgb(255, 255, 255)',
     //

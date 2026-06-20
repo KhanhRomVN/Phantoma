@@ -28,27 +28,27 @@ export class CdpManager extends EventEmitter {
     this.mainWindow = window;
   }
 
-public async connect(port: number, retries = 5, delay = 1000): Promise<boolean> {
+  public async connect(port: number, retries = 5, delay = 1000): Promise<boolean> {
     try {
       const targetsResponse = await fetch(`http://127.0.0.1:${port}/json/list`);
       if (!targetsResponse.ok) throw new Error(`HTTP ${targetsResponse.status} from /json/list`);
 
       const targets = (await targetsResponse.json()) as any[];
       const allPageTargets = targets.filter((t) => t.type === 'page');
-      
+
       let pageTarget = allPageTargets.find(
-        (t) => 
-          t.title && 
+        (t) =>
+          t.title &&
           !t.title.toLowerCase().includes('phantoma') &&
-          t.url && 
-          !t.url.includes('localhost:5173')
+          t.url &&
+          !t.url.includes('localhost:5173'),
       );
-      
+
       if (!pageTarget && allPageTargets.length > 0) {
         console.warn('[CDP] No non-Phantoma page target found, using first available page target');
         pageTarget = allPageTargets[0];
       }
-      
+
       if (!pageTarget) {
         const browserTarget = targets.find((t) => t.type === 'browser');
         if (!browserTarget) {
@@ -106,7 +106,7 @@ public async connect(port: number, retries = 5, delay = 1000): Promise<boolean> 
     });
   }
 
-private async initializeNetwork() {
+  private async initializeNetwork() {
     try {
       await this.send('Page.enable', {});
     } catch (e) {
@@ -134,15 +134,15 @@ private async initializeNetwork() {
     } catch (e) {
       console.error('[CDP] Failed to enable network:', e);
     }
-    
+
     try {
       await this.send('Network.setAcceptedEncodings', {
-        encodings: ['gzip', 'br', 'deflate']
+        encodings: ['gzip', 'br', 'deflate'],
       });
     } catch (e) {
       // Ignore
     }
-    
+
     try {
       await this.send('Network.setBypassServiceWorker', { bypass: true });
     } catch (e) {
@@ -237,11 +237,6 @@ private async initializeNetwork() {
       this.requestIdMap.set(`numeric:${requestId}`, requestId);
     }
 
-    // Debug: Log raw initiator from CDP
-    if (initiator) {
-      console.log('[CDP] 🔍 Raw initiator:', JSON.stringify(initiator, null, 2));
-    }
-
     // Build full initiator object with all available data
     let initiatorData: any = null;
     if (initiator) {
@@ -261,15 +256,7 @@ private async initializeNetwork() {
           lineNumber: frame.lineNumber || 0,
           columnNumber: frame.columnNumber || 0,
         }));
-        console.log('[CDP] 📚 Stack frames:', initiatorData.stack.length);
       }
-
-      console.log('[CDP] 📤 Sending initiator to renderer:', {
-        type: initiatorData.type,
-        url: initiatorData.url,
-        hasStack: !!initiatorData.stack,
-        stackLength: initiatorData.stack?.length || 0,
-      });
     }
 
     // Normalize to Phantoma format

@@ -15,14 +15,9 @@ export async function configureEmulatorProxy(
 ): Promise<boolean> {
   try {
     const proxyString = `${proxyHost}:${proxyPort}`;
-
-    console.log(`[ProxyConfig] Configuring proxy for ${serial} -> ${proxyString}`);
-
     // Enable port forwarding (reverse) so 127.0.0.1 on device maps to host
     try {
-      console.log(`[ProxyConfig] Running adb reverse tcp:${proxyPort} tcp:${proxyPort}...`);
       await execAsync(`adb -s "${serial}" reverse tcp:${proxyPort} tcp:${proxyPort}`);
-      console.log(`[ProxyConfig] adb reverse success!`);
     } catch (e) {
       console.warn(
         '[ProxyConfig] adb reverse failed (network might be unreachable if not using special IP aliases):',
@@ -31,19 +26,15 @@ export async function configureEmulatorProxy(
     }
 
     // Set global HTTP proxy
-    console.log(`[ProxyConfig] Setting global http_proxy...`);
     await execAsync(`adb -s "${serial}" shell settings put global http_proxy ${proxyString}`);
 
     // Also set for WiFi (some apps check this)
-    console.log(`[ProxyConfig] Setting global_http_proxy_host/port...`);
     await execAsync(
       `adb -s "${serial}" shell settings put global global_http_proxy_host ${proxyHost}`,
     );
     await execAsync(
       `adb -s "${serial}" shell settings put global global_http_proxy_port ${proxyPort}`,
     );
-
-    console.log(`[ProxyConfig] Proxy configuration complete.`);
 
     return true;
   } catch (error) {

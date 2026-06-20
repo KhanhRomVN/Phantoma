@@ -114,12 +114,8 @@ const injectFontFace = (font: FontDefinition): void => {
   // Check if font already injected
   const existingStyle = document.getElementById(`font-${font.id}`);
   if (existingStyle) {
-    console.log(`🔤 [Font] Font ${font.id} already injected, skipping`);
     return;
   }
-
-  console.log(`🔤 [Font] Injecting @font-face for ${font.id}...`);
-  console.log(`🔤 [Font] Font URL:`, font.fontUrl);
 
   const style = document.createElement('style');
   style.id = `font-${font.id}`;
@@ -133,18 +129,15 @@ const injectFontFace = (font: FontDefinition): void => {
     }
   `;
   document.head.appendChild(style);
-  console.log(`🔤 [Font] @font-face injected for ${font.id}`);
 };
 
 /**
  * Initialize all fonts
  */
 export const initFonts = (): void => {
-  console.log('🔤 [Font] Initializing all fonts...');
   FONTS.forEach((font) => {
     injectFontFace(font);
   });
-  console.log('🔤 [Font] All fonts initialized');
 };
 
 /**
@@ -166,34 +159,21 @@ export const getFontByFamily = (fontFamily: string): FontDefinition | undefined 
  */
 export const applyFont = (fontFamily: string): void => {
   const root = document.documentElement;
-  console.log('🔤 [Font] Applying font:', fontFamily);
-  console.log('🔤 [Font] Current root font before:', root.style.fontFamily);
-  
   root.style.fontFamily = fontFamily;
   root.style.setProperty('--font-family', fontFamily);
-  
-  console.log('🔤 [Font] Root font after:', root.style.fontFamily);
-  console.log('🔤 [Font] CSS variable --font-family:', root.style.getPropertyValue('--font-family'));
-  
-  // Verify the font is actually applied
-  const computed = getComputedStyle(root).fontFamily;
-  console.log('🔤 [Font] Computed fontFamily:', computed);
 };
 
 /**
  * Get current applied font from localStorage
  */
 export const getStoredFont = (): string | null => {
-  const stored = localStorage.getItem('font-family');
-  console.log('🔤 [Font] getStoredFont:', stored);
-  return stored;
+  return localStorage.getItem('font-family');
 };
 
 /**
  * Save font preference to localStorage and apply
  */
 export const setStoredFont = (fontFamily: string): void => {
-  console.log('🔤 [Font] setStoredFont:', fontFamily);
   localStorage.setItem('font-family', fontFamily);
   applyFont(fontFamily);
 };
@@ -203,20 +183,16 @@ export const setStoredFont = (fontFamily: string): void => {
  * - Load stored font preference or fallback to default
  */
 export const initFontSystem = (): void => {
-  console.log('🔤 [Font] Initializing font system...');
-  
   // First, inject all font faces
   initFonts();
   
   const stored = getStoredFont();
   if (stored) {
-    console.log('🔤 [Font] Found stored font:', stored);
     applyFont(stored);
   } else {
     // Set default font (GoogleSans)
     const defaultFont = FONTS[0];
     if (defaultFont) {
-      console.log('🔤 [Font] No stored font, using default:', defaultFont.id);
       applyFont(defaultFont.fontFamily);
       localStorage.setItem('font-family', defaultFont.fontFamily);
     }

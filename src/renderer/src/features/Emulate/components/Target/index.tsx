@@ -93,18 +93,13 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
 
   const fetchApps = async () => {
     try {
-      console.log('[DEBUG] fetchApps: Calling apps:get-all...');
       const result = await window.api.invoke('apps:get-all');
-      console.log('[DEBUG] fetchApps: Received data:', result);
-      console.log('[DEBUG] fetchApps: Number of apps:', result?.length || 0);
       if (result && result.length > 0) {
-        console.log('[DEBUG] fetchApps: First 3 apps sample:', result.slice(0, 3));
         const appNames = result.map((app: any) => ({
           id: app.id,
           name: app.name,
           platform: app.platform,
         }));
-        console.log('[DEBUG] fetchApps: All apps:', appNames);
       }
       if (result) setApps(result);
     } catch (e) {
@@ -134,11 +129,8 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
 
   const handleAddApp = async (appData: any) => {
     try {
-      console.log('[AddTarget] Adding app:', appData);
       const newApp = await window.api.invoke('apps:add', appData);
-      console.log('[AddTarget] App added successfully:', newApp);
       await fetchApps();
-      console.log('[AddTarget] Apps refreshed, total:', apps.length);
     } catch (e) {
       console.error('[AddTarget] Failed to add app:', e);
     }
@@ -149,9 +141,7 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
     data: { name: string; url?: string; executablePath?: string },
   ) => {
     try {
-      console.log('[EditTarget] Updating app:', id, data);
       await window.api.invoke('apps:update', id, data);
-      console.log('[EditTarget] App updated successfully');
       await fetchApps();
       setEditingApp(null);
     } catch (e) {
@@ -162,9 +152,7 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
   const handleDeleteApp = async () => {
     if (!appToDelete) return;
     try {
-      console.log('[DeleteTarget] Deleting app:', appToDelete.id);
       await window.api.invoke('apps:delete', appToDelete.id);
-      console.log('[DeleteTarget] App deleted successfully');
       await fetchApps();
       setAppToDelete(null);
     } catch (e) {
@@ -240,7 +228,7 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
                 amber: { active: 'var(--accent-amber)', inactive: 'var(--accent-amber)' },
               };
               const accentColor = colorMap[color]?.active || 'var(--primary)';
-              
+
               const bgActive = toRgba(accentColor, 0.12);
               const bgInactive = toRgba(accentColor, 0.05);
               const bgHover = toRgba(accentColor, 0.08);
@@ -254,7 +242,7 @@ export const TargetPanel: React.FC<TargetPanelProps> = ({
                     'flex items-center gap-1.5 px-2 h-7 rounded-lg text-[11px] font-medium transition-all border-none cursor-pointer',
                     isActive
                       ? `text-[${accentColor}]`
-                      : `text-[${accentColor}80] hover:text-[${accentColor}]`
+                      : `text-[${accentColor}80] hover:text-[${accentColor}]`,
                   )}
                   style={{
                     background: isActive ? bgActive : bgInactive,

@@ -24,8 +24,6 @@ export async function handleInspectorRequest(
   const startTime = Date.now();
 
   try {
-    console.log('[Inspector] Sending request:', { url, method, headers });
-
     // List of headers that are unsafe or managed by the browser/network stack
     const unsafeHeaders = [
       'host',

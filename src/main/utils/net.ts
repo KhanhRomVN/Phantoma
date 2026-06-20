@@ -23,25 +23,20 @@ export const findAvailablePort = async (startPort: number = 8081): Promise<numbe
         server.close();
         resolve(true);
       });
-      server.on('error', (err) => {
-        console.log(`[findAvailablePort] Port ${port} not available:`, err.message);
+      server.on('error', () => {
         resolve(false);
       });
     });
   };
 
   let port = startPort;
-  console.log(`[findAvailablePort] Starting search from port ${startPort}`);
   while (port < 65535) {
     const proxyAvailable = await isPortAvailable(port);
     const wssAvailable = await isPortAvailable(port + 1);
-    
+
     if (proxyAvailable && wssAvailable) {
-      console.log(`[findAvailablePort] Found available pair: proxy=${port}, wss=${port + 1}`);
       return port;
     }
-    
-    console.log(`[findAvailablePort] Pair ${port}/${port + 1} not available (proxy=${proxyAvailable}, wss=${wssAvailable}), trying next...`);
     port++;
   }
   throw new Error('No available port pairs found');
