@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { GenymotionProfile } from './genymotion-profiles';
 import { setupCompleteProxy } from './mobile-proxy-config';
-import { installFridaServer, startFridaServer } from './frida-manager';
+import { installFridaServer, startFridaServer } from './frida';
 
 const execAsync = promisify(exec);
 
