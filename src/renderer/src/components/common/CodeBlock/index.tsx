@@ -56,7 +56,7 @@ interface CodeBlockProps {
 const convertThemeToMonaco = (theme: any) => {
   const monacoTheme = theme.monaco;
   // Type assertion to handle Monaco's base type requirements
-  const base = monacoTheme.base as 'vs' | 'vs-dark' | 'hc-black' || 'vs-dark';
+  const base = (monacoTheme.base as 'vs' | 'vs-dark' | 'hc-black') || 'vs-dark';
   return {
     base,
     inherit: monacoTheme.inherit !== undefined ? monacoTheme.inherit : true,
@@ -146,10 +146,10 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
 
           // Get the active theme from the theme system
           const activeThemeName = 'systema-active-theme';
-          
+
           // Build the theme from the current preset
           let monacoTheme: any;
-          
+
           if (currentPreset && currentPreset.monaco) {
             // Convert the theme to Monaco format
             monacoTheme = convertThemeToMonaco(currentPreset);
@@ -178,7 +178,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
               };
             }
           }
-          
+
           // Apply custom overrides from themeConfig
           const customRules =
             themeConfig?.rules?.map((r) => ({

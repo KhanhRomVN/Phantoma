@@ -143,7 +143,12 @@ interface RequestTableProps {
   onAnalyzeRequest?: (req: NetworkRequest) => void;
   onSendToFuzzer?: (req: NetworkRequest) => void;
   onSelectionChange?: (selectedIds: string[]) => void;
-  onLaunchTarget?: (appId: string, proxyUrl: string, customUrl?: string, mode?: 'browser' | 'electron' | 'native' | 'cdp') => Promise<void>;
+  onLaunchTarget?: (
+    appId: string,
+    proxyUrl: string,
+    customUrl?: string,
+    mode?: 'browser' | 'electron' | 'native' | 'cdp',
+  ) => Promise<void>;
   onClearRequests?: () => void;
   currentTargetAppId?: string;
   currentTargetUrl?: string;
@@ -171,8 +176,6 @@ export function RequestTable({
   currentTargetAppId,
   currentTargetUrl,
 }: RequestTableProps) {
-  
-
   const { getColorByIndex } = useAccentColors();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [matchCase, setMatchCase] = useState(false);
@@ -898,10 +901,12 @@ export function RequestTable({
           <div ref={targetDropdownRef} className="relative flex items-center gap-0.5">
             {isTargetActive && activeTargetMode && (
               <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary bg-card-background/30 border border-border/30 rounded">
-                <span className={cn(
-                  'w-1.5 h-1.5 rounded-full animate-pulse',
-                  activeTargetMode === 'cdp' ? 'bg-blue-400' : 'bg-amber-400'
-                )} />
+                <span
+                  className={cn(
+                    'w-1.5 h-1.5 rounded-full animate-pulse',
+                    activeTargetMode === 'cdp' ? 'bg-blue-400' : 'bg-amber-400',
+                  )}
+                />
                 Running by {activeTargetMode.toUpperCase()}
               </span>
             )}
@@ -945,7 +950,17 @@ export function RequestTable({
               )}
             </button>
             {isTargetDropdownOpen && !isTargetActive && (
-              <div className="fixed mt-1 rounded-md border border-border bg-dropdown-background shadow-lg z-[9999] min-w-[220px] overflow-hidden" style={{ top: targetDropdownRef.current ? targetDropdownRef.current.getBoundingClientRect().bottom + 4 : 0, left: targetDropdownRef.current ? targetDropdownRef.current.getBoundingClientRect().left : 0 }}>
+              <div
+                className="fixed mt-1 rounded-md border border-border bg-dropdown-background shadow-lg z-[9999] min-w-[220px] overflow-hidden"
+                style={{
+                  top: targetDropdownRef.current
+                    ? targetDropdownRef.current.getBoundingClientRect().bottom + 4
+                    : 0,
+                  left: targetDropdownRef.current
+                    ? targetDropdownRef.current.getBoundingClientRect().left
+                    : 0,
+                }}
+              >
                 <button
                   onClick={() => {
                     console.log('[Target] MITM selected');
@@ -958,28 +973,33 @@ export function RequestTable({
                     setActiveTargetMode('mitm');
                     setIsTargetDropdownOpen(false);
                     // Start MITM proxy
-                    window.api.invoke('proxy:create-session', 'default').then(async () => {
-                      console.log('[Target] MITM proxy started successfully');
-                      // Launch target app/browser
-                      if (onLaunchTarget && currentTargetAppId) {
-                        console.log('[Target] Launching target with appId:', currentTargetAppId);
-                        await onLaunchTarget(
-                          currentTargetAppId,
-                          'http://127.0.0.1:8081',
-                          currentTargetUrl,
-                          'browser'
-                        );
-                        console.log('[Target] Launch completed');
-                      } else {
-                        console.warn('[Target] Cannot launch: onLaunchTarget or currentTargetAppId missing');
-                        console.warn('[Target] onLaunchTarget:', !!onLaunchTarget);
-                        console.warn('[Target] currentTargetAppId:', currentTargetAppId);
-                      }
-                    }).catch((err) => {
-                      console.error('[Target] Failed to start MITM:', err);
-                      setIsTargetActive(false);
-                      setActiveTargetMode(null);
-                    });
+                    window.api
+                      .invoke('proxy:create-session', 'default')
+                      .then(async () => {
+                        console.log('[Target] MITM proxy started successfully');
+                        // Launch target app/browser
+                        if (onLaunchTarget && currentTargetAppId) {
+                          console.log('[Target] Launching target with appId:', currentTargetAppId);
+                          await onLaunchTarget(
+                            currentTargetAppId,
+                            'http://127.0.0.1:8081',
+                            currentTargetUrl,
+                            'browser',
+                          );
+                          console.log('[Target] Launch completed');
+                        } else {
+                          console.warn(
+                            '[Target] Cannot launch: onLaunchTarget or currentTargetAppId missing',
+                          );
+                          console.warn('[Target] onLaunchTarget:', !!onLaunchTarget);
+                          console.warn('[Target] currentTargetAppId:', currentTargetAppId);
+                        }
+                      })
+                      .catch((err) => {
+                        console.error('[Target] Failed to start MITM:', err);
+                        setIsTargetActive(false);
+                        setActiveTargetMode(null);
+                      });
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all border-b border-border last:border-b-0"
                 >
@@ -1007,48 +1027,52 @@ export function RequestTable({
                         currentTargetAppId,
                         'http://127.0.0.1:8081',
                         currentTargetUrl,
-                        'cdp'
-                      ).then(async () => {
-                        console.log('[Target] Browser launched with CDP, connecting...');
-                        // Wait a bit for Chrome to start
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        // Get the actual CDP port from the launch (or use default)
-                        // The port is logged in main process as "[Launch] CDP port assigned: X"
-                        // We need to get it from the renderer or use a fixed port
-                        // For now, we'll try to connect on the port that was assigned
-                        // The main process will handle the actual port via findAvailablePort
-                        // We'll try connecting on 9223 first, then fallback to 9222
-                        const ports = [9223, 9224, 9225, 9222];
-                        let connected = false;
-                        for (const port of ports) {
-                          try {
-                            console.log(`[Target] Trying CDP connect on port ${port}...`);
-                            const result = await window.api.invoke('cdp:connect', port);
-                            if (result?.success) {
-                              console.log('[Target] CDP connected on port', result.port);
-                              connected = true;
-                              // Use reload instead of navigate to avoid changing Phantoma's main window
-                              console.log('[Target] Reloading page to capture network events');
-                              const reloadResult = await window.api.invoke('cdp:reload');
-                              console.log('[Target] Reload result:', reloadResult);
-                              break;
+                        'cdp',
+                      )
+                        .then(async () => {
+                          console.log('[Target] Browser launched with CDP, connecting...');
+                          // Wait a bit for Chrome to start
+                          await new Promise((resolve) => setTimeout(resolve, 2000));
+                          // Get the actual CDP port from the launch (or use default)
+                          // The port is logged in main process as "[Launch] CDP port assigned: X"
+                          // We need to get it from the renderer or use a fixed port
+                          // For now, we'll try to connect on the port that was assigned
+                          // The main process will handle the actual port via findAvailablePort
+                          // We'll try connecting on 9223 first, then fallback to 9222
+                          const ports = [9223, 9224, 9225, 9222];
+                          let connected = false;
+                          for (const port of ports) {
+                            try {
+                              console.log(`[Target] Trying CDP connect on port ${port}...`);
+                              const result = await window.api.invoke('cdp:connect', port);
+                              if (result?.success) {
+                                console.log('[Target] CDP connected on port', result.port);
+                                connected = true;
+                                // Use reload instead of navigate to avoid changing Phantoma's main window
+                                console.log('[Target] Reloading page to capture network events');
+                                const reloadResult = await window.api.invoke('cdp:reload');
+                                console.log('[Target] Reload result:', reloadResult);
+                                break;
+                              }
+                            } catch (e) {
+                              console.log(`[Target] Failed to connect on port ${port}:`, e);
                             }
-                          } catch (e) {
-                            console.log(`[Target] Failed to connect on port ${port}:`, e);
                           }
-                        }
-                        if (!connected) {
-                          console.error('[Target] Failed to connect CDP on any port');
+                          if (!connected) {
+                            console.error('[Target] Failed to connect CDP on any port');
+                            setIsTargetActive(false);
+                            setActiveTargetMode(null);
+                          }
+                        })
+                        .catch((err) => {
+                          console.error('[Target] Failed to launch with CDP:', err);
                           setIsTargetActive(false);
                           setActiveTargetMode(null);
-                        }
-                      }).catch((err) => {
-                        console.error('[Target] Failed to launch with CDP:', err);
-                        setIsTargetActive(false);
-                        setActiveTargetMode(null);
-                      });
+                        });
                     } else {
-                      console.warn('[Target] Cannot launch: onLaunchTarget or currentTargetAppId missing');
+                      console.warn(
+                        '[Target] Cannot launch: onLaunchTarget or currentTargetAppId missing',
+                      );
                       setIsTargetActive(false);
                       setActiveTargetMode(null);
                     }
@@ -1057,7 +1081,9 @@ export function RequestTable({
                 >
                   <Monitor className="w-3.5 h-3.5 text-blue-400" />
                   <span>CDP</span>
-                  <span className="text-text-secondary text-[10px]">(Chrome DevTools Protocol)</span>
+                  <span className="text-text-secondary text-[10px]">
+                    (Chrome DevTools Protocol)
+                  </span>
                 </button>
               </div>
             )}
@@ -1068,11 +1094,14 @@ export function RequestTable({
             <button
               onClick={() => {
                 setIsInterceptActive(!isInterceptActive);
-                window.api.invoke('proxy:set-intercept', !isInterceptActive, 'default').then(() => {
-                  console.log('[Intercept] Intercept toggled to', !isInterceptActive);
-                }).catch((err) => {
-                  console.error('[Intercept] Failed to toggle intercept:', err);
-                });
+                window.api
+                  .invoke('proxy:set-intercept', !isInterceptActive, 'default')
+                  .then(() => {
+                    console.log('[Intercept] Intercept toggled to', !isInterceptActive);
+                  })
+                  .catch((err) => {
+                    console.error('[Intercept] Failed to toggle intercept:', err);
+                  });
               }}
               className={cn(
                 'flex items-center gap-1 px-2 py-1 rounded transition-all duration-300 text-xs font-medium',

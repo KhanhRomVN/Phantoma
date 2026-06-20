@@ -336,17 +336,17 @@ export default function Emulate({
       }
       // Map CDP resource type to Phantoma type
       const resourceTypeMap: Record<string, string> = {
-        'Document': 'doc',
-        'XHR': 'xhr',
-        'Fetch': 'fetch',
-        'Script': 'js',
-        'Stylesheet': 'css',
-        'Image': 'img',
-        'Media': 'media',
-        'Font': 'font',
-        'WebSocket': 'ws',
-        'Manifest': 'manifest',
-        'Other': 'other',
+        Document: 'doc',
+        XHR: 'xhr',
+        Fetch: 'fetch',
+        Script: 'js',
+        Stylesheet: 'css',
+        Image: 'img',
+        Media: 'media',
+        Font: 'font',
+        WebSocket: 'ws',
+        Manifest: 'manifest',
+        Other: 'other',
       };
       const type = resourceTypeMap[data.resourceType] || 'other';
       const id = data.id || `cdp-${Date.now()}-${Math.random()}`;
@@ -755,9 +755,11 @@ export default function Emulate({
       setSelectedTool('source');
 
       // Dispatch event for SourcesPanel to handle highlighting
-      window.dispatchEvent(new CustomEvent('source-highlight', {
-        detail: { url, line, col, functionName }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('source-highlight', {
+          detail: { url, line, col, functionName },
+        }),
+      );
     };
 
     window.addEventListener('navigate-to-source', handleNavigateToSource as EventListener);
