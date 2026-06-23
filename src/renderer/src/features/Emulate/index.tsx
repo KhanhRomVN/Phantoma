@@ -1068,14 +1068,14 @@ export default function Emulate({
         {selectedPlatform === null ? (
           // Default state: show search + "+ Target" button + active targets
           <>
-            <div className="px-2 py-1.5 border-b border-border shrink-0">
+            <div className="px-3 py-1.5 border-b border-border shrink-0">
               <div className="relative">
                 <input
                   type="text"
                   placeholder="Search targets..."
                   value={targetSearchQuery}
                   onChange={(e) => setTargetSearchQuery(e.target.value)}
-                  className="w-full h-7 bg-input-background border border-border rounded pl-2 pr-2 text-xs text-text-primary placeholder:text-text-secondary outline-none focus:border-primary/50"
+                  className="w-full h-8 bg-input-background border border-border rounded pl-2 pr-2 text-xs text-text-primary placeholder:text-text-secondary outline-none focus:border-primary/50"
                 />
               </div>
             </div>

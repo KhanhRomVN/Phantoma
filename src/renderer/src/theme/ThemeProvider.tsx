@@ -48,6 +48,7 @@ export function ThemeProvider({
       foreground: '--foreground',
       textPrimary: '--text-primary',
       textSecondary: '--text-secondary',
+      textForeground: '--text-foreground',
       border: '--border',
       divider: '--divider',
       cardBackground: '--card-background',

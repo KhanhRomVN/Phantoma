@@ -1,12 +1,10 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Zap, X, Search, Send } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { NetworkRequest } from '../Home/Filter';
 import { StatusBadge } from '../common/StatusBadge';
-import { FuzzerJob, FuzzerResult } from './types';
 import { RequestList } from './RequestList';
 import { PayloadConfigPanel } from './PayloadConfigPanel';
-import { generatePayloads, parseHeaders, applyPayload } from './utils';
 
 const REPEATER_STORAGE_KEY = 'repeater-request-ids';
 
@@ -78,10 +76,7 @@ export function PayloadPanel({
 }: PayloadPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [results, setResults] = useState<FuzzerResult[]>([]);
   const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds());
-  const stopRef = useRef(false);
 
   // Listen for repeater updates
   useEffect(() => {
@@ -120,62 +115,6 @@ export function PayloadPanel({
     }
   }, [repeaterRequests, selectedRequestId]);
 
-  // Run fuzzer/repeater
-  const handleRun = async (form: Omit<FuzzerJob, 'id' | 'createdAt'>) => {
-    if (isRunning) {
-      stopRef.current = true;
-      return;
-    }
-
-    const job: FuzzerJob = {
-      ...form,
-      id: crypto.randomUUID(),
-      createdAt: Date.now(),
-      requestId: selectedId || undefined,
-    };
-
-    stopRef.current = false;
-    setIsRunning(true);
-    setResults([]);
-
-    const payloads = [...generatePayloads(job)];
-    const concurrency = Math.min(job.concurrency, 10);
-    let idx = 0;
-
-    const runOne = async (payload: string, i: number): Promise<FuzzerResult> => {
-      const url = applyPayload(job.urlTemplate, payload);
-      const body = applyPayload(job.bodyTemplate, payload);
-      const headers = parseHeaders(applyPayload(job.headersTemplate, payload));
-      const t0 = performance.now();
-      try {
-        const res = await (window as any).api.invoke('inspector:send-request', {
-          url,
-          method: job.method,
-          headers,
-          body: job.method !== 'GET' ? body : undefined,
-        });
-        return {
-          index: i,
-          payload,
-          status: res.status ?? 0,
-          time: Math.round(performance.now() - t0),
-          size: res.size ?? 0,
-        };
-      } catch {
-        return { index: i, payload, status: 0, time: Math.round(performance.now() - t0), size: 0 };
-      }
-    };
-
-    while (idx < payloads.length && !stopRef.current) {
-      const chunk = payloads.slice(idx, idx + concurrency);
-      const chunkResults = await Promise.all(chunk.map((p, ci) => runOne(p, idx + ci)));
-      setResults((prev) => [...prev, ...chunkResults]);
-      idx += concurrency;
-    }
-
-    setIsRunning(false);
-  };
-
   const totalCount = repeaterRequests.length;
 
   return (
@@ -195,31 +134,6 @@ export function PayloadPanel({
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-3 py-1 border-b border-border shrink-0">
-          <span className="text-[10px] text-text-secondary">
-            {totalCount} request{totalCount !== 1 ? 's' : ''} in Repeater
-          </span>
-          {totalCount > 0 && (
-            <button
-              onClick={clearRepeater}
-              className="text-[10px] text-text-secondary hover:text-error transition-colors"
-            >
-              Clear all
-            </button>
-          )}
-        </div>
-
-        {results.length > 0 && (
-          <div className="flex items-center justify-end px-3 py-1 border-b border-border shrink-0">
-            <button
-              onClick={() => setResults([])}
-              className="text-[10px] text-text-secondary hover:text-text-primary"
-            >
-              Clear results
-            </button>
-          </div>
-        )}
-
         <RequestList
           requests={repeaterRequests}
           selectedId={selectedId}
@@ -231,7 +145,7 @@ export function PayloadPanel({
 
       {/* Right Panel - Payload Configuration */}
       <div className="flex-1 flex flex-col min-w-0 bg-muted/5">
-        <div className="px-4 h-10 border-b border-border shrink-0 flex items-center justify-between bg-muted/5">
+        <div className="px-4 h-[45px] border-b border-border shrink-0 flex items-center justify-between bg-muted/5">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-amber-400" />
             <span className="text-sm font-medium text-text-primary">Payload Configuration</span>
@@ -260,39 +174,7 @@ export function PayloadPanel({
             </p>
           </div>
         ) : (
-          <PayloadConfigPanel request={selectedRequest} onRun={handleRun} isRunning={isRunning} />
-        )}
-
-        {/* Results Summary */}
-        {results.length > 0 && (
-          <div className="border-t border-border shrink-0 bg-muted/5 max-h-40 overflow-y-auto">
-            <div className="px-3 py-1.5 border-b border-border flex items-center gap-3">
-              <span className="text-[10px] font-medium text-text-secondary">
-                Results: {results.length} requests
-              </span>
-              <span className="text-[10px] text-text-secondary">
-                {results.filter((r) => r.status >= 200 && r.status < 300).length} success
-              </span>
-              <span className="text-[10px] text-text-secondary">
-                {results.filter((r) => r.status >= 400).length} errors
-              </span>
-            </div>
-            <div className="p-2 space-y-0.5">
-              {results.slice(0, 50).map((r) => (
-                <div key={r.index} className="flex items-center gap-3 text-xs">
-                  <span className="text-text-secondary w-8">#{r.index + 1}</span>
-                  <span className="font-mono text-text-primary truncate flex-1">{r.payload}</span>
-                  <StatusBadge status={r.status} />
-                  <span className="text-text-secondary w-14 text-right">{r.time}ms</span>
-                </div>
-              ))}
-              {results.length > 50 && (
-                <div className="text-[10px] text-text-secondary text-center">
-                  + {results.length - 50} more results
-                </div>
-              )}
-            </div>
-          </div>
+          <PayloadConfigPanel request={selectedRequest} />
         )}
       </div>
     </div>
