@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Trash2, Plus, Search, Bookmark, X, GitBranch } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Trash2, Plus, Search, Bookmark, X, GitBranch, Edit, FileText } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
-import { NetworkRequest } from '../../../../types/inspector';
+import { NetworkRequest } from '../Intruder/Filter';
 import {
   getOrCreateDefaultCollection,
   deleteRequestFromCollection,
@@ -52,6 +52,64 @@ function DiagramView({
   );
 }
 
+// Request Editor component for right panel
+function RequestEditor({ request }: { request: NetworkRequest | null }) {
+  if (!request) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-text-secondary">
+        <Edit className="w-12 h-12 mb-3 opacity-20" />
+        <p className="text-sm">Select a request to edit</p>
+        <p className="text-xs mt-1 opacity-60">Or create a new request from the left panel</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-4 h-8 border-b border-divider shrink-0 flex items-center justify-between bg-muted/5">
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-orange-400" />
+          <span className="text-xs font-medium truncate max-w-[300px]">{request.path || request.url}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <MethodBadge method={request.method} size="sm" />
+          <span className="text-[10px] text-text-secondary">{request.status || '?'}</span>
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto p-4 space-y-3">
+        <div>
+          <label className="text-[10px] font-bold text-text-secondary">URL</label>
+          <div className="mt-1 text-xs font-mono text-text-primary bg-muted/10 p-2 rounded border border-border/50 break-all">
+            {request.protocol}://{request.host}{request.path}
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-text-secondary">Headers</label>
+          <div className="mt-1 text-xs font-mono text-text-primary bg-muted/10 p-2 rounded border border-border/50 max-h-32 overflow-auto">
+            {request.requestHeaders && Object.keys(request.requestHeaders).length > 0 ? (
+              Object.entries(request.requestHeaders).map(([k, v]) => (
+                <div key={k} className="truncate">
+                  <span className="text-text-secondary">{k}:</span> {v}
+                </div>
+              ))
+            ) : (
+              <span className="text-text-secondary">No headers</span>
+            )}
+          </div>
+        </div>
+        {request.requestBody && (
+          <div>
+            <label className="text-[10px] font-bold text-text-secondary">Body</label>
+            <div className="mt-1 text-xs font-mono text-text-primary bg-muted/10 p-2 rounded border border-border/50 max-h-48 overflow-auto whitespace-pre-wrap break-all">
+              {request.requestBody}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ComposerPanel({ appId = '', onSelectRequest, onClose }: ComposerPanelProps) {
   const [collection, setCollection] = useState<RequestCollection | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -76,6 +134,9 @@ export function ComposerPanel({ appId = '', onSelectRequest, onClose }: Composer
     if (!collection || !appId) return;
     deleteRequestFromCollection(appId, collection.id, requestId);
     setCollection(getOrCreateDefaultCollection(appId));
+    if (selectedId === requestId) {
+      setSelectedId(null);
+    }
   };
 
   const handleCreateCollection = () => {
@@ -84,143 +145,141 @@ export function ComposerPanel({ appId = '', onSelectRequest, onClose }: Composer
     setNewCollectionDescription('');
   };
 
-  const filteredRequests =
-    collection?.requests.filter((r: NetworkRequest) => {
+  const filteredRequests = useMemo(() => {
+    if (!collection) return [];
+    return collection.requests.filter((r: NetworkRequest) => {
       if (!searchTerm) return true;
       const searchLower = searchTerm.toLowerCase();
       return (
         r.method?.toLowerCase().includes(searchLower) ||
         r.host?.toLowerCase().includes(searchLower) ||
-        r.path?.toLowerCase().includes(searchLower)
+        r.path?.toLowerCase().includes(searchLower) ||
+        r.url?.toLowerCase().includes(searchLower)
       );
-    }) || [];
+    });
+  }, [collection, searchTerm]);
+
+  const selectedRequest = useMemo(() => {
+    if (!selectedId || !collection) return null;
+    return collection.requests.find((r: NetworkRequest) => r.id === selectedId) || null;
+  }, [collection, selectedId]);
+
+  // Auto-select first request
+  useEffect(() => {
+    if (filteredRequests.length > 0 && !selectedId) {
+      setSelectedId(filteredRequests[0].id);
+    }
+    if (filteredRequests.length === 0) {
+      setSelectedId(null);
+    }
+  }, [filteredRequests]);
 
   if (!collection) return null;
 
   return (
-    <div className="flex flex-col h-full relative">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-orange-500/15 border border-orange-500/25 shrink-0">
-          <Bookmark className="w-4 h-4 text-orange-400" />
-        </div>
-        <div className="flex-1">
-          <h2 className="text-base font-bold text-text-primary">Composer</h2>
-          <p className="text-xs text-text-secondary mt-0.5">Saved requests and collections</p>
-        </div>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded text-text-secondary hover:text-red-400 hover:bg-red-500/10"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Search and Add Bar */}
-      <div className="px-3 py-2 border-b border-divider flex gap-2 items-center shrink-0">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
-          <input
-            type="text"
-            placeholder="Search saved requests..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-11 bg-input-background border border-input-border-default rounded-lg pl-8 pr-3 text-sm text-text-primary focus:border-orange-500/50 outline-none"
-          />
-        </div>
-        <button
-          onClick={() => setIsDrawerOpen(true)}
-          disabled={!appId}
-          className={cn(
-            'flex items-center justify-center w-11 h-11 rounded-lg border transition-all shrink-0',
-            appId
-              ? 'bg-secondary hover:bg-orange-500/20 hover:text-orange-400 text-text-secondary border-divider hover:border-orange-500/30'
-              : 'bg-zinc-800/50 text-zinc-600 border-zinc-800/80 cursor-not-allowed opacity-50',
-          )}
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => setIsDiagramDrawerOpen(true)}
-          disabled={!appId}
-          className={cn(
-            'flex items-center justify-center w-11 h-11 rounded-lg border transition-all shrink-0',
-            appId
-              ? 'bg-secondary hover:bg-blue-500/20 hover:text-blue-400 text-text-secondary border-divider hover:border-blue-500/30'
-              : 'bg-zinc-800/50 text-zinc-600 border-zinc-800/80 cursor-not-allowed opacity-50',
-          )}
-        >
-          <GitBranch className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Request List - horizontal cards */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {filteredRequests.length === 0 ? (
-          <div className="flex flex-col items-center justify-center flex-1 py-20 gap-3">
-            <div className="w-14 h-14 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-              <Bookmark className="w-7 h-7 text-orange-400/50" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-text-primary">No saved requests</p>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Click + to add requests to collection
-              </p>
-            </div>
+    <div className="flex h-full overflow-hidden relative">
+      {/* Left Panel */}
+      <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background">
+        <div className="px-3 py-1.5 border-b border-border shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
+            <input
+              type="text"
+              placeholder="Search saved requests..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full h-8 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-orange-500/50 outline-none"
+            />
           </div>
-        ) : (
-          filteredRequests.map((request: NetworkRequest) => (
-            <div
-              key={request.id}
-              onClick={() => {
-                setSelectedId(request.id);
-                onSelectRequest?.(request);
-              }}
-              className={cn(
-                'group rounded-xl border border-divider bg-muted/10 p-3 flex items-center gap-3 cursor-pointer transition-all',
-                selectedId === request.id
-                  ? 'border-orange-500/40 bg-orange-500/5'
-                  : 'hover:border-orange-500/30',
-              )}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <MethodBadge method={request.method} size="sm" />
-                  <span className="text-[10px] font-mono text-text-secondary">
-                    {request.status || '?'}
-                  </span>
-                </div>
-                <div className="text-xs font-mono truncate text-text-primary mt-1">
-                  {request.protocol}://{request.host}
-                  {request.path}
-                </div>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteRequest(request.id);
-                }}
-                className="p-1.5 rounded-lg text-text-secondary hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+        </div>
+
+        <div className="px-2 py-1 border-b border-border shrink-0 flex gap-1">
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            disabled={!appId}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-medium transition-all',
+              appId
+                ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                : 'opacity-40 cursor-not-allowed bg-muted/20 text-text-secondary',
+            )}
+          >
+            <Plus className="w-3.5 h-3.5" /> Add
+          </button>
+          <button
+            onClick={() => setIsDiagramDrawerOpen(true)}
+            disabled={!appId}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-medium transition-all',
+              appId
+                ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                : 'opacity-40 cursor-not-allowed bg-muted/20 text-text-secondary',
+            )}
+          >
+            <GitBranch className="w-3.5 h-3.5" /> Diagram
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {filteredRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-text-secondary">
+              <Bookmark className="w-8 h-8 mb-2 opacity-20" />
+              <p className="text-xs">No saved requests</p>
+              <p className="text-[10px] mt-1 opacity-60">Click Add to save a request</p>
             </div>
-          ))
-        )}
+          ) : (
+            filteredRequests.map((request: NetworkRequest) => {
+              const isSelected = selectedId === request.id;
+              return (
+                <div
+                  key={request.id}
+                  onClick={() => {
+                    setSelectedId(request.id);
+                    onSelectRequest?.(request);
+                  }}
+                  className={cn(
+                    'group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-all text-xs',
+                    isSelected
+                      ? 'bg-card-background border border-border'
+                      : 'hover:bg-card-hover border border-transparent',
+                  )}
+                >
+                  <MethodBadge method={request.method} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-text-primary">
+                      {request.path || request.url || 'Unknown'}
+                    </p>
+                    <p className="text-[10px] text-text-secondary truncate">
+                      {request.host}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteRequest(request.id);
+                    }}
+                    className="p-1 rounded text-text-secondary hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Right Panel */}
+      <div className="flex-1 flex flex-col min-w-0 bg-muted/5">
+        <RequestEditor request={selectedRequest} />
       </div>
 
       {/* Add to Collection Drawer */}
       {isDrawerOpen && (
         <>
+          <div className="absolute inset-0 bg-black/40 z-40" onClick={() => setIsDrawerOpen(false)} />
           <div
-            className="absolute inset-0 bg-black/40 z-40"
-            onClick={() => setIsDrawerOpen(false)}
-          />
-          <div
-            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300"
-            style={{ height: '60%' }}
+            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[60%]"
           >
             <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
               <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-orange-500/15 border border-orange-500/25">
@@ -228,13 +287,11 @@ export function ComposerPanel({ appId = '', onSelectRequest, onClose }: Composer
               </div>
               <div className="flex-1">
                 <h3 className="text-base font-bold text-text-primary">Add to Collection</h3>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  Save current request to your collection
-                </p>
+                <p className="text-xs text-text-secondary mt-0.5">Save current request to collection</p>
               </div>
               <button
                 onClick={() => setIsDrawerOpen(false)}
-                className="p-1.5 rounded-lg bg-secondary text-text-secondary hover:text-red-400 hover:bg-red-500/10"
+                className="p-1.5 rounded-lg text-text-secondary hover:text-red-400 hover:bg-red-500/10"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -251,9 +308,7 @@ export function ComposerPanel({ appId = '', onSelectRequest, onClose }: Composer
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5">
-                  Description (optional)
-                </label>
+                <label className="block text-xs font-bold text-text-secondary mb-1.5">Description</label>
                 <textarea
                   value={newCollectionDescription}
                   onChange={(e) => setNewCollectionDescription(e.target.value)}
@@ -285,13 +340,9 @@ export function ComposerPanel({ appId = '', onSelectRequest, onClose }: Composer
       {/* Diagram Composer Drawer */}
       {isDiagramDrawerOpen && (
         <>
+          <div className="absolute inset-0 bg-black/40 z-40" onClick={() => setIsDiagramDrawerOpen(false)} />
           <div
-            className="absolute inset-0 bg-black/40 z-40"
-            onClick={() => setIsDiagramDrawerOpen(false)}
-          />
-          <div
-            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300"
-            style={{ height: '45%' }}
+            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[50%]"
           >
             <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
               <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-500/15 border border-blue-500/25">
@@ -299,13 +350,11 @@ export function ComposerPanel({ appId = '', onSelectRequest, onClose }: Composer
               </div>
               <div className="flex-1">
                 <h3 className="text-base font-bold text-text-primary">New Diagram</h3>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  Create a visual request flow diagram
-                </p>
+                <p className="text-xs text-text-secondary mt-0.5">Create a visual request flow diagram</p>
               </div>
               <button
                 onClick={() => setIsDiagramDrawerOpen(false)}
-                className="p-1.5 rounded-lg bg-secondary text-text-secondary hover:text-red-400 hover:bg-red-500/10"
+                className="p-1.5 rounded-lg text-text-secondary hover:text-red-400 hover:bg-red-500/10"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -322,9 +371,7 @@ export function ComposerPanel({ appId = '', onSelectRequest, onClose }: Composer
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5">
-                  Description
-                </label>
+                <label className="block text-xs font-bold text-text-secondary mb-1.5">Description</label>
                 <textarea
                   value={diagramDescription}
                   onChange={(e) => setDiagramDescription(e.target.value)}

@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useRef as useRefHook } from 'react';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
-import { useModuleStore } from '../../stores/moduleStore';
 import {
   LayoutPanelLeft,
   Cpu,
@@ -22,6 +20,7 @@ import {
   Square,
   Play,
   ChevronRight,
+  FolderOpen,
 } from 'lucide-react';
 import {
   RequestList,
@@ -30,8 +29,7 @@ import {
   initialFilterState,
 } from './components/Intruder';
 import { NetworkRequest } from './types/inspector';
-import { WasmPanel } from './components/Wasm';
-import { MediaPanel } from './components/Media';
+import { ResourcesPanel } from './components/Resources';
 import { PayloadPanel } from './components/Payload';
 import { ComparePanel } from './components/Compare';
 import { ComposerPanel } from './components/Composer';
@@ -44,6 +42,19 @@ import { ConfirmDeleteModal } from './components/Target/ConfirmDeleteModal';
 import { ConfirmLaunchModal } from './components/Target/ConfirmLaunchModal';
 import { UserApp, AppPlatform } from './types/apps';
 import { WebSocketConnection } from './types/inspector';
+
+// Custom CircleStop icon (filled circle only)
+const CircleStopIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    className={className}
+  >
+    <circle cx="12" cy="12" r="10" fill="currentColor" />
+  </svg>
+);
 
 const mockRequests: NetworkRequest[] = [];
 const mockWsConnections: WebSocketConnection[] = [];
@@ -69,8 +80,7 @@ interface EmulateProps {
 
 type ToolType =
   | 'intruder'
-  | 'wasm'
-  | 'media'
+  | 'resources'
   | 'payload'
   | 'compare'
   | 'composer'
@@ -91,6 +101,7 @@ interface EmulateState {
       isActive: boolean;
       mode: 'mitm' | 'cdp' | null;
       isIntercepting: boolean;
+      startTime?: number;
     };
   };
   // Legacy fields for backward compatibility (will be removed)
@@ -308,7 +319,7 @@ export default function Emulate({
 
   const handleToggleIntercept = () => {
     if (!activeTargetId) return;
-    
+
     setState((prev) => ({
       ...prev,
       targetStates: {
@@ -325,17 +336,17 @@ export default function Emulate({
 
   const handleStopTarget = async () => {
     if (!activeTargetId) return;
-    
+
     // Get current target mode before clearing
     const currentMode = state.targetStates[activeTargetId]?.mode;
-    
+
     // Disconnect based on mode
     if (currentMode === 'cdp') {
       try {
         // Disconnect CDP
         await window.api.invoke('cdp:disconnect');
         console.log('[Emulate] CDP disconnected successfully');
-        
+
         // Close browser/app
         await window.api.invoke('app:terminate');
         console.log('[Emulate] Browser/app terminated successfully');
@@ -347,7 +358,7 @@ export default function Emulate({
         // Stop MITM proxy session
         await window.api.invoke('proxy:destroy-session', 'default');
         console.log('[Emulate] MITM proxy stopped successfully');
-        
+
         // Close browser/app
         await window.api.invoke('app:terminate');
         console.log('[Emulate] Browser/app terminated successfully');
@@ -355,7 +366,7 @@ export default function Emulate({
         console.error('[Emulate] Failed to stop MITM proxy or terminate app:', error);
       }
     }
-    
+
     // Update state
     setState((prev) => ({
       ...prev,
@@ -372,17 +383,17 @@ export default function Emulate({
       activeTargetMode: null,
       isInterceptActive: false,
     }));
-    
+
     // Also clear requests when stopping
     clearRequests();
-    
+
     // Notify parent if needed
     onStopSession();
   };
 
   const handleStartTarget = (mode: 'mitm' | 'cdp') => {
     if (!activeTargetId) return;
-    
+
     setState((prev) => ({
       ...prev,
       targetStates: {
@@ -391,6 +402,7 @@ export default function Emulate({
           isActive: true,
           mode: mode,
           isIntercepting: false,
+          startTime: Date.now(),
         },
       },
       // Legacy fields update
@@ -416,7 +428,19 @@ export default function Emulate({
 
   const handleAnalyzeRequest = (_req: NetworkRequest) => {};
 
-  const handleSendToFuzzer = (_req: NetworkRequest) => {};
+  const [fuzzerTargetId, setFuzzerTargetId] = useState<string | null>(null);
+
+  const handleSendToFuzzer = (req: NetworkRequest) => {
+    setFuzzerTargetId(req.id);
+    setSelectedTool('payload');
+  };
+
+  // Clear fuzzer target when switching away from payload tab
+  useEffect(() => {
+    if (selectedTool !== 'payload') {
+      setFuzzerTargetId(null);
+    }
+  }, [selectedTool]);
 
   const handleDeleteWsConnection = (_id: string) => {};
 
@@ -427,8 +451,12 @@ export default function Emulate({
       label: 'Intruder',
       color: 'purple',
     },
-    { id: 'wasm', icon: <Cpu className="w-4 h-4" />, label: 'Wasm', color: 'blue' },
-    { id: 'media', icon: <Film className="w-4 h-4" />, label: 'Media', color: 'pink' },
+    {
+      id: 'resources',
+      icon: <FolderOpen className="w-4 h-4" />,
+      label: 'Resources',
+      color: 'teal',
+    },
     { id: 'payload', icon: <Package className="w-4 h-4" />, label: 'Payload', color: 'orange' },
     { id: 'compare', icon: <GitCompare className="w-4 h-4" />, label: 'Compare', color: 'green' },
     { id: 'composer', icon: <PenSquare className="w-4 h-4" />, label: 'Composer', color: 'cyan' },
@@ -465,6 +493,12 @@ export default function Emulate({
     y: number;
     app: UserApp;
   } | null>(null);
+  const [targetContextMenu, setTargetContextMenu] = useState<{
+    x: number;
+    y: number;
+    tab: TargetTab;
+  } | null>(null);
+  const [subMenuHover, setSubMenuHover] = useState<string | null>(null);
 
   // Fetch apps from backend
   const fetchApps = async () => {
@@ -479,6 +513,27 @@ export default function Emulate({
   useEffect(() => {
     fetchApps();
   }, []);
+
+  // Timer state for running targets
+  const [timerDisplay, setTimerDisplay] = useState<Record<string, string>>({});
+
+  // Update timers every second for running targets
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newTimers: Record<string, string> = {};
+      Object.entries(state.targetStates).forEach(([id, targetState]) => {
+        if (targetState.isActive && targetState.startTime) {
+          const diff = Date.now() - targetState.startTime;
+          const minutes = Math.floor(diff / 60000);
+          const seconds = Math.floor((diff % 60000) / 1000);
+          newTimers[id] = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+      });
+      setTimerDisplay(newTimers);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [state.targetStates]);
 
   // Filter requests based on filter state
   const filterRequests = useMemo(() => {
@@ -934,9 +989,12 @@ export default function Emulate({
 
   const activeTargets = targetTabs.filter((tab) => tab.id !== 'default');
 
-  // Close context menu on click outside
+  // Close context menus on click outside
   useEffect(() => {
-    const handleClickOutside = () => setContextMenu(null);
+    const handleClickOutside = () => {
+      setContextMenu(null);
+      setTargetContextMenu(null);
+    };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
@@ -1055,42 +1113,127 @@ export default function Emulate({
               {/* Active targets - no label, no borderLeft */}
               {activeTargets.length > 0 && (
                 <div className="space-y-0.5">
-                  {activeTargets.map((tab) => (
-                    <div
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveTargetId(tab.id);
-                      }}
-                      className={cn(
-                        'flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all text-sm',
-                        activeTargetId === tab.id
-                          ? 'bg-dropdown-item-hover text-text-primary'
-                          : 'text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary',
-                      )}
-                    >
-                      {tab.favicon ? (
-                        <img
-                          src={tab.favicon}
-                          alt={tab.title}
-                          className="w-5 h-5 shrink-0 rounded"
-                        />
-                      ) : (
-                        <Code className="w-4 h-4 shrink-0" />
-                      )}
-                      <span className="flex-1 truncate font-medium">{tab.title}</span>
-                      <X
-                        className="w-4 h-4 opacity-40 cursor-poinreter transition-all hover:opacity-100 hover:text-error shrink-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const newTabs = targetTabs.filter((t) => t.id !== tab.id);
-                          setTargetTabs(newTabs);
-                          if (activeTargetId === tab.id) {
-                            setActiveTargetId(newTabs.length > 0 ? newTabs[0].id : null);
-                          }
+                  {activeTargets.map((tab) => {
+                    const isRunning = state.targetStates[tab.id]?.isActive || false;
+                    const elapsed = timerDisplay[tab.id] || '00:00';
+
+                    return (
+                      <div
+                        key={tab.id}
+                        onClick={() => {
+                          setActiveTargetId(tab.id);
                         }}
-                      />
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setTargetContextMenu({ x: e.clientX, y: e.clientY, tab });
+                        }}
+                        className={cn(
+                          'flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all text-sm group relative',
+                          activeTargetId === tab.id
+                            ? 'bg-dropdown-item-hover text-text-primary'
+                            : 'text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary',
+                        )}
+                      >
+                        {tab.favicon ? (
+                          <img
+                            src={tab.favicon}
+                            alt={tab.title}
+                            className="w-5 h-5 shrink-0 rounded"
+                          />
+                        ) : (
+                          <Code className="w-4 h-4 shrink-0" />
+                        )}
+                        <span className="flex-1 truncate font-medium">{tab.title}</span>
+                        {isRunning && (
+                          <span className="text-xs font-mono text-text-secondary shrink-0">
+                            {elapsed}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Context Menu for Active Targets */}
+              {targetContextMenu && (
+                <div
+                  className="fixed z-50 bg-dropdown-background border border-border rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.15)] py-1 min-w-[200px]"
+                  style={{ top: targetContextMenu.y, left: targetContextMenu.x }}
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseLeave={() => setSubMenuHover(null)}
+                >
+                  {!state.targetStates[targetContextMenu.tab.id]?.isActive && (
+                    <div
+                      className="relative"
+                      onMouseEnter={() => setSubMenuHover('start')}
+                      onMouseLeave={() => setSubMenuHover(null)}
+                    >
+                      <button className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all">
+                        <div className="flex items-center gap-2">
+                          <Play className="w-3.5 h-3.5" />
+                          <span>Start target</span>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-text-secondary" />
+                      </button>
+                      {subMenuHover === 'start' && (
+                        <div
+                          className="absolute left-full top-0 ml-1 z-50 bg-dropdown-background border border-border rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.15)] py-1 min-w-[140px]"
+                          onMouseEnter={() => setSubMenuHover('start')}
+                          onMouseLeave={() => setSubMenuHover(null)}
+                        >
+                          <button
+                            onClick={() => {
+                              handleStartTarget('cdp');
+                              setTargetContextMenu(null);
+                              setSubMenuHover(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
+                          >
+                            <span>CDP</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleStartTarget('mitm');
+                              setTargetContextMenu(null);
+                              setSubMenuHover(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
+                          >
+                            <span>MITM</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  )}
+
+                  {state.targetStates[targetContextMenu.tab.id]?.isActive && (
+                    <button
+                      onClick={() => {
+                        handleStopTarget();
+                        setTargetContextMenu(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
+                    >
+                      <Square className="w-3.5 h-3.5" />
+                      <span>Stop target</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      const tab = targetContextMenu.tab;
+                      const newTabs = targetTabs.filter((t) => t.id !== tab.id);
+                      setTargetTabs(newTabs);
+                      if (activeTargetId === tab.id) {
+                        setActiveTargetId(newTabs.length > 0 ? newTabs[0].id : null);
+                      }
+                      setTargetContextMenu(null);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Xóa target</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -1202,7 +1345,8 @@ export default function Emulate({
                           onClick={(e) => handleStopSession(e, app.id)}
                           className="flex items-center gap-0.5 px-1 py-0.5 text-[9px] font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 rounded transition-all shrink-0"
                         >
-                          <Square className="w-2 h-2 fill-current" /> Stop
+                          <CircleStopIcon className="w-2 h-2 text-red-400 pointer-events-none" />{' '}
+                          Stop
                         </button>
                       )}
                     </div>
@@ -1453,26 +1597,19 @@ export default function Emulate({
                     currentTargetAppId={activeTargetId || undefined}
                     currentTargetUrl={targetTabs.find((tab) => tab.id === activeTargetId)?.url}
                     isTargetActive={
-                      activeTargetId 
-                        ? (state.targetStates[activeTargetId]?.isActive || false)
-                        : false
+                      activeTargetId ? state.targetStates[activeTargetId]?.isActive || false : false
                     }
                     activeTargetMode={
-                      activeTargetId
-                        ? (state.targetStates[activeTargetId]?.mode || null)
-                        : null
+                      activeTargetId ? state.targetStates[activeTargetId]?.mode || null : null
                     }
                     isInterceptActive={
                       activeTargetId
-                        ? (state.targetStates[activeTargetId]?.isIntercepting || false)
+                        ? state.targetStates[activeTargetId]?.isIntercepting || false
                         : false
                     }
                     onToggleIntercept={handleToggleIntercept}
                     onStopTarget={handleStopTarget}
                     onStartTarget={handleStartTarget}
-                    
-                    
-                    
                   />
                 </div>
                 <div className="flex-1 min-h-0">
@@ -1493,19 +1630,14 @@ export default function Emulate({
                 </div>
               </>
             )}
-            {selectedTool === 'wasm' && (
+            {selectedTool === 'resources' && (
               <div className="flex-1 overflow-hidden">
-                <WasmPanel />
-              </div>
-            )}
-            {selectedTool === 'media' && (
-              <div className="flex-1 overflow-hidden">
-                <MediaPanel />
+                <ResourcesPanel requests={requests} />
               </div>
             )}
             {selectedTool === 'payload' && (
               <div className="flex-1 overflow-hidden">
-                <PayloadPanel />
+                <PayloadPanel requests={requests} selectedRequestId={fuzzerTargetId} />
               </div>
             )}
             {selectedTool === 'compare' && (

@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
-import { Play, Square, Plus, Trash2, Search, Zap, X } from 'lucide-react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { Play, Square, Plus, Trash2, Search, Zap, X, ChevronRight, ChevronDown, Send } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
-import { NetworkRequest } from '../../../../types/inspector';
+import { NetworkRequest } from '../Intruder/Filter';
 import { StatusBadge } from '../common/StatusBadge';
 
 type PayloadType = 'list' | 'numbers' | 'brute';
@@ -24,6 +24,7 @@ export interface FuzzerJob {
   bruteLen: number;
   concurrency: number;
   createdAt: number;
+  requestId?: string; // Associated request ID
 }
 
 interface FuzzerResult {
@@ -59,6 +60,7 @@ const EMPTY_JOB: Omit<FuzzerJob, 'id' | 'createdAt'> = {
   bruteChars: 'abcdefghijklmnopqrstuvwxyz0123456789',
   bruteLen: 4,
   concurrency: 5,
+  requestId: undefined,
 };
 
 function* generatePayloads(job: FuzzerJob): Generator<string> {
@@ -103,223 +105,354 @@ function countPayloads(job: FuzzerJob) {
   return Math.pow(job.bruteChars.length, job.bruteLen);
 }
 
-function AddJobDrawer({
-  onClose,
-  onSave,
+// ---- Request List Component ----
+function RequestList({
+  requests,
+  selectedId,
+  onSelect,
+  searchTerm,
+  onSearchChange,
 }: {
-  onClose: () => void;
-  onSave: (job: FuzzerJob) => void;
+  requests: NetworkRequest[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
 }) {
-  const [form, setForm] = useState<Omit<FuzzerJob, 'id' | 'createdAt'>>(EMPTY_JOB);
-  const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }));
-  const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-
-  const handleSave = () => {
-    if (!form.name.trim()) return;
-    onSave({ ...form, id: crypto.randomUUID(), createdAt: Date.now() });
-    onClose();
-  };
+  const filtered = useMemo(() => {
+    if (!searchTerm) return requests;
+    const term = searchTerm.toLowerCase();
+    return requests.filter(
+      (r) =>
+        r.method?.toLowerCase().includes(term) ||
+        r.url?.toLowerCase().includes(term) ||
+        r.path?.toLowerCase().includes(term) ||
+        r.host?.toLowerCase().includes(term),
+    );
+  }, [requests, searchTerm]);
 
   return (
-    <>
-      <div className="absolute inset-0 bg-black/40 z-40" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[85%]">
-        <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
-          <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-amber-500/15 border border-amber-500/25 shrink-0">
-            <Zap className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-base font-bold text-text-primary">New Fuzzer Job</h3>
-            <p className="text-xs text-text-secondary mt-0.5">Configure request and payload</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-text-secondary hover:text-red-400 hover:bg-red-500/10"
+    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      {filtered.map((req) => {
+        const isSelected = selectedId === req.id;
+        const methodColor = {
+          GET: 'text-emerald-400',
+          POST: 'text-blue-400',
+          PUT: 'text-amber-400',
+          DELETE: 'text-red-400',
+          PATCH: 'text-purple-400',
+        }[req.method?.toUpperCase() || ''] || 'text-text-secondary';
+
+        return (
+          <div
+            key={req.id}
+            onClick={() => onSelect(req.id)}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all text-xs',
+              isSelected
+                ? 'bg-card-background border border-border'
+                : 'hover:bg-card-hover border border-transparent',
+            )}
           >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          <div className="flex gap-2">
-            <input
-              value={form.name}
-              onChange={(e) => set('name', e.target.value)}
-              placeholder="Job name *"
-              className="flex-1 h-9 bg-input-background border border-input-border-default rounded-lg px-3 text-sm outline-none"
-            />
-            <select
-              value={form.method}
-              onChange={(e) => set('method', e.target.value)}
-              className="h-9 bg-input-background border border-input-border-default rounded-lg px-2 text-sm"
-            >
-              {methods.map((m) => (
-                <option key={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <input
-            value={form.description}
-            onChange={(e) => set('description', e.target.value)}
-            placeholder="Description"
-            className="h-9 bg-input-background border border-input-border-default rounded-lg px-3 text-sm"
-          />
-          <div>
-            <p className="text-[10px] font-bold text-text-secondary mb-1">
-              URL TEMPLATE <span className="text-amber-400">(use §payload§)</span>
-            </p>
-            <input
-              value={form.urlTemplate}
-              onChange={(e) => set('urlTemplate', e.target.value)}
-              className="w-full h-9 bg-input-background border border-input-border-default rounded-lg px-3 text-sm font-mono"
-            />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-text-secondary mb-1">HEADERS</p>
-            <textarea
-              value={form.headersTemplate}
-              onChange={(e) => set('headersTemplate', e.target.value)}
-              rows={2}
-              className="w-full bg-input-background border border-input-border-default rounded-lg px-3 py-2 text-xs font-mono resize-none"
-              placeholder="Header-Name: value"
-            />
-          </div>
-          {form.method !== 'GET' && (
-            <div>
-              <p className="text-[10px] font-bold text-text-secondary mb-1">BODY</p>
-              <textarea
-                value={form.bodyTemplate}
-                onChange={(e) => set('bodyTemplate', e.target.value)}
-                rows={2}
-                className="w-full bg-input-background border border-input-border-default rounded-lg px-3 py-2 text-xs font-mono resize-none"
-                placeholder='{"key": "§payload§"}'
-              />
-            </div>
-          )}
-          <div>
-            <p className="text-[10px] font-bold text-text-secondary mb-1">PAYLOAD TYPE</p>
-            <div className="flex gap-1.5">
-              {(['list', 'numbers', 'brute'] as PayloadType[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => set('payloadType', t)}
-                  className={cn(
-                    'flex-1 py-1.5 rounded-lg text-xs font-bold uppercase border',
-                    form.payloadType === t
-                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                      : 'bg-muted/10 text-text-secondary border-divider',
-                  )}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-          {form.payloadType === 'list' && (
-            <textarea
-              value={form.payloadList}
-              onChange={(e) => set('payloadList', e.target.value)}
-              rows={5}
-              placeholder="admin\nroot\ntest\n1' OR '1'='1"
-              className="w-full bg-input-background border border-input-border-default rounded-lg px-3 py-2 text-xs font-mono resize-none"
-            />
-          )}
-          {form.payloadType === 'numbers' && (
-            <div className="flex gap-2">
-              {(
-                [
-                  ['From', 'numberFrom'],
-                  ['To', 'numberTo'],
-                  ['Step', 'numberStep'],
-                ] as [string, keyof Omit<FuzzerJob, 'id' | 'createdAt'>][]
-              ).map(([label, key]) => (
-                <div key={key} className="flex-1">
-                  <p className="text-[10px] text-text-secondary mb-1">{label}</p>
-                  <input
-                    type="number"
-                    value={form[key] as number}
-                    onChange={(e) => set(key, Number(e.target.value))}
-                    className="w-full h-8 bg-input-background border border-input-border-default rounded-lg px-2 text-sm"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-          {form.payloadType === 'brute' && (
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <p className="text-[10px] text-text-secondary mb-1">Charset</p>
-                <input
-                  value={form.bruteChars}
-                  onChange={(e) => set('bruteChars', e.target.value)}
-                  className="w-full h-8 bg-input-background border border-input-border-default rounded-lg px-2 text-xs font-mono"
-                />
-              </div>
-              <div className="w-20">
-                <p className="text-[10px] text-text-secondary mb-1">Length</p>
-                <input
-                  type="number"
-                  min={1}
-                  max={6}
-                  value={form.bruteLen}
-                  onChange={(e) => set('bruteLen', Number(e.target.value))}
-                  className="w-full h-8 bg-input-background border border-input-border-default rounded-lg px-2 text-sm"
-                />
-              </div>
-            </div>
-          )}
-          <div className="flex items-center gap-3">
-            <p className="text-[10px] font-bold text-text-secondary">CONCURRENCY</p>
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={form.concurrency}
-              onChange={(e) => set('concurrency', Number(e.target.value))}
-              className="w-16 h-8 bg-input-background border border-input-border-default rounded-lg px-2 text-sm"
-            />
-            <span className="text-[10px] text-text-secondary ml-auto">
-              {countPayloads(form as FuzzerJob).toLocaleString()} payloads
+            <span className={cn('font-mono font-bold w-10 shrink-0', methodColor)}>
+              {req.method || 'GET'}
             </span>
+            <span className="flex-1 truncate text-text-primary">{req.path || req.url}</span>
+            {req.status && <StatusBadge status={req.status} />}
           </div>
+        );
+      })}
+      {filtered.length === 0 && (
+        <div className="flex flex-col items-center justify-center h-full text-text-secondary">
+          <p className="text-sm">No requests found</p>
+          <p className="text-xs mt-1 opacity-60">Load a page to see requests</p>
         </div>
-        <div className="px-4 py-3 border-t border-divider flex justify-end gap-2 shrink-0">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!form.name.trim()}
-            className="px-5 py-2 rounded-lg text-sm font-bold bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 disabled:opacity-40"
-          >
-            Create Job
-          </button>
-        </div>
-      </div>
-    </>
+      )}
+    </div>
   );
 }
 
-function FuzzerRunPanel({ job, onBack }: { job: FuzzerJob; onBack: () => void }) {
-  const [status, setStatus] = useState<FuzzerStatus>('idle');
+// ---- Payload Configuration Panel ----
+function PayloadConfigPanel({
+  request,
+  onRun,
+  isRunning,
+}: {
+  request: NetworkRequest | null;
+  onRun: (job: Omit<FuzzerJob, 'id' | 'createdAt'>) => void;
+  isRunning: boolean;
+}) {
+  const [form, setForm] = useState<Omit<FuzzerJob, 'id' | 'createdAt'>>(EMPTY_JOB);
+  const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Auto-fill from selected request
+  useEffect(() => {
+    if (request) {
+      const url = request.url || '';
+      const headers = request.requestHeaders
+        ? Object.entries(request.requestHeaders)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('\n')
+        : 'Content-Type: application/json';
+      const body = request.requestBody || '';
+      setForm((prev) => ({
+        ...prev,
+        method: request.method || 'GET',
+        urlTemplate: url,
+        headersTemplate: headers,
+        bodyTemplate: body,
+        name: request.path?.split('/').pop() || 'Fuzzer Job',
+      }));
+    }
+  }, [request]);
+
+  const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+  const payloadCount = countPayloads(form as FuzzerJob);
+
+  const handleRun = () => {
+    if (!form.name.trim()) return;
+    onRun(form);
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex gap-2">
+        <input
+          value={form.name}
+          onChange={(e) => set('name', e.target.value)}
+          placeholder="Job name *"
+          className="flex-1 h-9 bg-input-background border border-input-border-default rounded-lg px-3 text-sm outline-none focus:border-amber-500/50"
+        />
+        <select
+          value={form.method}
+          onChange={(e) => set('method', e.target.value)}
+          className="h-9 bg-input-background border border-input-border-default rounded-lg px-2 text-sm outline-none focus:border-amber-500/50"
+        >
+          {methods.map((m) => (
+            <option key={m}>{m}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-bold text-text-secondary mb-1">
+          URL TEMPLATE <span className="text-amber-400">(use §payload§)</span>
+        </p>
+        <input
+          value={form.urlTemplate}
+          onChange={(e) => set('urlTemplate', e.target.value)}
+          className="w-full h-9 bg-input-background border border-input-border-default rounded-lg px-3 text-sm font-mono outline-none focus:border-amber-500/50"
+        />
+      </div>
+
+      <div>
+        <p className="text-[10px] font-bold text-text-secondary mb-1">HEADERS</p>
+        <textarea
+          value={form.headersTemplate}
+          onChange={(e) => set('headersTemplate', e.target.value)}
+          rows={2}
+          className="w-full bg-input-background border border-input-border-default rounded-lg px-3 py-2 text-xs font-mono resize-none outline-none focus:border-amber-500/50"
+          placeholder="Header-Name: value"
+        />
+      </div>
+
+      {form.method !== 'GET' && (
+        <div>
+          <p className="text-[10px] font-bold text-text-secondary mb-1">BODY</p>
+          <textarea
+            value={form.bodyTemplate}
+            onChange={(e) => set('bodyTemplate', e.target.value)}
+            rows={2}
+            className="w-full bg-input-background border border-input-border-default rounded-lg px-3 py-2 text-xs font-mono resize-none outline-none focus:border-amber-500/50"
+            placeholder='{"key": "§payload§"}'
+          />
+        </div>
+      )}
+
+      <div>
+        <p className="text-[10px] font-bold text-text-secondary mb-1">PAYLOAD TYPE</p>
+        <div className="flex gap-1.5">
+          {(['list', 'numbers', 'brute'] as PayloadType[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => set('payloadType', t)}
+              className={cn(
+                'flex-1 py-1.5 rounded-lg text-xs font-bold uppercase border transition-all',
+                form.payloadType === t
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                  : 'bg-muted/10 text-text-secondary border-divider hover:bg-muted/20',
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {form.payloadType === 'list' && (
+        <textarea
+          value={form.payloadList}
+          onChange={(e) => set('payloadList', e.target.value)}
+          rows={5}
+          placeholder="admin\nroot\ntest\n1' OR '1'='1"
+          className="w-full bg-input-background border border-input-border-default rounded-lg px-3 py-2 text-xs font-mono resize-none outline-none focus:border-amber-500/50"
+        />
+      )}
+
+      {form.payloadType === 'numbers' && (
+        <div className="flex gap-2">
+          {(
+            [
+              ['From', 'numberFrom'],
+              ['To', 'numberTo'],
+              ['Step', 'numberStep'],
+            ] as [string, keyof Omit<FuzzerJob, 'id' | 'createdAt'>][]
+          ).map(([label, key]) => (
+            <div key={key} className="flex-1">
+              <p className="text-[10px] text-text-secondary mb-1">{label}</p>
+              <input
+                type="number"
+                value={form[key] as number}
+                onChange={(e) => set(key, Number(e.target.value))}
+                className="w-full h-8 bg-input-background border border-input-border-default rounded-lg px-2 text-sm outline-none focus:border-amber-500/50"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {form.payloadType === 'brute' && (
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <p className="text-[10px] text-text-secondary mb-1">Charset</p>
+            <input
+              value={form.bruteChars}
+              onChange={(e) => set('bruteChars', e.target.value)}
+              className="w-full h-8 bg-input-background border border-input-border-default rounded-lg px-2 text-xs font-mono outline-none focus:border-amber-500/50"
+            />
+          </div>
+          <div className="w-20">
+            <p className="text-[10px] text-text-secondary mb-1">Length</p>
+            <input
+              type="number"
+              min={1}
+              max={6}
+              value={form.bruteLen}
+              onChange={(e) => set('bruteLen', Number(e.target.value))}
+              className="w-full h-8 bg-input-background border border-input-border-default rounded-lg px-2 text-sm outline-none focus:border-amber-500/50"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-3">
+        <p className="text-[10px] font-bold text-text-secondary">CONCURRENCY</p>
+        <input
+          type="number"
+          min={1}
+          max={10}
+          value={form.concurrency}
+          onChange={(e) => set('concurrency', Number(e.target.value))}
+          className="w-16 h-8 bg-input-background border border-input-border-default rounded-lg px-2 text-sm outline-none focus:border-amber-500/50"
+        />
+        <span className="text-[10px] text-text-secondary ml-auto">
+          {payloadCount.toLocaleString()} payloads
+        </span>
+      </div>
+
+      <div className="pt-2 flex gap-2">
+        <button
+          onClick={handleRun}
+          disabled={!form.name.trim() || isRunning}
+          className={cn(
+            'flex-1 h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2',
+            isRunning
+              ? 'bg-red-500/20 text-red-400 cursor-not-allowed'
+              : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30',
+          )}
+        >
+          {isRunning ? (
+            <>
+              <Square className="w-4 h-4" /> Running...
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4" /> Run Fuzzer
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---- Main PayloadPanel Component ----
+interface PayloadPanelProps {
+  requests?: NetworkRequest[];
+  isTargetRunning?: boolean;
+  onClose?: () => void;
+  selectedRequestId?: string | null;
+}
+
+export function PayloadPanel({ 
+  requests = [], 
+  isTargetRunning = false, 
+  onClose,
+  selectedRequestId 
+}: PayloadPanelProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<FuzzerResult[]>([]);
-  const [progress, setProgress] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterSearch, setFilterSearch] = useState('');
   const stopRef = useRef(false);
 
-  const run = useCallback(async () => {
+  // Get selected request
+  const selectedRequest = useMemo(() => {
+    if (!selectedId) return null;
+    return requests.find((r) => r.id === selectedId) || null;
+  }, [requests, selectedId]);
+
+  // Auto-select: first try selectedRequestId from props, then fallback to first request
+  useEffect(() => {
+    if (requests.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+
+    // If selectedRequestId is provided and exists in requests, select it
+    if (selectedRequestId && requests.some((r) => r.id === selectedRequestId)) {
+      setSelectedId(selectedRequestId);
+      return;
+    }
+
+    // Otherwise fallback to first request
+    if (!selectedId || !requests.some((r) => r.id === selectedId)) {
+      setSelectedId(requests[0].id);
+    }
+  }, [requests, selectedRequestId]);
+
+  // Run fuzzer
+  const handleRun = async (form: Omit<FuzzerJob, 'id' | 'createdAt'>) => {
+    if (isRunning) {
+      stopRef.current = true;
+      return;
+    }
+
+    const job: FuzzerJob = {
+      ...form,
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+      requestId: selectedId || undefined,
+    };
+
     stopRef.current = false;
-    setStatus('running');
+    setIsRunning(true);
     setResults([]);
-    setProgress(0);
+
     const payloads = [...generatePayloads(job)];
-    setTotal(payloads.length);
     const concurrency = Math.min(job.concurrency, 10);
     let idx = 0;
+
     const runOne = async (payload: string, i: number): Promise<FuzzerResult> => {
       const url = applyPayload(job.urlTemplate, payload);
       const body = applyPayload(job.bodyTemplate, payload);
@@ -343,268 +476,124 @@ function FuzzerRunPanel({ job, onBack }: { job: FuzzerJob; onBack: () => void })
         return { index: i, payload, status: 0, time: Math.round(performance.now() - t0), size: 0 };
       }
     };
+
     while (idx < payloads.length && !stopRef.current) {
       const chunk = payloads.slice(idx, idx + concurrency);
       const chunkResults = await Promise.all(chunk.map((p, ci) => runOne(p, idx + ci)));
       setResults((prev) => [...prev, ...chunkResults]);
       idx += concurrency;
-      setProgress(Math.min(idx, payloads.length));
     }
-    setStatus(stopRef.current ? 'stopped' : 'done');
-  }, [job]);
 
-  const filtered = results.filter((r) => {
-    if (filterStatus && !String(r.status).startsWith(filterStatus)) return false;
-    if (filterSearch && !r.payload.includes(filterSearch)) return false;
-    return true;
-  });
+    setIsRunning(false);
+  };
+
+  const totalCount = requests.length;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary"
-        >
-          ←
-        </button>
-        <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-amber-500/15 border border-amber-500/25">
-          <Zap className="w-4 h-4 text-amber-400" />
-        </div>
-        <div className="flex-1">
-          <h2 className="text-base font-bold text-text-primary truncate">{job.name}</h2>
-          <p className="text-xs text-text-secondary mt-0.5">
-            {job.method} · {countPayloads(job).toLocaleString()} payloads
-          </p>
-        </div>
-        {status === 'running' ? (
-          <button
-            onClick={() => (stopRef.current = true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs"
-          >
-            <Square className="w-3.5 h-3.5" /> Stop
-          </button>
-        ) : (
-          <button
-            onClick={run}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs"
-          >
-            <Play className="w-3.5 h-3.5" /> Run
-          </button>
-        )}
-      </div>
-      {status !== 'idle' && (
-        <div className="px-3 py-2 border-b border-divider flex items-center gap-3 shrink-0">
-          <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-amber-400 transition-all"
-              style={{ width: total ? `${(progress / total) * 100}%` : '0%' }}
+    <div className="flex h-full overflow-hidden">
+      {/* Left Panel - Request List */}
+      <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background">
+        <div className="px-3 py-1.5 border-b border-border shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
+            <input
+              type="text"
+              placeholder="Search requests..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full h-8 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-amber-500/50 outline-none"
             />
           </div>
-          <span className="text-[10px] text-text-secondary">
-            {progress}/{total}
-          </span>
-          <span
-            className={cn(
-              'text-[10px] font-bold',
-              status === 'running'
-                ? 'text-amber-400'
-                : status === 'done'
-                  ? 'text-emerald-400'
-                  : 'text-red-400',
-            )}
-          >
-            {status.toUpperCase()}
-          </span>
         </div>
-      )}
-      {results.length > 0 && (
-        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-divider shrink-0">
-          <Search className="w-3 h-3 text-text-secondary" />
-          <input
-            value={filterSearch}
-            onChange={(e) => setFilterSearch(e.target.value)}
-            placeholder="Filter payload..."
-            className="flex-1 bg-transparent text-xs outline-none"
-          />
-          <input
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            placeholder="Status"
-            className="w-14 bg-transparent text-xs outline-none text-right"
-          />
-          <span className="text-[10px] text-text-secondary">{filtered.length}</span>
-        </div>
-      )}
-      <div className="flex-1 overflow-y-auto">
-        {status === 'idle' && (
-          <div className="flex flex-col items-center justify-center h-full text-text-secondary gap-2">
-            <Play className="w-6 h-6 opacity-20" />
-            <p className="text-xs">Press Run to start fuzzing</p>
+
+        {results.length > 0 && (
+          <div className="flex items-center justify-end px-3 py-1 border-b border-border shrink-0">
+            <button
+              onClick={() => setResults([])}
+              className="text-[10px] text-text-secondary hover:text-text-primary"
+            >
+              Clear results
+            </button>
           </div>
         )}
-        {filtered.length > 0 && (
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-table-headerBg border-b border-divider">
-              <tr>
-                <th className="text-left px-3 py-1.5 text-[10px] font-bold w-10">#</th>
-                <th className="text-left px-2 py-1.5 text-[10px] font-bold">Payload</th>
-                <th className="text-left px-2 py-1.5 text-[10px] font-bold w-14">Status</th>
-                <th className="text-right px-2 py-1.5 text-[10px] font-bold w-14">Time</th>
-                <th className="text-right px-3 py-1.5 text-[10px] font-bold w-14">Size</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr
-                  key={r.index}
-                  className="border-b border-divider/30 hover:bg-sidebar-itemHover/30"
-                >
-                  <td className="px-3 py-1 text-text-secondary font-mono">{r.index + 1}</td>
-                  <td className="px-2 py-1 font-mono text-text-primary truncate max-w-[120px]">
-                    {r.payload}
-                  </td>
-                  <td className="px-2 py-1">
-                    <StatusBadge status={r.status} />
-                  </td>
-                  <td className="px-2 py-1 text-right text-text-secondary">{r.time}ms</td>
-                  <td className="px-3 py-1 text-right text-text-secondary">{r.size}B</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+
+        <RequestList
+          requests={requests}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
       </div>
-    </div>
-  );
-}
 
-interface PayloadPanelProps {
-  requests?: NetworkRequest[];
-  isTargetRunning?: boolean;
-  onClose?: () => void;
-}
-
-export function PayloadPanel({ isTargetRunning = false, onClose }: PayloadPanelProps) {
-  const [jobs, setJobs] = useState<FuzzerJob[]>(loadJobs);
-  const [search, setSearch] = useState('');
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<FuzzerJob | null>(null);
-
-  const addJob = (job: FuzzerJob) => {
-    const updated = [job, ...jobs];
-    setJobs(updated);
-    saveJobs(updated);
-  };
-  const deleteJob = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const updated = jobs.filter((j) => j.id !== id);
-    setJobs(updated);
-    saveJobs(updated);
-    if (selectedJob?.id === id) setSelectedJob(null);
-  };
-  const filtered = jobs.filter(
-    (j) =>
-      !search ||
-      j.name.toLowerCase().includes(search.toLowerCase()) ||
-      j.description.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  if (selectedJob) return <FuzzerRunPanel job={selectedJob} onBack={() => setSelectedJob(null)} />;
-
-  return (
-    <div className="flex flex-col h-full relative">
-      <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-amber-500/15 border border-amber-500/25">
-          <Zap className="w-4 h-4 text-amber-400" />
-        </div>
-        <div className="flex-1">
-          <h2 className="text-base font-bold text-text-primary">Fuzzer Manager</h2>
-          <p className="text-xs text-text-secondary mt-0.5">
-            Spam HTTP requests with various payloads
-          </p>
-        </div>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded text-text-secondary hover:text-red-400 hover:bg-red-500/10"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-      <div className="px-3 py-2 border-b border-divider flex gap-2 items-center shrink-0">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search jobs..."
-            className="w-full h-11 bg-input-background border border-input-border-default rounded-lg pl-8 pr-3 text-sm outline-none focus:border-amber-500/50"
-          />
-        </div>
-        <button
-          onClick={() => setDrawerOpen(true)}
-          disabled={!isTargetRunning}
-          className={cn(
-            'flex items-center justify-center w-11 h-11 rounded-lg border transition-all shrink-0',
-            isTargetRunning
-              ? 'bg-secondary hover:bg-amber-500/20 hover:text-amber-400'
-              : 'opacity-40 cursor-not-allowed',
+      {/* Right Panel - Payload Configuration */}
+      <div className="flex-1 flex flex-col min-w-0 bg-muted/5">
+        <div className="px-4 h-8 border-b border-border shrink-0 flex items-center justify-between bg-muted/5">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-amber-400" />
+            <span className="text-sm font-medium text-text-primary">Payload Configuration</span>
+            {selectedRequest && (
+              <span className="text-xs text-text-secondary ml-2 truncate max-w-[200px]">
+                {selectedRequest.path || selectedRequest.url}
+              </span>
+            )}
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded text-text-secondary hover:text-red-400 hover:bg-red-500/10"
+            >
+              <X className="w-4 h-4" />
+            </button>
           )}
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center flex-1 py-20 gap-3">
-            <div className="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-              <Zap className="w-7 h-7 text-amber-400/50" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-text-primary">No Fuzzer Jobs</p>
-              <p className="text-xs text-text-secondary mt-0.5">Click + to create a new job</p>
-            </div>
+        </div>
+
+        {!selectedRequest ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-text-secondary">
+            <Send className="w-12 h-12 mb-3 opacity-20" />
+            <p className="text-sm">Select a request to configure payload</p>
+            <p className="text-xs mt-1 opacity-60">Load a page to see requests</p>
           </div>
         ) : (
-          filtered.map((job) => (
-            <div
-              key={job.id}
-              onClick={() => setSelectedJob(job)}
-              className="group rounded-xl border border-divider bg-muted/10 p-3 flex items-center gap-3 cursor-pointer hover:border-amber-500/40 hover:bg-amber-500/5 transition-all"
-            >
-              <div className="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-amber-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-text-primary truncate">{job.name}</p>
-                <p className="text-[10px] text-text-secondary truncate font-mono">
-                  {job.urlTemplate}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-text-secondary font-bold">
-                    {job.method}
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">
-                    {job.payloadType}
-                  </span>
-                  <span className="text-[10px] text-text-secondary">
-                    {countPayloads(job).toLocaleString()} payloads
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={(e) => deleteJob(job.id, e)}
-                className="p-1.5 rounded-lg text-text-secondary hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+          <PayloadConfigPanel
+            request={selectedRequest}
+            onRun={handleRun}
+            isRunning={isRunning}
+          />
+        )}
+
+        {/* Results Summary */}
+        {results.length > 0 && (
+          <div className="border-t border-border shrink-0 bg-muted/5 max-h-40 overflow-y-auto">
+            <div className="px-3 py-1.5 border-b border-border flex items-center gap-3">
+              <span className="text-[10px] font-medium text-text-secondary">
+                Results: {results.length} requests
+              </span>
+              <span className="text-[10px] text-text-secondary">
+                {results.filter((r) => r.status >= 200 && r.status < 300).length} success
+              </span>
+              <span className="text-[10px] text-text-secondary">
+                {results.filter((r) => r.status >= 400).length} errors
+              </span>
             </div>
-          ))
+            <div className="p-2 space-y-0.5">
+              {results.slice(0, 50).map((r) => (
+                <div key={r.index} className="flex items-center gap-3 text-xs">
+                  <span className="text-text-secondary w-8">#{r.index + 1}</span>
+                  <span className="font-mono text-text-primary truncate flex-1">{r.payload}</span>
+                  <StatusBadge status={r.status} />
+                  <span className="text-text-secondary w-14 text-right">{r.time}ms</span>
+                </div>
+              ))}
+              {results.length > 50 && (
+                <div className="text-[10px] text-text-secondary text-center">
+                  + {results.length - 50} more results
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
-      {drawerOpen && <AddJobDrawer onClose={() => setDrawerOpen(false)} onSave={addJob} />}
     </div>
   );
 }

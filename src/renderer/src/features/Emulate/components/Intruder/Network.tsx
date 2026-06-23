@@ -1,6 +1,6 @@
-import { NetworkRequest } from '../../../../types/inspector';
 import { cn } from '../../../../shared/lib/utils';
 import { Activity, Globe, MapPin } from 'lucide-react';
+import { NetworkRequest } from './Filter';
 
 interface NetworkDetailsProps {
   request: NetworkRequest;

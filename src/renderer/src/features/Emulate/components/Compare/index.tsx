@@ -9,11 +9,12 @@ import {
   Trash2,
   ChevronDown,
   GitCompare,
+  FileText,
 } from 'lucide-react';
 import { MethodBadge } from '../common/MethodBadge';
 import { StatusBadge } from '../common/StatusBadge';
 import { cn } from '../../../../shared/lib/utils';
-import { NetworkRequest } from '../../../../types/inspector';
+import { NetworkRequest } from '../Intruder/Filter';
 
 interface SavedCompare {
   id: string;
@@ -45,7 +46,7 @@ interface ComparePanelProps {
   initialDiffSearch?: string;
 }
 
-// Simplified DiffView for horizontal layout
+// Simplified DiffView for right panel
 function DiffView({
   request1,
   request2,
@@ -74,15 +75,15 @@ function DiffView({
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-divider flex items-center justify-between shrink-0">
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-4 py-2 border-b border-divider shrink-0 flex items-center justify-between bg-muted/5 h-8">
         <div className="flex items-center gap-2">
           <GitCompare className="w-4 h-4 text-purple-400" />
-          <span className="text-sm font-medium">
-            Comparing: {request1.method} {request1.path} vs {request2.method} {request2.path}
+          <span className="text-xs font-medium truncate max-w-[300px]">
+            {request1.method} {request1.path} vs {request2.method} {request2.path}
           </span>
         </div>
-        <button onClick={onClose} className="p-1 rounded hover:bg-muted">
+        <button onClick={onClose} className="p-0.5 rounded hover:bg-muted">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -219,6 +220,7 @@ export function ComparePanel({
 }: ComparePanelProps) {
   const [savedCompares, setSavedCompares] = useState<SavedCompare[]>(loadSavedCompares);
   const [savedSearchTerm, setSavedSearchTerm] = useState('');
+  const [selectedCompareId, setSelectedCompareId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [newCompareName, setNewCompareName] = useState('');
   const [newCompareDesc, setNewCompareDesc] = useState('');
@@ -251,6 +253,21 @@ export function ComparePanel({
     return savedCompares.filter((c) => c.name.toLowerCase().includes(term));
   }, [savedCompares, savedSearchTerm]);
 
+  const selectedCompare = useMemo(() => {
+    if (!selectedCompareId) return null;
+    return savedCompares.find((c) => c.id === selectedCompareId) || null;
+  }, [savedCompares, selectedCompareId]);
+
+  // Auto-select first compare
+  useEffect(() => {
+    if (filteredSavedCompares.length > 0 && !selectedCompareId) {
+      setSelectedCompareId(filteredSavedCompares[0].id);
+    }
+    if (filteredSavedCompares.length === 0) {
+      setSelectedCompareId(null);
+    }
+  }, [filteredSavedCompares]);
+
   const handleCreateCompare = () => {
     if (!newCompareName.trim() || !selectedUrl1 || !selectedUrl2) return;
     const newCompare: SavedCompare = {
@@ -269,6 +286,7 @@ export function ComparePanel({
     setSelectedUrl1('');
     setSelectedUrl2('');
     setDrawerOpen(false);
+    setSelectedCompareId(newCompare.id);
   };
 
   const handleDeleteCompare = (id: string, e: React.MouseEvent) => {
@@ -276,6 +294,9 @@ export function ComparePanel({
     const updated = savedCompares.filter((c) => c.id !== id);
     setSavedCompares(updated);
     saveSavedCompares(updated);
+    if (selectedCompareId === id) {
+      setSelectedCompareId(updated.length > 0 ? updated[0].id : null);
+    }
   };
 
   const handleLoadCompare = (compare: SavedCompare) => {
@@ -288,103 +309,129 @@ export function ComparePanel({
     if (drawerOpen) setTimeout(() => inputRef.current?.focus(), 50);
   }, [drawerOpen]);
 
-  // If comparing two requests, show diff view
-  if (compareRequest1 && compareRequest2) {
-    return (
-      <DiffView
-        request1={compareRequest1}
-        request2={compareRequest2}
-        onClose={() => onClearComparison?.()}
-      />
-    );
-  }
+  // If comparing two requests directly (from context menu), show diff in right panel
+  const isDirectCompare = compareRequest1 && compareRequest2;
 
   return (
-    <div className="flex flex-col h-full relative">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-purple-500/15 border border-purple-500/25 shrink-0">
-          <ArrowRightLeft className="w-4 h-4 text-purple-400" />
+    <div className="flex h-full overflow-hidden">
+      {/* Left Panel */}
+      <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background">
+        <div className="px-3 py-1.5 border-b border-border shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
+            <input
+              type="text"
+              placeholder="Search comparisons..."
+              value={savedSearchTerm}
+              onChange={(e) => setSavedSearchTerm(e.target.value)}
+              className="w-full h-8 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-purple-500/50 outline-none"
+            />
+          </div>
         </div>
-        <div>
-          <h2 className="text-base font-bold text-text-primary">Compare</h2>
-          <p className="text-xs text-text-secondary mt-0.5">
-            Compare two requests or saved comparisons
-          </p>
-        </div>
-      </div>
 
-      {/* Search and Add */}
-      <div className="px-3 py-2 border-b border-divider shrink-0 flex gap-2 items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
-          <input
-            type="text"
-            placeholder="Search saved comparisons..."
-            value={savedSearchTerm}
-            onChange={(e) => setSavedSearchTerm(e.target.value)}
-            className="w-full h-11 bg-input-background border border-input-border-default rounded-lg pl-8 pr-3 text-sm text-text-primary focus:border-purple-500/50 outline-none"
-          />
+        <div className="px-2 py-1 border-b border-border shrink-0 flex gap-1">
+          <button
+            onClick={() => setDrawerOpen(true)}
+            disabled={requests.length === 0}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-medium transition-all',
+              requests.length > 0
+                ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                : 'opacity-40 cursor-not-allowed bg-muted/20 text-text-secondary',
+            )}
+          >
+            <Plus className="w-3.5 h-3.5" /> New
+          </button>
         </div>
-        <button
-          onClick={() => setDrawerOpen(true)}
-          disabled={requests.length === 0}
-          className={cn(
-            'flex items-center justify-center w-11 h-11 rounded-lg border transition-all shrink-0',
-            requests.length > 0
-              ? 'bg-secondary hover:bg-purple-500/20 hover:text-purple-400 text-text-secondary border-divider hover:border-purple-500/30'
-              : 'bg-zinc-800/50 text-zinc-600 border-zinc-800/80 cursor-not-allowed opacity-50',
-          )}
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
 
-      {/* Saved compares list - horizontal cards */}
-      <div className="flex-1 overflow-y-auto p-3">
-        {filteredSavedCompares.length > 0 ? (
-          <div className="space-y-2">
-            {filteredSavedCompares.map((compare) => (
-              <div
-                key={compare.id}
-                onClick={() => handleLoadCompare(compare)}
-                className="group rounded-xl border border-divider bg-muted/10 p-3 flex items-center gap-3 cursor-pointer hover:border-purple-500/40 hover:bg-purple-500/5 transition-all"
-              >
-                <div className="w-9 h-9 rounded-lg bg-purple-500/15 border border-purple-500/20 flex items-center justify-center shrink-0">
-                  <FolderOpen className="w-4 h-4 text-purple-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-text-primary truncate">{compare.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-mono text-text-secondary truncate">
-                      {compare.url1}
-                    </span>
-                    <ArrowRightLeft className="w-3 h-3 text-text-secondary/50" />
-                    <span className="text-[10px] font-mono text-text-secondary truncate">
-                      {compare.url2}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => handleDeleteCompare(compare.id, e)}
-                  className="p-1.5 rounded-lg text-text-secondary hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {filteredSavedCompares.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-text-secondary">
+              <FolderOpen className="w-8 h-8 mb-2 opacity-20" />
+              <p className="text-xs">No saved comparisons</p>
+              <p className="text-[10px] mt-1 opacity-60">Click New to create one</p>
+            </div>
+          ) : (
+            filteredSavedCompares.map((compare) => {
+              const isSelected = selectedCompareId === compare.id;
+              return (
+                <div
+                  key={compare.id}
+                  onClick={() => setSelectedCompareId(compare.id)}
+                  className={cn(
+                    'group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-all text-xs',
+                    isSelected
+                      ? 'bg-card-background border border-border'
+                      : 'hover:bg-card-hover border border-transparent',
+                  )}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                  <div className="w-6 h-6 rounded bg-purple-500/15 flex items-center justify-center shrink-0">
+                    <FileText className="w-3 h-3 text-purple-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate font-medium text-text-primary">{compare.name}</p>
+                    <p className="text-[10px] text-text-secondary truncate">
+                      {compare.url1} ↔ {compare.url2}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => handleDeleteCompare(compare.id, e)}
+                    className="p-1 rounded text-text-secondary hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Right Panel */}
+      <div className="flex-1 flex flex-col min-w-0 bg-muted/5">
+        {isDirectCompare ? (
+          <DiffView
+            request1={compareRequest1}
+            request2={compareRequest2}
+            onClose={() => onClearComparison?.()}
+          />
+        ) : selectedCompare ? (
+          <div className="flex-1 flex flex-col">
+            <div className="px-4 h-8 border-b border-divider shrink-0 flex items-center justify-between bg-muted/5">
+              <div className="flex items-center gap-2">
+                <GitCompare className="w-4 h-4 text-purple-400" />
+                <span className="text-xs font-medium">{selectedCompare.name}</span>
+                {selectedCompare.desc && (
+                  <span className="text-[10px] text-text-secondary">{selectedCompare.desc}</span>
+                )}
               </div>
-            ))}
+              <button
+                onClick={() => handleLoadCompare(selectedCompare)}
+                className="text-xs text-purple-400 hover:text-purple-300"
+              >
+                Load & Compare
+              </button>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center text-text-secondary">
+              <div className="text-center">
+                <div className="flex items-center gap-4 mb-2">
+                  <span className="text-xs font-mono bg-muted/30 px-3 py-1 rounded">
+                    {selectedCompare.url1}
+                  </span>
+                  <ArrowRightLeft className="w-4 h-4 text-purple-400" />
+                  <span className="text-xs font-mono bg-muted/30 px-3 py-1 rounded">
+                    {selectedCompare.url2}
+                  </span>
+                </div>
+                <p className="text-xs">Click "Load & Compare" to view the diff</p>
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center flex-1 py-20 gap-3">
-            <div className="w-14 h-14 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-              <ArrowRightLeft className="w-7 h-7 text-purple-400/50" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-text-primary">No saved comparisons</p>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Click + to create a new comparison
-              </p>
-            </div>
+          <div className="flex-1 flex flex-col items-center justify-center text-text-secondary">
+            <ArrowRightLeft className="w-12 h-12 mb-3 opacity-20" />
+            <p className="text-sm">No comparison selected</p>
+            <p className="text-xs mt-1 opacity-60">Create a comparison or select from the left</p>
           </div>
         )}
       </div>
@@ -394,7 +441,7 @@ export function ComparePanel({
         <>
           <div className="absolute inset-0 bg-black/40 z-40" onClick={() => setDrawerOpen(false)} />
           <div
-            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 h-[60%]"
+            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[60%]"
           >
             <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
               <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-purple-500/15 border border-purple-500/25 shrink-0">
@@ -402,13 +449,11 @@ export function ComparePanel({
               </div>
               <div className="flex-1">
                 <h3 className="text-base font-bold text-text-primary">Save Comparison</h3>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  Name and select two requests to compare
-                </p>
+                <p className="text-xs text-text-secondary mt-0.5">Name and select two requests</p>
               </div>
               <button
                 onClick={() => setDrawerOpen(false)}
-                className="p-1.5 rounded-lg bg-secondary text-text-secondary hover:text-red-400 hover:bg-red-500/10"
+                className="p-1.5 rounded-lg text-text-secondary hover:text-red-400 hover:bg-red-500/10"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -427,7 +472,7 @@ export function ComparePanel({
               </div>
               <div>
                 <label className="block text-xs font-bold text-text-secondary mb-1.5">
-                  Description (optional)
+                  Description
                 </label>
                 <textarea
                   value={newCompareDesc}
@@ -437,9 +482,7 @@ export function ComparePanel({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5">
-                  Request A
-                </label>
+                <label className="block text-xs font-bold text-text-secondary mb-1.5">Request A</label>
                 <Combobox
                   items={uniqueUrls}
                   value={selectedUrl1}
@@ -448,9 +491,7 @@ export function ComparePanel({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5">
-                  Request B
-                </label>
+                <label className="block text-xs font-bold text-text-secondary mb-1.5">Request B</label>
                 <Combobox
                   items={uniqueUrls}
                   value={selectedUrl2}
@@ -462,7 +503,7 @@ export function ComparePanel({
             <div className="px-5 py-4 border-t border-divider flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => setDrawerOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-sidebar-itemHover"
+                className="px-4 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary"
               >
                 Cancel
               </button>

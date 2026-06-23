@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useModuleStore, ModuleStateMap } from '../stores/moduleStore';
 
 type ModuleId = keyof ModuleStateMap;
@@ -13,7 +13,7 @@ export function useModulePersistence<T>(
     autoSave?: boolean;
   }
 ): [T, (data: Partial<T> | ((prev: T) => Partial<T>)) => void, () => void] {
-  const { states, setModuleState, getModuleState, clearModuleState } = useModuleStore();
+  const { setModuleState, getModuleState, clearModuleState } = useModuleStore();
   const { preferSaved = true, autoSave = true } = options || {};
 
   // Khởi tạo state: ưu tiên dữ liệu đã lưu nếu có
@@ -25,10 +25,19 @@ export function useModulePersistence<T>(
     return initialState;
   });
 
-  // Lưu lên store mỗi khi state thay đổi (nếu autoSave)
+  // Track previous state to avoid unnecessary store updates
+  const prevStateRef = useRef<T>(state);
+
+  // Lưu lên store mỗi khi state thay đổi (nếu autoSave) - only if state actually changed
   useEffect(() => {
     if (autoSave) {
-      setModuleState(moduleId, state as any);
+      const prevState = prevStateRef.current;
+      // Deep compare to avoid unnecessary updates
+      const hasChanged = JSON.stringify(prevState) !== JSON.stringify(state);
+      if (hasChanged) {
+        setModuleState(moduleId, state as any);
+        prevStateRef.current = state;
+      }
     }
   }, [state, moduleId, autoSave, setModuleState]);
 
