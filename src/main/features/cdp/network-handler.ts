@@ -1,3 +1,4 @@
+import WebSocket from 'ws';
 import { CdpManager } from './cdp-manager';
 
 export function handleNetworkEvent(this: CdpManager, method: string, params: any) {

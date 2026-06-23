@@ -171,7 +171,7 @@ export const CrispWhite: ThemeConfig = {
     border: 'rgb(208, 216, 224)',
     divider: 'rgb(208, 216, 224)',
     //
-    cardBackground: 'rgb(255, 255, 255)',
+    cardBackground: 'rgb(235, 238, 242)',
     cardBackgroundHover: 'rgb(240, 242, 244)',
     //
     inputBackground: 'rgb(235, 238, 242)',

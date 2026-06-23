@@ -46,6 +46,14 @@ export function setupCDPHandlers() {
     };
   });
 
+  ipcMain.handle('cdp:get-state', async () => {
+    return {
+      connected: cdpConnected,
+      port: cdpPort,
+      wsConnected: cdpManager.isConnected || false,
+    };
+  });
+
   ipcMain.handle('cdp:navigate', async (_, url: string) => {
     try {
       const result = await cdpManager.navigate(url);

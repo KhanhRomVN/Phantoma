@@ -42,6 +42,15 @@ export interface ModuleStateMap {
     requests: any[];
     selectedId: string | null;
     searchTerm: string;
+    // Per-target state tracking
+    targetStates?: {
+      [targetId: string]: {
+        isActive: boolean;
+        mode: 'mitm' | 'cdp' | null;
+        isIntercepting: boolean;
+      };
+    };
+    // Legacy fields for backward compatibility
     isTargetActive: boolean;
     activeTargetMode: 'mitm' | 'cdp' | null;
     isInterceptActive: boolean;

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useRef as useRefHook } from 'react';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
+import { useModuleStore } from '../../stores/moduleStore';
 import {
   LayoutPanelLeft,
   Cpu,
@@ -27,6 +29,7 @@ import {
   InspectorFilter,
   initialFilterState,
 } from './components/Intruder';
+import { NetworkRequest } from './types/inspector';
 import { WasmPanel } from './components/Wasm';
 import { MediaPanel } from './components/Media';
 import { PayloadPanel } from './components/Payload';
@@ -34,13 +37,13 @@ import { ComparePanel } from './components/Compare';
 import { ComposerPanel } from './components/Composer';
 import { SourcesPanel } from './components/Source';
 import { LogViewer } from './components/Log';
-import type { NetworkRequest, WebSocketConnection } from '../../types/inspector';
-import type { UserApp, AppPlatform } from '../../types/apps';
 import { useTheme } from '../../theme/ThemeProvider';
 import { cn } from '../../shared/lib/utils';
 import { AddTargetModal } from './components/Target/AddTargetModal';
 import { ConfirmDeleteModal } from './components/Target/ConfirmDeleteModal';
 import { ConfirmLaunchModal } from './components/Target/ConfirmLaunchModal';
+import { UserApp, AppPlatform } from './types/apps';
+import { WebSocketConnection } from './types/inspector';
 
 const mockRequests: NetworkRequest[] = [];
 const mockWsConnections: WebSocketConnection[] = [];
@@ -54,7 +57,7 @@ interface TargetTab {
 
 interface EmulateProps {
   activeAppId?: string;
-  activeAppName?: string;
+  _activeAppName?: string;
   onSelectApp?: (
     appId: string,
     proxyUrl: string,
@@ -82,6 +85,15 @@ interface EmulateState {
   requests: NetworkRequest[];
   selectedId: string | null;
   searchTerm: string;
+  // Per-target state tracking
+  targetStates: {
+    [targetId: string]: {
+      isActive: boolean;
+      mode: 'mitm' | 'cdp' | null;
+      isIntercepting: boolean;
+    };
+  };
+  // Legacy fields for backward compatibility (will be removed)
   isTargetActive: boolean;
   activeTargetMode: 'mitm' | 'cdp' | null;
   isInterceptActive: boolean;
@@ -90,7 +102,7 @@ interface EmulateState {
 
 export default function Emulate({
   activeAppId = '',
-  activeAppName = '',
+  _activeAppName = '',
   onSelectApp = async () => {},
   onStopSession = async () => {},
 }: EmulateProps) {
@@ -104,6 +116,8 @@ export default function Emulate({
     requests: [],
     selectedId: null,
     searchTerm: '',
+    targetStates: {},
+    // Legacy fields for backward compatibility
     isTargetActive: false,
     activeTargetMode: null,
     isInterceptActive: false,
@@ -119,17 +133,6 @@ export default function Emulate({
     searchTerm: persistedSearchTerm,
     filter: persistedFilter,
   } = state;
-
-  // Load persisted tabs from backend via IPC
-  const loadPersistedTabs = (): TargetTab[] => {
-    // Will be loaded via IPC in useEffect
-    return [{ id: 'default', title: 'Chưa chọn target', favicon: undefined, url: undefined }];
-  };
-
-  const loadPersistedActiveTab = (tabs: TargetTab[]): string | null => {
-    // Will be loaded via IPC in useEffect
-    return tabs.length > 0 ? tabs[0].id : null;
-  };
 
   // State để lưu dữ liệu từ IPC
   const [loadedFromIPC, setLoadedFromIPC] = useState(false);
@@ -160,6 +163,23 @@ export default function Emulate({
           ]);
           setInitialActiveId(null);
         }
+
+        // Lấy trạng thái CDP từ main process để đồng bộ
+        try {
+          const cdpState = await window.api.invoke('cdp:get-state');
+          if (cdpState && cdpState.isConnected) {
+            setState((prev) => ({
+              ...prev,
+              isTargetActive: true,
+              activeTargetMode: 'cdp',
+              isInterceptActive: cdpState.isIntercepting || false,
+            }));
+          }
+        } catch (cdpError) {
+          // Nếu chưa có handler 'cdp:get-state', bỏ qua
+          console.debug('CDP state not available:', cdpError);
+        }
+
         setLoadedFromIPC(true);
       } catch (error) {
         console.error('[DEBUG] Failed to load active targets from IPC:', error);
@@ -226,8 +246,8 @@ export default function Emulate({
   }, [targetTabs, activeTargetId, loadedFromIPC]);
 
   const [filteredRequests, setFilteredRequests] = useState<NetworkRequest[]>(mockRequests);
-  const [cdpRequests, setCdpRequests] = useState<NetworkRequest[]>([]);
-  const [cdpRequestMap, setCdpRequestMap] = useState<Map<string, NetworkRequest>>(new Map());
+  const [, setCdpRequests] = useState<NetworkRequest[]>([]);
+  const [, setCdpRequestMap] = useState<Map<string, NetworkRequest>>(new Map());
   // Use a Map stored on window to ensure it survives re-renders and component lifecycle
   // This must be initialized once and never re-created
   if (!(window as any)._phantomaCdpTimestamps) {
@@ -280,11 +300,72 @@ export default function Emulate({
     setState((prev) => ({ ...prev, selectedTool: value }));
   };
 
-  const handleForward = (id: string) => {};
+  const handleForward = (_id: string) => {};
 
-  const handleDrop = (id: string) => {};
+  const handleDrop = (_id: string) => {};
 
-  const handleDeleteRequest = (id: string) => {};
+  const handleDeleteRequest = (_id: string) => {};
+
+  const handleToggleIntercept = () => {
+    if (!activeTargetId) return;
+    
+    setState((prev) => ({
+      ...prev,
+      targetStates: {
+        ...prev.targetStates,
+        [activeTargetId]: {
+          ...prev.targetStates[activeTargetId],
+          isIntercepting: !prev.targetStates[activeTargetId]?.isIntercepting,
+        },
+      },
+      // Legacy field update
+      isInterceptActive: !prev.isInterceptActive,
+    }));
+  };
+
+  const handleStopTarget = () => {
+    if (!activeTargetId) return;
+    
+    setState((prev) => ({
+      ...prev,
+      targetStates: {
+        ...prev.targetStates,
+        [activeTargetId]: {
+          isActive: false,
+          mode: null,
+          isIntercepting: false,
+        },
+      },
+      // Legacy fields update
+      isTargetActive: false,
+      activeTargetMode: null,
+      isInterceptActive: false,
+    }));
+    // Also clear requests when stopping
+    clearRequests();
+    // Notify parent if needed
+    onStopSession();
+  };
+
+  const handleStartTarget = (mode: 'mitm' | 'cdp') => {
+    if (!activeTargetId) return;
+    
+    setState((prev) => ({
+      ...prev,
+      targetStates: {
+        ...prev.targetStates,
+        [activeTargetId]: {
+          isActive: true,
+          mode: mode,
+          isIntercepting: false,
+        },
+      },
+      // Legacy fields update
+      isTargetActive: true,
+      activeTargetMode: mode,
+      isInterceptActive: false,
+    }));
+  };
 
   // Clear all requests (used when stopping CDP/proxy session)
   const clearRequests = () => {
@@ -296,15 +377,15 @@ export default function Emulate({
     setSelectedId(null);
   };
 
-  const handleSetCompare1 = (req: NetworkRequest | null) => {};
+  const handleSetCompare1 = (_req: NetworkRequest | null) => {};
 
-  const handleSetCompare2 = (req: NetworkRequest | null) => {};
+  const handleSetCompare2 = (_req: NetworkRequest | null) => {};
 
-  const handleAnalyzeRequest = (req: NetworkRequest) => {};
+  const handleAnalyzeRequest = (_req: NetworkRequest) => {};
 
-  const handleSendToFuzzer = (req: NetworkRequest) => {};
+  const handleSendToFuzzer = (_req: NetworkRequest) => {};
 
-  const handleDeleteWsConnection = (id: string) => {};
+  const handleDeleteWsConnection = (_id: string) => {};
 
   const tools: { id: ToolType; icon: React.ReactNode; label: string; color: string }[] = [
     {
@@ -329,7 +410,7 @@ export default function Emulate({
   const [selectedPlatform, setSelectedPlatform] = useState<AppPlatform | null>(null);
   const [showPlatformDropdown, setShowPlatformDropdown] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addModalPlatform, setAddModalPlatform] = useState<'web' | 'pc' | 'android' | 'cli'>('web');
+  const [addModalPlatform] = useState<'web' | 'pc' | 'android' | 'cli'>('web');
   const [editingApp, setEditingApp] = useState<{
     id: string;
     name: string;
@@ -340,7 +421,7 @@ export default function Emulate({
   const [appToDelete, setAppToDelete] = useState<UserApp | null>(null);
   const [isLaunchModalOpen, setIsLaunchModalOpen] = useState(false);
   const [appToLaunch, setAppToLaunch] = useState<UserApp | null>(null);
-  const [isLaunching] = useState(false);
+
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
   const [createDrawerPlatform, setCreateDrawerPlatform] = useState<AppPlatform | null>(null);
   const [newTargetName, setNewTargetName] = useState('');
@@ -421,7 +502,7 @@ export default function Emulate({
 
   // CDP event listeners
   useEffect(() => {
-    const handleCdpRequest = (event: any, data: any) => {
+    const handleCdpRequest = (_event: any, data: any) => {
       // Removed debug log for cleaner console
       // Convert CDP request to NetworkRequest format
       let host = '';
@@ -497,7 +578,7 @@ export default function Emulate({
       });
     };
 
-    const handleCdpResponse = (event: any, data: any) => {
+    const handleCdpResponse = (_event: any, data: any) => {
       setCdpRequestMap((prev) => {
         const newMap = new Map(prev);
         const existing = newMap.get(data.id);
@@ -538,17 +619,15 @@ export default function Emulate({
       });
     };
 
-    const handleCdpResponseBody = (event: any, data: any) => {
+    const handleCdpResponseBody = (_event: any, data: any) => {
       // Try to get timestamp, if not found, retry after a short delay
       let requestTimestamp = requestTimestampMap.get(data.id);
       let timeMs = 0;
-      let timeCalculated = false;
 
       if (requestTimestamp) {
         const currentTime = data.timestamp || Date.now();
         timeMs = currentTime - requestTimestamp;
         requestTimestampMap.delete(data.id);
-        timeCalculated = true;
       } else {
         // Retry after 500ms to allow request to be processed
         setTimeout(() => {
@@ -640,7 +719,7 @@ export default function Emulate({
       });
     };
 
-    const handleCdpError = (event: any, data: any) => {};
+    const handleCdpError = (_event: any, _data: any) => {};
 
     window.api.on?.('cdp:request', handleCdpRequest);
     window.api.on?.('cdp:response', handleCdpResponse);
@@ -651,10 +730,6 @@ export default function Emulate({
       // Note: window.api.off is not implemented in preload
     };
   }, []);
-
-  const filteredApps = useMemo(() => {
-    return apps.filter((app) => app.name.toLowerCase().includes(targetSearchQuery.toLowerCase()));
-  }, [apps, targetSearchQuery]);
 
   // ---- Target management handlers ----
   const handleAddApp = async (appData: any) => {
@@ -786,7 +861,7 @@ export default function Emulate({
     }
   };
 
-  const handleStopSession = async (e: React.MouseEvent, appId: string) => {
+  const handleStopSession = async (e: React.MouseEvent, _appId: string) => {
     e.stopPropagation();
     if (confirm('Stop the current tracking session?')) {
       await onStopSession();
@@ -971,7 +1046,7 @@ export default function Emulate({
                       )}
                       <span className="flex-1 truncate font-medium">{tab.title}</span>
                       <X
-                        className="w-4 h-4 opacity-40 cursor-pointer transition-all hover:opacity-100 hover:text-error shrink-0"
+                        className="w-4 h-4 opacity-40 cursor-poinreter transition-all hover:opacity-100 hover:text-error shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
                           const newTabs = targetTabs.filter((t) => t.id !== tab.id);
@@ -1344,6 +1419,27 @@ export default function Emulate({
                     onClearRequests={clearRequests}
                     currentTargetAppId={activeTargetId || undefined}
                     currentTargetUrl={targetTabs.find((tab) => tab.id === activeTargetId)?.url}
+                    isTargetActive={
+                      activeTargetId 
+                        ? (state.targetStates[activeTargetId]?.isActive || false)
+                        : false
+                    }
+                    activeTargetMode={
+                      activeTargetId
+                        ? (state.targetStates[activeTargetId]?.mode || null)
+                        : null
+                    }
+                    isInterceptActive={
+                      activeTargetId
+                        ? (state.targetStates[activeTargetId]?.isIntercepting || false)
+                        : false
+                    }
+                    onToggleIntercept={handleToggleIntercept}
+                    onStopTarget={handleStopTarget}
+                    onStartTarget={handleStartTarget}
+                    
+                    
+                    
                   />
                 </div>
                 <div className="flex-1 min-h-0">

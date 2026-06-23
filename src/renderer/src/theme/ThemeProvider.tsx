@@ -51,6 +51,7 @@ export function ThemeProvider({
       border: '--border',
       divider: '--divider',
       cardBackground: '--card-background',
+      cardBackgroundHover: '--card-background-hover',
       inputBackground: '--input-background',
       modalBackground: '--modal-background',
       dropdownBackground: '--dropdown-background',

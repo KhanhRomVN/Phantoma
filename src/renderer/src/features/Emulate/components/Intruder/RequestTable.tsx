@@ -8,7 +8,6 @@ import {
   SortingState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { NetworkRequest } from '../../../../types/inspector';
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { cn } from '../../../../shared/lib/utils';
 import {
@@ -47,6 +46,7 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from '../common/ContextMenu';
+import { NetworkRequest } from './Filter';
 
 // Custom DropdownMenu components
 interface DropdownMenuProps {
@@ -158,6 +158,7 @@ interface RequestTableProps {
   isInterceptActive: boolean;
   onToggleIntercept: () => void;
   onStopTarget: () => void;
+  onStartTarget: (mode: 'mitm' | 'cdp') => void;
 }
 
 export function RequestTable({
@@ -183,12 +184,17 @@ export function RequestTable({
   currentTargetUrl,
   isTargetActive: propsIsTargetActive,
   activeTargetMode: propsActiveTargetMode,
-  isInterceptActive,
+  isInterceptActive: propsIsInterceptActive,
   onToggleIntercept,
   onStopTarget,
+  onStartTarget,
 }: RequestTableProps) {
-  const [localTargetActive, setLocalTargetActive] = useState(propsIsTargetActive);
-  const [localTargetMode, setLocalTargetMode] = useState<'mitm' | 'cdp' | null>(propsActiveTargetMode);
+  
+  // Use props as source of truth for UI state (more reliable than store)
+  // Store is only used for persistence, not for real-time UI updates
+  const isTargetActive = propsIsTargetActive;
+  const activeTargetMode = propsActiveTargetMode;
+
   const [sorting, setSorting] = useState<SortingState>([]);
   const [matchCase, setMatchCase] = useState(false);
   const [matchWholeWord, setMatchWholeWord] = useState(false);
@@ -200,15 +206,6 @@ export function RequestTable({
   const [contextMenuPage, setContextMenuPage] = useState<string | null>(null);
   const [contextMenuTarget, setContextMenuTarget] = useState<NetworkRequest | null>(null);
   const { t } = useI18n();
-
-  // Sync local state with props from parent
-  useEffect(() => {
-    setLocalTargetActive(propsIsTargetActive);
-  }, [propsIsTargetActive]);
-
-  useEffect(() => {
-    setLocalTargetMode(propsActiveTargetMode);
-  }, [propsActiveTargetMode]);
 
   // Feature: Highlighted Rows
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
@@ -564,7 +561,12 @@ export function RequestTable({
         accessorKey: 'type',
         header: t.requestTable.type,
         size: 80,
-        cell: ({ row }) => <span className="text-text-primary">{row.getValue('type')}</span>,
+        cell: ({ row }) => {
+          const type = row.getValue('type') as string;
+          // Capitalize first letter: xhr -> Xhr, js -> Js, css -> Css, etc.
+          const formattedType = type ? type.charAt(0).toUpperCase() + type.slice(1) : type;
+          return <span className="text-text-primary">{formattedType}</span>;
+        },
       },
       {
         id: 'tags',
@@ -762,8 +764,13 @@ export function RequestTable({
     [useRegex, matchCase, matchWholeWord],
   );
 
+  // Reverse requests so newest are at the top (most recent timestamp first)
+  const reversedRequests = useMemo(() => {
+    return [...requests].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  }, [requests]);
+
   const table = useReactTable({
-    data: requests,
+    data: reversedRequests,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -786,8 +793,16 @@ export function RequestTable({
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
-    estimateSize: () => 32, // Slightly tighter rows
-    overscan: 10,
+    estimateSize: () => 32, // Accurate row height estimate based on actual content
+    overscan: 8, // Reduced overscan for better performance
+    measureElement: (element) => {
+      // Measure actual height and clamp to prevent extreme values
+      if (!element) return 32;
+      const height = element.getBoundingClientRect?.()?.height;
+      if (!height || height < 20) return 32;
+      if (height > 80) return 32; // Most rows should be around 32px, clamp outliers
+      return height;
+    },
   });
 
   const [showScrollToSelected, setShowScrollToSelected] = useState(false);
@@ -856,6 +871,16 @@ export function RequestTable({
         .intercept-pending-row {
           animation: intercept-border-pulse 1.5s ease-in-out infinite;
         }
+        /* Fix scrollbar thumb height to 50% of container */
+        .request-table-scroll::-webkit-scrollbar-thumb {
+          height: 50% !important;
+          min-height: 40px !important;
+        }
+        /* For Firefox - use thin scrollbar with fixed ratio approximation */
+        .request-table-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: var(--scrollbar-thumb, #4a4a6a) transparent;
+        }
       `}</style>
       <div className="h-10 flex items-center px-2 border-b border-divider gap-2 shrink-0">
         <div className="flex-1 flex items-center gap-2 bg-input-background border border-border rounded px-3 h-7">
@@ -917,20 +942,20 @@ export function RequestTable({
         <div className="flex items-center gap-1 border-l border-divider pl-2 h-full">
           {/* Start/Stop Target button */}
           <div ref={targetDropdownRef} className="relative flex items-center gap-0.5">
-            {localTargetActive && localTargetMode && (
-              <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary bg-card-background/30 border border-border/30 rounded">
+            {isTargetActive && activeTargetMode && (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary bg-card-background border border-border/30 rounded">
                 <span
                   className={cn(
                     'w-1.5 h-1.5 rounded-full animate-pulse',
-                    localTargetMode === 'cdp' ? 'bg-blue-400' : 'bg-amber-400',
+                    activeTargetMode === 'cdp' ? 'bg-blue-400' : 'bg-amber-400',
                   )}
                 />
-                Running by {localTargetMode.toUpperCase()}
+                Running by {activeTargetMode.toUpperCase()}
               </span>
             )}
             <button
               onClick={() => {
-                if (localTargetActive) {
+                if (isTargetActive) {
                   // Stop: disconnect CDP or stop proxy
                   onStopTarget();
                   // Clear all requests data
@@ -941,13 +966,13 @@ export function RequestTable({
               }}
               className={cn(
                 'flex items-center gap-1 px-2 py-1 rounded transition-all duration-300 text-xs font-medium',
-                localTargetActive
+                isTargetActive
                   ? 'bg-error/20 text-error hover:bg-error/30'
-                  : 'bg-transparent text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                  : 'bg-card-background text-text-secondary hover:bg-card-hover',
               )}
-              title={localTargetActive ? 'Stop target' : 'Start target'}
+              title={isTargetActive ? 'Stop target' : 'Start target'}
             >
-              {localTargetActive ? (
+              {isTargetActive ? (
                 <>
                   <Pause className="w-3.5 h-3.5" />
                   <span>Stop</span>
@@ -959,9 +984,9 @@ export function RequestTable({
                 </>
               )}
             </button>
-            {isTargetDropdownOpen && !localTargetActive && (
+            {isTargetDropdownOpen && !isTargetActive && (
               <div
-                className="fixed mt-1 rounded-md border border-border bg-dropdown-background shadow-lg z-[9999] min-w-[220px] overflow-hidden"
+                className="fixed mt-1 rounded-md border border-border group-hover:border-primary bg-dropdown-background shadow-[0_4px_20px_rgba(0,0,0,0.15)] z-[9999] min-w-[220px] overflow-hidden group"
                 style={{
                   top: targetDropdownRef.current
                     ? targetDropdownRef.current.getBoundingClientRect().bottom + 4
@@ -975,8 +1000,8 @@ export function RequestTable({
                   onClick={() => {
                     // Clear old requests before starting new session
                     onClearRequests?.();
-                    setLocalTargetActive(true);
-                    setLocalTargetMode('mitm');
+                    // Call parent to update state (this will trigger re-render with new props)
+                    onStartTarget('mitm');
                     setIsTargetDropdownOpen(false);
                     // Start MITM proxy
                     window.api
@@ -993,8 +1018,8 @@ export function RequestTable({
                         }
                       })
                       .catch(() => {
-                        setLocalTargetActive(false);
-                        setLocalTargetMode(null);
+                        // Revert state on failure
+                        onStopTarget();
                       });
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all border-b border-border last:border-b-0"
@@ -1007,8 +1032,9 @@ export function RequestTable({
                   onClick={() => {
                     // Clear old requests before starting new session
                     onClearRequests?.();
-                    setLocalTargetActive(true);
-                    setLocalTargetMode('cdp');
+                    console.log('[CDP] Starting CDP mode');
+                    // Call parent to update state (this will trigger re-render with new props)
+                    onStartTarget('cdp');
                     setIsTargetDropdownOpen(false);
                     // Launch target with CDP mode first, then connect
                     if (onLaunchTarget && currentTargetAppId) {
@@ -1037,17 +1063,17 @@ export function RequestTable({
                             }
                           }
                           if (!connected) {
-                            setLocalTargetActive(false);
-                            setLocalTargetMode(null);
+                            // Revert state on failure
+                            onStopTarget();
                           }
                         })
                         .catch(() => {
-                          setLocalTargetActive(false);
-                          setLocalTargetMode(null);
+                          // Revert state on failure
+                          onStopTarget();
                         });
                     } else {
-                      setLocalTargetActive(false);
-                      setLocalTargetMode(null);
+                      // Revert state if no target
+                      onStopTarget();
                     }
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
@@ -1063,21 +1089,21 @@ export function RequestTable({
           </div>
 
           {/* Start Intercept button - only shows when MITM is active (Stop state) */}
-          {localTargetActive && localTargetMode === 'mitm' && (
+          {isTargetActive && activeTargetMode === 'mitm' && (
             <button
               onClick={() => {
                 onToggleIntercept();
               }}
               className={cn(
                 'flex items-center gap-1 px-2 py-1 rounded transition-all duration-300 text-xs font-medium',
-                isInterceptActive
+                propsIsInterceptActive
                   ? 'bg-primary/20 text-primary hover:bg-primary/30'
                   : 'bg-transparent text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
               )}
-              title={isInterceptActive ? 'Stop intercept' : 'Start intercept'}
+              title={propsIsInterceptActive ? 'Stop intercept' : 'Start intercept'}
             >
               <CircleDashed className="w-3.5 h-3.5" />
-              <span>{isInterceptActive ? 'Intercepting' : 'Intercept'}</span>
+              <span>{propsIsInterceptActive ? 'Intercepting' : 'Intercept'}</span>
             </button>
           )}
         </div>
@@ -1085,7 +1111,7 @@ export function RequestTable({
       <div
         ref={tableContainerRef}
         onScroll={handleScroll}
-        className="flex-1 flex flex-col overflow-auto relative"
+        className="request-table-scroll flex-1 flex flex-col overflow-auto relative"
       >
         <div className="flex h-10 min-h-10 flex-shrink-0 bg-table-header-background text-sm font-semibold text-text-secondary border-b border-divider/20 sticky top-0 z-10 w-full">
           {table.getHeaderGroups().map((headerGroup) => (
@@ -1145,6 +1171,7 @@ export function RequestTable({
               >
                 <ContextMenuTrigger asChild>
                   <div
+                    ref={rowVirtualizer.measureElement}
                     data-state={row.getValue('id') === selectedId ? 'selected' : undefined}
                     onDragStart={(e) => e.preventDefault()}
                     className={cn(

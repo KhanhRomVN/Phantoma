@@ -5,13 +5,10 @@ import { Favicon } from '../../../../shared/utils/faviconUtils';
 import { useI18n } from '../../../../i18n/i18nContext';
 import { getRequestCategory } from '../../utils/requestHelpers';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
+import { NetworkRequest } from '../../types/inspector';
 
-export interface NetworkRequest {
-  id: string;
-  host: string;
-  path: string;
-  [key: string]: any;
-}
+// Re-export NetworkRequest from inspector types to maintain single source of truth
+export type { NetworkRequest };
 
 export interface InspectorFilter {
   methods: {

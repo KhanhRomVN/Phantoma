@@ -1,10 +1,10 @@
-import { NetworkRequest } from '../../../../types/inspector';
 import { useState, useMemo, useCallback } from 'react';
 import { FileCode, Search, Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { ResizableSplit } from '../common/ResizableSplit';
 import { CodeBlock } from '../../../../components/common/CodeBlock';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { NetworkRequest } from '../Intruder/Filter';
 
 interface SourceFile {
   id: string;

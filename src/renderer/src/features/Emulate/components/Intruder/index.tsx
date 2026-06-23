@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { NetworkRequest } from '../../../../types/inspector';
 import { cn } from '../../../../shared/lib/utils';
 import {
   List,
@@ -20,7 +19,7 @@ import { HeadersDetails } from './Headers';
 import { BodyDetails, BodyDetailsRef } from './Body';
 import { NetworkDetails as NetworkDetailsSub } from './Network';
 import { SecurityDetails } from './Security';
-import { InspectorFilter, NetworkFilter } from './Filter';
+import { InspectorFilter, NetworkFilter, NetworkRequest } from './Filter';
 import { CodeBlock } from '../../../../components/common/CodeBlock';
 import { Composer } from './Composer';
 import { CookieDetails } from './Cookie';
@@ -28,6 +27,7 @@ import { InitiatorDetails } from './Initiator';
 import { useI18n } from '../../../../i18n/i18nContext';
 import { ResizableSplit } from '../common/ResizableSplit';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
+import { useModuleStore } from '../../../../stores/moduleStore';
 
 function Badge({ count, className }: { count: number; className?: string }) {
   if (count === 0) return null;
@@ -566,8 +566,6 @@ export function RequestDetails({
                 );
               }
 
-              const tabAccent = tabAccents[tab.accentKey];
-              const hoverBg = toRgba(tabAccent.color, 0.08);
               return (
                 <button
                   key={tab.id}
@@ -642,11 +640,9 @@ export type { InspectorFilter, NetworkRequest as FilterNetworkRequest } from './
 export { NetworkDetails } from './Network';
 export { SecurityDetails } from './Security';
 export { RequestTable } from './RequestTable';
-
-// RequestList wrapper component (re-export for compatibility)
-import { RequestTable as RequestTableComponent } from './RequestTable';
+import { RequestTable } from './RequestTable';
 import { initialFilterState as filterInitialState } from './Filter';
-import type { WebSocketConnection } from '../../../../types/inspector';
+import { WebSocketConnection } from '../../types/inspector';
 
 interface RequestListProps {
   filteredRequests: NetworkRequest[];
@@ -681,6 +677,13 @@ interface RequestListProps {
   onClearRequests?: () => void;
   currentTargetAppId?: string;
   currentTargetUrl?: string;
+  // Target state from parent
+  isTargetActive: boolean;
+  activeTargetMode: 'mitm' | 'cdp' | null;
+  isInterceptActive: boolean;
+  onToggleIntercept: () => void;
+  onStopTarget: () => void;
+  onStartTarget: (mode: 'mitm' | 'cdp') => void;
 }
 
 export function RequestList({
@@ -707,9 +710,16 @@ export function RequestList({
   onClearRequests,
   currentTargetAppId,
   currentTargetUrl,
+  isTargetActive,
+  activeTargetMode,
+  isInterceptActive,
+  onToggleIntercept,
+  onStopTarget,
+  onStartTarget,
 }: RequestListProps) {
   const [view, setView] = useState<'table' | 'timeline' | 'websocket' | 'browser'>('table');
   const { t } = useI18n();
+  const emulateState = useModuleStore((state) => state.states.emulate) || {};
 
   useEffect(() => {
     if (browserViewUrl) {
@@ -731,7 +741,7 @@ export function RequestList({
             </button>
           </div>
         )}
-        <RequestTableComponent
+<RequestTable
           requests={filteredRequests}
           selectedId={selectedId}
           onSelect={(id) => onSelectRequest(id)}
@@ -752,6 +762,12 @@ export function RequestList({
           onClearRequests={onClearRequests}
           currentTargetAppId={currentTargetAppId}
           currentTargetUrl={currentTargetUrl}
+          isTargetActive={isTargetActive || false}
+          activeTargetMode={activeTargetMode || null}
+          isInterceptActive={isInterceptActive || false}
+          onToggleIntercept={onToggleIntercept}
+          onStopTarget={onStopTarget}
+          onStartTarget={onStartTarget}
         />
       </div>
     </div>
