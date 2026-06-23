@@ -1056,6 +1056,8 @@ export function RequestTable({
                               if (result?.success) {
                                 connected = true;
                                 await window.api.invoke('cdp:reload');
+                                // Inject subtle monitoring border
+                                await window.api.invoke('cdp:inject-border');
                                 break;
                               }
                             } catch {

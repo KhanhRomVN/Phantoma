@@ -323,9 +323,40 @@ export default function Emulate({
     }));
   };
 
-  const handleStopTarget = () => {
+  const handleStopTarget = async () => {
     if (!activeTargetId) return;
     
+    // Get current target mode before clearing
+    const currentMode = state.targetStates[activeTargetId]?.mode;
+    
+    // Disconnect based on mode
+    if (currentMode === 'cdp') {
+      try {
+        // Disconnect CDP
+        await window.api.invoke('cdp:disconnect');
+        console.log('[Emulate] CDP disconnected successfully');
+        
+        // Close browser/app
+        await window.api.invoke('app:terminate');
+        console.log('[Emulate] Browser/app terminated successfully');
+      } catch (error) {
+        console.error('[Emulate] Failed to disconnect CDP or terminate app:', error);
+      }
+    } else if (currentMode === 'mitm') {
+      try {
+        // Stop MITM proxy session
+        await window.api.invoke('proxy:destroy-session', 'default');
+        console.log('[Emulate] MITM proxy stopped successfully');
+        
+        // Close browser/app
+        await window.api.invoke('app:terminate');
+        console.log('[Emulate] Browser/app terminated successfully');
+      } catch (error) {
+        console.error('[Emulate] Failed to stop MITM proxy or terminate app:', error);
+      }
+    }
+    
+    // Update state
     setState((prev) => ({
       ...prev,
       targetStates: {
@@ -341,8 +372,10 @@ export default function Emulate({
       activeTargetMode: null,
       isInterceptActive: false,
     }));
+    
     // Also clear requests when stopping
     clearRequests();
+    
     // Notify parent if needed
     onStopSession();
   };

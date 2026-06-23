@@ -73,9 +73,11 @@ export class CdpManager extends EventEmitter {
           console.error('[CDP] No targets found');
           return false;
         }
+        console.log('[CDP] No page target found, connecting to browser target:', browserTarget.url || 'unknown');
         return this.connectToTarget(browserTarget.webSocketDebuggerUrl, retries, delay);
       }
 
+      console.log('[CDP] Selected page target - URL:', pageTarget.url, ', Title:', pageTarget.title);
       return this.connectToTarget(pageTarget.webSocketDebuggerUrl, retries, delay);
     } catch (error) {
       console.error('[CDP] Failed to get targets:', error);
@@ -165,6 +167,142 @@ export class CdpManager extends EventEmitter {
       return true;
     } catch (e) {
       console.error('[CDP] Reload failed:', e);
+      return false;
+    }
+  }
+
+  public async injectMonitoringBorder(): Promise<boolean> {
+    console.log('[CDP] injectMonitoringBorder called - checking connection...');
+    if (!this.isConnected || !this.ws) {
+      console.warn('[CDP] Cannot inject border: not connected (isConnected:', this.isConnected, ', ws:', !!this.ws, ')');
+      return false;
+    }
+    console.log('[CDP] Connection OK, preparing CSS injection...');
+    try {
+      // Inject overlay border on top of everything
+      const css = `
+        html::after {
+          content: '' !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          pointer-events: none !important;
+          border: 4px solid rgba(255, 107, 107, 0.8) !important;
+          z-index: 999999 !important;
+          box-sizing: border-box !important;
+        }
+      `;
+      
+      console.log('[CDP] CSS content to inject:', css.trim().replace(/\s+/g, ' '));
+      console.log('[CDP] Sending Page.addScriptToEvaluateOnNewDocument...');
+      await this.send('Page.addScriptToEvaluateOnNewDocument', {
+        source: `
+          (function() {
+            const style = document.createElement('style');
+            style.id = 'phantoma-monitoring-border';
+            style.textContent = ${JSON.stringify(css)};
+            if (document.head) {
+              document.head.appendChild(style);
+            } else {
+              document.addEventListener('DOMContentLoaded', () => {
+                document.head.appendChild(style);
+              });
+            }
+          })();
+        `,
+      });
+      console.log('[CDP] Page.addScriptToEvaluateOnNewDocument completed successfully');
+      
+      // Also inject into current page
+      console.log('[CDP] Sending Runtime.evaluate for current page...');
+      const result = await this.send('Runtime.evaluate', {
+        expression: `
+          (function() {
+            const existing = document.getElementById('phantoma-monitoring-border');
+            if (existing) existing.remove();
+            
+            const style = document.createElement('style');
+            style.id = 'phantoma-monitoring-border';
+            style.textContent = ${JSON.stringify(css)};
+            document.head.appendChild(style);
+            
+            return 'style injected';
+          })();
+        `,
+      });
+      console.log('[CDP] Runtime.evaluate completed with result:', result);
+      
+      // Verification - check if style was actually applied
+      console.log('[CDP] Verifying injection...');
+      const verifyResult = await this.send('Runtime.evaluate', {
+        expression: `
+          (function() {
+            const style = document.getElementById('phantoma-monitoring-border');
+            const url = window.location.href;
+            const htmlBoxShadow = getComputedStyle(document.documentElement).boxShadow;
+            const result = {
+              styleExists: !!style,
+              styleContent: style ? style.textContent : null,
+              pageUrl: url,
+              htmlBoxShadow: htmlBoxShadow,
+              headExists: !!document.head
+            };
+            return JSON.stringify(result);
+          })();
+        `
+      });
+      console.log('[CDP] Verification result:', verifyResult);
+      
+      // Get current page URL separately for clarity
+      const urlResult = await this.send('Runtime.evaluate', {
+        expression: 'window.location.href'
+      });
+      console.log('[CDP] Current page URL:', urlResult);
+      
+      console.log('[CDP] ✅ Monitoring border injected successfully');
+      return true;
+    } catch (e) {
+      console.error('[CDP] ❌ Failed to inject monitoring border:', e);
+      if (e instanceof Error) {
+        console.error('[CDP] Error details - name:', e.name, ', message:', e.message, ', stack:', e.stack);
+      }
+      return false;
+    }
+  }
+
+  public async removeMonitoringBorder(): Promise<boolean> {
+    console.log('[CDP] removeMonitoringBorder called - checking connection...');
+    if (!this.isConnected || !this.ws) {
+      console.warn('[CDP] Cannot remove border: not connected (isConnected:', this.isConnected, ', ws:', !!this.ws, ')');
+      return false;
+    }
+    console.log('[CDP] Connection OK, removing monitoring border...');
+    try {
+      const result = await this.send('Runtime.evaluate', {
+        expression: `
+          (function() {
+            const style = document.getElementById('phantoma-monitoring-border');
+            if (style) {
+              style.remove();
+              console.log('[CDP] Style element removed from page');
+            } else {
+              console.log('[CDP] No style element found with id phantoma-monitoring-border');
+            }
+            document.documentElement.style.boxShadow = '';
+            return 'border removed';
+          })();
+        `,
+      });
+      console.log('[CDP] Runtime.evaluate result:', result);
+      console.log('[CDP] ✅ Monitoring border removed successfully');
+      return true;
+    } catch (e) {
+      console.error('[CDP] ❌ Failed to remove monitoring border:', e);
+      if (e instanceof Error) {
+        console.error('[CDP] Error details - name:', e.name, ', message:', e.message, ', stack:', e.stack);
+      }
       return false;
     }
   }

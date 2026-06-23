@@ -74,6 +74,26 @@ export function setupCDPHandlers() {
     }
   });
 
+  ipcMain.handle('cdp:inject-border', async () => {
+    try {
+      const result = await cdpManager.injectMonitoringBorder();
+      return { success: result };
+    } catch (e: any) {
+      console.error('[IPC] cdp:inject-border error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('cdp:remove-border', async () => {
+    try {
+      const result = await cdpManager.removeMonitoringBorder();
+      return { success: result };
+    } catch (e: any) {
+      console.error('[IPC] cdp:remove-border error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
   // Inspector Request Handler
   ipcMain.handle('inspector:send-request', async (_, payload) => {
     return await handleInspectorRequest(payload);
