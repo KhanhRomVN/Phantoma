@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { detectWasmModules } from '../../../../utils/detectors';
-import { NetworkRequest } from '../Intruder/Filter';
+import { NetworkRequest } from '../Home/Filter';
 import { ResourceItem, ResourceType, getFileType, formatSize, TYPE_LABELS } from './types';
 import { ResourceList } from './ResourceList';
 import { ResourcePreview } from './ResourcePreview';
@@ -180,8 +180,9 @@ export function ResourcesPanel({ requests = [], onClose, onCountChange }: Resour
       return;
     }
 
-    const isSelectedIdValid = selectedId !== null && resourceItems.some((item) => item.id === selectedId);
-    
+    const isSelectedIdValid =
+      selectedId !== null && resourceItems.some((item) => item.id === selectedId);
+
     if (!isSelectedIdValid) {
       setSelectedId(resourceItems[0].id);
     }

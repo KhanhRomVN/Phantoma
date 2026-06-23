@@ -5,7 +5,6 @@ import './styles/main.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { ThemeProvider } from './theme/ThemeProvider';
-import { I18nProvider } from './i18n/i18nContext';
 import { FontProvider } from './fonts';
 
 const queryClient = new QueryClient();
@@ -15,9 +14,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="phantoma-theme">
         <FontProvider defaultFontId="google-sans">
-          <I18nProvider>
-            <App />
-          </I18nProvider>
+          <App />
         </FontProvider>
       </ThemeProvider>
     </QueryClientProvider>

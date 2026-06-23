@@ -2,8 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
 import {
   LayoutPanelLeft,
-  Cpu,
-  Film,
   Package,
   GitCompare,
   PenSquare,
@@ -27,12 +25,11 @@ import {
   RequestDetails,
   InspectorFilter,
   initialFilterState,
-} from './components/Intruder';
+} from './components/Home';
 import { NetworkRequest } from './types/inspector';
 import { ResourcesPanel } from './components/Resources';
-import { PayloadPanel } from './components/Payload';
+import { PayloadPanel } from './components/Repeater';
 import { ComparePanel } from './components/Compare';
-import { ComposerPanel } from './components/Composer';
 import { SourcesPanel } from './components/Source';
 import { LogViewer } from './components/Log';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -79,12 +76,10 @@ interface EmulateProps {
 }
 
 type ToolType =
+  | 'home'
   | 'intruder'
-  | 'resources'
-  | 'payload'
-  | 'compare'
-  | 'composer'
-  | 'setting'
+  | 'repeater'
+  | 'resource'
   | 'source'
   | 'log';
 
@@ -430,14 +425,18 @@ export default function Emulate({
 
   const [fuzzerTargetId, setFuzzerTargetId] = useState<string | null>(null);
 
-  const handleSendToFuzzer = (req: NetworkRequest) => {
+  const handleSendToRepeater = (req: NetworkRequest) => {
+    // Add request to Repeater storage
+    import('./components/Repeater').then(({ addToRepeater }) => {
+      addToRepeater(req.id);
+    });
     setFuzzerTargetId(req.id);
-    setSelectedTool('payload');
+    setSelectedTool('repeater');
   };
 
-  // Clear fuzzer target when switching away from payload tab
+  // Clear fuzzer target when switching away from repeater tab
   useEffect(() => {
-    if (selectedTool !== 'payload') {
+    if (selectedTool !== 'repeater') {
       setFuzzerTargetId(null);
     }
   }, [selectedTool]);
@@ -446,21 +445,29 @@ export default function Emulate({
 
   const tools: { id: ToolType; icon: React.ReactNode; label: string; color: string }[] = [
     {
+      id: 'home',
+      icon: <LayoutPanelLeft className="w-4 h-4" />,
+      label: 'Home',
+      color: 'blue',
+    },
+    {
       id: 'intruder',
       icon: <LayoutPanelLeft className="w-4 h-4" />,
       label: 'Intruder',
       color: 'purple',
     },
     {
-      id: 'resources',
+      id: 'repeater',
+      icon: <Package className="w-4 h-4" />,
+      label: 'Repeater',
+      color: 'orange',
+    },
+    {
+      id: 'resource',
       icon: <FolderOpen className="w-4 h-4" />,
-      label: 'Resources',
+      label: 'Resource',
       color: 'teal',
     },
-    { id: 'payload', icon: <Package className="w-4 h-4" />, label: 'Payload', color: 'orange' },
-    { id: 'compare', icon: <GitCompare className="w-4 h-4" />, label: 'Compare', color: 'green' },
-    { id: 'composer', icon: <PenSquare className="w-4 h-4" />, label: 'Composer', color: 'cyan' },
-    { id: 'setting', icon: <Settings className="w-4 h-4" />, label: 'Setting', color: 'gray' },
     { id: 'source', icon: <Code className="w-4 h-4" />, label: 'Source', color: 'yellow' },
     { id: 'log', icon: <ScrollText className="w-4 h-4" />, label: 'Log', color: 'red' },
   ];
@@ -1566,7 +1573,7 @@ export default function Emulate({
           </div>
         ) : (
           <>
-            {selectedTool === 'intruder' && (
+            {selectedTool === 'home' && (
               <>
                 <div className="flex-1 min-h-0 border-b border-border">
                   <RequestList
@@ -1586,7 +1593,7 @@ export default function Emulate({
                     onSetCompare2={handleSetCompare2}
                     setFilter={setFilter}
                     onAnalyzeRequest={handleAnalyzeRequest}
-                    onSendToFuzzer={handleSendToFuzzer}
+                    onSendToRepeater={handleSendToRepeater}
                     wsConnections={mockWsConnections}
                     selectedWsId={selectedWsId}
                     onSelectWsConnection={setSelectedWsId}
@@ -1630,24 +1637,19 @@ export default function Emulate({
                 </div>
               </>
             )}
-            {selectedTool === 'resources' && (
-              <div className="flex-1 overflow-hidden">
-                <ResourcesPanel requests={requests} />
+            {selectedTool === 'intruder' && (
+              <div className="flex-1 flex items-center justify-center text-text-secondary">
+                Intruder Content - Under Development
               </div>
             )}
-            {selectedTool === 'payload' && (
+            {selectedTool === 'repeater' && (
               <div className="flex-1 overflow-hidden">
                 <PayloadPanel requests={requests} selectedRequestId={fuzzerTargetId} />
               </div>
             )}
-            {selectedTool === 'compare' && (
+            {selectedTool === 'resource' && (
               <div className="flex-1 overflow-hidden">
-                <ComparePanel />
-              </div>
-            )}
-            {selectedTool === 'composer' && (
-              <div className="flex-1 overflow-hidden">
-                <ComposerPanel />
+                <ResourcesPanel requests={requests} />
               </div>
             )}
             {selectedTool === 'source' && (
@@ -1658,11 +1660,6 @@ export default function Emulate({
             {selectedTool === 'log' && (
               <div className="flex-1 overflow-hidden">
                 <LogViewer />
-              </div>
-            )}
-            {selectedTool === 'setting' && (
-              <div className="flex-1 flex items-center justify-center text-text-secondary">
-                Settings Content - Coming Soon
               </div>
             )}
           </>

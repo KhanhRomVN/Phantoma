@@ -14,7 +14,7 @@ import {
 import { MethodBadge } from '../common/MethodBadge';
 import { StatusBadge } from '../common/StatusBadge';
 import { cn } from '../../../../shared/lib/utils';
-import { NetworkRequest } from '../Intruder/Filter';
+import { NetworkRequest } from '../Home/Filter';
 
 interface SavedCompare {
   id: string;
@@ -440,9 +440,7 @@ export function ComparePanel({
       {drawerOpen && (
         <>
           <div className="absolute inset-0 bg-black/40 z-40" onClick={() => setDrawerOpen(false)} />
-          <div
-            className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[60%]"
-          >
+          <div className="absolute bottom-0 left-0 right-0 z-50 bg-dialog-background border-t border-divider rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[60%]">
             <div className="px-4 pt-4 pb-3 border-b border-divider flex items-center gap-3 shrink-0">
               <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-purple-500/15 border border-purple-500/25 shrink-0">
                 <Save className="w-4 h-4 text-purple-400" />
@@ -482,7 +480,9 @@ export function ComparePanel({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5">Request A</label>
+                <label className="block text-xs font-bold text-text-secondary mb-1.5">
+                  Request A
+                </label>
                 <Combobox
                   items={uniqueUrls}
                   value={selectedUrl1}
@@ -491,7 +491,9 @@ export function ComparePanel({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5">Request B</label>
+                <label className="block text-xs font-bold text-text-secondary mb-1.5">
+                  Request B
+                </label>
                 <Combobox
                   items={uniqueUrls}
                   value={selectedUrl2}

@@ -4,7 +4,7 @@ import { cn } from '../../../../shared/lib/utils';
 import { ResizableSplit } from '../common/ResizableSplit';
 import { CodeBlock } from '../../../../components/common/CodeBlock';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { NetworkRequest } from '../Intruder/Filter';
+import { NetworkRequest } from '../Home/Filter';
 
 interface SourceFile {
   id: string;
