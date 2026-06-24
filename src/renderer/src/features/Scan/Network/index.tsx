@@ -109,7 +109,7 @@ export default function NetworkScan({ initialTarget = '104.18.32.0/24' }: Networ
   }, []);
 
   const addTarget = useCallback(() => {
-    let t = newTarget.trim();
+    const t = newTarget.trim();
     if (!t) return;
     if (sessions.some((s) => s.target === t)) return;
     const sess: NetworkSession = {

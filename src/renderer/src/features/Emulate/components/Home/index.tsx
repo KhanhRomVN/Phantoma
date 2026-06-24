@@ -17,8 +17,6 @@ import {
 
 import { HeadersDetails } from './Headers';
 import { BodyDetails, BodyDetailsRef } from './Body';
-import { NetworkDetails as NetworkDetailsSub } from './Network';
-import { SecurityDetails } from './Security';
 import { InspectorFilter, NetworkFilter, NetworkRequest } from './Filter';
 import { CodeBlock } from '../../../../components/common/CodeBlock';
 import { CookieDetails } from './Cookie';
@@ -26,7 +24,6 @@ import { InitiatorDetails } from './Initiator';
 
 import { ResizableSplit } from '../common/ResizableSplit';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
-import { useModuleStore } from '../../../../stores/moduleStore';
 
 function Badge({ count, className }: { count: number; className?: string }) {
   if (count === 0) return null;
@@ -61,6 +58,7 @@ interface NetworkDetailsProps {
   appId?: string;
   initialComposerRequest?: NetworkRequest | null;
   showComposerTab?: boolean;
+  targetId?: string | null;
 }
 
 function TextSelectionMenu({
@@ -138,9 +136,8 @@ export function RequestDetails({
   onSearchTermChange,
   onJumpToValue: _onJumpToValue,
   onCompareRequests: _onCompareRequests,
-  appId,
-  initialComposerRequest,
   showComposerTab = false,
+  targetId,
 }: NetworkDetailsProps) {
   const [internalActiveTab, setInternalActiveTab] = useState('headers');
   const [isRawMode, setIsRawMode] = useState(false);
@@ -301,17 +298,31 @@ export function RequestDetails({
 
   if (request && request.analysis) {
     const analysis = request.analysis;
-    const reqBody = analysis?.body?.request?.formatted
-      ? JSON.stringify(analysis.body.request.formatted, null, 2)
-      : analysis?.body?.request?.raw || '';
+    const bodyObj =
+      typeof analysis?.body === 'object' && analysis?.body !== null ? (analysis.body as any) : null;
+    const reqBody = bodyObj?.request?.formatted
+      ? JSON.stringify(bodyObj.request.formatted, null, 2)
+      : bodyObj?.request?.raw || '';
 
-    const resBody = analysis?.body?.response?.formatted
-      ? JSON.stringify(analysis.body.response.formatted, null, 2)
-      : analysis?.body?.response?.raw || '';
+    const resBody = bodyObj?.response?.formatted
+      ? JSON.stringify(bodyObj.response.formatted, null, 2)
+      : bodyObj?.response?.raw || '';
 
     matches.body = getBodyMatchCount(reqBody) + getBodyMatchCount(resBody);
   } else if (request) {
-    matches.body = getBodyMatchCount(request.requestBody) + getBodyMatchCount(request.responseBody);
+    const reqBody =
+      typeof request.requestBody === 'string'
+        ? request.requestBody
+        : request.requestBody
+          ? JSON.stringify(request.requestBody)
+          : '';
+    const resBody =
+      typeof request.responseBody === 'string'
+        ? request.responseBody
+        : request.responseBody
+          ? JSON.stringify(request.responseBody)
+          : '';
+    matches.body = getBodyMatchCount(reqBody) + getBodyMatchCount(resBody);
   }
 
   // Use accent colors from theme for dynamic tab colors
@@ -439,16 +450,6 @@ export function RequestDetails({
         <div className="h-full flex items-center justify-center text-text-secondary bg-table-bodyBg">
           Select a request to view details
         </div>
-      ) : isSecurityTab && request ? (
-        <div className="flex-1 overflow-auto h-full">
-          <SecurityDetails
-            request={request}
-            onJumpToEvidence={(tab, term) => {
-              setActiveTab(tab);
-              if (onSearchTermChange) onSearchTermChange(term);
-            }}
-          />
-        </div>
       ) : isCookieTab && request ? (
         <div className="flex-1 overflow-auto h-full">
           <CookieDetails request={request} />
@@ -467,8 +468,6 @@ export function RequestDetails({
           {activeTab === 'body' && request && (
             <BodyDetails ref={bodyDetailsRef} request={request} searchTerm={searchTerm} />
           )}
-          {activeTab === 'network' && request && <NetworkDetailsSub request={request} />}
-          {activeTab === 'security' && request && <SecurityDetails request={request} />}
           {activeTab === 'initiator' && request && (
             <InitiatorDetails request={request} searchTerm={searchTerm} />
           )}
@@ -599,7 +598,12 @@ export function RequestDetails({
           activeTab !== 'cookies' ? (
             <ResizableSplit direction="horizontal" initialSize={70} minSize={30} maxSize={80}>
               {content}
-              <NetworkFilter filter={filter} onChange={onFilterChange} requests={requests} />
+              <NetworkFilter
+                filter={filter}
+                onChange={onFilterChange}
+                requests={requests}
+                targetId={targetId}
+              />
             </ResizableSplit>
           ) : (
             content
@@ -628,8 +632,6 @@ export { CookieDetails } from './Cookie';
 export { InitiatorDetails } from './Initiator';
 export { NetworkFilter, initialFilterState } from './Filter';
 export type { InspectorFilter, NetworkRequest as FilterNetworkRequest } from './Filter';
-export { NetworkDetails } from './Network';
-export { SecurityDetails } from './Security';
 export { RequestTable } from './RequestTable';
 import { RequestTable } from './RequestTable';
 import { initialFilterState as filterInitialState } from './Filter';

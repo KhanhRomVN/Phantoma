@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Send, Trash2, Clock, Save, X } from 'lucide-react';
+import { Square, Send, X } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { NetworkRequest } from '../Home/Filter';
 import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock';
@@ -53,11 +53,10 @@ interface PayloadConfigPanelProps {
 
 type TabType = 'params' | 'headers' | 'body' | 'payload' | 'history' | 'result';
 
-export function PayloadConfigPanel({ 
-  request, 
+export function PayloadConfigPanel({
+  request,
   lastRunTimestamp: externalLastRunTimestamp,
   saveToHistory: externalSaveToHistory,
-  onSaveToggle,
   onRun,
   onSwitchTab,
   payloads: externalPayloads,
@@ -85,7 +84,7 @@ export function PayloadConfigPanel({
     } else {
       result = newPayloads;
     }
-    
+
     if (externalPayloads !== undefined) {
       setInternalPayloads(result);
     } else {
@@ -97,26 +96,27 @@ export function PayloadConfigPanel({
 
   // Auto-detect and create payloads from ${name} patterns
   useEffect(() => {
-    const allValues = [
-      ...params.map(p => p.value),
-      ...headers.map(h => h.value),
-      body
-    ].join(' ');
+    const allValues = [...params.map((p) => p.value), ...headers.map((h) => h.value), body].join(
+      ' ',
+    );
 
     // Extract all ${name} patterns
     const matches = allValues.matchAll(/\$\{([^}]+)\}/g);
     const detectedNames = new Set<string>();
-    
+
     for (const match of matches) {
       detectedNames.add(match[1]);
     }
 
-    console.log('🔍 Auto-detect payloads:', { detectedNames: Array.from(detectedNames), existingPayloads: payloads.map(p => p.name) });
+    console.log('🔍 Auto-detect payloads:', {
+      detectedNames: Array.from(detectedNames),
+      existingPayloads: payloads.map((p) => p.name),
+    });
 
     // Create missing payloads
     const newPayloads: PayloadItem[] = [];
-    detectedNames.forEach(name => {
-      if (!payloads.some(p => p.name === name)) {
+    detectedNames.forEach((name) => {
+      if (!payloads.some((p) => p.name === name)) {
         console.log('✨ Auto-creating payload:', name);
         newPayloads.push({
           id: crypto.randomUUID(),
@@ -129,7 +129,7 @@ export function PayloadConfigPanel({
     });
 
     if (newPayloads.length > 0) {
-      setPayloads(prev => [...prev, ...newPayloads]);
+      setPayloads((prev) => [...prev, ...newPayloads]);
     }
   }, [params, headers, body]);
 
@@ -178,14 +178,14 @@ export function PayloadConfigPanel({
   const [isMethodDropdownOpen, setIsMethodDropdownOpen] = useState(false);
   const methodDropdownRef = useRef<HTMLDivElement>(null);
   const bodyCodeBlockRef = useRef<CodeBlockRef>(null);
-  
+
   // Timestamp and history save - use external state if provided
-  const [internalLastRunTimestamp, setInternalLastRunTimestamp] = useState<number | null>(null);
-  const [internalSaveToHistory, setInternalSaveToHistory] = useState(true);
-  
-  const lastRunTimestamp = externalLastRunTimestamp !== undefined ? externalLastRunTimestamp : internalLastRunTimestamp;
-  const saveToHistory = externalSaveToHistory !== undefined ? externalSaveToHistory : internalSaveToHistory;
-  
+  const [, setInternalLastRunTimestamp] = useState<number | null>(null);
+  const [internalSaveToHistory] = useState(true);
+
+  const saveToHistory =
+    externalSaveToHistory !== undefined ? externalSaveToHistory : internalSaveToHistory;
+
   // Modal state
   const [showRunModal, setShowRunModal] = useState(false);
   const [totalRequests, setTotalRequests] = useState(0);
@@ -231,7 +231,13 @@ export function PayloadConfigPanel({
         setHeaders(headerItems);
       }
 
-      setBody(request.requestBody || '');
+      setBody(
+        typeof request.requestBody === 'string'
+          ? request.requestBody
+          : request.requestBody
+            ? JSON.stringify(request.requestBody)
+            : '',
+      );
     }
   }, [request]);
 
@@ -267,31 +273,41 @@ export function PayloadConfigPanel({
   const executeRequest = async (payload?: string, skipHistory?: boolean) => {
     const { headers: headersObj } = buildRequest();
     let finalBody = body;
-    let finalHeaders = { ...headersObj };
-    let finalParams: Record<string, string> = { ...params.filter(p => p.enabled && p.key).reduce((acc, p) => ({ ...acc, [p.key]: p.value }), {}) };
+    const finalHeaders = { ...headersObj };
+    const finalParams: Record<string, string> = {
+      ...params
+        .filter((p) => p.enabled && p.key)
+        .reduce((acc, p) => ({ ...acc, [p.key]: p.value }), {}),
+    };
 
     // If payload is provided, substitute ${payload_name} in body, headers, and params
     if (payload) {
-      const activePayload = payloads.find(p => p.enabled && p.values.includes(payload));
+      const activePayload = payloads.find((p) => p.enabled && p.values.includes(payload));
       if (activePayload) {
         const placeholder = `\${${activePayload.name}}`;
-        
+
         // Substitute in body
         if (finalBody.includes(placeholder)) {
           finalBody = finalBody.replace(new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'), payload);
         }
-        
+
         // Substitute in headers
-        Object.keys(finalHeaders).forEach(key => {
+        Object.keys(finalHeaders).forEach((key) => {
           if (finalHeaders[key].includes(placeholder)) {
-            finalHeaders[key] = finalHeaders[key].replace(new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'), payload);
+            finalHeaders[key] = finalHeaders[key].replace(
+              new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'),
+              payload,
+            );
           }
         });
-        
+
         // Substitute in params
-        Object.keys(finalParams).forEach(key => {
+        Object.keys(finalParams).forEach((key) => {
           if (finalParams[key].includes(placeholder)) {
-            finalParams[key] = finalParams[key].replace(new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'), payload);
+            finalParams[key] = finalParams[key].replace(
+              new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'),
+              payload,
+            );
           }
         });
       }
@@ -371,19 +387,21 @@ export function PayloadConfigPanel({
 
   const handleSend = async () => {
     if (!url) return;
-    
+
     // Calculate total requests from payloads
     const enabledPayloads = payloads.filter((p) => p.enabled && p.values.length > 0);
     let total = 1; // Default: 1 request (no payloads)
     if (enabledPayloads.length > 0) {
       total = enabledPayloads.reduce((acc, p) => acc * p.values.length, 1);
     }
-    
+
     setTotalRequests(total);
-    setModalMessage(`This will send ${total} request${total > 1 ? 's' : ''} with all payload combinations. Continue?`);
+    setModalMessage(
+      `This will send ${total} request${total > 1 ? 's' : ''} with all payload combinations. Continue?`,
+    );
     setShowRunModal(true);
   };
-  
+
   const handleConfirmSend = async () => {
     setShowRunModal(false);
     const timestamp = Date.now();
@@ -391,31 +409,17 @@ export function PayloadConfigPanel({
       setInternalLastRunTimestamp(timestamp);
     }
     if (onRun) onRun();
-    
+
     const enabledPayloads = payloads.filter((p) => p.enabled && p.values.length > 0);
     if (enabledPayloads.length === 0) {
       await executeRequest(undefined, true); // Skip history for Send button
       return;
     }
-    
+
     // Run all combinations - skip history for Send button
     for (const payload of enabledPayloads) {
       for (const value of payload.values) {
         await executeRequest(value, true);
-      }
-    }
-  };
-
-  const handleRunAll = async () => {
-    const enabledPayloads = payloads.filter((p) => p.enabled && p.values.length > 0);
-    if (enabledPayloads.length === 0) {
-      await executeRequest();
-      return;
-    }
-
-    for (const payload of enabledPayloads) {
-      for (const value of payload.values) {
-        await executeRequest(value);
       }
     }
   };
@@ -474,7 +478,10 @@ export function PayloadConfigPanel({
             id: crypto.randomUUID(),
             name: parts[0].trim(),
             description: parts[1].trim(),
-            values: parts[2].split(',').map(v => v.trim()).filter(v => v),
+            values: parts[2]
+              .split(',')
+              .map((v) => v.trim())
+              .filter((v) => v),
             enabled: true,
           };
         }
@@ -483,7 +490,10 @@ export function PayloadConfigPanel({
           id: crypto.randomUUID(),
           name: `Payload ${payloads.length + 1}`,
           description: '',
-          values: line.split(',').map(v => v.trim()).filter(v => v),
+          values: line
+            .split(',')
+            .map((v) => v.trim())
+            .filter((v) => v),
           enabled: true,
         };
       });
@@ -494,9 +504,9 @@ export function PayloadConfigPanel({
   };
 
   const handleExportPayloads = () => {
-    const content = payloads.map((p) => 
-      [p.name, p.description, p.values.join(', ')].join('\t')
-    ).join('\n');
+    const content = payloads
+      .map((p) => [p.name, p.description, p.values.join(', ')].join('\t'))
+      .join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -511,10 +521,16 @@ export function PayloadConfigPanel({
     { id: 'headers', label: 'Headers', count: headers.filter((h) => h.enabled && h.key).length },
     { id: 'body', label: 'Body' },
     { id: 'payload', label: 'Payload', count: payloads.filter((p) => p.enabled).length },
-    { id: 'result', label: 'Result', count: (() => {
-      const enabled = payloads.filter(p => p.enabled && p.values.length > 0);
-      return enabled.length > 0 ? enabled.reduce((acc, p) => acc * p.values.length, 1) : undefined;
-    })() },
+    {
+      id: 'result',
+      label: 'Result',
+      count: (() => {
+        const enabled = payloads.filter((p) => p.enabled && p.values.length > 0);
+        return enabled.length > 0
+          ? enabled.reduce((acc, p) => acc * p.values.length, 1)
+          : undefined;
+      })(),
+    },
     { id: 'history', label: 'History', count: history.length },
   ];
 
@@ -552,9 +568,7 @@ export function PayloadConfigPanel({
                     }}
                     className={cn(
                       'w-full text-left px-3 py-1.5 text-sm font-mono transition-colors',
-                      m === method
-                        ? 'bg-primary/10'
-                        : 'hover:bg-dropdown-item-hover'
+                      m === method ? 'bg-primary/10' : 'hover:bg-dropdown-item-hover',
                     )}
                     style={m === method ? { color: color } : undefined}
                   >
@@ -572,7 +586,7 @@ export function PayloadConfigPanel({
           placeholder="Enter URL..."
           className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono"
         />
-        
+
         <button
           onClick={handleSend}
           disabled={isExecuting || !url}
@@ -678,9 +692,7 @@ export function PayloadConfigPanel({
             onViewResponse={handleViewResponse}
           />
         )}
-        {activeTab === 'result' && (
-          <ResultTab payloads={payloads} />
-        )}
+        {activeTab === 'result' && <ResultTab payloads={payloads} />}
       </div>
 
       {/* Section 3: Response Viewer */}
@@ -712,7 +724,10 @@ export function PayloadConfigPanel({
                 <p className="text-sm text-text-primary mb-2">{modalMessage}</p>
                 <p className="text-xs text-text-secondary">
                   {totalRequests > 1 ? (
-                    <>Total requests: <span className="font-bold text-primary text-base">{totalRequests}</span></>
+                    <>
+                      Total requests:{' '}
+                      <span className="font-bold text-primary text-base">{totalRequests}</span>
+                    </>
                   ) : (
                     'Single request (no active payloads)'
                   )}

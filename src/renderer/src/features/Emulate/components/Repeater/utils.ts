@@ -1,4 +1,4 @@
-import { FuzzerJob, PayloadType } from './types';
+import { FuzzerJob } from './types';
 
 const STORAGE_KEY = 'systema-fuzzer-jobs';
 
@@ -10,7 +10,8 @@ export const loadJobs = (): FuzzerJob[] => {
   }
 };
 
-export const saveJobs = (jobs: FuzzerJob[]) => localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
+export const saveJobs = (jobs: FuzzerJob[]) =>
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
 
 export const EMPTY_JOB: Omit<FuzzerJob, 'id' | 'createdAt'> = {
   name: '',

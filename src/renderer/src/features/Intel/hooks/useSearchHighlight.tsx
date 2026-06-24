@@ -62,9 +62,9 @@ export function useSearchHighlight({
         
         let match;
         while ((match = pattern.exec(value)) !== null) {
-          let matchText = match[0];
-          let start = match.index;
-          let end = start + matchText.length;
+          const matchText = match[0];
+          const start = match.index;
+          const end = start + matchText.length;
 
           // Match whole word check
           if (matchWholeWord) {

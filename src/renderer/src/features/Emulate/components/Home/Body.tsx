@@ -202,25 +202,38 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
     }));
 
     // Fallback: Use raw request data when analysis is not available
-    const requestBodyContent = analysis?.body?.request?.formatted
-      ? JSON.stringify(analysis.body.request.formatted, null, 2)
-      : analysis?.body?.request?.raw
-        ? formatJsonIfValid(analysis.body.request.raw)
-        : formatJsonIfValid(request.requestBody || 'No Content');
+    const body = analysis?.body as any;
+    const requestBodyContent = body?.request?.formatted
+      ? JSON.stringify(body.request.formatted, null, 2)
+      : body?.request?.raw
+        ? formatJsonIfValid(body.request.raw)
+        : formatJsonIfValid(
+            typeof request.requestBody === 'string'
+              ? request.requestBody
+              : request.requestBody
+                ? JSON.stringify(request.requestBody)
+                : 'No Content'
+          );
 
-    const responseBodyContent = analysis?.body?.response?.formatted
-      ? JSON.stringify(analysis.body.response.formatted, null, 2)
-      : analysis?.body?.response?.raw
-        ? formatJsonIfValid(analysis.body.response.raw)
-        : formatJsonIfValid(request.responseBody || 'No Content');
+    const responseBodyContent = body?.response?.formatted
+      ? JSON.stringify(body.response.formatted, null, 2)
+      : body?.response?.raw
+        ? formatJsonIfValid(body.response.raw)
+        : formatJsonIfValid(
+            typeof request.responseBody === 'string'
+              ? request.responseBody
+              : request.responseBody
+                ? JSON.stringify(request.responseBody)
+                : 'No Content'
+          );
 
-    const requestLanguage = getLanguage(analysis?.body?.request?.contentType, requestBodyContent);
+    const requestLanguage = getLanguage(body?.request?.contentType, requestBodyContent);
     const responseLanguage = getLanguage(
-      analysis?.body?.response?.contentType,
+      body?.response?.contentType,
       responseBodyContent,
     );
 
-    const isResponseBinary = analysis?.body?.response?.isBinary;
+    const isResponseBinary = body?.response?.isBinary;
 
     const readonlyOptions = {
       readOnly: true,
@@ -253,17 +266,17 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
                   <AlignLeft className="w-3 h-3" />
                 </button>
                 <div className="w-[1px] h-3 bg-divider/50 mx-1" />
-                {analysis?.body?.request?.compression &&
-                  analysis?.body?.request?.compression !== 'none' && (
+                {body?.request?.compression &&
+                  body?.request?.compression !== 'none' && (
                     <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold uppercase">
-                      {analysis?.body?.request?.compression}
+                      {body?.request?.compression}
                     </span>
                   )}
                 <span className="bg-secondary px-1.5 py-0.5 rounded text-text-secondary">
-                  {analysis?.body?.request?.contentType || 'Unknown Type'}
+                  {body?.request?.contentType || 'Unknown Type'}
                 </span>
                 <span className="bg-secondary px-1.5 py-0.5 rounded text-text-secondary">
-                  {analysis?.body?.request?.size || '0 B'}
+                  {body?.request?.size || '0 B'}
                 </span>
               </div>
             </div>
@@ -302,17 +315,17 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
                     BINARY
                   </span>
                 )}
-                {analysis?.body?.response?.compression &&
-                  analysis?.body?.response?.compression !== 'none' && (
+                {body?.response?.compression &&
+                  body?.response?.compression !== 'none' && (
                     <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold uppercase">
-                      {analysis?.body?.response?.compression}
+                      {body?.response?.compression}
                     </span>
                   )}
                 <span className="bg-secondary px-1.5 py-0.5 rounded text-text-secondary">
-                  {analysis?.body?.response?.contentType || 'Unknown Type'}
+                  {body?.response?.contentType || 'Unknown Type'}
                 </span>
                 <span className="bg-secondary px-1.5 py-0.5 rounded text-text-secondary">
-                  {analysis?.body?.response?.size || '0 B'}
+                  {body?.response?.size || '0 B'}
                 </span>
               </div>
             </div>

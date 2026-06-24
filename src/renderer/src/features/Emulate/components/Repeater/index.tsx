@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Zap, X, Search, Send, Clock, Save } from 'lucide-react';
+import { Zap, X, Search, Send } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { NetworkRequest } from '../Home/Filter';
-import { StatusBadge } from '../common/StatusBadge';
 import { RequestList } from './RequestList';
 import { PayloadConfigPanel } from './PayloadConfigPanel';
 
@@ -77,7 +76,6 @@ interface PayloadPanelProps {
 
 export function PayloadPanel({
   requests = [],
-  isTargetRunning = false,
   onClose,
   selectedRequestId,
   targetId,
@@ -87,12 +85,9 @@ export function PayloadPanel({
   const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds(targetId));
   const [lastRunTimestamp, setLastRunTimestamp] = useState<number | null>(null);
   const [saveToHistory, setSaveToHistory] = useState(true);
-  const [payloads, setPayloads] = useState<Array<{ id: string; name: string; values: string[]; enabled: boolean; description?: string }>>([]);
-
-  const handleSwitchTab = (tab: string) => {
-    // This will be handled by PayloadConfigPanel internally
-    // We just need to pass the function down
-  };
+  const [payloads] = useState<
+    Array<{ id: string; name: string; values: string[]; enabled: boolean; description: string }>
+  >([]);
 
   // Listen for repeater updates
   useEffect(() => {
@@ -131,7 +126,10 @@ export function PayloadPanel({
     }
   }, [repeaterRequests, selectedRequestId]);
 
-  const totalCount = repeaterRequests.length;
+  const handleSwitchTab = (tab: string) => {
+    // Handle tab switching in PayloadConfigPanel if needed
+    console.log('Switch to tab:', tab);
+  };
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -175,18 +173,21 @@ export function PayloadPanel({
             {lastRunTimestamp && (
               <button
                 onClick={() => {
-                  const newState = !saveToHistory;
-                  setSaveToHistory(newState);
-                  // Trigger onSaveToggle to update PayloadConfigPanel
-                  if (onSaveToggle) onSaveToggle();
+                  setSaveToHistory(!saveToHistory);
                 }}
                 className={cn(
                   'text-[10px] font-medium transition-colors',
-                  saveToHistory ? 'text-text-secondary hover:text-primary' : 'text-text-secondary hover:text-primary'
+                  saveToHistory
+                    ? 'text-text-secondary hover:text-primary'
+                    : 'text-text-secondary hover:text-primary',
                 )}
-                title={saveToHistory ? 'Save to history' : 'Don\'t save to history'}
+                title={saveToHistory ? 'Save to history' : "Don't save to history"}
               >
-                Do you want to save this session <span className="text-primary">{new Date(lastRunTimestamp).toLocaleTimeString()}</span>? Click to save!
+                Do you want to save this session{' '}
+                <span className="text-primary">
+                  {new Date(lastRunTimestamp).toLocaleTimeString()}
+                </span>
+                ? Click to save!
               </button>
             )}
             {onClose && (
@@ -209,7 +210,7 @@ export function PayloadPanel({
             </p>
           </div>
         ) : (
-          <PayloadConfigPanel 
+          <PayloadConfigPanel
             request={selectedRequest}
             lastRunTimestamp={lastRunTimestamp}
             saveToHistory={saveToHistory}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '../../../shared/lib/utils';
 import { Activity, BarChart3, PieChart, TrendingUp, Clock, Zap } from 'lucide-react';
 

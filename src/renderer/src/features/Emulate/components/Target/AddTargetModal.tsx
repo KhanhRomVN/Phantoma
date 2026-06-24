@@ -110,7 +110,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
       setSuggestions([]);
       return;
     }
-    let searchTerm = (name || '').toLowerCase();
+    const searchTerm = (name || '').toLowerCase();
     let searchKeywords: string[] = [];
     if (searchTerm) {
       searchKeywords = [searchTerm];
@@ -142,7 +142,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
   useEffect(() => {
     const appsToCheck =
       isEdit && editApp ? existingApps.filter((app) => app.id !== editApp.id) : existingApps;
-    let error: { name?: string; value?: string } = {};
+    const error: { name?: string; value?: string } = {};
     if (platform === 'web') {
       if (name) {
         const existingByName = appsToCheck.find(
@@ -174,7 +174,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
           (app) => app.name?.toLowerCase() === selectedPcApp.name.toLowerCase(),
         );
         const existingByPath = appsToCheck.find(
-          (app) => app.executablePath?.toLowerCase() === selectedPcApp.exec.toLowerCase(),
+          (app) => app.executablePath?.toLowerCase() === (selectedPcApp as any).exec.toLowerCase(),
         );
         if (existingByName) error.name = `Name "${existingByName.name}" already exists`;
         if (existingByPath) error.value = `Path "${existingByPath.executablePath}" already exists`;
@@ -339,17 +339,17 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
     }
     if (platform === 'web') {
       if (!name || !url) return;
-      onAdd({ name, url, mode: 'browser', platform: 'web' });
+      onAdd({ name, url, mode: 'intercept', platform: 'web' });
     } else if (platform === 'cli') {
       if (!name || !command) return;
-      onAdd({ name, executablePath: command, mode: 'native', platform: 'cli' });
+      onAdd({ name, executablePath: command, mode: 'intercept', platform: 'cli' });
     } else if (platform === 'pc') {
       if (!selectedPcApp) return;
       onAdd({
         name: selectedPcApp.name,
-        executablePath: selectedPcApp.exec,
+        executablePath: (selectedPcApp as any).exec,
         platform: 'pc',
-        mode: 'native',
+        mode: 'intercept',
         icon: selectedPcApp.icon,
       });
     } else if (platform === 'android') {
@@ -359,7 +359,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
       onAdd({
         name: device.name,
         platform: 'android',
-        mode: 'native',
+        mode: 'intercept',
         emulatorSerial: device.serial || device.name,
       });
     }
@@ -566,10 +566,10 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
                   <div className="grid grid-cols-2 gap-2">
                     {filteredPcApps.map((app) => {
                       const isSelected =
-                        selectedPcApp?.exec === app.exec && selectedPcApp?.name === app.name;
+                        (selectedPcApp as any)?.exec === (app as any).exec && (selectedPcApp as any)?.name === app.name;
                       return (
                         <button
-                          key={`${app.name}-${app.exec}`}
+                          key={`${app.name}-${(app as any).exec}`}
                           onClick={() => setSelectedPcApp(app)}
                           className={cn(
                             'flex items-center gap-3 p-3 rounded-xl border text-left transition-all',

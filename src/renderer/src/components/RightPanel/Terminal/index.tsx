@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '../../../shared/lib/utils';
-import { Send, Terminal as TerminalIcon, X, Plus } from 'lucide-react';
+import { Send, Terminal as TerminalIcon, X } from 'lucide-react';
 
 interface LogEntry {
   id: string;
@@ -25,7 +25,7 @@ export function Terminal() {
     },
   ]);
   const [input, setInput] = useState('');
-  const [isConnected, setIsConnected] = useState(true);
+  const [isConnected] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 

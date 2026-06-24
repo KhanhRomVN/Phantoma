@@ -234,7 +234,8 @@ export function RequestTable({
 
     output += '**Body:**\n';
     if (req.requestBody) {
-      const trimmed = req.requestBody.trim();
+      const bodyStr = typeof req.requestBody === 'string' ? req.requestBody : '';
+      const trimmed = bodyStr.trim();
       if (
         (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
         (trimmed.startsWith('[') && trimmed.endsWith(']'))
@@ -243,10 +244,10 @@ export function RequestTable({
           const parsed = JSON.parse(trimmed);
           output += '```json\n' + JSON.stringify(parsed, null, 2) + '\n```';
         } catch {
-          output += '```\n' + req.requestBody + '\n```';
+          output += '```\n' + bodyStr + '\n```';
         }
       } else {
-        output += '```\n' + req.requestBody + '\n```';
+        output += '```\n' + bodyStr + '\n```';
       }
     } else {
       output += '*(No body)*';
@@ -360,7 +361,8 @@ export function RequestTable({
           md += '\n```\n\n';
           md += '**Response Body:**\n```\n';
           if (req.responseBody) {
-            const trimmed = req.responseBody.trim();
+            const bodyStr = typeof req.responseBody === 'string' ? req.responseBody : '';
+            const trimmed = bodyStr.trim();
             if (
               (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
               (trimmed.startsWith('[') && trimmed.endsWith(']'))
@@ -368,10 +370,10 @@ export function RequestTable({
               try {
                 md += JSON.stringify(JSON.parse(trimmed), null, 2);
               } catch {
-                md += req.responseBody;
+                md += bodyStr;
               }
             } else {
-              md += req.responseBody;
+              md += bodyStr;
             }
           } else {
             md += '(No body)';
@@ -382,8 +384,8 @@ export function RequestTable({
           md += '**Security Issues:**\n';
           const issues = req.securityIssues || [];
           if (issues.length > 0) {
-            issues.forEach((issue: { severity: string; title: any; description: any }) => {
-              md += `- **${issue.severity.toUpperCase()}**: ${issue.title} - ${issue.description}\n`;
+            issues.forEach((issue) => {
+              md += `- **${issue.severity?.toUpperCase() || 'UNKNOWN'}**: ${issue.title || 'No title'} - ${issue.description || 'No description'}\n`;
             });
           } else {
             md += '*(No security issues)*\n';

@@ -126,7 +126,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                           {h.parsed && Object.keys(h.parsed).length > 0 && (
                             <div className="mt-1.5 text-[10px] bg-secondary/30 p-1.5 rounded border border-divider/20">
                               <div className="font-semibold text-text-secondary/70 mb-1 pointer-events-none select-none">
-                                {t.requestDetails.parsedValues}
+                                Parsed Values
                               </div>
                               <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1">
                                 {Object.entries(h.parsed).map(([k, v]) => (
@@ -193,7 +193,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                           {h.parsed && Object.keys(h.parsed).length > 0 && (
                             <div className="mt-1.5 text-[10px] bg-secondary/30 p-1.5 rounded border border-divider/20">
                               <div className="font-semibold text-text-secondary/70 mb-1 pointer-events-none select-none">
-                                {t.requestDetails.parsedValues}
+                                Parsed Values
                               </div>
                               <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1">
                                 {Object.entries(h.parsed).map(([k, v]) => (
@@ -220,7 +220,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
         </div>
       </div>
 
-      {analysis?.headers?.missing && analysis.headers.missing.length > 0 && (
+      {analysis?.headers?.missing && Array.isArray(analysis.headers.missing) && analysis.headers.missing.length > 0 && (
         <div>
           <h3 className="text-[10px] font-bold text-text-secondary uppercase mb-2 border-b border-divider/50 pb-1.5">
             Missing Headers

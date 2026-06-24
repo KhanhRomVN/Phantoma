@@ -274,8 +274,8 @@ export class ProxyServer extends EventEmitter {
           socket.write('HTTP/1.1 200 Connection Established\r\n\r\n', 'utf-8', () => {
             // Now client will send WebSocket upgrade, forward everything
 
-            let clientBuffer = Buffer.alloc(0);
-            let serverBuffer = Buffer.alloc(0);
+            const clientBuffer = Buffer.alloc(0);
+            const serverBuffer = Buffer.alloc(0);
 
             // Capture server response headers (first response from server)
             let responseHeadersCaptured = false;

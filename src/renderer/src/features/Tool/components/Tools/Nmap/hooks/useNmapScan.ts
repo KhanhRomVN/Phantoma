@@ -70,7 +70,7 @@ export const useNmapScan = (
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let rawOutputLines: string[] = [];
+      const rawOutputLines: string[] = [];
       let done = false;
       let currentEvent = '';
 

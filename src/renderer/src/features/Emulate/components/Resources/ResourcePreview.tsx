@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Download, Cpu, FolderOpen, File } from 'lucide-react';
 import { CodeBlock } from '@renderer/components/common/CodeBlock';
-import { ResourceItem, TYPE_ICONS } from './types';
+import { ResourceItem } from './types';
 
 // Simple hex viewer for binary files like WASM
 function HexView({ data, filename }: { data: string; filename: string }) {
   const [showHex, setShowHex] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Convert base64 to bytes
   let bytes: Uint8Array;
   try {
@@ -86,8 +86,13 @@ function HexView({ data, filename }: { data: string; filename: string }) {
             <span>ASCII</span>
           </div>
           {lines.map((line) => (
-            <div key={line.offset} className="grid grid-cols-[60px,1fr,120px] gap-1 hover:bg-muted/20">
-              <span className="text-text-secondary">0x{line.offset.toString(16).padStart(4, '0')}</span>
+            <div
+              key={line.offset}
+              className="grid grid-cols-[60px,1fr,120px] gap-1 hover:bg-muted/20"
+            >
+              <span className="text-text-secondary">
+                0x{line.offset.toString(16).padStart(4, '0')}
+              </span>
               <span className="text-text-primary">{line.hex}</span>
               <span className="text-text-secondary">{line.ascii}</span>
             </div>
@@ -280,7 +285,11 @@ export function ResourcePreview({ item }: ResourcePreviewProps) {
           </div>
         </div>
         <div className="flex-1 overflow-auto p-4 bg-muted/5 flex items-center justify-center">
-          <img src={item.url} alt={item.filename} className="max-w-full max-h-full object-contain" />
+          <img
+            src={item.url}
+            alt={item.filename}
+            className="max-w-full max-h-full object-contain"
+          />
         </div>
       </div>
     );

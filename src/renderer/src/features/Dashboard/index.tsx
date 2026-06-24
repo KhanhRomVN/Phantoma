@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../shared/lib/utils';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
 
@@ -519,7 +519,7 @@ interface DashboardState {
 }
 
 export function Dashboard() {
-  const [state, setState] = useModulePersistence<DashboardState>('dashboard', {
+  const [state] = useModulePersistence<DashboardState>('dashboard', {
     greeting: new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening',
   });
 

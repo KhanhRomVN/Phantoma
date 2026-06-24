@@ -25,21 +25,43 @@ interface SourceFile {
 }
 
 const defaultTemplates = [
-  { id: 'integers', name: 'Integers (1-100)', values: Array.from({ length: 100 }, (_, i) => String(i + 1)) },
-  { id: 'lowercase', name: 'Lowercase a-z', values: Array.from({ length: 26 }, (_, i) => String.fromCharCode(97 + i)) },
-  { id: 'uppercase', name: 'Uppercase A-Z', values: Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)) },
+  {
+    id: 'integers',
+    name: 'Integers (1-100)',
+    values: Array.from({ length: 100 }, (_, i) => String(i + 1)),
+  },
+  {
+    id: 'lowercase',
+    name: 'Lowercase a-z',
+    values: Array.from({ length: 26 }, (_, i) => String.fromCharCode(97 + i)),
+  },
+  {
+    id: 'uppercase',
+    name: 'Uppercase A-Z',
+    values: Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)),
+  },
   { id: 'digits', name: 'Digits 0-9', values: Array.from({ length: 10 }, (_, i) => String(i)) },
 ];
 
-export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues, onSave, targetId }: PayloadValueModalProps) {
+export function PayloadValueModal({
+  isOpen,
+  onClose,
+  payloadName,
+  currentValues,
+  onSave,
+  targetId,
+}: PayloadValueModalProps) {
   const [files, setFiles] = useState<SourceFile[]>([]);
   const [scripts, setScripts] = useState<SourceFile[]>([]);
-  const [selectedSource, setSelectedSource] = useState<{ type: 'template' | 'file' | 'script' | 'current', id: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{
+    type: 'template' | 'file' | 'script' | 'current';
+    id: string;
+  } | null>(null);
   const [currentPreviewValues, setCurrentPreviewValues] = useState<string[]>(currentValues);
   const [templatePreviewValues, setTemplatePreviewValues] = useState<string[]>(currentValues);
   const [rawText, setRawText] = useState<string>(currentValues.join('\n'));
   const [editingContent, setEditingContent] = useState('');
-  const [outputText, setOutputText] = useState('');
+  const [, setOutputText] = useState('');
   const [isAddingScript, setIsAddingScript] = useState(false);
   const [newScriptName, setNewScriptName] = useState('');
   const codeBlockRef = useRef<CodeBlockRef>(null);
@@ -55,7 +77,7 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
     try {
       const filesData = localStorage.getItem(getStorageKey('files'));
       if (filesData) setFiles(JSON.parse(filesData));
-      
+
       const scriptsData = localStorage.getItem(getStorageKey('scripts'));
       if (scriptsData) setScripts(JSON.parse(scriptsData));
     } catch (error) {
@@ -96,7 +118,7 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
   // Validate and auto-complete script name
   const getValidScriptName = (name: string): { valid: boolean; finalName: string } => {
     if (!name) return { valid: false, finalName: '' };
-    
+
     // Check if it has an extension
     const parts = name.split('.');
     if (parts.length > 1) {
@@ -114,27 +136,19 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
   const finalScriptName = scriptValidation.finalName;
 
   // Handle template click - show preview only, doesn't affect current values
-  const handleTemplateClick = (template: typeof defaultTemplates[0]) => {
-    console.log('[DEBUG] handleTemplateClick:', template.name, 'values length:', template.values.length);
+  const handleTemplateClick = (template: (typeof defaultTemplates)[0]) => {
+    console.log(
+      '[DEBUG] handleTemplateClick:',
+      template.name,
+      'values length:',
+      template.values.length,
+    );
     console.log('[DEBUG] currentPreviewValues before:', currentPreviewValues);
     setSelectedSource({ type: 'template', id: template.id });
     setTemplatePreviewValues(template.values);
     setEditingContent(template.values.join('\n'));
     setOutputText('');
     console.log('[DEBUG] templatePreviewValues set to:', template.values.length, 'values');
-  };
-
-  // Handle apply template directly to current values
-  const handleApplyTemplate = (template: typeof defaultTemplates[0]) => {
-    console.log('[DEBUG] handleApplyTemplate:', template.name, 'values length:', template.values.length);
-    console.log('[DEBUG] currentPreviewValues before:', currentPreviewValues);
-    setCurrentPreviewValues(template.values);
-    setTemplatePreviewValues(template.values);
-    setEditingContent(template.values.join('\n'));
-    setOutputText(`✅ Applied template: ${template.name} (${template.values.length} values)`);
-    // Auto-select current to show it's been applied
-    setSelectedSource({ type: 'current', id: 'current' });
-    console.log('[DEBUG] currentPreviewValues after:', template.values);
   };
 
   // Handle file upload
@@ -145,10 +159,10 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
     const reader = new FileReader();
     reader.onload = (evt) => {
       const content = evt.target?.result as string;
-      
+
       // Get file path (works in Electron)
       const filePath = (file as any).path || undefined;
-      
+
       const newFile: SourceFile = {
         id: crypto.randomUUID(),
         name: file.name,
@@ -158,7 +172,7 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
         language: 'text',
       };
       console.log('[DEBUG] handleFileUpload - new file:', file.name);
-      setFiles(prev => [...prev, newFile]);
+      setFiles((prev) => [...prev, newFile]);
       setSelectedSource({ type: 'file', id: newFile.id });
       setEditingContent(content);
       console.log('[DEBUG] File upload - setting currentPreviewValues to []');
@@ -179,7 +193,8 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
   const handleCreateScript = () => {
     if (!isValidScriptName) return;
 
-    const defaultCode = '// Generate payload values\nconst values = [];\nfor (let i = 1; i <= 10; i++) {\n  values.push(`value_${i}`);\n}\nreturn values;';
+    const defaultCode =
+      '// Generate payload values\nconst values = [];\nfor (let i = 1; i <= 10; i++) {\n  values.push(`value_${i}`);\n}\nreturn values;';
 
     const newScript: SourceFile = {
       id: crypto.randomUUID(),
@@ -188,9 +203,9 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
       content: defaultCode,
       language: 'javascript',
     };
-    
+
     console.log('[DEBUG] handleCreateScript - new script:', finalScriptName);
-    setScripts(prev => [...prev, newScript]);
+    setScripts((prev) => [...prev, newScript]);
     setSelectedSource({ type: 'script', id: newScript.id });
     setEditingContent(defaultCode);
     console.log('[DEBUG] Script created - setting currentPreviewValues to []');
@@ -217,14 +232,19 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
     }
 
     if (selectedSource.type === 'file') {
-      const file = files.find(f => f.id === selectedSource.id);
+      const file = files.find((f) => f.id === selectedSource.id);
       if (!file) return;
-      
+
       // Parse file content (one value per line)
-      const lines = editingContent.split('\n').map(l => l.trim()).filter(l => l);
-      
+      const lines = editingContent
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l);
+
       console.log('[DEBUG] Compile file - parsed lines:', lines.length);
-      setFiles(prev => prev.map(f => f.id === file.id ? { ...f, content: editingContent, output: lines } : f));
+      setFiles((prev) =>
+        prev.map((f) => (f.id === file.id ? { ...f, content: editingContent, output: lines } : f)),
+      );
       setCurrentPreviewValues(lines);
       setTemplatePreviewValues(lines);
       setOutputText(`✅ Parsed ${lines.length} values from file`);
@@ -232,7 +252,7 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
     }
 
     if (selectedSource.type === 'script') {
-      const script = scripts.find(s => s.id === selectedSource.id);
+      const script = scripts.find((s) => s.id === selectedSource.id);
       if (!script) return;
 
       try {
@@ -243,10 +263,14 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
           throw new Error('Script must return an array');
         }
 
-        const values = result.map(v => String(v));
-        
+        const values = result.map((v) => String(v));
+
         console.log('[DEBUG] Script compiled - generated values:', values.length);
-        setScripts(prev => prev.map(s => s.id === script.id ? { ...s, content: editingContent, output: values } : s));
+        setScripts((prev) =>
+          prev.map((s) =>
+            s.id === script.id ? { ...s, content: editingContent, output: values } : s,
+          ),
+        );
         setCurrentPreviewValues(values);
         setTemplatePreviewValues(values);
         setOutputText(`✅ Generated ${values.length} values`);
@@ -261,11 +285,11 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
   // Handle delete file/script
   const handleDelete = (type: 'file' | 'script', id: string) => {
     if (type === 'file') {
-      setFiles(prev => prev.filter(f => f.id !== id));
+      setFiles((prev) => prev.filter((f) => f.id !== id));
     } else {
-      setScripts(prev => prev.filter(s => s.id !== id));
+      setScripts((prev) => prev.filter((s) => s.id !== id));
     }
-    
+
     if (selectedSource?.id === id) {
       setSelectedSource(null);
       setEditingContent('');
@@ -286,23 +310,28 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
   // Get current selected source
   const getCurrentSource = (): SourceFile | null => {
     if (!selectedSource) return null;
-    if (selectedSource.type === 'file') return files.find(f => f.id === selectedSource.id) || null;
-    if (selectedSource.type === 'script') return scripts.find(s => s.id === selectedSource.id) || null;
+    if (selectedSource.type === 'file')
+      return files.find((f) => f.id === selectedSource.id) || null;
+    if (selectedSource.type === 'script')
+      return scripts.find((s) => s.id === selectedSource.id) || null;
     return null;
   };
 
   const currentSource = getCurrentSource();
-  const isScriptOrFile = selectedSource && (selectedSource.type === 'file' || selectedSource.type === 'script');
+  const isScriptOrFile =
+    selectedSource && (selectedSource.type === 'file' || selectedSource.type === 'script');
   const isCurrentValues = selectedSource?.type === 'current';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className={cn(
-        'h-[85vh] bg-modal-background border border-border rounded-lg shadow-2xl flex flex-col transition-all duration-300',
-        isCurrentValues || (!isScriptOrFile && selectedSource?.type === 'template')
-          ? 'w-[70vw] max-w-[900px]'
-          : 'w-[90vw] max-w-[1400px]'
-      )}>
+      <div
+        className={cn(
+          'h-[85vh] bg-modal-background border border-border rounded-lg shadow-2xl flex flex-col transition-all duration-300',
+          isCurrentValues || (!isScriptOrFile && selectedSource?.type === 'template')
+            ? 'w-[70vw] max-w-[900px]'
+            : 'w-[90vw] max-w-[1400px]',
+        )}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div>
@@ -340,12 +369,14 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                   'w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center gap-2',
                   selectedSource?.type === 'current'
                     ? 'bg-primary/10 text-primary'
-                    : 'text-text-primary hover:bg-dropdown-item-hover'
+                    : 'text-text-primary hover:bg-dropdown-item-hover',
                 )}
               >
                 <FileText className="w-3 h-3 shrink-0" />
                 <span className="flex-1 truncate">{payloadName}</span>
-                <span className="text-[10px] text-text-secondary">{currentPreviewValues.length}</span>
+                <span className="text-[10px] text-text-secondary">
+                  {currentPreviewValues.length}
+                </span>
               </button>
             </div>
 
@@ -353,7 +384,7 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
             <div className="p-3 border-b border-border">
               <div className="text-xs font-medium text-text-secondary mb-2">Quick Templates</div>
               <div className="space-y-1">
-                {defaultTemplates.map(tpl => (
+                {defaultTemplates.map((tpl) => (
                   <button
                     key={tpl.id}
                     onClick={() => handleTemplateClick(tpl)}
@@ -361,7 +392,7 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                       'w-full text-left px-2 py-1.5 rounded text-xs transition-colors',
                       selectedSource?.type === 'template' && selectedSource.id === tpl.id
                         ? 'bg-primary/10 text-primary'
-                        : 'text-text-primary hover:bg-dropdown-item-hover'
+                        : 'text-text-primary hover:bg-dropdown-item-hover',
                     )}
                   >
                     {tpl.name}
@@ -390,14 +421,14 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                 </button>
               </div>
               <div className="space-y-0.5">
-                {files.map(file => (
+                {files.map((file) => (
                   <div
                     key={file.id}
                     className={cn(
                       'flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors cursor-pointer group',
                       selectedSource?.type === 'file' && selectedSource.id === file.id
                         ? 'bg-primary/10 text-primary'
-                        : 'text-text-primary hover:bg-dropdown-item-hover'
+                        : 'text-text-primary hover:bg-dropdown-item-hover',
                     )}
                     onClick={() => {
                       setSelectedSource({ type: 'file', id: file.id });
@@ -468,26 +499,24 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                     className={cn(
                       'w-full px-2 py-1 text-xs rounded outline-none',
                       'bg-input-background',
-                      isValidScriptName ? 'border border-primary' : 'border border-error'
+                      isValidScriptName ? 'border border-primary' : 'border border-error',
                     )}
                   />
                   {!isValidScriptName && newScriptName && (
-                    <div className="text-[10px] text-error mt-0.5">
-                      Only .js allowed
-                    </div>
+                    <div className="text-[10px] text-error mt-0.5">Only .js allowed</div>
                   )}
                 </div>
               )}
 
               <div className="space-y-0.5">
-                {scripts.map(script => (
+                {scripts.map((script) => (
                   <div
                     key={script.id}
                     className={cn(
                       'flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors cursor-pointer group',
                       selectedSource?.type === 'script' && selectedSource.id === script.id
                         ? 'bg-primary/10 text-primary'
-                        : 'text-text-primary hover:bg-dropdown-item-hover'
+                        : 'text-text-primary hover:bg-dropdown-item-hover',
                     )}
                     onClick={() => {
                       setSelectedSource({ type: 'script', id: script.id });
@@ -558,7 +587,9 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                             console.log('[DEBUG] Apply Output to Current Values');
                             console.log('[DEBUG] templatePreviewValues:', templatePreviewValues);
                             setCurrentPreviewValues(templatePreviewValues);
-                            setOutputText(`✅ Applied ${templatePreviewValues.length} values to Current Values`);
+                            setOutputText(
+                              `✅ Applied ${templatePreviewValues.length} values to Current Values`,
+                            );
                           }}
                           className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-success hover:text-success/80 hover:bg-success/10 transition-colors"
                           title="Apply these values to Current Values"
@@ -568,7 +599,9 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                         </button>
                       )}
                       <button
-                        onClick={() => navigator.clipboard.writeText(templatePreviewValues.join('\n'))}
+                        onClick={() =>
+                          navigator.clipboard.writeText(templatePreviewValues.join('\n'))
+                        }
                         className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
                       >
                         <Copy className="w-3 h-3" />
@@ -580,7 +613,9 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                     <div className="font-mono text-xs text-text-primary space-y-0.5">
                       {templatePreviewValues.slice(0, 1000).map((val, i) => (
                         <div key={i} className="flex gap-2">
-                          <span className="text-text-secondary w-12 text-right shrink-0">{i + 1}</span>
+                          <span className="text-text-secondary w-12 text-right shrink-0">
+                            {i + 1}
+                          </span>
                           <span className="break-all">{val}</span>
                         </div>
                       ))}
@@ -593,7 +628,6 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                   </div>
                 </div>
               </>
-
             ) : isCurrentValues ? (
               /* Current Values: Textarea view (simple text edit) */
               <div className="flex-1 flex flex-col min-w-0">
@@ -615,19 +649,28 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                     onChange={(e) => {
                       const newText = e.target.value;
                       setRawText(newText);
-                      
+
                       // Parse values from raw text
                       let values: string[] = [];
                       if (newText.includes('\n')) {
-                        values = newText.split('\n').map(s => s.trim()).filter(s => s !== '');
+                        values = newText
+                          .split('\n')
+                          .map((s) => s.trim())
+                          .filter((s) => s !== '');
                       } else if (newText.includes(',') || newText.includes(';')) {
-                        values = newText.split(/[,;]\s*/).map(s => s.trim()).filter(s => s !== '');
+                        values = newText
+                          .split(/[,;]\s*/)
+                          .map((s) => s.trim())
+                          .filter((s) => s !== '');
                       } else if (newText.includes(' ')) {
-                        values = newText.split(/\s+/).map(s => s.trim()).filter(s => s !== '');
+                        values = newText
+                          .split(/\s+/)
+                          .map((s) => s.trim())
+                          .filter((s) => s !== '');
                       } else if (newText.trim() !== '') {
                         values = [newText.trim()];
                       }
-                      
+
                       console.log(`📊 [Payload Value] Current values count: ${values.length}`);
                       if (values.length > 0) {
                         console.log(`📊 [Payload Value] First 3 values:`, values.slice(0, 3));
@@ -641,7 +684,6 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                   />
                 </div>
               </div>
-
             ) : (
               /* Template preview: CodeBlock */
               <div className="flex-1 flex flex-col min-w-0">
@@ -656,7 +698,9 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                           console.log('[DEBUG] Apply Template to Current Values');
                           console.log('[DEBUG] templatePreviewValues:', templatePreviewValues);
                           setCurrentPreviewValues(templatePreviewValues);
-                          setOutputText(`✅ Applied ${templatePreviewValues.length} values to Current Values`);
+                          setOutputText(
+                            `✅ Applied ${templatePreviewValues.length} values to Current Values`,
+                          );
                         }}
                         className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-success hover:text-success/80 hover:bg-success/10 transition-colors"
                         title="Apply these values to Current Values"
@@ -666,7 +710,9 @@ export function PayloadValueModal({ isOpen, onClose, payloadName, currentValues,
                       </button>
                     )}
                     <button
-                      onClick={() => navigator.clipboard.writeText(templatePreviewValues.join('\n'))}
+                      onClick={() =>
+                        navigator.clipboard.writeText(templatePreviewValues.join('\n'))
+                      }
                       className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
                     >
                       <Copy className="w-3 h-3" />

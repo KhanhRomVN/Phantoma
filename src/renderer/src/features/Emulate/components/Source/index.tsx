@@ -33,8 +33,6 @@ interface SourcesPanelProps {
 // Build tree structure from file paths
 function buildTree(files: SourceFile[]): TreeNode[] {
   const root: TreeNode[] = [];
-  const pathMap = new Map<string, TreeNode>();
-
   files.forEach((file) => {
     const parts = file.path.split('/').filter(Boolean);
     let currentPath = '';
@@ -100,7 +98,7 @@ function TreeNodeItem({
   onSelect: (file: SourceFile) => void;
   onToggle: (path: string) => void;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
+  const [, setIsHovered] = useState(false);
 
   if (node.type === 'folder') {
     const isExpanded = expandedPaths.has(node.path);
@@ -349,7 +347,6 @@ function FileTree({
 
 function SourceView({
   content,
-  fileName,
   language,
 }: {
   content: string;
@@ -403,7 +400,7 @@ function SourceView({
 
 const STORAGE_KEY = 'phantoma-source-state';
 
-export function SourcesPanel({ requests = [], onClose }: SourcesPanelProps) {
+export function SourcesPanel({ requests = [] }: SourcesPanelProps) {
   const [selectedContent, setSelectedContent] = useLocalStorage<{
     content: string;
     fileName: string;
@@ -428,13 +425,18 @@ export function SourcesPanel({ requests = [], onClose }: SourcesPanelProps) {
         else if (ext === 'json') type = 'json';
         else if (ext === 'xml') type = 'xml';
         else type = 'js';
+        const bodyContent = typeof req.responseBody === 'string'
+          ? req.responseBody
+          : req.responseBody
+            ? JSON.stringify(req.responseBody)
+            : '';
         files.push({
           id: req.id,
           name: req.path.split('/').pop() || req.path,
           path: req.path,
           type,
-          content: req.responseBody,
-          size: req.responseBody?.length || 0,
+          content: bodyContent,
+          size: bodyContent.length || 0,
           url: req.url,
         });
       }

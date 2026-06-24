@@ -98,7 +98,7 @@ export function setupMobileHandlers() {
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
       let ip = '';
-      let retries = 3;
+      const retries = 3;
 
       for (let i = 0; i < retries; i++) {
         try {

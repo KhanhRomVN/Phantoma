@@ -77,7 +77,7 @@ export const useAmassScan = (
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let rawOutputLines: string[] = [];
+      const rawOutputLines: string[] = [];
       let done = false;
 
       while (!done) {
@@ -108,7 +108,7 @@ export const useAmassScan = (
 
       // Parse subdomains from raw output
       const rawOutput = rawOutputLines.join('\n');
-      let subdomains: SubdomainResult[] = parseAmassOutput(rawOutput);
+      const subdomains: SubdomainResult[] = parseAmassOutput(rawOutput);
 
       const scanResult: AmassScanResult = {
         status: 'completed',

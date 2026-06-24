@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, ChevronDown, ChevronRight, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Trash2, Clock } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { StatusBadge } from '../common/StatusBadge';
 
@@ -30,36 +30,25 @@ interface HistoryListProps {
   onViewResponse?: (entry: HistoryEntry) => void;
 }
 
-export function HistoryList({ 
-  entries, 
-  onSelect, 
-  onClear, 
-  onDelete, 
+export function HistoryList({
+  entries,
+  onSelect,
+  onClear,
+  onDelete,
   selectedId,
-  payloads = [],
   onSwitchToResult,
-  onViewResponse
+  onViewResponse,
 }: HistoryListProps) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-
-  const toggleExpand = (id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const getStatusIcon = (status: number) => {
-    if (status >= 200 && status < 300) return <CheckCircle className="w-3.5 h-3.5 text-success" />;
-    if (status >= 400) return <XCircle className="w-3.5 h-3.5 text-error" />;
-    return <AlertCircle className="w-3.5 h-3.5 text-warning" />;
-  };
+  const [expandedIds] = useState<Set<string>>(new Set());
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return date.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
   };
 
   const formatDateLabel = (timestamp: number): string => {
@@ -67,11 +56,11 @@ export function HistoryList({
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     const todayStr = today.toLocaleDateString('en-GB');
     const yesterdayStr = yesterday.toLocaleDateString('en-GB');
     const dateStr = date.toLocaleDateString('en-GB');
-    
+
     if (dateStr === todayStr) return `Today ${dateStr}`;
     if (dateStr === yesterdayStr) return `Yesterday ${dateStr}`;
     return dateStr;
@@ -124,12 +113,12 @@ export function HistoryList({
             {/* Group by date */}
             {(() => {
               const groups: { [key: string]: HistoryEntry[] } = {};
-              entries.forEach(entry => {
+              entries.forEach((entry) => {
                 const label = formatDateLabel(entry.timestamp);
                 if (!groups[label]) groups[label] = [];
                 groups[label].push(entry);
               });
-              
+
               return Object.entries(groups).map(([label, groupEntries]) => (
                 <div key={label} className="space-y-1">
                   <div className="text-[10px] font-bold text-text-secondary uppercase px-2 py-1">
@@ -138,7 +127,8 @@ export function HistoryList({
                   {groupEntries.map((entry) => {
                     const isExpanded = expandedIds.has(entry.id);
                     const isSelected = selectedId === entry.id;
-                    const methodColor = methodColors[entry.method?.toUpperCase()] || 'text-text-secondary';
+                    const methodColor =
+                      methodColors[entry.method?.toUpperCase()] || 'text-text-secondary';
                     const hasPayload = entry.payload && entry.payload.length > 0;
                     const urlPath = getUrlPath(entry.url);
                     const startTime = formatTime(entry.timestamp);
@@ -162,14 +152,16 @@ export function HistoryList({
                           isSelected
                             ? 'border-primary/50 bg-primary/5'
                             : 'border-border hover:border-border-hover bg-background hover:bg-dropdown-item-hover/30',
-                          isExpanded && 'border-primary/30'
+                          isExpanded && 'border-primary/30',
                         )}
                         onClick={handleCardClick}
                       >
                         <div className="px-3 py-2 space-y-1.5">
                           {/* Row 1: Method + URL + Status */}
                           <div className="flex items-center gap-2">
-                            <span className={cn('font-mono font-bold text-xs shrink-0', methodColor)}>
+                            <span
+                              className={cn('font-mono font-bold text-xs shrink-0', methodColor)}
+                            >
                               {entry.method}
                             </span>
                             <span className="flex-1 text-xs text-text-primary font-mono truncate">
@@ -180,10 +172,14 @@ export function HistoryList({
 
                           {/* Row 2: Time + Duration + Payload count */}
                           <div className="flex items-center gap-3 text-[10px] text-text-secondary">
-                            <span>🕐 {startTime} - {endTime}</span>
+                            <span>
+                              🕐 {startTime} - {endTime}
+                            </span>
                             <span>⏱ {entry.duration}ms</span>
                             {hasPayload && (
-                              <span className="text-primary">📦 {entry.payloadCount || 1} values</span>
+                              <span className="text-primary">
+                                📦 {entry.payloadCount || 1} values
+                              </span>
                             )}
                             {!hasPayload && (
                               <span className="text-text-secondary opacity-50">No payload</span>

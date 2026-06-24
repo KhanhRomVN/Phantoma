@@ -1,7 +1,6 @@
 import { NetworkRequest } from '../../../../types/inspector';
 import { cn } from '../../../../shared/lib/utils';
-import { Code, GitBranch, FileCode, User, Link } from 'lucide-react';
-import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
+import { GitBranch, FileCode } from 'lucide-react';
 import { useTheme } from '../../../../theme/ThemeProvider';
 
 interface InitiatorDetailsProps {
@@ -101,7 +100,6 @@ function InitiatorInfoDisplay({
   initiator: InitiatorInfo | null;
   onNavigateToSource?: (url: string, line: number, col: number, functionName: string) => void;
 }) {
-  const { accentColors, UNIFIED_ACCENT } = useAccentColors();
   const { currentPreset } = useTheme();
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
 
@@ -114,37 +112,6 @@ function InitiatorInfoDisplay({
       </div>
     );
   }
-
-  const getTypeColor = (type: string): string => {
-    const colors = accentColors || [accentColor, '#8b5cf6', '#10b981', '#f59e0b'];
-    switch (type) {
-      case 'script':
-        return `text-[${colors[0] || accentColor}] bg-[${colors[0] || accentColor}]/10 border-[${colors[0] || accentColor}]/20`;
-      case 'parser':
-        return `text-[${colors[1] || accentColor}] bg-[${colors[1] || accentColor}]/10 border-[${colors[1] || accentColor}]/20`;
-      case 'navigation':
-        return `text-[${colors[2] || '#10b981'}] bg-[${colors[2] || '#10b981'}]/10 border-[${colors[2] || '#10b981'}]/20`;
-      case 'preload':
-        return `text-[${colors[3] || '#f59e0b'}] bg-[${colors[3] || '#f59e0b'}]/10 border-[${colors[3] || '#f59e0b'}]/20`;
-      default:
-        return 'text-text-secondary bg-muted/10 border-border';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'script':
-        return <Code className="w-3.5 h-3.5" />;
-      case 'parser':
-        return <FileCode className="w-3.5 h-3.5" />;
-      case 'navigation':
-        return <Link className="w-3.5 h-3.5" />;
-      case 'preload':
-        return <GitBranch className="w-3.5 h-3.5" />;
-      default:
-        return <User className="w-3.5 h-3.5" />;
-    }
-  };
 
   return (
     <div className="flex flex-col h-full p-4 space-y-3">
@@ -191,7 +158,7 @@ function InitiatorInfoDisplay({
   );
 }
 
-export function InitiatorDetails({ request, searchTerm }: InitiatorDetailsProps) {
+export function InitiatorDetails({ request }: InitiatorDetailsProps) {
   // Parse initiator from request
   const initiator = request.initiator
     ? typeof request.initiator === 'string'
@@ -204,12 +171,12 @@ export function InitiatorDetails({ request, searchTerm }: InitiatorDetailsProps)
     ? typeof initiator === 'string'
       ? { type: initiator }
       : {
-          type: initiator.type || 'other',
-          url: initiator.url,
-          lineNumber: initiator.lineNumber,
-          columnNumber: initiator.columnNumber,
-          functionName: initiator.functionName,
-          stack: initiator.stack,
+          type: (initiator as any).type || 'other',
+          url: (initiator as any).url,
+          lineNumber: (initiator as any).lineNumber,
+          columnNumber: (initiator as any).columnNumber,
+          functionName: (initiator as any).functionName,
+          stack: (initiator as any).stack,
         }
     : null;
 

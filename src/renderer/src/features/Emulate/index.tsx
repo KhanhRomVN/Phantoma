@@ -3,9 +3,6 @@ import { useModulePersistence } from '../../hooks/useModulePersistence';
 import {
   LayoutPanelLeft,
   Package,
-  GitCompare,
-  PenSquare,
-  Settings,
   Code,
   ScrollText,
   X,
@@ -29,10 +26,10 @@ import {
 import { NetworkRequest } from './types/inspector';
 import { ResourcesPanel } from './components/Resources';
 import { PayloadPanel } from './components/Repeater';
-import { ComparePanel } from './components/Compare';
 import { SourcesPanel } from './components/Source';
 import { LogViewer } from './components/Log';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useAccentColors } from '../../shared/hooks/useAccentColors';
 import { cn } from '../../shared/lib/utils';
 import { AddTargetModal } from './components/Target/AddTargetModal';
 import { ConfirmDeleteModal } from './components/Target/ConfirmDeleteModal';
@@ -75,13 +72,7 @@ interface EmulateProps {
   onStopSession?: () => Promise<void>;
 }
 
-type ToolType =
-  | 'home'
-  | 'intruder'
-  | 'repeater'
-  | 'resource'
-  | 'source'
-  | 'log';
+type ToolType = 'home' | 'intruder' | 'repeater' | 'resource' | 'source' | 'log';
 
 interface EmulateState {
   selectedTool: ToolType;
@@ -108,7 +99,6 @@ interface EmulateState {
 
 export default function Emulate({
   activeAppId = '',
-  _activeAppName = '',
   onSelectApp = async () => {},
   onStopSession = async () => {},
 }: EmulateProps) {
@@ -116,7 +106,7 @@ export default function Emulate({
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
 
   const [state, setState] = useModulePersistence<EmulateState>('emulate', {
-    selectedTool: 'intruder',
+    selectedTool: 'home',
     targetTabs: [{ id: 'default', title: 'Chưa chọn target', favicon: undefined, url: undefined }],
     activeTargetId: null,
     requests: [],
@@ -443,33 +433,57 @@ export default function Emulate({
 
   const handleDeleteWsConnection = (_id: string) => {};
 
-  const tools: { id: ToolType; icon: React.ReactNode; label: string; color: string }[] = [
+  const { getColorByIndex } = useAccentColors();
+
+  const tools: {
+    id: ToolType;
+    icon: React.ReactNode;
+    label: string;
+    color: string;
+    accentIndex: number;
+  }[] = [
     {
       id: 'home',
       icon: <LayoutPanelLeft className="w-4 h-4" />,
       label: 'Home',
       color: 'blue',
+      accentIndex: 0,
     },
     {
       id: 'intruder',
       icon: <LayoutPanelLeft className="w-4 h-4" />,
       label: 'Intruder',
       color: 'purple',
+      accentIndex: 1,
     },
     {
       id: 'repeater',
       icon: <Package className="w-4 h-4" />,
       label: 'Repeater',
       color: 'orange',
+      accentIndex: 2,
     },
     {
       id: 'resource',
       icon: <FolderOpen className="w-4 h-4" />,
       label: 'Resource',
       color: 'teal',
+      accentIndex: 3,
     },
-    { id: 'source', icon: <Code className="w-4 h-4" />, label: 'Source', color: 'yellow' },
-    { id: 'log', icon: <ScrollText className="w-4 h-4" />, label: 'Log', color: 'red' },
+    {
+      id: 'source',
+      icon: <Code className="w-4 h-4" />,
+      label: 'Source',
+      color: 'yellow',
+      accentIndex: 4,
+    },
+    {
+      id: 'log',
+      icon: <ScrollText className="w-4 h-4" />,
+      label: 'Log',
+      color: 'red',
+      accentIndex: 5,
+    },
   ];
 
   // ---- Target management state ----
@@ -716,7 +730,7 @@ export default function Emulate({
 
     const handleCdpResponseBody = (_event: any, data: any) => {
       // Try to get timestamp, if not found, retry after a short delay
-      let requestTimestamp = requestTimestampMap.get(data.id);
+      const requestTimestamp = requestTimestampMap.get(data.id);
       let timeMs = 0;
 
       if (requestTimestamp) {
@@ -914,20 +928,6 @@ export default function Emulate({
           console.error('[Emulate] onSelectApp fallback failed:', e2);
         }
       }
-    }
-  };
-
-  const handleLaunchWithConfirm = (app: UserApp) => {
-    if (activeAppId && activeAppId !== app.id) {
-      setAppToLaunch(app);
-      setIsLaunchModalOpen(true);
-    } else {
-      handleLaunchTarget(
-        app.id,
-        'http://127.0.0.1:8081',
-        app.url,
-        app.platform === 'web' ? 'browser' : 'electron',
-      );
     }
   };
 
@@ -1541,26 +1541,28 @@ export default function Emulate({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar - Feature Tabs */}
         <div className="flex h-10 border-b border-border shrink-0 overflow-x-auto gap-0.5 px-2">
-          {tools.map((tool) => (
-            <button
-              key={tool.id}
-              onClick={() => setSelectedTool(tool.id)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 h-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all border-b-2',
-                selectedTool === tool.id
-                  ? 'text-text-primary'
-                  : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-dropdown-item-hover',
-              )}
-              style={{
-                borderBottomColor: selectedTool === tool.id ? accentColor : 'transparent',
-              }}
-            >
-              <span style={{ color: selectedTool === tool.id ? accentColor : undefined }}>
-                {tool.icon}
-              </span>
-              <span>{tool.label}</span>
-            </button>
-          ))}
+          {tools.map((tool) => {
+            const tabColor = getColorByIndex(tool.accentIndex);
+            const isActive = selectedTool === tool.id;
+            return (
+              <button
+                key={tool.id}
+                onClick={() => setSelectedTool(tool.id)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 h-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all border-b-2',
+                  isActive
+                    ? 'text-text-primary'
+                    : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-dropdown-item-hover',
+                )}
+                style={{
+                  borderBottomColor: isActive ? tabColor : 'transparent',
+                }}
+              >
+                <span style={{ color: isActive ? tabColor : undefined }}>{tool.icon}</span>
+                <span>{tool.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Content based on selected tool */}
@@ -1633,6 +1635,7 @@ export default function Emulate({
                     appId="emulate-app"
                     onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
                     isFilterOpen={isFilterOpen}
+                    targetId={activeTargetId}
                   />
                 </div>
               </>

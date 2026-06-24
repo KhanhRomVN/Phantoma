@@ -79,7 +79,7 @@ export async function detectAndroidDevices(): Promise<MobileEmulator[]> {
 
   try {
     // Strategy 1: VirtualBox (Legacy/Standard Genymotion)
-    let vboxVMs: Map<string, string> = new Map(); // Name -> IP
+    const vboxVMs: Map<string, string> = new Map(); // Name -> IP
     try {
       // Only try if vboxmanage is in path
       execSync('which vboxmanage', { stdio: 'ignore' });
@@ -108,7 +108,7 @@ export async function detectAndroidDevices(): Promise<MobileEmulator[]> {
     }
 
     // Strategy 2: Process Scanning (QEMU/KVM for Genymotion)
-    let runningVMNames: Set<string> = new Set(vboxVMs.keys());
+    const runningVMNames: Set<string> = new Set(vboxVMs.keys());
     const vmUuidToName: Map<string, string> = new Map(); // UUID -> VM Name mapping
 
     try {
@@ -187,7 +187,7 @@ export async function detectAndroidDevices(): Promise<MobileEmulator[]> {
 
         const isGenymotion = manufacturer === 'Genymotion' || manufacturer === 'Genymobile';
 
-        let type: EmulatorType = isGenymotion ? 'genymotion' : 'physical';
+        const type: EmulatorType = isGenymotion ? 'genymotion' : 'physical';
         let name = model;
         let ip = '';
         let vmId: string | undefined;

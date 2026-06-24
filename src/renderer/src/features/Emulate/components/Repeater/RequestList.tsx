@@ -11,13 +11,7 @@ interface RequestListProps {
   onSearchChange: (term: string) => void;
 }
 
-export function RequestList({
-  requests,
-  selectedId,
-  onSelect,
-  searchTerm,
-  onSearchChange,
-}: RequestListProps) {
+export function RequestList({ requests, selectedId, onSelect, searchTerm }: RequestListProps) {
   const filtered = useMemo(() => {
     if (!searchTerm) return requests;
     const term = searchTerm.toLowerCase();
@@ -65,7 +59,9 @@ export function RequestList({
       {filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center h-full text-text-secondary">
           <p className="text-sm">No requests in Repeater</p>
-          <p className="text-xs mt-1 opacity-60">Right-click a request and select "Send to Repeater"</p>
+          <p className="text-xs mt-1 opacity-60">
+            Right-click a request and select "Send to Repeater"
+          </p>
         </div>
       )}
     </div>

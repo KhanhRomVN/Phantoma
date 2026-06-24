@@ -36,7 +36,9 @@ const payloadTemplates: PayloadTemplate[] = [
     generator: () => {
       const start = parseInt(prompt('Start number:', '1') || '1');
       const end = parseInt(prompt('End number:', '100') || '100');
-      return Array.from({ length: Math.ceil((end - start + 1) / 2) }, (_, i) => String(start + i * 2)).filter(n => parseInt(n) % 2 === 1);
+      return Array.from({ length: Math.ceil((end - start + 1) / 2) }, (_, i) =>
+        String(start + i * 2),
+      ).filter((n) => parseInt(n) % 2 === 1);
     },
   },
   {
@@ -46,7 +48,9 @@ const payloadTemplates: PayloadTemplate[] = [
     generator: () => {
       const start = parseInt(prompt('Start number:', '0') || '0');
       const end = parseInt(prompt('End number:', '100') || '100');
-      return Array.from({ length: Math.ceil((end - start + 1) / 2) }, (_, i) => String(start + i * 2)).filter(n => parseInt(n) % 2 === 0);
+      return Array.from({ length: Math.ceil((end - start + 1) / 2) }, (_, i) =>
+        String(start + i * 2),
+      ).filter((n) => parseInt(n) % 2 === 0);
     },
   },
   {
@@ -71,7 +75,40 @@ const payloadTemplates: PayloadTemplate[] = [
     id: 'special-chars',
     name: 'Special Characters',
     description: 'Common special characters',
-    generator: () => ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '=', '+', '[', ']', '{', '}', ';', ':', "'", '"', ',', '.', '<', '>', '/', '?', '\\', '|', '`', '~'],
+    generator: () => [
+      '!',
+      '@',
+      '#',
+      '$',
+      '%',
+      '^',
+      '&',
+      '*',
+      '(',
+      ')',
+      '-',
+      '_',
+      '=',
+      '+',
+      '[',
+      ']',
+      '{',
+      '}',
+      ';',
+      ':',
+      "'",
+      '"',
+      ',',
+      '.',
+      '<',
+      '>',
+      '/',
+      '?',
+      '\\',
+      '|',
+      '`',
+      '~',
+    ],
   },
 ];
 
@@ -83,8 +120,7 @@ interface PayloadTableProps {
   targetId?: string | null;
 }
 
-export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId }: PayloadTableProps) {
-  const [editingId, setEditingId] = useState<string | null>(null);
+export function PayloadTable({ payloads, onChange, targetId }: PayloadTableProps) {
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [modalPayload, setModalPayload] = useState<PayloadItem | null>(null);
   const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
@@ -99,7 +135,7 @@ export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId 
 
   // Check for duplicate names
   const isDuplicateName = (name: string, currentId: string): boolean => {
-    return payloads.some(p => p.id !== currentId && p.name.toLowerCase() === name.toLowerCase());
+    return payloads.some((p) => p.id !== currentId && p.name.toLowerCase() === name.toLowerCase());
   };
 
   const handleAdd = () => {
@@ -123,13 +159,13 @@ export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId 
       values,
       enabled: true,
     };
-    console.log('📋 Adding from template:', { template: template.name, valuesCount: values.length, newPayload });
+    console.log('📋 Adding from template:', {
+      template: template.name,
+      valuesCount: values.length,
+      newPayload,
+    });
     onChange([...payloads, newPayload]);
     setShowTemplateMenu(false);
-  };
-
-  const handleDelete = (id: string) => {
-    onChange(payloads.filter((p) => p.id !== id));
   };
 
   const handleDeleteAll = () => {
@@ -149,7 +185,7 @@ export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId 
 
   const handleSaveModalValues = (values: string[]) => {
     if (!modalPayload) return;
-    onChange(payloads.map(p => p.id === modalPayload.id ? { ...p, values } : p));
+    onChange(payloads.map((p) => (p.id === modalPayload.id ? { ...p, values } : p)));
     setModalPayload(null);
   };
 
@@ -170,7 +206,12 @@ export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId 
               className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
               Templates
             </button>
@@ -183,7 +224,9 @@ export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId 
                     className="w-full text-left px-3 py-2 hover:bg-dropdown-item-hover transition-colors"
                   >
                     <div className="text-xs font-medium text-text-primary">{template.name}</div>
-                    <div className="text-[10px] text-text-secondary mt-0.5">{template.description}</div>
+                    <div className="text-[10px] text-text-secondary mt-0.5">
+                      {template.description}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -204,22 +247,29 @@ export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId 
           <thead className="sticky top-0 bg-table-headerBg border-b border-border z-10">
             <tr>
               <th className="w-8 px-2 py-1.5 text-left text-text-secondary font-medium">#</th>
-              <th className="min-w-[120px] px-2 py-1.5 text-left text-text-secondary font-medium">Name</th>
-              <th className="min-w-[150px] px-2 py-1.5 text-left text-text-secondary font-medium">Description</th>
+              <th className="min-w-[120px] px-2 py-1.5 text-left text-text-secondary font-medium">
+                Name
+              </th>
+              <th className="min-w-[150px] px-2 py-1.5 text-left text-text-secondary font-medium">
+                Description
+              </th>
               <th className="px-2 py-1.5 text-left text-text-secondary font-medium">Values</th>
             </tr>
           </thead>
           <tbody>
             {payloads.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-2 py-8 text-center text-xs text-text-secondary italic">
+                <td
+                  colSpan={4}
+                  className="px-2 py-8 text-center text-xs text-text-secondary italic"
+                >
                   No payloads yet. Click "Add Custom" or choose a template.
                 </td>
               </tr>
             ) : (
               payloads.map((payload) => {
                 const hasDuplicateName = isDuplicateName(payload.name, payload.id);
-                
+
                 return (
                   <tr
                     key={payload.id}
@@ -255,7 +305,11 @@ export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId 
                           value={payload.name}
                           onChange={(e) => {
                             const newName = e.target.value;
-                            onChange(payloads.map(p => p.id === payload.id ? { ...p, name: newName } : p));
+                            onChange(
+                              payloads.map((p) =>
+                                p.id === payload.id ? { ...p, name: newName } : p,
+                              ),
+                            );
                             setTimeout(() => {
                               const el = textareaRefs.current.get(`${payload.id}-name`);
                               if (el) resizeTextarea(el);
@@ -263,7 +317,7 @@ export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId 
                           }}
                           className={cn(
                             'w-full bg-transparent px-1.5 py-1.5 text-xs outline-none resize-none font-medium overflow-hidden',
-                            hasDuplicateName ? 'text-error' : 'text-text-primary'
+                            hasDuplicateName ? 'text-error' : 'text-text-primary',
                           )}
                           placeholder="Payload name..."
                           rows={1}
@@ -285,7 +339,11 @@ export function PayloadTable({ payloads, onChange, onUpload, onExport, targetId 
                         }}
                         value={payload.description}
                         onChange={(e) => {
-                          onChange(payloads.map(p => p.id === payload.id ? { ...p, description: e.target.value } : p));
+                          onChange(
+                            payloads.map((p) =>
+                              p.id === payload.id ? { ...p, description: e.target.value } : p,
+                            ),
+                          );
                           setTimeout(() => {
                             const el = textareaRefs.current.get(`${payload.id}-desc`);
                             if (el) resizeTextarea(el);

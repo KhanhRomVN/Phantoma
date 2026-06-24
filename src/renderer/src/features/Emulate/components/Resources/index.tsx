@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { detectWasmModules } from '../../../../utils/detectors';
 import { NetworkRequest } from '../Home/Filter';
-import { ResourceItem, ResourceType, getFileType, formatSize, TYPE_LABELS } from './types';
+import { ResourceItem, ResourceType, getFileType, formatSize } from './types';
 import { ResourceList } from './ResourceList';
 import { ResourcePreview } from './ResourcePreview';
 
@@ -11,7 +11,7 @@ interface ResourcesPanelProps {
   onCountChange?: (count: number) => void;
 }
 
-export function ResourcesPanel({ requests = [], onClose, onCountChange }: ResourcesPanelProps) {
+export function ResourcesPanel({ requests = [], onCountChange }: ResourcesPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<ResourceType>>(
@@ -56,10 +56,11 @@ export function ResourcesPanel({ requests = [], onClose, onCountChange }: Resour
             path: request.path,
             type: 'wasm',
             contentType: 'application/wasm',
-            size: request.size || 'Unknown',
+            size: String(request.size || 'Unknown'),
             timestamp: request.timestamp || Date.now(),
             source: request.url.split('?')[0],
-            responseBody: request.responseBody,
+            responseBody:
+              typeof request.responseBody === 'string' ? request.responseBody : undefined,
             isWasm: true,
             wasmItem: wasm,
           });
@@ -93,10 +94,10 @@ export function ResourcesPanel({ requests = [], onClose, onCountChange }: Resour
           req.responseHeaders?.['content-type'] ||
           req.responseHeaders?.['Content-Type'] ||
           'unknown',
-        size: size === '0 B' ? 'Unknown' : size,
+        size: size === '0 B' ? 'Unknown' : String(size),
         timestamp: req.timestamp || Date.now(),
         source: req.url.split('?')[0].substring(0, req.url.split('?')[0].lastIndexOf('/') + 1),
-        responseBody: req.responseBody,
+        responseBody: typeof req.responseBody === 'string' ? req.responseBody : undefined,
       });
     });
 

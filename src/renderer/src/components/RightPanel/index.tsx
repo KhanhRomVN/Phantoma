@@ -9,7 +9,7 @@ import { cn } from '../../shared/lib/utils';
 
 type PanelView = 'agent' | 'analytic' | 'terminal';
 
-export function IntelPanel({ subTarget }: { subTarget: SubTarget }) {
+export function IntelPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) {
   const [view, setView] = useState<PanelView>('agent');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);

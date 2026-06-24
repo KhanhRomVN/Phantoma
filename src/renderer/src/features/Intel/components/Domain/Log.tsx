@@ -96,9 +96,9 @@ export const Log = forwardRef<HTMLDivElement, LogProps>(
       lines.forEach((line, lineIndex) => {
         let match;
         while ((match = pattern.exec(line)) !== null) {
-          let matchText = match[0];
-          let start = match.index;
-          let end = start + matchText.length;
+          const matchText = match[0];
+          const start = match.index;
+          const end = start + matchText.length;
 
           // Match whole word check
           if (matchWholeWord) {

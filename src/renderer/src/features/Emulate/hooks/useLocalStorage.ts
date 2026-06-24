@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
+export function useLocalStorage<T>(
+  key: string,
+  initialValue: T,
+): [T, (value: T | ((val: T) => T)) => void] {
   // Get from local storage then parse stored json
   const readValue = useCallback((): T => {
     if (typeof window === 'undefined') {
@@ -21,7 +24,9 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T 
   const setValue = useCallback(
     (value: T | ((val: T) => T)) => {
       if (typeof window === 'undefined') {
-        console.warn(`Tried setting localStorage key “${key}” even though environment is not a client`);
+        console.warn(
+          `Tried setting localStorage key “${key}” even though environment is not a client`,
+        );
       }
 
       try {

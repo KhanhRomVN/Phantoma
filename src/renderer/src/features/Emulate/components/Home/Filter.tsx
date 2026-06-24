@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { X, Globe, Link } from 'lucide-react';
+import { X, Globe } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 
 import { getRequestCategory } from '../../utils/requestHelpers';
@@ -117,26 +117,6 @@ interface NetworkFilterProps {
   targetId?: string | null;
 }
 
-const badgeColors = [
-  'bg-blue-500/10 text-blue-400 border-blue-500/25',
-  'bg-emerald-500/10 text-emerald-400 border-emerald-500/25',
-  'bg-purple-500/10 text-purple-400 border-purple-500/25',
-  'bg-amber-500/10 text-amber-400 border-amber-500/25',
-  'bg-rose-500/10 text-rose-400 border-rose-500/25',
-  'bg-cyan-500/10 text-cyan-400 border-cyan-500/25',
-  'bg-pink-500/10 text-pink-400 border-pink-500/25',
-  'bg-indigo-500/10 text-indigo-400 border-indigo-500/25',
-];
-
-const getDeterministicColor = (str: string) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % badgeColors.length;
-  return badgeColors[index];
-};
-
 function ListFilterSection({
   title,
   lists,
@@ -150,7 +130,6 @@ function ListFilterSection({
   allItems?: string[];
   getColorForItem?: (item: string) => string;
 }) {
-  
   const [input, setInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -231,7 +210,6 @@ function ListFilterSection({
               <div className="p-1 flex flex-col gap-1">
                 {filteredSuggestions.map((suggestion) => {
                   const isAlreadyAdded = (lists.whitelist || []).includes(suggestion);
-                  const isHost = title.toLowerCase() === 'host';
                   return (
                     <button
                       key={suggestion}
@@ -276,7 +254,10 @@ function ListFilterSection({
                   }
                 >
                   {isHost && (
-                    <Globe className="w-3 h-3 shrink-0" style={{ color: color || 'currentColor' }} />
+                    <Globe
+                      className="w-3 h-3 shrink-0"
+                      style={{ color: color || 'currentColor' }}
+                    />
                   )}
                   <span className="truncate max-w-[200px]">{item}</span>
                   <button
@@ -297,8 +278,7 @@ function ListFilterSection({
 }
 
 export function NetworkFilter({ filter, onChange, requests = [], targetId }: NetworkFilterProps) {
-  
-  const { accentColors, getColorByIndex, toRgba } = useAccentColors();
+  const { getColorByIndex } = useAccentColors();
 
   // Storage key for filter data
   const getStorageKey = () => {
@@ -353,7 +333,7 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
         .filter((r) => r.protocol === 'https' && typeof r.status === 'number')
         .map((r) => r.status),
     ),
-  ).sort((a, b) => a - b);
+  ).sort((a, b) => (a || 0) - (b || 0));
 
   const availableMethods = Array.from(
     new Set(requests.map((r) => r.method?.toUpperCase()).filter(Boolean)),
@@ -364,70 +344,71 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
   ).sort();
 
   // Generate color mappings using accentColors from theme
-  const typeConfig: Record<string, { label: string; color: string; bgColor: string }> = useMemo(() => {
-    const getColor = (index: number) => {
-      const color = getColorByIndex(index);
-      return color;
-    };
+  const typeConfig: Record<string, { label: string; color: string; bgColor: string }> =
+    useMemo(() => {
+      const getColor = (index: number) => {
+        const color = getColorByIndex(index);
+        return color;
+      };
 
-    return {
-      xhr: {
-        label: 'XHR',
-        color: getColor(0),
-        bgColor: getColor(0),
-      },
-      js: {
-        label: 'JS',
-        color: getColor(1),
-        bgColor: getColor(1),
-      },
-      css: {
-        label: 'CSS',
-        color: getColor(2),
-        bgColor: getColor(2),
-      },
-      img: {
-        label: 'Image',
-        color: getColor(3),
-        bgColor: getColor(3),
-      },
-      media: {
-        label: 'Media',
-        color: getColor(4),
-        bgColor: getColor(4),
-      },
-      font: {
-        label: 'Font',
-        color: getColor(5),
-        bgColor: getColor(5),
-      },
-      doc: {
-        label: 'Document',
-        color: getColor(6),
-        bgColor: getColor(6),
-      },
-      ws: {
-        label: 'WebSocket',
-        color: getColor(7),
-        bgColor: getColor(7),
-      },
-      wasm: {
-        label: 'WebAssembly',
-        color: getColor(8),
-        bgColor: getColor(8),
-      },
-      manifest: {
-        label: 'Manifest',
-        color: getColor(9),
-        bgColor: getColor(9),
-      },
-      other: {
-        label: 'Other',
-        color: getColor(10),
-        bgColor: getColor(10),
-      },
-    };
-  }, [getColorByIndex]);
+      return {
+        xhr: {
+          label: 'XHR',
+          color: getColor(0),
+          bgColor: getColor(0),
+        },
+        js: {
+          label: 'JS',
+          color: getColor(1),
+          bgColor: getColor(1),
+        },
+        css: {
+          label: 'CSS',
+          color: getColor(2),
+          bgColor: getColor(2),
+        },
+        img: {
+          label: 'Image',
+          color: getColor(3),
+          bgColor: getColor(3),
+        },
+        media: {
+          label: 'Media',
+          color: getColor(4),
+          bgColor: getColor(4),
+        },
+        font: {
+          label: 'Font',
+          color: getColor(5),
+          bgColor: getColor(5),
+        },
+        doc: {
+          label: 'Document',
+          color: getColor(6),
+          bgColor: getColor(6),
+        },
+        ws: {
+          label: 'WebSocket',
+          color: getColor(7),
+          bgColor: getColor(7),
+        },
+        wasm: {
+          label: 'WebAssembly',
+          color: getColor(8),
+          bgColor: getColor(8),
+        },
+        manifest: {
+          label: 'Manifest',
+          color: getColor(9),
+          bgColor: getColor(9),
+        },
+        other: {
+          label: 'Other',
+          color: getColor(10),
+          bgColor: getColor(10),
+        },
+      };
+    }, [getColorByIndex]);
 
   const methodColors: Record<string, { color: string; bgColor: string }> = useMemo(() => {
     const getColor = (index: number) => {
@@ -457,14 +438,13 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
             <h3 className="text-xs font-semibold">Method</h3>
           </div>
           {availableMethods.length === 0 ? (
-            <div className="text-xs text-muted-foreground italic px-2">
-              No methods available
-            </div>
+            <div className="text-xs text-muted-foreground italic px-2">No methods available</div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableMethods.map((key) => {
-                const color = methodColors[key] || methodColors['GET'];
-                const isVisible = filter.methods[key as keyof typeof filter.methods] !== false;
+                const safeKey = key as string;
+                const color = methodColors[safeKey] || methodColors['GET'];
+                const isVisible = filter.methods[safeKey as keyof typeof filter.methods] !== false;
 
                 return (
                   <button
@@ -522,32 +502,29 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
             <h3 className="text-xs font-semibold">Status</h3>
           </div>
           {availableStatuses.length === 0 ? (
-            <div className="text-xs text-muted-foreground italic px-2">
-              No statuses available
-            </div>
+            <div className="text-xs text-muted-foreground italic px-2">No statuses available</div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableStatuses.map((code) => {
+                const safeCode = typeof code === 'number' ? code : 0;
                 let colorClass = 'text-text-secondary border-border';
-                if (code >= 200 && code < 300)
-                  colorClass = 'text-green border-green/30';
-                else if (code >= 300 && code < 400)
+                if (safeCode >= 200 && safeCode < 300) colorClass = 'text-green border-green/30';
+                else if (safeCode >= 300 && safeCode < 400)
                   colorClass = 'text-yellow border-yellow/30';
-                else if (code >= 400 && code < 500)
-                  colorClass = 'text-red border-red/30';
-                else if (code >= 500) colorClass = 'text-rose-400 border-rose-400/30';
+                else if (safeCode >= 400 && safeCode < 500) colorClass = 'text-red border-red/30';
+                else if (safeCode >= 500) colorClass = 'text-rose-400 border-rose-400/30';
 
-                const isVisible = filter.status[code] !== false;
+                const isVisible = filter.status[safeCode] !== false;
 
                 return (
                   <button
-                    key={code}
+                    key={safeCode}
                     onClick={() =>
                       onChange({
                         ...filter,
                         status: {
                           ...filter.status,
-                          [code]: !isVisible,
+                          [safeCode]: !isVisible,
                         },
                       })
                     }
@@ -559,7 +536,7 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                     )}
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >
-                    {code}
+                    {safeCode}
                   </button>
                 );
               })}
@@ -573,14 +550,13 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
             <h3 className="text-xs font-semibold">Type</h3>
           </div>
           {availableTypes.length === 0 ? (
-            <div className="text-xs text-muted-foreground italic px-2">
-              No types available
-            </div>
+            <div className="text-xs text-muted-foreground italic px-2">No types available</div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableTypes.map((key) => {
-                const config = typeConfig[key] || typeConfig['other'];
-                const isVisible = filter.type[key as keyof typeof filter.type] !== false;
+                const safeKey = key as string;
+                const config = typeConfig[safeKey] || typeConfig['other'];
+                const isVisible = filter.type[safeKey as keyof typeof filter.type] !== false;
 
                 return (
                   <button
@@ -590,7 +566,7 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                         ...filter,
                         type: {
                           ...filter.type,
-                          [key]: !isVisible,
+                          [safeKey]: !isVisible,
                         },
                       })
                     }

@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { cn } from '../../../../shared/lib/utils';
-import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 interface LogEntry {
   timestamp: string;
@@ -61,7 +60,6 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
   const [matchCase, setMatchCase] = useState(false);
   const [matchWholeWord, setMatchWholeWord] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
-  const { UNIFIED_ACCENT, toRgba } = useAccentColors();
 
   useEffect(() => {
     if (!emulatorSerial) return;
@@ -352,7 +350,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                 'p-0.5 rounded cursor-pointer border-none transition-all',
                 matchCase
                   ? 'bg-primary/20 text-primary'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
               )}
             >
               <CaseSensitive className="w-3 h-3" />
@@ -363,7 +361,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                 'p-0.5 rounded cursor-pointer border-none transition-all',
                 matchWholeWord
                   ? 'bg-primary/20 text-primary'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
               )}
             >
               <WholeWord className="w-3 h-3" />
@@ -374,7 +372,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                 'p-0.5 rounded cursor-pointer border-none transition-all',
                 useRegex
                   ? 'bg-success/20 text-success'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
               )}
             >
               <Regex className="w-3 h-3" />

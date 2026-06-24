@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../../shared/lib/utils';
 import { NavModuleConfig, PhantomModule, SubMenuItem } from '../../features/Tool/types/types';
@@ -7,7 +7,6 @@ import {
   Crosshair as CrosshairIcon,
   Wrench as WrenchIcon,
 } from 'lucide-react';
-import { useTheme } from '../../theme/ThemeProvider';
 import { useAccentColors } from '../../shared/hooks/useAccentColors';
 
 // ─── Color Helper ──────────────────────────────────────────────────────────
@@ -346,8 +345,7 @@ export function ModuleBar({
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const expanded = isHovered;
-  const { currentPreset } = useTheme();
-  const { accentColors, UNIFIED_ACCENT, toRgba } = useAccentColors();
+  const { accentColors, UNIFIED_ACCENT } = useAccentColors();
 
   // Update the global color cache for getModuleColor
   // We need to do this on each render to keep colors in sync with theme
