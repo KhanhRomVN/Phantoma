@@ -161,6 +161,16 @@ export const CrispWhite: ThemeConfig = {
     warn: 'rgb(204, 102, 0)',
     info: 'rgb(0, 102, 204)',
     //
+    blue: 'rgb(0, 102, 204)',
+    green: 'rgb(0, 136, 68)',
+    red: 'rgb(221, 34, 34)',
+    yellow: 'rgb(255, 187, 0)',
+    purple: 'rgb(153, 0, 204)',
+    pink: 'rgb(230, 100, 160)',
+    navy: 'rgb(26, 37, 74)',
+    teal: 'rgb(0, 180, 220)',
+    violet: 'rgb(130, 80, 200)',
+    //
     background: 'rgb(255, 255, 255)',
     foreground: 'rgb(34, 34, 34)',
     //

@@ -189,11 +189,12 @@ export function RequestTable({
   onStopTarget,
   onStartTarget,
 }: RequestTableProps) {
-  
   // Use props as source of truth for UI state (more reliable than store)
   // Store is only used for persistence, not for real-time UI updates
   const isTargetActive = propsIsTargetActive;
   const activeTargetMode = propsActiveTargetMode;
+
+  const { getColorByIndex, toRgba } = useAccentColors();
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [matchCase, setMatchCase] = useState(false);
@@ -205,7 +206,6 @@ export function RequestTable({
   const [rowSelection, setRowSelection] = useState({});
   const [contextMenuPage, setContextMenuPage] = useState<string | null>(null);
   const [contextMenuTarget, setContextMenuTarget] = useState<NetworkRequest | null>(null);
-  
 
   // Feature: Highlighted Rows
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
@@ -458,24 +458,24 @@ export function RequestTable({
         size: 0,
         enableHiding: true,
       },
-      {
+{
         accessorKey: 'method',
         header: 'Method',
         size: 100,
         cell: ({ row }) => {
           const method = row.getValue('method') as string;
-          const methodColors: Record<string, string> = {
-            GET: 'text-blue-400',
-            POST: 'text-green-400',
-            PUT: 'text-orange-400',
-            DELETE: 'text-red-400',
-            PATCH: 'text-purple-400',
-            HEAD: 'text-gray-400',
-            OPTIONS: 'text-cyan-400',
-            TRACE: 'text-indigo-400',
-            CONNECT: 'text-rose-400',
+          const methodColorMap: Record<string, string> = {
+            GET: 'text-blue',
+            POST: 'text-green',
+            PUT: 'text-yellow',
+            DELETE: 'text-red',
+            PATCH: 'text-purple',
+            HEAD: 'text-pink',
+            OPTIONS: 'text-teal',
+            TRACE: 'text-navy',
+            CONNECT: 'text-violet',
           };
-          const colorClass = methodColors[method] || 'text-text-primary';
+          const colorClass = methodColorMap[method] || 'text-text-primary';
           return <span className={cn('font-bold text-xs', colorClass)}>{method}</span>;
         },
       },
@@ -551,10 +551,20 @@ export function RequestTable({
           }
 
           let colorClass = 'text-text-primary';
-          if (status >= 200 && status < 300) colorClass = 'text-success';
-          else if (status >= 300 && status < 400) colorClass = 'text-info';
-          else if (status >= 400) colorClass = 'text-error';
-else return <span className={colorClass}>{status || 'Pending'}</span>;
+          if (status >= 200 && status < 300) {
+            colorClass = 'text-green';
+          } else if (status >= 300 && status < 400) {
+            colorClass = 'text-yellow';
+          } else if (status >= 400) {
+            colorClass = 'text-red';
+          }
+          return (
+            <span
+              className={cn('font-bold text-xs text-center w-full', colorClass)}
+            >
+              {status || 'Pending'}
+            </span>
+          );
         },
       },
       {
@@ -563,9 +573,26 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
         size: 80,
         cell: ({ row }) => {
           const type = row.getValue('type') as string;
-          // Capitalize first letter: xhr -> Xhr, js -> Js, css -> Css, etc.
           const formattedType = type ? type.charAt(0).toUpperCase() + type.slice(1) : type;
-          return <span className="text-text-primary">{formattedType}</span>;
+          const typeColorMap: Record<string, string> = {
+            xhr: 'text-blue',
+            js: 'text-yellow',
+            css: 'text-purple',
+            img: 'text-pink',
+            media: 'text-teal',
+            font: 'text-navy',
+            doc: 'text-violet',
+            ws: 'text-green',
+            wasm: 'text-purple',
+            manifest: 'text-yellow',
+            other: 'text-text-secondary',
+          };
+          const colorClass = typeColorMap[type] || 'text-text-secondary';
+          return (
+            <span className={cn('text-xs font-medium', colorClass)}>
+              {formattedType}
+            </span>
+          );
         },
       },
       {
@@ -578,7 +605,9 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
           const tags: {
             label: string;
             tooltip: string;
-            className: string;
+            colorClass: string;
+            bgClass: string;
+            borderClass: string;
             icon?: React.ReactNode;
           }[] = [];
 
@@ -597,7 +626,9 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
             tags.push({
               label: 'WASM',
               tooltip: 'WebAssembly',
-              className: 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-bold',
+              colorClass: 'text-purple',
+              bgClass: 'bg-purple/15',
+              borderClass: 'border-purple/30',
             });
           }
 
@@ -614,8 +645,9 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
             tags.push({
               label: 'SSE',
               tooltip: 'Server-Sent Events',
-              className:
-                'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold',
+              colorClass: 'text-teal',
+              bgClass: 'bg-teal/15',
+              borderClass: 'border-teal/30',
             });
           }
 
@@ -632,7 +664,9 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
             tags.push({
               label: '',
               tooltip: 'Cookies',
-              className: 'bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold',
+              colorClass: 'text-yellow',
+              bgClass: 'bg-yellow/15',
+              borderClass: 'border-yellow/30',
               icon: <Cookie className="w-3 h-3" />,
             });
           }
@@ -646,7 +680,9 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
             tags.push({
               label: '⚠',
               tooltip: `${secIssues.length} security issue(s) detected (${highCount} high)`,
-              className: 'bg-red-500/15 text-red-400 border border-red-500/30 font-bold',
+              colorClass: 'text-red',
+              bgClass: 'bg-red/15',
+              borderClass: 'border-red/30',
             });
           }
 
@@ -656,10 +692,12 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
             <div className="flex gap-1 flex-wrap">
               {tags.map((tag) => (
                 <span
-                  key={tag.label}
+                  key={tag.label || tag.tooltip}
                   className={cn(
-                    'px-1.5 py-0.5 rounded text-[10px] tracking-wide inline-flex items-center gap-1',
-                    tag.className,
+                    'px-1.5 py-0.5 rounded text-[10px] tracking-wide inline-flex items-center gap-1 font-bold border',
+                    tag.colorClass,
+                    tag.bgClass,
+                    tag.borderClass,
                   )}
                   title={tag.tooltip}
                 >
@@ -684,7 +722,7 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
         cell: ({ row }) => <span className="text-text-primary">{row.getValue('time')}</span>,
       },
     ],
-    [pendingActionIds, onForward, onDrop, highlightedIds, toggleHighlight],
+    [pendingActionIds, onForward, onDrop, highlightedIds, toggleHighlight, getColorByIndex, toRgba],
   );
 
   // Memoized global filter function with pre-compiled regex
@@ -1080,7 +1118,7 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
                 >
-                  <Monitor className="w-3.5 h-3.5 text-blue-400" />
+                  <Monitor className="w-3.5 h-3.5 text-blue" />
                   <span>CDP</span>
                   <span className="text-text-secondary text-[10px]">
                     (Chrome DevTools Protocol)
@@ -1294,7 +1332,7 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
                         }}
                         className="cursor-pointer"
                       >
-                        <Copy className="mr-2 h-3.5 w-3.5 text-blue-400" />
+                        <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
                         <span>Copy</span>
                         <ChevronRight className="ml-auto h-3.5 w-3.5 text-text-secondary" />
                       </ContextMenuItem>
@@ -1333,9 +1371,7 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
                             isHighlighted ? 'fill-warning text-warning' : 'text-yellow-400',
                           )}
                         />
-                        <span>
-                          {isHighlighted ? 'Unhighlight' : 'Highlight'}
-                        </span>
+                        <span>{isHighlighted ? 'Unhighlight' : 'Highlight'}</span>
                       </ContextMenuItem>
 
                       <ContextMenuSeparator />
@@ -1363,7 +1399,7 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
       </div>
       {Object.keys(rowSelection).length > 0 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-modal-background border border-border/80 rounded-full shadow-2xl px-4 py-2 flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-<span className="text-xs font-medium text-text-secondary">
+          <span className="text-xs font-medium text-text-secondary">
             {String(Object.keys(rowSelection).length)} selected
           </span>
           <div className="w-[1px] h-3.5 bg-border" />
@@ -1379,12 +1415,9 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
                   <Copy className="w-3.5 h-3.5 text-primary" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-text-primary">
-                    Copy Selected
-                  </div>
+                  <div className="text-xs font-semibold text-text-primary">Copy Selected</div>
                   <div className="text-[10px] text-text-secondary">
-                    {Object.keys(rowSelection).length}{' '}
-                    {Object.keys(rowSelection).length} selected
+                    {Object.keys(rowSelection).length} {Object.keys(rowSelection).length} selected
                   </div>
                 </div>
               </div>
@@ -1399,8 +1432,7 @@ else return <span className={colorClass}>{status || 'Pending'}</span>;
                   {[
                     {
                       key: 'status' as const,
-                      label:
-                        'Status + Type + Host + Path',
+                      label: 'Status + Type + Host + Path',
                       icon: Globe,
                     },
                     {

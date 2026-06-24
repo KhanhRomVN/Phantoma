@@ -1,17 +1,22 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Zap, X, Search, Send } from 'lucide-react';
+import { Zap, X, Search, Send, Clock, Save } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { NetworkRequest } from '../Home/Filter';
 import { StatusBadge } from '../common/StatusBadge';
 import { RequestList } from './RequestList';
 import { PayloadConfigPanel } from './PayloadConfigPanel';
 
-const REPEATER_STORAGE_KEY = 'repeater-request-ids';
+// Storage utilities with target support
+const getStorageKey = (targetId: string | null, type: string): string => {
+  const base = targetId ? `repeater-${targetId}` : 'repeater-default';
+  return `${base}-${type}`;
+};
 
 // Load request IDs that have been sent to Repeater
-const loadRepeaterIds = (): Set<string> => {
+const loadRepeaterIds = (targetId?: string | null): Set<string> => {
   try {
-    const data = localStorage.getItem(REPEATER_STORAGE_KEY);
+    const key = getStorageKey(targetId || null, 'request-ids');
+    const data = localStorage.getItem(key);
     if (data) {
       const arr = JSON.parse(data);
       return new Set(arr);
@@ -21,43 +26,44 @@ const loadRepeaterIds = (): Set<string> => {
 };
 
 // Save request IDs to localStorage
-const saveRepeaterIds = (ids: Set<string>) => {
+const saveRepeaterIds = (ids: Set<string>, targetId?: string | null) => {
   try {
-    localStorage.setItem(REPEATER_STORAGE_KEY, JSON.stringify([...ids]));
+    const key = getStorageKey(targetId || null, 'request-ids');
+    localStorage.setItem(key, JSON.stringify([...ids]));
   } catch {}
 };
 
 // Add a request to Repeater
-export const addToRepeater = (requestId: string) => {
-  const ids = loadRepeaterIds();
+export const addToRepeater = (requestId: string, targetId?: string | null) => {
+  const ids = loadRepeaterIds(targetId);
   ids.add(requestId);
-  saveRepeaterIds(ids);
+  saveRepeaterIds(ids, targetId);
   // Dispatch event to notify components
   window.dispatchEvent(new CustomEvent('repeater-updated'));
 };
 
 // Check if a request is in Repeater
-export const isInRepeater = (requestId: string): boolean => {
-  const ids = loadRepeaterIds();
+export const isInRepeater = (requestId: string, targetId?: string | null): boolean => {
+  const ids = loadRepeaterIds(targetId);
   return ids.has(requestId);
 };
 
 // Get all request IDs in Repeater
-export const getRepeaterIds = (): Set<string> => {
-  return loadRepeaterIds();
+export const getRepeaterIds = (targetId?: string | null): Set<string> => {
+  return loadRepeaterIds(targetId);
 };
 
 // Remove a request from Repeater
-export const removeFromRepeater = (requestId: string) => {
-  const ids = loadRepeaterIds();
+export const removeFromRepeater = (requestId: string, targetId?: string | null) => {
+  const ids = loadRepeaterIds(targetId);
   ids.delete(requestId);
-  saveRepeaterIds(ids);
+  saveRepeaterIds(ids, targetId);
   window.dispatchEvent(new CustomEvent('repeater-updated'));
 };
 
 // Clear all requests from Repeater
-export const clearRepeater = () => {
-  saveRepeaterIds(new Set());
+export const clearRepeater = (targetId?: string | null) => {
+  saveRepeaterIds(new Set(), targetId);
   window.dispatchEvent(new CustomEvent('repeater-updated'));
 };
 
@@ -66,6 +72,7 @@ interface PayloadPanelProps {
   isTargetRunning?: boolean;
   onClose?: () => void;
   selectedRequestId?: string | null;
+  targetId?: string | null;
 }
 
 export function PayloadPanel({
@@ -73,19 +80,28 @@ export function PayloadPanel({
   isTargetRunning = false,
   onClose,
   selectedRequestId,
+  targetId,
 }: PayloadPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds());
+  const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds(targetId));
+  const [lastRunTimestamp, setLastRunTimestamp] = useState<number | null>(null);
+  const [saveToHistory, setSaveToHistory] = useState(true);
+  const [payloads, setPayloads] = useState<Array<{ id: string; name: string; values: string[]; enabled: boolean; description?: string }>>([]);
+
+  const handleSwitchTab = (tab: string) => {
+    // This will be handled by PayloadConfigPanel internally
+    // We just need to pass the function down
+  };
 
   // Listen for repeater updates
   useEffect(() => {
     const handleUpdate = () => {
-      setRepeaterIds(loadRepeaterIds());
+      setRepeaterIds(loadRepeaterIds(targetId));
     };
     window.addEventListener('repeater-updated', handleUpdate);
     return () => window.removeEventListener('repeater-updated', handleUpdate);
-  }, []);
+  }, [targetId]);
 
   // Filter requests to only show those in Repeater
   const repeaterRequests = useMemo(() => {
@@ -155,14 +171,33 @@ export function PayloadPanel({
               </span>
             )}
           </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded text-text-secondary hover:text-red-400 hover:bg-red-500/10"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {lastRunTimestamp && (
+              <button
+                onClick={() => {
+                  const newState = !saveToHistory;
+                  setSaveToHistory(newState);
+                  // Trigger onSaveToggle to update PayloadConfigPanel
+                  if (onSaveToggle) onSaveToggle();
+                }}
+                className={cn(
+                  'text-[10px] font-medium transition-colors',
+                  saveToHistory ? 'text-text-secondary hover:text-primary' : 'text-text-secondary hover:text-primary'
+                )}
+                title={saveToHistory ? 'Save to history' : 'Don\'t save to history'}
+              >
+                Do you want to save this session <span className="text-primary">{new Date(lastRunTimestamp).toLocaleTimeString()}</span>? Click to save!
+              </button>
+            )}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded text-text-secondary hover:text-red-400 hover:bg-red-500/10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {!selectedRequest ? (
@@ -174,7 +209,16 @@ export function PayloadPanel({
             </p>
           </div>
         ) : (
-          <PayloadConfigPanel request={selectedRequest} />
+          <PayloadConfigPanel 
+            request={selectedRequest}
+            lastRunTimestamp={lastRunTimestamp}
+            saveToHistory={saveToHistory}
+            onSaveToggle={() => setSaveToHistory(!saveToHistory)}
+            onRun={() => setLastRunTimestamp(Date.now())}
+            onSwitchTab={handleSwitchTab}
+            payloads={payloads}
+            targetId={targetId}
+          />
         )}
       </div>
     </div>

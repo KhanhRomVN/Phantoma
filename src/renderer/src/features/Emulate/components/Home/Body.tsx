@@ -1,9 +1,7 @@
 import { AlignLeft } from 'lucide-react';
-import { NetworkRequest } from '../../../../types/inspector';
 import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock';
 import { forwardRef, useImperativeHandle, useRef, useState, useMemo } from 'react';
 import { cn } from '../../../../shared/lib/utils';
-
 
 interface BodyDetailsProps {
   request: NetworkRequest;
@@ -89,6 +87,7 @@ function HexViewer({ data, className }: HexViewerProps) {
 }
 
 import hljs from 'highlight.js';
+import { NetworkRequest } from '../../types/inspector';
 
 function getLanguage(contentType?: string, content?: string): string {
   // Check content type first
@@ -99,7 +98,7 @@ function getLanguage(contentType?: string, content?: string): string {
     if (contentType.includes('javascript') || contentType.includes('js')) return 'javascript';
     if (contentType.includes('css')) return 'css';
   }
-  
+
   // If no content type or unknown, try to detect from content
   if (content) {
     try {
@@ -109,28 +108,28 @@ function getLanguage(contentType?: string, content?: string): string {
       if (result.language && result.relevance > 5) {
         // Map highlight.js language names to Monaco language names
         const langMap: Record<string, string> = {
-          'json': 'json',
-          'html': 'html',
-          'xml': 'xml',
-          'javascript': 'javascript',
-          'js': 'javascript',
-          'typescript': 'typescript',
-          'css': 'css',
-          'python': 'python',
-          'java': 'java',
-          'c': 'c',
-          'cpp': 'cpp',
-          'csharp': 'csharp',
-          'go': 'go',
-          'rust': 'rust',
-          'php': 'php',
-          'ruby': 'ruby',
-          'sql': 'sql',
-          'yaml': 'yaml',
-          'toml': 'toml',
-          'markdown': 'markdown',
-          'bash': 'bash',
-          'shell': 'bash',
+          json: 'json',
+          html: 'html',
+          xml: 'xml',
+          javascript: 'javascript',
+          js: 'javascript',
+          typescript: 'typescript',
+          css: 'css',
+          python: 'python',
+          java: 'java',
+          c: 'c',
+          cpp: 'cpp',
+          csharp: 'csharp',
+          go: 'go',
+          rust: 'rust',
+          php: 'php',
+          ruby: 'ruby',
+          sql: 'sql',
+          yaml: 'yaml',
+          toml: 'toml',
+          markdown: 'markdown',
+          bash: 'bash',
+          shell: 'bash',
         };
         return langMap[result.language] || result.language || 'text';
       }
@@ -138,8 +137,10 @@ function getLanguage(contentType?: string, content?: string): string {
       // Highlight.js detection failed, fallback to simple detection
       const trimmed = content.trim();
       // Check if it looks like JSON
-      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
-          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+      if (
+        (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+        (trimmed.startsWith('[') && trimmed.endsWith(']'))
+      ) {
         try {
           JSON.parse(trimmed);
           return 'json';
@@ -157,7 +158,7 @@ function getLanguage(contentType?: string, content?: string): string {
       }
     }
   }
-  
+
   return 'text';
 }
 
@@ -180,7 +181,6 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
     const requestBlockRef = useRef<CodeBlockRef>(null);
     const responseBlockRef = useRef<CodeBlockRef>(null);
     const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
-    
 
     useImperativeHandle(ref, () => ({
       nextMatch: () => {
@@ -204,7 +204,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
     // Fallback: Use raw request data when analysis is not available
     const requestBodyContent = analysis?.body?.request?.formatted
       ? JSON.stringify(analysis.body.request.formatted, null, 2)
-      : analysis?.body?.request?.raw 
+      : analysis?.body?.request?.raw
         ? formatJsonIfValid(analysis.body.request.raw)
         : formatJsonIfValid(request.requestBody || 'No Content');
 
@@ -214,13 +214,10 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
         ? formatJsonIfValid(analysis.body.response.raw)
         : formatJsonIfValid(request.responseBody || 'No Content');
 
-    const requestLanguage = getLanguage(
-      analysis?.body?.request?.contentType,
-      requestBodyContent
-    );
+    const requestLanguage = getLanguage(analysis?.body?.request?.contentType, requestBodyContent);
     const responseLanguage = getLanguage(
       analysis?.body?.response?.contentType,
-      responseBodyContent
+      responseBodyContent,
     );
 
     const isResponseBinary = analysis?.body?.response?.isBinary;
@@ -246,9 +243,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
           {/* Request Body */}
           <div className="flex flex-col h-full space-y-1.5 overflow-hidden">
             <div className="flex justify-between items-center border-b border-divider/50 pb-1.5 flex-shrink-0">
-              <h3 className="text-[10px] font-bold text-text-secondary uppercase">
-                Request Body
-              </h3>
+              <h3 className="text-[10px] font-bold text-text-secondary uppercase">Request Body</h3>
               <div className="flex gap-1.5 text-[10px] items-center">
                 <button
                   onClick={() => requestBlockRef.current?.format()}
@@ -290,9 +285,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
           {/* Response Body */}
           <div className="flex flex-col h-full space-y-1.5 overflow-hidden">
             <div className="flex justify-between items-center border-b border-divider/50 pb-1.5 flex-shrink-0">
-              <h3 className="text-[10px] font-bold text-text-secondary uppercase">
-                Response Body
-              </h3>
+              <h3 className="text-[10px] font-bold text-text-secondary uppercase">Response Body</h3>
               <div className="flex gap-1.5 text-[10px] items-center">
                 {!isResponseBinary && (
                   <button

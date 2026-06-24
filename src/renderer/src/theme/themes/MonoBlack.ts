@@ -161,6 +161,16 @@ export const MonoBlack: ThemeConfig = {
     warn: 'rgb(255, 200, 100)',
     info: 'rgb(100, 150, 255)',
     //
+    blue: 'rgb(100, 150, 255)',
+    green: 'rgb(100, 255, 100)',
+    red: 'rgb(255, 68, 68)',
+    yellow: 'rgb(255, 200, 100)',
+    purple: 'rgb(180, 120, 255)',
+    pink: 'rgb(255, 120, 200)',
+    navy: 'rgb(60, 80, 120)',
+    teal: 'rgb(80, 220, 255)',
+    violet: 'rgb(180, 120, 255)',
+    //
     background: 'rgb(0, 0, 0)',
     foreground: 'rgb(255, 255, 255)',
     //

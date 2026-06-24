@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useTheme } from '../../../theme/ThemeProvider';
-import { ThemeConfig } from '../../../theme/types/theme.types';
 
 // Define Window interface to include require for AMD loader
 declare global {

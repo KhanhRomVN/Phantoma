@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
-import { Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { cn } from '../../../../shared/lib/utils';
-import { CodeBlock } from '../../../../components/common/CodeBlock';
+import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock';
+import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 interface ResponseViewerProps {
   headers?: Record<string, string>;
@@ -9,45 +9,56 @@ interface ResponseViewerProps {
   status?: number;
   contentType?: string;
   className?: string;
+  onHeightChange?: (newHeight: number) => void;
 }
 
-export function ResponseViewer({ headers, body, status, contentType, className }: ResponseViewerProps) {
-  const [copied, setCopied] = useState(false);
-  const [showHeaders, setShowHeaders] = useState(true);
-  const [showBody, setShowBody] = useState(true);
-  const [height, setHeight] = useState(40); // percentage
+export function ResponseViewer({
+  headers,
+  body,
+  status,
+  contentType,
+  className,
+  onHeightChange,
+}: ResponseViewerProps) {
+  const [activeTab, setActiveTab] = useState<'headers' | 'body'>('headers');
+  const [isHovering, setIsHovering] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [height, setHeight] = useState<number | null>(null);
+  const codeBlockRef = useRef<CodeBlockRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number>(0);
+  const dragStartHeight = useRef<number>(0);
+  const { PRIMARY_RGB } = useAccentColors();
 
-  // Resize handle logic
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging || !containerRef.current) return;
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+    dragStartY.current = e.clientY;
+    
+    // Get actual computed height
+    if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const parentHeight = containerRef.current.parentElement?.clientHeight || 400;
-      const newHeight = ((e.clientY - rect.top) / parentHeight) * 100;
-      setHeight(Math.min(Math.max(newHeight, 15), 40));
+      dragStartHeight.current = rect.height;
+    }
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      moveEvent.preventDefault();
+      // When dragging UP (negative clientY change), deltaY is positive -> increase height
+      const deltaY = dragStartY.current - moveEvent.clientY;
+      const newHeight = Math.max(180, dragStartHeight.current + deltaY);
+      setHeight(newHeight);
+      onHeightChange?.(newHeight);
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
-    };
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging]);
 
-  const handleCopy = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
   const getStatusColor = (code?: number) => {
@@ -68,6 +79,17 @@ export function ResponseViewer({ headers, body, status, contentType, className }
     );
   }
 
+  const formatBody = (content: string): string => {
+    if (!content) return content;
+    const trimmed = content.trim();
+    try {
+      const parsed = JSON.parse(trimmed);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return content;
+    }
+  };
+
   const detectLanguage = (contentType?: string, body?: string): string => {
     if (contentType) {
       if (contentType.includes('json')) return 'json';
@@ -79,8 +101,10 @@ export function ResponseViewer({ headers, body, status, contentType, className }
     }
     if (body) {
       const trimmed = body.trim();
-      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
-          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+      if (
+        (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+        (trimmed.startsWith('[') && trimmed.endsWith(']'))
+      ) {
         try {
           JSON.parse(trimmed);
           return 'json';
@@ -95,25 +119,77 @@ export function ResponseViewer({ headers, body, status, contentType, className }
 
   const language = detectLanguage(contentType, body);
 
+  // Apply height override if dragging has set a custom height
+  const containerStyle: React.CSSProperties = height !== null 
+    ? { height: `${height}px`, flexGrow: 0, flexShrink: 0 }
+    : {};
+
   return (
-    <div ref={containerRef} className={cn('flex flex-col overflow-hidden bg-background', className)} style={{ height: `${height}%` }}>
+    <div 
+      ref={containerRef} 
+      className={cn('flex flex-col overflow-hidden bg-background flex-1 relative', className)}
+      style={containerStyle}
+    >
       {/* Resize handle */}
       <div
-        className="h-1.5 cursor-row-resize hover:bg-primary/30 transition-colors shrink-0 relative group"
-        onMouseDown={() => setIsDragging(true)}
-      >
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-12 h-0.5 bg-primary/50 rounded-full"></div>
+        className={cn(
+          'absolute top-0 left-0 right-0 cursor-ns-resize z-10',
+          isHovering || isDragging ? 'h-[3px]' : 'h-[2px]',
+        )}
+        style={{
+          backgroundColor: isHovering || isDragging ? `rgb(${PRIMARY_RGB})` : 'transparent',
+        }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => !isDragging && setIsHovering(false)}
+        onMouseDown={handleMouseDown}
+      />
+      
+      {/* Header bar with tabs and status */}
+      <div className="flex items-center justify-between border-b border-border shrink-0 bg-table-headerBg/50 overflow-x-auto">
+        {/* Left: Tabs */}
+        <div className="flex items-center">
+          {headers && Object.keys(headers).length > 0 && (
+            <button
+              onClick={() => setActiveTab('headers')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 h-8 text-xs font-medium whitespace-nowrap transition-all border-b-2',
+                activeTab === 'headers'
+                  ? 'border-primary text-text-primary'
+                  : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover/30',
+              )}
+            >
+              Header
+              <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded text-[10px] font-bold">
+                {Object.keys(headers).length}
+              </span>
+            </button>
+          )}
+          {body && (
+            <button
+              onClick={() => setActiveTab('body')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 h-8 text-xs font-medium whitespace-nowrap transition-all border-b-2',
+                activeTab === 'body'
+                  ? 'border-primary text-text-primary'
+                  : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover/30',
+              )}
+            >
+              Body
+            </button>
+          )}
         </div>
-      </div>
-      {/* Status bar */}
-      {status && (
-        <div className="flex items-center gap-3 px-3 py-1.5 border-b border-border shrink-0 bg-table-headerBg">
-          <span className="text-xs font-medium text-text-secondary">Status:</span>
-          <span className={cn('text-xs font-bold', getStatusColor(status))}>{status}</span>
-          <span className="text-xs text-text-secondary">
-            {status >= 200 && status < 300 ? 'OK' : status >= 400 ? 'Error' : 'Redirect'}
-          </span>
+
+        {/* Right: Status info */}
+        <div className="flex items-center gap-3 px-3 h-8 shrink-0">
+          {status && (
+            <>
+              <span className="text-xs font-medium text-text-secondary">Status:</span>
+              <span className={cn('text-xs font-bold', getStatusColor(status))}>{status}</span>
+              <span className="text-xs text-text-secondary">
+                {status >= 200 && status < 300 ? 'OK' : status >= 400 ? 'Error' : 'Redirect'}
+              </span>
+            </>
+          )}
           {contentType && (
             <>
               <span className="w-px h-4 bg-border" />
@@ -127,74 +203,40 @@ export function ResponseViewer({ headers, body, status, contentType, className }
             </>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Headers section */}
-      {headers && Object.keys(headers).length > 0 && (
-        <div className="border-b border-border shrink-0">
-          <button
-            onClick={() => setShowHeaders(!showHeaders)}
-            className="flex items-center gap-1.5 px-3 py-1 w-full hover:bg-dropdown-item-hover/30 transition-colors text-left"
-          >
-            {showHeaders ? <ChevronDown className="w-3.5 h-3.5 text-text-secondary" /> : <ChevronRight className="w-3.5 h-3.5 text-text-secondary" />}
-            <span className="text-[10px] font-bold text-text-secondary uppercase">Response Headers</span>
-            <span className="text-[10px] text-text-secondary ml-auto">{Object.keys(headers).length} headers</span>
-          </button>
-          {showHeaders && (
-            <div className="px-3 pb-2 max-h-40 overflow-auto">
-              <div className="bg-input-background/50 rounded border border-border/50">
-                {Object.entries(headers).map(([key, value], index) => (
-                  <div
-                    key={key}
-                    className={cn(
-                      'flex items-start gap-2 px-2 py-1 text-xs font-mono',
-                      index !== Object.keys(headers).length - 1 && 'border-b border-border/30'
-                    )}
-                  >
-                    <span className="font-bold text-text-secondary shrink-0">{key}:</span>
-                    <span className="text-text-primary break-all">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Body section */}
-      {body && (
-        <div className="flex-1 min-h-0 flex flex-col">
-          <div className="flex items-center justify-between px-3 py-1 border-b border-border shrink-0 bg-table-headerBg">
-            <button
-              onClick={() => setShowBody(!showBody)}
-              className="flex items-center gap-1.5 hover:text-text-primary transition-colors"
-            >
-              {showBody ? <ChevronDown className="w-3.5 h-3.5 text-text-secondary" /> : <ChevronRight className="w-3.5 h-3.5 text-text-secondary" />}
-              <span className="text-[10px] font-bold text-text-secondary uppercase">Response Body</span>
-            </button>
-            {body && (
-              <button
-                onClick={() => handleCopy(body)}
-                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover/50 transition-colors"
+      {/* Tab content */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        {activeTab === 'headers' && headers && Object.keys(headers).length > 0 && (
+          <div className="flex-1 overflow-auto p-3">
+            {Object.entries(headers).map(([key, value], index) => (
+              <div
+                key={key}
+                className={cn(
+                  'flex items-start gap-2 px-2 py-1 text-xs font-mono',
+                  index !== Object.keys(headers).length - 1 && 'border-b border-border/30',
+                )}
               >
-                {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-                {copied ? 'Copied' : 'Copy'}
-              </button>
-            )}
+                <span className="font-bold text-text-secondary shrink-0">{key}:</span>
+                <span className="text-text-primary break-all">{value}</span>
+              </div>
+            ))}
           </div>
-          {showBody && (
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <CodeBlock
-                code={body}
-                language={language}
-                className="h-full"
-                showLineNumbers
-                wordWrap="on"
-              />
-            </div>
-          )}
-        </div>
-      )}
+        )}
+
+        {activeTab === 'body' && body && (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <CodeBlock
+              ref={codeBlockRef}
+              code={formatBody(body)}
+              language={language}
+              className="h-full"
+              showLineNumbers
+              wordWrap="on"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

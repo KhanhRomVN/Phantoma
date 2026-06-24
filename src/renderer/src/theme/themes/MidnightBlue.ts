@@ -161,6 +161,16 @@ export const MidnightBlue: ThemeConfig = {
     warn: 'rgb(255, 159, 10)',
     info: 'rgb(10, 132, 255)',
     //
+    blue: 'rgb(10, 132, 255)',
+    green: 'rgb(48, 209, 88)',
+    red: 'rgb(255, 45, 85)',
+    yellow: 'rgb(255, 200, 50)',
+    purple: 'rgb(175, 82, 222)',
+    pink: 'rgb(255, 105, 180)',
+    navy: 'rgb(30, 50, 80)',
+    teal: 'rgb(0, 210, 255)',
+    violet: 'rgb(138, 90, 255)',
+    //
     background: 'rgb(15, 19, 25)',
     foreground: 'rgb(200, 214, 240)',
     //

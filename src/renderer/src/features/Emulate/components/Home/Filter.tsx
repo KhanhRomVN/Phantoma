@@ -1,7 +1,6 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { X, Globe, Link } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
-import { Favicon } from '../../../../shared/utils/faviconUtils';
 
 import { getRequestCategory } from '../../utils/requestHelpers';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
@@ -115,6 +114,7 @@ interface NetworkFilterProps {
   filter: InspectorFilter;
   onChange: (filter: InspectorFilter) => void;
   requests?: NetworkRequest[];
+  targetId?: string | null;
 }
 
 const badgeColors = [
@@ -142,11 +142,13 @@ function ListFilterSection({
   lists,
   onChange,
   allItems = [],
+  getColorForItem,
 }: {
   title: string;
   lists: { whitelist: string[] };
   onChange: (lists: { whitelist: string[] }) => void;
   allItems?: string[];
+  getColorForItem?: (item: string) => string;
 }) {
   
   const [input, setInput] = useState('');
@@ -242,16 +244,7 @@ function ListFilterSection({
                       )}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        {isHost ? (
-                          <Favicon
-                            url={`https://${suggestion}`}
-                            size={14}
-                            className="rounded-sm shrink-0"
-                            fallbackIcon={<Globe className="w-3.5 h-3.5 text-zinc-400" />}
-                          />
-                        ) : (
-                          <Link className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                        )}
+                        <Globe className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                         <span className="truncate">{suggestion}</span>
                       </div>
                     </button>
@@ -265,22 +258,25 @@ function ListFilterSection({
           <div className="flex flex-wrap gap-1.5 mt-1">
             {(lists.whitelist || []).map((item) => {
               const isHost = title.toLowerCase() === 'host';
-              const colorClass = getDeterministicColor(item);
+              const color = getColorForItem ? getColorForItem(item) : undefined;
               return (
                 <span
                   key={item}
                   className={cn(
                     'inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs border cursor-default',
-                    colorClass,
                   )}
+                  style={
+                    color
+                      ? {
+                          color: color,
+                          borderColor: color,
+                          backgroundColor: `${color}20`,
+                        }
+                      : undefined
+                  }
                 >
                   {isHost && (
-                    <Favicon
-                      url={`https://${item}`}
-                      size={12}
-                      className="rounded-sm shrink-0"
-                      fallbackIcon={<Globe className="w-3 h-3 text-zinc-400" />}
-                    />
+                    <Globe className="w-3 h-3 shrink-0" style={{ color: color || 'currentColor' }} />
                   )}
                   <span className="truncate max-w-[200px]">{item}</span>
                   <button
@@ -300,9 +296,54 @@ function ListFilterSection({
   );
 }
 
-export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilterProps) {
+export function NetworkFilter({ filter, onChange, requests = [], targetId }: NetworkFilterProps) {
   
-  const { accentColors, getColorByIndex } = useAccentColors();
+  const { accentColors, getColorByIndex, toRgba } = useAccentColors();
+
+  // Storage key for filter data
+  const getStorageKey = () => {
+    const base = targetId ? `repeater-${targetId}` : 'repeater-default';
+    return `${base}-filter`;
+  };
+
+  // Load filter from storage on mount
+  useEffect(() => {
+    if (!targetId) return;
+    try {
+      const key = getStorageKey();
+      const data = localStorage.getItem(key);
+      if (data) {
+        const savedFilter = JSON.parse(data);
+        // Merge with current filter to preserve structure
+        onChange({
+          ...filter,
+          methods: savedFilter.methods || filter.methods,
+          host: savedFilter.host || filter.host,
+          status: savedFilter.status || filter.status,
+          type: savedFilter.type || filter.type,
+        });
+      }
+    } catch {
+      // Ignore errors
+    }
+  }, [targetId]);
+
+  // Save filter to storage whenever it changes
+  useEffect(() => {
+    if (!targetId) return;
+    try {
+      const key = getStorageKey();
+      const dataToSave = {
+        methods: filter.methods,
+        host: filter.host,
+        status: filter.status,
+        type: filter.type,
+      };
+      localStorage.setItem(key, JSON.stringify(dataToSave));
+    } catch {
+      // Ignore errors
+    }
+  }, [filter, targetId]);
 
   const allHosts = Array.from(new Set(requests.map((r) => r.host).filter(Boolean)));
 
@@ -411,7 +452,7 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
     <div className="h-full overflow-y-auto min-h-0 border-l border-border/50 font-sans select-none">
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Method */}
-        <section className="min-w-0">
+        <section className="min-w-0 col-span-1 md:col-span-2">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold">Method</h3>
           </div>
@@ -440,9 +481,17 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
                     className={cn(
                       'px-3 py-1 rounded text-xs font-medium border transition-all',
                       isVisible
-                        ? color
+                        ? 'text-text-primary'
                         : 'text-muted-foreground border-border bg-transparent opacity-50',
                     )}
+                    style={
+                      isVisible
+                        ? {
+                            color: color.color,
+                            borderColor: color.color,
+                          }
+                        : undefined
+                    }
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >
                     {key}
@@ -460,6 +509,10 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
             lists={filter.host}
             onChange={(newHost) => onChange({ ...filter, host: newHost })}
             allItems={allHosts}
+            getColorForItem={(item) => {
+              const hash = item.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              return getColorByIndex(hash % 8);
+            }}
           />
         </section>
 
@@ -475,14 +528,14 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableStatuses.map((code) => {
-                let color = 'text-gray-400 border-gray-400/30 bg-gray-400/10';
+                let colorClass = 'text-text-secondary border-border';
                 if (code >= 200 && code < 300)
-                  color = 'text-green-400 border-green-400/30 bg-green-400/10';
+                  colorClass = 'text-green border-green/30';
                 else if (code >= 300 && code < 400)
-                  color = 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10';
+                  colorClass = 'text-yellow border-yellow/30';
                 else if (code >= 400 && code < 500)
-                  color = 'text-red-400 border-red-400/30 bg-red-400/10';
-                else if (code >= 500) color = 'text-rose-400 border-rose-400/30 bg-rose-400/10';
+                  colorClass = 'text-red border-red/30';
+                else if (code >= 500) colorClass = 'text-rose-400 border-rose-400/30';
 
                 const isVisible = filter.status[code] !== false;
 
@@ -501,7 +554,7 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
                     className={cn(
                       'px-3 py-1 rounded text-xs font-medium border transition-all whitespace-nowrap',
                       isVisible
-                        ? color
+                        ? colorClass
                         : 'text-muted-foreground border-border bg-transparent opacity-50',
                     )}
                     title={isVisible ? 'Click to hide' : 'Click to show'}
@@ -544,9 +597,17 @@ export function NetworkFilter({ filter, onChange, requests = [] }: NetworkFilter
                     className={cn(
                       'px-3 py-1 rounded text-xs font-medium border transition-all',
                       isVisible
-                        ? config.color
+                        ? 'text-text-primary'
                         : 'text-muted-foreground border-border bg-transparent opacity-50',
                     )}
+                    style={
+                      isVisible
+                        ? {
+                            color: config.color,
+                            borderColor: config.color,
+                          }
+                        : undefined
+                    }
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >
                     {config.label}

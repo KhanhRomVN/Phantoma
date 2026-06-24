@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Send, X, Plus, Trash2 } from 'lucide-react';
+import { Play, Square, Send, Trash2, Clock, Save, X } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { NetworkRequest } from '../Home/Filter';
 import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock';
@@ -8,6 +8,7 @@ import { HeaderTable } from './HeaderTable';
 import { PayloadTable } from './PayloadTable';
 import { HistoryList } from './HistoryList';
 import { ResponseViewer } from './ResponseViewer';
+import { ResultTab } from './ResultTab';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 interface ParamItem {
@@ -41,13 +42,27 @@ interface HistoryEntry {
 
 interface PayloadConfigPanelProps {
   request: NetworkRequest | null;
-  onRun?: (job: any) => void;
-  isRunning?: boolean;
+  lastRunTimestamp?: number | null;
+  saveToHistory?: boolean;
+  onSaveToggle?: () => void;
+  onRun?: () => void;
+  onSwitchTab?: (tab: TabType) => void;
+  payloads?: PayloadItem[];
+  targetId?: string | null;
 }
 
-type TabType = 'params' | 'headers' | 'body' | 'payload' | 'history';
+type TabType = 'params' | 'headers' | 'body' | 'payload' | 'history' | 'result';
 
-export function PayloadConfigPanel({ request, onRun, isRunning = false }: PayloadConfigPanelProps) {
+export function PayloadConfigPanel({ 
+  request, 
+  lastRunTimestamp: externalLastRunTimestamp,
+  saveToHistory: externalSaveToHistory,
+  onSaveToggle,
+  onRun,
+  onSwitchTab,
+  payloads: externalPayloads,
+  targetId,
+}: PayloadConfigPanelProps) {
   const { getColorByIndex } = useAccentColors();
   // Request config
   const [method, setMethod] = useState('GET');
@@ -56,12 +71,100 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
   const [headers, setHeaders] = useState<ParamItem[]>([]);
   const [body, setBody] = useState('');
 
-  // Payload management
-  const [payloads, setPayloads] = useState<PayloadItem[]>([]);
+  // Payload management - use external if provided
+  const [internalPayloads, setInternalPayloads] = useState<PayloadItem[]>(() => {
+    if (externalPayloads !== undefined) return externalPayloads;
+    return loadFromStorage(getStorageKey('payloads'), []);
+  });
+  const payloads = externalPayloads !== undefined ? externalPayloads : internalPayloads;
+  const setPayloads = (newPayloads: PayloadItem[] | ((prev: PayloadItem[]) => PayloadItem[])) => {
+    let result: PayloadItem[];
+    if (typeof newPayloads === 'function') {
+      const current = externalPayloads !== undefined ? externalPayloads : internalPayloads;
+      result = newPayloads(current);
+    } else {
+      result = newPayloads;
+    }
+    
+    if (externalPayloads !== undefined) {
+      setInternalPayloads(result);
+    } else {
+      setInternalPayloads(result);
+    }
+    // Save to storage
+    saveToStorage(getStorageKey('payloads'), result);
+  };
+
+  // Auto-detect and create payloads from ${name} patterns
+  useEffect(() => {
+    const allValues = [
+      ...params.map(p => p.value),
+      ...headers.map(h => h.value),
+      body
+    ].join(' ');
+
+    // Extract all ${name} patterns
+    const matches = allValues.matchAll(/\$\{([^}]+)\}/g);
+    const detectedNames = new Set<string>();
+    
+    for (const match of matches) {
+      detectedNames.add(match[1]);
+    }
+
+    console.log('🔍 Auto-detect payloads:', { detectedNames: Array.from(detectedNames), existingPayloads: payloads.map(p => p.name) });
+
+    // Create missing payloads
+    const newPayloads: PayloadItem[] = [];
+    detectedNames.forEach(name => {
+      if (!payloads.some(p => p.name === name)) {
+        console.log('✨ Auto-creating payload:', name);
+        newPayloads.push({
+          id: crypto.randomUUID(),
+          name,
+          description: `Auto-created from \${${name}}`,
+          values: [],
+          enabled: true,
+        });
+      }
+    });
+
+    if (newPayloads.length > 0) {
+      setPayloads(prev => [...prev, ...newPayloads]);
+    }
+  }, [params, headers, body]);
+
+  // Storage utilities
+  const getStorageKey = (type: string): string => {
+    const base = targetId ? `repeater-${targetId}` : 'repeater-default';
+    return `${base}-${type}`;
+  };
+
+  const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const data = localStorage.getItem(key);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch {}
+    return defaultValue;
+  };
+
+  const saveToStorage = <T,>(key: string, data: T) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch {}
+  };
 
   // History
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    return loadFromStorage(getStorageKey('history'), []);
+  });
   const [selectedHistory, setSelectedHistory] = useState<HistoryEntry | null>(null);
+
+  // Save history to storage whenever it changes
+  useEffect(() => {
+    saveToStorage(getStorageKey('history'), history);
+  }, [history, targetId]);
 
   // Execution state
   const [isExecuting, setIsExecuting] = useState(false);
@@ -75,12 +178,45 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
   const [isMethodDropdownOpen, setIsMethodDropdownOpen] = useState(false);
   const methodDropdownRef = useRef<HTMLDivElement>(null);
   const bodyCodeBlockRef = useRef<CodeBlockRef>(null);
+  
+  // Timestamp and history save - use external state if provided
+  const [internalLastRunTimestamp, setInternalLastRunTimestamp] = useState<number | null>(null);
+  const [internalSaveToHistory, setInternalSaveToHistory] = useState(true);
+  
+  const lastRunTimestamp = externalLastRunTimestamp !== undefined ? externalLastRunTimestamp : internalLastRunTimestamp;
+  const saveToHistory = externalSaveToHistory !== undefined ? externalSaveToHistory : internalSaveToHistory;
+  
+  // Modal state
+  const [showRunModal, setShowRunModal] = useState(false);
+  const [totalRequests, setTotalRequests] = useState(0);
+  const [modalMessage, setModalMessage] = useState('');
 
   // Auto-fill from selected request
   useEffect(() => {
     if (request) {
-      setUrl(request.url || '');
+      const requestUrl = request.url || '';
+      setUrl(requestUrl);
       setMethod(request.method || 'GET');
+
+      // Parse URL query params
+      try {
+        const urlObj = new URL(requestUrl);
+        const paramItems: ParamItem[] = [];
+        urlObj.searchParams.forEach((value, key) => {
+          paramItems.push({
+            id: crypto.randomUUID(),
+            key,
+            value,
+            enabled: true,
+          });
+        });
+        setParams(paramItems);
+        // Set clean URL without query params
+        setUrl(requestUrl.split('?')[0]);
+      } catch (error) {
+        // If URL parsing fails, leave params empty
+        setParams([]);
+      }
 
       // Parse headers
       if (request.requestHeaders) {
@@ -128,13 +264,46 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
     return { url: finalUrl, headers: headersObj, body: body };
   };
 
-  const executeRequest = async (payload?: string) => {
-    const { url: finalUrl, headers: headersObj } = buildRequest();
+  const executeRequest = async (payload?: string, skipHistory?: boolean) => {
+    const { headers: headersObj } = buildRequest();
     let finalBody = body;
+    let finalHeaders = { ...headersObj };
+    let finalParams: Record<string, string> = { ...params.filter(p => p.enabled && p.key).reduce((acc, p) => ({ ...acc, [p.key]: p.value }), {}) };
 
-    // If payload is provided, substitute it in the body
-    if (payload && body.includes('§payload§')) {
-      finalBody = body.replace(/§payload§/g, payload);
+    // If payload is provided, substitute ${payload_name} in body, headers, and params
+    if (payload) {
+      const activePayload = payloads.find(p => p.enabled && p.values.includes(payload));
+      if (activePayload) {
+        const placeholder = `\${${activePayload.name}}`;
+        
+        // Substitute in body
+        if (finalBody.includes(placeholder)) {
+          finalBody = finalBody.replace(new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'), payload);
+        }
+        
+        // Substitute in headers
+        Object.keys(finalHeaders).forEach(key => {
+          if (finalHeaders[key].includes(placeholder)) {
+            finalHeaders[key] = finalHeaders[key].replace(new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'), payload);
+          }
+        });
+        
+        // Substitute in params
+        Object.keys(finalParams).forEach(key => {
+          if (finalParams[key].includes(placeholder)) {
+            finalParams[key] = finalParams[key].replace(new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'), payload);
+          }
+        });
+      }
+    }
+
+    // Rebuild URL with substituted params
+    let executionUrl = url;
+    if (Object.keys(finalParams).length > 0) {
+      const queryString = Object.entries(finalParams)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v as string)}`)
+        .join('&');
+      executionUrl += (executionUrl.includes('?') ? '&' : '?') + queryString;
     }
 
     setIsExecuting(true);
@@ -142,9 +311,9 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
 
     try {
       const result = await (window as any).api.invoke('inspector:send-request', {
-        url: finalUrl,
+        url: executionUrl,
         method,
-        headers: headersObj,
+        headers: finalHeaders,
         body: method !== 'GET' && finalBody ? finalBody : undefined,
       });
 
@@ -153,18 +322,20 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
       const entry: HistoryEntry = {
         id: crypto.randomUUID(),
         method,
-        url: finalUrl,
+        url: executionUrl,
         status: result.status || 0,
         timestamp: Date.now(),
         duration,
         payload: payload || '',
-        requestHeaders: headersObj,
+        requestHeaders: finalHeaders,
         requestBody: method !== 'GET' ? finalBody : undefined,
         responseHeaders: result.headers,
         responseBody: result.body,
       };
 
-      setHistory((prev) => [entry, ...prev]);
+      if (saveToHistory && !skipHistory) {
+        setHistory((prev) => [entry, ...prev]);
+      }
       setResponse({
         headers: result.headers,
         body: result.body,
@@ -180,17 +351,19 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
       const entry: HistoryEntry = {
         id: crypto.randomUUID(),
         method,
-        url: finalUrl,
+        url: executionUrl,
         status: 0,
         timestamp: Date.now(),
         duration,
         payload: payload || '',
-        requestHeaders: headersObj,
+        requestHeaders: finalHeaders,
         requestBody: method !== 'GET' ? finalBody : undefined,
         responseHeaders: {},
         responseBody: '',
       };
-      setHistory((prev) => [entry, ...prev]);
+      if (saveToHistory) {
+        setHistory((prev) => [entry, ...prev]);
+      }
       setIsExecuting(false);
       throw error;
     }
@@ -198,7 +371,39 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
 
   const handleSend = async () => {
     if (!url) return;
-    await executeRequest();
+    
+    // Calculate total requests from payloads
+    const enabledPayloads = payloads.filter((p) => p.enabled && p.values.length > 0);
+    let total = 1; // Default: 1 request (no payloads)
+    if (enabledPayloads.length > 0) {
+      total = enabledPayloads.reduce((acc, p) => acc * p.values.length, 1);
+    }
+    
+    setTotalRequests(total);
+    setModalMessage(`This will send ${total} request${total > 1 ? 's' : ''} with all payload combinations. Continue?`);
+    setShowRunModal(true);
+  };
+  
+  const handleConfirmSend = async () => {
+    setShowRunModal(false);
+    const timestamp = Date.now();
+    if (externalLastRunTimestamp === undefined) {
+      setInternalLastRunTimestamp(timestamp);
+    }
+    if (onRun) onRun();
+    
+    const enabledPayloads = payloads.filter((p) => p.enabled && p.values.length > 0);
+    if (enabledPayloads.length === 0) {
+      await executeRequest(undefined, true); // Skip history for Send button
+      return;
+    }
+    
+    // Run all combinations - skip history for Send button
+    for (const payload of enabledPayloads) {
+      for (const value of payload.values) {
+        await executeRequest(value, true);
+      }
+    }
   };
 
   const handleRunAll = async () => {
@@ -216,6 +421,20 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
   };
 
   const handleSelectHistory = (entry: HistoryEntry) => {
+    setSelectedHistory(entry);
+    setResponse({
+      headers: entry.responseHeaders,
+      body: entry.responseBody,
+      status: entry.status,
+    });
+  };
+
+  const handleSwitchToResult = () => {
+    setActiveTab('result');
+    if (onSwitchTab) onSwitchTab('result');
+  };
+
+  const handleViewResponse = (entry: HistoryEntry) => {
     setSelectedHistory(entry);
     setResponse({
       headers: entry.responseHeaders,
@@ -292,6 +511,10 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
     { id: 'headers', label: 'Headers', count: headers.filter((h) => h.enabled && h.key).length },
     { id: 'body', label: 'Body' },
     { id: 'payload', label: 'Payload', count: payloads.filter((p) => p.enabled).length },
+    { id: 'result', label: 'Result', count: (() => {
+      const enabled = payloads.filter(p => p.enabled && p.values.length > 0);
+      return enabled.length > 0 ? enabled.reduce((acc, p) => acc * p.values.length, 1) : undefined;
+    })() },
     { id: 'history', label: 'History', count: history.length },
   ];
 
@@ -349,7 +572,7 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
           placeholder="Enter URL..."
           className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono"
         />
-
+        
         <button
           onClick={handleSend}
           disabled={isExecuting || !url}
@@ -373,13 +596,13 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
       </div>
 
       {/* Section 2: Tabs */}
-      <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg overflow-x-auto">
+      <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/50 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'flex items-center gap-1.5 px-3 h-9 text-xs font-medium whitespace-nowrap transition-all border-b-2',
+              'flex items-center gap-1.5 px-3 h-8 text-xs font-medium whitespace-nowrap transition-all border-b-2',
               activeTab === tab.id
                 ? 'border-primary text-text-primary'
                 : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover/30',
@@ -403,12 +626,16 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
             onChange={setParams}
             placeholderKey="Parameter name"
             placeholderValue="Parameter value"
+            payloads={payloads}
+            onSwitchToPayload={() => setActiveTab('payload')}
           />
         )}
         {activeTab === 'headers' && (
           <HeaderTable
             headers={headers}
             onChange={setHeaders}
+            payloads={payloads}
+            onSwitchToPayload={() => setActiveTab('payload')}
           />
         )}
         {activeTab === 'body' && (
@@ -436,6 +663,7 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
             onChange={setPayloads}
             onUpload={handleUploadPayloads}
             onExport={handleExportPayloads}
+            targetId={targetId}
           />
         )}
         {activeTab === 'history' && (
@@ -445,75 +673,69 @@ export function PayloadConfigPanel({ request, onRun, isRunning = false }: Payloa
             onClear={handleClearHistory}
             onDelete={handleDeleteHistory}
             selectedId={selectedHistory?.id}
+            payloads={payloads}
+            onSwitchToResult={handleSwitchToResult}
+            onViewResponse={handleViewResponse}
           />
+        )}
+        {activeTab === 'result' && (
+          <ResultTab payloads={payloads} />
         )}
       </div>
 
-      {/* Section 3: Execution Panel */}
-      <div className="flex h-60 min-h-[180px] border-t border-border shrink-0">
-        {/* Left: Payload execution list */}
-        <div className="w-64 shrink-0 border-r border-border flex flex-col bg-muted/5">
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0 bg-table-headerBg">
-            <span className="text-[10px] font-bold text-text-secondary uppercase">Payloads</span>
-            <div className="flex items-center gap-1">
-              {payloads.filter((p) => p.enabled && p.values.length > 0).length > 0 && (
-                <button
-                  onClick={handleRunAll}
-                  disabled={isExecuting}
-                  className={cn(
-                    'flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-all',
-                    isExecuting
-                      ? 'text-text-secondary cursor-not-allowed'
-                      : 'text-success hover:bg-success/10',
-                  )}
-                >
-                  <Play className="w-3 h-3" /> Run all
-                </button>
-              )}
+      {/* Section 3: Response Viewer */}
+      <div className="min-h-[180px] border-t border-border shrink-0">
+        <ResponseViewer
+          headers={response?.headers}
+          body={response?.body}
+          status={response?.status}
+          contentType={response?.contentType}
+        />
+      </div>
+
+      {/* Run confirmation modal */}
+      {showRunModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-modal-background border border-border rounded-lg shadow-2xl max-w-md w-full">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-sm font-medium text-text-primary">Confirm Execution</h3>
               <button
-                onClick={() => setPayloads((prev) => prev.filter((p) => p.enabled))}
-                className="text-[10px] text-text-secondary hover:text-error transition-colors"
-                title="Remove disabled payloads"
+                onClick={() => setShowRunModal(false)}
+                className="p-1 rounded hover:bg-dropdown-item-hover"
               >
-                <Trash2 className="w-3 h-3" />
+                <X className="w-4 h-4 text-text-secondary" />
+              </button>
+            </div>
+            <div className="px-4 py-6">
+              <div className="text-center">
+                <div className="text-4xl mb-3">🚀</div>
+                <p className="text-sm text-text-primary mb-2">{modalMessage}</p>
+                <p className="text-xs text-text-secondary">
+                  {totalRequests > 1 ? (
+                    <>Total requests: <span className="font-bold text-primary text-base">{totalRequests}</span></>
+                  ) : (
+                    'Single request (no active payloads)'
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
+              <button
+                onClick={() => setShowRunModal(false)}
+                className="px-3 py-1.5 rounded text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSend}
+                className="px-3 py-1.5 rounded text-xs font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+              >
+                Run Now
               </button>
             </div>
           </div>
-          <div className="flex-1 overflow-auto p-1 space-y-0.5">
-            {payloads.filter((p) => p.enabled && p.values.length > 0).length === 0 ? (
-              <div className="flex items-center justify-center h-full text-text-secondary text-xs">
-                No payloads with values enabled
-              </div>
-            ) : (
-              payloads
-                .filter((p) => p.enabled && p.values.length > 0)
-                .map((p, index) => (
-                  <button
-                    key={p.id}
-                    onClick={() => executeRequest(p.values[0])}
-                    className="w-full text-left px-2 py-1 rounded text-xs text-text-primary hover:bg-dropdown-item-hover/50 transition-colors flex items-center gap-2"
-                  >
-                    <span className="text-text-secondary shrink-0">#{index + 1}</span>
-                    <span className="font-medium truncate max-w-[80px]">{p.name || 'Unnamed'}</span>
-                    <span className="text-text-secondary text-[10px] truncate flex-1">
-                      {p.values.slice(0, 3).join(', ')}{p.values.length > 3 ? `... (+${p.values.length - 3})` : ''}
-                    </span>
-                  </button>
-                ))
-            )}
-          </div>
         </div>
-
-        {/* Right: Response viewer */}
-        <div className="flex-1 min-w-0">
-          <ResponseViewer
-            headers={response?.headers}
-            body={response?.body}
-            status={response?.status}
-            contentType={response?.contentType}
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 }

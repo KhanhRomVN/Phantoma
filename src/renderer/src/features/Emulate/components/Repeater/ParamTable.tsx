@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
+import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 interface ParamItem {
   id: string;
@@ -14,6 +15,8 @@ interface ParamTableProps {
   onChange: (params: ParamItem[]) => void;
   placeholderKey?: string;
   placeholderValue?: string;
+  payloads?: Array<{ id: string; name: string; values: string[]; enabled: boolean }>;
+  onSwitchToPayload?: () => void;
 }
 
 export function ParamTable({
@@ -21,10 +24,76 @@ export function ParamTable({
   onChange,
   placeholderKey = 'Key',
   placeholderValue = 'Value',
+  payloads = [],
+  onSwitchToPayload,
 }: ParamTableProps) {
   const [isFinalRowEditing, setIsFinalRowEditing] = useState(false);
   const [finalKey, setFinalKey] = useState('');
   const [finalValue, setFinalValue] = useState('');
+  const { getColorByIndex } = useAccentColors();
+  const [hoveredValue, setHoveredValue] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
+  const hideTooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to check if value contains payload variable
+  const hasPayloadVariable = (value: string): boolean => {
+    return /\$\{[^}]+\}/.test(value);
+  };
+
+  // Function to get color for payload variable
+  const getPayloadColor = (value: string): string | undefined => {
+    if (hasPayloadVariable(value)) {
+      return getColorByIndex(0); // Use first accent color
+    }
+    return undefined;
+  };
+
+  // Extract payload name from ${name}
+  const extractPayloadName = (value: string): string | null => {
+    const match = value.match(/\$\{([^}]+)\}/);
+    return match ? match[1] : null;
+  };
+
+  // Get payload by name
+  const getPayloadByName = (name: string) => {
+    return payloads.find(p => p.name === name && p.enabled);
+  };
+
+  // Handle mouse enter on textarea
+  const handleMouseEnter = (value: string, e: React.MouseEvent<HTMLTextAreaElement>) => {
+    if (hideTooltipTimeoutRef.current) {
+      clearTimeout(hideTooltipTimeoutRef.current);
+      hideTooltipTimeoutRef.current = null;
+    }
+    
+    if (hasPayloadVariable(value)) {
+      setHoveredValue(value);
+      const rect = e.currentTarget.getBoundingClientRect();
+      setTooltipPosition({ x: rect.left, y: rect.bottom + 5 });
+    }
+  };
+
+  // Handle mouse leave with delay
+  const handleMouseLeave = () => {
+    hideTooltipTimeoutRef.current = setTimeout(() => {
+      setHoveredValue(null);
+      setTooltipPosition(null);
+    }, 200); // 200ms delay
+  };
+
+  // Handle tooltip mouse enter (keep it visible)
+  const handleTooltipMouseEnter = () => {
+    if (hideTooltipTimeoutRef.current) {
+      clearTimeout(hideTooltipTimeoutRef.current);
+      hideTooltipTimeoutRef.current = null;
+    }
+  };
+
+  // Handle tooltip mouse leave
+  const handleTooltipMouseLeave = () => {
+    setHoveredValue(null);
+    setTooltipPosition(null);
+  };
   const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
   const measurerRef = useRef<HTMLDivElement>(null);
 
@@ -39,24 +108,29 @@ export function ParamTable({
   const resizeTextarea = (el: HTMLTextAreaElement) => {
     if (!measurerRef.current) return;
     
-    // Set measurer width to match textarea exactly
-    const textareaWidth = el.offsetWidth;
+    // Get computed style from textarea
+    const computed = window.getComputedStyle(el);
+    const textareaWidth = el.clientWidth; // Use clientWidth (excludes border, includes padding)
+    
+    // Set measurer to match textarea exactly
     measurerRef.current.style.width = textareaWidth + 'px';
+    measurerRef.current.style.paddingLeft = computed.paddingLeft;
+    measurerRef.current.style.paddingRight = computed.paddingRight;
+    measurerRef.current.style.paddingTop = computed.paddingTop;
+    measurerRef.current.style.paddingBottom = computed.paddingBottom;
+    measurerRef.current.style.lineHeight = computed.lineHeight;
+    measurerRef.current.style.fontSize = computed.fontSize;
+    measurerRef.current.style.fontFamily = computed.fontFamily;
+    measurerRef.current.style.wordBreak = computed.wordBreak;
+    measurerRef.current.style.overflowWrap = computed.overflowWrap;
+    measurerRef.current.style.whiteSpace = computed.whiteSpace; // Use textarea's whiteSpace
+    measurerRef.current.style.boxSizing = 'border-box';
     
     // Copy the text to measurer div
-    measurerRef.current.textContent = el.value || el.placeholder;
+    measurerRef.current.textContent = el.value || '';
     
     // Get the actual rendered height
     const measuredHeight = measurerRef.current.offsetHeight;
-    
-    console.log('🔍 Measurer Debug:', {
-      value: el.value.substring(0, 40) + (el.value.length > 40 ? '...' : ''),
-      valueLength: el.value.length,
-      textareaWidth,
-      measuredHeight,
-      oldHeight: el.style.height,
-      measuredScrollHeight: measurerRef.current.scrollHeight
-    });
     
     el.style.height = measuredHeight + 'px';
   };
@@ -80,15 +154,16 @@ export function ParamTable({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Hidden measurer div - same styling as textarea */}
+    <div className="flex flex-col h-full relative">
+      {/* Hidden measurer div */}
       <div
         ref={measurerRef}
-        className="absolute invisible px-1.5 py-1.5 text-xs font-mono leading-relaxed break-words whitespace-pre-wrap pointer-events-none"
+        className="absolute pointer-events-none"
         style={{ 
-          wordBreak: 'break-word',
+          visibility: 'hidden',
           top: -9999,
-          left: -9999
+          left: -9999,
+          whiteSpace: 'pre-wrap'
         }}
         aria-hidden="true"
       />
@@ -98,7 +173,7 @@ export function ParamTable({
           <thead className="sticky top-0 bg-table-headerBg border-b border-border z-10">
             <tr>
               <th className="w-8 px-2 py-1.5 text-left text-text-secondary font-medium">#</th>
-              <th className="px-2 py-1.5 text-left text-text-secondary font-medium">Key</th>
+              <th className="w-[180px] px-2 py-1.5 text-left text-text-secondary font-medium">Key</th>
               <th className="px-2 py-1.5 text-left text-text-secondary font-medium">Value</th>
             </tr>
           </thead>
@@ -168,7 +243,12 @@ export function ParamTable({
                           const target = e.target as HTMLTextAreaElement;
                           resizeTextarea(target);
                         }}
-                        className="w-full bg-transparent px-1.5 py-1.5 text-xs text-text-primary outline-none break-words resize-none font-mono leading-relaxed overflow-hidden"
+                        onMouseEnter={(e) => handleMouseEnter(param.value, e)}
+                        onMouseLeave={handleMouseLeave}
+                        className="w-full bg-transparent px-1.5 py-1.5 text-xs outline-none break-words resize-none font-mono leading-relaxed overflow-hidden"
+                        style={{
+                          color: getPayloadColor(param.value) || undefined
+                        }}
                         placeholder={placeholderValue}
                       />
                     </td>
@@ -253,6 +333,51 @@ export function ParamTable({
           </tbody>
         </table>
       </div>
+
+      {/* Tooltip for payload variables */}
+      {hoveredValue && tooltipPosition && (() => {
+        const payloadName = extractPayloadName(hoveredValue);
+        const payload = payloadName ? getPayloadByName(payloadName) : null;
+        
+        return (
+          <div
+            className="fixed z-50 bg-modal-background border border-border rounded-lg shadow-xl p-3 max-w-xs"
+            style={{ 
+              left: tooltipPosition.x,
+              top: tooltipPosition.y
+            }}
+            onMouseEnter={handleTooltipMouseEnter}
+            onMouseLeave={handleTooltipMouseLeave}
+          >
+            <div className="text-xs font-medium text-text-primary mb-1">
+              Payload: <span style={{ color: getColorByIndex(0) }}>${'{' + payloadName + '}'}</span>
+            </div>
+            {payload ? (
+              <div className="text-[10px] text-text-secondary">
+                <div className="font-medium mb-1">{payload.values.length} values:</div>
+                <div className="font-mono bg-background/50 rounded p-1.5 max-h-32 overflow-y-auto">
+                  {payload.values.slice(0, 10).map((v, i) => (
+                    <div key={i}>{v}</div>
+                  ))}
+                  {payload.values.length > 10 && (
+                    <div className="text-text-secondary italic">... and {payload.values.length - 10} more</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-[10px] text-warning">
+                ⚠️ Payload not found or has no values.{' '}
+                <button 
+                  onClick={onSwitchToPayload}
+                  className="text-primary hover:underline"
+                >
+                  Click here to configure
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

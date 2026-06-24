@@ -161,6 +161,16 @@ export const SoftLight: ThemeConfig = {
     warn: 'rgb(210, 140, 60)',
     info: 'rgb(90, 108, 138)',
     //
+    blue: 'rgb(90, 108, 138)',
+    green: 'rgb(45, 122, 74)',
+    red: 'rgb(192, 57, 43)',
+    yellow: 'rgb(210, 185, 80)',
+    purple: 'rgb(138, 90, 154)',
+    pink: 'rgb(220, 130, 170)',
+    navy: 'rgb(60, 80, 110)',
+    teal: 'rgb(60, 140, 140)',
+    violet: 'rgb(130, 100, 170)',
+    //
     background: 'rgb(245, 240, 235)',
     foreground: 'rgb(61, 61, 61)',
     //

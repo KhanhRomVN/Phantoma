@@ -4,7 +4,8 @@ import { useActiveModule } from '../features/Tool/hooks/useActiveModule';
 import { useActiveSubItem } from '../features/Tool/hooks/useActiveSubItem';
 import { useActiveTarget } from '../features/Tool/hooks/useActiveTarget';
 import { ModuleBar } from '../components/ModuleBar';
-import { IntelPanel } from '../components/IntelPanel';
+import { IntelPanel } from '../components/RightPanel';
+import { FooterBar } from '../components/FooterBar';
 import { PhantomModule } from '../features/Tool/types/types';
 
 /**
@@ -62,11 +63,14 @@ const MainLayout = () => {
         activeSubItem={activeSubItem}
         onSubItemSelect={handleSubItemSelect}
       />
-      <div className="flex flex-1 min-w-0 overflow-hidden">
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <Outlet />
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+        <div className="flex flex-1 min-w-0 overflow-hidden">
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <Outlet />
+          </div>
+          <IntelPanel subTarget={activeSubTarget} />
         </div>
-        <IntelPanel subTarget={activeSubTarget} />
+        <FooterBar />
       </div>
     </div>
   );

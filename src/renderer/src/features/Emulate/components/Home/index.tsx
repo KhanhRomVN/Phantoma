@@ -21,7 +21,6 @@ import { NetworkDetails as NetworkDetailsSub } from './Network';
 import { SecurityDetails } from './Security';
 import { InspectorFilter, NetworkFilter, NetworkRequest } from './Filter';
 import { CodeBlock } from '../../../../components/common/CodeBlock';
-import { Composer } from './Composer';
 import { CookieDetails } from './Cookie';
 import { InitiatorDetails } from './Initiator';
 
@@ -78,7 +77,6 @@ function TextSelectionMenu({
   onUseInSearch: () => void;
   onClose: () => void;
 }) {
-  
   useEffect(() => {
     const handleClickOutside = () => onClose();
     const handleEscape = (e: KeyboardEvent) => {
@@ -146,7 +144,7 @@ export function RequestDetails({
 }: NetworkDetailsProps) {
   const [internalActiveTab, setInternalActiveTab] = useState('headers');
   const [isRawMode, setIsRawMode] = useState(false);
-  
+
   const { getColorByIndex, toRgba } = useAccentColors();
 
   const [contextMenu, setContextMenu] = useState<{
@@ -441,10 +439,6 @@ export function RequestDetails({
         <div className="h-full flex items-center justify-center text-text-secondary bg-table-bodyBg">
           Select a request to view details
         </div>
-      ) : isComposerTab ? (
-        <div className="h-full w-full">
-          <Composer appId={appId || 'unknown'} initialRequest={initialComposerRequest} />
-        </div>
       ) : isSecurityTab && request ? (
         <div className="flex-1 overflow-auto h-full">
           <SecurityDetails
@@ -589,9 +583,7 @@ export function RequestDetails({
                     ? 'border-primary text-primary bg-table-bodyBg'
                     : 'text-text-secondary',
                 )}
-                title={
-                  isFilterOpen ? 'Collapse filters' : 'Expand filters'
-                }
+                title={isFilterOpen ? 'Collapse filters' : 'Expand filters'}
               >
                 <Filter className="w-3.5 h-3.5" />
                 Filter
@@ -631,7 +623,6 @@ export function RequestDetails({
 
 // Export all components
 export { BodyDetails } from './Body';
-export { Composer } from './Composer';
 export { HeadersDetails } from './Headers';
 export { CookieDetails } from './Cookie';
 export { InitiatorDetails } from './Initiator';
@@ -718,8 +709,6 @@ export function RequestList({
   onStartTarget,
 }: RequestListProps) {
   const [view, setView] = useState<'table' | 'timeline' | 'websocket' | 'browser'>('table');
-  
-  const emulateState = useModuleStore((state) => state.states.emulate) || {};
 
   useEffect(() => {
     if (browserViewUrl) {
@@ -741,7 +730,7 @@ export function RequestList({
             </button>
           </div>
         )}
-<RequestTable
+        <RequestTable
           requests={filteredRequests}
           selectedId={selectedId}
           onSelect={(id) => onSelectRequest(id)}
