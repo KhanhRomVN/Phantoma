@@ -45,7 +45,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-} from '../common/ContextMenu';
+} from '../../../../components/ui/ContextMenu/ContextMenu';
 import { NetworkRequest } from './Filter';
 
 // Custom DropdownMenu components
@@ -73,10 +73,10 @@ const DropdownMenu = ({ children }: DropdownMenuProps) => {
 
   const childrenArray = React.Children.toArray(children);
   const trigger = childrenArray.find(
-    (child) => React.isValidElement(child) && (child.type as any) === DropdownMenuTrigger,
+    (child) => React.isValidElement(child) && (child.type as any)?.displayName === 'DropdownMenuTrigger',
   );
   const content = childrenArray.find(
-    (child) => React.isValidElement(child) && (child.type as any) === DropdownMenuContent,
+    (child) => React.isValidElement(child) && (child.type as any)?.displayName === 'DropdownMenuContent',
   );
 
   return (
@@ -103,6 +103,7 @@ const DropdownMenuTrigger = ({
   if (asChild) return <>{children}</>;
   return <div>{children}</div>;
 };
+DropdownMenuTrigger.displayName = 'DropdownMenuTrigger';
 
 const DropdownMenuContent = ({
   children,

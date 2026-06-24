@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import { Home, ChevronRight } from 'lucide-react';
 import { TOOLS_LIST } from './data/toolsList';
 import { ToolIcon } from './utils/iconHelpers';
@@ -91,7 +91,9 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                   }`}
                   style={{ color: accentColor }}
                 >
-                  <ToolIcon tool={tool} color={accentColor} />
+                  <Suspense fallback={<div className="w-5 h-5" />}>
+                    <ToolIcon tool={tool} color={accentColor} />
+                  </Suspense>
                 </div>
 
                 {/* Name + short description */}
@@ -158,7 +160,9 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                   color: getToolColor(currentTool.id),
                 }}
               >
-                <ToolIcon tool={currentTool} color={getToolColor(currentTool.id)} />
+                <Suspense fallback={<div className="w-7 h-7" />}>
+                  <ToolIcon tool={currentTool} color={getToolColor(currentTool.id)} />
+                </Suspense>
               </div>
 
               <div className="flex-1 min-w-0">

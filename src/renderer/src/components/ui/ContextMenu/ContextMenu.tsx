@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '../../../shared/lib/utils';
 
 interface ContextMenuProps {
   children: React.ReactNode;
@@ -43,10 +43,10 @@ export const ContextMenu = ({ children, onOpenChange }: ContextMenuProps) => {
 
   const childrenArray = React.Children.toArray(children);
   const trigger = childrenArray.find(
-    (child) => React.isValidElement(child) && (child.type as any) === ContextMenuTrigger,
+    (child) => React.isValidElement(child) && (child.type as any)?.displayName === 'ContextMenuTrigger',
   );
   const content = childrenArray.find(
-    (child) => React.isValidElement(child) && (child.type as any) === ContextMenuContent,
+    (child) => React.isValidElement(child) && (child.type as any)?.displayName === 'ContextMenuContent',
   );
 
   return (
@@ -80,6 +80,7 @@ export const ContextMenuTrigger = ({ children, asChild }: ContextMenuTriggerProp
   if (asChild) return <>{children}</>;
   return <div>{children}</div>;
 };
+ContextMenuTrigger.displayName = 'ContextMenuTrigger';
 
 interface ContextMenuContentProps {
   children: React.ReactNode;

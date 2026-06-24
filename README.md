@@ -67,3 +67,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 -   **GitLab**: [KhanhRomVN](https://gitlab.com/KhanhRomVN)
 -   **Facebook**: [KhanhRomVN](https://www.facebook.com/khanhromvn)
 -   **Hugging Face**: [KhanhRomVN](https://huggingface.co/khanhromvn)
+
+
+3/ có những file utils nào thêm vào folder utils ko?
+4/ có những file types nào thêm vào folder types ko?
+5/ có những file constant nào thêm vào folder constant ko?
+6/ có những file UI dùng chung nào thêm vào folder components/common ko?
+7/ có những file service nào thêm vào folder services ko?
+8/ có cần tách, cleancode các file lớn ko?
+9/ và nhiều tối ưu khác cần bạn tìm kiếm cho tôi 

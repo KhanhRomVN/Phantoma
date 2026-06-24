@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '../../../shared/lib/utils';
 
 interface ResizableSplitProps {
   children: [React.ReactNode, React.ReactNode];
@@ -72,7 +72,6 @@ export const ResizableSplit = ({
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const [firstChild, secondChild] = children;
-  // Force horizontal layout when direction is 'horizontal'
   const isHorizontal = direction === 'horizontal';
 
   return (

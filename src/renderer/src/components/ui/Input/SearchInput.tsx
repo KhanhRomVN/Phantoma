@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, CaseSensitive, Type, Regex } from 'lucide-react';
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '../../../shared/lib/utils';
 
 interface SearchInputProps {
   value: string;
@@ -103,7 +103,6 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     );
   }
 
-  // Default: buttons outside (like RequestTable style)
   return (
     <div className={cn('flex items-center gap-2 flex-1', className)}>
       <div className="relative flex-1">

@@ -69,14 +69,31 @@ const fetchFaviconAsBase64 = async (url: string): Promise<string | null> => {
   }
 };
 
+// Cache for lazy-loaded Lucide icons
+const lucideIconCache = new Map<string, React.LazyExoticComponent<React.ComponentType<any>>>();
+
 // Dynamic import for Lucide icons with type safety
 const getLucideIcon = (iconName: string): React.LazyExoticComponent<React.ComponentType<any>> => {
-  return lazy(() => import('lucide-react').then(module => {
+  console.log('[DEBUG] getLucideIcon called with iconName:', iconName);
+  
+  if (lucideIconCache.has(iconName)) {
+    console.log('[DEBUG] Returning cached lazy component for:', iconName);
+    return lucideIconCache.get(iconName)!;
+  }
+  
+  console.log('[DEBUG] Creating new lazy component for:', iconName);
+  const LazyComponent = lazy(() => import('lucide-react').then(module => {
+    console.log('[DEBUG] Lucide module loaded for icon:', iconName);
     const Icon = module[iconName as keyof typeof module];
     // Fallback to Wrench if icon doesn't exist
     const Component = (Icon as React.ComponentType<any>) || module.Wrench;
+    console.log('[DEBUG] Component found for icon:', iconName, Component ? 'Yes' : 'No');
     return { default: Component };
   }));
+  
+  lucideIconCache.set(iconName, LazyComponent);
+  console.log('[DEBUG] Cached lazy component for:', iconName);
+  return LazyComponent;
 };
 
 export const getLucideIconForTool = (toolId: string, category: ToolCategory) => {
@@ -114,6 +131,8 @@ interface ToolIconProps {
 }
 
 export const ToolIcon: React.FC<ToolIconProps> = ({ tool, color }) => {
+  console.log('[DEBUG] ToolIcon rendering for tool:', tool.id, 'icon:', tool.icon, 'website:', tool.websiteUrl);
+  
   const [hasError, setHasError] = useState(false);
   const [cachedFavicon, setCachedFaviconState] = useState<string | null>(null);
   const [isLoadingCache, setIsLoadingCache] = useState(true);
@@ -185,7 +204,9 @@ export const ToolIcon: React.FC<ToolIconProps> = ({ tool, color }) => {
 
   // Case 2: Tool has icon field (Lucide name) - use that with color
   if (tool.icon) {
+    console.log('[DEBUG] ToolIcon rendering lazy icon for:', tool.id, 'icon:', tool.icon);
     const LucideIcon = getLucideIcon(tool.icon);
+    console.log('[DEBUG] LucideIcon component:', LucideIcon);
     return (
       <Suspense fallback={<div style={{ width: 20, height: 20 }} />}>
         <LucideIcon size={18} style={{ color: tool.color || color }} strokeWidth={1.5} />

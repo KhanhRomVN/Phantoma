@@ -22,7 +22,7 @@ import { CodeBlock } from '../../../../components/common/CodeBlock';
 import { CookieDetails } from './Cookie';
 import { InitiatorDetails } from './Initiator';
 
-import { ResizableSplit } from '../common/ResizableSplit';
+import { ResizableSplit } from '../../../../components/ui/ResizableSplit/ResizableSplit';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 
 function Badge({ count, className }: { count: number; className?: string }) {
