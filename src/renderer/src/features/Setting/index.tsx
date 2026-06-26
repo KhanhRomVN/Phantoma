@@ -22,19 +22,6 @@ const Setting: React.FC = () => {
     }
   };
 
-  const getTabIcon = () => {
-    switch (activeTab) {
-      case 'general':
-        return <Settings className="w-3 h-3 text-text-primary/60" />;
-      case 'interface':
-        return <Palette className="w-3 h-3 text-text-primary/60" />;
-      case 'database':
-        return <Database className="w-3 h-3 text-text-primary/60" />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="w-full h-full flex-1 flex flex-col overflow-hidden">
       {/* Breadcrumb Topbar - same height as ModuleBar (37px) */}

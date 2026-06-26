@@ -21,7 +21,6 @@ import { useCdpEvents } from './hooks/useCdpEvents';
 import { NetworkRequest, WebSocketConnection } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 import { ToolType, TOOLS, DEFAULT_TOOL } from './constants/tools';
-import { DEFAULT_TARGET_TAB } from './constants/defaults';
 import { useTheme } from '@renderer/theme';
 
 // Constants
@@ -36,7 +35,9 @@ export default function Emulate({
   const { getColorByIndex } = useAccentColors();
 
   // Module persistence - chỉ giữ lại các state không phải target
-  const [state, setState] = useModulePersistence<Omit<EmulateState, 'targetTabs' | 'activeTargetId'>>('emulate', {
+  const [state, setState] = useModulePersistence<
+    Omit<EmulateState, 'targetTabs' | 'activeTargetId'>
+  >('emulate', {
     selectedTool: DEFAULT_TOOL,
     requests: [],
     selectedId: null,
@@ -48,10 +49,7 @@ export default function Emulate({
     filter: initialFilterState,
   });
 
-  const {
-    selectedTool,
-    selectedId,
-  } = state;
+  const { selectedTool, selectedId } = state;
 
   // Local state
   const [loadedFromIPC, setLoadedFromIPC] = useState(false);
@@ -72,16 +70,17 @@ export default function Emulate({
   // Wrapper for AddTargetModal onAdd
   const handleAddApp = async (appData: any) => {
     console.log('[Emulate] Add app:', appData);
-    
+
     // Tạo target từ appData
     const newTab: TargetTab = {
       id: appData.id || crypto.randomUUID(),
       title: appData.name || 'New Target',
       url: appData.url || undefined,
+      platform: appData.platform || undefined,
     };
-    
+
     await saveTarget(newTab);
-    setTargetTabs(prev => [...prev, newTab]);
+    setTargetTabs((prev) => [...prev, newTab]);
     await refreshTargets();
   };
 
@@ -97,7 +96,12 @@ export default function Emulate({
   // State cho target management (local)
   const [targetTabs, setTargetTabs] = useState<TargetTab[]>([]);
   const [activeTargetId, setActiveTargetId] = useState<string | null>(null);
-  const [targetStates, setTargetStates] = useState<Record<string, { isActive: boolean; mode?: 'mitm' | 'cdp'; isIntercepting?: boolean; startTime?: number }>>({});
+  const [targetStates, setTargetStates] = useState<
+    Record<
+      string,
+      { isActive: boolean; mode?: 'mitm' | 'cdp'; isIntercepting?: boolean; startTime?: number }
+    >
+  >({});
   const [timerDisplay, setTimerDisplay] = useState<Record<string, string>>({});
 
   // Sync targets từ SQLite vào local state
@@ -109,17 +113,17 @@ export default function Emulate({
 
   // Wrapper methods để tương thích với interface cũ
   const addTargetTab = async (tab: TargetTab) => {
-    const exists = targetTabs.some(t => t.id === tab.id);
+    const exists = targetTabs.some((t) => t.id === tab.id);
     if (exists) return;
-    
+
     await saveTarget(tab);
-    setTargetTabs(prev => [...prev, tab]);
+    setTargetTabs((prev) => [...prev, tab]);
     await refreshTargets();
   };
 
   const removeTargetTab = async (id: string) => {
     await deleteTarget(id);
-    setTargetTabs(prev => prev.filter(t => t.id !== id));
+    setTargetTabs((prev) => prev.filter((t) => t.id !== id));
     if (activeTargetId === id) {
       setActiveTargetId(targetTabs.length > 0 ? targetTabs[0].id : null);
     }
@@ -131,7 +135,7 @@ export default function Emulate({
   };
 
   const startTarget = (targetId: string, mode: 'mitm' | 'cdp') => {
-    setTargetStates(prev => ({
+    setTargetStates((prev) => ({
       ...prev,
       [targetId]: {
         isActive: true,
@@ -143,7 +147,7 @@ export default function Emulate({
   };
 
   const stopTarget = (targetId: string) => {
-    setTargetStates(prev => ({
+    setTargetStates((prev) => ({
       ...prev,
       [targetId]: {
         isActive: false,
@@ -154,7 +158,7 @@ export default function Emulate({
   };
 
   const toggleIntercept = (targetId: string) => {
-    setTargetStates(prev => ({
+    setTargetStates((prev) => ({
       ...prev,
       [targetId]: {
         ...prev[targetId],

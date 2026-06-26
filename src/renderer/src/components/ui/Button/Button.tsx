@@ -4,7 +4,7 @@ import { ButtonProps, ButtonVariant, ButtonSize } from './type';
 
 const variantClasses: Record<ButtonVariant, string> = {
   solid: 'bg-button-solid-background text-button-solid-text hover:bg-button-solid-background/90 active:bg-button-solid-background/80',
-  outline: 'border border-primary text-primary hover:bg-primary/10 active:bg-primary/20',
+  outline: 'border border-border text-text-secondary hover:border-primary hover:text-primary hover:bg-primary/10 active:bg-primary/20',
   soft: 'bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70',
   ghost: 'text-primary hover:bg-primary/10 active:bg-primary/20',
 };
@@ -29,7 +29,6 @@ export function Button({
 }: ButtonProps) {
   const baseClasses = cn(
     'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200',
-    'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-background',
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-none',
     variantClasses[variant],
     sizeClasses[size],

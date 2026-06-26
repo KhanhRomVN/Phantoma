@@ -9,6 +9,7 @@ export interface TargetTab {
   title: string;
   favicon?: string;
   url?: string;
+  platform?: string;
 }
 
 export interface TargetState {

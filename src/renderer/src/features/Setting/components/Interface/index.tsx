@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../../../theme/ThemeProvider';
 import { PRESET_THEMES, ThemeConfig } from '../../../../theme/theme-loader';
 import { FONTS, applyFont, getStoredFont, setStoredFont, getFontByFamily } from '../../../../fonts';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+} from '../../../../components/ui/Dropdown';
+import { Button } from '../../../../components/ui/Button';
+import { ChevronDown } from 'lucide-react';
 
 const Interface: React.FC = () => {
   const { applyPresetTheme, currentPreset } = useTheme();
@@ -45,33 +53,34 @@ const Interface: React.FC = () => {
         <label className="block text-sm font-medium text-text-primary tracking-wide mb-1.5">
           Font Family
         </label>
-        <div className="relative">
-          <select
-            value={selectedFont}
-            onChange={(e) => handleFontChange(e.target.value)}
-            className="w-full px-3 py-2.5 text-sm font-mono border rounded-md outline-none bg-input-background text-text-primary border-border appearance-none cursor-pointer pr-10"
-            style={{ fontFamily: selectedFont }}
-          >
-            {FONTS.map((font) => (
-              <option
-                key={font.fontFamily}
-                value={font.fontFamily}
-                style={{ fontFamily: font.fontFamily }}
+        <div className="max-w-full md:max-w-[calc(50%-0.5rem)]">
+          <Dropdown>
+            <DropdownTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full flex justify-between px-3 py-2.5 text-sm font-mono"
+                style={{ fontFamily: selectedFont }}
               >
-                {font.label}
-              </option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-secondary">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
+                <span className="truncate">{getFontLabel(selectedFont)}</span>
+                <ChevronDown className="w-4 h-4 text-text-secondary shrink-0" />
+              </Button>
+            </DropdownTrigger>
+            <DropdownContent className="w-full min-w-[200px] max-h-[300px] overflow-y-auto">
+              {FONTS.map((font) => (
+                <DropdownItem
+                  key={font.fontFamily}
+                  onClick={() => handleFontChange(font.fontFamily)}
+                  className="flex items-center gap-2 px-3 py-2"
+                  style={{ fontFamily: font.fontFamily }}
+                >
+                  <span className="text-sm">{font.label}</span>
+                  {selectedFont === font.fontFamily && (
+                    <span className="ml-auto text-primary text-xs">✓</span>
+                  )}
+                </DropdownItem>
+              ))}
+            </DropdownContent>
+          </Dropdown>
         </div>
         <p className="text-text-secondary text-xs mt-1.5 tracking-wide">
           Preview:{' '}

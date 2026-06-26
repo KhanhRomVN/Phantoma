@@ -19,7 +19,7 @@ export interface DropdownContentProps {
   className?: string;
 }
 
-export interface DropdownItemProps {
+export interface DropdownItemProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;

@@ -3,7 +3,7 @@ import React from 'react';
 export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'ghost';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
-export interface ButtonProps {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   variant?: ButtonVariant;
   size?: ButtonSize;

@@ -116,7 +116,7 @@ class DataService {
       title: input.title,
       favicon: input.favicon,
       url: input.url,
-      platform: 'web', // Default platform, can be extended
+      platform: input.platform || 'web', // Use input platform or fallback to 'web'
     };
     return targetRepository.create(createInput);
   }
