@@ -13,17 +13,15 @@ import {
   Square,
 } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
-import { UserApp, AppPlatform } from '../../types/apps';
 import { TargetTab } from '../../types/target.types';
-import { CircleStopIcon } from '../common/Icons';
+
+type AppPlatform = 'web' | 'pc' | 'android' | 'cli';
 
 interface TargetSidebarProps {
   targetTabs: TargetTab[];
   activeTargetId: string | null;
   timerDisplay: Record<string, string>;
-  targetStates: Record<string, { isActive: boolean }>;
-  apps: UserApp[];
-  activeAppId?: string;
+  targetStates: Record<string, { isActive: boolean; mode?: 'mitm' | 'cdp' }>;
   accentColor: string;
   onSelectTarget: (id: string) => void;
   onRemoveTarget: (id: string) => void;
@@ -35,9 +33,9 @@ interface TargetSidebarProps {
     customUrl?: string,
     mode?: 'browser' | 'electron' | 'native' | 'cdp',
   ) => Promise<void>;
-  onAddApp: (appData: any) => Promise<void>;
-  onStopSession: (e: React.MouseEvent, appId: string) => void;
   onOpenAddModal: () => void;
+  onStopSession?: (e: React.MouseEvent, appId: string) => void;
+  activeAppId?: string;
 }
 
 export function TargetSidebar({
@@ -45,24 +43,20 @@ export function TargetSidebar({
   activeTargetId,
   timerDisplay,
   targetStates,
-  apps,
-  activeAppId,
   accentColor,
   onSelectTarget,
   onRemoveTarget,
   onStartTarget,
   onStopTarget,
   onLaunchTarget,
-  onStopSession,
   onOpenAddModal,
+  onStopSession,
+  activeAppId,
 }: TargetSidebarProps) {
   const [targetSearchQuery, setTargetSearchQuery] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<AppPlatform | null>(null);
   const [showPlatformDropdown, setShowPlatformDropdown] = useState(false);
 
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; app: UserApp } | null>(
-    null,
-  );
   const [targetContextMenu, setTargetContextMenu] = useState<{
     x: number;
     y: number;
@@ -73,10 +67,38 @@ export function TargetSidebar({
 
   const activeTargets = targetTabs.filter((tab) => tab.id !== 'default');
 
+  // Filter targets theo platform (nếu có platform field)
+  const getTargetPlatform = (tab: TargetTab): AppPlatform => {
+    // TODO: Lấy platform từ database, tạm thời detect từ URL hoặc default 'web'
+    if (tab.url) {
+      try {
+        const url = new URL(tab.url);
+        if (url.protocol === 'http:' || url.protocol === 'https:') {
+          return 'web';
+        }
+      } catch {
+        // Invalid URL
+      }
+    }
+    return 'web';
+  };
+
+  // Filter targets theo platform
+  const filteredTargets = selectedPlatform
+    ? targetTabs.filter((tab) => {
+        const platform = getTargetPlatform(tab);
+        return platform === selectedPlatform && tab.id !== 'default';
+      })
+    : activeTargets;
+
+  // Search filter
+  const searchedTargets = filteredTargets.filter((tab) =>
+    tab.title.toLowerCase().includes(targetSearchQuery.toLowerCase()),
+  );
+
   // Close context menus on click outside
   useEffect(() => {
     const handleClickOutside = () => {
-      setContextMenu(null);
       setTargetContextMenu(null);
     };
     document.addEventListener('click', handleClickOutside);
@@ -113,6 +135,21 @@ export function TargetSidebar({
     }
   };
 
+  const getPlatformLabel = (platform: AppPlatform) => {
+    switch (platform) {
+      case 'web':
+        return 'Website';
+      case 'pc':
+        return 'App';
+      case 'android':
+        return 'Mobile';
+      case 'cli':
+        return 'CLI';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background relative">
       <div className="flex items-center justify-between px-3 h-10 border-b border-border shrink-0">
@@ -122,13 +159,7 @@ export function TargetSidebar({
             <>
               <ChevronRight className="w-3 h-3 text-text-secondary" />
               <span className="text-xs font-medium text-text-primary">
-                {selectedPlatform === 'web'
-                  ? 'Website'
-                  : selectedPlatform === 'pc'
-                    ? 'App'
-                    : selectedPlatform === 'android'
-                      ? 'Mobile'
-                      : 'CLI'}
+                {getPlatformLabel(selectedPlatform)}
               </span>
             </>
           )}
@@ -150,14 +181,21 @@ export function TargetSidebar({
         // Default state: show search + "+ Target" button + active targets
         <>
           <div className="px-3 py-1.5 border-b border-border shrink-0">
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
               <input
                 type="text"
                 placeholder="Search targets..."
                 value={targetSearchQuery}
                 onChange={(e) => setTargetSearchQuery(e.target.value)}
-                className="w-full h-8 bg-input-background border border-border rounded pl-2 pr-2 text-xs text-text-primary placeholder:text-text-secondary outline-none focus:border-primary/50"
+                className="flex-1 h-8 bg-input-background border border-border rounded pl-2 pr-2 text-xs text-text-primary placeholder:text-text-secondary outline-none focus:border-primary/50"
               />
+              <button
+                onClick={onOpenAddModal}
+                className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover text-xs font-medium border border-dashed border-border transition-all"
+              >
+                <Plus className="w-3 h-3" />
+                Target
+              </button>
             </div>
           </div>
 
@@ -172,17 +210,17 @@ export function TargetSidebar({
               {showPlatformDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-1 rounded-md border border-border bg-dropdown-background shadow-lg z-10 overflow-hidden">
                   {[
-                    { id: 'web', label: 'Website', icon: Globe },
-                    { id: 'pc', label: 'App', icon: Monitor },
-                    { id: 'android', label: 'Mobile', icon: Smartphone },
-                    { id: 'cli', label: 'CLI', icon: Terminal },
+                    { id: 'web' as AppPlatform, label: 'Website', icon: Globe },
+                    { id: 'pc' as AppPlatform, label: 'App', icon: Monitor },
+                    { id: 'android' as AppPlatform, label: 'Mobile', icon: Smartphone },
+                    { id: 'cli' as AppPlatform, label: 'CLI', icon: Terminal },
                   ].map((platform) => {
                     const Icon = platform.icon;
                     return (
                       <button
                         key={platform.id}
                         onClick={() => {
-                          setSelectedPlatform(platform.id as AppPlatform);
+                          setSelectedPlatform(platform.id);
                           setShowPlatformDropdown(false);
                           setTargetSearchQuery('');
                         }}
@@ -197,11 +235,12 @@ export function TargetSidebar({
               )}
             </div>
 
-            {activeTargets.length > 0 && (
+            {searchedTargets.length > 0 && (
               <div className="space-y-0.5">
-                {activeTargets.map((tab) => {
+                {searchedTargets.map((tab) => {
                   const isRunning = targetStates[tab.id]?.isActive || false;
                   const elapsed = timerDisplay[tab.id] || '00:00';
+                  const platform = getTargetPlatform(tab);
 
                   return (
                     <div
@@ -225,7 +264,9 @@ export function TargetSidebar({
                           className="w-5 h-5 shrink-0 rounded"
                         />
                       ) : (
-                        <Code className="w-4 h-4 shrink-0" />
+                        <span className={cn('shrink-0', getPlatformColor(platform))}>
+                          {getPlatformIcon(platform)}
+                        </span>
                       )}
                       <span className="flex-1 truncate font-medium">{tab.title}</span>
                       {isRunning && (
@@ -236,6 +277,12 @@ export function TargetSidebar({
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {searchedTargets.length === 0 && (
+              <div className="text-center text-text-secondary text-xs py-6">
+                {targetSearchQuery ? 'No matching targets' : 'No targets found'}
               </div>
             )}
 
@@ -318,14 +365,14 @@ export function TargetSidebar({
           </div>
         </>
       ) : (
-        // Platform-specific view
+        // Platform-specific view: hiển thị targets theo platform
         <>
           <div className="px-2 py-1.5 border-b border-border shrink-0">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
               <input
                 type="text"
-                placeholder={`Search ${selectedPlatform === 'web' ? 'websites' : selectedPlatform === 'pc' ? 'apps' : selectedPlatform === 'android' ? 'mobile apps' : 'CLI tools'}...`}
+                placeholder={`Search ${getPlatformLabel(selectedPlatform)}...`}
                 value={targetSearchQuery}
                 onChange={(e) => setTargetSearchQuery(e.target.value)}
                 className="w-full h-7 bg-input-background border border-border rounded pl-7 pr-2 text-xs text-text-primary placeholder:text-text-secondary outline-none focus:border-primary/50"
@@ -335,54 +382,35 @@ export function TargetSidebar({
 
           <div className="flex-1 overflow-y-auto p-1.5 relative">
             <button
-              onClick={() => {
-                onOpenAddModal();
-              }}
+              onClick={onOpenAddModal}
               className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover text-xs font-medium border border-dashed border-border transition-all mb-3"
               style={{ borderColor: accentColor + '60' }}
             >
               <Plus className="w-3 h-3" style={{ color: accentColor }} />
-              Create{' '}
-              {selectedPlatform === 'web'
-                ? 'Website'
-                : selectedPlatform === 'pc'
-                  ? 'App'
-                  : selectedPlatform === 'android'
-                    ? 'Mobile'
-                    : 'CLI'}
+              Create {getPlatformLabel(selectedPlatform)}
             </button>
 
-            {apps
-              .filter(
-                (app) =>
-                  app.platform === selectedPlatform &&
-                  app.name.toLowerCase().includes(targetSearchQuery.toLowerCase()),
-              )
-              .map((app) => {
-                const isActive = app.id === activeAppId;
-                const isOpen = activeTargets.some((t) => t.id === app.id);
-                let faviconUrl: string | undefined = undefined;
-                if (app.url) {
-                  try {
-                    const hostname = new URL(app.url).hostname;
-                    faviconUrl = `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`;
-                  } catch {
-                    // Invalid URL, skip favicon
-                  }
-                }
+            {searchedTargets.length > 0 ? (
+              searchedTargets.map((tab) => {
+                const isRunning = targetStates[tab.id]?.isActive || false;
+                const elapsed = timerDisplay[tab.id] || '00:00';
+                const platform = getTargetPlatform(tab);
+                const isActive = tab.id === activeAppId;
+                const isOpen = activeTargets.some((t) => t.id === tab.id);
+
                 return (
                   <div
-                    key={app.id}
+                    key={tab.id}
                     onClick={() => {
                       if (!isOpen) {
-                        onSelectTarget(app.id);
+                        onSelectTarget(tab.id);
                         setSelectedPlatform(null);
                         setTargetSearchQuery('');
                       }
                     }}
                     onContextMenu={(e) => {
                       e.preventDefault();
-                      setContextMenu({ x: e.clientX, y: e.clientY, app });
+                      setTargetContextMenu({ x: e.clientX, y: e.clientY, tab });
                     }}
                     className={cn(
                       'flex items-center gap-2 px-3 py-2 rounded-md transition-all text-sm group',
@@ -391,74 +419,40 @@ export function TargetSidebar({
                         : 'hover:bg-dropdown-item-hover cursor-pointer',
                     )}
                   >
-                    {faviconUrl ? (
-                      <img src={faviconUrl} alt={app.name} className="w-5 h-5 shrink-0 rounded" />
+                    {tab.favicon ? (
+                      <img src={tab.favicon} alt={tab.title} className="w-5 h-5 shrink-0 rounded" />
                     ) : (
-                      <span className={cn('shrink-0', getPlatformColor(app.platform))}>
-                        {getPlatformIcon(app.platform)}
+                      <span className={cn('shrink-0', getPlatformColor(platform))}>
+                        {getPlatformIcon(platform)}
                       </span>
                     )}
                     <span className="flex-1 truncate text-text-primary font-medium">
-                      {app.name}
+                      {tab.title}
                     </span>
-                    {isActive && (
+                    {isRunning && (
+                      <span className="text-xs font-mono text-text-secondary shrink-0">
+                        {elapsed}
+                      </span>
+                    )}
+                    {isActive && onStopSession && (
                       <button
-                        onClick={(e) => onStopSession(e, app.id)}
+                        onClick={(e) => onStopSession(e, tab.id)}
                         className="flex items-center gap-0.5 px-1 py-0.5 text-[9px] font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 rounded transition-all shrink-0"
                       >
-                        <CircleStopIcon className="w-2 h-2 text-red-400 pointer-events-none" /> Stop
+                        <Square className="w-2 h-2 text-red-400 pointer-events-none" /> Stop
                       </button>
                     )}
                   </div>
                 );
-              })}
-            {apps.filter(
-              (app) =>
-                app.platform === selectedPlatform &&
-                app.name.toLowerCase().includes(targetSearchQuery.toLowerCase()),
-            ).length === 0 && (
+              })
+            ) : (
               <div className="text-center text-text-secondary text-xs py-6">
-                {targetSearchQuery ? 'No matching targets' : 'No targets found for this platform'}
+                {targetSearchQuery
+                  ? `No matching ${getPlatformLabel(selectedPlatform)}`
+                  : `No ${getPlatformLabel(selectedPlatform)} found`}
               </div>
             )}
           </div>
-
-          {contextMenu && (
-            <div
-              className="fixed z-50 bg-dropdown-background border border-border rounded-md shadow-lg py-1 min-w-[160px]"
-              style={{ top: contextMenu.y, left: contextMenu.x }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => {
-                  const app = contextMenu.app;
-                  onLaunchTarget(
-                    app.id,
-                    'http://127.0.0.1:8081',
-                    app.url,
-                    app.platform === 'web' ? 'browser' : 'electron',
-                  );
-                  setSelectedPlatform(null);
-                  setTargetSearchQuery('');
-                  setContextMenu(null);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
-              >
-                <Play className="w-3.5 h-3.5 text-primary" />
-                <span>Chạy target</span>
-              </button>
-              <button
-                onClick={() => {
-                  onRemoveTarget(contextMenu.app.id);
-                  setContextMenu(null);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-error hover:bg-dropdown-item-hover transition-all"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>Xóa target</span>
-              </button>
-            </div>
-          )}
         </>
       )}
     </div>

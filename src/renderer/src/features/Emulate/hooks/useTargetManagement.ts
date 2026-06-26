@@ -21,6 +21,43 @@ export function useTargetManagement(options: UseTargetManagementOptions = {}) {
 
   const [targetTabs, setTargetTabs] = useState<TargetTab[]>(initialTabs);
   const [activeTargetId, setActiveTargetId] = useState<string | null>(initialActiveId);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Sync with external initialTabs/initialActiveId when they change
+  useEffect(() => {
+    // Only sync if we haven't initialized yet, or if the external data is different
+    if (!isInitialized) {
+      // On first mount, use initial values (already set by useState)
+      setIsInitialized(true);
+      return;
+    }
+
+    // Check if initialTabs has changed and has actual data (not just default)
+    const hasRealTabs = initialTabs.some(tab => tab.id !== 'default');
+    const currentHasRealTabs = targetTabs.some(tab => tab.id !== 'default');
+
+    // Only sync if:
+    // 1. External has real tabs and current doesn't (data loaded from IPC)
+    // 2. OR external activeId is different and external has tabs
+    const shouldSyncTabs = hasRealTabs && !currentHasRealTabs;
+    const shouldSyncActive = initialActiveId !== activeTargetId && initialActiveId !== null && hasRealTabs;
+
+    if (shouldSyncTabs) {
+      setTargetTabs(initialTabs);
+    }
+
+    if (shouldSyncActive) {
+      setActiveTargetId(initialActiveId);
+      onTabChange?.(initialTabs, initialActiveId);
+    } else if (shouldSyncTabs && initialActiveId) {
+      // If tabs synced but activeId wasn't set, set it to first real tab
+      const firstRealTab = initialTabs.find(tab => tab.id !== 'default');
+      if (firstRealTab) {
+        setActiveTargetId(firstRealTab.id);
+        onTabChange?.(initialTabs, firstRealTab.id);
+      }
+    }
+  }, [initialTabs, initialActiveId, targetTabs, activeTargetId, isInitialized, onTabChange]);
   const [targetStates, setTargetStates] = useState<Record<string, TargetState>>({});
   const [timerDisplay, setTimerDisplay] = useState<Record<string, string>>({});
 
@@ -74,11 +111,11 @@ export function useTargetManagement(options: UseTargetManagementOptions = {}) {
   );
 
   const setActiveTarget = useCallback(
-    (id: string | null) => {
+    (id: string | null, title?: string) => {
       setActiveTargetId(id);
       if (id && !targetTabs.some((t) => t.id === id)) {
-        // If target doesn't exist, add it
-        const tab = { id, title: id, favicon: undefined, url: undefined };
+        // If target doesn't exist, add it with provided title or fallback to id
+        const tab = { id, title: title || id, favicon: undefined, url: undefined };
         setTargetTabs((prev) => {
           const newTabs = [...prev, tab];
           onTabChange?.(newTabs, id);

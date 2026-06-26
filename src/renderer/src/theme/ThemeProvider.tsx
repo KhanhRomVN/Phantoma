@@ -54,7 +54,6 @@ export function ThemeProvider({
       teal: '--teal',
       violet: '--violet',
       background: '--background',
-      foreground: '--foreground',
       textPrimary: '--text-primary',
       textSecondary: '--text-secondary',
       textForeground: '--text-foreground',
@@ -69,10 +68,12 @@ export function ThemeProvider({
       tooltipBackground: '--tooltip-background',
       sidebarBackground: '--sidebar-background',
       sidebarItemHover: '--sidebar-item-hover',
-      sidebarItemFocus: '--sidebar-item-focus',
       tableHeaderBackground: '--table-header-background',
       tableFooterBackground: '--table-footer-background',
       tableRowHover: '--table-row-hover',
+      buttonSolidBackground: '--button-solid-background',
+      buttonSolidText: '--button-solid-text',
+      buttonSoftBackground: '--button-soft-background',
     };
 
     const themeData = preset.tailwind;

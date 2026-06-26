@@ -374,7 +374,7 @@ export function ModuleBar({
       <div className="h-full shrink-0 bg-sidebar-background border border-l border-border flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
         <div
           className={cn(
-            'w-full h-[37px] flex items-center shrink-0',
+            'w-full h-[35px] flex items-center shrink-0',
             expanded ? 'px-3 justify-start' : 'justify-center',
           )}
         >

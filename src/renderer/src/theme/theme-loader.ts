@@ -30,7 +30,6 @@ export interface ThemeConfig {
     teal: string;
     violet: string;
     background: string;
-    foreground: string;
     textPrimary: string;
     textSecondary: string;
     border: string;
@@ -42,10 +41,12 @@ export interface ThemeConfig {
     dropdownItemHover: string;
     sidebarBackground: string;
     sidebarItemHover: string;
-    sidebarItemFocus: string;
     tableHeaderBackground: string;
     tableFooterBackground: string;
     tableRowHover: string;
+    buttonSolidBackground: string;
+    buttonSolidText: string;
+    buttonSoftBackground: string;
   };
   accentColors: string[];
   typography?: {

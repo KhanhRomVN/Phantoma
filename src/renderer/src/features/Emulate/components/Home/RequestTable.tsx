@@ -39,93 +39,16 @@ import {
 import { useDebounce } from 'use-debounce';
 
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
-import {
-  ContextMenu,
-  ContextMenuTrigger,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-} from '../../../../components/ui/ContextMenu/ContextMenu';
+
 import { NetworkRequest } from './Filter';
 
-// Custom DropdownMenu components
-interface DropdownMenuProps {
-  children: React.ReactNode;
-}
-
-const DropdownMenu = ({ children }: DropdownMenuProps) => {
-  const [open, setOpen] = React.useState(false);
-  const triggerRef = React.useRef<HTMLDivElement>(null);
-  const contentRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (contentRef.current && !contentRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-    return undefined;
-  }, [open]);
-
-  const childrenArray = React.Children.toArray(children);
-  const trigger = childrenArray.find(
-    (child) => React.isValidElement(child) && (child.type as any)?.displayName === 'DropdownMenuTrigger',
-  );
-  const content = childrenArray.find(
-    (child) => React.isValidElement(child) && (child.type as any)?.displayName === 'DropdownMenuContent',
-  );
-
-  return (
-    <>
-      <div ref={triggerRef} onClick={() => setOpen(!open)}>
-        {trigger}
-      </div>
-      {open && content && (
-        <div ref={contentRef} className="relative z-50">
-          {content}
-        </div>
-      )}
-    </>
-  );
-};
-
-const DropdownMenuTrigger = ({
-  children,
-  asChild,
-}: {
-  children: React.ReactNode;
-  asChild?: boolean;
-}) => {
-  if (asChild) return <>{children}</>;
-  return <div>{children}</div>;
-};
-DropdownMenuTrigger.displayName = 'DropdownMenuTrigger';
-
-const DropdownMenuContent = ({
-  children,
-  sideOffset,
-  className,
-}: {
-  children: React.ReactNode;
-  sideOffset?: number;
-  className?: string;
-}) => {
-  return (
-    <div
-      className={cn(
-        'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-modal-background border border-border rounded-lg shadow-xl min-w-[340px]',
-        className,
-      )}
-      style={{ marginBottom: sideOffset || 8 }}
-    >
-      {children}
-    </div>
-  );
-};
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+  DropdownSeparator,
+} from '../../../../components/ui/Dropdown';
 
 interface RequestTableProps {
   requests: NetworkRequest[];
@@ -205,8 +128,7 @@ export function RequestTable({
   const targetDropdownRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [rowSelection, setRowSelection] = useState({});
-  const [contextMenuPage, setContextMenuPage] = useState<string | null>(null);
-  const [contextMenuTarget, setContextMenuTarget] = useState<NetworkRequest | null>(null);
+  
 
   // Feature: Highlighted Rows
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
@@ -1203,193 +1125,136 @@ export function RequestTable({
             const isHighlighted = highlightedIds.has(row.original.id);
 
             return (
-              <ContextMenu
+              <div
                 key={row.id}
-                onOpenChange={(open: boolean) => {
-                  if (!open) {
-                    setContextMenuPage(null);
-                    setContextMenuTarget(null);
-                  }
+                ref={rowVirtualizer.measureElement}
+                data-state={row.getValue('id') === selectedId ? 'selected' : undefined}
+                onDragStart={(e) => e.preventDefault()}
+                className={cn(
+                  'flex items-center border-b border-divider/20 transition-colors cursor-pointer text-xs absolute left-0 top-0',
+                  isPending
+                    ? 'bg-warning/15 hover:bg-warning/25 border-l-4 border-l-warning intercept-pending-row'
+                    : isIntercepted
+                      ? 'bg-error/15 hover:bg-error/25 border-l-4 border-l-error'
+                      : isHighlighted
+                        ? 'bg-primary/10 hover:bg-primary/20 border-l-2 border-l-primary'
+                        : 'hover:bg-table-row-hover',
+                  row.original.id === selectedId &&
+                    'bg-primary/15 text-text-primary hover:bg-primary/20',
+                )}
+                style={{
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                  width: '100%',
                 }}
+                onClick={() => onSelect(row.original.id)}
               >
-                <ContextMenuTrigger asChild>
-                  <div
-                    ref={rowVirtualizer.measureElement}
-                    data-state={row.getValue('id') === selectedId ? 'selected' : undefined}
-                    onDragStart={(e) => e.preventDefault()}
-                    className={cn(
-                      'flex items-center border-b border-divider/20 transition-colors cursor-pointer text-xs absolute left-0 top-0',
-                      isPending
-                        ? 'bg-warning/15 hover:bg-warning/25 border-l-4 border-l-warning intercept-pending-row'
-                        : isIntercepted
-                          ? 'bg-error/15 hover:bg-error/25 border-l-4 border-l-error'
-                          : isHighlighted
-                            ? 'bg-primary/10 hover:bg-primary/20 border-l-2 border-l-primary'
-                            : 'hover:bg-table-row-hover',
-                      row.original.id === selectedId &&
-                        'bg-primary/15 text-text-primary hover:bg-primary/20',
-                    )}
-                    style={{
-                      height: `${virtualRow.size}px`,
-                      transform: `translateY(${virtualRow.start}px)`,
-                      width: '100%',
-                    }}
-                    onClick={() => onSelect(row.original.id)}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const isHost = cell.column.id === 'host';
-                      const isPath = cell.column.id === 'path';
-                      const isFixed = !isHost && !isPath;
+                {row.getVisibleCells().map((cell) => {
+                  const isHost = cell.column.id === 'host';
+                  const isPath = cell.column.id === 'path';
+                  const isFixed = !isHost && !isPath;
 
-                      return (
-                        <div
-                          key={cell.id}
-                          className={cn(
-                            'py-1.5 whitespace-nowrap overflow-hidden shrink-0 flex items-center',
-                            cell.column.id === 'select' ? 'px-2 justify-center' : 'px-4',
-                          )}
-                          style={{
-                            width: isFixed ? cell.column.getSize() : 0,
-                            flex: isHost ? '1 1 0px' : isPath ? '2 1 0px' : undefined,
-                            minWidth: isHost ? '150px' : isPath ? '300px' : undefined,
-                          }}
+                  return (
+                    <div
+                      key={cell.id}
+                      className={cn(
+                        'py-1.5 whitespace-nowrap overflow-hidden shrink-0 flex items-center',
+                        cell.column.id === 'select' ? 'px-2 justify-center' : 'px-4',
+                      )}
+                      style={{
+                        width: isFixed ? cell.column.getSize() : 0,
+                        flex: isHost ? '1 1 0px' : isPath ? '2 1 0px' : undefined,
+                        minWidth: isHost ? '150px' : isPath ? '300px' : undefined,
+                      }}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </div>
+                  );
+                })}
+                {/* Dropdown menu button */}
+                <div className="shrink-0 px-2">
+                  <Dropdown>
+                    <DropdownTrigger asChild>
+                      <button
+                        className="p-1 rounded hover:bg-dropdown-item-hover transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-3.5 h-3.5 text-text-secondary"
                         >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="w-56">
-                  {contextMenuPage === 'copy' && contextMenuTarget ? (
-                    <>
-                      <ContextMenuItem
-                        onSelect={(e: React.MouseEvent) => {
-                          e.preventDefault();
-                          setContextMenuPage(null);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <ArrowLeft className="mr-2 h-3.5 w-3.5 text-text-secondary" />
-                        <span className="text-text-secondary">Back</span>
-                      </ContextMenuItem>
-                      <ContextMenuSeparator />
-                      <ContextMenuItem
-                        onClick={() => {
-                          handleCopySingleAsMarkdown(contextMenuTarget);
-                          setContextMenuPage(null);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        Copy as Markdown
-                      </ContextMenuItem>
-                      <ContextMenuItem
-                        onClick={() => {
-                          handleCopySingleAsJson(contextMenuTarget);
-                          setContextMenuPage(null);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        Copy as JSON
-                      </ContextMenuItem>
-                    </>
-                  ) : contextMenuPage === 'compare' && contextMenuTarget ? (
-                    <>
-                      <ContextMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setContextMenuPage(null);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <ArrowLeft className="mr-2 h-3.5 w-3.5 text-text-secondary" />
-                        <span className="text-text-secondary">Back</span>
-                      </ContextMenuItem>
-                      <ContextMenuSeparator />
-                      <ContextMenuItem
-                        onClick={() => {
-                          onSetCompare1(contextMenuTarget);
-                          setContextMenuPage(null);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        Set as Compare 1
-                      </ContextMenuItem>
-                      <ContextMenuItem
-                        onClick={() => {
-                          onSetCompare2(contextMenuTarget);
-                          setContextMenuPage(null);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        Set as Compare 2
-                      </ContextMenuItem>
-                    </>
-                  ) : (
-                    <>
-                      <ContextMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setContextMenuPage('copy');
-                          setContextMenuTarget(row.original);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
-                        <span>Copy</span>
-                        <ChevronRight className="ml-auto h-3.5 w-3.5 text-text-secondary" />
-                      </ContextMenuItem>
+                          <circle cx="12" cy="12" r="1" />
+                          <circle cx="19" cy="12" r="1" />
+                          <circle cx="5" cy="12" r="1" />
+                        </svg>
+                      </button>
+                    </DropdownTrigger>
+                    <DropdownContent className="w-56">
+                  <>
+                    <DropdownItem onClick={() => handleCopySingleAsMarkdown(row.original)}>
+                      <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
+                      <span>Copy as Markdown</span>
+                    </DropdownItem>
+                    <DropdownItem onClick={() => handleCopySingleAsJson(row.original)}>
+                      <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
+                      <span>Copy as JSON</span>
+                    </DropdownItem>
 
-                      <ContextMenuSeparator />
+                    <DropdownSeparator />
 
-                      <ContextMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setContextMenuPage('compare');
-                          setContextMenuTarget(row.original);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <ArrowLeftRight className="mr-2 h-3.5 w-3.5 text-emerald-400" />
-                        <span>Send to Compare</span>
-                        <ChevronRight className="ml-auto h-3.5 w-3.5 text-text-secondary" />
-                      </ContextMenuItem>
+                    <DropdownItem onClick={() => onSetCompare1(row.original)}>
+                      <ArrowLeftRight className="mr-2 h-3.5 w-3.5 text-emerald-400" />
+                      <span>Set as Compare 1</span>
+                    </DropdownItem>
+                    <DropdownItem onClick={() => onSetCompare2(row.original)}>
+                      <ArrowLeftRight className="mr-2 h-3.5 w-3.5 text-emerald-400" />
+                      <span>Set as Compare 2</span>
+                    </DropdownItem>
 
-                      <ContextMenuSeparator />
+                    <DropdownSeparator />
 
-                      <ContextMenuItem onClick={() => onAnalyzeRequest?.(row.original)}>
-                        <BookmarkPlus className="mr-2 h-3.5 w-3.5 text-indigo-400" />
-                        <span>Analyze Request</span>
-                      </ContextMenuItem>
+                    <DropdownItem onClick={() => onAnalyzeRequest?.(row.original)}>
+                      <BookmarkPlus className="mr-2 h-3.5 w-3.5 text-indigo-400" />
+                      <span>Analyze Request</span>
+                    </DropdownItem>
 
-                      <ContextMenuItem onClick={() => onSendToRepeater?.(row.original)}>
-                        <Zap className="mr-2 h-3.5 w-3.5 text-amber-400" />
-                        <span>Send to Repeater</span>
-                      </ContextMenuItem>
+                    <DropdownItem onClick={() => onSendToRepeater?.(row.original)}>
+                      <Zap className="mr-2 h-3.5 w-3.5 text-amber-400" />
+                      <span>Send to Repeater</span>
+                    </DropdownItem>
 
-                      <ContextMenuItem onClick={() => toggleHighlight(row.original.id)}>
-                        <Star
-                          className={cn(
-                            'mr-2 h-3.5 w-3.5',
-                            isHighlighted ? 'fill-warning text-warning' : 'text-yellow-400',
-                          )}
-                        />
-                        <span>{isHighlighted ? 'Unhighlight' : 'Highlight'}</span>
-                      </ContextMenuItem>
+                    <DropdownItem onClick={() => toggleHighlight(row.original.id)}>
+                      <Star
+                        className={cn(
+                          'mr-2 h-3.5 w-3.5',
+                          isHighlighted ? 'fill-warning text-warning' : 'text-yellow-400',
+                        )}
+                      />
+                      <span>{isHighlighted ? 'Unhighlight' : 'Highlight'}</span>
+                    </DropdownItem>
 
-                      <ContextMenuSeparator />
+                    <DropdownSeparator />
 
-                      <ContextMenuItem
-                        onClick={() => onDelete?.(row.original.id)}
-                        className="text-error focus:text-error focus:bg-error/10"
-                      >
-                        <Trash2 className="mr-2 h-3.5 w-3.5" />
-                        <span>Delete</span>
-                      </ContextMenuItem>
-                    </>
-                  )}
-                </ContextMenuContent>
-              </ContextMenu>
+                    <DropdownItem
+                      onClick={() => onDelete?.(row.original.id)}
+                      className="text-error focus:text-error focus:bg-error/10"
+                    >
+                      <Trash2 className="mr-2 h-3.5 w-3.5" />
+                      <span>Delete</span>
+                    </DropdownItem>
+                  </>
+                </DropdownContent>
+                  </Dropdown>
+                </div>
+              </div>
             );
           })}
         </div>
@@ -1406,13 +1271,13 @@ export function RequestTable({
             {String(Object.keys(rowSelection).length)} selected
           </span>
           <div className="w-[1px] h-3.5 bg-border" />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <Dropdown>
+            <DropdownTrigger asChild>
               <button className="text-xs text-primary hover:text-primary/80 font-semibold transition-colors flex items-center gap-1.5 focus:outline-none">
                 Copy Selected
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent sideOffset={10} className="min-w-[340px]">
+            </DropdownTrigger>
+            <DropdownContent className="min-w-[340px] bottom-full left-1/2 -translate-x-1/2 mb-2">
               <div className="flex items-center gap-2 px-2.5 py-2">
                 <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                   <Copy className="w-3.5 h-3.5 text-primary" />
@@ -1556,8 +1421,8 @@ export function RequestTable({
                   Copy to Clipboard
                 </button>
               </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownContent>
+          </Dropdown>
           <button
             onClick={() => setRowSelection({})}
             className="text-xs text-text-secondary hover:text-text-primary transition-colors"

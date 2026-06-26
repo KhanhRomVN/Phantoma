@@ -172,11 +172,14 @@ export const MidnightBlue: ThemeConfig = {
     violet: 'rgb(138, 90, 255)',
     //
     background: 'rgb(15, 19, 25)',
-    foreground: 'rgb(200, 214, 240)',
     //
     textPrimary: 'rgb(200, 214, 240)',
     textSecondary: 'rgb(106, 122, 154)',
     textForeground: 'rgb(15, 19, 25)',
+    //
+    buttonSolidBackground: 'rgb(10, 132, 255)',
+    buttonSolidText: 'rgb(255, 255, 255)',
+    buttonSoftBackground: 'rgb(20, 40, 80)',
     //
     border: 'rgb(28, 35, 51)',
     divider: 'rgb(28, 35, 51)',
@@ -195,23 +198,22 @@ export const MidnightBlue: ThemeConfig = {
     //
     sidebarBackground: 'rgb(8, 10, 14)',
     sidebarItemHover: 'rgb(13, 16, 23)',
-    sidebarItemFocus: 'rgb(17, 24, 39)',
     //
     tableHeaderBackground: 'rgb(12, 16, 22)',
     tableFooterBackground: 'rgb(12, 16, 22)',
     tableRowHover: 'rgb(20, 25, 35)',
   },
   accentColors: [
-    'rgb(10, 132, 255)',  // Blue - primary
-    'rgb(48, 209, 88)',   // Green - vibrant
-    'rgb(255, 159, 10)',  // Orange - warm
-    'rgb(175, 82, 222)',  // Purple - rich
-    'rgb(255, 45, 85)',   // Red - bold
+    'rgb(10, 132, 255)', // Blue - primary
+    'rgb(48, 209, 88)', // Green - vibrant
+    'rgb(255, 159, 10)', // Orange - warm
+    'rgb(175, 82, 222)', // Purple - rich
+    'rgb(255, 45, 85)', // Red - bold
     'rgb(255, 105, 180)', // Pink - bright
-    'rgb(0, 210, 255)',   // Aqua - electric
-    'rgb(255, 200, 50)',  // Gold - bright (replaced similar mustard)
-    'rgb(230, 190, 60)',  // Mustard - warm
-    'rgb(138, 90, 255)',  // Violet - luminous
+    'rgb(0, 210, 255)', // Aqua - electric
+    'rgb(255, 200, 50)', // Gold - bright (replaced similar mustard)
+    'rgb(230, 190, 60)', // Mustard - warm
+    'rgb(138, 90, 255)', // Violet - luminous
     'rgb(255, 150, 100)', // Coral - warm (replaced peach)
   ],
   typography: {

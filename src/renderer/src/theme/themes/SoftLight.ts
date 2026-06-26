@@ -172,11 +172,14 @@ export const SoftLight: ThemeConfig = {
     violet: 'rgb(130, 100, 170)',
     //
     background: 'rgb(245, 240, 235)',
-    foreground: 'rgb(61, 61, 61)',
     //
     textPrimary: 'rgb(61, 61, 61)',
     textSecondary: 'rgb(138, 138, 138)',
     textForeground: 'rgb(245, 240, 235)',
+    //
+    buttonSolidBackground: 'rgb(90, 108, 138)',
+    buttonSolidText: 'rgb(245, 240, 235)',
+    buttonSoftBackground: 'rgb(200, 200, 210)',
     //
     border: 'rgb(216, 208, 200)',
     divider: 'rgb(216, 208, 200)',
@@ -195,7 +198,6 @@ export const SoftLight: ThemeConfig = {
     //
     sidebarBackground: 'rgb(235, 228, 220)',
     sidebarItemHover: 'rgb(245, 240, 235)',
-    sidebarItemFocus: 'rgb(220, 212, 202)',
     //
     tableHeaderBackground: 'rgb(240, 234, 228)',
     tableFooterBackground: 'rgb(240, 234, 228)',

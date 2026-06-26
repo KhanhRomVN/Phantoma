@@ -9,14 +9,13 @@ import { ResourcesPanel } from './components/Resources';
 import { PayloadPanel } from './components/Repeater';
 import { SourcesPanel } from './components/Source';
 import { LogViewer } from './components/Log';
-import { TargetSidebar } from './components/TargetSidebar/TargetSidebar';
+import { TargetSidebar } from './components/TargetSidebar';
 import { AddTargetModal } from './components/TargetSidebar/AddTargetModal';
 
 // Hooks
-import { useTargetManagement } from './hooks/useTargetManagement';
+import useTargetData from '../../hooks/useTargetData';
 import { useRequestFilter } from './hooks/useRequestFilter';
 import { useCdpEvents } from './hooks/useCdpEvents';
-import { useApps } from './hooks/useApps';
 
 // Types
 import { NetworkRequest, WebSocketConnection } from './types/inspector';
@@ -36,11 +35,9 @@ export default function Emulate({
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
   const { getColorByIndex } = useAccentColors();
 
-  // Module persistence
-  const [state, setState] = useModulePersistence<EmulateState>('emulate', {
+  // Module persistence - chỉ giữ lại các state không phải target
+  const [state, setState] = useModulePersistence<Omit<EmulateState, 'targetTabs' | 'activeTargetId'>>('emulate', {
     selectedTool: DEFAULT_TOOL,
-    targetTabs: [{ ...DEFAULT_TARGET_TAB }],
-    activeTargetId: null,
     requests: [],
     selectedId: null,
     searchTerm: '',
@@ -53,8 +50,6 @@ export default function Emulate({
 
   const {
     selectedTool,
-    targetTabs: persistedTargetTabs,
-    activeTargetId: persistedActiveTargetId,
     selectedId,
   } = state;
 
@@ -74,30 +69,121 @@ export default function Emulate({
     executablePath?: string;
   } | null>(null);
 
-  // Hooks
-  const { apps, addApp, updateApp } = useApps();
-
   // Wrapper for AddTargetModal onAdd
-  const handleAddApp = (appData: any) => {
-    addApp(appData);
+  const handleAddApp = async (appData: any) => {
+    console.log('[Emulate] Add app:', appData);
+    
+    // Tạo target từ appData
+    const newTab: TargetTab = {
+      id: appData.id || crypto.randomUUID(),
+      title: appData.name || 'New Target',
+      url: appData.url || undefined,
+    };
+    
+    await saveTarget(newTab);
+    setTargetTabs(prev => [...prev, newTab]);
+    await refreshTargets();
   };
 
+  // Sử dụng SQLite để lưu targets
   const {
-    targetTabs,
-    activeTargetId,
-    targetStates,
-    timerDisplay,
-    addTargetTab,
-    removeTargetTab,
-    setActiveTarget,
-    startTarget,
-    stopTarget,
-    toggleIntercept,
-    isTargetActive,
-  } = useTargetManagement({
-    initialTabs: persistedTargetTabs,
-    initialActiveId: persistedActiveTargetId,
-  });
+    targets,
+    loading: targetsLoading,
+    saveTarget,
+    deleteTarget,
+    refresh: refreshTargets,
+  } = useTargetData({ autoLoad: true });
+
+  // State cho target management (local)
+  const [targetTabs, setTargetTabs] = useState<TargetTab[]>([]);
+  const [activeTargetId, setActiveTargetId] = useState<string | null>(null);
+  const [targetStates, setTargetStates] = useState<Record<string, { isActive: boolean; mode?: 'mitm' | 'cdp'; isIntercepting?: boolean; startTime?: number }>>({});
+  const [timerDisplay, setTimerDisplay] = useState<Record<string, string>>({});
+
+  // Sync targets từ SQLite vào local state
+  useEffect(() => {
+    if (targets.length > 0) {
+      setTargetTabs(targets);
+    }
+  }, [targets]);
+
+  // Wrapper methods để tương thích với interface cũ
+  const addTargetTab = async (tab: TargetTab) => {
+    const exists = targetTabs.some(t => t.id === tab.id);
+    if (exists) return;
+    
+    await saveTarget(tab);
+    setTargetTabs(prev => [...prev, tab]);
+    await refreshTargets();
+  };
+
+  const removeTargetTab = async (id: string) => {
+    await deleteTarget(id);
+    setTargetTabs(prev => prev.filter(t => t.id !== id));
+    if (activeTargetId === id) {
+      setActiveTargetId(targetTabs.length > 0 ? targetTabs[0].id : null);
+    }
+    await refreshTargets();
+  };
+
+  const setActiveTarget = (id: string | null) => {
+    setActiveTargetId(id);
+  };
+
+  const startTarget = (targetId: string, mode: 'mitm' | 'cdp') => {
+    setTargetStates(prev => ({
+      ...prev,
+      [targetId]: {
+        isActive: true,
+        mode,
+        isIntercepting: false,
+        startTime: Date.now(),
+      },
+    }));
+  };
+
+  const stopTarget = (targetId: string) => {
+    setTargetStates(prev => ({
+      ...prev,
+      [targetId]: {
+        isActive: false,
+        mode: undefined,
+        isIntercepting: false,
+      },
+    }));
+  };
+
+  const toggleIntercept = (targetId: string) => {
+    setTargetStates(prev => ({
+      ...prev,
+      [targetId]: {
+        ...prev[targetId],
+        isIntercepting: !prev[targetId]?.isIntercepting,
+      },
+    }));
+  };
+
+  const isTargetActive = (targetId: string): boolean => {
+    return targetStates[targetId]?.isActive || false;
+  };
+
+  // Timer effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newTimers: Record<string, string> = {};
+      Object.entries(targetStates).forEach(([id, state]) => {
+        if (state.isActive && state.startTime) {
+          const diff = Date.now() - state.startTime;
+          const minutes = Math.floor(diff / 60000);
+          const seconds = Math.floor((diff % 60000) / 1000);
+          newTimers[id] = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+      });
+      setTimerDisplay(newTimers);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [targetStates]);
 
   const { requests, clearRequests } = useCdpEvents();
 
@@ -107,37 +193,12 @@ export default function Emulate({
   const filteredRequests = useMemo(() => filterRequests(requests), [filterRequests, requests]);
   const currentTargetUrl = targetTabs.find((tab) => tab.id === activeTargetId)?.url;
 
-  // Load data from IPC
+  // Không còn IPC persistence - data đã được lưu trong SQLite
+  // Load data from IPC (chỉ lấy targets từ SQLite thông qua useTargetData)
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const result = await window.api.invoke('emulate:get-active-targets');
-        if (result && result.targets && result.targets.length > 0) {
-          setState((prev) => ({
-            ...prev,
-            targetTabs: result.targets,
-            activeTargetId: result.activeId || result.targets[0].id,
-          }));
-        }
-        setLoadedFromIPC(true);
-      } catch (error) {
-        console.error('Failed to load active targets:', error);
-        setLoadedFromIPC(true);
-      }
-    };
-    loadData();
+    // Đánh dấu đã load xong
+    setLoadedFromIPC(true);
   }, []);
-
-  // Persist tabs
-  useEffect(() => {
-    if (!loadedFromIPC) return;
-    try {
-      const tabsToSave = targetTabs.filter((tab) => tab.id !== 'default');
-      window.api.invoke('emulate:set-active-targets', tabsToSave, activeTargetId);
-    } catch (e) {
-      console.error('Failed to save tabs:', e);
-    }
-  }, [targetTabs, activeTargetId, loadedFromIPC]);
 
   // Handlers
   const handleSetSelectedId = (id: string | null) => {
@@ -199,19 +260,14 @@ export default function Emulate({
     try {
       const result = await window.api.invoke('app:launch', appId, proxyUrl, customUrl, mode);
       if (result) {
-        const app = apps.find((a) => a.id === appId);
-        if (app) {
-          const newTab: TargetTab = {
-            id: app.id,
-            title: app.name,
-            favicon: app.url
-              ? `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}&sz=32`
-              : undefined,
-            url: app.url,
-          };
-          addTargetTab(newTab);
-          setActiveTarget(app.id);
-        }
+        // Tạo target tab từ appId và customUrl
+        const newTab: TargetTab = {
+          id: appId,
+          title: customUrl ? new URL(customUrl).hostname : appId,
+          url: customUrl || proxyUrl,
+        };
+        await addTargetTab(newTab);
+        setActiveTarget(appId);
       }
     } catch (e) {
       console.error('Launch failed:', e);
@@ -244,7 +300,6 @@ export default function Emulate({
         activeTargetId={activeTargetId}
         timerDisplay={timerDisplay}
         targetStates={targetStates}
-        apps={apps}
         activeAppId={activeAppId}
         accentColor={accentColor}
         onSelectTarget={setActiveTarget}
@@ -252,7 +307,6 @@ export default function Emulate({
         onStartTarget={handleStartTarget}
         onStopTarget={handleStopTarget}
         onLaunchTarget={handleLaunchTarget}
-        onAddApp={addApp}
         onStopSession={handleStopSession}
         onOpenAddModal={() => setIsAddModalOpen(true)}
       />
@@ -392,9 +446,9 @@ export default function Emulate({
         }}
         platform={addModalPlatform}
         onAdd={handleAddApp}
-        existingApps={apps}
+        existingApps={[]}
         editApp={editingApp}
-        onEdit={updateApp}
+        onEdit={() => {}}
       />
     </div>
   );

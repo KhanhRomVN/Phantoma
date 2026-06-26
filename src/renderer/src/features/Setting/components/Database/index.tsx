@@ -7,7 +7,6 @@ import {
   ListFilter,
   ArrowUpDown,
   SlidersHorizontal,
-  Check,
   FileJson,
   FileSpreadsheet,
   File,
@@ -16,6 +15,9 @@ import {
   GripVertical,
   ChevronDown,
   ChevronUp,
+  ChevronsUpDown,
+  ArrowUpNarrowWide,
+  ArrowDownNarrowWide,
 } from 'lucide-react';
 import {
   ColumnDef,
@@ -24,8 +26,8 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   SortingState,
+  ColumnSizingState,
   useReactTable,
-  ColumnFiltersState,
 } from '@tanstack/react-table';
 import { db } from '../../../../database';
 import { cn } from '../../../../shared/lib/utils';
@@ -36,6 +38,7 @@ import {
   DropdownItem,
   DropdownSeparator,
 } from '../../../../components/ui/Dropdown';
+import { Checkbox } from '../../../../components/ui/Checkbox';
 import { Badge } from '../../../../components/ui/Badge/Badge';
 
 interface TableInfo {
@@ -81,11 +84,13 @@ const DatabaseViewer: React.FC = () => {
   const [tableData, setTableData] = useState<TableData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sorting, setSorting] = useState<SortingState>([]);
   
+  const [tableSearchTerm, setTableSearchTerm] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([]);
+
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage] = useState(50);
   const [showFilterBar, setShowFilterBar] = useState(false);
@@ -226,7 +231,7 @@ const DatabaseViewer: React.FC = () => {
   useEffect(() => {
     if (selectedTable) {
       loadTableData(selectedTable);
-      setSearchTerm('');
+      
       setFilters([]);
       setShowFilterBar(false);
     }
@@ -305,59 +310,89 @@ const DatabaseViewer: React.FC = () => {
     return rows;
   }, [tableData, filters, buildWhereClause]);
 
-  
-
   // Build columns for react-table
   const columns = useMemo<ColumnDef<any>[]>(() => {
     if (!tableData) return [];
+
+    // Calculate min width based on column name only
+    const calculateMinWidth = (columnName: string, columnType: string): number => {
+      const padding = 40; // padding + icon space
+      const baseWidth = 60; // minimum width for any column
+      
+      // Calculate width based on column name + type label length
+      const nameLength = columnName.length;
+      const typeLength = columnType.length;
+      const totalLength = nameLength + typeLength + 2; // +2 for spacing between name and type
+      
+      // Approximate width: 7px per character + padding
+      const contentWidth = totalLength * 7;
+      return Math.max(baseWidth, contentWidth + padding);
+    };
 
     const cols: ColumnDef<any>[] = [
       {
         id: 'select',
         header: ({ table }) => (
-          <button
-            onClick={() => table.toggleAllRowsSelected(!table.getIsAllRowsSelected())}
-            className={cn(
-              'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all cursor-pointer select-none',
-              table.getIsAllRowsSelected()
-                ? 'bg-primary border-primary text-text-foreground shadow-sm shadow-primary/20'
-                : 'border-border bg-card-background/50 hover:border-border-hover text-transparent',
-            )}
-          >
-            <Check className="w-2.5 h-2.5 stroke-[3.5]" />
-          </button>
+          <Checkbox
+            checked={table.getIsAllRowsSelected()}
+            onChange={() => table.toggleAllRowsSelected(!table.getIsAllRowsSelected())}
+            size="sm"
+            className="w-3.5 h-3.5"
+          />
         ),
         cell: ({ row }) => (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              row.toggleSelected(!row.getIsSelected());
-            }}
-            className={cn(
-              'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all cursor-pointer select-none',
-              row.getIsSelected()
-                ? 'bg-primary border-primary text-text-foreground shadow-sm shadow-primary/20'
-                : 'border-border bg-card-background/50 hover:border-border-hover text-transparent',
-            )}
-          >
-            <Check className="w-2.5 h-2.5 stroke-[3.5]" />
-          </button>
+          <Checkbox
+            checked={row.getIsSelected()}
+            onChange={() => row.toggleSelected(!row.getIsSelected())}
+            size="sm"
+            className="w-3.5 h-3.5"
+          />
         ),
         size: 35,
+        minSize: 35,
+        maxSize: 35,
         enableHiding: false,
+        enableResizing: false,
       },
     ];
 
     tableData.columns.forEach((col) => {
       const type = tableData.columnTypes[col] || 'TEXT';
+      const minSize = calculateMinWidth(col, type);
+      
       cols.push({
         accessorKey: col,
-        header: () => (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-text-primary">{col}</span>
-            <span className="text-[10px] text-text-secondary font-normal opacity-60">{type}</span>
-          </div>
-        ),
+        header: ({ column }) => {
+          const sortState = column.getIsSorted();
+          let IconComponent = ChevronsUpDown;
+          if (sortState === 'asc') {
+            IconComponent = ArrowUpNarrowWide;
+          } else if (sortState === 'desc') {
+            IconComponent = ArrowDownNarrowWide;
+          }
+          
+          return (
+            <div
+              className="flex items-center justify-between gap-2 cursor-pointer select-none"
+              onClick={() => {
+                const currentState = column.getIsSorted();
+                if (currentState === false) {
+                  column.toggleSorting(false);
+                } else if (currentState === 'asc') {
+                  column.toggleSorting(true);
+                } else {
+                  column.clearSorting();
+                }
+              }}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs font-medium text-text-primary truncate">{col}</span>
+                <span className="text-[10px] text-text-secondary font-normal opacity-60 shrink-0">{type}</span>
+              </div>
+              <IconComponent className="w-3.5 h-3.5 text-text-secondary shrink-0" />
+            </div>
+          );
+        },
         cell: ({ row }) => {
           const value = row.getValue(col);
           if (value === null || value === undefined) {
@@ -370,9 +405,12 @@ const DatabaseViewer: React.FC = () => {
           }
           return <span className="text-xs text-text-primary font-mono">{String(value)}</span>;
         },
-        size: 150,
+        size: minSize,
+        minSize: minSize,
         enableHiding: true,
+        enableResizing: true,
       });
+      
     });
 
     return cols;
@@ -382,17 +420,8 @@ const DatabaseViewer: React.FC = () => {
   const filteredData = useMemo(() => {
     if (!tableData) return [];
     let data = getFilteredRows();
-
-    // Apply search filter
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      data = data.filter((row) =>
-        Object.values(row).some((val) => String(val).toLowerCase().includes(search)),
-      );
-    }
-
     return data;
-  }, [tableData, getFilteredRows, searchTerm]);
+  }, [tableData, getFilteredRows]);
 
   // Paginate
   const paginatedData = useMemo(() => {
@@ -401,21 +430,22 @@ const DatabaseViewer: React.FC = () => {
     return filteredData.slice(start, end);
   }, [filteredData, currentPage, rowsPerPage]);
 
-  
-
   const table = useReactTable({
     data: paginatedData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    columnResizeMode: 'onChange',
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
     state: {
       sorting,
       rowSelection,
       columnVisibility,
+      columnSizing,
     },
     getRowId: (_row, index) => `${index}`,
   });
@@ -516,8 +546,8 @@ const DatabaseViewer: React.FC = () => {
   const availableColumns = tableData?.columns || [];
 
   // Filter available columns based on sort search
-  const filteredColumns = availableColumns.filter(col =>
-    col.toLowerCase().includes(sortSearchTerm.toLowerCase())
+  const filteredColumns = availableColumns.filter((col) =>
+    col.toLowerCase().includes(sortSearchTerm.toLowerCase()),
   );
 
   return (
@@ -525,7 +555,7 @@ const DatabaseViewer: React.FC = () => {
       {/* Left Panel - Danh sách tables */}
       <div className="w-64 shrink-0 border-r border-border flex flex-col overflow-hidden">
         {/* Table List Header */}
-        <div className="px-2 py-2 border-b border-border shrink-0">
+        <div className="px-2 py-[6px] border-b border-border shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
               <Database className="w-4 h-4" />
@@ -534,7 +564,7 @@ const DatabaseViewer: React.FC = () => {
             </div>
             <button
               onClick={handleRefresh}
-              className="p-1.5 rounded bg-input-background hover:bg-primary/10 hover:text-primary transition-colors shrink-0"
+              className="p-1.5 rounded hover:bg-primary/10 hover:text-primary transition-colors shrink-0"
               title="Refresh"
             >
               <RefreshCw className="w-4 h-4 text-text-secondary" />
@@ -549,8 +579,8 @@ const DatabaseViewer: React.FC = () => {
             <input
               type="text"
               placeholder="Search tables..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={tableSearchTerm}
+              onChange={(e) => setTableSearchTerm(e.target.value)}
               className="w-full h-7 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary/50 outline-none"
             />
           </div>
@@ -559,31 +589,33 @@ const DatabaseViewer: React.FC = () => {
         {/* Table List */}
         <div className="flex-1 overflow-y-auto p-2">
           {loading && tables.length === 0 ? (
-          <div className="text-center text-text-secondary text-sm py-4">Loading...</div>
-        ) : error ? (
-          <div className="text-error text-sm py-4 px-2">{error}</div>
-        ) : tables.length === 0 ? (
-          <div className="text-center text-text-secondary text-sm py-4">No tables found</div>
-        ) : (
-          <div className="space-y-0.5">
-            {tables.map((table) => (
-              <button
-                key={table.name}
-                onClick={() => setSelectedTable(table.name)}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                  selectedTable === table.name
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover'
-                }`}
-              >
-                <Table className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate font-mono text-xs">{table.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
+            <div className="text-center text-text-secondary text-sm py-4">Loading...</div>
+          ) : error ? (
+            <div className="text-error text-sm py-4 px-2">{error}</div>
+          ) : tables.length === 0 ? (
+            <div className="text-center text-text-secondary text-sm py-4">No tables found</div>
+          ) : (
+            <div className="space-y-0.5">
+              {tables
+                .filter((table) => table.name.toLowerCase().includes(tableSearchTerm.toLowerCase()))
+                .map((table) => (
+                  <button
+                    key={table.name}
+                    onClick={() => setSelectedTable(table.name)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                      selectedTable === table.name
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover'
+                    }`}
+                  >
+                    <Table className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate font-mono text-xs">{table.name}</span>
+                  </button>
+                ))}
+            </div>
+          )}
         </div>
-        </div>
+      </div>
 
       {/* Right Panel - Table data */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -618,7 +650,7 @@ const DatabaseViewer: React.FC = () => {
 
                 {/* Sort Dropdown - right aligned, no overflow */}
                 <div className="relative">
-                  <Dropdown open={showSortDropdown} onOpenChange={setShowSortDropdown}>
+                  <Dropdown open={showSortDropdown} onOpenChange={setShowSortDropdown} align="end">
                     <DropdownTrigger asChild>
                       <button className="flex items-center gap-1 px-2 py-1 rounded text-xs text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors">
                         <ArrowUpDown className="w-3.5 h-3.5" />
@@ -640,7 +672,7 @@ const DatabaseViewer: React.FC = () => {
                             'flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors',
                             isAscending
                               ? 'bg-primary/20 text-primary'
-                              : 'bg-card-background text-text-secondary border border-border'
+                              : 'bg-card-background text-text-secondary border border-border',
                           )}
                         >
                           {isAscending ? (
@@ -678,28 +710,29 @@ const DatabaseViewer: React.FC = () => {
                         return (
                           <DropdownItem
                             key={col}
-                            onClick={() => {
-                              const existing = sorting.find((s) => s.id === col);
-                              if (existing) {
-                                const newSorting = sorting.map((s) =>
-                                  s.id === col ? { ...s, desc: !s.desc } : s
-                                );
-                                setSorting(newSorting);
-                              } else {
-                                setSorting([...sorting, { id: col, desc: !isAscending }]);
-                              }
-                              setShowSortDropdown(false);
-                            }}
-                            className="flex items-center gap-2"
+                            className="grid grid-cols-[24px_1fr_24px] items-center gap-1 w-full"
                           >
-                            <div className="flex items-center justify-center w-4 h-4 shrink-0">
-                              {isActive && (
-                                <Check className="w-3.5 h-3.5 text-primary stroke-[3]" />
-                              )}
+                            <div className="flex items-center justify-center w-4 h-4 justify-self-center">
+                              <Checkbox
+                                checked={isActive}
+                                onChange={() => {
+                                  const existing = sorting.find((s) => s.id === col);
+                                  if (existing) {
+                                    const newSorting = sorting.map((s) =>
+                                      s.id === col ? { ...s, desc: !s.desc } : s,
+                                    );
+                                    setSorting(newSorting);
+                                  } else {
+                                    setSorting([...sorting, { id: col, desc: !isAscending }]);
+                                  }
+                                }}
+                                size="sm"
+                                inputClassName="w-3.5 h-3.5"
+                              />
                             </div>
-                            <span className="flex-1 text-xs">{col}</span>
+                            <span className="text-xs text-left">{col}</span>
                             {isActive && (
-                              <span className="text-[10px] text-text-secondary">
+                              <span className="text-[10px] text-text-secondary text-center">
                                 {sortDir === 'asc' ? '↑' : '↓'}
                               </span>
                             )}
@@ -712,7 +745,6 @@ const DatabaseViewer: React.FC = () => {
                           <DropdownItem
                             onClick={() => {
                               setSorting([]);
-                              setShowSortDropdown(false);
                             }}
                           >
                             <span className="text-text-secondary text-xs">Clear sort</span>
@@ -725,7 +757,11 @@ const DatabaseViewer: React.FC = () => {
 
                 {/* Column Dropdown */}
                 <div className="relative">
-                  <Dropdown open={showColumnDropdown} onOpenChange={setShowColumnDropdown}>
+                  <Dropdown
+                    open={showColumnDropdown}
+                    onOpenChange={setShowColumnDropdown}
+                    align="end"
+                  >
                     <DropdownTrigger asChild>
                       <button className="flex items-center gap-1 px-2 py-1 rounded text-xs text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors">
                         <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -733,37 +769,79 @@ const DatabaseViewer: React.FC = () => {
                       </button>
                     </DropdownTrigger>
                     <DropdownContent className="right-0 left-auto min-w-[200px] max-h-[300px] overflow-y-auto">
-                      {availableColumns.map((col) => {
-                        const isVisible = columnVisibility[col] !== false;
-                        return (
-                          <DropdownItem
-                            key={col}
-                            onClick={() => {
-                              setColumnVisibility({
-                                ...columnVisibility,
-                                [col]: !isVisible,
-                              });
-                              setShowColumnDropdown(false);
-                            }}
-                            className="flex items-center gap-2"
-                          >
-                            {isVisible ? (
-                              <Eye className="w-3.5 h-3.5 text-text-secondary" />
-                            ) : (
-                              <EyeOff className="w-3.5 h-3.5 text-text-secondary" />
-                            )}
-                            <span className="flex-1 text-xs">{col}</span>
-                            <GripVertical className="w-3.5 h-3.5 text-text-secondary opacity-40 cursor-grab" />
-                          </DropdownItem>
-                        );
-                      })}
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                        <span className="text-xs font-medium text-text-primary">Manage columns</span>
+                        <button
+                          onClick={() => {
+                            const allVisible = availableColumns.every(col => columnVisibility[col] !== false);
+                            const newVisibility: Record<string, boolean> = {};
+                            availableColumns.forEach(col => {
+                              newVisibility[col] = !allVisible;
+                            });
+                            setColumnVisibility(newVisibility);
+                          }}
+                          className={cn(
+                            'flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors',
+                            availableColumns.every(col => columnVisibility[col] !== false)
+                              ? 'bg-primary/20 text-primary'
+                              : 'bg-card-background text-text-secondary border border-border'
+                          )}
+                        >
+                          {availableColumns.every(col => columnVisibility[col] !== false) ? (
+                            'Hide all'
+                          ) : (
+                            'Show all'
+                          )}
+                        </button>
+                      </div>
+                      <div className="px-2 py-1 border-b border-border">
+                        <div className="relative">
+                          <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
+                          <input
+                            type="text"
+                            placeholder="Search columns..."
+                            value={sortSearchTerm}
+                            onChange={(e) => setSortSearchTerm(e.target.value)}
+                            className="w-full pl-7 pr-2 py-1 text-xs text-text-primary placeholder:text-text-secondary bg-transparent border-0 outline-none"
+                          />
+                        </div>
+                      </div>
+                      {availableColumns
+                        .filter((col) => col.toLowerCase().includes(sortSearchTerm.toLowerCase()))
+                        .map((col) => {
+                          const isVisible = columnVisibility[col] !== false;
+                          return (
+                            <DropdownItem
+                              key={col}
+                              onClick={() => {
+                                setColumnVisibility({
+                                  ...columnVisibility,
+                                  [col]: !isVisible,
+                                });
+                              }}
+                              className="grid grid-cols-[24px_1fr_24px] items-center gap-1 w-full"
+                            >
+                              <div className="flex items-center justify-center w-4 h-4 justify-self-center">
+                                {isVisible ? (
+                                  <Eye className="w-3.5 h-3.5 text-text-secondary" />
+                                ) : (
+                                  <EyeOff className="w-3.5 h-3.5 text-text-secondary" />
+                                )}
+                              </div>
+                              <span className="text-xs text-left">{col}</span>
+                              <div className="flex items-center justify-center w-4 h-4 justify-self-center">
+                                <GripVertical className="w-3.5 h-3.5 text-text-secondary opacity-40 cursor-grab" />
+                              </div>
+                            </DropdownItem>
+                          );
+                        })}
                     </DropdownContent>
                   </Dropdown>
                 </div>
 
                 {/* Ellipsis Dropdown */}
                 <div className="relative">
-                  <Dropdown open={showEllipsisDropdown} onOpenChange={setShowEllipsisDropdown}>
+                  <Dropdown open={showEllipsisDropdown} onOpenChange={setShowEllipsisDropdown} align="end">
                     <DropdownTrigger asChild>
                       <button className="p-1 rounded hover:bg-dropdown-item-hover transition-colors">
                         <svg
@@ -913,21 +991,40 @@ const DatabaseViewer: React.FC = () => {
             {/* Table */}
             <div className="flex-1 overflow-auto">
               <div className="w-full h-full overflow-auto">
-                <table className="w-full border-collapse text-sm">
+                <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
                   <thead className="sticky top-0 bg-background z-10">
                     {table.getHeaderGroups().map((headerGroup) => (
                       <tr key={headerGroup.id} className="border-b border-border">
                         {headerGroup.headers.map((header) => {
                           if (header.column.getIsVisible() === false) return null;
+                          const canResize = header.column.getCanResize();
+                          const isResizing = header.column.getIsResizing();
                           return (
                             <th
                               key={header.id}
-                              className="px-3 py-2 text-left border-r border-border last:border-r-0 whitespace-nowrap"
-                              style={{ width: header.getSize() }}
+                              className="px-3 py-2 text-left border-r border-border last:border-r-0 whitespace-nowrap relative"
+                              style={{ 
+                                width: header.getSize(),
+                                minWidth: header.column.columnDef.minSize,
+                              }}
                             >
                               {header.isPlaceholder
                                 ? null
                                 : flexRender(header.column.columnDef.header, header.getContext())}
+                              {canResize && (
+                                <div
+                                  onMouseDown={header.getResizeHandler()}
+                                  onTouchStart={header.getResizeHandler()}
+                                  className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none ${
+                                    isResizing ? 'bg-primary/60' : 'opacity-0 hover:opacity-100'
+                                  } hover:bg-primary/30 transition-opacity`}
+                                  style={{ 
+                                    transform: 'translateX(50%)',
+                                    pointerEvents: 'auto',
+                                    zIndex: 10,
+                                  }}
+                                />
+                              )}
                             </th>
                           );
                         })}
@@ -953,7 +1050,13 @@ const DatabaseViewer: React.FC = () => {
                           {row.getVisibleCells().map((cell) => (
                             <td
                               key={cell.id}
-                              className="px-3 py-1.5 border-r border-border last:border-r-0 whitespace-nowrap"
+                              className="px-3 py-1.5 border-r border-border last:border-r-0"
+                              style={{ 
+                                maxWidth: cell.column.getSize(),
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
                             >
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </td>

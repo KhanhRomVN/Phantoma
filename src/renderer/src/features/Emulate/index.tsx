@@ -46,7 +46,6 @@ export {
   useCdpEvents,
   useTimer,
   useTimerMap,
-  useApps,
   usePayloadStorage,
   useRepeaterHistory,
 } from './hooks';
