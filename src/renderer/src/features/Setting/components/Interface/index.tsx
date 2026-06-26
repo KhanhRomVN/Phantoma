@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { PRESET_THEMES, ThemeConfig } from '../../../theme/theme-loader';
-import { FONTS, applyFont, getStoredFont, setStoredFont, getFontByFamily } from '../../../fonts';
+import { useTheme } from '../../../../theme/ThemeProvider';
+import { PRESET_THEMES, ThemeConfig } from '../../../../theme/theme-loader';
+import { FONTS, applyFont, getStoredFont, setStoredFont, getFontByFamily } from '../../../../fonts';
 
 const Interface: React.FC = () => {
   const { applyPresetTheme, currentPreset } = useTheme();
