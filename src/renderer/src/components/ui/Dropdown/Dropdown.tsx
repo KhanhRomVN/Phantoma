@@ -1,8 +1,22 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, createContext, useContext } from 'react';
 import React from 'react';
 import { DropdownProps } from './type';
 
 type Position = { top: number; left: number };
+
+interface DropdownContextType {
+  close: () => void;
+}
+
+const DropdownContext = createContext<DropdownContextType | null>(null);
+
+export function useDropdownContext() {
+  const context = useContext(DropdownContext);
+  if (!context) {
+    throw new Error('DropdownItem must be used within Dropdown');
+  }
+  return context;
+}
 
 export function Dropdown({
   children,
@@ -11,6 +25,8 @@ export function Dropdown({
   align = 'center',
   side = 'bottom',
   sideOffset = 8,
+  disableAutoFlip = false,
+  strategy = 'fixed', // Default to fixed for backward compatibility
 }: DropdownProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
@@ -19,13 +35,15 @@ export function Dropdown({
     onOpenChange?.(value);
   };
 
+  const close = () => setOpen(false);
+
   const triggerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<Position>({ top: 0, left: 0 });
   const [isPositioned, setIsPositioned] = useState(false);
 
-  // Tính toán vị trí dropdown
-  const calculatePosition = (): Position | null => {
+  // Calculate position for fixed strategy
+  const calculateFixedPosition = (): Position | null => {
     if (!triggerRef.current || !contentRef.current) return null;
 
     const triggerRect = triggerRef.current.getBoundingClientRect();
@@ -35,11 +53,11 @@ export function Dropdown({
       height: window.innerHeight,
     };
 
-    // 1. Tính vị trí cơ bản dựa trên side
     let top = 0;
     let left = 0;
     const offset = sideOffset;
 
+    // Calculate base position based on side
     switch (side) {
       case 'bottom':
         top = triggerRect.bottom + offset;
@@ -59,7 +77,7 @@ export function Dropdown({
         break;
     }
 
-    // 2. Điều chỉnh theo align
+    // Adjust for alignment
     switch (side) {
       case 'bottom':
       case 'top':
@@ -79,33 +97,33 @@ export function Dropdown({
         break;
     }
 
-    // 3. Kiểm tra và tự động flip nếu tràn viewport
-    let flipped = false;
+    // Auto-flip if needed
+    const margin = 8;
     let finalTop = top;
     let finalLeft = left;
 
-    // Flip dọc nếu tràn dưới hoặc trên
-    if (side === 'bottom' && top + contentRect.height > viewport.height) {
-      // Flip lên trên
-      finalTop = triggerRect.top - contentRect.height - offset;
-      flipped = true;
-    } else if (side === 'top' && top < 0) {
-      // Flip xuống dưới
-      finalTop = triggerRect.bottom + offset;
-      flipped = true;
+    if (!disableAutoFlip) {
+      if (side === 'bottom' && top + contentRect.height > viewport.height) {
+        finalTop = triggerRect.top - contentRect.height - offset;
+      } else if (side === 'top' && top < 0) {
+        finalTop = triggerRect.bottom + offset;
+      } else if (side === 'top' && triggerRect.bottom + offset + contentRect.height > viewport.height) {
+        const spaceAbove = triggerRect.top - margin;
+        const spaceBelow = viewport.height - triggerRect.bottom - margin;
+        
+        if (spaceBelow > spaceAbove && spaceBelow >= contentRect.height + offset) {
+          finalTop = triggerRect.bottom + offset;
+        }
+      }
+
+      if (side === 'right' && left + contentRect.width > viewport.width) {
+        finalLeft = triggerRect.left - contentRect.width - offset;
+      } else if (side === 'left' && left < 0) {
+        finalLeft = triggerRect.right + offset;
+      }
     }
 
-    // Flip ngang nếu tràn phải hoặc trái
-    if (side === 'right' && left + contentRect.width > viewport.width) {
-      finalLeft = triggerRect.left - contentRect.width - offset;
-      flipped = true;
-    } else if (side === 'left' && left < 0) {
-      finalLeft = triggerRect.right + offset;
-      flipped = true;
-    }
-
-    // Đảm bảo không tràn ra ngoài viewport (giới hạn an toàn)
-    const margin = 8;
+    // Clamp to viewport
     if (finalTop < margin) finalTop = margin;
     if (finalTop + contentRect.height > viewport.height - margin) {
       finalTop = viewport.height - contentRect.height - margin;
@@ -118,16 +136,20 @@ export function Dropdown({
     return { top: finalTop, left: finalLeft };
   };
 
-  // Cập nhật vị trí khi mở hoặc thay đổi props
   const updatePosition = () => {
-    const pos = calculatePosition();
-    if (pos) {
-      setPosition(pos);
+    if (strategy === 'fixed') {
+      const pos = calculateFixedPosition();
+      if (pos) {
+        setPosition(pos);
+        setIsPositioned(true);
+      }
+    } else {
+      // Relative strategy doesn't need position calculation
       setIsPositioned(true);
     }
   };
 
-  // Xử lý click outside
+  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -146,34 +168,61 @@ export function Dropdown({
     return undefined;
   }, [open]);
 
-  // Cập nhật vị trí khi open hoặc props thay đổi
+  // Update position when open or props change
   useEffect(() => {
     if (open && contentRef.current) {
-      // Đợi content render xong mới tính toán
       requestAnimationFrame(() => {
         updatePosition();
       });
     } else {
       setIsPositioned(false);
     }
-  }, [open, side, align, sideOffset]);
+  }, [open, side, align, sideOffset, strategy]);
 
-  // Xử lý resize và scroll để cập nhật vị trí
+  // Handle resize and scroll for fixed strategy
   useEffect(() => {
-    if (!open) return;
+    if (!open || strategy !== 'fixed') return;
 
     const handleUpdate = () => {
       requestAnimationFrame(updatePosition);
     };
 
+    const getScrollableParents = (element: HTMLElement | null): HTMLElement[] => {
+      const parents: HTMLElement[] = [];
+      let current = element?.parentElement;
+      
+      while (current) {
+        const { overflow, overflowY, overflowX } = window.getComputedStyle(current);
+        if (
+          overflow === 'auto' || overflow === 'scroll' ||
+          overflowY === 'auto' || overflowY === 'scroll' ||
+          overflowX === 'auto' || overflowX === 'scroll'
+        ) {
+          parents.push(current);
+        }
+        current = current.parentElement;
+      }
+      
+      return parents;
+    };
+
+    const scrollableParents = getScrollableParents(triggerRef.current);
+
     window.addEventListener('resize', handleUpdate);
     window.addEventListener('scroll', handleUpdate, true);
+    
+    scrollableParents.forEach(parent => {
+      parent.addEventListener('scroll', handleUpdate);
+    });
 
     return () => {
       window.removeEventListener('resize', handleUpdate);
       window.removeEventListener('scroll', handleUpdate, true);
+      scrollableParents.forEach(parent => {
+        parent.removeEventListener('scroll', handleUpdate);
+      });
     };
-  }, [open]);
+  }, [open, strategy]);
 
   const childrenArray = React.Children.toArray(children);
   const trigger = childrenArray.find(
@@ -185,27 +234,89 @@ export function Dropdown({
       React.isValidElement(child) && (child.type as any)?.displayName === 'DropdownContent',
   );
 
+  // Get CSS classes for relative positioning
+  const getRelativePositionClasses = () => {
+    const classes = ['absolute', 'z-[9999]'];
+    
+    switch (side) {
+      case 'top':
+        classes.push('bottom-full', `mb-[${sideOffset}px]`);
+        break;
+      case 'bottom':
+        classes.push('top-full', `mt-[${sideOffset}px]`);
+        break;
+      case 'left':
+        classes.push('right-full', `mr-[${sideOffset}px]`);
+        break;
+      case 'right':
+        classes.push('left-full', `ml-[${sideOffset}px]`);
+        break;
+    }
+
+    // Alignment for top/bottom
+    if (side === 'top' || side === 'bottom') {
+      if (align === 'start') {
+        classes.push('left-0');
+      } else if (align === 'center') {
+        classes.push('left-1/2', '-translate-x-1/2');
+      } else if (align === 'end') {
+        classes.push('right-0');
+      }
+    }
+
+    // Alignment for left/right
+    if (side === 'left' || side === 'right') {
+      if (align === 'start') {
+        classes.push('top-0');
+      } else if (align === 'center') {
+        classes.push('top-1/2', '-translate-y-1/2');
+      } else if (align === 'end') {
+        classes.push('bottom-0');
+      }
+    }
+
+    return classes.join(' ');
+  };
+
   return (
-    <div className="relative inline-block">
-      <div ref={triggerRef} onClick={() => setOpen(!open)}>
-        {trigger}
-      </div>
-      {open && content && (
-        <div
-          ref={contentRef}
-          className="fixed z-50"
-          style={{
-            top: position.top,
-            left: position.left,
-            opacity: isPositioned ? 1 : 0,
-            transition: 'opacity 0.15s ease',
-            pointerEvents: 'auto',
-          }}
-        >
-          {content}
+    <DropdownContext.Provider value={{ close }}>
+      <div className="relative inline-block">
+        <div ref={triggerRef} onClick={() => setOpen(!open)}>
+          {trigger}
         </div>
-      )}
-    </div>
+        {open && content && (
+          <>
+            {strategy === 'fixed' ? (
+              <div
+                ref={contentRef}
+                className="fixed z-[9999]"
+                style={{
+                  top: position.top,
+                  left: position.left,
+                  opacity: isPositioned ? 1 : 0,
+                  transition: 'opacity 0.15s ease',
+                  pointerEvents: 'auto',
+                }}
+              >
+                {content}
+              </div>
+            ) : (
+              <div
+                ref={contentRef}
+                className={getRelativePositionClasses()}
+                style={{
+                  opacity: isPositioned ? 1 : 0,
+                  transition: 'opacity 0.15s ease',
+                  pointerEvents: 'auto',
+                }}
+              >
+                {content}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </DropdownContext.Provider>
   );
 }
 

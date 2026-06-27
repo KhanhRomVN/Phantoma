@@ -7,6 +7,8 @@ export interface DropdownProps {
   align?: 'start' | 'center' | 'end';
   side?: 'top' | 'bottom' | 'left' | 'right';
   sideOffset?: number;
+  disableAutoFlip?: boolean;
+  strategy?: 'fixed' | 'relative'; // New: positioning strategy
 }
 
 export interface DropdownTriggerProps {
@@ -25,6 +27,7 @@ export interface DropdownItemProps extends React.HTMLAttributes<HTMLDivElement> 
   className?: string;
   disabled?: boolean;
   icon?: React.ReactNode;
+  closeOnSelect?: boolean;
 }
 
 export interface DropdownSeparatorProps {

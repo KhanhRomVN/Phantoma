@@ -9,6 +9,8 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { Checkbox } from '../../../../components/ui/Checkbox';
+import { Button } from '../../../../components/ui/Button';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '../../../../components/ui/Modal';
 import { useDatabase } from '../../hooks/useDatabase';
 import { TableList } from './TableList';
 import { TableHeader } from './TableHeader';
@@ -31,6 +33,7 @@ const DatabaseViewer: React.FC = () => {
     clearFilters,
     getFilteredRows,
     refresh,
+    deleteRecords,
   } = useDatabase();
 
   const [tableSearchTerm, setTableSearchTerm] = useState('');
@@ -40,6 +43,7 @@ const DatabaseViewer: React.FC = () => {
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterBar, setShowFilterBar] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Build columns for react-table
   const columns = useMemo<ColumnDef<any>[]>(() => {
@@ -173,7 +177,7 @@ const DatabaseViewer: React.FC = () => {
       columnVisibility,
       columnSizing,
     },
-    getRowId: (_row, index) => `${index}`,
+    getRowId: (row) => String(row.rowid),
   });
 
   const handleSelectTable = useCallback(
@@ -223,6 +227,130 @@ const DatabaseViewer: React.FC = () => {
 
   const availableColumns = tableData?.columns || [];
 
+  // Get selected row IDs and count
+  const selectedRowIds = useMemo(() => {
+    return Object.keys(rowSelection).map(Number);
+  }, [rowSelection]);
+  const selectedCount = selectedRowIds.length;
+
+  const handleDelete = useCallback(() => {
+    if (selectedCount === 0 || !selectedTable) return;
+    setShowDeleteModal(true);
+  }, [selectedCount, selectedTable]);
+
+  const confirmDelete = useCallback(async () => {
+    try {
+      await deleteRecords(selectedRowIds);
+      setRowSelection({}); // Clear selection after deletion
+      setShowDeleteModal(false);
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert(`Failed to delete records: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setShowDeleteModal(false);
+    }
+  }, [selectedRowIds, deleteRecords]);
+
+  const handleDeleteSingleRecord = useCallback(async (rowId: number) => {
+    try {
+      await deleteRecords([rowId]);
+      setRowSelection({});
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert(`Failed to delete record: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  }, [deleteRecords]);
+
+  const handleCopyAsJson = useCallback((row: any) => {
+    try {
+      const data = {
+        table: selectedTable,
+        row: row,
+      };
+      const jsonString = JSON.stringify(data, null, 2);
+      navigator.clipboard.writeText(jsonString);
+    } catch (err) {
+      console.error('Copy failed:', err);
+      alert('Failed to copy as JSON');
+    }
+  }, [selectedTable]);
+
+  const handleCopyAsMarkdown = useCallback((row: any) => {
+    try {
+      if (!tableData) return;
+      const columns = tableData.columns;
+      const rows: string[] = [`**Table:** ${selectedTable}`, ''];
+      columns.forEach(col => {
+        const val = row[col];
+        let displayValue: string;
+        if (val === null || val === undefined) {
+          displayValue = 'null';
+        } else if (typeof val === 'string') {
+          displayValue = val;
+        } else if (typeof val === 'object') {
+          displayValue = JSON.stringify(val);
+        } else {
+          displayValue = String(val);
+        }
+        rows.push(`- **${col}**: ${displayValue}`);
+      });
+      const markdownContent = rows.join('\n');
+      navigator.clipboard.writeText(markdownContent);
+    } catch (err) {
+      console.error('Copy failed:', err);
+      alert('Failed to copy as Markdown');
+    }
+  }, [tableData, selectedTable]);
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedCount === 0 || !selectedTable) return;
+    setShowDeleteModal(true);
+  }, [selectedCount, selectedTable]);
+
+  const handleBulkCopyAsJson = useCallback((rows: any[]) => {
+    try {
+      const data = {
+        table: selectedTable,
+        rows: rows,
+      };
+      const jsonString = JSON.stringify(data, null, 2);
+      navigator.clipboard.writeText(jsonString);
+    } catch (err) {
+      console.error('Copy failed:', err);
+      alert('Failed to copy selected records as JSON');
+    }
+  }, [selectedTable]);
+
+  const handleBulkCopyAsMarkdown = useCallback((rows: any[]) => {
+    try {
+      if (!tableData || rows.length === 0) return;
+      const columns = tableData.columns;
+      const output: string[] = [`**Table:** ${selectedTable}`, ''];
+      rows.forEach((row, index) => {
+        if (index > 0) output.push('');
+        output.push(`### Record ${index + 1}`);
+        columns.forEach(col => {
+          const val = row[col];
+          let displayValue: string;
+          if (val === null || val === undefined) {
+            displayValue = 'null';
+          } else if (typeof val === 'string') {
+            displayValue = val;
+          } else if (typeof val === 'object') {
+            displayValue = JSON.stringify(val);
+          } else {
+            displayValue = String(val);
+          }
+          output.push(`- **${col}**: ${displayValue}`);
+        });
+      });
+      const markdownContent = output.join('\n');
+      navigator.clipboard.writeText(markdownContent);
+    } catch (err) {
+      console.error('Copy failed:', err);
+      alert('Failed to copy selected records as Markdown');
+    }
+  }, [tableData, selectedTable]);
+
   return (
     <div className="flex h-full">
       {/* Left Panel - Danh sách tables */}
@@ -260,6 +388,8 @@ const DatabaseViewer: React.FC = () => {
               totalPages={Math.ceil(filteredData.length / ROWS_PER_PAGE)}
               onPageChange={setCurrentPage}
               onRefresh={handleRefresh}
+              selectedCount={selectedCount}
+              onDelete={handleDelete}
             />
 
             {/* Filter Bar */}
@@ -274,7 +404,17 @@ const DatabaseViewer: React.FC = () => {
             )}
 
             {/* Table */}
-            <DataTable table={table} dataLength={paginatedData.length} />
+            <DataTable
+              table={table}
+              dataLength={paginatedData.length}
+              onDeleteRecord={handleDeleteSingleRecord}
+              onCopyAsJson={handleCopyAsJson}
+              onCopyAsMarkdown={handleCopyAsMarkdown}
+              selectedCount={selectedCount}
+              onBulkDelete={handleBulkDelete}
+              onBulkCopyAsJson={handleBulkCopyAsJson}
+              onBulkCopyAsMarkdown={handleBulkCopyAsMarkdown}
+            />
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-text-secondary">
@@ -282,6 +422,39 @@ const DatabaseViewer: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        closeOnBackdropClick={true}
+      >
+        <ModalHeader
+          title="Confirm deletion of selected records"
+          description="You are about to permanently delete the selected records from the dataset"
+          onClose={() => setShowDeleteModal(false)}
+          showCloseButton={true}
+        />
+        <ModalBody>
+          <div className="space-y-2">
+            <p className="text-sm text-text-primary">
+              You are about to delete <strong>{selectedCount}</strong> selected record{selectedCount > 1 ? 's' : ''} from <strong className="font-mono">{selectedTable}</strong>.
+            </p>
+            <p className="text-xs text-error/80 flex items-center gap-1.5">
+              <span className="inline-block w-1 h-1 rounded-full bg-error/60" />
+              This action cannot be undone.
+            </p>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" size="sm" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="error" size="sm" onClick={confirmDelete}>
+            Delete records
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 };

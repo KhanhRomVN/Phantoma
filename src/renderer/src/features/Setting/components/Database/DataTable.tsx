@@ -1,26 +1,77 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { flexRender, Table as TanStackTable } from '@tanstack/react-table';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../../../components/ui/Table';
+import { ContextMenu } from '../../../../components/ui/ContextMenu';
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../../../../components/ui/Dropdown';
+import { Copy, Trash2, FileJson, FileText, ChevronDown } from 'lucide-react';
 
 interface DataTableProps {
   table: TanStackTable<any>;
   dataLength: number;
+  onDeleteRecord?: (rowId: number) => void;
+  onCopyAsJson?: (row: any) => void;
+  onCopyAsMarkdown?: (row: any) => void;
+  selectedCount?: number;
+  onBulkDelete?: () => void;
+  onBulkCopyAsJson?: (rows: any[]) => void;
+  onBulkCopyAsMarkdown?: (rows: any[]) => void;
 }
 
-export const DataTable: React.FC<DataTableProps> = ({ table, dataLength }) => {
+export const DataTable: React.FC<DataTableProps> = ({
+  table,
+  dataLength,
+  onDeleteRecord,
+  onCopyAsJson,
+  onCopyAsMarkdown,
+  selectedCount = 0,
+  onBulkDelete,
+  onBulkCopyAsJson,
+  onBulkCopyAsMarkdown,
+}) => {
+  const selectedRows = table.getSelectedRowModel().rows.map(row => row.original);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    row: any;
+    rowId: number;
+  } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent, row: any) => {
+    e.preventDefault();
+    const rowId = row.original?.rowid ?? parseInt(row.id);
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      row: row.original,
+      rowId,
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
   return (
     <div className="flex-1 overflow-auto">
       <div className="w-full h-full overflow-auto">
-        <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
-          <thead className="sticky top-0 bg-background z-10">
+        <Table style={{ tableLayout: 'fixed' }}>
+          <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-border">
+              <TableRow key={headerGroup.id} className="border-b border-border">
                 {headerGroup.headers.map((header) => {
                   if (header.column.getIsVisible() === false) return null;
                   const canResize = header.column.getCanResize();
                   const isResizing = header.column.getIsResizing();
                   return (
-                    <th
+                    <TableCell
                       key={header.id}
+                      as="th"
                       className="px-3 py-2 text-left border-r border-border last:border-r-0 whitespace-nowrap relative"
                       style={{
                         width: header.getSize(),
@@ -44,31 +95,33 @@ export const DataTable: React.FC<DataTableProps> = ({ table, dataLength }) => {
                           }}
                         />
                       )}
-                    </th>
+                    </TableCell>
                   );
                 })}
-              </tr>
+              </TableRow>
             ))}
-          </thead>
-          <tbody>
+          </TableHeader>
+          <TableBody>
             {dataLength === 0 ? (
-              <tr>
-                <td
+              <TableRow>
+                <TableCell
                   colSpan={table.getAllColumns().filter((c) => c.getIsVisible()).length}
                   className="px-4 py-8 text-center text-text-secondary text-sm"
                 >
                   No data found
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr
+                <TableRow
                   key={row.id}
-                  className="border-b border-border hover:bg-dropdown-item-hover/50 transition-colors"
+                  className="border-b border-border hover:bg-dropdown-item-hover/50 transition-colors cursor-context-menu"
+                  onContextMenu={(e) => handleContextMenu(e, row)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td
+                    <TableCell
                       key={cell.id}
+                      as="td"
                       className="px-3 py-1.5 border-r border-border last:border-r-0"
                       style={{
                         maxWidth: cell.column.getSize(),
@@ -78,14 +131,83 @@ export const DataTable: React.FC<DataTableProps> = ({ table, dataLength }) => {
                       }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={handleCloseContextMenu}
+          items={[
+            {
+              label: 'Delete record',
+              icon: <Trash2 className="w-3.5 h-3.5" />,
+              variant: 'error',
+              onClick: () => onDeleteRecord?.(contextMenu.rowId),
+            },
+            {
+              label: 'Copy',
+              icon: <Copy className="w-3.5 h-3.5" />,
+              children: [
+                {
+                  label: 'Copy as JSON',
+                  icon: <FileJson className="w-3.5 h-3.5" />,
+                  onClick: () => onCopyAsJson?.(contextMenu.row),
+                },
+                {
+                  label: 'Copy as Markdown',
+                  icon: <FileText className="w-3.5 h-3.5" />,
+                  onClick: () => onCopyAsMarkdown?.(contextMenu.row),
+                },
+              ],
+            },
+          ]}
+        />
+      )}
+
+      {/* Bulk Action Bar */}
+      {selectedCount > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 bg-modal-background border border-border rounded-lg shadow-lg px-4 py-2 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-200">
+          <span className="text-xs text-text-secondary">
+            {selectedCount} record{selectedCount > 1 ? 's' : ''} selected
+          </span>
+          <div className="w-px h-5 bg-border" />
+          <Dropdown side="top" strategy="relative">
+            <DropdownTrigger asChild>
+              <button className="flex items-center gap-1.5 px-2 py-1 text-xs text-text-primary hover:text-primary hover:bg-primary/10 rounded transition-colors">
+                <Copy className="w-3.5 h-3.5" />
+                Copy
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </DropdownTrigger>
+            <DropdownContent className="min-w-[160px]">
+              <DropdownItem onClick={() => onBulkCopyAsJson?.(selectedRows)}>
+                <FileJson className="w-3.5 h-3.5" />
+                Copy as JSON
+              </DropdownItem>
+              <DropdownItem onClick={() => onBulkCopyAsMarkdown?.(selectedRows)}>
+                <FileText className="w-3.5 h-3.5" />
+                Copy as Markdown
+              </DropdownItem>
+            </DropdownContent>
+          </Dropdown>
+          <div className="w-px h-5 bg-border" />
+          <button
+            onClick={onBulkDelete}
+            className="flex items-center gap-1.5 px-2 py-1 text-xs text-error hover:bg-error/10 rounded transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -59,13 +59,13 @@ export function useDatabase() {
       setLoading(true);
       setError(null);
 
-      const rows = await db.execute(`SELECT * FROM ${tableName} LIMIT 1000`);
+      const rows = await db.execute(`SELECT rowid, * FROM ${tableName} LIMIT 1000`);
 
       let columns: string[] = [];
       let columnTypes: Record<string, string> = {};
 
       if (rows.length > 0) {
-        columns = Object.keys(rows[0]);
+        columns = Object.keys(rows[0]).filter(col => col !== 'rowid');
         // Get schema for types
         const schemaResult = await db.execute(
           `SELECT sql FROM sqlite_master WHERE type='table' AND name = ?`,
@@ -105,16 +105,21 @@ export function useDatabase() {
   }, [parseColumnTypes]);
 
   const addFilter = useCallback((column: string, operator: Operator, value: string) => {
-    if (!column || !value) return;
-    setFilters(prev => [
-      ...prev,
-      {
-        id: `filter-${filterIdCounter.current++}`,
-        column,
-        operator,
-        value,
-      },
-    ]);
+    console.log('[useDatabase] addFilter called with:', { column, operator, value });
+    // Cho phép thêm filter với giá trị trống, user có thể edit sau
+    const newFilter = {
+      id: `filter-${filterIdCounter.current++}`,
+      column: column || '',
+      operator,
+      value: value || '',
+    };
+    console.log('[useDatabase] Adding filter:', newFilter);
+    setFilters(prev => {
+      console.log('[useDatabase] Previous filters:', prev.length);
+      const updated = [...prev, newFilter];
+      console.log('[useDatabase] Updated filters:', updated.length);
+      return updated;
+    });
   }, []);
 
   const removeFilter = useCallback((id: string) => {
@@ -159,6 +164,30 @@ export function useDatabase() {
     });
   }, [tableData, filters]);
 
+  const deleteRecords = useCallback(async (rowIds: number[]) => {
+    if (!selectedTable || rowIds.length === 0) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const placeholders = rowIds.map(() => '?').join(',');
+      await db.execute(
+        `DELETE FROM ${selectedTable} WHERE rowid IN (${placeholders})`,
+        rowIds,
+      );
+
+      // Refresh data after deletion
+      await loadTableData(selectedTable);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete records');
+      console.error('Delete records error:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedTable, loadTableData]);
+
   const refresh = useCallback(async () => {
     await loadTables();
     if (selectedTable) {
@@ -194,5 +223,6 @@ export function useDatabase() {
     refresh,
     loadTables,
     loadTableData,
+    deleteRecords,
   };
 }

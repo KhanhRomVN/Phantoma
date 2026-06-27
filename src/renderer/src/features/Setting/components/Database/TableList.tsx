@@ -1,6 +1,6 @@
 import React from 'react';
 import { Database, Table, RefreshCw, Search } from 'lucide-react';
-import { TableInfo } from '../../../types/database';
+import { TableInfo } from '../../types/database';
 
 interface TableListProps {
   tables: TableInfo[];
@@ -30,7 +30,7 @@ export const TableList: React.FC<TableListProps> = ({
   return (
     <div className="w-64 shrink-0 border-r border-border flex flex-col overflow-hidden">
       {/* Table List Header */}
-      <div className="px-2 py-[6px] border-b border-border shrink-0">
+      <div className="px-2 py-[8px] border-b border-border shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
             <Database className="w-4 h-4" />

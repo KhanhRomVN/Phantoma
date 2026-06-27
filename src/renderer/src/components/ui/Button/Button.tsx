@@ -7,6 +7,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   outline: 'border border-border text-text-secondary hover:border-primary hover:text-primary hover:bg-primary/10 active:bg-primary/20',
   soft: 'bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70',
   ghost: 'text-primary hover:bg-primary/10 active:bg-primary/20',
+  error: 'bg-error text-button-solid-text hover:bg-error/90 active:bg-error/80',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

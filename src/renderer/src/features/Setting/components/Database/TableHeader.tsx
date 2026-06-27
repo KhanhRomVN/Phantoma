@@ -46,6 +46,8 @@ interface TableHeaderProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   onRefresh?: () => void;
+  selectedCount?: number;
+  onDelete?: () => void;
 }
 
 export const TableHeader: React.FC<TableHeaderProps> = ({
@@ -66,6 +68,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
   totalPages,
   onPageChange,
   onRefresh,
+  selectedCount = 0,
+  onDelete,
 }) => {
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
@@ -100,6 +104,18 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-1">
+        {/* Delete Button */}
+        {selectedCount > 0 && onDelete && (
+          <Button
+            variant="error"
+            size="sm"
+            onClick={onDelete}
+            className="gap-1 px-2 py-1 text-xs h-7"
+          >
+            <span>Delete {selectedCount} record{selectedCount > 1 ? 's' : ''}</span>
+          </Button>
+        )}
+
         {/* Filter Button */}
         <Button
           variant="outline"
@@ -138,7 +154,18 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
               <div className="flex items-center justify-between px-3 py-2 border-b border-border">
                 <span className="text-xs font-medium text-text-primary">Sort by</span>
                 <button
-                  onClick={() => setIsAscending(!isAscending)}
+                  onClick={() => {
+                    const newIsAscending = !isAscending;
+                    setIsAscending(newIsAscending);
+                    // Update all active sort columns to the new direction
+                    if (sorting.length > 0) {
+                      const updatedSorting = sorting.map((s) => ({
+                        ...s,
+                        desc: !newIsAscending,
+                      }));
+                      onSortingChange(updatedSorting);
+                    }
+                  }}
                   className={cn(
                     'flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors',
                     isAscending
@@ -177,11 +204,11 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
               {/* Sort Items */}
               {filteredColumns.map((col) => {
                 const isActive = sorting.some((s) => s.id === col);
-                const sortDir = sorting.find((s) => s.id === col)?.desc ? 'desc' : 'asc';
                 return (
                   <DropdownItem
                     key={col}
                     className="grid grid-cols-[24px_1fr_24px] items-center gap-1 w-full"
+                    closeOnSelect={false}
                   >
                     <div className="flex items-center justify-center w-4 h-4 justify-self-center">
                       <Checkbox
@@ -189,11 +216,11 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         onChange={() => {
                           const existing = sorting.find((s) => s.id === col);
                           if (existing) {
-                            const newSorting = sorting.map((s) =>
-                              s.id === col ? { ...s, desc: !s.desc } : s,
-                            );
+                            // Remove column from sort
+                            const newSorting = sorting.filter((s) => s.id !== col);
                             onSortingChange(newSorting);
                           } else {
+                            // Add column with current direction
                             onSortingChange([...sorting, { id: col, desc: !isAscending }]);
                           }
                         }}
@@ -202,11 +229,6 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                       />
                     </div>
                     <span className="text-xs text-left">{col}</span>
-                    {isActive && (
-                      <span className="text-[10px] text-text-secondary text-center">
-                        {sortDir === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
                   </DropdownItem>
                 );
               })}
@@ -287,6 +309,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         });
                       }}
                       className="grid grid-cols-[24px_1fr_24px] items-center gap-1 w-full"
+                      closeOnSelect={false}
                     >
                       <div className="flex items-center justify-center w-4 h-4 justify-self-center">
                         {isVisible ? (

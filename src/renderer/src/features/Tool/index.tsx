@@ -1,10 +1,9 @@
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { Home, ChevronRight } from 'lucide-react';
 import { TOOLS_LIST } from './data/toolsList';
 import { ToolIcon } from './utils/iconHelpers';
 import { useToolManager } from './hooks/useToolManager';
 import { ServerConfigProvider } from './context/ServerConfigContext';
-import { useTheme } from '../../theme/ThemeProvider';
 import { useAccentColors } from '../../shared/hooks/useAccentColors';
 
 interface ToolManagerProps {

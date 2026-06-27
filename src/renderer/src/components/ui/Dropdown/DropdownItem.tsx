@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../../shared/lib/utils';
 import { DropdownItemProps, DropdownSeparatorProps } from './type';
+import { useDropdownContext } from './Dropdown';
 
 export function DropdownItem({
   children,
@@ -8,10 +9,22 @@ export function DropdownItem({
   className,
   disabled,
   icon,
+  closeOnSelect = true,
+  ...props
 }: DropdownItemProps) {
+  const { close } = useDropdownContext();
+
+  const handleClick = () => {
+    if (disabled) return;
+    onClick?.();
+    if (closeOnSelect) {
+      close();
+    }
+  };
+
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
@@ -20,6 +33,7 @@ export function DropdownItem({
         disabled && 'opacity-50 cursor-not-allowed',
         className,
       )}
+      {...props}
     >
       {icon && <span className="shrink-0">{icon}</span>}
       {children}
