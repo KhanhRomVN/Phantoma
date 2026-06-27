@@ -1,6 +1,7 @@
-import React from 'react';
-import { Database, Table, RefreshCw, Search } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Database, Table, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { TableInfo } from '../../types/database';
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem, DropdownSub, DropdownSubTrigger, DropdownSubContent } from '../../../../components/ui/Dropdown';
 
 interface TableListProps {
   tables: TableInfo[];
@@ -27,6 +28,13 @@ export const TableList: React.FC<TableListProps> = ({
     table.name.toLowerCase().includes(tableSearchTerm.toLowerCase()),
   );
 
+  // Auto-select first table if at least one table exists and no table is selected
+  useEffect(() => {
+    if (tables.length > 0 && !selectedTable) {
+      onSelectTable(tables[0].name);
+    }
+  }, [tables, selectedTable, onSelectTable]);
+
   return (
     <div className="w-64 shrink-0 border-r border-border flex flex-col overflow-hidden">
       {/* Table List Header */}
@@ -37,13 +45,16 @@ export const TableList: React.FC<TableListProps> = ({
             <span>Table</span>
             <span className="text-xs text-text-secondary ml-1">({tables.length})</span>
           </div>
-          <button
-            onClick={onRefresh}
-            className="p-1.5 rounded hover:bg-primary/10 hover:text-primary transition-colors shrink-0"
-            title="Refresh"
-          >
-            <RefreshCw className="w-4 h-4 text-text-secondary" />
-          </button>
+          <div className="flex items-center gap-1">
+            
+            <button
+              onClick={onRefresh}
+              className="p-1.5 rounded hover:bg-primary/10 hover:text-primary transition-colors shrink-0"
+              title="Refresh"
+            >
+              <RefreshCw className="w-4 h-4 text-text-secondary" />
+            </button>
+          </div>
         </div>
       </div>
 

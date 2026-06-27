@@ -7,8 +7,8 @@ import {
   TableRow,
   TableCell,
 } from '../../../../components/ui/Table';
-import { ContextMenu } from '../../../../components/ui/ContextMenu';
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../../../../components/ui/Dropdown';
+
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem, DropdownSub, DropdownSubTrigger, DropdownSubContent } from '../../../../components/ui/Dropdown';
 import { Copy, Trash2, FileJson, FileText, ChevronDown } from 'lucide-react';
 
 interface DataTableProps {
@@ -141,35 +141,62 @@ export const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onClose={handleCloseContextMenu}
-          items={[
-            {
-              label: 'Delete record',
-              icon: <Trash2 className="w-3.5 h-3.5" />,
-              variant: 'error',
-              onClick: () => onDeleteRecord?.(contextMenu.rowId),
-            },
-            {
-              label: 'Copy',
-              icon: <Copy className="w-3.5 h-3.5" />,
-              children: [
-                {
-                  label: 'Copy as JSON',
-                  icon: <FileJson className="w-3.5 h-3.5" />,
-                  onClick: () => onCopyAsJson?.(contextMenu.row),
-                },
-                {
-                  label: 'Copy as Markdown',
-                  icon: <FileText className="w-3.5 h-3.5" />,
-                  onClick: () => onCopyAsMarkdown?.(contextMenu.row),
-                },
-              ],
-            },
-          ]}
-        />
+        <div
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            zIndex: 9999,
+          }}
+        >
+          <Dropdown
+            open={true}
+            onOpenChange={(open) => !open && handleCloseContextMenu()}
+            strategy="fixed"
+            side="bottom"
+            align="start"
+          >
+            <DropdownTrigger>
+              <div style={{ width: 1, height: 1 }} />
+            </DropdownTrigger>
+            <DropdownContent className="min-w-[180px]">
+              <DropdownItem
+                variant="error"
+                icon={<Trash2 className="w-3.5 h-3.5" />}
+                onClick={() => {
+                  onDeleteRecord?.(contextMenu.rowId);
+                  handleCloseContextMenu();
+                }}
+              >
+                Delete record
+              </DropdownItem>
+              <DropdownSub>
+                <DropdownSubTrigger icon={<Copy className="w-3.5 h-3.5" />}>Copy</DropdownSubTrigger>
+                <DropdownSubContent>
+                  <DropdownItem
+                    icon={<FileJson className="w-3.5 h-3.5" />}
+                    onClick={() => {
+                      onCopyAsJson?.(contextMenu.row);
+                      handleCloseContextMenu();
+                    }}
+                  >
+                    Copy as JSON
+                  </DropdownItem>
+                  <DropdownItem
+                    icon={<FileText className="w-3.5 h-3.5" />}
+                    onClick={() => {
+                      onCopyAsMarkdown?.(contextMenu.row);
+                      handleCloseContextMenu();
+                    }}
+                  >
+                    Copy as Markdown
+                  </DropdownItem>
+                  
+                </DropdownSubContent>
+              </DropdownSub>
+            </DropdownContent>
+          </Dropdown>
+        </div>
       )}
 
       {/* Bulk Action Bar */}
@@ -187,7 +214,8 @@ export const DataTable: React.FC<DataTableProps> = ({
                 <ChevronDown className="w-3 h-3" />
               </button>
             </DropdownTrigger>
-            <DropdownContent className="min-w-[160px]">
+            <DropdownContent className="w-auto min-w-max">
+              
               <DropdownItem onClick={() => onBulkCopyAsJson?.(selectedRows)}>
                 <FileJson className="w-3.5 h-3.5" />
                 Copy as JSON
