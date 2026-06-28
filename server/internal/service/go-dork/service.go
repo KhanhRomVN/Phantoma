@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/phantoma/server/internal/domain"
+	domaintools "github.com/phantoma/server/internal/domain/tools"
 	dockerpkg "github.com/phantoma/server/pkg/docker"
 	"github.com/phantoma/server/pkg/logger"
 )
@@ -32,7 +33,7 @@ func NewService(container string) *Service {
 }
 
 // Search performs a dork search using go-dork.
-func (s *Service) Search(ctx context.Context, req domain.DorkQuery) (*domain.DorkResponse, error) {
+func (s *Service) Search(ctx context.Context, req domaintools.DorkQuery) (*domaintools.DorkResponse, error) {
 	if req.Query == "" {
 		return nil, domain.ErrInvalidTarget
 	}
@@ -57,7 +58,7 @@ func (s *Service) Search(ctx context.Context, req domain.DorkQuery) (*domain.Dor
 	// Parse output
 	results := parseOutput(result.Stdout)
 
-	response := &domain.DorkResponse{
+	response := &domaintools.DorkResponse{
 		Query:     req.Query,
 		Engine:    req.Engine,
 		Pages:     req.Pages,
@@ -79,7 +80,7 @@ func (s *Service) Search(ctx context.Context, req domain.DorkQuery) (*domain.Dor
 }
 
 // buildArgs constructs command-line arguments for go-dork.
-func (s *Service) buildArgs(req domain.DorkQuery) []string {
+func (s *Service) buildArgs(req domaintools.DorkQuery) []string {
 	args := []string{"go-dork"}
 
 	// Query (required)
@@ -89,7 +90,7 @@ func (s *Service) buildArgs(req domain.DorkQuery) []string {
 	args = append(args, "-s")
 
 	// Engine
-	if req.Engine != "" && req.Engine != domain.EngineGoogle {
+	if req.Engine != "" && req.Engine != domaintools.EngineGoogle {
 		args = append(args, "-e", string(req.Engine))
 	}
 
@@ -115,8 +116,8 @@ func (s *Service) buildArgs(req domain.DorkQuery) []string {
 
 // parseOutput extracts URLs and titles from go-dork output.
 // go-dork -s outputs one result per line in format: URL (optional metadata).
-func parseOutput(output string) []domain.DorkResult {
-	var results []domain.DorkResult
+func parseOutput(output string) []domaintools.DorkResult {
+	var results []domaintools.DorkResult
 	lines := strings.Split(output, "\n")
 
 	for _, line := range lines {
@@ -126,7 +127,7 @@ func parseOutput(output string) []domain.DorkResult {
 		}
 
 		// Parse: URL | Title or just URL
-		result := domain.DorkResult{}
+		result := domaintools.DorkResult{}
 
 		// Check if line contains URL pattern
 		if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {

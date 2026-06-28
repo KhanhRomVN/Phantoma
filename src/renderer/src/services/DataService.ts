@@ -1,21 +1,59 @@
-import { targetRepository, type TargetRow, type CreateTargetInput, type TargetStatus } from '../database';
-import { TargetTab } from '../../features/Emulate/types/target.types';
+import { apiClient } from './ApiClient';
+import type { TargetDTO, CreateTargetDTO, UpdateTargetDTO } from '@app/api/types';
+import type { TargetTab } from '../features/Emulate/types/target.types';
 
 /**
  * DataService - Centralized data access layer
+ * Giao tiếp với Go backend qua REST API thay vì SQLite IPC.
  * 
  * Usage:
  * import { dataService } from '@/services/DataService';
- * 
- * // Get all targets
  * const targets = await dataService.getTargets();
- * 
- * // Save a target
- * await dataService.saveTarget({ id: '123', title: 'Google', url: 'https://google.com' });
- * 
- * // Delete a target
- * await dataService.deleteTarget('123');
  */
+
+// ── Helpers ────────────────────────────────────────────────────────
+
+function toTargetTab(dto: TargetDTO): TargetTab {
+  return {
+    id: dto.id,
+    title: dto.title,
+    url: dto.url ?? undefined,
+    icon: dto.icon ?? undefined,
+    favicon: dto.icon ?? undefined,
+    platform: dto.platform ?? undefined,
+    executablePath: dto.executable_path ?? undefined,
+    startupArgs: dto.startup_args ?? undefined,
+    environment: dto.environment ?? undefined,
+  };
+}
+
+function toCreateDTO(target: TargetTab): CreateTargetDTO {
+  return {
+    id: target.id,
+    title: target.title,
+    url: target.url ?? null,
+    icon: target.icon ?? null,
+    platform: target.platform ?? null,
+    executable_path: target.executablePath ?? null,
+    startup_args: target.startupArgs ?? null,
+    environment: target.environment ?? null,
+  };
+}
+
+function toUpdateDTO(target: Partial<TargetTab>): UpdateTargetDTO {
+  const dto: UpdateTargetDTO = {};
+  if (target.title !== undefined) dto.title = target.title;
+  if (target.url !== undefined) dto.url = target.url ?? null;
+  if (target.icon !== undefined) dto.icon = target.icon ?? null;
+  if (target.platform !== undefined) dto.platform = target.platform ?? null;
+  if (target.executablePath !== undefined) dto.executable_path = target.executablePath ?? null;
+  if (target.startupArgs !== undefined) dto.startup_args = target.startupArgs ?? null;
+  if (target.environment !== undefined) dto.environment = target.environment ?? null;
+  return dto;
+}
+
+// ── DataService ────────────────────────────────────────────────────
+
 class DataService {
   private static instance: DataService;
 
@@ -30,153 +68,114 @@ class DataService {
 
   // === Target CRUD ===
 
-  /**
-   * Get all targets
-   */
   async getTargets(): Promise<TargetTab[]> {
-    return targetRepository.getActiveTargets();
+    const dtos = await apiClient.getTargets();
+    return dtos.map(toTargetTab);
   }
 
-  /**
-   * Get target by ID
-   */
   async getTargetById(id: string): Promise<TargetTab | null> {
-    return targetRepository.getById(id);
+    try {
+      const dto = await apiClient.getTarget(id);
+      return toTargetTab(dto);
+    } catch {
+      return null;
+    }
   }
 
-  /**
-   * Get targets by platform
-   */
   async getTargetsByPlatform(platform: string): Promise<TargetTab[]> {
-    return targetRepository.getByPlatform(platform);
+    const all = await this.getTargets();
+    return all.filter((t) => t.platform === platform);
   }
 
-  /**
-   * Get targets by status
-   */
-  async getTargetsByStatus(status: TargetStatus): Promise<TargetTab[]> {
-    return targetRepository.getByStatus(status);
-  }
-
-  /**
-   * Get stored targets (đang lưu trữ)
-   */
-  async getStoredTargets(): Promise<TargetTab[]> {
-    return targetRepository.getStored();
-  }
-
-  /**
-   * Get staged targets (đã đưa lên kệ)
-   */
-  async getStagedTargets(): Promise<TargetTab[]> {
-    return targetRepository.getStaged();
-  }
-
-  /**
-   * Get active targets (đang hoạt động)
-   */
-  async getActiveTargets(): Promise<TargetTab[]> {
-    return targetRepository.getActive();
-  }
-
-  /**
-   * Update target status
-   */
-  async updateTargetStatus(id: string, status: TargetStatus): Promise<TargetTab | null> {
-    return targetRepository.updateStatus(id, status);
-  }
-
-  /**
-   * Search targets by title or URL
-   */
   async searchTargets(query: string): Promise<TargetTab[]> {
-    return targetRepository.search(query);
+    const all = await this.getTargets();
+    const q = query.toLowerCase();
+    return all.filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.url?.toLowerCase().includes(q),
+    );
   }
 
-  /**
-   * Save a single target (create or update)
-   */
   async saveTarget(target: TargetTab): Promise<TargetTab> {
-    return targetRepository.saveTarget(target);
+    // Try update first, create if not found
+    try {
+      const dto = await apiClient.updateTarget(target.id, toUpdateDTO(target));
+      return toTargetTab(dto);
+    } catch {
+      const dto = await apiClient.createTarget(toCreateDTO(target));
+      return toTargetTab(dto);
+    }
   }
 
-  /**
-   * Save multiple targets (batch upsert)
-   */
   async saveTargets(targets: TargetTab[]): Promise<TargetTab[]> {
-    return targetRepository.saveTargets(targets);
+    const results: TargetTab[] = [];
+    for (const target of targets) {
+      results.push(await this.saveTarget(target));
+    }
+    return results;
   }
 
-  /**
-   * Create a new target (auto-generate ID)
-   */
   async createTarget(input: Omit<TargetTab, 'id'> & { id?: string }): Promise<TargetTab> {
-    const createInput: CreateTargetInput = {
-      id: input.id || crypto.randomUUID(),
+    const dto: CreateTargetDTO = {
+      id: input.id,
       title: input.title,
-      favicon: input.favicon,
-      url: input.url,
-      platform: input.platform || 'web', // Use input platform or fallback to 'web'
+      url: input.url ?? null,
+      icon: input.icon ?? input.favicon ?? null,
+      platform: input.platform ?? 'web',
+      executable_path: input.executablePath ?? null,
+      startup_args: input.startupArgs ?? null,
+      environment: input.environment ?? null,
     };
-    return targetRepository.create(createInput);
+    const result = await apiClient.createTarget(dto);
+    return toTargetTab(result);
   }
 
-  /**
-   * Delete a target by ID
-   */
   async deleteTarget(id: string): Promise<boolean> {
-    return targetRepository.removeTarget(id);
+    return apiClient.deleteTarget(id);
   }
 
-  /**
-   * Delete multiple targets
-   */
   async deleteTargets(ids: string[]): Promise<number> {
-    return targetRepository.removeTargets(ids);
+    let count = 0;
+    for (const id of ids) {
+      const deleted = await apiClient.deleteTarget(id);
+      if (deleted) count++;
+    }
+    return count;
   }
 
-  /**
-   * Delete all targets
-   */
   async clearAllTargets(): Promise<number> {
-    return targetRepository.clearAll();
+    const all = await this.getTargets();
+    let count = 0;
+    for (const t of all) {
+      const deleted = await apiClient.deleteTarget(t.id);
+      if (deleted) count++;
+    }
+    return count;
   }
 
-  /**
-   * Count total targets
-   */
   async countTargets(): Promise<number> {
-    return targetRepository.count();
+    const all = await this.getTargets();
+    return all.length;
   }
 
-  /**
-   * Check if target exists
-   */
   async targetExists(id: string): Promise<boolean> {
-    return targetRepository.exists(id);
+    const target = await this.getTargetById(id);
+    return target !== null;
   }
 
-  // === Utility methods ===
+  // === Utility ===
 
-  /**
-   * Initialize database and create tables if needed
-   */
   async initialize(): Promise<void> {
-    const { db } = await import('../database');
-    await db.init();
+    // Không cần làm gì — database do Go backend quản lý
+    console.log('[DataService] Backend API ready');
   }
 
-  /**
-   * Check if database is initialized
-   */
   isInitialized(): boolean {
-    // We'll check this lazily
     return true;
   }
 }
 
-// Export singleton instance
+// Export singleton
 export const dataService = DataService.getInstance();
-
-// Also export the class for testing or extension
 export default DataService;

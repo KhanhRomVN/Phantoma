@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/phantoma/server/internal/config"
+	"github.com/phantoma/server/internal/database"
 	"github.com/phantoma/server/internal/routes"
 	"github.com/phantoma/server/internal/startup"
 	"github.com/phantoma/server/pkg/logger"
@@ -36,6 +37,13 @@ func main() {
 		logger.F("env", cfg.Env),
 	)
 	logger.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+	// ── Database: connect & migrate ──────────────────────────────────────────
+	if err := database.Init(cfg.DBPath); err != nil {
+		logger.Error("failed to initialize database", logger.F("error", err))
+		os.Exit(1)
+	}
+	defer database.Close()
 
 	// ── Pre-flight: check Docker containers ──────────────────────────────────
 	startup.CheckDependencies(cfg)

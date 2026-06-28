@@ -161,7 +161,7 @@ export function DropdownSub({
         {open && content && (
           <div
             ref={contentRef}
-            className="fixed z-[9999] min-w-[160px] bg-modal-background border border-border rounded-lg shadow-lg py-1 animate-in fade-in zoom-in duration-100"
+            className="fixed z-[9999] min-w-[160px] bg-modal-background border border-border rounded-lg shadow-lg py-1 animate-in fade-in zoom-in duration-100 transition-colors hover:border-primary"
             style={{
               top: position.top,
               left: position.left,

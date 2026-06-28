@@ -22,8 +22,6 @@ type containerStatus struct {
 func CheckDependencies(cfg *config.Config) bool {
 	log := logger.WithContext("Startup")
 
-	log.Info("checking dependencies...")
-
 	containers := []string{
 		cfg.NmapContainer,
 		cfg.NiktoContainer,

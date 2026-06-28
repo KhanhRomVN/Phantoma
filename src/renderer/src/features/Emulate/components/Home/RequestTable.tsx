@@ -132,6 +132,37 @@ export function RequestTable({
 
   // Feature: Highlighted Rows
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
+
+  // Feature: Right-click context menu on rows
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    request: NetworkRequest;
+  } | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    if (contextMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return undefined;
+  }, [contextMenu]);
+
+  // Close context menu on scroll
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (!container || !contextMenu) return;
+    const handleScroll = () => setContextMenu(null);
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [contextMenu]);
   const toggleHighlight = useCallback((id: string) => {
     setHighlightedIds((prev) => {
       const next = new Set(prev);
@@ -1148,6 +1179,10 @@ export function RequestTable({
                   width: '100%',
                 }}
                 onClick={() => onSelect(row.original.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({ x: e.clientX, y: e.clientY, request: row.original });
+                }}
               >
                 {row.getVisibleCells().map((cell) => {
                   const isHost = cell.column.id === 'host';
@@ -1429,6 +1464,113 @@ export function RequestTable({
           >
             Deselect
           </button>
+        </div>
+      )}
+      {/* Right-click context menu */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed z-[9999]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <Dropdown open={true} onOpenChange={(open) => !open && setContextMenu(null)}>
+            <DropdownTrigger>
+              <div style={{ width: 1, height: 1 }} />
+            </DropdownTrigger>
+            <DropdownContent className="min-w-[180px]">
+              <DropdownItem
+                icon={<Copy className="w-3.5 h-3.5 text-blue" />}
+                onClick={() => {
+                  handleCopySingleAsMarkdown(contextMenu.request);
+                  setContextMenu(null);
+                }}
+              >
+                Copy as Markdown
+              </DropdownItem>
+              <DropdownItem
+                icon={<Copy className="w-3.5 h-3.5 text-blue" />}
+                onClick={() => {
+                  handleCopySingleAsJson(contextMenu.request);
+                  setContextMenu(null);
+                }}
+              >
+                Copy as JSON
+              </DropdownItem>
+              <DropdownSeparator />
+              <DropdownItem
+                icon={<ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />}
+                onClick={() => {
+                  onSetCompare1(contextMenu.request);
+                  setContextMenu(null);
+                }}
+              >
+                Set as Compare 1
+              </DropdownItem>
+              <DropdownItem
+                icon={<ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />}
+                onClick={() => {
+                  onSetCompare2(contextMenu.request);
+                  setContextMenu(null);
+                }}
+              >
+                Set as Compare 2
+              </DropdownItem>
+              <DropdownSeparator />
+              {onAnalyzeRequest && (
+                <DropdownItem
+                  icon={<BookmarkPlus className="w-3.5 h-3.5 text-indigo-400" />}
+                  onClick={() => {
+                    onAnalyzeRequest(contextMenu.request);
+                    setContextMenu(null);
+                  }}
+                >
+                  Analyze Request
+                </DropdownItem>
+              )}
+              {onSendToRepeater && (
+                <DropdownItem
+                  icon={<Zap className="w-3.5 h-3.5 text-amber-400" />}
+                  onClick={() => {
+                    onSendToRepeater(contextMenu.request);
+                    setContextMenu(null);
+                  }}
+                >
+                  Send to Repeater
+                </DropdownItem>
+              )}
+              <DropdownItem
+                icon={
+                  <Star
+                    className={cn(
+                      'w-3.5 h-3.5',
+                      highlightedIds.has(contextMenu.request.id)
+                        ? 'fill-warning text-warning'
+                        : 'text-yellow-400',
+                    )}
+                  />
+                }
+                onClick={() => {
+                  toggleHighlight(contextMenu.request.id);
+                  setContextMenu(null);
+                }}
+              >
+                {highlightedIds.has(contextMenu.request.id) ? 'Unhighlight' : 'Highlight'}
+              </DropdownItem>
+              <DropdownSeparator />
+              {onDelete && (
+                <DropdownItem
+                  icon={<Trash2 className="w-3.5 h-3.5 text-red-400" />}
+                  variant="error"
+                  onClick={() => {
+                    onDelete(contextMenu.request.id);
+                    setContextMenu(null);
+                  }}
+                >
+                  Delete
+                </DropdownItem>
+              )}
+            </DropdownContent>
+          </Dropdown>
         </div>
       )}
       {showScrollToSelected && (

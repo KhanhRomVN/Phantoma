@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/phantoma/server/internal/domain"
+	domaintools "github.com/phantoma/server/internal/domain/tools"
 	dockerpkg "github.com/phantoma/server/pkg/docker"
 )
 
@@ -66,7 +67,7 @@ func (s *Service) Scan(ctx context.Context, req domain.ScanRequest) (domain.Scan
 }
 
 // SearchModule searches for Metasploit modules related to a specific CVE.
-func (s *Service) SearchModule(ctx context.Context, cve string) ([]domain.ExploitEntry, error) {
+func (s *Service) SearchModule(ctx context.Context, cve string) ([]domaintools.ExploitEntry, error) {
 	if cve == "" {
 		return nil, domain.ErrInvalidTarget
 	}
@@ -87,8 +88,8 @@ func (s *Service) SearchModule(ctx context.Context, cve string) ([]domain.Exploi
 }
 
 // parseMetasploitOutput converts msfconsole search output to ExploitEntry slice.
-func parseMetasploitOutput(output, cve string) []domain.ExploitEntry {
-	var exploits []domain.ExploitEntry
+func parseMetasploitOutput(output, cve string) []domaintools.ExploitEntry {
+	var exploits []domaintools.ExploitEntry
 	
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {
@@ -119,7 +120,7 @@ func parseMetasploitOutput(output, cve string) []domain.ExploitEntry {
 			parts := strings.Split(modulePath, "/")
 			moduleName := parts[len(parts)-1]
 			
-			exploit := domain.ExploitEntry{
+			exploit := domaintools.ExploitEntry{
 				ID:          modulePath,
 				Name:        moduleName,
 				CVE:         cve,

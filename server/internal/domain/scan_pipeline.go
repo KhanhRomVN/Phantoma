@@ -1,5 +1,9 @@
 package domain
 
+import (
+	domaintools "github.com/phantoma/server/internal/domain/tools"
+)
+
 // ScanPhase identifies which layer of the pipeline produced results.
 type ScanPhase string
 
@@ -20,14 +24,14 @@ type PipelineScanRequest struct {
 
 // PhaseResult holds the output of one pipeline phase.
 type PhaseResult struct {
-	Phase    ScanPhase      `json:"phase"`
-	Tool     string         `json:"tool"`
-	Success  bool           `json:"success"`
-	Ports    []PortEntry    `json:"ports,omitempty"`
-	Vulns    []VulnEntry    `json:"vulns,omitempty"`
-	Exploits []ExploitEntry `json:"exploits,omitempty"`
-	Raw      string         `json:"raw,omitempty"`
-	Error    string         `json:"error,omitempty"`
+	Phase    ScanPhase                 `json:"phase"`
+	Tool     string                    `json:"tool"`
+	Success  bool                      `json:"success"`
+	Ports    []PortEntry               `json:"ports,omitempty"`
+	Vulns    []VulnEntry               `json:"vulns,omitempty"`
+	Exploits []domaintools.ExploitEntry `json:"exploits,omitempty"`
+	Raw      string                    `json:"raw,omitempty"`
+	Error    string                    `json:"error,omitempty"`
 }
 
 // VulnEntry is a finding from Nuclei or Nikto.

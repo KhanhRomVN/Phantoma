@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/user"
+	"strings"
 )
 
 // Config holds all application configuration.
@@ -10,6 +12,7 @@ import (
 type Config struct {
 	Port                  string
 	Env                   string
+	DBPath                string
 	DockerHost            string
 	NmapContainer         string
 	NiktoContainer        string
@@ -28,6 +31,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		Port:                  getEnv("PORT", "8080"),
 		Env:                   getEnv("ENV", "development"),
+		DBPath:                getEnv("DB_PATH", expandHome("~/.phantoma/phantoma.sql")),
 		DockerHost:            getEnv("DOCKER_HOST", "unix:///var/run/docker.sock"),
 		NmapContainer:         getEnv("NMAP_CONTAINER", "nmap"),
 		NiktoContainer:        getEnv("NIKTO_CONTAINER", "nikto"),
@@ -65,4 +69,16 @@ func getEnv(key, defaultVal string) string {
 		return val
 	}
 	return defaultVal
+}
+
+// expandHome replaces ~ with the user's home directory.
+func expandHome(path string) string {
+	if !strings.HasPrefix(path, "~") {
+		return path
+	}
+	usr, err := user.Current()
+	if err != nil {
+		return path
+	}
+	return strings.Replace(path, "~", usr.HomeDir, 1)
 }

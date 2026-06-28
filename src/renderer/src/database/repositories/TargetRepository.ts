@@ -1,29 +1,45 @@
 import { BaseRepository } from './BaseRepository';
-import { db } from '../Database';
-import { TargetTab } from '../../features/Emulate/types/target.types';
+import { apiClient } from '../../services/ApiClient';
+import type { TargetTab } from '../../features/Emulate/types/target.types';
+import type { TargetDTO, CreateTargetDTO } from '@app/api/types';
 
-export type TargetStatus = 'stored' | 'staged' | 'active';
+// ── Helpers ────────────────────────────────────────────────────────
 
-export interface TargetRow {
-  id: string;
-  title: string;
-  url: string | null;
-  platform: string | null;
-  status: TargetStatus;
-  last_used_at: number | null;
-  created_at: number;
-  updated_at: number;
-  executable_path: string | null;
-  startup_args: string | null;
-  environment: string | null;
+function toTargetTab(dto: TargetDTO): TargetTab {
+  return {
+    id: dto.id,
+    title: dto.title,
+    url: dto.url ?? undefined,
+    icon: dto.icon ?? undefined,
+    favicon: dto.icon ?? undefined,
+    platform: dto.platform ?? undefined,
+    executablePath: dto.executable_path ?? undefined,
+    startupArgs: dto.startup_args ?? undefined,
+    environment: dto.environment ?? undefined,
+  };
 }
+
+function toCreateDTO(target: TargetTab | CreateTargetInput): CreateTargetDTO {
+  return {
+    id: 'id' in target ? target.id : undefined,
+    title: target.title,
+    url: target.url ?? null,
+    icon: target.icon ?? null,
+    platform: target.platform ?? null,
+    executable_path: target.executable_path ?? (target as any).executablePath ?? null,
+    startup_args: target.startup_args ?? (target as any).startupArgs ?? null,
+    environment: target.environment ?? (target as any).environment ?? null,
+  };
+}
+
+export interface TargetRow extends TargetDTO {}
 
 export interface CreateTargetInput {
   id?: string;
   title: string;
   url?: string;
+  icon?: string;
   platform?: string;
-  status?: TargetStatus;
   executable_path?: string;
   startup_args?: string;
   environment?: string;
@@ -35,107 +51,99 @@ export class TargetRepository extends BaseRepository<TargetTab, CreateTargetInpu
   }
 
   toModel(row: TargetRow): TargetTab {
-    return {
-      id: row.id,
-      title: row.title,
-      url: row.url || undefined,
-      // favicon không có trong DB, sẽ được generate từ URL nếu cần
-    };
+    return toTargetTab(row);
   }
 
   toRow(model: TargetTab | CreateTargetInput): TargetRow {
-    const baseRow: TargetRow = {
-      id: 'id' in model && model.id ? model.id : crypto.randomUUID(),
-      title: model.title,
-      url: model.url || null,
-      platform: 'platform' in model ? model.platform || null : null,
-      status: 'status' in model ? model.status || 'stored' : 'stored',
+    const dto = toCreateDTO(model);
+    return {
+      id: dto.id ?? '',
+      title: dto.title,
+      url: dto.url,
+      icon: dto.icon,
+      platform: dto.platform,
       last_used_at: null,
-      executable_path: 'executable_path' in model ? model.executable_path || null : null,
-      startup_args: 'startup_args' in model ? model.startup_args || null : null,
-      environment: 'environment' in model ? model.environment || null : null,
-      created_at: Date.now(),
-      updated_at: Date.now(),
+      executable_path: dto.executable_path,
+      startup_args: dto.startup_args,
+      environment: dto.environment,
+      created_at: 0,
+      updated_at: 0,
     };
-
-    // Nếu là TargetTab, có thể lấy thêm thông tin từ favicon nếu có
-    if ('id' in model && model.id) {
-      // Có thể thêm logic để giữ created_at cũ hoặc xử lý favicon
-    }
-
-    return baseRow;
   }
 
-  async getActiveTargets(): Promise<TargetTab[]> {
-    // Lấy target có status = 'active' hoặc 'staged'
-    const rows = await db.execute(
-      `SELECT * FROM ${this.tableName} 
-       WHERE status IN ('active', 'staged')
-       ORDER BY updated_at DESC`
-    );
-    return rows.map(row => this.toModel(row));
-  }
-
-  async getByStatus(status: TargetStatus): Promise<TargetTab[]> {
-    const rows = await this.getByField('status', status);
-    return rows;
-  }
-
-  async getStored(): Promise<TargetTab[]> {
-    return this.getByStatus('stored');
-  }
-
-  async getStaged(): Promise<TargetTab[]> {
-    return this.getByStatus('staged');
-  }
-
-  async getActive(): Promise<TargetTab[]> {
-    return this.getByStatus('active');
+  async getAllTargets(): Promise<TargetTab[]> {
+    const dtos = await apiClient.getTargets();
+    return dtos.map(toTargetTab);
   }
 
   async getByPlatform(platform: string): Promise<TargetTab[]> {
-    const rows = await this.getByField('platform', platform);
-    return rows;
+    const all = await this.getAllTargets();
+    return all.filter((t) => t.platform === platform);
   }
 
   async search(query: string): Promise<TargetTab[]> {
-    const rows = await db.execute(
-      `SELECT * FROM ${this.tableName} 
-       WHERE (title LIKE ? OR url LIKE ?) 
-       ORDER BY updated_at DESC`,
-      [`%${query}%`, `%${query}%`]
+    const all = await this.getAllTargets();
+    const q = query.toLowerCase();
+    return all.filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.url?.toLowerCase().includes(q),
     );
-    return rows.map(row => this.toModel(row));
-  }
-
-  async updateStatus(id: string, status: TargetStatus): Promise<TargetTab | null> {
-    return this.update(id, { status } as any);
   }
 
   async updateLastUsed(id: string): Promise<TargetTab | null> {
-    return this.update(id, { last_used_at: Date.now() } as any);
+    try {
+      const dto = await apiClient.updateTarget(id, { last_used_at: Date.now() });
+      return toTargetTab(dto);
+    } catch {
+      return null;
+    }
   }
 
   async saveTarget(target: TargetTab): Promise<TargetTab> {
-    return this.upsert(target);
+    try {
+      const dto = await apiClient.updateTarget(target.id, {
+        title: target.title,
+        url: target.url ?? null,
+        icon: target.icon ?? null,
+        platform: target.platform ?? null,
+        executable_path: target.executablePath ?? null,
+        startup_args: target.startupArgs ?? null,
+        environment: target.environment ?? null,
+      });
+      return toTargetTab(dto);
+    } catch {
+      const dto = await apiClient.createTarget(toCreateDTO(target));
+      return toTargetTab(dto);
+    }
   }
 
   async saveTargets(targets: TargetTab[]): Promise<TargetTab[]> {
-    return this.bulkUpsert(targets);
+    const results: TargetTab[] = [];
+    for (const t of targets) results.push(await this.saveTarget(t));
+    return results;
   }
 
   async removeTarget(id: string): Promise<boolean> {
-    return this.delete(id);
+    return apiClient.deleteTarget(id);
   }
 
   async removeTargets(ids: string[]): Promise<number> {
-    return this.bulkDelete(ids);
+    let count = 0;
+    for (const id of ids) {
+      if (await apiClient.deleteTarget(id)) count++;
+    }
+    return count;
   }
 
   async clearAll(): Promise<number> {
-    return this.deleteAll();
+    const all = await this.getAllTargets();
+    let count = 0;
+    for (const t of all) {
+      if (await apiClient.deleteTarget(t.id)) count++;
+    }
+    return count;
   }
 }
 
-// Export singleton instance
 export const targetRepository = new TargetRepository();

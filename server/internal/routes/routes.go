@@ -18,6 +18,7 @@ import (
 	hcxdumptoolsvc "github.com/phantoma/server/internal/service/hcxdumptool"
 	hashcatsvc "github.com/phantoma/server/internal/service/hashcat"
 	reaver "github.com/phantoma/server/internal/service/reaver"
+	targetsvc "github.com/phantoma/server/internal/service/target"
 )
 
 // NewRouter wires up all routes and returns the root http.Handler.
@@ -25,6 +26,7 @@ func NewRouter(cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
 
 	// Initialize services
+	targetSvc := targetsvc.NewService()
 	nmapSvc := nmapsvc.NewService(cfg.NmapContainer)
 	niktoSvc := niktosvc.NewService(cfg.NiktoContainer)
 	searchsploitSvc := searchsploitsvc.NewService(cfg.SearchsploitContainer)
@@ -41,6 +43,7 @@ func NewRouter(cfg *config.Config) http.Handler {
 
 	// Register all route groups
 	RegisterHealthRoutes(mux)
+	RegisterTargetRoutes(mux, targetSvc)
 	RegisterNmapRoutes(mux, nmapSvc)
 	RegisterNiktoRoutes(mux, niktoSvc)
 	RegisterExploitRoutes(mux, searchsploitSvc, metasploitSvc)

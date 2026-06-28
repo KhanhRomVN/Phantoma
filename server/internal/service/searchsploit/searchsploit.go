@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/phantoma/server/internal/domain"
+	domaintools "github.com/phantoma/server/internal/domain/tools"
 	dockerpkg "github.com/phantoma/server/pkg/docker"
 )
 
@@ -63,7 +64,7 @@ func (s *Service) Scan(ctx context.Context, req domain.ScanRequest) (domain.Scan
 }
 
 // SearchByCVE searches for exploits related to a specific CVE.
-func (s *Service) SearchByCVE(ctx context.Context, cve string) ([]domain.ExploitEntry, error) {
+func (s *Service) SearchByCVE(ctx context.Context, cve string) ([]domaintools.ExploitEntry, error) {
 	if cve == "" {
 		return nil, domain.ErrInvalidTarget
 	}
@@ -87,8 +88,8 @@ func (s *Service) SearchByCVE(ctx context.Context, cve string) ([]domain.Exploit
 }
 
 // parseSearchsploitOutput converts searchsploit output to ExploitEntry slice.
-func parseSearchsploitOutput(output, cve string) []domain.ExploitEntry {
-	var exploits []domain.ExploitEntry
+func parseSearchsploitOutput(output, cve string) []domaintools.ExploitEntry {
+	var exploits []domaintools.ExploitEntry
 	
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {
@@ -105,7 +106,7 @@ func parseSearchsploitOutput(output, cve string) []domain.ExploitEntry {
 			if len(fields) < 2 {
 				continue
 			}
-			exploit := domain.ExploitEntry{
+			exploit := domaintools.ExploitEntry{
 				ID:          fields[0],
 				Name:        strings.Join(fields[1:], " "),
 				CVE:         cve,
@@ -117,7 +118,7 @@ func parseSearchsploitOutput(output, cve string) []domain.ExploitEntry {
 			continue
 		}
 		
-		exploit := domain.ExploitEntry{
+		exploit := domaintools.ExploitEntry{
 			ID:          strings.TrimSpace(parts[0]),
 			Name:        strings.TrimSpace(parts[1]),
 			Platform:    strings.TrimSpace(parts[2]),

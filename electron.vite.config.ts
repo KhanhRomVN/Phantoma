@@ -8,6 +8,7 @@ export default defineConfig({
     resolve: {
       alias: {
         '@main': resolve('src/main'),
+        '@app': resolve('src/shared'),
       },
     },
     build: {
@@ -36,6 +37,7 @@ export default defineConfig({
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),
+        '@app': resolve('src/shared'),
         '@shared': resolve('src/renderer/src/shared'),
         '@core': resolve('src/renderer/src/core'),
         '@features': resolve('src/renderer/src/features'),

@@ -31,7 +31,6 @@ const colors = {
 
 function logHeader(onceMode: boolean = false) {
   console.clear();
-  console.log(chalk.bold.cyan('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
   if (onceMode) {
     console.log(chalk.bold.cyan('🔍 Phantoma Feature Checker (One-time)'));
   } else {
@@ -41,7 +40,6 @@ function logHeader(onceMode: boolean = false) {
   if (!onceMode) {
     console.log(chalk.dim(`🔄 Press Ctrl+C to stop`));
   }
-  console.log(chalk.bold.cyan('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
   console.log();
 }
 
@@ -487,7 +485,7 @@ function handleChange(filePath: string) {
 // Main
 async function main() {
   const onceMode = process.argv.includes('--once');
-  
+
   logHeader(onceMode);
 
   // Check if target folder exists

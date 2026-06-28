@@ -26,8 +26,9 @@ export class CdpManager extends EventEmitter {
   >();
   public mainWindow: BrowserWindow | null = null;
   public isConnected = false;
-  public scriptIdMap = new Map<string, string>(); // requestId -> scriptId
+  public scriptIdMap = new Map<string, string>(); // url -> scriptId or requestId -> url
   public requestIdMap = new Map<string, string>(); // hash requestId -> numeric requestId
+  public scriptSourceCache = new Map<string, string>(); // scriptId -> unpacked source
 
   constructor() {
     super();

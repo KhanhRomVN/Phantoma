@@ -1,225 +1,179 @@
-import { useState, useMemo, useCallback } from 'react';
-import { FileCode, Search, Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { FileCode, Search, Folder, ChevronRight, ChevronDown, AlignLeft, Globe, ChevronsRight, ChevronsDown, Loader2 } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { ResizableSplit } from '../../../../components/ui/ResizableSplit/ResizableSplit';
-import { CodeBlock } from '../../../../components/common/CodeBlock';
+import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { NetworkRequest } from '../Home/Filter';
-
-interface SourceFile {
-  id: string;
-  name: string;
-  path: string;
-  type: 'js' | 'ts' | 'html' | 'css' | 'json' | 'xml' | 'jsx' | 'tsx';
-  content: string;
-  size: number;
-  url: string;
-}
-
-interface TreeNode {
-  name: string;
-  path: string;
-  type: 'folder' | 'file';
-  children?: TreeNode[];
-  file?: SourceFile;
-  isExpanded?: boolean;
-}
+import { buildSourceTree, type SourceNode, formatSize, type SourceTreeData } from '../../utils/sourceTree';
+import type { CdpScriptUnpackedData } from '../../hooks/useCdpEvents';
+import { prettifyCode, isMinified } from '../../utils/prettify';
 
 interface SourcesPanelProps {
   requests?: NetworkRequest[];
+  unpackedScripts?: Map<string, CdpScriptUnpackedData>;
   onClose?: () => void;
-}
-
-// Build tree structure from file paths
-function buildTree(files: SourceFile[]): TreeNode[] {
-  const root: TreeNode[] = [];
-  files.forEach((file) => {
-    const parts = file.path.split('/').filter(Boolean);
-    let currentPath = '';
-    let currentLevel = root;
-
-    parts.forEach((part, index) => {
-      const isLast = index === parts.length - 1;
-      const fullPath = currentPath ? `${currentPath}/${part}` : part;
-
-      if (isLast) {
-        // It's a file
-        const existingFile = currentLevel.find(
-          (node) => node.name === part && node.type === 'file',
-        );
-        if (!existingFile) {
-          const fileNode: TreeNode = {
-            name: part,
-            path: fullPath,
-            type: 'file',
-            file: file,
-          };
-          currentLevel.push(fileNode);
-        }
-      } else {
-        // It's a folder
-        let folder = currentLevel.find((node) => node.name === part && node.type === 'folder') as
-          | TreeNode
-          | undefined;
-
-        if (!folder) {
-          folder = {
-            name: part,
-            path: fullPath,
-            type: 'folder',
-            children: [],
-            isExpanded: false,
-          };
-          currentLevel.push(folder);
-        }
-
-        currentLevel = folder.children!;
-        currentPath = fullPath;
-      }
-    });
-  });
-
-  return root;
 }
 
 // Recursive tree component
 function TreeNodeItem({
   node,
   depth,
-  selectedId,
+  selectedNode,
   expandedPaths,
   onSelect,
   onToggle,
 }: {
-  node: TreeNode;
+  node: SourceNode;
   depth: number;
-  selectedId: string | null;
+  selectedNode: SourceNode | null;
   expandedPaths: Set<string>;
-  onSelect: (file: SourceFile) => void;
+  onSelect: (node: SourceNode) => void;
   onToggle: (path: string) => void;
 }) {
   const [, setIsHovered] = useState(false);
+  const isExpanded = expandedPaths.has(node.id);
+  const isSelected = selectedNode?.id === node.id;
+  const hasChildren = node.children && node.children.length > 0;
 
-  if (node.type === 'folder') {
-    const isExpanded = expandedPaths.has(node.path);
-    return (
-      <div>
-        <div
-          className={cn(
-            'flex items-center gap-1 px-2 py-1 rounded cursor-pointer transition-colors hover:bg-muted/30',
-            depth > 0 && 'ml-4',
-          )}
-          style={{ paddingLeft: depth > 0 ? `${depth * 12 + 8}px` : '8px' }}
-          onClick={() => onToggle(node.path)}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          {isExpanded ? (
-            <ChevronDown className="w-3.5 h-3.5 text-text-secondary shrink-0" />
-          ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-text-secondary shrink-0" />
-          )}
-          {isExpanded ? (
-            <FolderOpen className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-          ) : (
-            <Folder className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-          )}
-          <span className="text-xs text-text-primary truncate">{node.name}</span>
-          <span className="text-[9px] text-text-secondary ml-auto">
-            {node.children?.length || 0}
-          </span>
-        </div>
-        {isExpanded && node.children && (
-          <div>
-            {node.children.map((child) => (
-              <TreeNodeItem
-                key={child.path}
-                node={child}
-                depth={depth + 1}
-                selectedId={selectedId}
-                expandedPaths={expandedPaths}
-                onSelect={onSelect}
-                onToggle={onToggle}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // File node
-  const isSelected = selectedId === node.file?.id;
-  const getFileIconColor = (type: string) => {
-    switch (type) {
-      case 'ts':
-      case 'tsx':
-        return 'text-blue-400';
-      case 'js':
-      case 'jsx':
-        return 'text-yellow-400';
-      case 'html':
-        return 'text-orange-400';
-      case 'css':
-        return 'text-purple-400';
-      case 'json':
-        return 'text-green-400';
-      case 'xml':
-        return 'text-red-400';
-      default:
-        return 'text-gray-400';
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (node.type === 'file') {
+      onSelect(node);
+    } else {
+      onToggle(node.id);
     }
   };
 
+  const handleToggleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggle(node.id);
+  };
+
+  // Icon based on type
+  const getIcon = () => {
+    if (node.type === 'domain') return <Globe className="w-4 h-4 text-blue-400" />;
+    if (node.type === 'file') return <FileCode className="w-4 h-4 text-gray-400" />;
+    return null; // No icon for folders
+  };
+
   return (
-    <div
-      className={cn(
-        'flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors',
-        isSelected ? 'bg-purple-500/20 text-purple-400' : 'hover:bg-muted/30 text-text-primary',
+    <>
+      <div
+        className={cn(
+          'flex items-center gap-1 px-2 py-1 rounded cursor-pointer transition-colors',
+          isSelected ? 'bg-purple-500/20 text-purple-400' : 'hover:bg-muted/30 text-text-primary',
+        )}
+        style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        onClick={handleClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Expand/Collapse chevron */}
+        {hasChildren && (
+          <button
+            className="flex items-center justify-center w-4 h-4 hover:bg-gray-600 rounded"
+            onClick={handleToggleClick}
+          >
+            {isExpanded ? (
+              <ChevronDown className="w-3 h-3" />
+            ) : (
+              <ChevronRight className="w-3 h-3" />
+            )}
+          </button>
+        )}
+
+        {/* Placeholder if no children */}
+        {!hasChildren && <div className="w-4" />}
+
+        {/* Icon */}
+        {getIcon()}
+
+        {/* Name */}
+        <span className="text-xs truncate flex-1">{node.name}</span>
+
+        {/* File size & badges */}
+        {node.type === 'file' && (
+          <div className="flex items-center gap-2 text-xs">
+            {node.isDifferent && (
+              <span className="px-1 py-0.5 bg-orange-500/20 text-orange-300 rounded text-[9px]">
+                obf
+              </span>
+            )}
+            {node.size && (
+              <span className="text-text-secondary text-[9px]">{formatSize(node.size)}</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Render children if expanded */}
+      {isExpanded && hasChildren && (
+        <>
+          {node.children!.map((child) => (
+            <TreeNodeItem
+              key={child.id}
+              node={child}
+              depth={depth + 1}
+              selectedNode={selectedNode}
+              expandedPaths={expandedPaths}
+              onSelect={onSelect}
+              onToggle={onToggle}
+            />
+          ))}
+        </>
       )}
-      style={{ paddingLeft: depth > 0 ? `${depth * 12 + 20}px` : '20px' }}
-      onClick={() => node.file && onSelect(node.file)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <FileCode className={cn('w-3.5 h-3.5 shrink-0', getFileIconColor(node.file?.type || 'js'))} />
-      <span className="text-xs truncate flex-1">{node.name}</span>
-      <span className="text-[9px] text-text-secondary shrink-0">{node.file?.size || 0} B</span>
-    </div>
+    </>
   );
 }
 
 function FileTree({
-  files,
-  onSelectFile,
+  tree,
+  onSelectNode,
 }: {
-  files: SourceFile[];
-  onSelectFile: (content: string, fileName: string, language: string) => void;
+  tree: SourceTreeData;
+  onSelectNode: (node: SourceNode) => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<SourceNode | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
 
-  const filteredFiles = useMemo(() => {
-    if (!searchTerm) return files;
-    const term = searchTerm.toLowerCase();
-    return files.filter(
-      (f) => f.name.toLowerCase().includes(term) || f.path.toLowerCase().includes(term),
-    );
-  }, [files, searchTerm]);
+  // Auto-expand domains on mount
+  useMemo(() => {
+    const domainIds = tree.roots.filter((n) => n.type === 'domain').map((n) => n.id);
+    setExpandedPaths(new Set(domainIds));
+  }, [tree]);
 
-  const treeData = useMemo(() => {
-    if (!searchTerm) {
-      return buildTree(files);
+  // Collect all expandable node IDs (domains + folders)
+  const getAllExpandableIds = useCallback(() => {
+    const ids: string[] = [];
+    
+    function traverse(node: SourceNode) {
+      if (node.type === 'domain' || node.type === 'folder') {
+        ids.push(node.id);
+      }
+      if (node.children) {
+        node.children.forEach(traverse);
+      }
     }
-    // When searching, show flat list
-    return filteredFiles.map((file) => ({
-      name: file.name,
-      path: file.path,
-      type: 'file' as const,
-      file: file,
-    }));
-  }, [files, filteredFiles, searchTerm]);
+    
+    tree.roots.forEach(traverse);
+    return ids;
+  }, [tree]);
+
+  // Expand all
+  const handleExpandAll = useCallback(() => {
+    const allIds = getAllExpandableIds();
+    setExpandedPaths(new Set(allIds));
+    console.log('[FileTree] Expanded all nodes:', allIds.length);
+  }, [getAllExpandableIds]);
+
+  // Collapse all
+  const handleCollapseAll = useCallback(() => {
+    setExpandedPaths(new Set());
+    console.log('[FileTree] Collapsed all nodes');
+  }, []);
 
   const handleToggle = useCallback((path: string) => {
     setExpandedPaths((prev) => {
@@ -233,24 +187,24 @@ function FileTree({
     });
   }, []);
 
-  const handleSelectFile = (file: SourceFile) => {
-    setSelectedId(file.id);
-    let language = 'javascript';
-    if (file.type === 'ts' || file.type === 'tsx') language = 'typescript';
-    else if (file.type === 'css') language = 'css';
-    else if (file.type === 'html') language = 'html';
-    else if (file.type === 'json') language = 'json';
-    else if (file.type === 'xml') language = 'xml';
-    else if (file.type === 'jsx') language = 'jsx';
-    onSelectFile(file.content, file.name, language);
+  const handleSelectNode = (node: SourceNode) => {
+    setSelectedNode(node);
+    onSelectNode(node);
   };
 
-  // Flat view for search
-  if (searchTerm) {
+  if (tree.roots.length === 0) {
     return (
-      <div className="h-full flex flex-col">
-        <div className="px-3 py-2 border-b border-divider shrink-0">
-          <div className="relative">
+      <div className="flex-1 flex items-center justify-center text-text-secondary text-xs py-4">
+        No source files found
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="px-3 py-2 border-b border-divider shrink-0">
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
             <input
               type="text"
@@ -260,86 +214,34 @@ function FileTree({
               className="w-full h-9 bg-input-background border border-input-border-default rounded-lg pl-8 pr-3 text-sm text-text-primary focus:border-purple-500/50 outline-none"
             />
           </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {filteredFiles.map((file) => {
-            const isSelected = selectedId === file.id;
-            const getFileIconColor = (type: string) => {
-              switch (type) {
-                case 'ts':
-                case 'tsx':
-                  return 'text-blue-400';
-                case 'js':
-                case 'jsx':
-                  return 'text-yellow-400';
-                case 'html':
-                  return 'text-orange-400';
-                case 'css':
-                  return 'text-purple-400';
-                case 'json':
-                  return 'text-green-400';
-                case 'xml':
-                  return 'text-red-400';
-                default:
-                  return 'text-gray-400';
-              }
-            };
-            return (
-              <div
-                key={file.id}
-                onClick={() => handleSelectFile(file)}
-                className={cn(
-                  'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors',
-                  isSelected
-                    ? 'bg-purple-500/20 text-purple-400'
-                    : 'hover:bg-muted/30 text-text-primary',
-                )}
-              >
-                <FileCode className={cn('w-3.5 h-3.5', getFileIconColor(file.type))} />
-                <span className="text-xs truncate flex-1">{file.name}</span>
-                <span className="text-[9px] text-text-secondary">{file.size} B</span>
-              </div>
-            );
-          })}
-          {filteredFiles.length === 0 && (
-            <div className="text-center text-text-secondary text-xs py-4">
-              No source files found
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-full flex flex-col">
-      <div className="px-3 py-2 border-b border-divider shrink-0">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
-          <input
-            type="text"
-            placeholder="Search files..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-9 bg-input-background border border-input-border-default rounded-lg pl-8 pr-3 text-sm text-text-primary focus:border-purple-500/50 outline-none"
-          />
+          <button
+            onClick={handleExpandAll}
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-all"
+            title="Expand All"
+          >
+            <ChevronsDown className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={handleCollapseAll}
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-all"
+            title="Collapse All"
+          >
+            <ChevronsRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-1">
-        {treeData.map((node) => (
+        {tree.roots.map((node) => (
           <TreeNodeItem
-            key={node.path}
+            key={node.id}
             node={node}
             depth={0}
-            selectedId={selectedId}
+            selectedNode={selectedNode}
             expandedPaths={expandedPaths}
-            onSelect={handleSelectFile}
+            onSelect={handleSelectNode}
             onToggle={handleToggle}
           />
         ))}
-        {treeData.length === 0 && (
-          <div className="text-center text-text-secondary text-xs py-4">No source files found</div>
-        )}
       </div>
     </div>
   );
@@ -353,12 +255,106 @@ function SourceView({
   fileName: string;
   language?: string;
 }) {
+  const codeBlockRef = useRef<CodeBlockRef>(null);
+  const [displayContent, setDisplayContent] = useState(content);
+  const [isFormatting, setIsFormatting] = useState(false);
+  const [isPrettified, setIsPrettified] = useState(false);
+
+  // Auto-prettify when content changes if it's minified
+  useEffect(() => {
+    const autoPrettify = async () => {
+      if (!content || content.length === 0) {
+        setDisplayContent('');
+        setIsPrettified(false);
+        return;
+      }
+
+      console.log('[SourceView] Checking if code needs formatting...', {
+        length: content.length,
+        lines: content.split('\n').length,
+      });
+
+      // Check if code is minified
+      const needsFormatting = isMinified(content);
+      console.log('[SourceView] Minified check result:', needsFormatting);
+      
+      if (needsFormatting) {
+        const sizeKB = content.length / 1024;
+        console.log(`[SourceView] Code is minified (${sizeKB.toFixed(0)}KB), auto-prettifying...`);
+        setIsFormatting(true);
+        
+        try {
+          const result = await prettifyCode(content, language || 'javascript');
+          
+          if (result.error) {
+            console.warn('[SourceView] Prettify failed, showing original:', result.error);
+            setDisplayContent(content);
+            setIsPrettified(false);
+          } else {
+            console.log('[SourceView] Code prettified successfully');
+            console.log('[SourceView] Original lines:', content.split('\n').length);
+            console.log('[SourceView] Formatted lines:', result.formatted.split('\n').length);
+            setDisplayContent(result.formatted);
+            setIsPrettified(true);
+          }
+        } catch (error) {
+          console.error('[SourceView] Exception during prettify:', error);
+          setDisplayContent(content);
+          setIsPrettified(false);
+        }
+        
+        setIsFormatting(false);
+      } else {
+        console.log('[SourceView] Code already formatted, displaying as-is');
+        setDisplayContent(content);
+        setIsPrettified(true);
+      }
+    };
+
+    autoPrettify();
+  }, [content, language]);
+
+  const handleFormatClick = useCallback(() => {
+    console.log('[SourceView] ========== FORMAT BUTTON CLICKED ==========');
+    console.log('[SourceView] CodeBlock ref exists:', !!codeBlockRef.current);
+    console.log('[SourceView] CodeBlock ref object:', codeBlockRef.current);
+    
+    if (codeBlockRef.current) {
+      console.log('[SourceView] Ref methods available:', Object.keys(codeBlockRef.current));
+      console.log('[SourceView] format method type:', typeof codeBlockRef.current.format);
+      
+      try {
+        console.log('[SourceView] Calling format() method...');
+        codeBlockRef.current.format();
+        console.log('[SourceView] ✓ format() completed successfully');
+      } catch (error) {
+        console.error('[SourceView] ✗ Error calling format():', error);
+        console.error('[SourceView] Error stack:', (error as Error).stack);
+      }
+    } else {
+      console.warn('[SourceView] ✗ CodeBlock ref is null - editor may not be mounted yet');
+    }
+    console.log('[SourceView] ========================================');
+  }, []);
+
   if (!content) {
     return (
       <div className="h-full flex items-center justify-center text-text-secondary">
         <div className="text-center">
           <FileCode className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="text-sm">Select a file to view source</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while formatting
+  if (isFormatting) {
+    return (
+      <div className="h-full flex items-center justify-center text-text-secondary">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-purple-400" />
+          <p className="text-sm">Formatting code...</p>
         </div>
       </div>
     );
@@ -380,73 +376,145 @@ function SourceView({
 
   const monacoLang = language ? langMap[language.toLowerCase()] || 'javascript' : 'javascript';
 
+  console.log('[SourceView] Rendering with language:', monacoLang, 'content length:', content.length);
+
   return (
-    <div className="h-full w-full min-h-[200px]">
-      <CodeBlock
-        code={content}
-        language={monacoLang}
-        showLineNumbers
-        wordWrap="on"
-        editorOptions={{
-          readOnly: true,
-          fontSize: 13,
-          fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-          automaticLayout: true,
-        }}
-      />
+    <div className="h-full w-full min-h-[200px] flex flex-col">
+      {/* Format toolbar */}
+      <div className="flex items-center justify-between px-3 py-1 border-b border-divider/50 shrink-0 bg-muted/5">
+        <div className="flex items-center gap-2">
+          {isPrettified && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
+              ✓ Formatted
+            </span>
+          )}
+        </div>
+        <button
+          onClick={handleFormatClick}
+          className="p-1 hover:bg-secondary rounded text-text-secondary hover:text-text-primary transition-colors"
+          title="Format Document (Ctrl+Shift+F)"
+        >
+          <AlignLeft className="w-3 h-3" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <CodeBlock
+          ref={codeBlockRef}
+          code={displayContent}
+          language={monacoLang}
+          showLineNumbers
+          wordWrap="on"
+          editorOptions={{
+            readOnly: true,
+            fontSize: 13,
+            fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+            automaticLayout: true,
+            formatOnType: true,
+            formatOnPaste: true,
+          }}
+        />
+      </div>
     </div>
   );
 }
 
 const STORAGE_KEY = 'phantoma-source-state';
 
-export function SourcesPanel({ requests = [] }: SourcesPanelProps) {
+export function SourcesPanel({ requests = [], unpackedScripts }: SourcesPanelProps) {
   const [selectedContent, setSelectedContent] = useLocalStorage<{
     content: string;
     fileName: string;
     language: string;
+    isDifferent?: boolean;
+    compressionRatio?: string;
   } | null>(STORAGE_KEY, null);
 
-  const sourceFiles = useMemo(() => {
-    const files: SourceFile[] = [];
+  // Build source tree from unpacked scripts
+  const sourceTree = useMemo(() => {
+    const sources: Array<{
+      url: string;
+      size?: number;
+      scriptId?: string;
+      staticSource?: string;
+      unpackedSource?: string;
+      isDifferent?: boolean;
+      compressionRatio?: string;
+    }> = [];
+
+    // Add from unpacked scripts (preferred)
+    if (unpackedScripts) {
+      for (const [, script] of unpackedScripts) {
+        sources.push({
+          url: script.url,
+          size: script.unpackedSource.length,
+          scriptId: script.scriptId,
+          staticSource: script.staticSource || undefined,
+          unpackedSource: script.unpackedSource,
+          isDifferent: script.isDifferent,
+          compressionRatio: script.compressionRatio,
+        });
+      }
+    }
+
+    // Fallback: add from requests if not in unpacked
     requests.forEach((req) => {
       const isSource =
         req.type?.toUpperCase() === 'JS' ||
         req.type?.toUpperCase() === 'CSS' ||
-        req.type?.toUpperCase() === 'HTML' ||
-        req.path?.match(/\.(js|ts|jsx|tsx|css|html|json|xml)$/i);
+        req.type?.toUpperCase() === 'HTML';
+      
       if (isSource && req.responseBody) {
-        const ext = req.path.split('.').pop()?.toLowerCase() || '';
-        let type: SourceFile['type'] = 'js';
-        if (ext === 'ts' || ext === 'tsx') type = ext as SourceFile['type'];
-        else if (ext === 'jsx') type = 'jsx';
-        else if (ext === 'css') type = 'css';
-        else if (ext === 'html') type = 'html';
-        else if (ext === 'json') type = 'json';
-        else if (ext === 'xml') type = 'xml';
-        else type = 'js';
-        const bodyContent = typeof req.responseBody === 'string'
-          ? req.responseBody
-          : req.responseBody
-            ? JSON.stringify(req.responseBody)
-            : '';
-        files.push({
-          id: req.id,
-          name: req.path.split('/').pop() || req.path,
-          path: req.path,
-          type,
-          content: bodyContent,
-          size: bodyContent.length || 0,
-          url: req.url,
-        });
+        // Check if already added from unpacked
+        const alreadyExists = sources.some(s => s.url === req.url);
+        if (!alreadyExists) {
+          const bodyContent = typeof req.responseBody === 'string'
+            ? req.responseBody
+            : JSON.stringify(req.responseBody);
+          
+          sources.push({
+            url: req.url,
+            size: bodyContent.length,
+            unpackedSource: bodyContent,
+          });
+        }
       }
     });
-    return files.sort((a, b) => a.name.localeCompare(b.name));
-  }, [requests]);
 
-  const handleSelectFile = (content: string, fileName: string, language: string) => {
-    setSelectedContent({ content, fileName, language });
+    return buildSourceTree(sources);
+  }, [requests, unpackedScripts]);
+
+  const handleSelectNode = (node: SourceNode) => {
+    if (node.type !== 'file') return;
+
+    // Prefer unpacked source
+    const content = node.unpackedSource || node.staticSource || '';
+    
+    setSelectedContent({
+      content,
+      fileName: node.name,
+      language: 'javascript',
+      isDifferent: node.isDifferent,
+      compressionRatio: node.compressionRatio,
+    });
   };
+
+  const stats = useMemo(() => {
+    let totalFiles = 0;
+    let obfuscatedFiles = 0;
+
+    function count(nodes: SourceNode[]) {
+      for (const node of nodes) {
+        if (node.type === 'file') {
+          totalFiles++;
+          if (node.isDifferent) obfuscatedFiles++;
+        }
+        if (node.children) count(node.children);
+      }
+    }
+
+    count(sourceTree.roots);
+    return { totalFiles, obfuscatedFiles };
+  }, [sourceTree]);
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -458,20 +526,27 @@ export function SourcesPanel({ requests = [] }: SourcesPanelProps) {
               <Folder className="w-4 h-4 text-yellow-400" />
               <span className="text-xs font-medium text-text-primary">Explorer</span>
             </div>
-            <span className="text-[10px] text-text-secondary">{sourceFiles.length} files</span>
+            <div className="flex items-center gap-2">
+              {stats.obfuscatedFiles > 0 && (
+                <span className="text-[9px] px-1.5 py-0.5 bg-orange-500/20 text-orange-300 rounded">
+                  {stats.obfuscatedFiles} obf
+                </span>
+              )}
+              <span className="text-[10px] text-text-secondary">{stats.totalFiles} files</span>
+            </div>
           </div>
-          {sourceFiles.length === 0 ? (
+          {stats.totalFiles === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6">
               <div className="w-16 h-16 rounded-xl bg-purple-500/15 flex items-center justify-center mb-4 border border-purple-500/25">
                 <FileCode className="w-8 h-8 text-purple-400" />
               </div>
               <h3 className="text-sm font-semibold text-text-primary mb-1">No Source Files</h3>
               <p className="text-xs text-text-secondary text-center max-w-[200px]">
-                Navigate to a page with JS, CSS, or HTML assets
+                Navigate to a page to capture JavaScript sources
               </p>
             </div>
           ) : (
-            <FileTree files={sourceFiles} onSelectFile={handleSelectFile} />
+            <FileTree tree={sourceTree} onSelectNode={handleSelectNode} />
           )}
         </div>
         <div className="h-full overflow-hidden flex flex-col">
@@ -485,6 +560,11 @@ export function SourcesPanel({ requests = [] }: SourcesPanelProps) {
               {selectedContent?.language && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 shrink-0">
                   {selectedContent.language.toUpperCase()}
+                </span>
+              )}
+              {selectedContent?.isDifferent && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 shrink-0">
+                  Obfuscated ({selectedContent.compressionRatio})
                 </span>
               )}
             </div>

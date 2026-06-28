@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/phantoma/server/internal/domain"
+	domaintools "github.com/phantoma/server/internal/domain/tools"
 	dockerpkg "github.com/phantoma/server/pkg/docker"
 	"github.com/phantoma/server/pkg/logger"
 )
@@ -32,7 +33,7 @@ func NewService(container string) *Service {
 }
 
 // FetchURLs retrieves URLs for a given domain using gau.
-func (s *Service) FetchURLs(ctx context.Context, req domain.GAURequest) (*domain.GAUResponse, error) {
+func (s *Service) FetchURLs(ctx context.Context, req domaintools.GAURequest) (*domaintools.GAUResponse, error) {
 	if req.Domain == "" {
 		return nil, domain.ErrInvalidTarget
 	}
@@ -57,7 +58,7 @@ func (s *Service) FetchURLs(ctx context.Context, req domain.GAURequest) (*domain
 	// Parse output (one URL per line)
 	urls := parseOutput(result.Stdout)
 
-	response := &domain.GAUResponse{
+	response := &domaintools.GAUResponse{
 		Domain:    req.Domain,
 		URLs:      urls,
 		Total:     len(urls),
@@ -77,7 +78,7 @@ func (s *Service) FetchURLs(ctx context.Context, req domain.GAURequest) (*domain
 }
 
 // buildArgs constructs command-line arguments for gau.
-func (s *Service) buildArgs(req domain.GAURequest) []string {
+func (s *Service) buildArgs(req domaintools.GAURequest) []string {
 	args := []string{"gau"}
 
 	// Providers

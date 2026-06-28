@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { NetworkRequest } from '../types/inspector';
 
-interface CdpRequestData {
+export interface CdpRequestData {
   id: string;
   url: string;
   method: string;
@@ -24,33 +24,58 @@ interface CdpRequestData {
   };
 }
 
-interface CdpResponseData {
+export interface CdpResponseData {
   id: string;
   statusCode: number;
   headers: Record<string, string>;
   timestamp: number;
 }
 
-interface CdpResponseBodyData {
+export interface CdpResponseBodyData {
   id: string;
   body: string;
   size: number;
   timestamp: number;
+  isUnpacked?: boolean;
+}
+
+export interface CdpScriptUnpackedData {
+  requestId: string;
+  url: string;
+  scriptId: string;
+  staticSource: string | null;
+  unpackedSource: string;
+  isDifferent: boolean;
+  compressionRatio: string;
+  timestamp: number;
+}
+
+export interface CdpScriptSourceData {
+  scriptId: string;
+  url: string;
+  source: string;
+  size: number;
+  timestamp: number;
+  hasSourceURL?: boolean;
+  sourceMapURL?: string;
 }
 
 interface UseCdpEventsOptions {
   onRequest?: (request: NetworkRequest) => void;
   onResponse?: (requestId: string, status: number, headers: Record<string, string>) => void;
   onResponseBody?: (requestId: string, body: string, size: number) => void;
+  onScriptUnpacked?: (data: CdpScriptUnpackedData) => void;
+  onScriptSource?: (data: CdpScriptSourceData) => void;
   onError?: (error: any) => void;
 }
 
 export function useCdpEvents(options: UseCdpEventsOptions = {}) {
-  const { onRequest, onResponse, onResponseBody, onError } = options;
+  const { onRequest, onResponse, onResponseBody, onScriptUnpacked, onScriptSource, onError } = options;
 
   const [requests, setRequests] = useState<NetworkRequest[]>([]);
   const requestMapRef = useRef<Map<string, NetworkRequest>>(new Map());
   const timestampMapRef = useRef<Map<string, number>>(new Map());
+  const unpackedScriptsRef = useRef<Map<string, CdpScriptUnpackedData>>(new Map());
 
   const addRequest = useCallback((req: NetworkRequest) => {
     setRequests((prev) => {
@@ -125,7 +150,7 @@ export function useCdpEvents(options: UseCdpEventsOptions = {}) {
         responseHeaders: {},
         requestBody: data.requestBody || '',
         responseBody: '',
-        initiator: data.initiator,
+        initiator: data.initiator ? JSON.stringify(data.initiator) : undefined,
       };
 
       addRequest(req);
@@ -161,21 +186,51 @@ export function useCdpEvents(options: UseCdpEventsOptions = {}) {
       const timeStr = timeMs >= 1000 ? `${(timeMs / 1000).toFixed(2)}s` : `${timeMs}ms`;
       const sizeStr = data.size ? `${(data.size / 1024).toFixed(1)} KB` : '0 B';
 
-      updateRequest(data.id, {
+      const updates: Partial<NetworkRequest> = {
         responseBody: data.body || '',
         size: sizeStr,
         time: timeStr,
-      });
+      };
+
+      // Mark as unpacked if it came from Debugger API
+      if (data.isUnpacked) {
+        updates.responseBody = `/* UNPACKED SOURCE FROM DEBUGGER API */\n${data.body || ''}`;
+      }
+
+      updateRequest(data.id, updates);
 
       onResponseBody?.(data.id, data.body || '', data.size);
     },
     [updateRequest, onResponseBody],
   );
 
+  const handleScriptUnpacked = useCallback(
+    (data: CdpScriptUnpackedData) => {
+      unpackedScriptsRef.current.set(data.requestId, data);
+      
+      // Log comparison result
+      if (data.isDifferent) {
+        console.log(`[CDP:Unpacked] Script differs! ${data.url} - Compression: ${data.compressionRatio}`);
+      }
+
+      onScriptUnpacked?.(data);
+    },
+    [onScriptUnpacked],
+  );
+
+  const handleScriptSource = useCallback(
+    (data: CdpScriptSourceData) => {
+      console.log(`[CDP:ScriptSource] Received unpacked source for ${data.url} (${data.size} bytes)`);
+      onScriptSource?.(data);
+    },
+    [onScriptSource],
+  );
+
   const clearRequests = useCallback(() => {
     setRequests([]);
     requestMapRef.current.clear();
     timestampMapRef.current.clear();
+    unpackedScriptsRef.current.clear();
   }, []);
 
   // Setup IPC listeners
@@ -210,16 +265,36 @@ export function useCdpEvents(options: UseCdpEventsOptions = {}) {
       onError?.(data);
     };
 
+    const handleScriptUnpackedEvent = (event: any, data: any) => {
+      try {
+        handleScriptUnpacked(data);
+      } catch (error) {
+        onError?.(error);
+      }
+    };
+
+    const handleScriptSourceEvent = (event: any, data: any) => {
+      try {
+        handleScriptSource(data);
+      } catch (error) {
+        onError?.(error);
+      }
+    };
+
     if (window.api?.on) {
       window.api.on('cdp:request', handleRequest);
       window.api.on('cdp:response', handleResponse);
       window.api.on('cdp:response-body', handleResponseBody);
+      window.api.on('cdp:script-unpacked', handleScriptUnpackedEvent);
+      window.api.on('cdp:script-source', handleScriptSourceEvent);
       window.api.on('cdp:error', handleError);
 
       listeners.push(
         { event: 'cdp:request', handler: handleRequest },
         { event: 'cdp:response', handler: handleResponse },
         { event: 'cdp:response-body', handler: handleResponseBody },
+        { event: 'cdp:script-unpacked', handler: handleScriptUnpackedEvent },
+        { event: 'cdp:script-source', handler: handleScriptSourceEvent },
         { event: 'cdp:error', handler: handleError },
       );
     }
@@ -228,7 +303,7 @@ export function useCdpEvents(options: UseCdpEventsOptions = {}) {
       // Note: window.api.off is not implemented in preload
       // Cleanup will happen on unmount
     };
-  }, [handleCdpRequest, handleCdpResponse, handleCdpResponseBody, onError]);
+  }, [handleCdpRequest, handleCdpResponse, handleCdpResponseBody, handleScriptUnpacked, handleScriptSource, onError]);
 
   return {
     requests,
@@ -236,6 +311,7 @@ export function useCdpEvents(options: UseCdpEventsOptions = {}) {
     updateRequest,
     clearRequests,
     requestMap: requestMapRef.current,
+    unpackedScripts: unpackedScriptsRef.current,
   };
 }
 

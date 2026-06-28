@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, createContext, useContext } from 'react';
 import React from 'react';
 import { DropdownProps } from './type';
+import { cn } from '@renderer/shared/lib/utils';
 
 type Position = { top: number; left: number };
 
@@ -26,7 +27,8 @@ export function Dropdown({
   side = 'bottom',
   sideOffset = 8,
   disableAutoFlip = false,
-  strategy = 'fixed', // Default to fixed for backward compatibility
+  strategy = 'fixed',
+  className,
 }: DropdownProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
@@ -107,10 +109,13 @@ export function Dropdown({
         finalTop = triggerRect.top - contentRect.height - offset;
       } else if (side === 'top' && top < 0) {
         finalTop = triggerRect.bottom + offset;
-      } else if (side === 'top' && triggerRect.bottom + offset + contentRect.height > viewport.height) {
+      } else if (
+        side === 'top' &&
+        triggerRect.bottom + offset + contentRect.height > viewport.height
+      ) {
         const spaceAbove = triggerRect.top - margin;
         const spaceBelow = viewport.height - triggerRect.bottom - margin;
-        
+
         if (spaceBelow > spaceAbove && spaceBelow >= contentRect.height + offset) {
           finalTop = triggerRect.bottom + offset;
         }
@@ -190,19 +195,22 @@ export function Dropdown({
     const getScrollableParents = (element: HTMLElement | null): HTMLElement[] => {
       const parents: HTMLElement[] = [];
       let current = element?.parentElement;
-      
+
       while (current) {
         const { overflow, overflowY, overflowX } = window.getComputedStyle(current);
         if (
-          overflow === 'auto' || overflow === 'scroll' ||
-          overflowY === 'auto' || overflowY === 'scroll' ||
-          overflowX === 'auto' || overflowX === 'scroll'
+          overflow === 'auto' ||
+          overflow === 'scroll' ||
+          overflowY === 'auto' ||
+          overflowY === 'scroll' ||
+          overflowX === 'auto' ||
+          overflowX === 'scroll'
         ) {
           parents.push(current);
         }
         current = current.parentElement;
       }
-      
+
       return parents;
     };
 
@@ -210,15 +218,15 @@ export function Dropdown({
 
     window.addEventListener('resize', handleUpdate);
     window.addEventListener('scroll', handleUpdate, true);
-    
-    scrollableParents.forEach(parent => {
+
+    scrollableParents.forEach((parent) => {
       parent.addEventListener('scroll', handleUpdate);
     });
 
     return () => {
       window.removeEventListener('resize', handleUpdate);
       window.removeEventListener('scroll', handleUpdate, true);
-      scrollableParents.forEach(parent => {
+      scrollableParents.forEach((parent) => {
         parent.removeEventListener('scroll', handleUpdate);
       });
     };
@@ -237,7 +245,7 @@ export function Dropdown({
   // Get CSS classes for relative positioning
   const getRelativePositionClasses = () => {
     const classes = ['absolute', 'z-[9999]'];
-    
+
     switch (side) {
       case 'top':
         classes.push('bottom-full', `mb-[${sideOffset}px]`);
@@ -280,7 +288,7 @@ export function Dropdown({
 
   return (
     <DropdownContext.Provider value={{ close }}>
-      <div className="relative inline-block">
+      <div className={cn('relative inline-block', className)}>
         <div ref={triggerRef} onClick={() => setOpen(!open)}>
           {trigger}
         </div>

@@ -2,13 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { dataService } from '../services/DataService';
 import { TargetTab } from '../../features/Emulate/types/target.types';
 
-import { TargetStatus } from '../database/repositories/TargetRepository';
-
 interface UseTargetDataOptions {
   autoLoad?: boolean;
   platform?: string;
   searchQuery?: string;
-  status?: TargetStatus;
 }
 
 interface UseTargetDataReturn {
@@ -16,13 +13,11 @@ interface UseTargetDataReturn {
   loading: boolean;
   error: string | null;
   loadTargets: () => Promise<void>;
-  loadByStatus: (status: TargetStatus) => Promise<void>;
   saveTarget: (target: TargetTab) => Promise<TargetTab>;
   saveTargets: (targets: TargetTab[]) => Promise<TargetTab[]>;
   createTarget: (input: Omit<TargetTab, 'id'> & { id?: string }) => Promise<TargetTab>;
   deleteTarget: (id: string) => Promise<boolean>;
   deleteTargets: (ids: string[]) => Promise<number>;
-  updateStatus: (id: string, status: TargetStatus) => Promise<TargetTab | null>;
   clearAll: () => Promise<number>;
   refresh: () => Promise<void>;
   search: (query: string) => Promise<TargetTab[]>;
@@ -41,7 +36,7 @@ interface UseTargetDataReturn {
  * const { targets } = useTargetData({ platform: 'web' });
  */
 export function useTargetData(options: UseTargetDataOptions = {}): UseTargetDataReturn {
-  const { autoLoad = true, platform, searchQuery, status } = options;
+  const { autoLoad = true, platform, searchQuery } = options;
 
   const [targets, setTargets] = useState<TargetTab[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,9 +60,7 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
     try {
       let data: TargetTab[];
       
-      if (status) {
-        data = await dataService.getTargetsByStatus(status);
-      } else if (platform) {
+      if (platform) {
         data = await dataService.getTargetsByPlatform(platform);
       } else if (searchQuery) {
         data = await dataService.searchTargets(searchQuery);
@@ -87,30 +80,7 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
         setLoading(false);
       }
     }
-  }, [platform, searchQuery, status]);
-
-  const loadByStatus = useCallback(async (newStatus: TargetStatus) => {
-    if (!isMounted.current) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const data = await dataService.getTargetsByStatus(newStatus);
-      if (isMounted.current) {
-        setTargets(data);
-      }
-    } catch (err) {
-      if (isMounted.current) {
-        setError(err instanceof Error ? err.message : 'Failed to load targets by status');
-      }
-      throw err;
-    } finally {
-      if (isMounted.current) {
-        setLoading(false);
-      }
-    }
-  }, []);
+  }, [platform, searchQuery]);
 
   const saveTarget = useCallback(async (target: TargetTab): Promise<TargetTab> => {
     setLoading(true);
@@ -206,24 +176,6 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
     }
   }, []);
 
-  const updateStatus = useCallback(async (id: string, newStatus: TargetStatus): Promise<TargetTab | null> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const updated = await dataService.updateTargetStatus(id, newStatus);
-      if (updated) {
-        setTargets(prev => prev.map(t => t.id === id ? updated : t));
-      }
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update target status');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const clearAll = useCallback(async (): Promise<number> => {
     setLoading(true);
     setError(null);
@@ -271,13 +223,11 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
     loading,
     error,
     loadTargets,
-    loadByStatus,
     saveTarget,
     saveTargets,
     createTarget,
     deleteTarget,
     deleteTargets,
-    updateStatus,
     clearAll,
     refresh,
     search,

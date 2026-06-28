@@ -115,8 +115,8 @@ function launchBrowser(
 export async function launchApp(
   appName: string,
   proxyUrl: string,
-  _customUrl?: string,
-  forceMode?: 'browser' | 'electron' | 'native',
+  customUrl?: string,
+  forceMode?: 'browser' | 'electron' | 'native' | 'cdp',
 ): Promise<boolean> {
   if (appName === 'vscode') {
     appState.activeProxyUrl = proxyUrl;
@@ -254,11 +254,15 @@ export async function launchApp(
 
   // All Websites - launch browser with Google as default start page
   if (appName === '__all_websites__') {
-    return launchBrowser('https://google.com', appName, proxyUrl);
+    const cdpPort = forceMode === 'cdp' ? await findAvailablePort(9222) : undefined;
+    return launchBrowser('https://google.com', appName, proxyUrl, cdpPort);
   }
 
-  if (webApps[appName]) {
-    return launchBrowser(webApps[appName], appName, proxyUrl);
+  // Determine URL: use customUrl if provided, else lookup in webApps
+  const url = customUrl || webApps[appName];
+  if (url) {
+    const cdpPort = forceMode === 'cdp' ? await findAvailablePort(9222) : undefined;
+    return launchBrowser(url, appName, proxyUrl, cdpPort);
   }
 
   return false;

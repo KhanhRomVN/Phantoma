@@ -10,7 +10,12 @@ import { PayloadPanel } from './components/Repeater';
 import { SourcesPanel } from './components/Source';
 import { LogViewer } from './components/Log';
 import { TargetSidebar } from './components/TargetSidebar';
-import { AddTargetModal } from './components/TargetSidebar/AddTargetModal';
+import {
+  WebModal,
+  PcModal,
+  AndroidModal,
+  CliModal,
+} from './components/TargetSidebar/AddTargetModal';
 
 // Hooks
 import useTargetData from '../../hooks/useTargetData';
@@ -52,14 +57,14 @@ export default function Emulate({
   const { selectedTool, selectedId } = state;
 
   // Local state
-  const [loadedFromIPC, setLoadedFromIPC] = useState(false);
+  const [, setLoadedFromIPC] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [fuzzerTargetId, setFuzzerTargetId] = useState<string | null>(null);
   const [selectedWsId, setSelectedWsId] = useState<string | null>(null);
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addModalPlatform] = useState<'web' | 'pc' | 'android' | 'cli'>('web');
+  const [addModalPlatform, setAddModalPlatform] = useState<'web' | 'pc' | 'android' | 'cli'>('web');
   const [editingApp, setEditingApp] = useState<{
     id: string;
     name: string;
@@ -76,7 +81,11 @@ export default function Emulate({
       id: appData.id || crypto.randomUUID(),
       title: appData.name || 'New Target',
       url: appData.url || undefined,
+      icon: appData.icon || undefined,
       platform: appData.platform || undefined,
+      executablePath: appData.executablePath || undefined,
+      startupArgs: appData.startupArgs || undefined,
+      environment: appData.environment || undefined,
     };
 
     await saveTarget(newTab);
@@ -87,7 +96,7 @@ export default function Emulate({
   // Sử dụng SQLite để lưu targets
   const {
     targets,
-    loading: targetsLoading,
+    loading: _targetsLoading,
     saveTarget,
     deleteTarget,
     refresh: refreshTargets,
@@ -189,7 +198,7 @@ export default function Emulate({
     return () => clearInterval(interval);
   }, [targetStates]);
 
-  const { requests, clearRequests } = useCdpEvents();
+  const { requests, clearRequests, unpackedScripts } = useCdpEvents();
 
   const { filter, searchTerm, setSearchTerm, updateFilter, filterRequests } = useRequestFilter();
 
@@ -312,7 +321,10 @@ export default function Emulate({
         onStopTarget={handleStopTarget}
         onLaunchTarget={handleLaunchTarget}
         onStopSession={handleStopSession}
-        onOpenAddModal={() => setIsAddModalOpen(true)}
+        onOpenAddModal={(platform) => {
+          setAddModalPlatform(platform);
+          setIsAddModalOpen(true);
+        }}
       />
 
       {/* Main Content Area */}
@@ -429,7 +441,7 @@ export default function Emulate({
             )}
             {selectedTool === 'source' && (
               <div className="flex-1 overflow-hidden">
-                <SourcesPanel requests={requests} />
+                <SourcesPanel requests={requests} unpackedScripts={unpackedScripts} />
               </div>
             )}
             {selectedTool === 'log' && (
@@ -442,18 +454,58 @@ export default function Emulate({
       </div>
 
       {/* Modals */}
-      <AddTargetModal
-        isOpen={isAddModalOpen}
-        onClose={() => {
-          setIsAddModalOpen(false);
-          setEditingApp(null);
-        }}
-        platform={addModalPlatform}
-        onAdd={handleAddApp}
-        existingApps={[]}
-        editApp={editingApp}
-        onEdit={() => {}}
-      />
+      {addModalPlatform === 'web' && (
+        <WebModal
+          isOpen={isAddModalOpen}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEditingApp(null);
+          }}
+          onAdd={handleAddApp}
+          existingApps={[]}
+          editApp={editingApp}
+          onEdit={() => {}}
+        />
+      )}
+      {addModalPlatform === 'pc' && (
+        <PcModal
+          isOpen={isAddModalOpen}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEditingApp(null);
+          }}
+          onAdd={handleAddApp}
+          existingApps={[]}
+          editApp={editingApp}
+          onEdit={() => {}}
+        />
+      )}
+      {addModalPlatform === 'android' && (
+        <AndroidModal
+          isOpen={isAddModalOpen}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEditingApp(null);
+          }}
+          onAdd={handleAddApp}
+          existingApps={[]}
+          editApp={editingApp}
+          onEdit={() => {}}
+        />
+      )}
+      {addModalPlatform === 'cli' && (
+        <CliModal
+          isOpen={isAddModalOpen}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEditingApp(null);
+          }}
+          onAdd={handleAddApp}
+          existingApps={[]}
+          editApp={editingApp}
+          onEdit={() => {}}
+        />
+      )}
     </div>
   );
 }

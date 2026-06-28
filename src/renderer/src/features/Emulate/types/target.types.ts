@@ -8,8 +8,12 @@ export interface TargetTab {
   id: string;
   title: string;
   favicon?: string;
+  icon?: string;
   url?: string;
   platform?: string;
+  executablePath?: string;
+  startupArgs?: string;
+  environment?: string;
 }
 
 export interface TargetState {

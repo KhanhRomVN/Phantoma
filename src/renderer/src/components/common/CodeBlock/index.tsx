@@ -126,8 +126,66 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
         editorInstance.current.revealRangeInCenter(match.range);
       },
       format: () => {
-        if (editorInstance.current) {
-          editorInstance.current.getAction('editor.action.formatDocument').run();
+        console.log('[CodeBlock] format() called');
+        console.log('[CodeBlock] editorInstance exists:', !!editorInstance.current);
+        
+        if (!editorInstance.current) {
+          console.warn('[CodeBlock] Editor instance is null');
+          return;
+        }
+        
+        try {
+          const editor = editorInstance.current;
+          const model = editor.getModel();
+          
+          if (!model) {
+            console.error('[CodeBlock] Editor model is null');
+            return;
+          }
+          
+          // Check if readOnly mode is on
+          const isReadOnly = editor.getOption(window.monaco.editor.EditorOption.readOnly);
+          console.log('[CodeBlock] Editor is readOnly:', isReadOnly);
+          
+          // Temporarily disable readOnly if needed
+          if (isReadOnly) {
+            console.log('[CodeBlock] Temporarily disabling readOnly for formatting');
+            editor.updateOptions({ readOnly: false });
+          }
+          
+          // Try to get and run the format action
+          const action = editor.getAction('editor.action.formatDocument');
+          console.log('[CodeBlock] Format action available:', !!action);
+          
+          if (action) {
+            console.log('[CodeBlock] Running format action...');
+            action.run().then(() => {
+              console.log('[CodeBlock] Format action completed successfully');
+              // Restore readOnly if it was set
+              if (isReadOnly) {
+                console.log('[CodeBlock] Restoring readOnly mode');
+                editor.updateOptions({ readOnly: true });
+              }
+            }).catch((error: Error) => {
+              console.error('[CodeBlock] Format action failed:', error);
+              // Restore readOnly even on error
+              if (isReadOnly) {
+                editor.updateOptions({ readOnly: true });
+              }
+            });
+          } else {
+            console.error('[CodeBlock] Format action not available - this may happen if:');
+            console.error('  1. Language server not loaded for:', model.getLanguageId());
+            console.error('  2. Monaco editor modules not fully initialized');
+            console.error('  3. No formatter registered for this language');
+            
+            // Restore readOnly
+            if (isReadOnly) {
+              editor.updateOptions({ readOnly: true });
+            }
+          }
+        } catch (error) {
+          console.error('[CodeBlock] Error during format:', error);
         }
       },
     }));

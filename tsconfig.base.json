@@ -17,6 +17,7 @@
     "paths": {
       "@main/*": ["./src/main/*"],
       "@preload/*": ["./src/preload/*"],
+      "@app/*": ["./src/shared/*"],
       "@renderer/*": ["./src/renderer/src/*"],
       "@shared/*": ["./src/renderer/src/shared/*"],
       "@core/*": ["./src/renderer/src/core/*"],

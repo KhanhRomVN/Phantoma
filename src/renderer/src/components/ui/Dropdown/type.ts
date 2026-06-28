@@ -8,7 +8,8 @@ export interface DropdownProps {
   side?: 'top' | 'bottom' | 'left' | 'right';
   sideOffset?: number;
   disableAutoFlip?: boolean;
-  strategy?: 'fixed' | 'relative'; // New: positioning strategy
+  strategy?: 'fixed' | 'relative';
+  className?: string;
 }
 
 export interface DropdownTriggerProps {

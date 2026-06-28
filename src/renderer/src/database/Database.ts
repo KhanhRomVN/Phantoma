@@ -39,75 +39,10 @@ export class Database {
   }
 
   private async createTables(): Promise<void> {
-    // Tạo bảng targets với schema đầy đủ
-    const createTargetsTable = `
-      CREATE TABLE IF NOT EXISTS targets (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        url TEXT,
-        platform TEXT,
-        status TEXT DEFAULT 'stored' CHECK (status IN ('stored', 'staged', 'active')),
-        last_used_at INTEGER,
-        executable_path TEXT,
-        startup_args TEXT,
-        environment TEXT,
-        created_at INTEGER DEFAULT (unixepoch()),
-        updated_at INTEGER DEFAULT (unixepoch())
-      );
-    `;
-
-    // Tạo chỉ mục
-    const createIndexes = `
-      CREATE INDEX IF NOT EXISTS idx_targets_platform ON targets(platform);
-      CREATE INDEX IF NOT EXISTS idx_targets_updated_at ON targets(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_targets_status ON targets(status);
-      CREATE INDEX IF NOT EXISTS idx_targets_last_used ON targets(last_used_at);
-    `;
-
-    await this.run(createTargetsTable);
-    await this.run(createIndexes);
-
-    // Migration: Thêm các column nếu chưa có (cho DB cũ)
-    await this.migrateAddStatusColumn();
-    
-    console.log('[Database] Tables created/verified with migrations');
-  }
-
-  /**
-   * Migration: Add status column if not exists
-   */
-  private async migrateAddStatusColumn(): Promise<void> {
-    try {
-      const result = await this.execute(
-        `SELECT sql FROM sqlite_master WHERE type='table' AND name='targets'`
-      );
-      
-      if (result.length > 0) {
-        const createSQL = result[0].sql;
-        if (!createSQL.includes('status TEXT')) {
-          await this.run(`ALTER TABLE targets ADD COLUMN status TEXT DEFAULT 'stored'`);
-          console.log('[Database] Migration: Added status column');
-        }
-        if (!createSQL.includes('executable_path')) {
-          await this.run(`ALTER TABLE targets ADD COLUMN executable_path TEXT`);
-          console.log('[Database] Migration: Added executable_path column');
-        }
-        if (!createSQL.includes('startup_args')) {
-          await this.run(`ALTER TABLE targets ADD COLUMN startup_args TEXT`);
-          console.log('[Database] Migration: Added startup_args column');
-        }
-        if (!createSQL.includes('environment')) {
-          await this.run(`ALTER TABLE targets ADD COLUMN environment TEXT`);
-          console.log('[Database] Migration: Added environment column');
-        }
-        if (!createSQL.includes('last_used_at')) {
-          await this.run(`ALTER TABLE targets ADD COLUMN last_used_at INTEGER`);
-          console.log('[Database] Migration: Added last_used_at column');
-        }
-      }
-    } catch (err) {
-      console.warn('[Database] Migration columns:', err);
-    }
+    // Migration đã được chuyển sang main process (src/main/core/database/migration.ts)
+    // và chạy tự động khi database connection được mở qua IPC.
+    // Hàm này giữ lại để tương thích ngược, không thực hiện migration.
+    console.log('[Database] Schema migration is handled by main process');
   }
 
   async execute<T = any>(query: string, params: any[] = []): Promise<T[]> {

@@ -4,6 +4,7 @@ import { closeAllGenericWebWindows } from '../features/generic-web';
 import { appState } from '../shared/state';
 import { cdpManager } from '../features/cdp';
 import { launchApp } from '../app-launcher';
+import { scanInstalledApps } from '../utils/app-scanner';
 
 export function setupAppHandlers() {
   ipcMain.handle('app:terminate', async () => {
@@ -22,6 +23,10 @@ export function setupAppHandlers() {
     return true;
   });
 
+  ipcMain.handle('apps:scan-pc', async () => {
+    return await scanInstalledApps();
+  });
+
   ipcMain.handle('app:get-memory-usage', () => {
     return process.memoryUsage();
   });
@@ -34,7 +39,7 @@ export function setupAppHandlers() {
       appName: string,
       proxyUrl: string,
       customUrl?: string,
-      forceMode?: 'browser' | 'electron' | 'native',
+      forceMode?: 'browser' | 'electron' | 'native' | 'cdp',
     ) => {
       return await launchApp(appName, proxyUrl, customUrl, forceMode);
     }
