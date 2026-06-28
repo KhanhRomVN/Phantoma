@@ -5,41 +5,33 @@ import (
 
 	"github.com/phantoma/server/internal/config"
 	"github.com/phantoma/server/internal/middleware"
-	alienvaultsvc "github.com/phantoma/server/internal/service/alienvault"
-	amasssvc "github.com/phantoma/server/internal/service/amass"
-	gausvc "github.com/phantoma/server/internal/service/gau"
-	dorksvc "github.com/phantoma/server/internal/service/go-dork"
-	metasploitsvc "github.com/phantoma/server/internal/service/metasploit"
-	niktosvc "github.com/phantoma/server/internal/service/nikto"
-	nmapsvc "github.com/phantoma/server/internal/service/nmap"
-	searchsploitsvc "github.com/phantoma/server/internal/service/searchsploit"
-	airodumpsvc "github.com/phantoma/server/internal/service/airodump"
-	aireplaysvc "github.com/phantoma/server/internal/service/aireplay"
-	hcxdumptoolsvc "github.com/phantoma/server/internal/service/hcxdumptool"
-	hashcatsvc "github.com/phantoma/server/internal/service/hashcat"
-	reaver "github.com/phantoma/server/internal/service/reaver"
+	"github.com/phantoma/server/internal/repository"
 	targetsvc "github.com/phantoma/server/internal/service/target"
+	"github.com/phantoma/server/internal/service/tools"
 )
 
 // NewRouter wires up all routes and returns the root http.Handler.
 func NewRouter(cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
 
+	// Initialize repository
+	targetRepo := repository.NewTargetRepository()
+
 	// Initialize services
-	targetSvc := targetsvc.NewService()
-	nmapSvc := nmapsvc.NewService(cfg.NmapContainer)
-	niktoSvc := niktosvc.NewService(cfg.NiktoContainer)
-	searchsploitSvc := searchsploitsvc.NewService(cfg.SearchsploitContainer)
-	metasploitSvc := metasploitsvc.NewService(cfg.MetasploitContainer)
-	dorkSvc := dorksvc.NewService(cfg.GoDorkContainer)
-	gauSvc := gausvc.NewService(cfg.GauContainer)
-	alienvaultSvc := alienvaultsvc.NewService()
-	amassSvc := amasssvc.NewService(cfg.AmassContainer)
-	airodumpSvc := airodumpsvc.NewService()
-	aireplaySvc := aireplaysvc.NewService()
-	hcxdumptoolSvc := hcxdumptoolsvc.NewService()
-	hashcatSvc := hashcatsvc.NewService()
-	reaverSvc := reaver.NewService()
+	targetSvc := targetsvc.NewService(targetRepo)
+	nmapSvc := tools.NewNmapService(cfg.NmapContainer)
+	niktoSvc := tools.NewNiktoService(cfg.NiktoContainer)
+	searchsploitSvc := tools.NewSearchsploitService(cfg.SearchsploitContainer)
+	metasploitSvc := tools.NewMetasploitService(cfg.MetasploitContainer)
+	dorkSvc := tools.NewGoDorkService(cfg.GoDorkContainer)
+	gauSvc := tools.NewGauService(cfg.GauContainer)
+	alienvaultSvc := tools.NewAlienvaultService()
+	amassSvc := tools.NewAmassService(cfg.AmassContainer)
+	airodumpSvc := tools.NewAirodumpService()
+	aireplaySvc := tools.NewAireplayService()
+	hcxdumptoolSvc := tools.NewHcxdumptoolService()
+	hashcatSvc := tools.NewHashcatService()
+	reaverSvc := tools.NewReaverService()
 
 	// Register all route groups
 	RegisterHealthRoutes(mux)

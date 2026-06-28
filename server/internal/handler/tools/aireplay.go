@@ -4,23 +4,23 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/phantoma/server/internal/service/aireplay"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
-// AireplayHandler handles HTTP requests for aireplay-ng deauth attacks.
+// AireplayHandler handles HTTP requests for servicetools.ng deauth attacks.
 type AireplayHandler struct {
-	service *aireplay.Service
+	service *servicetools.AireplayService
 }
 
-// NewAireplayHandler creates a new aireplay handler.
-func NewAireplayHandler(svc *aireplay.Service) *AireplayHandler {
+// NewAireplayHandler creates a new servicetools.handler.
+func NewAireplayHandler(svc *servicetools.AireplayService) *AireplayHandler {
 	return &AireplayHandler{service: svc}
 }
 
 // StartDeauth handles POST /api/v1/wireless/attack/deauth
 func (h *AireplayHandler) StartDeauth(w http.ResponseWriter, r *http.Request) {
-	var req aireplay.DeauthRequest
+	var req servicetools.DeauthRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, http.StatusBadRequest, "Invalid request body")
 		return
@@ -32,7 +32,7 @@ func (h *AireplayHandler) StartDeauth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusOK, aireplay.DeauthResponse{AttackID: attackID})
+	response.JSON(w, http.StatusOK, servicetools.DeauthResponse{AttackID: attackID})
 }
 
 // StopDeauth handles POST /api/v1/wireless/attack/deauth/stop

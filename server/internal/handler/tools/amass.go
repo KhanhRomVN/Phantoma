@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/phantoma/server/internal/domain"
-	amasssvc "github.com/phantoma/server/internal/service/amass"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 )
 
 type scanRequest struct {
@@ -25,10 +25,10 @@ type scanResponse struct {
 
 // AmassHandler handles HTTP requests for amass scans.
 type AmassHandler struct {
-	svc *amasssvc.Service
+	svc *servicetools.AmassService
 }
 
-func NewAmassHandler(svc *amasssvc.Service) *AmassHandler {
+func NewAmassHandler(svc *servicetools.AmassService) *AmassHandler {
 	return &AmassHandler{svc: svc}
 }
 

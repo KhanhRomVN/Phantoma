@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { db } from '../../../database';
+import { targetService } from '../../../services/TargetService';
 import { TableInfo, TableData, FilterCondition, Operator } from '../types/database';
 
 export function useDatabase() {
@@ -11,38 +11,16 @@ export function useDatabase() {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const filterIdCounter = useRef(0);
 
-  // Parse column types from CREATE TABLE statement
-  const parseColumnTypes = useCallback((sql: string): Record<string, string> => {
-    const types: Record<string, string> = {};
-    const match = sql.match(/\(([^)]+)\)/);
-    if (match) {
-      const columnDefs = match[1].split(',').map((col: string) => col.trim());
-      columnDefs.forEach((def: string) => {
-        const parts = def.split(/\s+/);
-        if (parts.length >= 2) {
-          const colName = parts[0].replace(/["`]/g, '');
-          const colType = parts[1].toUpperCase();
-          types[colName] = colType;
-        }
-      });
-    }
-    return types;
-  }, []);
-
-  // Load danh sách tables
+  // Load danh sách tables (now returns fixed list from API)
   const loadTables = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const result = await db.execute(
-        `SELECT name, sql FROM sqlite_master 
-         WHERE type='table' 
-         AND name NOT LIKE 'sqlite_%'
-         ORDER BY name`,
-      );
-
-      setTables(result as TableInfo[]);
+      // Server-managed database — expose available endpoints as "tables"
+      setTables([
+        { name: 'targets', sql: 'REST API: GET /api/v1/targets' },
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tables');
       console.error('Load tables error:', err);
@@ -51,7 +29,7 @@ export function useDatabase() {
     }
   }, []);
 
-  // Load data của table được chọn
+  // Load data từ API server
   const loadTableData = useCallback(async (tableName: string) => {
     if (!tableName) return;
 
@@ -59,42 +37,57 @@ export function useDatabase() {
       setLoading(true);
       setError(null);
 
-      const rows = await db.execute(`SELECT rowid, * FROM ${tableName} LIMIT 1000`);
+      if (tableName === 'targets') {
+        const targets = await targetService.getTargets();
+        console.log('[useDatabase] targets data:', targets);
 
-      let columns: string[] = [];
-      let columnTypes: Record<string, string> = {};
+        if (targets.length > 0) {
+          const columns = Object.keys(targets[0]).filter(col => col !== 'rowid');
+          const columnTypes: Record<string, string> = {};
 
-      if (rows.length > 0) {
-        columns = Object.keys(rows[0]).filter(col => col !== 'rowid');
-        // Get schema for types
-        const schemaResult = await db.execute(
-          `SELECT sql FROM sqlite_master WHERE type='table' AND name = ?`,
-          [tableName],
-        );
-        if (schemaResult.length > 0) {
-          const sql = (schemaResult[0] as any).sql;
-          columnTypes = parseColumnTypes(sql);
-        }
-        setTableData({
-          columns,
-          columnTypes,
-          rows: rows as Record<string, any>[],
-        });
-      } else {
-        const schemaResult = await db.execute(
-          `SELECT sql FROM sqlite_master WHERE type='table' AND name = ?`,
-          [tableName],
-        );
-        if (schemaResult.length > 0) {
-          const sql = (schemaResult[0] as any).sql;
-          columnTypes = parseColumnTypes(sql);
-          columns = Object.keys(columnTypes);
+          // Infer types from values
+          columns.forEach((col) => {
+            const sampleVal = targets[0][col as keyof typeof targets[0]];
+            if (sampleVal === null || sampleVal === undefined) {
+              columnTypes[col] = 'TEXT';
+            } else if (typeof sampleVal === 'number') {
+              columnTypes[col] = 'INTEGER';
+            } else if (typeof sampleVal === 'boolean') {
+              columnTypes[col] = 'BOOLEAN';
+            } else {
+              columnTypes[col] = 'TEXT';
+            }
+          });
+
+          // Map API id to rowid for table compatibility
+          const rows = targets.map((t: any) => ({
+            ...t,
+            rowid: t.id,
+          }));
+
+          setTableData({
+            columns,
+            columnTypes,
+            rows: rows as Record<string, any>[],
+          });
+        } else {
+          // Empty table — try to infer columns from a known schema
+          const columns = ['id', 'url', 'status', 'created_at', 'updated_at'];
+          const columnTypes: Record<string, string> = {
+            id: 'TEXT',
+            url: 'TEXT',
+            status: 'TEXT',
+            created_at: 'TEXT',
+            updated_at: 'TEXT',
+          };
           setTableData({
             columns,
             columnTypes,
             rows: [],
           });
         }
+      } else {
+        setTableData(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to load data from ${tableName}`);
@@ -102,24 +95,16 @@ export function useDatabase() {
     } finally {
       setLoading(false);
     }
-  }, [parseColumnTypes]);
+  }, []);
 
   const addFilter = useCallback((column: string, operator: Operator, value: string) => {
-    console.log('[useDatabase] addFilter called with:', { column, operator, value });
-    // Cho phép thêm filter với giá trị trống, user có thể edit sau
     const newFilter = {
       id: `filter-${filterIdCounter.current++}`,
       column: column || '',
       operator,
       value: value || '',
     };
-    console.log('[useDatabase] Adding filter:', newFilter);
-    setFilters(prev => {
-      console.log('[useDatabase] Previous filters:', prev.length);
-      const updated = [...prev, newFilter];
-      console.log('[useDatabase] Updated filters:', updated.length);
-      return updated;
-    });
+    setFilters(prev => [...prev, newFilter]);
   }, []);
 
   const removeFilter = useCallback((id: string) => {
@@ -171,11 +156,12 @@ export function useDatabase() {
       setLoading(true);
       setError(null);
 
-      const placeholders = rowIds.map(() => '?').join(',');
-      await db.execute(
-        `DELETE FROM ${selectedTable} WHERE rowid IN (${placeholders})`,
-        rowIds,
-      );
+      if (selectedTable === 'targets') {
+        // Delete each target via API
+        for (const id of rowIds) {
+          await targetService.deleteTarget(String(id));
+        }
+      }
 
       // Refresh data after deletion
       await loadTableData(selectedTable);

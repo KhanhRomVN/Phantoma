@@ -5,20 +5,20 @@ import (
 	"net/http"
 
 	"github.com/phantoma/server/internal/domain"
-	"github.com/phantoma/server/internal/service/assetfinder"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
 type AssetfinderHandler struct {
-	service *assetfinder.Service
+	service *servicetools.AssetfinderService
 }
 
-func NewAssetfinderHandler(service *assetfinder.Service) *AssetfinderHandler {
+func NewAssetfinderHandler(service *servicetools.AssetfinderService) *AssetfinderHandler {
 	return &AssetfinderHandler{service: service}
 }
 
 // Scan handles subdomain discovery requests.
-// POST /api/v1/assetfinder/scan
+// POST /api/v1/servicetools.scan
 // Body: { "target": "example.com", "flags": ["--subs-only"] }
 func (h *AssetfinderHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	var req domain.ScanRequest

@@ -1,28 +1,43 @@
 /**
- * API Client — giao tiếp với Go backend server.
+ * ApiClient — Base HTTP client for Go backend server.
+ * Only handles request/response, health check, and base URL management.
+ * Resource-specific services (TargetService, ScanService, etc.) use this client.
  * 
  * Usage:
  * import { apiClient } from '@/services/ApiClient';
- * const targets = await apiClient.getTargets();
+ * const data = await apiClient.request('/api/v1/targets');
  */
 
-import type {
-  TargetDTO,
-  CreateTargetDTO,
-  UpdateTargetDTO,
-  ApiResponse,
-} from '@app/api/types';
+import type { ApiResponse } from '@app/api/types';
 
-const BASE_URL = 'http://localhost:8080';
+const DEFAULT_BASE_URL = 'http://localhost:8080';
 
 class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = BASE_URL) {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    // Read from localStorage if available, otherwise use default
+    const storedUrl = localStorage.getItem('server_url');
+    this.baseUrl = baseUrl || (storedUrl ? `http://${storedUrl}` : DEFAULT_BASE_URL);
   }
 
-  private async request<T>(
+  /**
+   * Update the base URL for API calls.
+   * This is called when the user changes the server URL in settings.
+   */
+  setBaseUrl(url: string): void {
+    // Normalize: if the URL doesn't start with http:// or https://, prepend http://
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `http://${url}`;
+    }
+    this.baseUrl = url;
+  }
+
+  /**
+   * Generic request method for all API calls.
+   * Handles JSON parsing, error handling, and response validation.
+   */
+  async request<T>(
     path: string,
     options: RequestInit = {},
   ): Promise<T> {
@@ -47,45 +62,14 @@ class ApiClient {
   // ── Health ──────────────────────────────────────────────────────
 
   async healthCheck(): Promise<boolean> {
+    const url = `${this.baseUrl}/health`;
     try {
-      const res = await fetch(`${this.baseUrl}/health`);
+      const res = await fetch(url);
       const json = await res.json();
-      return json?.status === 'ok';
+      return json?.success === true && json?.data?.status === 'ok';
     } catch {
       return false;
     }
-  }
-
-  // ── Targets CRUD ────────────────────────────────────────────────
-
-  async getTargets(): Promise<TargetDTO[]> {
-    return this.request<TargetDTO[]>('/api/v1/targets');
-  }
-
-  async getTarget(id: string): Promise<TargetDTO> {
-    return this.request<TargetDTO>(`/api/v1/targets/${encodeURIComponent(id)}`);
-  }
-
-  async createTarget(input: CreateTargetDTO): Promise<TargetDTO> {
-    return this.request<TargetDTO>('/api/v1/targets', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-  }
-
-  async updateTarget(id: string, input: UpdateTargetDTO): Promise<TargetDTO> {
-    return this.request<TargetDTO>(`/api/v1/targets/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      body: JSON.stringify(input),
-    });
-  }
-
-  async deleteTarget(id: string): Promise<boolean> {
-    const result = await this.request<{ deleted: boolean }>(
-      `/api/v1/targets/${encodeURIComponent(id)}`,
-      { method: 'DELETE' },
-    );
-    return result?.deleted ?? false;
   }
 }
 

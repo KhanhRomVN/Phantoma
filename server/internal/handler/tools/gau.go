@@ -5,15 +5,15 @@ import (
 	"net/http"
 
 	domaintools "github.com/phantoma/server/internal/domain/tools"
-	gausvc "github.com/phantoma/server/internal/service/gau"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
 type GauHandler struct {
-	service *gausvc.Service
+	service *servicetools.GauService
 }
 
-func NewGauHandler(service *gausvc.Service) *GauHandler {
+func NewGauHandler(service *servicetools.GauService) *GauHandler {
 	return &GauHandler{service: service}
 }
 

@@ -5,20 +5,20 @@ import (
 	"net/http"
 
 	"github.com/phantoma/server/internal/domain"
-	"github.com/phantoma/server/internal/service/certsh"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
 type CertshHandler struct {
-	service *certsh.Service
+	service *servicetools.CertshService
 }
 
-func NewCertshHandler(service *certsh.Service) *CertshHandler {
+func NewCertshHandler(service *servicetools.CertshService) *CertshHandler {
 	return &CertshHandler{service: service}
 }
 
 // Scan handles certificate transparency log search.
-// POST /api/v1/certsh/scan
+// POST /api/v1/servicetools.scan
 // Body: { "target": "example.com", "flags": [] }
 func (h *CertshHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	var req domain.ScanRequest
@@ -47,7 +47,7 @@ func (h *CertshHandler) Scan(w http.ResponseWriter, r *http.Request) {
 }
 
 // LiveCertificate retrieves the currently served certificate for a domain.
-// GET /api/v1/certsh/live?domain=example.com
+// GET /api/v1/servicetools.live?domain=example.com
 func (h *CertshHandler) LiveCertificate(w http.ResponseWriter, r *http.Request) {
 	domain := r.URL.Query().Get("domain")
 	if domain == "" {

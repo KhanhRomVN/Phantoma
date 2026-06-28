@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/phantoma/server/internal/domain"
-	nmapsvc "github.com/phantoma/server/internal/service/nmap"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/logger"
 	"github.com/phantoma/server/pkg/response"
 )
@@ -16,10 +16,10 @@ var nmapLog = logger.WithContext("NmapHandler")
 
 // NmapHandler handles HTTP requests for nmap scanning.
 type NmapHandler struct {
-	svc *nmapsvc.Service
+	svc *servicetools.NmapService
 }
 
-func NewNmapHandler(svc *nmapsvc.Service) *NmapHandler {
+func NewNmapHandler(svc *servicetools.NmapService) *NmapHandler {
 	return &NmapHandler{svc: svc}
 }
 

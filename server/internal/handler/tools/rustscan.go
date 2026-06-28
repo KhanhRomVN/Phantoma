@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/phantoma/server/internal/domain"
-	"github.com/phantoma/server/internal/service/rustscan"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
@@ -22,15 +22,15 @@ type RustscanScanResponse struct {
 }
 
 type RustscanHandler struct {
-	service *rustscan.Service
+	service *servicetools.RustscanService
 }
 
-func NewRustscanHandler(service *rustscan.Service) *RustscanHandler {
+func NewRustscanHandler(service *servicetools.RustscanService) *RustscanHandler {
 	return &RustscanHandler{service: service}
 }
 
-// Scan handles fast port scanning with rustscan.
-// POST /api/v1/rustscan/scan
+// Scan handles fast port scanning with servicetools.
+// POST /api/v1/servicetools.scan
 // Body: { "target": "192.168.1.1", "ports": "1-1000" }
 func (h *RustscanHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	var req RustscanScanRequest

@@ -83,6 +83,7 @@ export function TargetList({
   onStopSession,
 }: TargetListProps) {
   const handleStartCDP = (targetId: string, targetUrl?: string) => {
+    // Update last_used_at immediately when starting CDP
     onSelectTarget(targetId);
     onStartTarget('cdp');
     if (onLaunchTarget) {
@@ -105,6 +106,7 @@ export function TargetList({
   };
 
   const handleStartMITM = (targetId: string, targetUrl?: string) => {
+    // Update last_used_at immediately when starting MITM
     onSelectTarget(targetId);
     onStartTarget('mitm');
     window.api
@@ -122,8 +124,8 @@ export function TargetList({
   return (
     <>
       {/* Search + Add */}
-      <div className="px-3 py-1.5 border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="px-1 py-1 border-b border-border shrink-0">
+        <div className="flex items-center gap-1">
           <input
             type="text"
             placeholder="Search targets..."
@@ -133,7 +135,7 @@ export function TargetList({
           />
           <Dropdown>
             <DropdownTrigger>
-              <Button variant="outline" size="sm" className="shrink-0 w-7 h-7 p-0">
+              <Button variant="outline" className="shrink-0 w-7 h-7 p-0">
                 <Plus className="w-4 h-4" />
               </Button>
             </DropdownTrigger>
@@ -178,79 +180,85 @@ export function TargetList({
                   onOpenChange={(open) => onOpenMenuChange(open ? tab.id : null)}
                   className="w-full"
                 >
-                  <div
-                    onClick={() => onSelectTarget(tab.id)}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      onOpenMenuChange(tab.id);
-                    }}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all text-sm group relative',
-                      activeTargetId === tab.id
-                        ? 'bg-dropdown-item-hover text-text-primary'
-                        : 'text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary',
-                    )}
-                  >
-                    {/* Badge icon: favicon for web, app icon for pc, lucide fallback */}
-                    {platform === 'web' && faviconSrc ? (
-                      <img
-                        src={faviconSrc}
-                        alt={tab.title}
-                        className="w-6 h-6 shrink-0 rounded p-0.5"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    ) : platform === 'pc' && tab.icon ? (
-                      <img
-                        src={`media://${tab.icon}`}
-                        alt={tab.title}
-                        className="w-6 h-6 shrink-0 rounded p-0.5 object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <span className={cn('shrink-0 p-0.5', getPlatformColor(platform))}>
-                        {getPlatformIcon(platform)}
-                      </span>
-                    )}
-                    {/* Title + second line */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate">{tab.title}</div>
-                      <div className="text-[10px] text-text-secondary truncate">
-                        {platform === 'web' && tab.url
-                          ? tab.url
-                          : (platform === 'pc' || platform === 'cli') && tab.executablePath
-                            ? tab.executablePath
-                            : getPlatformLabel(platform)}
+                  <DropdownTrigger>
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectTarget(tab.id);
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onOpenMenuChange(tab.id);
+                      }}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-all text-sm group relative',
+                        activeTargetId === tab.id
+                          ? 'bg-dropdown-item-hover text-text-primary'
+                          : 'text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary',
+                      )}
+                    >
+                      {/* Badge icon: favicon for web, app icon for pc, lucide fallback */}
+                      {platform === 'web' && faviconSrc ? (
+                        <img
+                          src={faviconSrc}
+                          alt={tab.title}
+                          className="w-6 h-6 shrink-0 rounded p-0.5"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : platform === 'pc' && tab.icon ? (
+                        <img
+                          src={`media://${tab.icon}`}
+                          alt={tab.title}
+                          className="w-6 h-6 shrink-0 rounded p-0.5 object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <span className={cn('shrink-0 p-0.5', getPlatformColor(platform))}>
+                          {getPlatformIcon(platform)}
+                        </span>
+                      )}
+                      {/* Title + second line */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium truncate">{tab.title}</div>
+                        <div className="text-[10px] text-text-secondary truncate">
+                          {platform === 'web' && tab.url
+                            ? tab.url
+                            : (platform === 'pc' || platform === 'cli') && tab.executablePath
+                              ? tab.executablePath
+                              : getPlatformLabel(platform)}
+                        </div>
                       </div>
+                      {/* Timer */}
+                      {isRunning && (
+                        <span className="text-xs font-mono text-text-secondary shrink-0 transition-transform group-hover:-translate-x-4">
+                          {elapsed}
+                        </span>
+                      )}
+                      {/* Hover pause icon (only when running) */}
+                      {isRunning && (
+                        <span
+                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary"
+                          title="Running"
+                        >
+                          <Pause className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                      {/* Stop session button for active app */}
+                      {isActive && onStopSession && (
+                        <button
+                          onClick={(e) => onStopSession(e, tab.id)}
+                          className="flex items-center gap-0.5 px-1 py-0.5 text-[9px] font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 rounded transition-all shrink-0"
+                        >
+                          <Square className="w-2 h-2 text-red-400 pointer-events-none" /> Stop
+                        </button>
+                      )}
                     </div>
-                    {/* Timer */}
-                    {isRunning && (
-                      <span className="text-xs font-mono text-text-secondary shrink-0 transition-transform group-hover:-translate-x-4">
-                        {elapsed}
-                      </span>
-                    )}
-                    {/* Hover pause icon (only when running) */}
-                    {isRunning && (
-                      <span
-                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary"
-                        title="Running"
-                      >
-                        <Pause className="w-3.5 h-3.5" />
-                      </span>
-                    )}
-                    {/* Stop session button for active app */}
-                    {isActive && onStopSession && (
-                      <button
-                        onClick={(e) => onStopSession(e, tab.id)}
-                        className="flex items-center gap-0.5 px-1 py-0.5 text-[9px] font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 rounded transition-all shrink-0"
-                      >
-                        <Square className="w-2 h-2 text-red-400 pointer-events-none" /> Stop
-                      </button>
-                    )}
-                  </div>
+                  </DropdownTrigger>
                   <DropdownContent>
                     {!isRunning ? (
                       <DropdownSub>

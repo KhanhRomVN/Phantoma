@@ -5,15 +5,15 @@ import (
 	"net/http"
 
 	domaintools "github.com/phantoma/server/internal/domain/tools"
-	godork "github.com/phantoma/server/internal/service/go-dork"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
 type DorkHandler struct {
-	service *godork.Service
+	service *servicetools.GoDorkService
 }
 
-func NewDorkHandler(service *godork.Service) *DorkHandler {
+func NewDorkHandler(service *servicetools.GoDorkService) *DorkHandler {
 	return &DorkHandler{service: service}
 }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAccentColors } from '../../shared/hooks/useAccentColors';
 import { cn } from '../../shared/lib/utils';
+import { targetService } from '../../services/TargetService';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
 
 // Components
@@ -102,6 +103,8 @@ export default function Emulate({
     refresh: refreshTargets,
   } = useTargetData({ autoLoad: true });
 
+  
+
   // State cho target management (local)
   const [targetTabs, setTargetTabs] = useState<TargetTab[]>([]);
   const [activeTargetId, setActiveTargetId] = useState<string | null>(null);
@@ -116,9 +119,12 @@ export default function Emulate({
   // Sync targets từ SQLite vào local state
   useEffect(() => {
     if (targets.length > 0) {
+      // Backend already sorts by updated_at DESC (last_used_at included)
       setTargetTabs(targets);
     }
   }, [targets]);
+
+  
 
   // Wrapper methods để tương thích với interface cũ
   const addTargetTab = async (tab: TargetTab) => {
@@ -140,6 +146,12 @@ export default function Emulate({
   };
 
   const setActiveTarget = (id: string | null) => {
+    if (id) {
+      // Update last_used_at in backend
+      targetService.updateLastUsed(id).catch((err) => {
+        console.error('[Emulate] Failed to update last_used_at:', err);
+      });
+    }
     setActiveTargetId(id);
   };
 

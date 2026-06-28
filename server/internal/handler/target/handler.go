@@ -121,6 +121,28 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
 }
 
+// UpdateLastUsed handles POST /api/v1/targets/{id}/use
+func (h *Handler) UpdateLastUsed(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from path: /api/v1/targets/{id}/use
+	path := r.URL.Path
+	prefix := "/api/v1/targets/"
+	trimmed := strings.TrimPrefix(path, prefix)
+	// Now trimmed is "{id}/use", split by "/" and take the first part
+	parts := strings.Split(trimmed, "/")
+	if len(parts) < 2 || parts[0] == "" {
+		response.Error(w, http.StatusBadRequest, "missing target id")
+		return
+	}
+	id := parts[0]
+
+	if err := h.service.UpdateLastUsed(id); err != nil {
+		response.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
 // extractID lấy ID từ URL path.
 // Ví dụ: "/api/v1/targets/abc-123" → "abc-123"
 func extractID(path, prefix string) string {

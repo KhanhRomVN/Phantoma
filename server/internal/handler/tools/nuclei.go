@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/phantoma/server/internal/domain"
-	"github.com/phantoma/server/internal/service/nuclei"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
@@ -22,15 +22,15 @@ type NucleiScanResponse struct {
 }
 
 type NucleiHandler struct {
-	service *nuclei.Service
+	service *servicetools.NucleiService
 }
 
-func NewNucleiHandler(service *nuclei.Service) *NucleiHandler {
+func NewNucleiHandler(service *servicetools.NucleiService) *NucleiHandler {
 	return &NucleiHandler{service: service}
 }
 
-// Scan handles vulnerability scanning with nuclei.
-// POST /api/v1/nuclei/scan
+// Scan handles vulnerability scanning with servicetools.
+// POST /api/v1/servicetools.scan
 // Body: { "target": "https://example.com", "tags": ["cve", "exposed"] }
 func (h *NucleiHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	var req NucleiScanRequest

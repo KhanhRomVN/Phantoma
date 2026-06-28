@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/phantoma/server/internal/service/airodump"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
-// AirodumpHandler handles HTTP requests for airodump-ng operations.
+// AirodumpHandler handles HTTP requests for servicetools.ng operations.
 type AirodumpHandler struct {
-	service *airodump.Service
+	service *servicetools.AirodumpService
 }
 
-// NewAirodumpHandler creates a new airodump handler.
-func NewAirodumpHandler(svc *airodump.Service) *AirodumpHandler {
+// NewAirodumpHandler creates a new servicetools.handler.
+func NewAirodumpHandler(svc *servicetools.AirodumpService) *AirodumpHandler {
 	return &AirodumpHandler{service: svc}
 }
 

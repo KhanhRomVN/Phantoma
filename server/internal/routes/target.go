@@ -15,4 +15,5 @@ func RegisterTargetRoutes(mux *http.ServeMux, svc *targetSvc.Service) {
 	mux.HandleFunc("POST /api/v1/targets", handler.Create)
 	mux.HandleFunc("PUT /api/v1/targets/", handler.Update)
 	mux.HandleFunc("DELETE /api/v1/targets/", handler.Delete)
+	mux.HandleFunc("POST /api/v1/targets/{id}/use", handler.UpdateLastUsed)
 }

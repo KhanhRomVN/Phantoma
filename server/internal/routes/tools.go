@@ -4,29 +4,11 @@ import (
 	"net/http"
 
 	toolshandler "github.com/phantoma/server/internal/handler/tools"
-
-	aireplaysvc "github.com/phantoma/server/internal/service/aireplay"
-	airodumpsvc "github.com/phantoma/server/internal/service/airodump"
-	alienvaultSvc "github.com/phantoma/server/internal/service/alienvault"
-	amasssvc "github.com/phantoma/server/internal/service/amass"
-	"github.com/phantoma/server/internal/service/assetfinder"
-	"github.com/phantoma/server/internal/service/certsh"
-	godork "github.com/phantoma/server/internal/service/go-dork"
-	gausvc "github.com/phantoma/server/internal/service/gau"
-	hashcatsvc "github.com/phantoma/server/internal/service/hashcat"
-	hcxdumptoolsvc "github.com/phantoma/server/internal/service/hcxdumptool"
-	metasploitsvc "github.com/phantoma/server/internal/service/metasploit"
-	niktosvc "github.com/phantoma/server/internal/service/nikto"
-	nmapsvc "github.com/phantoma/server/internal/service/nmap"
-	"github.com/phantoma/server/internal/service/nuclei"
-	reaver "github.com/phantoma/server/internal/service/reaver"
-	"github.com/phantoma/server/internal/service/rustscan"
-	searchsploitsvc "github.com/phantoma/server/internal/service/searchsploit"
-	"github.com/phantoma/server/internal/service/subfinder"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 )
 
 // RegisterAireplayRoutes registers deauthentication attack endpoints.
-func RegisterAireplayRoutes(mux *http.ServeMux, svc *aireplaysvc.Service) {
+func RegisterAireplayRoutes(mux *http.ServeMux, svc *servicetools.AireplayService) {
 	handler := toolshandler.NewAireplayHandler(svc)
 	mux.HandleFunc("POST /api/v1/wireless/attack/deauth", handler.StartDeauth)
 	mux.HandleFunc("POST /api/v1/wireless/attack/deauth/stop", handler.StopDeauth)
@@ -35,7 +17,7 @@ func RegisterAireplayRoutes(mux *http.ServeMux, svc *aireplaysvc.Service) {
 }
 
 // RegisterAirodumpRoutes registers wireless scanning endpoints.
-func RegisterAirodumpRoutes(mux *http.ServeMux, svc *airodumpsvc.Service) {
+func RegisterAirodumpRoutes(mux *http.ServeMux, svc *servicetools.AirodumpService) {
 	handler := toolshandler.NewAirodumpHandler(svc)
 	mux.HandleFunc("POST /api/v1/wireless/scan/start", handler.StartScan)
 	mux.HandleFunc("POST /api/v1/wireless/scan/stop", handler.StopScan)
@@ -45,13 +27,13 @@ func RegisterAirodumpRoutes(mux *http.ServeMux, svc *airodumpsvc.Service) {
 }
 
 // RegisterAlienvaultRoutes registers AlienVault OTX lookup endpoints.
-func RegisterAlienvaultRoutes(mux *http.ServeMux, svc *alienvaultSvc.Service) {
+func RegisterAlienvaultRoutes(mux *http.ServeMux, svc *servicetools.AlienvaultService) {
 	handler := toolshandler.NewAlienvaultHandler(svc)
 	mux.HandleFunc("POST /api/v1/alienvault/scan", handler.Scan)
 }
 
 // RegisterAmassRoutes registers Amass subdomain enumeration endpoints.
-func RegisterAmassRoutes(mux *http.ServeMux, svc *amasssvc.Service) {
+func RegisterAmassRoutes(mux *http.ServeMux, svc *servicetools.AmassService) {
 	handler := toolshandler.NewAmassHandler(svc)
 	mux.HandleFunc("POST /api/v1/amass/scan", handler.Scan)
 	mux.HandleFunc("GET /api/v1/amass/scan/stream", handler.ScanStream)
@@ -59,39 +41,39 @@ func RegisterAmassRoutes(mux *http.ServeMux, svc *amasssvc.Service) {
 
 // RegisterAssetfinderRoutes registers Assetfinder subdomain discovery endpoints.
 func RegisterAssetfinderRoutes(mux *http.ServeMux, container string) {
-	svc := assetfinder.NewService(container)
+	svc := servicetools.NewAssetfinderService(container)
 	handler := toolshandler.NewAssetfinderHandler(svc)
 	mux.HandleFunc("POST /api/v1/assetfinder/scan", handler.Scan)
 }
 
 // RegisterCertshRoutes registers crt.sh certificate transparency endpoints.
 func RegisterCertshRoutes(mux *http.ServeMux) {
-	svc := certsh.NewService()
+	svc := servicetools.NewCertshService()
 	handler := toolshandler.NewCertshHandler(svc)
 	mux.HandleFunc("POST /api/v1/certsh/scan", handler.Scan)
 	mux.HandleFunc("GET /api/v1/certsh/live", handler.LiveCertificate)
 }
 
 // RegisterDorkRoutes registers Google Dorking endpoints.
-func RegisterDorkRoutes(mux *http.ServeMux, svc *godork.Service) {
+func RegisterDorkRoutes(mux *http.ServeMux, svc *servicetools.GoDorkService) {
 	handler := toolshandler.NewDorkHandler(svc)
 	mux.HandleFunc("POST /api/v1/dork/search", handler.Search)
 }
 
 // RegisterExploitRoutes registers exploit search endpoints.
-func RegisterExploitRoutes(mux *http.ServeMux, searchsploitSvc *searchsploitsvc.Service, metasploitSvc *metasploitsvc.Service) {
+func RegisterExploitRoutes(mux *http.ServeMux, searchsploitSvc *servicetools.SearchsploitService, metasploitSvc *servicetools.MetasploitService) {
 	handler := toolshandler.NewExploitHandler(searchsploitSvc, metasploitSvc)
 	mux.HandleFunc("POST /api/v1/exploit/search", handler.SearchByCVE)
 }
 
 // RegisterGauRoutes registers GAU (GetAllUrls) endpoints.
-func RegisterGauRoutes(mux *http.ServeMux, svc *gausvc.Service) {
+func RegisterGauRoutes(mux *http.ServeMux, svc *servicetools.GauService) {
 	handler := toolshandler.NewGauHandler(svc)
 	mux.HandleFunc("POST /api/v1/gau/fetch", handler.FetchURLs)
 }
 
 // RegisterHashcatRoutes registers password cracking endpoints.
-func RegisterHashcatRoutes(mux *http.ServeMux, svc *hashcatsvc.Service) {
+func RegisterHashcatRoutes(mux *http.ServeMux, svc *servicetools.HashcatService) {
 	handler := toolshandler.NewHashcatHandler(svc)
 	mux.HandleFunc("POST /api/v1/wireless/crack/start", handler.StartCrack)
 	mux.HandleFunc("POST /api/v1/wireless/crack/stop", handler.StopCrack)
@@ -100,7 +82,7 @@ func RegisterHashcatRoutes(mux *http.ServeMux, svc *hashcatsvc.Service) {
 }
 
 // RegisterHcxdumptoolRoutes registers PMKID capture endpoints.
-func RegisterHcxdumptoolRoutes(mux *http.ServeMux, svc *hcxdumptoolsvc.Service) {
+func RegisterHcxdumptoolRoutes(mux *http.ServeMux, svc *servicetools.HcxdumptoolService) {
 	handler := toolshandler.NewHcxdumptoolHandler(svc)
 	mux.HandleFunc("POST /api/v1/wireless/pmkid/start", handler.StartCapture)
 	mux.HandleFunc("POST /api/v1/wireless/pmkid/stop", handler.StopCapture)
@@ -109,13 +91,13 @@ func RegisterHcxdumptoolRoutes(mux *http.ServeMux, svc *hcxdumptoolsvc.Service) 
 }
 
 // RegisterNiktoRoutes registers Nikto scanning endpoints.
-func RegisterNiktoRoutes(mux *http.ServeMux, svc *niktosvc.Service) {
+func RegisterNiktoRoutes(mux *http.ServeMux, svc *servicetools.NiktoService) {
 	handler := toolshandler.NewNiktoHandler(svc)
 	mux.HandleFunc("POST /api/v1/nikto/scan", handler.Scan)
 }
 
 // RegisterNmapRoutes registers Nmap scanning endpoints.
-func RegisterNmapRoutes(mux *http.ServeMux, svc *nmapsvc.Service) {
+func RegisterNmapRoutes(mux *http.ServeMux, svc *servicetools.NmapService) {
 	handler := toolshandler.NewNmapHandler(svc)
 	mux.HandleFunc("POST /api/v1/nmap/scan", handler.Scan)
 	mux.HandleFunc("POST /api/v1/nmap/scan/cancel", handler.CancelScan)
@@ -123,13 +105,13 @@ func RegisterNmapRoutes(mux *http.ServeMux, svc *nmapsvc.Service) {
 
 // RegisterNucleiRoutes registers nuclei vulnerability scanning endpoints.
 func RegisterNucleiRoutes(mux *http.ServeMux, container string) {
-	svc := nuclei.NewService(container)
+	svc := servicetools.NewNucleiService(container)
 	handler := toolshandler.NewNucleiHandler(svc)
 	mux.HandleFunc("POST /api/v1/nuclei/scan", handler.Scan)
 }
 
 // RegisterReaverRoutes registers WPS brute force endpoints.
-func RegisterReaverRoutes(mux *http.ServeMux, svc *reaver.Service) {
+func RegisterReaverRoutes(mux *http.ServeMux, svc *servicetools.ReaverService) {
 	handler := toolshandler.NewReaverHandler(svc)
 	mux.HandleFunc("POST /api/v1/wireless/wps/start", handler.StartAttack)
 	mux.HandleFunc("POST /api/v1/wireless/wps/stop", handler.StopAttack)
@@ -139,14 +121,14 @@ func RegisterReaverRoutes(mux *http.ServeMux, svc *reaver.Service) {
 
 // RegisterRustscanRoutes registers rustscan fast port scanning endpoints.
 func RegisterRustscanRoutes(mux *http.ServeMux, container string) {
-	svc := rustscan.NewService(container)
+	svc := servicetools.NewRustscanService(container)
 	handler := toolshandler.NewRustscanHandler(svc)
 	mux.HandleFunc("POST /api/v1/rustscan/scan", handler.Scan)
 }
 
 // RegisterSubfinderRoutes registers Subfinder subdomain enumeration endpoints.
 func RegisterSubfinderRoutes(mux *http.ServeMux, container string) {
-	svc := subfinder.NewService(container)
+	svc := servicetools.NewSubfinderService(container)
 	handler := toolshandler.NewSubfinderHandler(svc)
 	mux.HandleFunc("POST /api/v1/subfinder/scan", handler.Scan)
 }

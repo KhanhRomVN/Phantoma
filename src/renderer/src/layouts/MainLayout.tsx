@@ -7,7 +7,7 @@ import { ModuleBar } from '../components/ModuleBar';
 import { IntelPanel } from '../components/RightPanel';
 import { FooterBar } from '../components/FooterBar';
 import { PhantomModule } from '../features/Tool/types/types';
-import { DatabaseGuard } from '../components/DatabaseGuard';
+import { ServerHealthGuard } from '../components/ServerHealthGuard';
 
 /**
  * MainLayout — Shell of the application
@@ -67,9 +67,9 @@ const MainLayout = () => {
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <div className="flex flex-1 min-w-0 overflow-hidden">
           <div className="flex-1 min-w-0 overflow-hidden">
-            <DatabaseGuard>
+            <ServerHealthGuard>
               <Outlet />
-            </DatabaseGuard>
+            </ServerHealthGuard>
           </div>
           <IntelPanel subTarget={activeSubTarget} />
         </div>

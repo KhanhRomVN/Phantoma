@@ -4,27 +4,27 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/phantoma/server/internal/service/alienvault"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 )
 
 // AlienvaultHandler handles HTTP requests for AlienVault OTX lookups.
 type AlienvaultHandler struct {
-	service *alienvault.Service
+	service *servicetools.AlienvaultService
 }
 
 // NewAlienvaultHandler creates a new AlienVault handler.
-func NewAlienvaultHandler(svc *alienvault.Service) *AlienvaultHandler {
+func NewAlienvaultHandler(svc *servicetools.AlienvaultService) *AlienvaultHandler {
 	return &AlienvaultHandler{service: svc}
 }
 
-// Scan handles POST /api/v1/alienvault/scan
+// Scan handles POST /api/v1/servicetools.scan
 func (h *AlienvaultHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req alienvault.ScanRequest
+	var req servicetools.ScanRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 		return
@@ -52,7 +52,7 @@ func (h *AlienvaultHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Format raw output
-	rawOutput := alienvault.FormatRawOutput(result, nil)
+	rawOutput := servicetools.FormatRawOutput(result, nil)
 
 	// Prepare response
 	response := map[string]interface{}{

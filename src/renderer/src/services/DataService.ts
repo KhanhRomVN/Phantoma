@@ -1,4 +1,4 @@
-import { apiClient } from './ApiClient';
+import { targetService } from './TargetService';
 import type { TargetDTO, CreateTargetDTO, UpdateTargetDTO } from '@app/api/types';
 import type { TargetTab } from '../features/Emulate/types/target.types';
 
@@ -69,13 +69,13 @@ class DataService {
   // === Target CRUD ===
 
   async getTargets(): Promise<TargetTab[]> {
-    const dtos = await apiClient.getTargets();
+    const dtos = await targetService.getTargets();
     return dtos.map(toTargetTab);
   }
 
   async getTargetById(id: string): Promise<TargetTab | null> {
     try {
-      const dto = await apiClient.getTarget(id);
+      const dto = await targetService.getTarget(id);
       return toTargetTab(dto);
     } catch {
       return null;
@@ -100,10 +100,10 @@ class DataService {
   async saveTarget(target: TargetTab): Promise<TargetTab> {
     // Try update first, create if not found
     try {
-      const dto = await apiClient.updateTarget(target.id, toUpdateDTO(target));
+      const dto = await targetService.updateTarget(target.id, toUpdateDTO(target));
       return toTargetTab(dto);
     } catch {
-      const dto = await apiClient.createTarget(toCreateDTO(target));
+      const dto = await targetService.createTarget(toCreateDTO(target));
       return toTargetTab(dto);
     }
   }
@@ -127,18 +127,18 @@ class DataService {
       startup_args: input.startupArgs ?? null,
       environment: input.environment ?? null,
     };
-    const result = await apiClient.createTarget(dto);
+    const result = await targetService.createTarget(dto);
     return toTargetTab(result);
   }
 
   async deleteTarget(id: string): Promise<boolean> {
-    return apiClient.deleteTarget(id);
+    return targetService.deleteTarget(id);
   }
 
   async deleteTargets(ids: string[]): Promise<number> {
     let count = 0;
     for (const id of ids) {
-      const deleted = await apiClient.deleteTarget(id);
+      const deleted = await targetService.deleteTarget(id);
       if (deleted) count++;
     }
     return count;
@@ -148,7 +148,7 @@ class DataService {
     const all = await this.getTargets();
     let count = 0;
     for (const t of all) {
-      const deleted = await apiClient.deleteTarget(t.id);
+      const deleted = await targetService.deleteTarget(t.id);
       if (deleted) count++;
     }
     return count;

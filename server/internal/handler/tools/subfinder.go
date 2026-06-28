@@ -5,20 +5,20 @@ import (
 	"net/http"
 
 	"github.com/phantoma/server/internal/domain"
-	"github.com/phantoma/server/internal/service/subfinder"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
 type SubfinderHandler struct {
-	service *subfinder.Service
+	service *servicetools.SubfinderService
 }
 
-func NewSubfinderHandler(service *subfinder.Service) *SubfinderHandler {
+func NewSubfinderHandler(service *servicetools.SubfinderService) *SubfinderHandler {
 	return &SubfinderHandler{service: service}
 }
 
 // Scan handles subdomain enumeration requests.
-// POST /api/v1/subfinder/scan
+// POST /api/v1/servicetools.scan
 // Body: { "target": "example.com", "flags": ["-silent", "-active"] }
 func (h *SubfinderHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	var req domain.ScanRequest

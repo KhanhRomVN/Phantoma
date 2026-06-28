@@ -1,21 +1,30 @@
 /**
- * Shared API types — khớp với Go backend domain/target.go
- * 
- * Cập nhật khi schema thay đổi trong Go backend.
+ * Shared API types between frontend and backend.
+ * These types are used by both the renderer and main processes.
  */
+
+// ── Base Response ────────────────────────────────────────────────
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+// ── Target DTOs ──────────────────────────────────────────────────
 
 export interface TargetDTO {
   id: string;
   title: string;
-  url?: string | null;
-  icon?: string | null;
-  platform?: string | null;
-  last_used_at?: number | null;
-  executable_path?: string | null;
-  startup_args?: string | null;
-  environment?: string | null;
-  created_at: number;
-  updated_at: number;
+  url: string | null;
+  icon: string | null;
+  platform: string | null;
+  executable_path: string | null;
+  startup_args: string | null;
+  environment: Record<string, string> | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateTargetDTO {
@@ -26,7 +35,7 @@ export interface CreateTargetDTO {
   platform?: string | null;
   executable_path?: string | null;
   startup_args?: string | null;
-  environment?: string | null;
+  environment?: Record<string, string> | null;
 }
 
 export interface UpdateTargetDTO {
@@ -34,14 +43,25 @@ export interface UpdateTargetDTO {
   url?: string | null;
   icon?: string | null;
   platform?: string | null;
-  last_used_at?: number | null;
   executable_path?: string | null;
   startup_args?: string | null;
-  environment?: string | null;
+  environment?: Record<string, string> | null;
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
+// ── Scan DTOs (future) ──────────────────────────────────────────
+
+export interface ScanRequestDTO {
+  target: string;
+  ports?: string;
+  options?: Record<string, any>;
+}
+
+export interface ScanResultDTO {
+  id: string;
+  target: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  result?: any;
   error?: string;
+  created_at: string;
+  completed_at?: string;
 }

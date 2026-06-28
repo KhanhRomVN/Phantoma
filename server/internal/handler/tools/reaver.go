@@ -4,23 +4,23 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/phantoma/server/internal/service/reaver"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
-// ReaverHandler handles HTTP requests for reaver WPS attacks.
+// ReaverHandler handles HTTP requests for servicetools.WPS attacks.
 type ReaverHandler struct {
-	service *reaver.Service
+	service *servicetools.ReaverService
 }
 
-// NewReaverHandler creates a new reaver handler.
-func NewReaverHandler(svc *reaver.Service) *ReaverHandler {
+// NewReaverHandler creates a new servicetools.handler.
+func NewReaverHandler(svc *servicetools.ReaverService) *ReaverHandler {
 	return &ReaverHandler{service: svc}
 }
 
 // StartAttack handles POST /api/v1/wireless/wps/start
 func (h *ReaverHandler) StartAttack(w http.ResponseWriter, r *http.Request) {
-	var req reaver.ReaverRequest
+	var req servicetools.ReaverRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, http.StatusBadRequest, "Invalid request body")
 		return
@@ -41,7 +41,7 @@ func (h *ReaverHandler) StartAttack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusOK, reaver.ReaverResponse{AttackID: attackID})
+	response.JSON(w, http.StatusOK, servicetools.ReaverResponse{AttackID: attackID})
 }
 
 // StopAttack handles POST /api/v1/wireless/wps/stop

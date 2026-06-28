@@ -30,6 +30,12 @@ func (rw *responseWriter) Flush() {
 // [INFO] [middleware/logger.go:N] POST /api/v1/nmap/scan - 200 - 123ms
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip logging for health check endpoint to reduce noise
+		if r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		start := time.Now()
 
 		rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}

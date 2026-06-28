@@ -4,23 +4,23 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/phantoma/server/internal/service/hashcat"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
 // HashcatHandler handles HTTP requests for hashcat cracking.
 type HashcatHandler struct {
-	service *hashcat.Service
+	service *servicetools.HashcatService
 }
 
 // NewHashcatHandler creates a new hashcat handler.
-func NewHashcatHandler(svc *hashcat.Service) *HashcatHandler {
+func NewHashcatHandler(svc *servicetools.HashcatService) *HashcatHandler {
 	return &HashcatHandler{service: svc}
 }
 
 // StartCrack handles POST /api/v1/wireless/crack/start
 func (h *HashcatHandler) StartCrack(w http.ResponseWriter, r *http.Request) {
-	var req hashcat.CrackRequest
+	var req servicetools.CrackRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, http.StatusBadRequest, "Invalid request body")
 		return
@@ -41,7 +41,7 @@ func (h *HashcatHandler) StartCrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusOK, hashcat.CrackResponse{JobID: jobID})
+	response.JSON(w, http.StatusOK, servicetools.CrackResponse{JobID: jobID})
 }
 
 // StopCrack handles POST /api/v1/wireless/crack/stop

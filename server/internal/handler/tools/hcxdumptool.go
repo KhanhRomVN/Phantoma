@@ -4,23 +4,23 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/phantoma/server/internal/service/hcxdumptool"
+	servicetools "github.com/phantoma/server/internal/service/tools"
 	"github.com/phantoma/server/pkg/response"
 )
 
 // HcxdumptoolHandler handles HTTP requests for hcxdumptool PMKID capture.
 type HcxdumptoolHandler struct {
-	service *hcxdumptool.Service
+	service *servicetools.HcxdumptoolService
 }
 
 // NewHcxdumptoolHandler creates a new hcxdumptool handler.
-func NewHcxdumptoolHandler(svc *hcxdumptool.Service) *HcxdumptoolHandler {
+func NewHcxdumptoolHandler(svc *servicetools.HcxdumptoolService) *HcxdumptoolHandler {
 	return &HcxdumptoolHandler{service: svc}
 }
 
 // StartCapture handles POST /api/v1/wireless/pmkid/start
 func (h *HcxdumptoolHandler) StartCapture(w http.ResponseWriter, r *http.Request) {
-	var req hcxdumptool.CaptureRequest
+	var req servicetools.CaptureRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, http.StatusBadRequest, "Invalid request body")
 		return
@@ -37,7 +37,7 @@ func (h *HcxdumptoolHandler) StartCapture(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	response.JSON(w, http.StatusOK, hcxdumptool.CaptureResponse{CaptureID: captureID})
+	response.JSON(w, http.StatusOK, servicetools.CaptureResponse{CaptureID: captureID})
 }
 
 // StopCapture handles POST /api/v1/wireless/pmkid/stop
