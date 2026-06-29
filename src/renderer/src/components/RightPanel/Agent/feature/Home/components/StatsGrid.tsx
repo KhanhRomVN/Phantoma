@@ -55,52 +55,30 @@ const StatsGrid: React.FC<StatsGridProps> = ({
   ];
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '10px',
-        width: '100%',
-      }}
-    >
+    <div className="grid grid-cols-2 gap-2.5 w-full">
       {cards.map((card, i) => (
         <div
           key={i}
-          className="dashboard-card"
+          className="dashboard-card flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ease-in-out"
           style={{
             backgroundColor: 'var(--vscode-sideBar-background, rgba(0,0,0,0.15))',
             border: '1px solid var(--vscode-widget-border, rgba(128,128,128,0.15))',
-            borderRadius: '8px',
-            padding: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            transition: 'transform 0.2s ease, border-color 0.2s ease',
           }}
         >
           <div
+            className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '6px',
               backgroundColor: card.iconBg,
               color: card.iconColor,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
             }}
           >
             {card.icon}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div className="flex flex-col gap-0.5">
             <span style={card.valueStyle}>{card.value}</span>
             <span
-              style={{
-                fontSize: '10px',
-                color: 'var(--vscode-descriptionForeground)',
-                fontWeight: 500,
-              }}
+              className="text-[10px] font-medium"
+              style={{ color: 'var(--vscode-descriptionForeground)' }}
             >
               {card.label}
             </span>

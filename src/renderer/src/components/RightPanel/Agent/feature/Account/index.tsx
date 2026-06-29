@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Loader2,
   Plus,
@@ -9,14 +9,15 @@ import {
   ChevronRight,
   Smartphone,
   Users,
-} from "lucide-react";
-import AccountCard from "./components/AccountCard";
-import AddAccountDrawer from "./components/AddAccountDrawer";
-import ConfirmDeleteDrawer from "./components/ConfirmDeleteDrawer";
-import ProviderFilterDropdown from "./components/ProviderFilterDropdown";
-import { useAccounts } from "./hooks/useAccounts";
-import { getFaviconUrl } from "./utils";
-import { extensionService } from "../../services/ExtensionService";
+} from 'lucide-react';
+import AccountCard from './components/AccountCard';
+import AddAccountDrawer from './components/AddAccountDrawer';
+import ConfirmDeleteDrawer from './components/ConfirmDeleteDrawer';
+import ProviderFilterDropdown from './components/ProviderFilterDropdown';
+import { useAccounts } from './hooks/useAccounts';
+import { getFaviconUrl } from './utils';
+import { extensionService } from '../../services/ExtensionService';
+import { cn } from '@renderer/shared/lib/utils';
 
 interface AccountPanelProps {
   isOpen: boolean;
@@ -58,17 +59,16 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = () => setShowDropdown(false);
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, [isOpen]);
 
   const handleImport = async () => {
     try {
-      extensionService.postMessage({ command: "importAccounts" });
-      // Re-fetch after a brief delay to pick up any imported accounts
+      extensionService.postMessage({ command: 'importAccounts' });
       setTimeout(() => fetchAccounts(pagination.page, pagination.limit, true), 800);
     } catch (error) {
-      console.error("Failed to import:", error);
+      console.error('Failed to import:', error);
     }
     setShowDropdown(false);
   };
@@ -100,60 +100,24 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  
-
-  
-
   if (!isOpen) return null;
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        backgroundColor: "var(--secondary-bg)",
-        zIndex: 50,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      {/* Header - Following SettingsPanel style */}
-      <div
-        style={{
-          padding: "16px 16px 14px",
-          borderTop: "1px solid var(--border-color)",
-          borderBottom: "1px solid var(--border-color)",
-          flexShrink: 0,
-          backgroundColor: "var(--tertiary-bg)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "8px",
-                flexShrink: 0,
-                background: "rgba(128,128,128,0.1)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--vscode-foreground)",
-              }}
-            >
+    <div className="absolute inset-0 w-full h-full z-50 flex flex-col overflow-hidden bg-[var(--secondary-bg)]">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3.5 shrink-0 border-t border-b border-[var(--border-color)] bg-[var(--tertiary-bg)]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center bg-[rgba(128,128,128,0.1)] text-[var(--vscode-foreground)]">
               <Smartphone size={18} />
             </div>
             <div>
-              <div style={{ marginBottom: "3px" }}>
-                <span style={{ fontWeight: 700, fontSize: "14px", color: "var(--primary-text)", letterSpacing: "0.01em" }}>
+              <div className="mb-[3px]">
+                <span className="font-bold text-sm tracking-[0.01em] text-[var(--primary-text)]">
                   Accounts
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: "12px", color: "var(--secondary-text)", opacity: 0.7, lineHeight: 1.4 }}>
+              <p className="m-0 text-xs opacity-70 leading-relaxed text-[var(--secondary-text)]">
                 Manage your API accounts
               </p>
             </div>
@@ -162,160 +126,93 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
             onClick={onClose}
             onMouseEnter={() => setCloseHover(true)}
             onMouseLeave={() => setCloseHover(false)}
-            style={{
-              padding: "5px",
-              borderRadius: "6px",
-              flexShrink: 0,
-              backgroundColor: closeHover
-                ? "var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.12))"
-                : "rgba(128,128,128,0.1)",
-              border: "none",
-              color: closeHover ? "var(--vscode-errorForeground)" : "var(--secondary-text)",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className={cn(
+              'p-[5px] rounded-md shrink-0 border-none flex items-center justify-center cursor-pointer transition-all duration-150',
+              closeHover
+                ? 'bg-[var(--vscode-inputValidation-errorBackground,rgba(239,68,68,0.12))] text-[var(--vscode-errorForeground)]'
+                : 'bg-[rgba(128,128,128,0.1)] text-[var(--secondary-text)]'
+            )}
             title="Close Accounts"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
             </svg>
           </button>
         </div>
       </div>
 
-      {/* Action Bar - Below divider */}
-      <div
-        style={{
-          padding: "16px 16px 12px",
-          backgroundColor: "var(--tertiary-bg)",
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+      {/* Action Bar */}
+      <div className="px-4 pt-4 pb-3 shrink-0 bg-[var(--tertiary-bg)]">
+        <div className="flex gap-2 items-center">
           {/* Search Input */}
-          <div style={{ position: "relative", flex: 1 }}>
+          <div className="relative flex-1">
             <input
               type="text"
               placeholder="Search by email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px 12px 8px 32px",
-                fontSize: "13px",
-                backgroundColor: "var(--input-bg)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "8px",
-                color: "var(--primary-text)",
-                outline: "none",
-                boxSizing: "border-box",
-                height: "34px",
-              }}
+              className="w-full h-[34px] pl-8 pr-3 text-[13px] rounded-lg outline-none box-border bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--primary-text)]"
             />
-            <Search
-              style={{
-                width: "14px",
-                height: "14px",
-                position: "absolute",
-                left: "10px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "var(--secondary-text)",
-              }}
-            />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--secondary-text)]" />
           </div>
-          
+
           <ProviderFilterDropdown
             providerConfigs={providerConfigs}
             selectedProvider={providerFilter}
             onSelectProvider={setProviderFilter}
             getFaviconUrl={getFaviconUrl}
           />
-          
+
           <button
             onClick={() => setDialogOpen(true)}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.45")}
-            style={{
-              width: "34px",
-              height: "34px",
-              borderRadius: "8px",
-              backgroundColor: "var(--vscode-button-background)",
-              border: "none",
-              color: "var(--vscode-button-foreground)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              opacity: 0.45,
-              transition: "opacity 0.15s ease",
-            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.45')}
+            className="w-[34px] h-[34px] rounded-lg border-none flex items-center justify-center shrink-0 cursor-pointer transition-opacity duration-150 opacity-45 bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]"
             title="Add account"
           >
             <Plus size={16} />
           </button>
-          
-          <div style={{ position: "relative" }}>
+
+          <div className="relative">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              style={{
-                width: "34px",
-                height: "34px",
-                borderRadius: "8px",
-                backgroundColor: "var(--input-bg)",
-                border: "1px solid var(--border-color)",
-                color: "var(--secondary-text)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
+              className="w-[34px] h-[34px] rounded-lg border flex items-center justify-center shrink-0 cursor-pointer bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--secondary-text)]"
               title="More options"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="1"/>
-                <circle cx="12" cy="5" r="1"/>
-                <circle cx="12" cy="19" r="1"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="12" cy="5" r="1" />
+                <circle cx="12" cy="19" r="1" />
               </svg>
             </button>
             {showDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "100%",
-                  marginTop: "8px",
-                  width: "160px",
-                  backgroundColor: "var(--tertiary-bg)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "12px",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-                  zIndex: 100,
-                  overflow: "hidden",
-                }}
-              >
+              <div className="absolute right-0 top-full mt-2 w-[160px] rounded-xl overflow-hidden z-[100] bg-[var(--tertiary-bg)] border border-[var(--border-color)] shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
                 <button
                   onClick={handleImport}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    border: "none",
-                    backgroundColor: "transparent",
-                    color: "var(--primary-text)",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--hover-bg)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-[13px] cursor-pointer text-left text-[var(--primary-text)]"
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--hover-bg)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <Upload size={14} />
                   <span>Import JSON</span>
@@ -328,55 +225,24 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
 
       {/* Bulk Actions Bar */}
       {selectedAccounts.size > 0 && (
-        <div
-          style={{
-            marginTop: "12px",
-            padding: "8px 12px",
-            backgroundColor: "var(--vscode-list-activeSelectionBackground, rgba(128,128,128,0.1))",
-            borderRadius: "10px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginLeft: "16px",
-            marginRight: "16px",
-          }}
-        >
-          <span style={{ fontSize: "12px", color: "var(--primary-text)" }}>
+        <div className="mt-3 mx-4 px-3 py-2 rounded-[10px] flex items-center justify-between bg-[var(--vscode-list-activeSelectionBackground,rgba(128,128,128,0.1))]">
+          <span className="text-xs text-[var(--primary-text)]">
             {selectedAccounts.size} selected
           </span>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="flex gap-2">
             <button
               onClick={handleSelectAll}
-              style={{
-                padding: "4px 10px",
-                borderRadius: "6px",
-                backgroundColor: "transparent",
-                border: "1px solid var(--border-color)",
-                color: "var(--secondary-text)",
-                fontSize: "11px",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--hover-bg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              className="px-2.5 py-1 rounded-md bg-transparent border border-[var(--border-color)] text-[11px] cursor-pointer text-[var(--secondary-text)]"
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--hover-bg)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              {allVisibleSelected ? "Deselect All" : "Select All"}
+              {allVisibleSelected ? 'Deselect All' : 'Select All'}
             </button>
             <button
               onClick={handleBulkDelete}
-              style={{
-                padding: "4px 10px",
-                borderRadius: "6px",
-                backgroundColor: "var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.12))",
-                border: "none",
-                color: "var(--vscode-errorForeground, #f87171)",
-                fontSize: "11px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              className="px-2.5 py-1 rounded-md border-none text-[11px] cursor-pointer flex items-center gap-1 bg-[var(--vscode-inputValidation-errorBackground,rgba(239,68,68,0.12))] text-[var(--vscode-errorForeground,#f87171)]"
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
             >
               <Trash2 size={12} />
               Delete
@@ -386,51 +252,25 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
       )}
 
       {/* Account List */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "12px 16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-        }}
-      >
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5">
         {loading && accounts.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "200px",
-              color: "var(--secondary-text)",
-              gap: "12px",
-            }}
-          >
-            <Loader2 size={28} style={{ animation: "spin 1s linear infinite", color: "var(--accent-text)" }} />
-            <span style={{ fontSize: "12px" }}>Loading accounts...</span>
+          <div className="flex flex-col items-center justify-center h-[200px] gap-3 text-[var(--secondary-text)]">
+            <Loader2
+              size={28}
+              className="text-[var(--accent-text)]"
+              style={{ animation: 'spin 1s linear infinite' }}
+            />
+            <span className="text-xs">Loading accounts...</span>
           </div>
         ) : accounts.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "200px",
-              color: "var(--secondary-text)",
-              gap: "12px",
-              textAlign: "center",
-            }}
-          >
-            <Users size={40} style={{ opacity: 0.3 }} />
+          <div className="flex flex-col items-center justify-center h-[200px] gap-3 text-center text-[var(--secondary-text)]">
+            <Users size={40} className="opacity-30" />
             <div>
-              <p style={{ fontSize: "14px", fontWeight: 500, margin: "0 0 4px" }}>
-                {searchQuery ? "No matching accounts" : "No accounts yet"}
+              <p className="text-sm font-medium m-0 mb-1">
+                {searchQuery ? 'No matching accounts' : 'No accounts yet'}
               </p>
-              <p style={{ fontSize: "11px", margin: 0, opacity: 0.7 }}>
-                {searchQuery ? "Try a different search" : "Click the + button to add one"}
+              <p className="text-[11px] m-0 opacity-70">
+                {searchQuery ? 'Try a different search' : 'Click the + button to add one'}
               </p>
             </div>
           </div>
@@ -452,37 +292,20 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
 
       {/* Pagination */}
       {pagination.total_pages > 1 && (
-        <div
-          style={{
-            padding: "12px 16px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-            backgroundColor: "var(--tertiary-bg)",
-          }}
-        >
-          <span style={{ fontSize: "11px", color: "var(--secondary-text)" }}>
+        <div className="flex items-center justify-between px-4 py-3 shrink-0 border-t border-[var(--border-color)] bg-[var(--tertiary-bg)]">
+          <span className="text-[11px] text-[var(--secondary-text)]">
             {pagination.page} / {pagination.total_pages}
           </span>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="flex gap-2">
             <button
               onClick={handlePrevPage}
               disabled={pagination.page === 1}
-              style={{
-                padding: "6px 12px",
-                borderRadius: "8px",
-                backgroundColor: "var(--input-bg)",
-                border: "1px solid var(--border-color)",
-                color: "var(--primary-text)",
-                cursor: pagination.page === 1 ? "not-allowed" : "pointer",
-                opacity: pagination.page === 1 ? 0.5 : 1,
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "12px",
-              }}
+              className={cn(
+                'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--primary-text)]',
+                pagination.page === 1
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer opacity-100'
+              )}
             >
               <ChevronLeft size={14} />
               Previous
@@ -490,19 +313,12 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
             <button
               onClick={handleNextPage}
               disabled={pagination.page === pagination.total_pages}
-              style={{
-                padding: "6px 12px",
-                borderRadius: "8px",
-                backgroundColor: "var(--input-bg)",
-                border: "1px solid var(--border-color)",
-                color: "var(--primary-text)",
-                cursor: pagination.page === pagination.total_pages ? "not-allowed" : "pointer",
-                opacity: pagination.page === pagination.total_pages ? 0.5 : 1,
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "12px",
-              }}
+              className={cn(
+                'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--primary-text)]',
+                pagination.page === pagination.total_pages
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer opacity-100'
+              )}
             >
               Next
               <ChevronRight size={14} />
@@ -522,7 +338,9 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
         onOpenChange={setConfirmOpen}
         onConfirm={executeDelete}
         loading={deleteLoading}
-        title={deleteItem ? `Delete account ${deleteItem.email ?? ''}?` : "Delete selected accounts"}
+        title={
+          deleteItem ? `Delete account ${deleteItem.email ?? ''}?` : 'Delete selected accounts'
+        }
         count={deleteItem ? 1 : selectedAccounts.size}
       />
 

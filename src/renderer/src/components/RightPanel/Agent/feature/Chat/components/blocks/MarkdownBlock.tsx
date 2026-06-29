@@ -48,21 +48,7 @@ const PathChip: React.FC<PathChipProps> = ({ displayText, resolvedPath }) => {
       title={
         isFolder ? `Open folder: ${resolvedPath}` : `Open file: ${resolvedPath}`
       }
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "3px",
-        padding: "1px 4px",
-        borderRadius: "3px",
-        color: "var(--primary-text)",
-        fontSize: "var(--font-size-sm)",
-        fontFamily: "inherit",
-        cursor: "pointer",
-        verticalAlign: "middle",
-        transition: "opacity 0.15s",
-        userSelect: "none",
-        textDecoration: "none",
-      }}
+      className="inline-flex items-center gap-[3px] px-1 py-px rounded-[3px] text-[var(--primary-text)] text-[var(--font-size-sm)] font-[inherit] cursor-pointer align-middle transition-opacity duration-[0.15s] select-none no-underline"
       onMouseEnter={(e) =>
         ((e.currentTarget as HTMLElement).style.opacity = "0.75")
       }
@@ -136,7 +122,7 @@ const domNodeToReact = (
       domNodeToReact(child, `${key}-${i}`, knownFilePaths),
     );
     return (
-      <code key={key} style={{ background: "none", padding: 0 }}>
+      <code key={key} className="!bg-transparent p-0">
         {children}
       </code>
     );
@@ -196,12 +182,112 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
     }, [content, resolvedMap.size]);
 
     return (
-      <div
-        className={`markdown-content-inline ${className || ""}`}
-        style={style}
-      >
-        {reactNodes}
-      </div>
+      <>
+        <div
+          className={`markdown-content-inline ${className || ""}`}
+          style={style}
+        >
+          {reactNodes}
+        </div>
+        <style>{`
+          .markdown-content-inline {
+            line-height: 1.6;
+            font-size: var(--font-size-sm);
+            color: var(--primary-text);
+          }
+          .markdown-content-inline h1,
+          .markdown-content-inline h2,
+          .markdown-content-inline h3 {
+            margin-top: 12px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+          }
+          .markdown-content-inline h1 { font-size: 1.25em; }
+          .markdown-content-inline h2 { font-size: 1.1em; }
+          .markdown-content-inline h3 { font-size: 1.05em; }
+          .markdown-content-inline p { margin-bottom: 8px; }
+          .markdown-content-inline ul,
+          .markdown-content-inline ol {
+            margin-bottom: 8px;
+            padding-left: 24px !important;
+          }
+          .markdown-content-inline ul { list-style-type: disc !important; }
+          .markdown-content-inline ul ul {
+            list-style-type: circle !important;
+            margin-top: 4px;
+            margin-bottom: 4px;
+          }
+          .markdown-content-inline ul ul ul {
+            list-style-type: square !important;
+          }
+          .markdown-content-inline ol { list-style-type: decimal !important; }
+          .markdown-content-inline ol ol {
+            list-style-type: lower-alpha !important;
+            margin-top: 4px;
+            margin-bottom: 4px;
+          }
+          .markdown-content-inline li {
+            margin-bottom: 4px;
+            display: list-item !important;
+          }
+          .markdown-content-inline li > ul,
+          .markdown-content-inline li > ol {
+            margin-top: 4px;
+            margin-bottom: 4px;
+          }
+          .markdown-content-inline table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+            font-size: 0.9em;
+          }
+          .markdown-content-inline th,
+          .markdown-content-inline td {
+            border: 1px solid var(--vscode-panel-border);
+            padding: 6px 10px;
+            text-align: left;
+          }
+          .markdown-content-inline th {
+            background-color: var(--vscode-editor-lineHighlightBackground);
+            font-weight: 600;
+          }
+          .markdown-content-inline :not(pre) > code {
+            background-color: var(--vscode-editor-lineHighlightBackground);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: var(--vscode-editor-font-family, monospace);
+            font-size: 0.9em;
+          }
+          .markdown-content-inline pre > code {
+            background: none !important;
+            padding: 0;
+          }
+          .markdown-content-inline pre {
+            background-color: var(--vscode-textCodeBlock-background, var(--vscode-editor-background, #1e1e1e));
+            border-radius: 4px;
+            padding: 10px 12px;
+            overflow-x: auto;
+            margin: 8px 0;
+            font-family: var(--vscode-editor-font-family, monospace);
+            font-size: 0.9em;
+            line-height: 1.5;
+          }
+          .markdown-content-inline a {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: none;
+          }
+          .markdown-content-inline a:hover {
+            text-decoration: underline;
+          }
+          .markdown-content-inline blockquote {
+            border-left: 4px solid var(--vscode-panel-border);
+            padding-left: 12px;
+            color: var(--vscode-descriptionForeground);
+            margin: 12px 0;
+          }
+        `}</style>
+      </>
     );
   },
   (prev, next) => {

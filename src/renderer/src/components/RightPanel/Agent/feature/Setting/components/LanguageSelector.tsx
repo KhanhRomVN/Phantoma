@@ -1,7 +1,6 @@
 import { cn } from '@renderer/shared/lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 
-// Simple language definition with emoji flags
 export const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
@@ -13,7 +12,6 @@ interface LanguageSelectorProps {
   className?: string;
 }
 
-// Custom Chevron Icons
 const ChevronDownIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -55,7 +53,6 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -73,23 +70,14 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     <div
       className={cn('relative w-full', className)}
       ref={dropdownRef}
-      style={{ position: 'relative' }}
     >
       <button
         type="button"
+        className="w-full h-9 px-3 rounded text-sm flex items-center justify-between cursor-pointer"
         style={{
-          width: '100%',
-          height: '36px', // Increased height
-          padding: '0 12px', // Increased padding
           backgroundColor: 'var(--input-bg)',
           border: '1px solid var(--border-color)',
-          borderRadius: '4px',
           color: 'var(--primary-text)',
-          fontSize: '14px', // Increased font size
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -104,33 +92,22 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 
       {isOpen && (
         <div
+          className="absolute top-full left-0 z-[1000] w-full mt-1 rounded overflow-hidden"
           style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            zIndex: 1000,
-            width: '100%',
-            marginTop: '4px',
             backgroundColor: 'var(--input-bg)',
             border: '1px solid var(--border-color)',
-            borderRadius: '4px',
             boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            overflow: 'hidden',
           }}
         >
           <div className="max-h-60 overflow-y-auto custom-scrollbar">
             {LANGUAGES.map((lang) => (
               <div
                 key={lang.code}
+                className="flex items-center justify-between px-3 py-2 text-sm cursor-pointer"
                 style={{
-                  padding: '8px 12px', // Increased padding
-                  fontSize: '14px', // Increased font size
-                  cursor: 'pointer',
                   color: 'var(--primary-text)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  backgroundColor: value === lang.code ? 'var(--hover-bg)' : 'transparent',
+                  backgroundColor:
+                    value === lang.code ? 'var(--hover-bg)' : 'transparent',
                 }}
                 onClick={() => {
                   onChange(lang.code);
@@ -151,7 +128,6 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                   <span>{lang.flag}</span>
                   <span>{lang.name}</span>
                 </div>
-                {/* Check icon removed */}
               </div>
             ))}
           </div>

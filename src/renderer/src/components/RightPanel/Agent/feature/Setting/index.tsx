@@ -35,47 +35,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'var(--secondary-bg)',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'auto',
-      }}
+      className="absolute inset-0 w-full h-full z-[9999] flex flex-col overflow-auto"
+      style={{ backgroundColor: 'var(--secondary-bg)' }}
     >
       {/* Header */}
       <div
+        className="flex items-center justify-between gap-3 px-4 pt-4 pb-3.5 shrink-0"
         style={{
-          padding: '16px var(--spacing-md, 16px) 14px',
           borderTop: '1px solid var(--border-color)',
           borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
           backgroundColor: 'var(--tertiary-bg)',
-          flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Icon badge - VSCode theme neutral */}
+        <div className="flex items-center gap-3">
+          {/* Icon badge */}
           <div
+            className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center"
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              flexShrink: 0,
               background: 'rgba(128,128,128,0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
               color: 'var(--vscode-foreground)',
             }}
           >
@@ -96,25 +73,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
           </div>
           <div>
             <span
-              style={{
-                fontWeight: 700,
-                fontSize: '14px',
-                color: 'var(--primary-text)',
-                letterSpacing: '0.01em',
-                display: 'block',
-                marginBottom: '3px',
-              }}
+              className="block font-bold text-sm tracking-[0.01em] mb-[3px]"
+              style={{ color: 'var(--primary-text)' }}
             >
               Settings
             </span>
             <p
-              style={{
-                margin: 0,
-                fontSize: '12px',
-                color: 'var(--secondary-text)',
-                opacity: 0.7,
-                lineHeight: 1.4,
-              }}
+              className="m-0 text-xs opacity-70 leading-relaxed"
+              style={{ color: 'var(--secondary-text)' }}
             >
               Configure your agent preferences
             </p>
@@ -124,19 +90,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
           onClick={onClose}
           onMouseEnter={() => setCloseHover(true)}
           onMouseLeave={() => setCloseHover(false)}
+          className="p-[5px] rounded-md shrink-0 self-center border-none flex items-center justify-center cursor-pointer transition-all duration-150"
           style={{
-            padding: '5px',
-            borderRadius: '6px',
-            flexShrink: 0,
-            alignSelf: 'center',
-            backgroundColor: closeHover ? 'rgba(239,68,68,0.12)' : 'rgba(128,128,128,0.12)',
-            border: 'none',
-            color: closeHover ? 'var(--vscode-errorForeground, #f87171)' : 'var(--secondary-text)',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            backgroundColor: closeHover
+              ? 'rgba(239,68,68,0.12)'
+              : 'rgba(128,128,128,0.12)',
+            color: closeHover
+              ? 'var(--vscode-errorForeground, #f87171)'
+              : 'var(--secondary-text)',
           }}
           title="Close Settings"
         >
@@ -159,24 +120,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
 
       {/* Content */}
       <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px',
-          backgroundColor: 'var(--secondary-bg)',
-        }}
+        className="flex-1 overflow-y-auto p-5 flex flex-col gap-6"
+        style={{ backgroundColor: 'var(--secondary-bg)' }}
       >
         {/* API URL */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="flex flex-col gap-2">
           <label
-            style={{
-              fontSize: '14px',
-              fontWeight: 600,
-              color: 'var(--primary-text)',
-            }}
+            className="text-sm font-semibold"
+            style={{ color: 'var(--primary-text)' }}
           >
             Backend API URL
           </label>
@@ -190,61 +141,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Simple Mode Toggle */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
+        <div className="flex items-center justify-between gap-3">
           <div>
             <div
-              style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                color: 'var(--primary-text)',
-                marginBottom: '3px',
-              }}
+              className="text-sm font-semibold mb-[3px]"
+              style={{ color: 'var(--primary-text)' }}
             >
               Simple Mode
             </div>
             <div
-              style={{
-                fontSize: '11px',
-                color: 'var(--secondary-text)',
-                opacity: 0.7,
-              }}
+              className="text-[11px] opacity-70"
+              style={{ color: 'var(--secondary-text)' }}
             >
               Hide advanced options for a cleaner interface
             </div>
           </div>
           <button
             onClick={toggleSimpleMode}
+            className="shrink-0 w-10 h-[22px] rounded-[11px] border-none cursor-pointer relative transition-colors duration-200"
             style={{
-              flexShrink: 0,
-              width: '40px',
-              height: '22px',
-              borderRadius: '11px',
-              border: 'none',
-              cursor: 'pointer',
-              position: 'relative',
               backgroundColor: isSimpleMode
                 ? 'var(--vscode-button-background, #0e639c)'
                 : 'rgba(128,128,128,0.3)',
-              transition: 'background-color 0.2s ease',
             }}
           >
             <span
+              className="absolute top-[3px] w-4 h-4 rounded-full bg-white transition-[left] duration-200"
               style={{
-                position: 'absolute',
-                top: '3px',
                 left: isSimpleMode ? '21px' : '3px',
-                width: '16px',
-                height: '16px',
-                borderRadius: '50%',
-                backgroundColor: '#fff',
-                transition: 'left 0.2s ease',
               }}
             />
           </button>

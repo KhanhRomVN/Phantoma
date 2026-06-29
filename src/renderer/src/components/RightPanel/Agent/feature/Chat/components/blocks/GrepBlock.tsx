@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { ToolAction } from "../../services/ResponseParser";
-import { extensionService } from "../../../../services/ExtensionService";
-import { getFileIconPath } from "../../../../utils/fileIconMapper";
+import React, { useState } from 'react';
+import { ToolAction } from '../../services/ResponseParser';
+import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+import { getFileIconPath } from '@renderer/utils/fileIconMapper';
 
 interface GrepBlockProps {
   action: ToolAction;
@@ -57,8 +57,7 @@ function parseCompactGrepOutput(output: string): GrepResultData | null {
     const totalMatches = parseInt(headerMatch[2], 10);
     const totalFilesSearched = parseInt(headerMatch[4], 10);
     const results: Record<string, MatchResult[]> = {};
-    const fileRegex =
-      /<file\s+path="([^"]*)"\s+matches="\d+">([\s\S]*?)<\/file>/g;
+    const fileRegex = /<file\s+path="([^"]*)"\s+matches="\d+">([\s\S]*?)<\/file>/g;
     let fileMatch: RegExpExecArray | null;
     while ((fileMatch = fileRegex.exec(output)) !== null) {
       const filePath = fileMatch[1];
@@ -87,9 +86,9 @@ function parseCompactGrepOutput(output: string): GrepResultData | null {
 }
 
 const getDisplayPath = (fullPath: string): string => {
-  if (!fullPath) return "";
-  const parts = fullPath.split("/");
-  return parts.length > 4 ? ".../" + parts.slice(-3).join("/") : fullPath;
+  if (!fullPath) return '';
+  const parts = fullPath.split('/');
+  return parts.length > 4 ? '.../' + parts.slice(-3).join('/') : fullPath;
 };
 
 // Track which actionIds have been logged to avoid spam
@@ -101,10 +100,8 @@ const highlightMatch = (text: string, searchTerm: string): React.ReactNode => {
 
   try {
     // Escape regex special characters
-    const escaped = searchTerm
-      .toLowerCase()
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`(${escaped})`, "gi");
+    const escaped = searchTerm.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escaped})`, 'gi');
     const parts = text.split(regex);
 
     return parts.map((part, index) => {
@@ -113,14 +110,7 @@ const highlightMatch = (text: string, searchTerm: string): React.ReactNode => {
         return (
           <span
             key={index}
-            style={{
-              backgroundColor:
-                "color-mix(in srgb, var(--vscode-editor-findMatchHighlightBackground) 60%, transparent)",
-              color: "var(--vscode-editor-foreground)",
-              fontWeight: "600",
-              borderRadius: "2px",
-              padding: "0 2px",
-            }}
+            className="bg-[color-mix(in_srgb,var(--vscode-editor-findMatchHighlightBackground)_60%,transparent)] text-[var(--vscode-editor-foreground)] font-semibold rounded-[2px] px-0.5"
           >
             {part}
           </span>
@@ -129,7 +119,7 @@ const highlightMatch = (text: string, searchTerm: string): React.ReactNode => {
       return part;
     });
   } catch (e) {
-    console.warn("[GrepBlock] Failed to highlight:", e);
+    console.warn('[GrepBlock] Failed to highlight:', e);
     return text;
   }
 };
@@ -146,12 +136,10 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
 }) => {
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
-  const searchTerm =
-    action.params.search_term || action.params.searchTerm || "";
-  const folderPath =
-    action.params.folder_path || action.params.folderPath || "";
-  const filePath = action.params.file_path || action.params.filePath || "";
-  const targetPath = folderPath || filePath || "";
+  const searchTerm = action.params.search_term || action.params.searchTerm || '';
+  const folderPath = action.params.folder_path || action.params.folderPath || '';
+  const filePath = action.params.file_path || action.params.filePath || '';
+  const targetPath = folderPath || filePath || '';
 
   const parseGrepResult = (): GrepResultData | null => {
     const output = toolOutputs?.[actionId]?.output;
@@ -161,7 +149,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
       _loggedOutputs.add(actionId);
     }
 
-    if (output.includes("<grep_results")) {
+    if (output.includes('<grep_results')) {
       const result = parseCompactGrepOutput(output);
       return result;
     }
@@ -171,7 +159,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
       if (parsed.success && parsed.data) return parsed.data as GrepResultData;
       return null;
     } catch (e) {
-      console.warn("[GrepBlock] Failed to parse output:", e);
+      console.warn('[GrepBlock] Failed to parse output:', e);
       return null;
     }
   };
@@ -183,9 +171,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   const toggleFileCollapse = (filePathKey: string) => {
     setCollapsedFiles((prev) => {
       const newSet = new Set(prev);
-      newSet.has(filePathKey)
-        ? newSet.delete(filePathKey)
-        : newSet.add(filePathKey);
+      newSet.has(filePathKey) ? newSet.delete(filePathKey) : newSet.add(filePathKey);
       return newSet;
     });
   };
@@ -193,35 +179,21 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   const openFileAtLine = (filePathLine: string, lineNumber: number) => {
     const fullPath = filePathLine;
     extensionService.postMessage({
-      command: "openFileAtLine",
+      command: 'openFileAtLine',
       path: fullPath,
       line: lineNumber,
       selection: { startLine: lineNumber, endLine: lineNumber },
     });
     setTimeout(() => {
-      extensionService.postMessage({ command: "openFile", path: fullPath });
+      extensionService.postMessage({ command: 'openFile', path: fullPath });
     }, 200);
   };
 
   // Loading state: show spinner placeholder
   if (isPartial && !isCompleted) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "6px",
-          padding: "8px 0",
-          color: "var(--vscode-descriptionForeground)",
-          fontSize: "12px",
-          opacity: 0.6,
-        }}
-      >
-        <span
-          className="codicon codicon-loading codicon-modifier-spin"
-          style={{ fontSize: "12px" }}
-        />
+      <div className="flex items-center justify-center gap-1.5 py-2 text-[var(--vscode-descriptionForeground)] text-xs opacity-60">
+        <span className="codicon codicon-loading codicon-modifier-spin text-xs" />
         <span>Searching...</span>
       </div>
     );
@@ -230,38 +202,9 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   // Error state: show error message
   if (isError && errorMessage) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "6px",
-          padding: "5px 8px",
-          backgroundColor:
-            "color-mix(in srgb, var(--vscode-errorForeground) 4%, transparent)",
-          border:
-            "1px solid color-mix(in srgb, var(--vscode-errorForeground) 20%, transparent)",
-          borderRadius: "4px",
-        }}
-      >
-        <span
-          className="codicon codicon-error"
-          style={{
-            fontSize: "11px",
-            color: "var(--vscode-errorForeground)",
-            opacity: 0.7,
-            marginTop: "1px",
-            flexShrink: 0,
-          }}
-        />
-        <span
-          style={{
-            fontSize: "11px",
-            color: "var(--vscode-errorForeground)",
-            opacity: 0.85,
-            fontFamily: "var(--vscode-editor-font-family, monospace)",
-            wordBreak: "break-word",
-          }}
-        >
+      <div className="flex items-start gap-1.5 px-2 py-[5px] bg-[color-mix(in_srgb,var(--vscode-errorForeground)_4%,transparent)] border border-[color-mix(in_srgb,var(--vscode-errorForeground)_20%,transparent)] rounded-[4px]">
+        <span className="codicon codicon-error text-[11px] text-[var(--vscode-errorForeground)] opacity-70 mt-px shrink-0" />
+        <span className="text-[11px] text-[var(--vscode-errorForeground)] opacity-85 font-mono break-words">
           {errorMessage}
         </span>
       </div>
@@ -279,45 +222,19 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
 
   if (!hasResults) {
     return (
-      <div
-        style={{
-          marginTop: "4px",
-          padding: "8px 12px 8px 29px",
-          backgroundColor:
-            "color-mix(in srgb, var(--vscode-editor-background) 50%, transparent)",
-          borderRadius: "4px",
-          fontSize: "11px",
-          color: "var(--vscode-descriptionForeground)",
-          textAlign: "left",
-        }}
-      >
-        <span
-          className="codicon codicon-search-stop"
-          style={{ marginRight: "6px" }}
-        />
-        No results for "{grepResult.searchTerm}" in{" "}
-        {grepResult.totalFilesSearched} files
+      <div className="mt-1 px-3 py-2 pl-[29px] bg-[color-mix(in_srgb,var(--vscode-editor-background)_50%,transparent)] rounded-[4px] text-[11px] text-[var(--vscode-descriptionForeground)] text-left">
+        <span className="codicon codicon-search-stop mr-1.5" />
+        No results for "{grepResult.searchTerm}" in {grepResult.totalFilesSearched} files
       </div>
     );
   }
 
   return (
     <div
+      className="max-h-[320px] overflow-y-auto mt-0.5 ml-[29px] pl-3 pr-2.5 py-1.5 bg-[var(--vscode-editor-background,var(--vscode-textCodeBlock-background))] border border-[var(--vscode-widget-border,rgba(255,255,255,0.08))] rounded-[4px]"
       style={{
-        maxHeight: "320px",
-        overflowY: "auto",
-        marginTop: "2px",
-        marginLeft: "29px",
-        paddingLeft: "12px",
-        paddingRight: "10px",
-        paddingTop: "6px",
-        paddingBottom: "6px",
-        background:
-          "var(--vscode-editor-background, var(--vscode-textCodeBlock-background))",
-        border: "1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))",
-        borderRadius: "4px",
-        scrollbarWidth: "thin",
-        scrollbarColor: "var(--vscode-scrollbarSlider-background) transparent",
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'var(--vscode-scrollbarSlider-background) transparent',
       }}
     >
       {filePaths.map((filePathKey) => {
@@ -328,120 +245,60 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
         const searchTermLocal = grepResult.searchTerm;
 
         return (
-          <div key={filePathKey} style={{ marginBottom: "12px" }}>
+          <div key={filePathKey} className="mb-3">
             <div
               onClick={() => toggleFileCollapse(filePathKey)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                cursor: "pointer",
-                padding: "2px 0",
-                marginBottom: isFileCollapsed ? "0" : "6px",
-                userSelect: "none",
-              }}
+              className="flex items-center gap-1.5 cursor-pointer py-0.5 select-none"
+              style={{ marginBottom: isFileCollapsed ? '0' : '6px' }}
             >
               <span
-                className={`codicon codicon-chevron-${isFileCollapsed ? "right" : "down"}`}
-                style={{
-                  fontSize: "12px",
-                  opacity: 0.6,
-                  color: "var(--vscode-descriptionForeground)",
-                }}
+                className={`codicon codicon-chevron-${isFileCollapsed ? 'right' : 'down'} text-xs opacity-60 text-[var(--vscode-descriptionForeground)]`}
               />
               <img
                 src={fileIconPath}
                 alt="file icon"
-                style={{ width: "14px", height: "14px", flexShrink: 0 }}
+                className="w-3.5 h-3.5 shrink-0"
                 onError={(e) => {
-                  e.currentTarget.style.display = "none";
+                  e.currentTarget.style.display = 'none';
                   const parent = e.currentTarget.parentElement;
                   if (parent) {
-                    const fallback = document.createElement("span");
-                    fallback.className = "codicon codicon-file";
+                    const fallback = document.createElement('span');
+                    fallback.className = 'codicon codicon-file';
                     fallback.style.cssText =
-                      "font-size: 12px; color: var(--vscode-descriptionForeground); opacity: 0.7; flex-shrink: 0;";
+                      'font-size: 12px; color: var(--vscode-descriptionForeground); opacity: 0.7; flex-shrink: 0;';
                     parent.insertBefore(fallback, e.currentTarget);
                   }
                 }}
               />
-              <span
-                style={{
-                  fontFamily: "var(--vscode-editor-font-family, monospace)",
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  color: "var(--vscode-editor-foreground)",
-                }}
-              >
+              <span className="font-mono text-[11px] font-medium text-[var(--vscode-editor-foreground)]">
                 {displayFilePath}
               </span>
-              <span
-                style={{
-                  fontSize: "10px",
-                  color: "var(--vscode-descriptionForeground)",
-                  opacity: 0.5,
-                  marginLeft: "auto",
-                }}
-              >
-                {matches.length} {matches.length === 1 ? "line" : "lines"}
+              <span className="text-[10px] text-[var(--vscode-descriptionForeground)] opacity-50 ml-auto">
+                {matches.length} {matches.length === 1 ? 'line' : 'lines'}
               </span>
             </div>
 
             {!isFileCollapsed && (
-              <div
-                style={{
-                  marginLeft: "18px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "2px",
-                }}
-              >
+              <div className="ml-[18px] flex flex-col gap-0.5">
                 {matches.map((match, idx) => (
                   <div
                     key={`${filePathKey}-${match.lineNumber}-${idx}`}
                     onClick={() => {
                       openFileAtLine(filePathKey, match.lineNumber);
                     }}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "8px",
-                      padding: "2px 4px",
-                      borderRadius: "3px",
-                      cursor: "pointer",
-                      fontFamily: "var(--vscode-editor-font-family, monospace)",
-                      fontSize: "11px",
-                      lineHeight: "1.4",
-                      transition: "background 0.1s ease",
-                    }}
+                    className="flex items-start gap-2 px-1 py-0.5 rounded-[3px] cursor-pointer font-mono text-[11px] leading-[1.4] transition-colors duration-[0.1s]"
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor =
-                        "var(--vscode-list-hoverBackground, rgba(255,255,255,0.05))";
+                        'var(--vscode-list-hoverBackground, rgba(255,255,255,0.05))';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <span
-                      style={{
-                        minWidth: "32px",
-                        color: "var(--vscode-editorLineNumber-foreground)",
-                        opacity: 0.65,
-                        textAlign: "right",
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span className="min-w-[32px] text-[var(--vscode-editorLineNumber-foreground)] opacity-65 text-right shrink-0">
                       {match.lineNumber}
                     </span>
-                    <span
-                      style={{
-                        flex: 1,
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-all",
-                        color: "var(--vscode-editor-foreground)",
-                        opacity: 0.9,
-                      }}
-                    >
+                    <span className="flex-1 whitespace-pre-wrap break-all text-[var(--vscode-editor-foreground)] opacity-90">
                       {highlightMatch(match.lineContent, searchTermLocal)}
                     </span>
                   </div>

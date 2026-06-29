@@ -66,43 +66,24 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'var(--secondary-bg)',
-        zIndex: 50,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
+      className="absolute inset-0 w-full h-full z-50 flex flex-col"
+      style={{ backgroundColor: 'var(--secondary-bg)' }}
     >
       {/* Header */}
       <div
+        className="flex items-center justify-between gap-3 px-4 pt-4 pb-3.5 shrink-0"
         style={{
-          padding: '16px var(--spacing-md) 14px',
           borderTop: '1px solid var(--border-color)',
           borderBottom: '1px solid var(--border-color)',
-          flexShrink: 0,
           backgroundColor: 'var(--tertiary-bg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Icon badge - VSCode theme neutral */}
+        <div className="flex items-center gap-3">
+          {/* Icon badge */}
           <div
+            className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center"
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              flexShrink: 0,
               background: 'rgba(128,128,128,0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
               color: 'var(--vscode-foreground)',
             }}
           >
@@ -125,26 +106,17 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
             </svg>
           </div>
           <div>
-            <div style={{ marginBottom: '3px' }}>
+            <div className="mb-[3px]">
               <span
-                style={{
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  color: 'var(--primary-text)',
-                  letterSpacing: '0.01em',
-                }}
+                className="font-bold text-sm tracking-[0.01em]"
+                style={{ color: 'var(--primary-text)' }}
               >
                 History
               </span>
             </div>
             <p
-              style={{
-                margin: 0,
-                fontSize: '12px',
-                color: 'var(--secondary-text)',
-                opacity: 0.7,
-                lineHeight: 1.4,
-              }}
+              className="m-0 text-xs opacity-70 leading-relaxed"
+              style={{ color: 'var(--secondary-text)' }}
             >
               Browse and manage your conversation history
             </p>
@@ -154,18 +126,14 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
           onClick={onClose}
           onMouseEnter={() => setCloseHover(true)}
           onMouseLeave={() => setCloseHover(false)}
+          className="p-[5px] rounded-md shrink-0 border-none flex items-center justify-center cursor-pointer transition-all duration-150"
           style={{
-            padding: '5px',
-            borderRadius: '6px',
-            flexShrink: 0,
-            backgroundColor: closeHover ? 'rgba(239,68,68,0.12)' : 'rgba(128,128,128,0.12)',
-            border: 'none',
-            color: closeHover ? 'var(--vscode-errorForeground, #f87171)' : 'var(--secondary-text)',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            backgroundColor: closeHover
+              ? 'rgba(239,68,68,0.12)'
+              : 'rgba(128,128,128,0.12)',
+            color: closeHover
+              ? 'var(--vscode-errorForeground, #f87171)'
+              : 'var(--secondary-text)',
           }}
           title="Close History"
         >
@@ -188,63 +156,45 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
 
       {/* Search */}
       <div
+        className="flex gap-2 items-center p-3"
         style={{
-          padding: 'var(--spacing-md)',
           borderBottom: '1px solid var(--border-color)',
           backgroundColor: 'var(--tertiary-bg)',
-          display: 'flex',
-          gap: '8px',
-          alignItems: 'center',
         }}
       >
-        <div style={{ position: 'relative', flex: 1 }}>
+        <div className="relative flex-1">
           <input
             type="text"
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-sm rounded outline-none box-border"
             style={{
-              width: '100%',
-              paddingLeft: '32px',
-              paddingRight: 'var(--spacing-md)',
-              paddingTop: '6px',
-              paddingBottom: '6px',
-              fontSize: 'var(--font-size-sm)',
               backgroundColor: 'var(--input-bg)',
               border: '1px solid var(--border-color)',
-              borderRadius: 'var(--border-radius)',
               color: 'var(--primary-text)',
-              outline: 'none',
-              boxSizing: 'border-box',
             }}
           />
           <Search
-            style={{
-              width: '14px',
-              height: '14px',
-              position: 'absolute',
-              left: '10px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--secondary-text)',
-            }}
+            className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--secondary-text)' }}
           />
         </div>
         <button
           onClick={() => setShowConfirm(true)}
           onMouseEnter={() => setTrashHover(true)}
           onMouseLeave={() => setTrashHover(false)}
+          className="p-[5px] rounded-md shrink-0 cursor-pointer transition-all duration-150"
           style={{
-            padding: '5px',
-            borderRadius: '6px',
-            flexShrink: 0,
-            backgroundColor: trashHover ? 'rgba(234,179,8,0.12)' : 'rgba(128,128,128,0.12)',
-            border: trashHover ? '1px solid rgba(234,179,8,0.4)' : '1px solid transparent',
+            backgroundColor: trashHover
+              ? 'rgba(234,179,8,0.12)'
+              : 'rgba(128,128,128,0.12)',
+            border: trashHover
+              ? '1px solid rgba(234,179,8,0.4)'
+              : '1px solid transparent',
             color: trashHover
               ? 'var(--vscode-editorWarning-foreground, #fbbf24)'
               : 'var(--secondary-text)',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
           title="Clear all history"
         >
@@ -269,65 +219,35 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
       {/* Confirm modal */}
       {showConfirm && (
         <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 100,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="absolute inset-0 z-[100] flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
         >
           <div
+            className="flex flex-col gap-3 p-5 w-[calc(100%-32px)] rounded-[10px]"
             style={{
               backgroundColor: 'var(--tertiary-bg)',
               border: '1px solid var(--border-color)',
-              borderRadius: '10px',
-              padding: '20px',
-              width: 'calc(100% - 32px)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
             }}
           >
             <p
-              style={{
-                margin: 0,
-                fontSize: '15px',
-                fontWeight: 600,
-                color: 'var(--primary-text)',
-              }}
+              className="m-0 text-[15px] font-semibold"
+              style={{ color: 'var(--primary-text)' }}
             >
               Clear All History
             </p>
             <p
-              style={{
-                margin: 0,
-                fontSize: '13px',
-                color: 'var(--secondary-text)',
-                opacity: 0.8,
-              }}
+              className="m-0 text-[13px] opacity-80"
+              style={{ color: 'var(--secondary-text)' }}
             >
               Are you sure? This will permanently delete all conversations.
             </p>
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                justifyContent: 'flex-end',
-              }}
-            >
+            <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setShowConfirm(false)}
+                className="px-3 py-[5px] text-[13px] rounded-md border bg-transparent cursor-pointer"
                 style={{
-                  padding: '5px 12px',
-                  fontSize: '13px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'transparent',
+                  borderColor: 'var(--border-color)',
                   color: 'var(--secondary-text)',
-                  cursor: 'pointer',
                 }}
               >
                 Cancel
@@ -337,14 +257,11 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
                   clearAllHistory();
                   setShowConfirm(false);
                 }}
+                className="px-3 py-[5px] text-[13px] rounded-md border cursor-pointer"
                 style={{
-                  padding: '5px 12px',
-                  fontSize: '13px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(239,68,68,0.4)',
+                  borderColor: 'rgba(239,68,68,0.4)',
                   backgroundColor: 'rgba(239,68,68,0.12)',
                   color: '#f87171',
-                  cursor: 'pointer',
                 }}
               >
                 Delete
@@ -355,91 +272,50 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
       )}
 
       {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-md)' }}>
+      <div className="flex-1 overflow-y-auto p-3">
         {isLoading ? (
           <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '160px',
-              color: 'var(--secondary-text)',
-              gap: 'var(--spacing-sm)',
-            }}
+            className="flex flex-col items-center justify-center h-[160px] gap-2"
+            style={{ color: 'var(--secondary-text)' }}
           >
             <Loader2
-              style={{
-                width: '24px',
-                height: '24px',
-                color: 'var(--accent-text)',
-                animation: 'spin 1s linear infinite',
-              }}
+              className="w-6 h-6 animate-spin"
+              style={{ color: 'var(--accent-text)', animation: 'spin 1s linear infinite' }}
             />
-            <span style={{ fontSize: 'var(--font-size-xs)' }}>Loading...</span>
+            <span className="text-xs">Loading...</span>
           </div>
         ) : conversations.length === 0 ? (
           <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '160px',
-              color: 'var(--secondary-text)',
-              gap: 'var(--spacing-md)',
-            }}
+            className="flex flex-col items-center justify-center h-[160px] gap-3"
+            style={{ color: 'var(--secondary-text)' }}
           >
-            <FolderOpen style={{ width: '40px', height: '40px', opacity: 0.2 }} />
-            <div style={{ textAlign: 'center' }}>
+            <FolderOpen className="w-10 h-10 opacity-20" />
+            <div className="text-center">
               <h3
-                style={{
-                  fontSize: 'var(--font-size-sm)',
-                  fontWeight: 500,
-                  color: 'var(--primary-text)',
-                  marginBottom: '4px',
-                  opacity: 0.7,
-                }}
+                className="text-sm font-medium mb-1 opacity-70"
+                style={{ color: 'var(--primary-text)' }}
               >
                 {searchQuery ? 'No results found' : 'No conversations yet'}
               </h3>
-              <p
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  maxWidth: '200px',
-                  margin: '0 auto',
-                  opacity: 0.7,
-                }}
-              >
-                {searchQuery ? 'Try a different search term' : 'Start a new chat to begin'}
+              <p className="text-xs max-w-[200px] mx-auto opacity-70">
+                {searchQuery
+                  ? 'Try a different search term'
+                  : 'Start a new chat to begin'}
               </p>
             </div>
           </div>
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--spacing-sm)',
-            }}
-          >
+          <div className="flex flex-col gap-1">
             {conversations.map((item, i) => {
               const label = getDateLabel(item);
-              const showLabel = i === 0 || getDateLabel(conversations[i - 1]) !== label;
+              const showLabel =
+                i === 0 || getDateLabel(conversations[i - 1]) !== label;
               return (
                 <React.Fragment key={item.id}>
                   {showLabel && (
                     <div
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        color: 'var(--secondary-text)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
-                        padding: '8px 2px 4px',
-                        paddingLeft: '8px',
-                        opacity: 0.6,
-                      }}
+                      className="text-[11px] font-semibold uppercase tracking-[0.06em] pt-2 pb-1 pl-2 opacity-60"
+                      style={{ color: 'var(--secondary-text)' }}
                     >
                       {label}
                     </div>
@@ -447,7 +323,11 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
                   <HistoryCard
                     item={item}
                     onClick={() => {
-                      onLoadConversation?.(item.id, item.tabId, item.folderPath);
+                      onLoadConversation?.(
+                        item.id,
+                        item.tabId,
+                        item.folderPath,
+                      );
                     }}
                     onDelete={handleDeleteConversation}
                     formatDate={formatDate}
@@ -459,7 +339,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
         )}
       </div>
 
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

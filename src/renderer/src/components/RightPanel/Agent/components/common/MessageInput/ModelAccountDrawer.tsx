@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Search, ChevronRight, X, ChevronLeft } from 'lucide-react';
+import { cn } from '@renderer/shared/lib/utils';
 
 interface Provider {
   provider_id: string;
@@ -42,7 +43,11 @@ interface ModelTooltipProps {
 }
 
 const BoolBadge: React.FC<{ value: boolean }> = ({ value }) => (
-  <span style={{ color: value ? '#4ade80' : '#ef4444', fontWeight: 600 }}>{value ? '✓' : '✗'}</span>
+  <span
+    className={cn('font-semibold', value ? 'text-[#4ade80]' : 'text-[#ef4444]')}
+  >
+    {value ? '✓' : '✗'}
+  </span>
 );
 
 const ModelTooltip: React.FC<ModelTooltipProps> = ({ model, x, y }) => {
@@ -56,7 +61,7 @@ const ModelTooltip: React.FC<ModelTooltipProps> = ({ model, x, y }) => {
         model.max_context_length != null || model.context_length != null ? (
           `${Number(model.max_context_length ?? model.context_length).toLocaleString()} tokens`
         ) : (
-          <span style={{ opacity: 0.4 }}>—</span>
+          <span className="opacity-40">—</span>
         ),
     },
     { label: 'Thinking', value: <BoolBadge value={!!model.is_thinking} /> },
@@ -71,80 +76,39 @@ const ModelTooltip: React.FC<ModelTooltipProps> = ({ model, x, y }) => {
   ];
 
   const TOOLTIP_W = 210;
-  const TOOLTIP_H = 160; // increased for description
+  const TOOLTIP_H = 160;
   const OFFSET_X = 14;
   const OFFSET_Y = 10;
   const viewW = window.innerWidth;
   const viewH = window.innerHeight;
 
-  // Default: below-right of cursor
   let left = x + OFFSET_X;
   let top = y + OFFSET_Y;
-  // Flip left if near right edge
   if (left + TOOLTIP_W > viewW - 8) left = x - TOOLTIP_W - OFFSET_X;
-  // Flip up if near bottom edge
   if (top + TOOLTIP_H > viewH - 8) top = y - TOOLTIP_H - OFFSET_Y;
 
   return (
     <div
+      className="fixed rounded-md px-2.5 py-2 text-[11px] leading-relaxed pointer-events-none shadow-lg bg-[var(--vscode-editorHoverWidget-background,#1e1e1e)] border border-[var(--vscode-editorHoverWidget-border,#454545)] text-[var(--vscode-foreground)] z-[99999] shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
       style={{
-        position: 'fixed',
         left,
         top,
         width: TOOLTIP_W,
-        backgroundColor: 'var(--vscode-editorHoverWidget-background, #1e1e1e)',
-        border: '1px solid var(--vscode-editorHoverWidget-border, #454545)',
-        borderRadius: '6px',
-        padding: '8px 10px',
-        fontSize: '11px',
-        color: 'var(--vscode-foreground)',
-        lineHeight: 1.7,
-        pointerEvents: 'none',
-        zIndex: 99999,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
       }}
     >
-      <div
-        style={{
-          fontWeight: 700,
-          marginBottom: '6px',
-          fontSize: '12px',
-          borderBottom: '1px solid rgba(128,128,128,0.2)',
-          paddingBottom: '5px',
-        }}
-      >
+      <div className="font-bold mb-1.5 text-xs border-b border-b-[rgba(128,128,128,0.2)] pb-[5px]">
         {model.name}
       </div>
       {model.description && (
         <div
-          style={{
-            marginBottom: '8px',
-            paddingBottom: '6px',
-            borderBottom: '1px solid rgba(128,128,128,0.15)',
-            fontSize: '10.5px',
-            opacity: 0.85,
-            fontStyle: 'italic',
-            lineHeight: 1.4,
-            maxHeight: '60px',
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical',
-          }}
+          className="mb-2 pb-1.5 border-b border-b-[rgba(128,128,128,0.15)] text-[10.5px] opacity-85 italic leading-relaxed max-h-[60px] overflow-hidden [-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]"
         >
           {model.description}
         </div>
       )}
       {rows.map((r) => (
-        <div
-          key={r.label}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <span style={{ opacity: 0.55 }}>{r.label}</span>
+        <div key={r.label} className="flex justify-between gap-3">
+          <span className="opacity-55">{r.label}</span>
           <span>{r.value}</span>
         </div>
       ))}
@@ -167,11 +131,9 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
   const [accountSearchQuery, setAccountSearchQuery] = useState('');
 
-  // accounts count per provider_id
   const [accountCountMap, setAccountCountMap] = useState<Record<string, number>>({});
   const [isLoadingAccountMap, setIsLoadingAccountMap] = useState(false);
 
-  // tooltip state — follow mouse cursor directly
   const [tooltipModel, setTooltipModel] = useState<{
     model: any;
     x: number;
@@ -181,7 +143,6 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
   const mousePos = useRef({ x: 0, y: 0 });
   const activeRowRect = useRef<DOMRect | null>(null);
 
-  // Track global mouse position — hide tooltip when cursor leaves the active row bounds
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
@@ -198,7 +159,6 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
           setTooltipModel(null);
           activeRowRect.current = null;
         } else {
-          // Update tooltip follow position
           setTooltipModel((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
         }
       }
@@ -207,7 +167,6 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
     return () => window.removeEventListener('mousemove', onMouseMove);
   }, [tooltipModel]);
 
-  // Reset state when drawer opens + fetch account counts
   useEffect(() => {
     if (isOpen) {
       setStep('model');
@@ -217,7 +176,6 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
       setProviderAccounts([]);
       setTooltipModel(null);
 
-      // Fetch all accounts once to build count map
       setIsLoadingAccountMap(true);
       fetch(`${apiUrl}/v1/accounts?page=1&limit=200`)
         .then((r) => r.json())
@@ -237,7 +195,6 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
     }
   }, [isOpen, apiUrl]);
 
-  // Fetch accounts when moving to account step
   useEffect(() => {
     if (step === 'account' && selectedModel) {
       let isMounted = true;
@@ -289,11 +246,6 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
           (p.provider_name || '').toLowerCase().includes(searchQuery.toLowerCase()),
       );
 
-    // Sort priority:
-    //   0 = has models + has accounts  (top)
-    //   1 = has models, no accounts
-    //   2 = has accounts, no models
-    //   3 = neither                    (bottom)
     const priority = (p: (typeof mapped)[0]) => {
       const hasModels = p.models.length > 0;
       const hasAccounts = (accountCountMap[p.provider_id] ?? 0) > 0;
@@ -316,7 +268,6 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
     }, 100);
   };
 
-  // mouseleave is unreliable in VSCode webview — hide is handled by mousemove bounds check above
   const handleModelMouseLeave = () => {
     if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
     setTooltipModel((prev) => {
@@ -330,88 +281,33 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
   return (
     <>
       <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '50vh',
-          maxHeight: '50vh',
-          backgroundColor: 'var(--primary-bg)',
-          borderTop: '1px solid var(--border-color)',
-          borderTopLeftRadius: '12px',
-          borderTopRightRadius: '12px',
-          boxShadow: '0 -8px 24px rgba(0, 0, 0, 0.2)',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'slideUpDrawer 0.25s ease-out',
-          color: 'var(--primary-text)',
-          overflow: 'hidden',
-        }}
+        className="absolute inset-0 flex flex-col overflow-hidden rounded-t-xl z-[1000] bg-[var(--primary-bg)] border-t border-[var(--border-color)] text-[var(--primary-text)] shadow-[0_-8px_24px_rgba(0,0,0,0.2)]"
+        style={{ animation: 'slideUpDrawer 0.25s ease-out' }}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: '10px 16px',
-            borderBottom: '1px solid var(--border-color)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: 'var(--secondary-bg)',
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="flex justify-between items-center px-4 py-2.5 shrink-0 border-b border-b-[var(--border-color)] bg-[var(--secondary-bg)]">
+          <div className="flex items-center gap-2">
             {step === 'account' && (
               <button
                 onClick={() => {
                   setStep('model');
                   setAccountSearchQuery('');
                 }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  marginLeft: '-6px',
-                  color: 'var(--secondary-text)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'color 0.2s',
-                }}
+                className="bg-transparent border-none cursor-pointer p-1 -ml-1.5 flex items-center transition-colors duration-200 text-[var(--secondary-text)]"
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--primary-text)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--secondary-text)')}
               >
                 <ChevronLeft size={16} />
               </button>
             )}
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
+            <span className="text-xs font-semibold uppercase tracking-wider">
               {step === 'model' ? 'Quick Switch' : 'Select Account'}
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="flex items-center gap-3">
             {step === 'account' && selectedModel && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '11px',
-                  color: 'var(--secondary-text)',
-                  padding: '2px 8px',
-                  backgroundColor: 'var(--hover-bg)',
-                  borderRadius: '4px',
-                }}
-              >
+              <div className="flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded text-[var(--secondary-text)] bg-[var(--hover-bg)]">
                 {(() => {
                   const provider = providers.find(
                     (p) => p.provider_id === selectedModel.provider_id,
@@ -422,32 +318,20 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                       <img
                         src={faviconUrl}
                         alt=""
-                        style={{
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '2px',
-                        }}
+                        className="w-3 h-3 rounded-[2px]"
                         onError={(e) => (e.currentTarget.style.display = 'none')}
                       />
                     )
                   );
                 })()}
-                <span style={{ fontWeight: 500 }}>
+                <span className="font-medium">
                   {selectedModel.provider_id}/{selectedModel.id}
                 </span>
               </div>
             )}
             <button
               onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px',
-                color: 'var(--secondary-text)',
-                display: 'flex',
-                alignItems: 'center',
-              }}
+              className="bg-transparent border-none cursor-pointer p-1 flex items-center text-[var(--secondary-text)]"
             >
               <X size={16} />
             </button>
@@ -455,32 +339,12 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
         </div>
 
         {step === 'model' ? (
-          <div
-            style={{
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100%',
-              overflow: 'hidden',
-            }}
-          >
+          <div className="flex flex-col h-full overflow-hidden p-3">
             {/* Search */}
-            <div
-              style={{
-                position: 'relative',
-                marginBottom: '12px',
-                flexShrink: 0,
-              }}
-            >
+            <div className="relative mb-3 shrink-0">
               <Search
                 size={14}
-                style={{
-                  position: 'absolute',
-                  left: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--secondary-text)',
-                }}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--secondary-text)]"
               />
               <input
                 autoFocus
@@ -488,51 +352,25 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                 placeholder="Search models..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '6px 10px 6px 30px',
-                  backgroundColor: 'var(--input-bg)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '4px',
-                  color: 'var(--primary-text)',
-                  fontSize: '13px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
+                className="w-full pl-[30px] pr-2.5 py-1.5 rounded text-sm outline-none box-border bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--primary-text)]"
               />
             </div>
 
-            <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="custom-scrollbar flex-1 overflow-y-auto">
               {filteredProviders.map((provider) => {
                 const accountCount = accountCountMap[provider.provider_id] ?? 0;
                 const hasModels = provider.models.length > 0;
                 const hasAccounts = accountCount > 0;
 
                 return (
-                  <div key={provider.provider_id} style={{ marginBottom: '16px' }}>
-                    {/* Provider header — now larger & primary text */}
-                    <div
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        color: 'var(--primary-text)',
-                        paddingBottom: '5px',
-                        borderBottom: '1px solid var(--border-color)',
-                        marginBottom: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
+                  <div key={provider.provider_id} className="mb-4">
+                    {/* Provider header */}
+                    <div className="flex items-center gap-1.5 text-[13px] font-bold pb-[5px] mb-2 border-b border-b-[var(--border-color)] text-[var(--primary-text)]">
                       {getFavicon(provider.website) && (
                         <img
                           src={getFavicon(provider.website)}
                           alt="favicon"
-                          style={{
-                            width: '14px',
-                            height: '14px',
-                            borderRadius: '2px',
-                          }}
+                          className="w-3.5 h-3.5 rounded-[2px]"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
@@ -540,14 +378,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                       )}
                       {provider.provider_name || provider.provider_id}
                       {!isLoadingAccountMap && (
-                        <span
-                          style={{
-                            marginLeft: 'auto',
-                            fontSize: '11px',
-                            fontWeight: 400,
-                            opacity: 0.55,
-                          }}
-                        >
+                        <span className="ml-auto text-[11px] font-normal opacity-55">
                           {accountCount} account{accountCount !== 1 ? 's' : ''}
                         </span>
                       )}
@@ -555,20 +386,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
 
                     {/* No accounts warning */}
                     {!isLoadingAccountMap && !hasAccounts && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '7px 10px',
-                          marginBottom: '6px',
-                          borderRadius: '4px',
-                          backgroundColor: 'rgba(234, 179, 8, 0.08)',
-                          border: '1px solid rgba(234, 179, 8, 0.3)',
-                          fontSize: '11.5px',
-                          color: '#eab308',
-                        }}
-                      >
+                      <div className="flex items-center gap-1.5 px-2.5 py-[7px] mb-1.5 rounded text-[11.5px] bg-[rgba(234,179,8,0.08)] border border-[rgba(234,179,8,0.3)] text-[#eab308]">
                         <span>⚠</span>
                         <span>No accounts added for this provider</span>
                       </div>
@@ -576,19 +394,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
 
                     {/* No models warning */}
                     {!hasModels && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '7px 10px',
-                          borderRadius: '4px',
-                          backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          fontSize: '11.5px',
-                          color: '#ef4444',
-                        }}
-                      >
+                      <div className="flex items-center gap-1.5 px-2.5 py-[7px] rounded text-[11.5px] bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.3)] text-[#ef4444]">
                         <span>✕</span>
                         <span>No models available for this provider</span>
                       </div>
@@ -618,44 +424,27 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                               e.currentTarget.style.backgroundColor = 'transparent';
                               handleModelMouseLeave();
                             }}
-                            style={{
-                              padding: '7px 12px',
-                              cursor: isDisabled ? 'not-allowed' : 'pointer',
-                              borderRadius: '4px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              opacity: isDisabled ? 0.45 : 1,
-                            }}
+                            className={cn(
+                              'flex items-center justify-between px-3 py-[7px] rounded',
+                              isDisabled
+                                ? 'cursor-not-allowed opacity-45'
+                                : 'cursor-pointer opacity-100'
+                            )}
                           >
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                width: '100%',
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize: '12px',
-                                  fontWeight: 400,
-                                  color: 'var(--secondary-text)',
-                                }}
-                              >
+                            <div className="flex items-center gap-2 w-full">
+                              <span className="text-xs font-normal text-[var(--secondary-text)]">
                                 {model.name}
                               </span>
                               {model.success_rate != null && (
                                 <span
-                                  style={{
-                                    fontSize: '10.5px',
-                                    color:
-                                      model.success_rate >= 80
-                                        ? '#4ade80'
-                                        : model.success_rate >= 50
-                                          ? '#facc15'
-                                          : '#f87171',
-                                  }}
+                                  className={cn(
+                                    'text-[10.5px]',
+                                    model.success_rate >= 80
+                                      ? 'text-[#4ade80]'
+                                      : model.success_rate >= 50
+                                        ? 'text-[#facc15]'
+                                        : 'text-[#f87171]'
+                                  )}
                                 >
                                   {model.success_rate.toFixed(1)}% success
                                 </span>
@@ -664,10 +453,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                             {!isDisabled && (
                               <ChevronRight
                                 size={13}
-                                style={{
-                                  color: 'var(--secondary-text)',
-                                  opacity: 0.5,
-                                }}
+                                className="opacity-50 text-[var(--secondary-text)]"
                               />
                             )}
                           </div>
@@ -678,14 +464,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
               })}
 
               {filteredProviders.length === 0 && (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    color: 'var(--secondary-text)',
-                    padding: '20px',
-                    fontSize: '12px',
-                  }}
-                >
+                <div className="text-center p-5 text-xs text-[var(--secondary-text)]">
                   No models found
                 </div>
               )}
@@ -693,31 +472,11 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
           </div>
         ) : (
           /* Account step */
-          <div
-            style={{
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100%',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                position: 'relative',
-                marginBottom: '12px',
-                flexShrink: 0,
-              }}
-            >
+          <div className="flex flex-col h-full overflow-hidden p-3">
+            <div className="relative mb-3 shrink-0">
               <Search
                 size={14}
-                style={{
-                  position: 'absolute',
-                  left: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--secondary-text)',
-                }}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--secondary-text)]"
               />
               <input
                 autoFocus
@@ -725,30 +484,13 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                 placeholder="Search accounts..."
                 value={accountSearchQuery}
                 onChange={(e) => setAccountSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '6px 10px 6px 30px',
-                  backgroundColor: 'var(--input-bg)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '4px',
-                  color: 'var(--primary-text)',
-                  fontSize: '13px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
+                className="w-full pl-[30px] pr-2.5 py-1.5 rounded text-sm outline-none box-border bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--primary-text)]"
               />
             </div>
 
-            <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="custom-scrollbar flex-1 overflow-y-auto">
               {isLoadingAccounts ? (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    color: 'var(--secondary-text)',
-                    padding: '20px',
-                    fontSize: '12px',
-                  }}
-                >
+                <div className="text-center p-5 text-xs text-[var(--secondary-text)]">
                   Loading accounts...
                 </div>
               ) : providerAccounts.length > 0 ? (
@@ -758,14 +500,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                   );
                   if (filtered.length === 0) {
                     return (
-                      <div
-                        style={{
-                          textAlign: 'center',
-                          color: 'var(--secondary-text)',
-                          padding: '20px',
-                          fontSize: '12px',
-                        }}
-                      >
+                      <div className="text-center p-5 text-xs text-[var(--secondary-text)]">
                         No accounts match your search.
                       </div>
                     );
@@ -782,55 +517,25 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                         });
                         onClose();
                       }}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        transition: 'background-color 0.2s',
-                      }}
+                      className="flex items-center justify-between px-3 py-2 rounded cursor-pointer transition-colors duration-200"
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor = 'var(--hover-bg)')
                       }
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 400,
-                          color: 'var(--primary-text)',
-                        }}
-                      >
+                      <span className="text-[13px] font-normal text-[var(--primary-text)]">
                         {acc.email || acc.name || acc.id}
                       </span>
                       {acc.usage && (
                         <span
-                          style={{
-                            fontSize: '11px',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            backgroundColor:
-                              acc.usage.includes('5/5') ||
-                              acc.usage.toLowerCase().includes('limit') ||
-                              acc.usage.toLowerCase().includes('unknown')
-                                ? 'rgba(239, 68, 68, 0.12)'
-                                : 'rgba(34, 197, 94, 0.12)',
-                            color:
-                              acc.usage.includes('5/5') ||
-                              acc.usage.toLowerCase().includes('limit') ||
-                              acc.usage.toLowerCase().includes('unknown')
-                                ? '#f87171'
-                                : '#4ade80',
-                            fontWeight: 500,
-                            border:
-                              acc.usage.includes('5/5') ||
-                              acc.usage.toLowerCase().includes('limit') ||
-                              acc.usage.toLowerCase().includes('unknown')
-                                ? '1px solid rgba(239, 68, 68, 0.2)'
-                                : '1px solid rgba(34, 197, 94, 0.2)',
-                          }}
+                          className={cn(
+                            'text-[11px] px-1.5 py-0.5 rounded font-medium',
+                            acc.usage.includes('5/5') ||
+                            acc.usage.toLowerCase().includes('limit') ||
+                            acc.usage.toLowerCase().includes('unknown')
+                              ? 'bg-[rgba(239,68,68,0.12)] text-[#f87171] border border-[rgba(239,68,68,0.2)]'
+                              : 'bg-[rgba(34,197,94,0.12)] text-[#4ade80] border border-[rgba(34,197,94,0.2)]'
+                          )}
                         >
                           {acc.usage}
                         </span>
@@ -839,14 +544,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                   ));
                 })()
               ) : (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    color: 'var(--secondary-text)',
-                    padding: '20px',
-                    fontSize: '12px',
-                  }}
-                >
+                <div className="text-center p-5 text-xs text-[var(--secondary-text)]">
                   No accounts available for this provider.
                 </div>
               )}
@@ -862,7 +560,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
         `}</style>
       </div>
 
-      {/* Tooltip via portal → escapes all overflow:hidden ancestors */}
+      {/* Tooltip via portal */}
       {tooltipModel &&
         ReactDOM.createPortal(
           <ModelTooltip model={tooltipModel.model} x={tooltipModel.x} y={tooltipModel.y} />,

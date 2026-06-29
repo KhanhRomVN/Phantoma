@@ -1,44 +1,28 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useMemo,
-} from "react";
-import { useSettings } from "../../context/SettingsContext";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useSettings } from '../../context/SettingsContext';
 
-import { extensionService } from "../../services/ExtensionService";
-import {
-  saveConversation,
-  deleteConversation,
-} from "./services/ConversationService";
-import { HISTORY_CONTEXT_REMINDER } from "./prompts";
+import { extensionService } from '../../services/ExtensionService';
+import { saveConversation } from './services/ConversationService';
+import { HISTORY_CONTEXT_REMINDER } from './prompts';
 
-import { useChatLLM } from "./hooks/useChatLLM";
-import { useToolExecution } from "./hooks/useToolExecution";
-import { useWorkspaceData } from "./hooks/useWorkspaceData";
-import { useGitOperations } from "./hooks/useGitOperations";
-import { useConversationRestore } from "./hooks/useConversationRestore";
-import { useFileHandling } from "../../hooks/useFileHandling";
-import { useMentionSystem } from "./hooks/useMentionSystem";
-import { ChatSession } from "./types/chat";
-import { Message } from "./types/message";
-import { ConversationCache } from "./services/ConversationCache";
-import ChatHeader from "./components/ChatHeader";
-import ChatBody from "./components/ChatBody";
-import ChatFooter from "./components/ChatFooter";
-import { ChatErrorBoundary } from "./components/ChatErrorBoundary";
-import { parseAIResponse } from "./services/ResponseParser";
-import { useTerminalPolling } from "./hooks/useTerminalPolling";
-import { useBrowserSession } from "./hooks/useBrowserSession";
-import { useDraftManagement } from "./hooks/useDraftManagement";
-
-
-// Shared components
-import MessageInput from "@/components/MessageInput";
-import FilesPreviews from "@/components/MessageInput/FilesPreviews";
-import GitStatusBlock from "./components/blocks/GitStatusBlock";
-import { RichtextBlock } from "./components/blocks/RichtextBlock";
+import { useChatLLM } from './hooks/useChatLLM';
+import { useToolExecution } from './hooks/useToolExecution';
+import { useWorkspaceData } from './hooks/useWorkspaceData';
+import { useGitOperations } from './hooks/useGitOperations';
+import { useConversationRestore } from './hooks/useConversationRestore';
+import { useFileHandling } from '../../hooks/useFileHandling';
+import { useMentionSystem } from './hooks/useMentionSystem';
+import { ChatSession } from './types/chat';
+import { Message } from './types/message';
+import { ConversationCache } from './services/ConversationCache';
+import ChatHeader from './components/ChatHeader';
+import ChatBody from './components/ChatBody';
+import ChatFooter from './components/ChatFooter';
+import { ChatErrorBoundary } from './components/ChatErrorBoundary';
+import { parseAIResponse } from './services/ResponseParser';
+import { useTerminalPolling } from './hooks/useTerminalPolling';
+import { useBrowserSession } from './hooks/useBrowserSession';
+import { useDraftManagement } from './hooks/useDraftManagement';
 
 interface ChatPanelProps {
   currentChat: ChatSession | null;
@@ -65,15 +49,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onClearInitialData,
 }) => {
   // --- States ---
-  const [apiUrl, setApiUrl] = useState("http://localhost:8888");
+  const [apiUrl, setApiUrl] = useState('http://localhost:8888');
   const [isApiUrlReady, setIsApiUrlReady] = useState(false);
   const [providers, setProviders] = useState<any[]>([]);
-  
+
   const { activeTerminalIds, attachedTerminalIds } = useTerminalPolling();
   const [currentModel, setCurrentModel] = useState<any>(() => {
     if (initialMessageData?.model) return initialMessageData.model;
     try {
-      const saved = localStorage.getItem("zen_last_model");
+      const saved = localStorage.getItem('zen_last_model');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return null;
@@ -81,50 +65,40 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [currentAccount, setCurrentAccount] = useState<any>(() => {
     if (initialMessageData?.account) return initialMessageData.account;
     try {
-      const saved = localStorage.getItem("zen_last_account");
+      const saved = localStorage.getItem('zen_last_account');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return null;
   });
 
-  // Refs to always access the latest model/account values inside callbacks.
-  // Without these, callbacks created via useCallback can capture stale closure
-  // values of currentModel/currentAccount from a previous render, leading to
-  // the wrong model being sent when the user switches mid-session.
   const currentModelRef = useRef<any>(null);
   const currentAccountRef = useRef<any>(null);
 
-  // Keep refs in sync with state (synchronous, runs before any async callbacks)
   currentModelRef.current = currentModel;
   currentAccountRef.current = currentAccount;
 
-  // Persist model/account selection when changed
   useEffect(() => {
     if (currentModel) {
-      localStorage.setItem("zen_last_model", JSON.stringify(currentModel));
+      localStorage.setItem('zen_last_model', JSON.stringify(currentModel));
     }
   }, [currentModel]);
 
   useEffect(() => {
     if (currentAccount) {
-      localStorage.setItem("zen_last_account", JSON.stringify(currentAccount));
+      localStorage.setItem('zen_last_account', JSON.stringify(currentAccount));
     }
   }, [currentAccount]);
 
   const { isSimpleMode, commitMessageLanguage } = useSettings();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Git state - managed by useGitOperations hook
-
-  // Revert state - managed by useConversationRestore hook
   const [autoScrollPaused, setAutoScrollPaused] = useState(false);
   const scrollToBottomRef = useRef<(() => void) | null>(null);
 
   // --- ChatFooter local state ---
-  const [showProjectStructureDrawer, setShowProjectStructureDrawer] =
-    useState(false);
+  const [showProjectStructureDrawer, setShowProjectStructureDrawer] = useState(false);
   const [showChangesDropdown, setShowChangesDropdown] = useState(false);
   const [showProjectContextModal, setShowProjectContextModal] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
@@ -132,7 +106,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const mentionDropdownRef = useRef<HTMLDivElement>(null);
   const { apiUrl: backendApiUrl } = useSettings();
 
-  // Revert state — owned by component so useDraftManagement can access it
   const [revertInput, setRevertInput] = useState<{ value: string; nonce: number } | null>(null);
   const revertParentMessageIdRef = useRef<string | null>(null);
 
@@ -171,8 +144,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       ),
   });
 
-  const { availableFiles, availableFolders, availableRules } =
-    useWorkspaceData();
+  const { availableFiles, availableFolders, availableRules } = useWorkspaceData();
 
   const {
     message,
@@ -208,13 +180,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     onRequestWorkspaceFiles: () => {
       const vscodeApi = (window as any).vscodeApi;
       if (vscodeApi) {
-        vscodeApi.postMessage({ command: "getWorkspaceFiles" });
+        vscodeApi.postMessage({ command: 'getWorkspaceFiles' });
       }
     },
     onRequestWorkspaceFolders: () => {
       const vscodeApi = (window as any).vscodeApi;
       if (vscodeApi) {
-        vscodeApi.postMessage({ command: "getWorkspaceFolders" });
+        vscodeApi.postMessage({ command: 'getWorkspaceFolders' });
       }
     },
   });
@@ -243,12 +215,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     },
   });
 
-  const {
-    isBrowserSessionReady,
-    showBrowserWarning,
-    isLaunchingBrowser,
-    launchBrowserSession,
-  } = useBrowserSession(currentModel, currentAccount, backendApiUrl);
+  const { isBrowserSessionReady, showBrowserWarning, isLaunchingBrowser, launchBrowserSession } =
+    useBrowserSession(currentModel, currentAccount, backendApiUrl);
 
   // --- Refs ---
   const hasProcessedInitial = useRef(false);
@@ -270,8 +238,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       }
       setIsRestored(false);
       let finalContent = content;
-      const isFromHistory =
-        !!(currentChat as any)?.conversationId && !currentChat?.canAccept;
+      const isFromHistory = !!(currentChat as any)?.conversationId && !currentChat?.canAccept;
       if (isFromHistory && !hasAppendedHistoryContext.current) {
         hasAppendedHistoryContext.current = true;
         finalContent = content + HISTORY_CONTEXT_REMINDER;
@@ -308,24 +275,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     conversationIdRef: currentConversationIdRef,
     messagesRef: messagesRef,
     isStoppedRef: isStoppedRef,
-    sendMessage: (
-      content,
-      files,
-      model,
-      account,
-      skipLogic,
-      actionIds,
-      uiHidden,
-    ) =>
-      wrappedSendMessage(
-        content,
-        files,
-        model,
-        account,
-        skipLogic,
-        actionIds,
-        uiHidden,
-      ),
+    sendMessage: (content, files, model, account, skipLogic, actionIds, uiHidden) =>
+      wrappedSendMessage(content, files, model, account, skipLogic, actionIds, uiHidden),
   });
 
   // Git operations
@@ -385,7 +336,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setRevertInput,
   });
 
-  // Reset hasProcessedInitial whenever a new tab/chat session starts
   useEffect(() => {
     hasProcessedInitial.current = false;
     resetSession();
@@ -396,11 +346,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return !!(currentChat as any)?.conversationId && !currentChat?.canAccept;
   }, [currentChat]);
 
-  // Parse cache — reuse results across renders, avoiding redundant re-parses
-  // when only unrelated state changes (same messages array, same content).
-  const parseCacheRef = useRef<Map<string, ReturnType<typeof parseAIResponse>>>(
-    new Map(),
-  );
+  const parseCacheRef = useRef<Map<string, ReturnType<typeof parseAIResponse>>>(new Map());
 
   const parsedMessages = useMemo(() => {
     const cache = parseCacheRef.current;
@@ -421,7 +367,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           if (msg.usage) {
             acc.prompt += msg.usage.prompt_tokens || 0;
             acc.completion += msg.usage.completion_tokens || 0;
-          } else if (msg.role === "user") {
+          } else if (msg.role === 'user') {
             acc.prompt += msg.token_usage;
           } else {
             acc.completion += msg.token_usage;
@@ -441,9 +387,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     for (let i = parsedMessages.length - 1; i >= 0; i--) {
       const msg = parsedMessages[i];
       if (msg.isCancelled) continue;
-      if (msg.role === "user") break;
-      if (msg.role === "assistant" && msg.parsed.taskName)
-        return msg.parsed.taskName;
+      if (msg.role === 'user') break;
+      if (msg.role === 'assistant' && msg.parsed.taskName) return msg.parsed.taskName;
     }
     return null;
   }, [parsedMessages]);
@@ -452,21 +397,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   useEffect(() => {
     const storage = extensionService.getStorage();
     storage
-      .get("backend-api-url")
+      .get('backend-api-url')
       .then((res: any) => {
-        if (res?.value?.startsWith("http")) {
-          const url = res.value.endsWith("/")
-            ? res.value.slice(0, -1)
-            : res.value;
+        if (res?.value?.startsWith('http')) {
+          const url = res.value.endsWith('/') ? res.value.slice(0, -1) : res.value;
           setApiUrl(url);
         }
         setIsApiUrlReady(true);
       })
       .catch((err: any) => {
-        console.warn(
-          "[Zen] ChatPanel failed to load apiUrl from storage:",
-          err,
-        );
+        console.warn('[Zen] ChatPanel failed to load apiUrl from storage:', err);
         setIsApiUrlReady(true);
       });
   }, []);
@@ -482,12 +422,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       .catch(() => {});
   }, [apiUrl]);
 
-  // Sync currentModel/currentAccount from initialMessageData whenever it changes.
-  // CRITICAL: ChatPanel is never unmounted — App.tsx hides it with display:none
-  // so that useState initializers only run once (at first mount). When the user
-  // switches models in HomePanel and sends a message, initialMessageData prop
-  // changes but currentModel state stays stale (old model). This effect ensures
-  // the header and all subsequent interactions use the correct new model.
   useEffect(() => {
     if (initialMessageData?.model) {
       setCurrentModel(initialMessageData.model);
@@ -515,7 +449,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [initialMessageData, sendMessage, onClearInitialData, isApiUrlReady]);
 
-  // Update ConversationCache
   useEffect(() => {
     if (currentConversationId && messages.length > 0) {
       const existing = ConversationCache.get(currentConversationId);
@@ -525,21 +458,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         backendConversationId: existing?.backendConversationId,
         currentModel: currentModel || existing?.currentModel,
         currentAccount: currentAccount || existing?.currentAccount,
-        toolOutputs:
-          Object.keys(toolOutputs).length > 0
-            ? toolOutputs
-            : existing?.toolOutputs,
+        toolOutputs: Object.keys(toolOutputs).length > 0 ? toolOutputs : existing?.toolOutputs,
       });
     }
-  }, [
-    messages,
-    currentConversationId,
-    currentModel,
-    currentAccount,
-    toolOutputs,
-  ]);
+  }, [messages, currentConversationId, currentModel, currentAccount, toolOutputs]);
 
-  // Persist toolOutputs
   useEffect(() => {
     if (!currentConversationId || Object.keys(toolOutputs).length === 0) return;
     const sessionId = currentChat?.sessionId || -1;
@@ -557,13 +480,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     );
   }, [toolOutputs, currentConversationId, currentChat]);
 
-  // Persist singleLineReviewActions
   useEffect(() => {
-    if (
-      !currentConversationId ||
-      Object.keys(singleLineReviewActions).length === 0
-    )
-      return;
+    if (!currentConversationId || Object.keys(singleLineReviewActions).length === 0) return;
     const sessionId = currentChat?.sessionId || -1;
     const folderPath = currentChat?.folderPath || null;
     saveConversation(
@@ -580,17 +498,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     );
   }, [singleLineReviewActions, currentConversationId, currentChat]);
 
-  // Conversation restore is now handled by useConversationRestore hook
-
-  // --- ChatFooter handlers ---
   const handleSend = (model: any, account: any) => {
-    // Check for invalid external files before sending
     if (invalidExternalFiles && invalidExternalFiles.length > 0) {
       const vscodeApi = (window as any).vscodeApi;
-      const message = `Cannot send message due to invalid file(s):\n${invalidExternalFiles.map((f) => `• ${f.name}: ${f.reason}`).join("\n")}\n\nPlease remove these files and try again.`;
+      const message = `Cannot send message due to invalid file(s):\n${invalidExternalFiles.map((f) => `• ${f.name}: ${f.reason}`).join('\n')}\n\nPlease remove these files and try again.`;
       if (vscodeApi) {
         vscodeApi.postMessage({
-          command: "showError",
+          command: 'showError',
           message: message,
         });
       } else {
@@ -599,15 +513,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return;
     }
 
-    if (
-      message.trim() ||
-      uploadedFiles.length > 0 ||
-      attachedItems.length > 0
-    ) {
-      // Use refs (not state) to get the latest model/account values.
-      // This prevents stale closure: if the user changed model right before
-      // pressing Send, the state update may not have propagated into this
-      // callback yet, but the ref always reflects the latest value.
+    if (message.trim() || uploadedFiles.length > 0 || attachedItems.length > 0) {
       const latestModel = model || currentModelRef.current;
       const latestAccount = account || currentAccountRef.current;
       wrappedSendMessage(
@@ -619,7 +525,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         undefined,
         undefined,
       );
-      setMessage("");
+      setMessage('');
       clearDraft();
       clearFiles();
       clearAttachedItems();
@@ -627,7 +533,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       undoStackRef.current = [];
       undoIndexRef.current = -1;
       if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
+        textareaRef.current.style.height = 'auto';
       }
     }
   };
@@ -646,25 +552,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const vscodeApi = (window as any).vscodeApi;
     if (vscodeApi) {
       vscodeApi.postMessage({
-        command: "openTempImage",
+        command: 'openTempImage',
         content: file.content,
         filename: file.name,
       });
     }
   };
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(
-        textareaRef.current.scrollHeight,
-        240,
-      )}px`;
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 240)}px`;
     }
   }, [message]);
 
-  // Click outside for dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -675,9 +576,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         }
       }
       if (showMentionDropdown) {
-        const dropdown = document.querySelector(
-          '[data-mention-dropdown="true"]',
-        );
+        const dropdown = document.querySelector('[data-mention-dropdown="true"]');
         if (dropdown && !dropdown.contains(target)) {
           setShowMentionDropdown(false);
           setMentionType(null);
@@ -685,42 +584,39 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       }
     };
     if (showAtMenu || showMentionDropdown) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showAtMenu, showMentionDropdown]);
 
-  // Load Project Context
   useEffect(() => {
     const vscodeApi = (window as any).vscodeApi;
     if (vscodeApi) {
-      vscodeApi.postMessage({ command: "loadProjectContext" });
+      vscodeApi.postMessage({ command: 'loadProjectContext' });
     }
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
-      if (message.command === "projectContextResponse") {
+      if (message.command === 'projectContextResponse') {
         setProjectContext(message.context);
-      } else if (message.command === "addAttachedItem") {
+      } else if (message.command === 'addAttachedItem') {
         const isFolder =
-          message.itemType === "folder" ||
-          (!message.uri.includes(".") && !message.itemType);
+          message.itemType === 'folder' || (!message.uri.includes('.') && !message.itemType);
         addAttachedItem({
           id: Math.random().toString(36).substring(7),
           path: message.uri,
-          type: isFolder ? "folder" : "file",
+          type: isFolder ? 'folder' : 'file',
         });
       }
     };
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // --- Handlers ---
   const handleClearChat = useCallback(() => {
     extensionService.postMessage({
-      command: "confirmClearChat",
+      command: 'confirmClearChat',
       conversationId: currentConversationId,
     });
   }, [currentConversationId]);
@@ -731,8 +627,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setIsProcessing(false);
     setMessages((prev) => {
       const lastAssistantIdx = [...prev].reduceRight(
-        (found, m, i) =>
-          found === -1 && m.role === "assistant" && !m.isCancelled ? i : found,
+        (found, m, i) => (found === -1 && m.role === 'assistant' && !m.isCancelled ? i : found),
         -1,
       );
       if (lastAssistantIdx === -1) return prev;
@@ -753,44 +648,29 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       );
       return updated;
     });
-  }, [
-    stopGeneration,
-    setIsProcessing,
-    setMessages,
-    currentChat,
-    currentConversationId,
-  ]);
+  }, [stopGeneration, setIsProcessing, setMessages, currentChat, currentConversationId]);
 
-  // Listen for AI response containing commit message - using hook's detector
   useEffect(() => {
     handleGitCommitMessageDetected(messages);
   }, [messages, handleGitCommitMessageDetected]);
 
-  const firstRequestMessage = messages.find((m) => m.role === "user");
+  const firstRequestMessage = messages.find((m) => m.role === 'user');
 
-  // Use enrichedModel (model with full capability flags) for header display,
-  // same source as what MessageInput receives — ensures header always matches
-  // the model the user has actually selected/switched to.
   const displayedModel = enrichedModel ?? currentModel;
 
   const totalTokens = contextUsage?.total ?? 0;
   const footerPaddingBottom =
-    showBrowserWarning && currentModel?.providerId === "zai-browser"
-      ? "20px"
-      : "8px";
+    showBrowserWarning && currentModel?.providerId === 'zai-browser' ? '20px' : '8px';
 
   return (
     <div
-      className="chat-panel"
+      className="chat-panel flex flex-col h-full"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        backgroundColor: "var(--secondary-bg)",
-        color: "var(--vscode-editor-foreground)",
+        backgroundColor: 'var(--secondary-bg)',
+        color: 'var(--vscode-editor-foreground)',
       }}
     >
-      {/* ─── ChatHeader ─── */}
+      {/* ChatHeader */}
       <ChatHeader
         displayedModel={displayedModel}
         currentAccount={currentAccount}
@@ -802,7 +682,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         setSearchQuery={setSearchQuery}
       />
 
-      {/* ─── ChatBody ─── */}
+      {/* ChatBody */}
       <ChatErrorBoundary>
         <ChatBody
           messages={messages}
@@ -812,13 +692,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           incompletePartialToolType={incompletePartialToolType}
           isSimpleMode={isSimpleMode}
           onSendToolRequest={(actions, msg, isAuto, type) =>
-            handleToolRequest(
-              actions,
-              msg,
-              isAuto,
-              conversationToolOverrides,
-              type,
-            )
+            handleToolRequest(actions, msg, isAuto, conversationToolOverrides, type)
           }
           onSendMessage={(c, f, m, a, skip, ids, hidden) =>
             wrappedSendMessage(c, f, m, a, skip, ids, hidden)
@@ -847,18 +721,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           onSearchQueryChange={setSearchQuery}
           onCloseSearch={() => {
             setIsSearchOpen(false);
-            setSearchQuery("");
+            setSearchQuery('');
           }}
           onGitConfirm={handleGitConfirm}
           onGitCancel={handleGitCancel}
           gitStatusItems={gitStatus?.items || []}
-          gitStatusBranch={gitStatus?.branch || ""}
+          gitStatusBranch={gitStatus?.branch || ''}
           isGitProcessing={gitCommitLoading}
           isGitStatusVisible={showGitStatusBlock}
         />
       </ChatErrorBoundary>
 
-      {/* ─── ChatFooter ─── */}
+      {/* ChatFooter */}
       <ChatFooter
         message={message}
         setMessage={setMessage}
@@ -887,7 +761,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         setCurrentModel={setCurrentModel}
         currentAccount={currentAccount}
         setCurrentAccount={setCurrentAccount}
-        isProcessing={isProcessing || executionState.status === "running"}
+        isProcessing={isProcessing || executionState.status === 'running'}
         isStreaming={isStreaming}
         onStopGeneration={handleStopGeneration}
         showBrowserWarning={showBrowserWarning}

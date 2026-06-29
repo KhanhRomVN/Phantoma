@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import './RichtextBlock.css';
 import FileIcon from '@renderer/components/common/FileIcon';
+import { cn } from '@renderer/shared/lib/utils';
 
 interface RichtextBlockProps {
   content: string;
@@ -45,15 +45,7 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
     const folderStack: string[] = [];
 
     return (
-      <div
-        className="file-tree-container"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2px',
-          padding: '8px 0',
-        }}
-      >
+      <div className="flex flex-col gap-0.5 py-2">
         {lines.map((line, idx) => {
           // Detect indentation (starts with spaces)
           const indentMatch = line.match(/^(\s*)/);
@@ -85,19 +77,12 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
           return (
             <div
               key={idx}
-              className="file-tree-row"
               onClick={isClickable ? () => onFileClick!(fullPath) : undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                paddingLeft: `${indentLevel * 16 + 8}px`,
-                fontSize: '13px',
-                height: '24px',
-                borderRadius: '4px',
-                transition: 'background 0.15s',
-                cursor: isClickable ? 'pointer' : 'default',
-              }}
+              className={cn(
+                'flex items-center gap-1.5 text-[13px] h-6 rounded transition-colors duration-[0.15s]',
+                isClickable ? 'cursor-pointer' : 'cursor-default'
+              )}
+              style={{ paddingLeft: `${indentLevel * 16 + 8}px` }}
               onMouseEnter={
                 isClickable
                   ? (e) => {
@@ -119,27 +104,12 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
                 isFolder={isFolder}
                 style={{ width: '16px', height: '16px', opacity: 0.9 }}
               />
-              <span
-                style={{
-                  color: 'var(--vscode-editor-foreground)',
-                  opacity: 0.9,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
+              <span className="text-[var(--vscode-editor-foreground)] opacity-90 whitespace-nowrap overflow-hidden text-ellipsis">
                 {name}
                 {isFolder && '/'}
               </span>
               {lineCount && (
-                <span
-                  style={{
-                    color: 'var(--vscode-descriptionForeground)',
-                    fontSize: '11px',
-                    opacity: 0.6,
-                    marginLeft: '4px',
-                  }}
-                >
+                <span className="text-[var(--vscode-descriptionForeground)] text-[11px] opacity-60 ml-1">
                   {lineCount} lines
                 </span>
               )}
@@ -150,124 +120,85 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
     );
   };
 
+  const SummaryView = () => (
+    <div
+      className="!bg-transparent transition-opacity duration-200 hover:opacity-90 cursor-pointer flex items-center gap-2 py-2 text-[13px]"
+      onClick={() => setIsCollapsed(!isCollapsed)}
+    >
+      <span className="codicon codicon-chevron-right text-xs opacity-70" />
+      {statusColor && (
+        <span
+          className="inline-block w-2 h-2 rounded-full"
+          style={{ backgroundColor: statusColor }}
+        />
+      )}
+      {prefix && (
+        <span className="font-medium text-[var(--vscode-foreground)]">
+          {prefix}
+        </span>
+      )}
+      <span className="text-[var(--vscode-editor-foreground)] font-[var(--vscode-font-family)]">
+        {title || 'Output'}
+      </span>
+      {headerActions && (
+        <div className="flex items-center gap-2 ml-auto">
+          {headerActions}
+        </div>
+      )}
+    </div>
+  );
+
+  const ExpandedView = () => (
+    <div className="bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border,rgba(128,128,128,0.2))]">
+      <div
+        className="flex justify-between items-center py-1.5 px-0 bg-[var(--vscode-editorGroupHeader-tabsBackground,var(--vscode-sideBarSectionHeader-background,rgba(0,0,0,0.1)))] border-b border-[var(--vscode-panel-border,rgba(128,128,128,0.2))] text-[var(--vscode-editor-foreground)] font-[var(--vscode-font-family)] text-[13px] select-none cursor-pointer"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
+        <div className="flex items-center gap-2">
+          <span className="codicon codicon-chevron-down text-xs opacity-70" />
+          {statusColor && (
+            <span
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ backgroundColor: statusColor }}
+            />
+          )}
+          {prefix && <span className="font-semibold opacity-80 text-xs">{prefix}</span>}
+          <span className="font-medium text-xs text-[var(--vscode-editor-foreground)] font-[var(--vscode-font-family)]">
+            {title || 'Output'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">{headerActions}</div>
+      </div>
+      <div className="px-3 py-2 max-h-[300px] overflow-y-auto" style={contentStyle}>
+        {isFilePathList ? (
+          renderFileTree()
+        ) : (
+          <pre className="m-0 font-mono text-xs whitespace-pre-wrap break-all text-[var(--vscode-editor-foreground)] bg-none">
+            <code className="bg-none p-0">{content}</code>
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className={`richtext-block-container ${isCollapsed ? 'collapsed' : ''}`}>
+    <div className={cn('mb-3 overflow-hidden rounded-md', isCollapsed && '!bg-transparent mb-2')}>
       {!showHeader ? (
-        <div className="richtext-block-expanded no-header">
-          <div className="richtext-content" style={contentStyle}>
+        <div className="bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border,rgba(128,128,128,0.2))]">
+          <div className="px-3 py-2 max-h-[300px] overflow-y-auto" style={contentStyle}>
             {isFilePathList ? (
               renderFileTree()
             ) : (
-              <pre className="plaintext-output">
-                <code>{content}</code>
+              <pre className="m-0 font-mono text-xs whitespace-pre-wrap break-all text-[var(--vscode-editor-foreground)] bg-none">
+                <code className="bg-none p-0">{content}</code>
               </pre>
             )}
           </div>
         </div>
       ) : isCollapsed ? (
-        // Collapsed State: Inline summary (no background as per request)
-        <div
-          className="richtext-block-summary"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          style={{
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 0',
-            fontSize: '13px',
-          }}
-        >
-          <span
-            className="collapse-icon codicon codicon-chevron-right"
-            style={{ fontSize: '12px' }}
-          />
-          {statusColor && (
-            <span
-              className="status-dot"
-              style={{
-                backgroundColor: statusColor,
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                display: 'inline-block',
-              }}
-            />
-          )}
-          {prefix && (
-            <span
-              className="header-prefix"
-              style={{
-                fontWeight: 500,
-                color: 'var(--vscode-foreground)',
-              }}
-            >
-              {prefix}
-            </span>
-          )}
-          <span
-            className="title-text"
-            style={{
-              color: 'var(--vscode-editor-foreground)',
-              fontFamily: 'var(--vscode-font-family)',
-            }}
-          >
-            {title || 'Output'}
-          </span>
-          {headerActions && (
-            <div className="header-actions" style={{ marginLeft: 'auto' }}>
-              {headerActions}
-            </div>
-          )}
-        </div>
+        <SummaryView />
       ) : (
-        // Expanded State: Full header + content
-        <div className="richtext-block-expanded">
-          <div
-            className="richtext-block-header"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="header-info">
-              <span
-                className="collapse-icon codicon codicon-chevron-down"
-                style={{ fontSize: '12px' }}
-              />
-              {statusColor && (
-                <span
-                  className="status-dot"
-                  style={{
-                    backgroundColor: statusColor,
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    display: 'inline-block',
-                  }}
-                />
-              )}
-              {prefix && <span className="header-prefix">{prefix}</span>}
-              <span
-                className="title-text"
-                style={{
-                  color: 'var(--vscode-editor-foreground)',
-                  fontFamily: 'var(--vscode-font-family)',
-                }}
-              >
-                {title || 'Output'}
-              </span>
-            </div>
-            <div className="header-actions">{headerActions}</div>
-          </div>
-          <div className="richtext-content" style={contentStyle}>
-            {isFilePathList ? (
-              renderFileTree()
-            ) : (
-              <pre className="plaintext-output">
-                <code>{content}</code>
-              </pre>
-            )}
-          </div>
-        </div>
+        <ExpandedView />
       )}
     </div>
   );

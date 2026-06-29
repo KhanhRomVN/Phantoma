@@ -45,57 +45,36 @@ export class ChatErrorBoundary extends React.Component<
 
       return (
         <div
+          className="flex flex-col gap-2 px-5 py-4 m-3 rounded-lg"
           style={{
-            padding: "16px 20px",
-            margin: "12px",
-            borderRadius: "8px",
-            border: "1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 30%, transparent)",
-            background: "color-mix(in srgb, var(--vscode-errorForeground, #f44336) 5%, transparent)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
+            border:
+              "1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 30%, transparent)",
+            background:
+              "color-mix(in srgb, var(--vscode-errorForeground, #f44336) 5%, transparent)",
           }}
         >
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontWeight: 600,
-              fontSize: "13px",
-              color: "var(--vscode-errorForeground, #f44336)",
-            }}
+            className="flex items-center gap-2 font-semibold text-[13px]"
+            style={{ color: "var(--vscode-errorForeground, #f44336)" }}
           >
-            <span className="codicon codicon-error" style={{ fontSize: "14px" }} />
+            <span className="codicon codicon-error text-sm" />
             Something went wrong rendering this message
           </div>
           {this.state.error && (
             <pre
-              style={{
-                fontSize: "11px",
-                color: "var(--vscode-descriptionForeground)",
-                margin: 0,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                maxHeight: "120px",
-                overflowY: "auto",
-              }}
+              className="text-[11px] m-0 whitespace-pre-wrap break-words max-h-[120px] overflow-y-auto"
+              style={{ color: "var(--vscode-descriptionForeground)" }}
             >
               {this.state.error.message}
             </pre>
           )}
           <button
             onClick={this.handleReset}
+            className="self-start px-3 py-1 text-[11px] font-semibold rounded cursor-pointer bg-transparent"
             style={{
-              alignSelf: "flex-start",
-              padding: "4px 12px",
-              fontSize: "11px",
-              fontWeight: 600,
-              borderRadius: "4px",
-              border: "1px solid color-mix(in srgb, var(--vscode-foreground) 25%, transparent)",
-              background: "transparent",
+              border:
+                "1px solid color-mix(in srgb, var(--vscode-foreground) 25%, transparent)",
               color: "var(--vscode-foreground)",
-              cursor: "pointer",
             }}
           >
             Try again

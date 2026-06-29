@@ -28,9 +28,17 @@ import { cn } from '../../shared/lib/utils';
 import { SettingsProvider } from './Agent/context/SettingsContext';
 
 type PanelView = 'agent' | 'analytic' | 'terminal';
-type AgentSubView = 'home' | 'session' | 'account' | 'analytic-feature' | 'history' | 'model' | 'setting' | null;
+type AgentSubView =
+  | 'home'
+  | 'session'
+  | 'account'
+  | 'analytic-feature'
+  | 'history'
+  | 'model'
+  | 'setting'
+  | null;
 
-export function IntelPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) {
+export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) {
   const [view, setView] = useState<PanelView>('agent');
   const [agentSubView, setAgentSubView] = useState<AgentSubView>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -94,133 +102,130 @@ export function IntelPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
 
   return (
     <SettingsProvider>
-    <div className="w-[450px] shrink-0 border-l border-divider flex flex-col overflow-hidden">
-      {/* Header Bar */}
-      <div className="h-[37px] border-b border-divider flex items-center px-3 shrink-0">
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-1.5 text-sm font-medium text-text-primary hover:text-primary transition-colors cursor-pointer"
-          >
-            <span>{getTitle()}</span>
-            <ChevronDown
-              className={cn(
-                'w-3 h-3 text-text-secondary transition-transform',
-                isDropdownOpen && 'rotate-180',
-              )}
-            />
-          </button>
+      <div className="w-[450px] shrink-0 border-l border-divider flex flex-col overflow-hidden relative">
+        {/* Header Bar */}
+        <div className="h-[37px] border-b border-divider flex items-center px-3 shrink-0">
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-1.5 text-sm font-medium text-text-primary hover:text-primary transition-colors cursor-pointer"
+            >
+              <span>{getTitle()}</span>
+              <ChevronDown
+                className={cn(
+                  'w-3 h-3 text-text-secondary transition-transform',
+                  isDropdownOpen && 'rotate-180',
+                )}
+              />
+            </button>
 
-          {isDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 min-w-[160px] bg-modal-background border border-border rounded-lg shadow-xl py-1 z-50">
-              {dropdownOptions.map((option) => {
-                const isActive = view === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    onClick={() => {
-                      setView(option.id);
-                      setAgentSubView(null);
-                      setIsDropdownOpen(false);
-                    }}
-                    className={cn(
-                      'w-full flex items-center gap-2/10 px-3 py-1.5 text-sm transition-colors',
-                      isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary',
-                    )}
-                  >
-                    <span>{option.label}</span>
-                  </button>
-                );
-              })}
+            {isDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 min-w-[160px] bg-modal-background border border-border rounded-lg shadow-xl py-1 z-50">
+                {dropdownOptions.map((option) => {
+                  const isActive = view === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={() => {
+                        setView(option.id);
+                        setAgentSubView(null);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={cn(
+                        'w-full flex items-center gap-2/10 px-3 py-1.5 text-sm transition-colors',
+                        isActive
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary',
+                      )}
+                    >
+                      <span>{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Right side icons - only show when Agent is selected */}
+          {view === 'agent' && (
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={() => setAgentSubView('home')}
+                className={cn(
+                  'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
+                  agentSubView === 'home' && 'bg-primary/10 text-primary',
+                )}
+              >
+                <Plus className="w-4 h-4 text-text-secondary" />
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setAgentSubView('session')}
+                  className={cn(
+                    'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
+                    agentSubView === 'session' && 'bg-primary/10 text-primary',
+                  )}
+                >
+                  <LayoutDashboard className="w-4 h-4 text-text-secondary" />
+                </button>
+                <span className="absolute -top-1 -right-1 bg-primary/80 text-text-foreground text-[10px] font-medium rounded-md min-w-[18px] h-[18px] flex items-center justify-center ">
+                  2
+                </span>
+              </div>
+              <div className="relative" ref={ellipsisRef}>
+                <button
+                  onClick={() => setIsEllipsisOpen(!isEllipsisOpen)}
+                  className="p-1 rounded hover:bg-sidebar-item-hover transition-colors"
+                >
+                  <MoreHorizontal className="w-4 h-4 text-text-secondary" />
+                </button>
+                {isEllipsisOpen && (
+                  <div className="absolute top-full right-0 mt-1 min-w-[160px] bg-modal-background border border-border rounded-lg shadow-xl py-1 z-50">
+                    {ellipsisOptions.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={option.label}
+                          onClick={() => {
+                            setAgentSubView(option.subView);
+                            setIsEllipsisOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary transition-colors"
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span>{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Right side icons - only show when Agent is selected */}
-        {view === 'agent' && (
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => setAgentSubView('home')}
-              className={cn(
-                'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
-                agentSubView === 'home' && 'bg-primary/10 text-primary',
-              )}
-            >
-              <Plus className="w-4 h-4 text-text-secondary" />
-            </button>
-            <div className="relative">
-              <button
-                onClick={() => setAgentSubView('session')}
-                className={cn(
-                  'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
-                  agentSubView === 'session' && 'bg-primary/10 text-primary',
-                )}
-              >
-                <LayoutDashboard className="w-4 h-4 text-text-secondary" />
-              </button>
-              <span className="absolute -top-1 -right-1 bg-primary/80 text-text-foreground text-[10px] font-medium rounded-md min-w-[18px] h-[18px] flex items-center justify-center ">
-                2
-              </span>
-            </div>
-            <div className="relative" ref={ellipsisRef}>
-              <button
-                onClick={() => setIsEllipsisOpen(!isEllipsisOpen)}
-                className="p-1 rounded hover:bg-sidebar-item-hover transition-colors"
-              >
-                <MoreHorizontal className="w-4 h-4 text-text-secondary" />
-              </button>
-              {isEllipsisOpen && (
-                <div className="absolute top-full right-0 mt-1 min-w-[160px] bg-modal-background border border-border rounded-lg shadow-xl py-1 z-50">
-                  {ellipsisOptions.map((option) => {
-                    const Icon = option.icon;
-                    return (
-                      <button
-                        key={option.label}
-                        onClick={() => {
-                          setAgentSubView(option.subView);
-                          setIsEllipsisOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary transition-colors"
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span>{option.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {view === 'agent' && agentSubView === null && <AgentPanel />}
+          {view === 'agent' && agentSubView === 'home' && (
+            <HomePanel onSendMessage={() => {}} onLoadConversation={() => {}} />
+          )}
+          {view === 'agent' && agentSubView === 'session' && <SessionPanel />}
+          {view === 'agent' && agentSubView === 'account' && (
+            <AccountPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+          )}
+          {view === 'agent' && agentSubView === 'analytic-feature' && <AnalyticFeature />}
+          {view === 'agent' && agentSubView === 'history' && (
+            <HistoryPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+          )}
+          {view === 'agent' && agentSubView === 'model' && <ModelsFeature />}
+          {view === 'agent' && agentSubView === 'setting' && (
+            <SettingsPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+          )}
+          {view === 'analytic' && <Analytic />}
+          {view === 'terminal' && <Terminal />}
+        </div>
       </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        {view === 'agent' && agentSubView === null && <AgentPanel />}
-        {view === 'agent' && agentSubView === 'home' && (
-          <HomePanel
-            onSendMessage={() => {}}
-            onLoadConversation={() => {}}
-          />
-        )}
-        {view === 'agent' && agentSubView === 'session' && <SessionPanel />}
-        {view === 'agent' && agentSubView === 'account' && (
-          <AccountPanel isOpen={true} onClose={() => setAgentSubView(null)} />
-        )}
-        {view === 'agent' && agentSubView === 'analytic-feature' && <AnalyticFeature />}
-        {view === 'agent' && agentSubView === 'history' && (
-          <HistoryPanel isOpen={true} onClose={() => setAgentSubView(null)} />
-        )}
-        {view === 'agent' && agentSubView === 'model' && <ModelsFeature />}
-        {view === 'agent' && agentSubView === 'setting' && (
-          <SettingsPanel isOpen={true} onClose={() => setAgentSubView(null)} />
-        )}
-        {view === 'analytic' && <Analytic />}
-        {view === 'terminal' && <Terminal />}
-      </div>
-    </div>
-  </SettingsProvider>
+    </SettingsProvider>
   );
 }

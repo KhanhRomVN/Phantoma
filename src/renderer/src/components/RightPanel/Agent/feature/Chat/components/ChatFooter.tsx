@@ -96,26 +96,17 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   return (
     <div
       id="chat-footer-container"
+      className="fixed bottom-0 left-0 right-0 flex flex-col w-full z-[100] overflow-hidden transition-[bottom] duration-200"
       style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
         backgroundColor: "var(--secondary-bg)",
-        zIndex: 100,
-        transition: "bottom 0.2s ease",
         paddingBottom: 0,
-        overflow: "hidden",
       }}
     >
       <input
         ref={fileInputRef}
         type="file"
         multiple
-        style={{ display: "none" }}
+        className="hidden"
         onChange={handleFileInputChange}
         accept="image/*,text/*"
       />
@@ -123,7 +114,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
         ref={externalFileInputRef}
         type="file"
         multiple
-        style={{ display: "none" }}
+        className="hidden"
         onChange={handleExternalFileInputChange}
       />
 
@@ -155,7 +146,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
         }}
       />
 
-      <div style={{ position: "relative" }}>
+      <div className="relative">
         <MessageInput
           message={message}
           setMessage={setMessage}

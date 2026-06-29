@@ -35,26 +35,15 @@ const HtmlBlock: React.FC<HtmlBlockProps> = ({ content }) => {
   return (
     <div
       ref={containerRef}
-      style={{
-        width: "100%",
-        aspectRatio: "16 / 9",
-        overflow: "hidden",
-        backgroundColor: "var(--vscode-editor-background, #1e1e1e)", // Default background
-        borderRadius: "var(--border-radius)",
-        border: "1px solid var(--vscode-widget-border)",
-        position: "relative",
-      }}
+      className="w-full aspect-video overflow-hidden bg-[var(--vscode-editor-background,#1e1e1e)] rounded-[var(--border-radius)] border border-[var(--vscode-widget-border)] relative"
     >
       <div
+        className="absolute top-0 left-0 pointer-events-none"
         style={{
           width: "1920px",
           height: "1080px",
           transform: `scale(${scale})`,
           transformOrigin: "top left",
-          position: "absolute",
-          top: 0,
-          left: 0,
-          pointerEvents: "none", // Optional: prevent interaction if it's just a preview, or allow it? ALLOW for now.
         }}
       >
         <iframe
@@ -74,22 +63,9 @@ const HtmlBlock: React.FC<HtmlBlockProps> = ({ content }) => {
               </body>
             </html>
           `}
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            pointerEvents: "auto", // Re-enable pointer events for the iframe content
-          }}
-          // Sandbox to prevent navigating the top frame or executing malicious scripts if user provided
-          // sandbox="allow-scripts"
-          // Note: "allow-scripts" needed for interactive UI
+          className="w-full h-full border-none pointer-events-auto"
         />
       </div>
-      {/* Overlay to intercept clicks if we want to block interaction, but user likely wants to see hover effects etc. 
-          However, scaling might mess up mouse coordinates for interaction. 
-          If pointer-events is auto on iframe, standard interactions should work but coordinates might be skewed depending on browser handling of transform on iframe parent?
-          Actually, transform on parent USUALLY handles coordinate space correctly in modern browsers.
-      */}
     </div>
   );
 };

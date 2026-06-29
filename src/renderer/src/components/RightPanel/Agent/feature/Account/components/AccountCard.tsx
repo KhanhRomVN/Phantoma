@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import { Trash2, RefreshCw, CheckCircle } from "lucide-react";
 import { FlatAccount } from "../types";
 import { CopyableText } from "../utils";
+import { cn } from '@renderer/shared/lib/utils';
 
 interface AccountCardProps {
   account: FlatAccount;
@@ -125,32 +126,48 @@ const AccountCard: React.FC<AccountCardProps> = ({
     ? ReactDOM.createPortal(
         <div
           onMouseDown={(e) => e.stopPropagation()}
+          className="fixed rounded-[10px] overflow-hidden z-[99999] min-w-[180px] bg-[var(--tertiary-bg)] border border-[var(--border-color)] shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
           style={{
-            position: "fixed",
             top: menuPosition.y,
             left: menuPosition.x,
-            backgroundColor: "var(--tertiary-bg)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "10px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
-            zIndex: 99999,
-            minWidth: "180px",
-            overflow: "hidden",
           }}
         >
           {/* Select */}
           <button
-            onMouseDown={(e) => { e.stopPropagation(); setShowMenu(false); onToggleSelect(); }}
-            style={menuBtnStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--hover-bg)")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setShowMenu(false);
+              onToggleSelect();
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-[var(--primary-text)]"
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = "transparent")
+            }
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z" />
-              <path d="M5 3a2 2 0 0 0-2 2" /><path d="M19 3a2 2 0 0 1 2 2" />
-              <path d="M5 21a2 2 0 0 1-2-2" /><path d="M9 3h1" /><path d="M9 21h2" />
-              <path d="M14 3h1" /><path d="M3 9v1" /><path d="M21 9v2" /><path d="M3 14v1" />
+              <path d="M5 3a2 2 0 0 0-2 2" />
+              <path d="M19 3a2 2 0 0 1 2 2" />
+              <path d="M5 21a2 2 0 0 1-2-2" />
+              <path d="M9 3h1" />
+              <path d="M9 21h2" />
+              <path d="M14 3h1" />
+              <path d="M3 9v1" />
+              <path d="M21 9v2" />
+              <path d="M3 14v1" />
             </svg>
             <span>{isSelected ? "Deselect" : "Select"} Account</span>
           </button>
@@ -158,12 +175,24 @@ const AccountCard: React.FC<AccountCardProps> = ({
           {/* Copy JSON */}
           <button
             onMouseDown={handleCopyAccount}
-            style={menuBtnStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--hover-bg)")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-[var(--primary-text)]"
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = "transparent")
+            }
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
               <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
             </svg>
@@ -173,10 +202,18 @@ const AccountCard: React.FC<AccountCardProps> = ({
           {/* Switch */}
           {account.is_active_cli === false && (
             <button
-              onMouseDown={(e) => { e.stopPropagation(); setShowMenu(false); onSwitch(); }}
-              style={menuBtnStyle}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--hover-bg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                setShowMenu(false);
+                onSwitch();
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-[var(--primary-text)]"
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "transparent")
+              }
             >
               <RefreshCw size={12} />
               <span>Switch to CLI</span>
@@ -185,12 +222,19 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
           {/* Delete */}
           <button
-            onMouseDown={(e) => { e.stopPropagation(); setShowMenu(false); onDelete(); }}
-            style={{ ...menuBtnStyle, color: "var(--vscode-errorForeground, #f87171)" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.1))";
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setShowMenu(false);
+              onDelete();
             }}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-[var(--vscode-errorForeground,#f87171)]"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor =
+                "var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.1))";
+            }}
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = "transparent")
+            }
           >
             <Trash2 size={12} />
             <span>Delete Account</span>
@@ -202,54 +246,38 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
   return (
     <div
-      className="account-card"
+      className={cn(
+        'account-card relative rounded-xl transition-all duration-200 ease-in-out',
+        isSelected
+          ? 'bg-[var(--vscode-list-activeSelectionBackground,rgba(99,102,241,0.08))] border border-[var(--vscode-focusBorder,rgba(99,102,241,0.4))]'
+          : 'bg-[var(--tertiary-bg)] border border-[var(--border-color)]'
+      )}
       onContextMenu={handleContextMenu}
-      style={{
-        backgroundColor: isSelected
-          ? "var(--vscode-list-activeSelectionBackground, rgba(99,102,241,0.08))"
-          : "var(--tertiary-bg)",
-        border: isSelected
-          ? "1px solid var(--vscode-focusBorder, rgba(99,102,241,0.4))"
-          : "1px solid var(--border-color)",
-        borderRadius: "12px",
-        transition: "all 0.2s ease",
-        position: "relative",
-      }}
     >
       {/* Main Card Content */}
-      <div onClick={handleCardClick} style={{ padding: "10px 12px", cursor: "pointer" }}>
-
+      <div onClick={handleCardClick} className="px-3 py-2.5 cursor-pointer">
         {/* Selection checkbox */}
         {anySelected && (
           <div
-            style={{
-              position: "absolute",
-              left: "8px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              width: "18px",
-              height: "18px",
-              borderRadius: "4px",
-              border: isSelected
-                ? "1px solid var(--vscode-focusBorder)"
-                : "1px solid var(--border-color)",
-              backgroundColor: isSelected
-                ? "var(--vscode-list-activeSelectionBackground, rgba(99,102,241,0.2))"
-                : "rgba(128,128,128,0.08)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              zIndex: 1,
-              flexShrink: 0,
-              transition: "all 0.15s ease",
-            }}
+            className={cn(
+              'absolute left-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded flex items-center justify-center cursor-pointer z-[1] shrink-0 transition-all duration-150',
+              isSelected
+                ? 'border border-[var(--vscode-focusBorder)] bg-[var(--vscode-list-activeSelectionBackground,rgba(99,102,241,0.2))]'
+                : 'border border-[var(--border-color)] bg-[rgba(128,128,128,0.08)]'
+            )}
             onClick={handleSelectClick}
           >
             {isSelected && (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
                 stroke="var(--vscode-list-activeSelectionForeground, currentColor)"
-                strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             )}
@@ -258,34 +286,18 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
         {/* Account info row */}
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            paddingLeft: anySelected ? "24px" : "0px",
-            transition: "padding-left 0.15s ease",
-          }}
+          className={cn(
+            'flex items-center gap-2.5 transition-all duration-150',
+            anySelected ? 'pl-6' : 'pl-0'
+          )}
         >
           {/* Provider icon */}
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              backgroundColor: "rgba(128,128,128,0.1)",
-              color: "var(--vscode-foreground)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              overflow: "hidden",
-            }}
-          >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-[rgba(128,128,128,0.1)] text-[var(--vscode-foreground)]">
             {providerIconUrl ? (
               <img
                 src={providerIconUrl}
                 alt={account.provider_id}
-                style={{ width: "20px", height: "20px", objectFit: "contain" }}
+                className="w-5 h-5 object-contain"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                   const parent = (e.target as HTMLImageElement).parentElement;
@@ -304,28 +316,26 @@ const AccountCard: React.FC<AccountCardProps> = ({
           </div>
 
           {/* Name + email */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{
-              margin: 0, fontSize: "13px", fontWeight: 500,
-              color: "var(--primary-text)", overflow: "hidden",
-              textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              <span style={{ fontWeight: 600 }}>
+          <div className="flex-1 min-w-0">
+            <p className="m-0 text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap text-[var(--primary-text)]">
+              <span className="font-semibold">
                 {providerConfig?.provider_name || account.provider_id}
               </span>
-              <span style={{ color: "var(--secondary-text)", margin: "0 4px" }}>|</span>
+              <span className="mx-1 text-[var(--secondary-text)]">
+                |
+              </span>
               <span>{account.email || "No email"}</span>
             </p>
 
             {/* Daily stats */}
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", flexWrap: "wrap" }}>
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
               {account.daily_requests !== undefined && account.daily_requests > 0 && (
-                <span style={{ fontSize: "9px", color: "var(--secondary-text)", opacity: 0.6 }}>
+                <span className="text-[9px] opacity-60 text-[var(--secondary-text)]">
                   {account.daily_requests.toLocaleString()} req today
                 </span>
               )}
               {account.daily_tokens !== undefined && account.daily_tokens > 0 && (
-                <span style={{ fontSize: "9px", color: "var(--secondary-text)", opacity: 0.6 }}>
+                <span className="text-[9px] opacity-60 text-[var(--secondary-text)]">
                   •{" "}
                   {account.daily_tokens >= 1000000
                     ? (account.daily_tokens / 1000000).toFixed(1) + "M"
@@ -338,15 +348,19 @@ const AccountCard: React.FC<AccountCardProps> = ({
               {account.successful_requests !== undefined &&
                 account.total_requests !== undefined &&
                 account.total_requests > 0 && (
-                  <span style={{
-                    fontSize: "9px",
-                    opacity: 0.8,
-                    color: account.successful_requests / account.total_requests > 0.8
-                      ? "var(--vscode-testing-iconPassed, #22c55e)"
-                      : "var(--vscode-editorWarning-foreground, #f97316)",
-                  }}>
+                  <span
+                    className={cn(
+                      'text-[9px] opacity-80',
+                      account.successful_requests / account.total_requests > 0.8
+                        ? 'text-[var(--vscode-testing-iconPassed,#22c55e)]'
+                        : 'text-[var(--vscode-editorWarning-foreground,#f97316)]'
+                    )}
+                  >
                     •{" "}
-                    {Math.round((account.successful_requests / account.total_requests) * 100)}% success rate
+                    {Math.round(
+                      (account.successful_requests / account.total_requests) * 100,
+                    )}
+                    % success rate
                   </span>
                 )}
             </div>
@@ -355,21 +369,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
           {/* Switch button */}
           {account.is_active_cli === false && (
             <button
-              onClick={(e) => { e.stopPropagation(); onSwitch(); }}
-              style={{
-                padding: "4px 8px",
-                borderRadius: "6px",
-                backgroundColor: "var(--vscode-button-secondaryBackground, rgba(128,128,128,0.15))",
-                border: "1px solid var(--border-color)",
-                color: "var(--vscode-button-secondaryForeground, var(--secondary-text))",
-                fontSize: "10px",
-                fontWeight: 500,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                flexShrink: 0,
+              onClick={(e) => {
+                e.stopPropagation();
+                onSwitch();
               }}
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium cursor-pointer shrink-0 bg-[var(--vscode-button-secondaryBackground,rgba(128,128,128,0.15))] border border-[var(--border-color)] text-[var(--vscode-button-secondaryForeground,var(--secondary-text))]"
             >
               <RefreshCw size={10} />
               Switch
@@ -378,19 +382,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
           {/* Active badge */}
           {account.is_active_cli === true && (
-            <div style={{
-              padding: "4px 8px",
-              borderRadius: "6px",
-              backgroundColor: "var(--vscode-testing-iconPassed-background, rgba(34,197,94,0.1))",
-              border: "1px solid var(--vscode-testing-iconPassed, rgba(34,197,94,0.3))",
-              color: "var(--vscode-testing-iconPassed, #22c55e)",
-              fontSize: "10px",
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              flexShrink: 0,
-            }}>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium shrink-0 bg-[var(--vscode-testing-iconPassed-background,rgba(34,197,94,0.1))] border border-[var(--vscode-testing-iconPassed,rgba(34,197,94,0.3))] text-[var(--vscode-testing-iconPassed,#22c55e)]">
               <CheckCircle size={10} />
               Active
             </div>
@@ -400,28 +392,17 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
       {/* Expanded detail section */}
       {expanded && (
-        <div style={{
-          padding: "10px 0",
-          borderTop: "1px solid var(--border-color)",
-          backgroundColor: "var(--vscode-list-hoverBackground, rgba(128,128,128,0.04))",
-          fontSize: "12px",
-        }}>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "10px",
-            marginBottom: "10px",
-            padding: "0 12px",
-          }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "10px", color: "var(--secondary-text)", marginBottom: "2px" }}>
+        <div className="text-xs py-2.5 border-t border-[var(--border-color)] bg-[var(--vscode-list-hoverBackground,rgba(128,128,128,0.04))]">
+          <div className="grid grid-cols-2 gap-2.5 mb-2.5 px-3">
+            <div className="min-w-0">
+              <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
                 Account ID
               </div>
               <CopyableText value={account.id} monospace />
             </div>
 
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "10px", color: "var(--secondary-text)", marginBottom: "2px" }}>
+            <div className="min-w-0">
+              <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
                 Credential
               </div>
               <CopyableText value={account.credential || ""} monospace />
@@ -429,13 +410,13 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
             {(account.usage != null || account.reset_period != null) && (
               <div>
-                <div style={{ fontSize: "10px", color: "var(--secondary-text)", marginBottom: "2px" }}>
+                <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
                   Usage
                 </div>
-                <div style={{ fontSize: "11px", fontWeight: 500, color: "var(--primary-text)" }}>
+                <div className="text-[11px] font-medium text-[var(--primary-text)]">
                   {account.usage ?? "—"}
                   {account.reset_period != null && (
-                    <span style={{ fontSize: "10px", color: "var(--secondary-text)", marginLeft: "4px" }}>
+                    <span className="text-[10px] ml-1 text-[var(--secondary-text)]">
                       / {account.reset_period}
                     </span>
                   )}
@@ -445,25 +426,17 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
             {account.last_refreshed_at != null && (
               <div>
-                <div style={{ fontSize: "10px", color: "var(--secondary-text)", marginBottom: "2px" }}>
+                <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
                   Last Refreshed
                 </div>
-                <div style={{ fontSize: "11px", fontWeight: 500, color: "var(--primary-text)" }}>
+                <div className="text-[11px] font-medium text-[var(--primary-text)]">
                   {formatDate(account.last_refreshed_at)}
                 </div>
               </div>
             )}
           </div>
 
-          <div style={{
-            fontSize: "10px",
-            color: "var(--secondary-text)",
-            textAlign: "center",
-            paddingTop: "8px",
-            margin: "0 12px",
-            borderTop: "1px dashed var(--border-color)",
-            opacity: 0.6,
-          }}>
+          <div className="text-[10px] text-center pt-2 mx-3 opacity-60 border-t border-dashed border-[var(--border-color)] text-[var(--secondary-text)]">
             Click again to collapse
           </div>
         </div>
@@ -480,20 +453,6 @@ const AccountCard: React.FC<AccountCardProps> = ({
       `}</style>
     </div>
   );
-};
-
-const menuBtnStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  border: "none",
-  backgroundColor: "transparent",
-  color: "var(--primary-text)",
-  fontSize: "12px",
-  cursor: "pointer",
-  textAlign: "left",
 };
 
 export default AccountCard;

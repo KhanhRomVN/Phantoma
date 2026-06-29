@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 interface ChatHeaderProps {
   displayedModel: any;
@@ -22,80 +22,49 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   setSearchQuery,
 }) => {
   const formatTokens = (num: number) => {
-    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
 
-  const providerId = displayedModel?.providerId || "";
+  const providerId = displayedModel?.providerId || '';
   const faviconUrl = providerId
     ? `https://www.google.com/s2/favicons?domain=${(() => {
         const pid = providerId.toLowerCase();
-        if (pid.includes("openai")) return "openai.com";
-        if (pid.includes("anthropic")) return "anthropic.com";
-        if (pid.includes("google") || pid.includes("gemini"))
-          return "google.com";
-        if (pid.includes("openrouter")) return "openrouter.ai";
-        if (pid.includes("deepseek")) return "deepseek.com";
-        if (pid.includes("zenmux") || pid.includes("moonshotai"))
-          return "zenmux.ai";
-        if (pid.includes("qwen")) return "qwen.ai";
-        if (pid.includes("groq")) return "groq.com";
-        if (pid.includes("mistral")) return "mistral.ai";
-        if (pid.includes("glm") || pid.includes("zai") || pid.includes("z-ai"))
-          return "bigmodel.cn";
-        return "deepseek.com";
+        if (pid.includes('openai')) return 'openai.com';
+        if (pid.includes('anthropic')) return 'anthropic.com';
+        if (pid.includes('google') || pid.includes('gemini')) return 'google.com';
+        if (pid.includes('openrouter')) return 'openrouter.ai';
+        if (pid.includes('deepseek')) return 'deepseek.com';
+        if (pid.includes('zenmux') || pid.includes('moonshotai')) return 'zenmux.ai';
+        if (pid.includes('qwen')) return 'qwen.ai';
+        if (pid.includes('groq')) return 'groq.com';
+        if (pid.includes('mistral')) return 'mistral.ai';
+        if (pid.includes('glm') || pid.includes('zai') || pid.includes('z-ai'))
+          return 'bigmodel.cn';
+        return 'deepseek.com';
       })()}&sz=64`
-    : "https://www.google.com/s2/favicons?domain=deepseek.com&sz=64";
+    : 'https://www.google.com/s2/favicons?domain=deepseek.com&sz=64';
 
   return (
     <div
+      className="flex flex-col border-b"
       style={{
-        borderBottom: "1px solid var(--border-color)",
-        backgroundColor: "var(--primary-bg)",
-        display: "flex",
-        flexDirection: "column",
+        borderBottomColor: 'var(--border-color)',
+        backgroundColor: 'var(--primary-bg)',
       }}
     >
-      <div
-        style={{
-          padding: "12px 12px 8px 12px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "8px",
-        }}
-      >
+      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "12px",
-            fontWeight: 600,
-            color: "var(--primary-text)",
-            overflow: "hidden",
-          }}
+          className="flex items-center gap-1.5 text-xs font-semibold overflow-hidden"
+          style={{ color: 'var(--primary-text)' }}
         >
-          <img
-            src={faviconUrl}
-            alt="provider"
-            style={{ width: "14px", height: "14px", borderRadius: "2px" }}
-          />
-          <span style={{ whiteSpace: "nowrap" }}>
-            {displayedModel?.providerId || "?"}/{displayedModel?.id || "chat"}
+          <img src={faviconUrl} alt="provider" className="w-3.5 h-3.5 rounded-[2px]" />
+          <span className="whitespace-nowrap">
+            {displayedModel?.providerId || '?'}/{displayedModel?.id || 'chat'}
           </span>
           {currentAccount?.email && (
             <span
-              style={{
-                opacity: 0.7,
-                fontStyle: "italic",
-                fontWeight: "normal",
-                fontSize: "11px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                maxWidth: "150px",
-              }}
+              className="opacity-70 italic font-normal text-[11px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]"
               title={currentAccount.email}
             >
               {currentAccount.email}
@@ -103,34 +72,16 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           )}
           {currentTaskName && (
             <>
-              <span style={{ opacity: 0.3 }}>|</span>
+              <span className="opacity-30">|</span>
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "11px",
-                  color: "var(--vscode-textLink-foreground)",
-                  fontWeight: 500,
-                  overflow: "hidden",
-                }}
+                className="flex items-center gap-1 text-[11px] font-medium overflow-hidden"
+                style={{ color: 'var(--vscode-textLink-foreground)' }}
               >
                 <div
-                  style={{
-                    width: "5px",
-                    height: "5px",
-                    borderRadius: "50%",
-                    backgroundColor: "currentColor",
-                    flexShrink: 0,
-                  }}
+                  className="w-[5px] h-[5px] rounded-full shrink-0"
+                  style={{ backgroundColor: 'currentColor' }}
                 />
-                <span
-                  style={{
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
+                <span className="whitespace-nowrap overflow-hidden text-ellipsis">
                   {currentTaskName}
                 </span>
               </div>
@@ -138,53 +89,34 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           )}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: "11px",
-              color: "var(--secondary-text)",
-              opacity: 0.8,
-            }}
-          >
-            {contextUsage ? formatTokens(contextUsage.total) : "0"}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] opacity-80" style={{ color: 'var(--secondary-text)' }}>
+            {contextUsage ? formatTokens(contextUsage.total) : '0'}
           </span>
           <button
             onClick={() => {
               setIsSearchOpen((v) => !v);
-              if (isSearchOpen) setSearchQuery("");
+              if (isSearchOpen) setSearchQuery('');
             }}
             title="Search in chat"
+            className="cursor-pointer p-[3px_4px] flex items-center justify-center rounded transition-all duration-150"
             style={{
               background: isSearchOpen
-                ? "color-mix(in srgb, var(--vscode-button-background) 15%, transparent)"
-                : "transparent",
+                ? 'color-mix(in srgb, var(--vscode-button-background) 15%, transparent)'
+                : 'transparent',
               border: isSearchOpen
-                ? "1px solid color-mix(in srgb, var(--vscode-button-background) 40%, transparent)"
-                : "1px solid transparent",
-              cursor: "pointer",
-              padding: "3px 4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+                ? '1px solid color-mix(in srgb, var(--vscode-button-background) 40%, transparent)'
+                : '1px solid transparent',
               color: isSearchOpen
-                ? "var(--vscode-button-background, var(--vscode-textLink-foreground))"
-                : "var(--vscode-icon-foreground, var(--secondary-text))",
+                ? 'var(--vscode-button-background, var(--vscode-textLink-foreground))'
+                : 'var(--vscode-icon-foreground, var(--secondary-text))',
               opacity: isSearchOpen ? 1 : 0.65,
-              borderRadius: "4px",
-              transition: "all 0.15s ease",
             }}
             onMouseEnter={(e) => {
-              if (!isSearchOpen) e.currentTarget.style.opacity = "1";
+              if (!isSearchOpen) e.currentTarget.style.opacity = '1';
             }}
             onMouseLeave={(e) => {
-              if (!isSearchOpen) e.currentTarget.style.opacity = "0.65";
+              if (!isSearchOpen) e.currentTarget.style.opacity = '0.65';
             }}
           >
             <svg

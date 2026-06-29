@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
-import "./TerminalBlock.css";
 import { useProject } from "../../../../context/ProjectContext";
 
 interface TerminalBlockProps {
@@ -88,16 +87,8 @@ const CopyButton: React.FC<{ getText: () => string; title?: string }> = ({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       title={title || "Copy"}
-      className="terminal-copy-btn"
+      className="terminal-copy-btn flex items-center justify-center w-[22px] h-[22px] p-0 border-none rounded-[4px] cursor-pointer shrink-0 transition-[background,color,opacity] duration-[0.15s]"
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "22px",
-        height: "22px",
-        padding: 0,
-        border: "none",
-        borderRadius: "4px",
         background: copied
           ? "color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 15%, transparent)"
           : hovered
@@ -106,9 +97,6 @@ const CopyButton: React.FC<{ getText: () => string; title?: string }> = ({
         color: copied
           ? "var(--vscode-gitDecoration-addedResourceForeground)"
           : "var(--vscode-terminal-foreground)",
-        cursor: "pointer",
-        flexShrink: 0,
-        transition: "background 0.15s, color 0.15s, opacity 0.15s",
       }}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
@@ -140,16 +128,7 @@ const TerminalInputBar: React.FC<{ onInput: (data: string) => void }> = ({
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-end",
-        padding: "4px 10px",
-        borderTop: "1px solid var(--vscode-panel-border)",
-        backgroundColor:
-          "var(--vscode-input-background, var(--vscode-terminal-background))",
-      }}
-    >
+    <div className="flex items-end px-2.5 py-1 border-t border-[var(--vscode-panel-border)] bg-[var(--vscode-input-background,var(--vscode-terminal-background))]">
       <textarea
         ref={textareaRef}
         value={value}
@@ -157,21 +136,7 @@ const TerminalInputBar: React.FC<{ onInput: (data: string) => void }> = ({
         onKeyDown={handleKeyDown}
         placeholder="type and press Enter…"
         rows={1}
-        style={{
-          flex: 1,
-          background: "none",
-          border: "none",
-          outline: "none",
-          resize: "none",
-          overflow: "hidden",
-          color: "var(--vscode-terminal-foreground)",
-          fontFamily: "var(--vscode-editor-font-family, monospace)",
-          fontSize: "12px",
-          lineHeight: "18px",
-          padding: 0,
-          minHeight: "18px",
-          maxHeight: "54px",
-        }}
+        className="flex-1 bg-transparent border-none outline-none resize-none overflow-hidden text-[var(--vscode-terminal-foreground)] font-mono text-xs leading-[18px] p-0 min-h-[18px] max-h-[54px]"
       />
     </div>
   );
@@ -353,160 +318,409 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
   const getCleanLogs = () => stripAnsi(logs || "");
   const getCommand = () => initialCommand || "";
 
-  // Shared text style — same font/size/color for both command and output areas
-  const terminalTextStyle: React.CSSProperties = {
-    fontFamily:
-      'var(--vscode-editor-font-family, "Courier New", Courier, monospace)',
-    fontSize: "12px",
-    color: "var(--vscode-terminal-foreground, #cccccc)",
-    lineHeight: "1.5",
-  };
-
   return (
-    <div
-      className="terminal-block-container"
-      style={
-        rejectedOutline
-          ? {
-              outline:
-                "1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 60%, transparent)",
-              borderRadius: "6px",
-            }
-          : undefined
-      }
-    >
-      {/* ── COMMAND HEADER ── Copy button hidden by default, shown on hover via CSS */}
-      {isXtermVisible && (
-        <div
-          className="terminal-fixed-header terminal-cmd-area"
-          onClick={toggleExpand}
-          style={{
-            padding: "6px 8px 6px 10px",
-            backgroundColor: "var(--vscode-editor-background)",
-            borderBottom: "1px solid var(--vscode-panel-border)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            zIndex: 5,
-            position: "sticky",
-            top: 0,
-            cursor: canExpand ? "pointer" : "default",
-            userSelect: "none",
-            transition: "background-color 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            if (canExpand)
+    <>
+      <div
+        className="terminal-block-container flex flex-col bg-[var(--vscode-terminal-background)] rounded-md overflow-hidden font-mono border border-[var(--vscode-panel-border)]"
+        style={
+          rejectedOutline
+            ? {
+                outline:
+                  "1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 60%, transparent)",
+                borderRadius: "6px",
+              }
+            : undefined
+        }
+      >
+        {/* ── COMMAND HEADER ── Copy button hidden by default, shown on hover via CSS */}
+        {isXtermVisible && (
+          <div
+            className="terminal-fixed-header terminal-cmd-area flex items-center gap-2 px-2.5 py-1.5 bg-[var(--vscode-editor-background)] border-b border-[var(--vscode-panel-border)] z-[5] sticky top-0 select-none transition-colors duration-200"
+            onClick={toggleExpand}
+            style={{ cursor: canExpand ? "pointer" : "default" }}
+            onMouseEnter={(e) => {
+              if (canExpand)
+                e.currentTarget.style.backgroundColor =
+                  "var(--vscode-list-hoverBackground, var(--vscode-editor-background))";
+            }}
+            onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor =
-                "var(--vscode-list-hoverBackground, var(--vscode-editor-background))";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor =
-              "var(--vscode-editor-background, #1e1e1e)";
-          }}
-        >
-          {/* Command text — same style as output */}
-          <div
-            style={{
-              ...terminalTextStyle,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-all",
-              flex: 1,
-              minWidth: 0,
+                "var(--vscode-editor-background, #1e1e1e)";
             }}
           >
-            {initialCommand ? formatCommand(initialCommand) : "Terminal"}
-          </div>
+            {/* Command text — same style as output */}
+            <div className="font-mono text-xs text-[var(--vscode-terminal-foreground,#cccccc)] leading-[1.5] whitespace-pre-wrap break-all flex-1 min-w-0">
+              {initialCommand ? formatCommand(initialCommand) : "Terminal"}
+            </div>
 
-          {/* Right actions: copy + chevron */}
+            {/* Right actions: copy + chevron */}
+            <div
+              className="flex items-center gap-1 ml-auto shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* CSS class on parent (.terminal-cmd-area) controls opacity */}
+              <CopyButton getText={getCommand} title="Copy command" />
+              {canExpand && (
+                <div
+                  className={`codicon codicon-chevron-${isExpanded ? "up" : "down"} text-xs opacity-70 cursor-pointer text-[var(--vscode-terminal-foreground,#cccccc)]`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleExpand();
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── OUTPUT AREA ── Copy button hidden by default, shown on hover via CSS */}
+        <div className="terminal-output-area relative">
+          {isXtermVisible && logs && (
+            <div className="terminal-output-copy-btn absolute top-1.5 right-2 z-10">
+              <CopyButton getText={getCleanLogs} title="Copy output" />
+            </div>
+          )}
+
           <div
+            className="terminal-content-wrapper px-3 py-2 bg-[var(--vscode-terminal-background)] overflow-y-auto"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              marginLeft: "auto",
-              flexShrink: 0,
+              maxHeight: `${maxHeight}px`,
+              pointerEvents: "auto",
+              userSelect: "none",
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            {/* CSS class on parent (.terminal-cmd-area) controls opacity */}
-            <CopyButton getText={getCommand} title="Copy command" />
-            {canExpand && (
+            {!isXtermVisible ? (
+              <div className="terminal-richtext-fallback flex flex-wrap gap-2 items-center py-2 px-1 text-[13px] leading-[1.5] text-[var(--vscode-terminal-foreground)] font-mono whitespace-pre-wrap break-all">
+                <div className="font-mono text-xs text-[var(--vscode-terminal-foreground,#cccccc)] leading-[1.5] whitespace-pre-wrap break-all">
+                  {initialCommand
+                    ? formatCommand(initialCommand)
+                    : "No command executed yet."}
+                </div>
+              </div>
+            ) : (
               <div
-                className={`codicon codicon-chevron-${isExpanded ? "up" : "down"}`}
-                style={{
-                  fontSize: "12px",
-                  opacity: 0.7,
-                  cursor: "pointer",
-                  color: "var(--vscode-terminal-foreground, #cccccc)",
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleExpand();
-                }}
+                ref={terminalRef}
+                className="xterm-container w-full h-full"
+                onPaste={(e) => e.preventDefault()}
               />
             )}
           </div>
         </div>
-      )}
 
-      {/* ── OUTPUT AREA ── Copy button hidden by default, shown on hover via CSS */}
-      <div className="terminal-output-area" style={{ position: "relative" }}>
-        {isXtermVisible && logs && (
-          <div
-            className="terminal-output-copy-btn"
-            style={{
-              position: "absolute",
-              top: "6px",
-              right: "8px",
-              zIndex: 10,
-            }}
-          >
-            <CopyButton getText={getCleanLogs} title="Copy output" />
-          </div>
-        )}
-
-        <div
-          className="terminal-content-wrapper"
-          style={{
-            maxHeight: `${maxHeight}px`,
-            overflowY: "auto",
-            pointerEvents: "auto",
-            userSelect: "none",
-          }}
-        >
-          {!isXtermVisible ? (
-            <div
-              className="terminal-richtext-fallback"
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px",
-                alignItems: "center",
-              }}
-            >
-              <div
-                style={{
-                  ...terminalTextStyle,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-all",
-                }}
-              >
-                {initialCommand
-                  ? formatCommand(initialCommand)
-                  : "No command executed yet."}
-              </div>
-            </div>
-          ) : (
-            <div
-              ref={terminalRef}
-              className="xterm-container"
-              onPaste={(e) => e.preventDefault()}
-            />
-          )}
-        </div>
+        {onInput && <TerminalInputBar onInput={onInput} />}
       </div>
 
-      {onInput && <TerminalInputBar onInput={onInput} />}
-    </div>
+      <style>{`
+        .terminal-block-container {
+          font-family: var(--vscode-editor-font-family, "Courier New", Courier, monospace);
+        }
+
+        .terminal-block-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 2px 12px 0px 29px;
+          background-color: transparent;
+          border-bottom: none;
+          user-select: none;
+          cursor: pointer;
+          position: relative;
+        }
+
+        .terminal-block .terminal-block-header {
+          background-color: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-sideBarSection-header-background, rgba(0, 0, 0, 0.1)));
+          border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.12));
+        }
+
+        .terminal-block.git-tool .terminal-block-header {
+          border-bottom: none;
+          background-color: transparent;
+        }
+
+        .terminal-block.commit-message-tool .terminal-block-header {
+          border-bottom: none;
+          background-color: transparent;
+        }
+
+        .terminal-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .terminal-header-top {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .terminal-status-dot {
+          flex-shrink: 0;
+        }
+
+        .terminal-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--vscode-terminal-foreground);
+          font-family: var(--vscode-editor-font-family, monospace);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 250px;
+        }
+
+        .terminal-sub-info {
+          font-size: 11px;
+          opacity: 0.5;
+          font-family: var(--vscode-font-family);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          padding-left: 29px;
+          position: relative;
+          display: flex;
+          align-items: center;
+          height: 18px;
+          margin-top: -2px;
+        }
+
+        .terminal-sub-info.error-sub-info {
+          font-size: var(--vscode-font-size, 13px);
+          opacity: 1;
+          color: var(--vscode-foreground);
+          height: auto;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: unset;
+          line-height: 1.5;
+          padding-top: 2px;
+          padding-bottom: 4px;
+        }
+
+        .terminal-sub-info::before {
+          content: "";
+          position: absolute;
+          left: 15px;
+          top: -8px;
+          width: 10px;
+          height: 16px;
+          border-left: 2px solid var(--vscode-panel-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.3)));
+          border-bottom: 2px solid var(--vscode-panel-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.3)));
+          border-bottom-left-radius: 4px;
+          transform: translateX(-1px);
+        }
+
+        .terminal-state-badge {
+          font-size: 10px;
+          padding: 1px 6px;
+          border-radius: 10px;
+          background-color: var(--vscode-badge-background, #4d4d4d);
+          color: var(--vscode-badge-foreground, #ffffff);
+          opacity: 0.8;
+          font-weight: 600;
+        }
+
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .execute-button-minimal:hover {
+          color: var(--vscode-button-hoverBackground) !important;
+          background-color: color-mix(in srgb, var(--vscode-foreground) 10%, transparent) !important;
+        }
+
+        /* ── Copy button visibility ──────────────────────────────────────────────── */
+        .terminal-cmd-area .terminal-copy-btn,
+        .terminal-output-copy-btn {
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.15s;
+        }
+
+        .terminal-cmd-area:hover .terminal-copy-btn {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .terminal-output-area:hover .terminal-output-copy-btn {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .terminal-copy-btn:hover {
+          opacity: 1 !important;
+          pointer-events: auto !important;
+        }
+
+        .terminal-content-wrapper {
+          scrollbar-width: thin;
+          scrollbar-color: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4)) transparent;
+        }
+
+        .terminal-content-wrapper:hover {
+          scrollbar-color: var(--vscode-scrollbarSlider-hoverBackground, rgba(100, 100, 100, 0.7)) transparent;
+        }
+
+        .xterm .xterm-viewport {
+          background-color: transparent !important;
+        }
+
+        .xterm .xterm-screen {
+          padding: 4px;
+        }
+
+        .terminal-content-wrapper::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .terminal-content-wrapper::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .terminal-content-wrapper::-webkit-scrollbar-thumb {
+          background: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4));
+          border-radius: 3px;
+        }
+
+        .terminal-content-wrapper::-webkit-scrollbar-thumb:hover {
+          background: var(--vscode-scrollbarSlider-hoverBackground, rgba(100, 100, 100, 0.7));
+        }
+
+        /* Timeline Styles */
+        :root {
+          --timeline-axis: 15px;
+          --timeline-dot-size: 8px;
+        }
+
+        .chat-timeline-wrapper {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .chat-timeline-wrapper::before {
+          display: none;
+        }
+
+        .assistant-message-container {
+          position: relative;
+        }
+
+        .timeline-item {
+          position: relative;
+          margin-left: 0;
+        }
+
+        .timeline-item:last-child {
+          padding-bottom: 0;
+        }
+
+        .assistant-message-container .timeline-item:not(.last)::before {
+          content: "";
+          position: absolute;
+          left: 15px;
+          transform: translateX(-50%);
+          top: 14px;
+          bottom: -24px;
+          width: 2px;
+          background-color: var(--vscode-textBlockQuote-border, var(--vscode-editorLineNumber-foreground));
+          opacity: 0.5;
+          pointer-events: none;
+        }
+
+        .timeline-item.last::before {
+          display: none;
+        }
+
+        .timeline-dot {
+          position: absolute;
+          left: 15px;
+          transform: translateX(-50%);
+          top: 22px;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          z-index: 10;
+          background-color: var(--vscode-descriptionForeground);
+          box-shadow: 0 0 0 2px var(--vscode-editor-background), 0 0 0 3px var(--vscode-textBlockQuote-border, var(--vscode-editorLineNumber-foreground));
+          transition: all 0.2s ease;
+          animation: timeline-dot-fade-in 0.25s ease-out both;
+        }
+
+        @keyframes timeline-dot-fade-in {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) scale(0.5);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+          }
+        }
+
+        .timeline-mask {
+          position: relative;
+        }
+
+        .timeline-mask::after {
+          content: "";
+          position: absolute;
+          left: 15px;
+          transform: translateX(-50%);
+          top: -24px;
+          bottom: 0;
+          width: 4px;
+          background-color: var(--secondary-bg);
+          z-index: 1;
+          pointer-events: none;
+        }
+
+        .timeline-content {
+          padding-left: 29px;
+        }
+
+        .user-message-container {
+          position: relative;
+        }
+
+        .user-message-undo-btn {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          opacity: 0;
+          pointer-events: none;
+          background: color-mix(in srgb, var(--input-bg) 60%, var(--vscode-editor-background));
+          border: 1px solid color-mix(in srgb, var(--input-bg) 40%, var(--vscode-editor-background));
+          border-radius: 4px;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: color-mix(in srgb, var(--primary-text) 90%, var(--vscode-editor-foreground));
+          cursor: pointer;
+          transition: opacity 0.15s ease;
+          z-index: 10;
+        }
+
+        .user-message-container:hover .user-message-undo-btn {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .user-message-undo-btn:hover {
+          background: color-mix(in srgb, var(--input-bg) 40%, var(--vscode-editor-background));
+          color: var(--vscode-terminal-foreground);
+        }
+
+        .user-message-undo-btn svg {
+          width: 14px;
+          height: 14px;
+          stroke-width: 2px;
+        }
+      `}</style>
+    </>
   );
 };

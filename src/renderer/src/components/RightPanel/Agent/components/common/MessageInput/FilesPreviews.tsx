@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileIcon as FileIconLucide, Terminal, Loader2 } from 'lucide-react';
 import FileIcon from '@renderer/components/common/FileIcon';
+import { cn } from '@renderer/shared/lib/utils';
 
 interface UploadedFile {
   id: string;
@@ -46,65 +47,29 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
     <>
       {/* Uploaded Files Preview */}
       {uploadedFiles.length > 0 && (
-        <div
-          style={{
-            padding: 'var(--spacing-sm) var(--spacing-lg)',
-            borderTop: '1px solid var(--border-color)',
-            backgroundColor: 'transparent',
-            display: 'flex',
-            flexWrap: 'nowrap',
-            overflowX: 'auto',
-            gap: 'var(--spacing-xs)',
-            maxHeight: '80px',
-          }}
-        >
+        <div className="flex flex-nowrap overflow-x-auto gap-1 max-h-[80px] px-3 py-2 border-t border-[var(--border-color)] bg-transparent">
           {uploadedFiles.map((file) => {
             const isImage = file.type.startsWith('image/');
             if (isImage) {
               return (
-                <div
-                  key={file.id}
-                  style={{
-                    position: 'relative',
-                    width: '40px',
-                    height: '40px',
-                    flexShrink: 0,
-                  }}
-                >
+                <div key={file.id} className="relative w-10 h-10 shrink-0">
                   <img
                     src={file.content}
                     alt={file.name}
                     title={file.name}
                     onClick={() => !file.isUploading && onOpenImage(file)}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: 'var(--border-radius)',
-                      cursor: file.isUploading ? 'default' : 'pointer',
-                      border: file.error
-                        ? '1px solid var(--vscode-errorForeground, #f44336)'
-                        : '1px solid var(--border-color)',
-                      opacity: file.isUploading ? 0.5 : 1,
-                      filter: file.isUploading ? 'blur(0.5px)' : 'none',
-                    }}
+                    className={cn(
+                      'w-full h-full object-cover rounded',
+                      file.isUploading
+                        ? 'cursor-default opacity-50 blur-[0.5px]'
+                        : 'cursor-pointer opacity-100',
+                      file.error
+                        ? 'border border-[var(--vscode-errorForeground,#f44336)]'
+                        : 'border border-[var(--border-color)]',
+                    )}
                   />
                   {file.isUploading && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                        borderRadius: 'var(--border-radius)',
-                        pointerEvents: 'none',
-                      }}
-                    >
+                    <div className="absolute inset-0 flex items-center justify-center rounded pointer-events-none bg-black/40">
                       <Loader2
                         size={16}
                         color="var(--vscode-editor-foreground, #ffffff)"
@@ -115,22 +80,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                   {file.error && (
                     <div
                       title={file.error}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: 'rgba(244, 67, 54, 0.6)',
-                        borderRadius: 'var(--border-radius)',
-                        color: 'var(--vscode-editor-foreground, #fff)',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        cursor: 'help',
-                      }}
+                      className="absolute inset-0 flex items-center justify-center rounded text-xs font-bold cursor-help bg-[rgba(244,67,54,0.6)] text-[var(--vscode-editor-foreground,#fff)]"
                     >
                       ⚠️
                     </div>
@@ -140,22 +90,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       e.stopPropagation();
                       onRemoveFile(file.id);
                     }}
-                    style={{
-                      position: 'absolute',
-                      top: '-4px',
-                      right: '-4px',
-                      width: '14px',
-                      height: '14px',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--secondary-bg)',
-                      border: '1px solid var(--border-color)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      zIndex: 10,
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                    }}
+                    className="absolute -top-1 -right-1 w-[14px] h-[14px] rounded-full flex items-center justify-center cursor-pointer z-10 bg-[var(--secondary-bg)] border border-[var(--border-color)] shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
                   >
                     <svg
                       width="8"
@@ -176,60 +111,35 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
             return (
               <div
                 key={file.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--spacing-xs)',
-                  padding: 'var(--spacing-xs) var(--spacing-sm)',
-                  backgroundColor: 'transparent',
-                  border: file.error ? '1px solid var(--vscode-errorForeground, #f44336)' : 'none',
-                  borderRadius: 'var(--border-radius)',
-                  fontSize: 'var(--font-size-xs)',
-                  color: file.error
-                    ? 'var(--vscode-errorForeground, #f44336)'
-                    : 'var(--primary-text)',
-                  opacity: file.isUploading ? 0.6 : 1,
-                }}
+                className={cn(
+                  'flex items-center gap-1 px-2 py-1 rounded text-xs bg-transparent',
+                  file.error
+                    ? 'border border-[var(--vscode-errorForeground,#f44336)] text-[var(--vscode-errorForeground,#f44336)]'
+                    : 'border-none text-[var(--primary-text)]',
+                  file.isUploading && 'opacity-60',
+                )}
               >
                 <span>📎</span>
                 <span
-                  style={{
-                    maxWidth: '150px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap"
                   title={file.error || file.name}
                 >
                   {file.name}
                 </span>
-                <span style={{ color: 'var(--secondary-text)' }}>
-                  ({formatFileSize(file.size)})
-                </span>
+                <span className="text-[var(--secondary-text)]">({formatFileSize(file.size)})</span>
                 {file.isUploading && (
-                  <span style={{ fontSize: '10px', color: 'var(--secondary-text)' }}>
-                    (uploading...)
-                  </span>
+                  <span className="text-[10px] text-[var(--secondary-text)]">(uploading...)</span>
                 )}
                 {file.error && (
                   <span
-                    style={{
-                      fontSize: '10px',
-                      color: 'var(--vscode-errorForeground, #f44336)',
-                    }}
+                    className="text-[10px] text-[var(--vscode-errorForeground,#f44336)]"
                     title={file.error}
                   >
                     ⚠️
                   </span>
                 )}
                 <div
-                  style={{
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '2px',
-                  }}
+                  className="flex items-center justify-center p-0.5 cursor-pointer"
                   onClick={() => onRemoveFile(file.id)}
                 >
                   <svg
@@ -252,75 +162,27 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
 
       {/* Attached Items Display Area (Files/Folders from @ mention) */}
       {attachedItems.length > 0 && (
-        <div
-          style={{
-            padding: 'var(--spacing-sm) var(--spacing-lg)',
-            borderTop: '1px solid var(--border-color)',
-            backgroundColor: 'transparent',
-          }}
-        >
+        <div className="px-3 py-2 border-t border-[var(--border-color)] bg-transparent">
           {/* Files Row */}
           {attachedItems.filter((item) => item.type === 'file').length > 0 && (
-            <div
-              style={{
-                marginBottom: 'var(--spacing-xs)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
-                }}
-              >
-                Files:
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
-                }}
-              >
+            <div className="mb-1">
+              <div className="text-xs mb-1 text-[var(--secondary-text)]">Files:</div>
+              <div className="flex flex-wrap gap-1">
                 {attachedItems
                   .filter((item) => item.type === 'file')
                   .map((item) => (
                     <div
                       key={item.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
-                        color: 'var(--secondary-text)',
-                        cursor: 'pointer',
-                      }}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-[var(--secondary-text)]"
                       onClick={() => onAttachedItemClick(item)}
                       title={`Click to open: ${item.path}`}
                     >
                       <FileIconLucide path={item.path} style={{ width: '14px', height: '14px' }} />
-                      <span
-                        style={{
-                          maxWidth: '150px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <span className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {item.path.split('/').pop()}
                       </span>
                       <div
-                        style={{
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '2px',
-                        }}
+                        className="flex items-center justify-center p-0.5 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           onRemoveAttachedItem(item.id);
@@ -346,44 +208,15 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
 
           {/* Folders Row */}
           {attachedItems.filter((item) => item.type === 'folder').length > 0 && (
-            <div
-              style={{
-                marginBottom: 'var(--spacing-xs)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
-                }}
-              >
-                Folders:
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
-                }}
-              >
+            <div className="mb-1">
+              <div className="text-xs mb-1 text-[var(--secondary-text)]">Folders:</div>
+              <div className="flex flex-wrap gap-1">
                 {attachedItems
                   .filter((item) => item.type === 'folder')
                   .map((item) => (
                     <div
                       key={item.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
-                        color: 'var(--secondary-text)',
-                        cursor: 'pointer',
-                      }}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-[var(--secondary-text)]"
                       onClick={() => onAttachedItemClick(item)}
                       title={item.path}
                     >
@@ -392,24 +225,11 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                         isFolder={true}
                         style={{ width: '14px', height: '14px' }}
                       />
-                      <span
-                        style={{
-                          maxWidth: '150px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <span className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {item.path.split('/').pop() || item.path}
                       </span>
                       <div
-                        style={{
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '2px',
-                        }}
+                        className="flex items-center justify-center p-0.5 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           onRemoveAttachedItem(item.id);
@@ -435,66 +255,24 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
 
           {/* External Files Row */}
           {attachedItems.filter((item) => item.type === 'external').length > 0 && (
-            <div
-              style={{
-                marginBottom: 'var(--spacing-xs)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
-                }}
-              >
-                External Files:
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
-                }}
-              >
+            <div className="mb-1">
+              <div className="text-xs mb-1 text-[var(--secondary-text)]">External Files:</div>
+              <div className="flex flex-wrap gap-1">
                 {attachedItems
                   .filter((item) => item.type === 'external')
                   .map((item) => (
                     <div
                       key={item.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
-                        color: 'var(--secondary-text)',
-                        cursor: 'pointer',
-                      }}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-[var(--secondary-text)]"
                       onClick={() => onAttachedItemClick(item)}
                       title={`External file: ${item.path}`}
                     >
                       <FileIcon path={item.path} style={{ width: '14px', height: '14px' }} />
-                      <span
-                        style={{
-                          maxWidth: '150px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <span className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {item.path.split('/').pop() || item.path.split('\\').pop() || item.path}
                       </span>
                       <div
-                        style={{
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '2px',
-                        }}
+                        className="flex items-center justify-center p-0.5 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           onRemoveAttachedItem(item.id);
@@ -520,66 +298,24 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
 
           {/* Terminals Row */}
           {attachedItems.filter((item) => item.type === ('terminal' as any)).length > 0 && (
-            <div
-              style={{
-                marginBottom: 'var(--spacing-xs)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
-                }}
-              >
-                Terminals:
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
-                }}
-              >
+            <div className="mb-1">
+              <div className="text-xs mb-1 text-[var(--secondary-text)]">Terminals:</div>
+              <div className="flex flex-wrap gap-1">
                 {attachedItems
                   .filter((item) => item.type === ('terminal' as any))
                   .map((item) => (
                     <div
                       key={item.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
-                        color: 'var(--secondary-text)',
-                        cursor: 'pointer',
-                      }}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-[var(--secondary-text)]"
                       onClick={() => onAttachedItemClick(item)}
                       title={`Terminal ID: ${item.path}`}
                     >
                       <Terminal size={14} />
-                      <span
-                        style={{
-                          maxWidth: '150px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <span className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {item.path}
                       </span>
                       <div
-                        style={{
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '2px',
-                        }}
+                        className="flex items-center justify-center p-0.5 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           onRemoveAttachedItem(item.id);

@@ -4,6 +4,7 @@ import { GitPullRequestArrow } from 'lucide-react';
 import ModelAccountDrawer from './ModelAccountDrawer';
 import { useSettings } from '../../../context/SettingsContext';
 import { LANGUAGES } from '../../../feature/Setting/components/LanguageSelector';
+import { cn } from '@renderer/shared/lib/utils';
 
 export interface UploadedFile {
   id: string;
@@ -99,40 +100,23 @@ const ThinkingButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) =
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '0 8px',
-        height: '22px',
-        boxSizing: 'border-box',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.3px',
-        transition: 'all 0.2s ease-in-out',
-        border: isOn
-          ? '1px solid var(--vscode-editorBracketHighlight-foreground2, rgba(168, 85, 247, 0.4))'
-          : '1px solid rgba(128, 128, 128, 0.2)',
-        background: isOn
+      className={cn(
+        'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out',
+        isOn
+          ? 'border border-[var(--vscode-editorBracketHighlight-foreground2,rgba(168,85,247,0.4))] text-[var(--vscode-editorBracketHighlight-foreground2,#a855f7)] opacity-100'
+          : 'border border-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)]',
+        isOn
           ? isHovered
-            ? 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #a855f7) 20%, transparent)'
-            : 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #a855f7) 12%, transparent)'
+            ? 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground2,#a855f7)_20%,transparent)]'
+            : 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground2,#a855f7)_12%,transparent)]'
           : isHovered
-            ? 'rgba(128, 128, 128, 0.2)'
-            : 'rgba(128, 128, 128, 0.12)',
-        color: isOn
-          ? 'var(--vscode-editorBracketHighlight-foreground2, #a855f7)'
-          : 'var(--vscode-foreground)',
-        opacity: isOn ? 1 : isHovered ? 0.9 : 0.7,
-        lineHeight: 1,
-        verticalAlign: 'middle',
-      }}
+            ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
+            : 'bg-[rgba(128,128,128,0.12)] opacity-70'
+      )}
       title={title}
     >
       <BrainCogIcon />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>Thinking</span>
+      <span className="text-[11px] font-semibold tracking-[0.3px]">Thinking</span>
     </button>
   );
 };
@@ -145,40 +129,23 @@ const SearchButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => 
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '0 8px',
-        height: '22px',
-        boxSizing: 'border-box',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.3px',
-        transition: 'all 0.2s ease-in-out',
-        border: isOn
-          ? '1px solid var(--vscode-editorBracketHighlight-foreground1, rgba(14, 165, 233, 0.4))'
-          : '1px solid rgba(128, 128, 128, 0.2)',
-        background: isOn
+      className={cn(
+        'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out',
+        isOn
+          ? 'border border-[var(--vscode-editorBracketHighlight-foreground1,rgba(14,165,233,0.4))] text-[var(--vscode-editorBracketHighlight-foreground1,#0ea5e9)] opacity-100'
+          : 'border border-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)]',
+        isOn
           ? isHovered
-            ? 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground1, #0ea5e9) 20%, transparent)'
-            : 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground1, #0ea5e9) 12%, transparent)'
+            ? 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground1,#0ea5e9)_20%,transparent)]'
+            : 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground1,#0ea5e9)_12%,transparent)]'
           : isHovered
-            ? 'rgba(128, 128, 128, 0.2)'
-            : 'rgba(128, 128, 128, 0.12)',
-        color: isOn
-          ? 'var(--vscode-editorBracketHighlight-foreground1, #0ea5e9)'
-          : 'var(--vscode-foreground)',
-        opacity: isOn ? 1 : isHovered ? 0.9 : 0.7,
-        lineHeight: 1,
-        verticalAlign: 'middle',
-      }}
+            ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
+            : 'bg-[rgba(128,128,128,0.12)] opacity-70'
+      )}
       title={title}
     >
       <GlobeIcon />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>Search</span>
+      <span className="text-[11px] font-semibold tracking-[0.3px]">Search</span>
     </button>
   );
 };
@@ -191,40 +158,23 @@ const MemoryButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => 
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '0 8px',
-        height: '22px',
-        boxSizing: 'border-box',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.3px',
-        transition: 'all 0.2s ease-in-out',
-        border: isOn
-          ? '1px solid var(--vscode-editorBracketHighlight-foreground3, rgba(139, 92, 246, 0.4))'
-          : '1px solid rgba(128, 128, 128, 0.2)',
-        background: isOn
+      className={cn(
+        'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out',
+        isOn
+          ? 'border border-[var(--vscode-editorBracketHighlight-foreground3,rgba(139,92,246,0.4))] text-[var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)] opacity-100'
+          : 'border border-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)]',
+        isOn
           ? isHovered
-            ? 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground3, #8b5cf6) 20%, transparent)'
-            : 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground3, #8b5cf6) 12%, transparent)'
+            ? 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)_20%,transparent)]'
+            : 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)_12%,transparent)]'
           : isHovered
-            ? 'rgba(128, 128, 128, 0.2)'
-            : 'rgba(128, 128, 128, 0.12)',
-        color: isOn
-          ? 'var(--vscode-editorBracketHighlight-foreground3, #8b5cf6)'
-          : 'var(--vscode-foreground)',
-        opacity: isOn ? 1 : isHovered ? 0.9 : 0.7,
-        lineHeight: 1,
-        verticalAlign: 'middle',
-      }}
+            ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
+            : 'bg-[rgba(128,128,128,0.12)] opacity-70'
+      )}
       title={title}
     >
       <MemoryIcon />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>Memory</span>
+      <span className="text-[11px] font-semibold tracking-[0.3px]">Memory</span>
     </button>
   );
 };
@@ -304,54 +254,29 @@ const GlobalPermissionButton: React.FC = () => {
   const metadata = MODE_METADATA[permissionMode] || MODE_METADATA.fullAccess;
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        className={cn(
+          'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out opacity-100',
+          isHovered
+            ? 'bg-[color-mix(in_srgb,var(--permission-color,var(--vscode-editorBracketHighlight-foreground3,#f59e0b))_20%,transparent)]'
+            : 'bg-[color-mix(in_srgb,var(--permission-color,var(--vscode-editorBracketHighlight-foreground3,#f59e0b))_12%,transparent)]'
+        )}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          padding: '0 8px',
-          height: '22px',
-          boxSizing: 'border-box',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontSize: '11px',
-          fontWeight: 600,
-          letterSpacing: '0.3px',
-          transition: 'all 0.2s ease-in-out',
           border: `1px solid ${metadata.color}40`,
-          background: isHovered
-            ? `color-mix(in srgb, ${metadata.color} 20%, transparent)`
-            : `color-mix(in srgb, ${metadata.color} 12%, transparent)`,
           color: metadata.color,
-          opacity: 1,
-          lineHeight: 1,
-          verticalAlign: 'middle',
         }}
         title="Tool permission mode"
       >
         {metadata.icon}
-        <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>
-          {metadata.label}
-        </span>
+        <span className="text-[11px] font-semibold tracking-[0.3px]">{metadata.label}</span>
       </button>
       {open && (
         <div
-          style={{
-            position: 'absolute',
-            bottom: 'calc(100% + 4px)',
-            left: 0,
-            zIndex: 1000,
-            backgroundColor: 'color-mix(in srgb, var(--input-bg) 100%, black 15%)',
-            border: '1px solid var(--vscode-widget-border)',
-            borderRadius: '6px',
-            overflow: 'hidden',
-            boxShadow: '0 -4px 12px rgba(0,0,0,0.2)',
-            minWidth: '180px',
-          }}
+          className="absolute bottom-[calc(100%+4px)] left-0 z-[1000] rounded-md overflow-hidden min-w-[180px] bg-[color-mix(in_srgb,var(--input-bg)_100%,black_15%)] border border-[var(--vscode-widget-border)] shadow-[0_-4px_12px_rgba(0,0,0,0.2)]"
         >
           {Object.entries(MODE_METADATA).map(([modeId, meta]) => {
             const isSelected = permissionMode === modeId;
@@ -364,31 +289,18 @@ const GlobalPermissionButton: React.FC = () => {
                   setTooltip(null);
                   if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
                 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  width: '100%',
-                  padding: '7px 12px',
-                  fontSize: '11.5px',
-                  fontWeight: 500,
-                  textAlign: 'left',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: isSelected ? 'var(--vscode-button-background)' : 'transparent',
-                  color: isSelected
-                    ? 'var(--vscode-button-foreground)'
-                    : 'var(--vscode-foreground)',
-                }}
+                className={cn(
+                  'flex items-center gap-1.5 w-full px-3 py-[7px] text-[11.5px] font-medium text-left border-none cursor-pointer',
+                  isSelected
+                    ? 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]'
+                    : 'bg-transparent text-[var(--vscode-foreground)]'
+                )}
                 onMouseEnter={(e) => handleItemMouseEnter(modeId, e)}
                 onMouseLeave={(e) => handleItemMouseLeave(isSelected, e)}
               >
                 <span
-                  style={{
-                    color: isSelected ? 'inherit' : meta.color,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
+                  className="flex items-center"
+                  style={{ color: isSelected ? 'inherit' : meta.color }}
                 >
                   {meta.icon}
                 </span>
@@ -400,29 +312,15 @@ const GlobalPermissionButton: React.FC = () => {
       )}
       {tooltip && MODE_METADATA[tooltip.id] && (
         <div
+          className="fixed z-[9999] rounded-md px-2.5 py-2 max-w-[220px] text-[11px] leading-relaxed pointer-events-none bg-[var(--vscode-editorHoverWidget-background,#1e1e1e)] border border-[var(--vscode-editorHoverWidget-border,#454545)] text-[var(--vscode-foreground)] shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
           style={{
-            position: 'fixed',
             left: tooltip.x,
             top: tooltip.y,
-            zIndex: 9999,
-            backgroundColor: 'var(--vscode-editorHoverWidget-background, #1e1e1e)',
-            border: '1px solid var(--vscode-editorHoverWidget-border, #454545)',
-            borderRadius: '6px',
-            padding: '8px 10px',
-            maxWidth: '220px',
-            fontSize: '11px',
-            color: 'var(--vscode-foreground)',
-            lineHeight: 1.5,
-            pointerEvents: 'none',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}
         >
           <div
-            style={{
-              fontWeight: 600,
-              marginBottom: '3px',
-              color: MODE_METADATA[tooltip.id].color,
-            }}
+            className="font-semibold mb-[3px]"
+            style={{ color: MODE_METADATA[tooltip.id].color }}
           >
             {MODE_METADATA[tooltip.id].label}
           </div>
@@ -461,13 +359,11 @@ interface MessageInputProps {
   currentAccount: any;
   setCurrentAccount: (account: any) => void;
   isProcessing?: boolean;
-  // 🆕 Stop Generation Props
   isStreaming?: boolean;
   onStopGeneration?: () => void;
   showBrowserWarning?: boolean;
   isLaunchingBrowser?: boolean;
   onLaunchBrowserSession?: () => void;
-  // 🆕 Git Status Button
   onGitPullRequest?: () => void;
   isGitLoading?: boolean;
   isGitStatusVisible?: boolean;
@@ -519,9 +415,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const pendingAccountIdRef = React.useRef<string | null>(null);
   const [showModelDrawer, setShowModelDrawer] = React.useState(false);
 
-  // Refs that always hold the latest model/account values.
-  // Required because applyCache runs inside a useEffect closure and would
-  // otherwise capture stale values of currentModel/currentAccount from mount.
   const currentModelRef = React.useRef<any>(null);
   const currentAccountRef = React.useRef<any>(null);
   currentModelRef.current = currentModel;
@@ -585,11 +478,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
 
     const newState = !isMemory;
-    // Optimistic update
     setIsMemory(newState);
     localStorage.setItem('zen-memory-enabled', String(newState));
 
-    // Sync to server
     try {
       const response = await fetch(`${apiUrl}/v1/accounts/${currentAccount.id}/memory`, {
         method: 'PUT',
@@ -598,13 +489,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
       });
       const result = await response.json();
       if (!result.success) {
-        // Rollback on error
         setIsMemory(!newState);
         localStorage.setItem('zen-memory-enabled', String(!newState));
         console.error('Failed to update memory state on server:', result.message);
       }
     } catch (error) {
-      // Rollback on network error
       setIsMemory(!newState);
       localStorage.setItem('zen-memory-enabled', String(!newState));
       console.error('Failed to sync memory state with server:', error);
@@ -615,18 +504,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
     return currentAccount || null;
   }, [currentAccount]);
 
-  // Auto-resize textarea: expand up to maxHeight, shrink when content is deleted
   React.useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    // Reset to auto so scrollHeight reflects actual content height
     el.style.height = 'auto';
-    const maxHeight = 240; // px, must match the style below
+    const maxHeight = 240;
     el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
     el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, [message, textareaRef]);
 
-  // 🆕 Tool Settings Drawer Logic removed - now per-tool dropdown in ToolItem
   const currentProviderConfig = React.useMemo(() => {
     if (!currentModel?.providerId) {
       return null;
@@ -648,7 +534,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   }, [currentProviderConfig, currentModel]);
 
   const showThinkingButton = React.useMemo(() => {
-    // Prefer fields on currentModel directly (already enriched), fallback to config lookup
     const result =
       currentModel?.is_thinking !== undefined
         ? !!currentModel.is_thinking
@@ -657,30 +542,22 @@ const MessageInput: React.FC<MessageInputProps> = ({
   }, [currentModel, currentModelConfig]);
 
   const showSearchButton = React.useMemo(() => {
-    // Priority: model-level > provider-level
-    // Only fall through to the next level if the current level is undefined (not set),
-    // never let provider-level override an explicit model-level false.
     let result: boolean;
     if (currentModel?.is_search !== undefined) {
-      // Model object already enriched with capability flags — trust it exclusively
       result = !!currentModel.is_search;
     } else if (currentModelConfig?.is_search !== undefined) {
-      // Model config from providers list has the flag
       result = !!currentModelConfig.is_search;
     } else {
-      // Neither model nor modelConfig has the flag — fall back to provider-level
       result = !!currentProviderConfig?.is_search;
     }
     return result;
   }, [currentModel, currentModelConfig, currentProviderConfig]);
 
   const showMemoryButton = React.useMemo(() => {
-    // Check if model supports memory (is_memory flag)
     const result = currentModel?.is_memory === true;
     return result;
   }, [currentModel]);
 
-  // Sync thinking and search toggles when model changes
   React.useEffect(() => {
     if (providers.length === 0 || !currentModel) return;
     const hasThinking =
@@ -707,7 +584,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   }, [currentModel, currentModelConfig, currentProviderConfig, providers, isThinking, isSearch]);
 
   const supportsUpload = React.useMemo(() => {
-    // Priority: model-level > modelConfig-level > provider-level (strict cascade, no OR merging)
     let result: boolean;
     if (currentModel?.is_upload !== undefined) {
       result = !!currentModel.is_upload;
@@ -727,13 +603,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     return `../${lastFive}`;
   };
 
-  // ... (rest of the file until rendering)
-
-  // NOTE: Logic to hide dropdowns is applied in the render method below
-  // We need to look further down for the return statement to modify the render.
-  // Since replace_file_content handles contiguous blocks, I will target the props definition first.
-
-  // Fetch providers function
   const fetchProviders = React.useCallback(async () => {
     try {
       const response = await fetch(`${apiUrl}/v1/providers`);
@@ -746,12 +615,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   }, [apiUrl]);
 
-  // Initial fetch
   React.useEffect(() => {
     fetchProviders();
   }, [fetchProviders]);
 
-  // Load saved selection and language
   React.useEffect(() => {
     let cancelled = false;
     setIsLoadingCache(true);
@@ -759,11 +626,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     const applyCache = (saved: any) => {
       if (cancelled) return;
-      // Only restore from cache if the parent hasn't already provided a model/account.
-      // When ChatPanel passes initialMessageData.model (user just selected a new model),
-      // that value takes priority over the stale local cache. Overwriting it here was the
-      // root cause of "first message after model switch uses old model" bug.
-      // Use refs (not closure values) to get the latest currentModel/currentAccount.
       if (saved.model && !currentModelRef.current) setCurrentModel(saved.model);
       if (saved.accountId && !currentAccountRef.current) {
         pendingAccountIdRef.current = saved.accountId;
@@ -811,7 +673,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     };
   }, [folderPath]);
 
-  // Save selection
   React.useEffect(() => {
     if (currentModel) {
       const key = `zen-model-selection:${folderPath || 'global'}`;
@@ -832,7 +693,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   }, [currentModel, currentAccount, folderPath, setCurrentModel, setCurrentAccount]);
 
-  // Handle auto-selection of account from cache once providers are loaded
   React.useEffect(() => {
     if (
       pendingAccountIdRef.current &&
@@ -850,7 +710,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             const acc = result.data.accounts.find((a: any) => a.id === pendingAccountIdRef.current);
             if (acc) {
               setCurrentAccount({ id: acc.id, email: acc.email });
-              pendingAccountIdRef.current = null; // Mark as resolved
+              pendingAccountIdRef.current = null;
             }
           }
         } catch (error) {
@@ -862,56 +722,34 @@ const MessageInput: React.FC<MessageInputProps> = ({
   }, [providers, currentModel, currentAccount, apiUrl, setCurrentAccount]);
 
   return (
-    <div
-      style={{
-        padding: 'var(--spacing-md) var(--spacing-lg)',
-        backgroundColor: 'var(--secondary-bg)',
-        position: 'relative',
-      }}
-    >
+    <div className="relative px-3 py-2 bg-[var(--secondary-bg)]">
       <div
+        className={cn(
+          'flex flex-col relative rounded',
+          !isConnected
+            ? 'border border-[var(--vscode-errorForeground,#f44336)]'
+            : 'border border-transparent'
+        )}
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          borderRadius: 'var(--border-radius)',
-          border: !isConnected
-            ? '1px solid var(--vscode-errorForeground, #f44336)'
-            : '1px solid transparent',
           transition: 'border 0.3s ease',
-          marginTop: !isConversationStarted || (isConnected && isElaraMismatch) ? '24px' : '0px', // Space for badges sticking up
+          marginTop: !isConversationStarted || (isConnected && isElaraMismatch) ? '24px' : '0px',
         }}
       >
-        {/* 🆕 HOME PANEL BADGE (Stuck to Border) - Only when !isConversationStarted */}
+        {/* HOME PANEL BADGE */}
         {!isConversationStarted && (
           <div
             onClick={() => {
               if (providers.length === 0) fetchProviders();
               setShowModelDrawer((v) => !v);
             }}
+            className={cn(
+              'absolute left-2 flex items-center gap-2 px-2.5 py-[5px] text-[11px] font-semibold rounded-t-lg rounded-b-none z-20 cursor-pointer transition-all duration-200 ease-in-out bg-[var(--input-bg)] text-[var(--primary-text)] border border-[var(--border-color)] shadow-[0_-2px_6px_rgba(0,0,0,0.1)]',
+              !isConnected
+                ? 'border-b border-[var(--border-color)] mb-0'
+                : 'border-b-0 -mb-px'
+            )}
             style={{
-              position: 'absolute',
               bottom: !isConnected ? 'calc(100% + 2px)' : '100%',
-              left: '8px',
-              backgroundColor: 'var(--input-bg)',
-              color: 'var(--primary-text)',
-              padding: '5px 10px',
-              fontSize: '11px',
-              fontWeight: 600,
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottomLeftRadius: '0',
-              borderBottomRightRadius: '0',
-              border: '1px solid var(--border-color)',
-              borderBottom: !isConnected ? '1px solid var(--border-color)' : 'none',
-              zIndex: 20,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 -2px 6px rgba(0,0,0,0.1)',
-              transition: 'all 0.2s ease',
-              marginBottom: isConnected ? '-1px' : '0', // avoid inheriting red border when disconnected
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
@@ -927,34 +765,24 @@ const MessageInput: React.FC<MessageInputProps> = ({
                   <img
                     src={displayModel.favicon}
                     alt="favicon"
-                    style={{
-                      width: '12px',
-                      height: '12px',
-                      borderRadius: '2px',
-                    }}
+                    className="w-3 h-3 rounded-[2px]"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                 ) : (
-                  <span className="codicon codicon-server-process" style={{ fontSize: '12px' }} />
+                  <span className="codicon codicon-server-process text-xs" />
                 )}
                 {displayModel.providerId}/{displayModel.id}
                 {displayAccount?.email && (
-                  <span
-                    style={{
-                      opacity: 0.8,
-                      fontStyle: 'italic',
-                      marginLeft: '2px',
-                    }}
-                  >
+                  <span className="opacity-80 italic ml-0.5">
                     {displayAccount.email}
                   </span>
                 )}
               </>
             ) : (
               <>
-                <span className="codicon codicon-server-process" style={{ fontSize: '12px' }} />
+                <span className="codicon codicon-server-process text-xs" />
                 Select Model
               </>
             )}
@@ -992,7 +820,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 email: selected.email,
               });
 
-              // Fetch memory state from server
               const fetchMemoryState = async () => {
                 try {
                   const response = await fetch(
@@ -1001,7 +828,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
                   const result = await response.json();
                   if (result.success && result.data) {
                     setIsMemory(result.data.is_memory_enabled);
-                    // Sync to localStorage
                     localStorage.setItem(
                       'zen-memory-enabled',
                       String(result.data.is_memory_enabled),
@@ -1016,30 +842,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
             }}
           />
         )}
-        {/* Browser session warning - bottom right inside MessageInput */}
+        {/* Browser session warning */}
         {showBrowserWarning && currentModel?.providerId === 'zai-browser' && (
           <div
             onClick={isLaunchingBrowser ? undefined : onLaunchBrowserSession}
-            style={{
-              position: 'absolute',
-              top: '100%',
-              right: '8px',
-              backgroundColor: 'rgba(251, 146, 60, 0.15)',
-              padding: '4px 10px',
-              fontSize: '11px',
-              fontWeight: 500,
-              borderBottomLeftRadius: '8px',
-              borderBottomRightRadius: '8px',
-              border: '1px solid rgba(251, 146, 60, 0.3)',
-              borderTop: 'none',
-              zIndex: 20,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: isLaunchingBrowser ? 'not-allowed' : 'pointer',
-              marginTop: '-1px',
-              opacity: isLaunchingBrowser ? 0.6 : 1,
-            }}
+            className={cn(
+              'absolute top-full right-2 flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-b-lg border-t-0 z-20 -mt-px bg-[rgba(251,146,60,0.15)] border border-[rgba(251,146,60,0.3)]',
+              isLaunchingBrowser
+                ? 'cursor-not-allowed opacity-60'
+                : 'cursor-pointer opacity-100'
+            )}
             onMouseEnter={(e) => {
               if (!isLaunchingBrowser) {
                 e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.25)';
@@ -1049,22 +861,14 @@ const MessageInput: React.FC<MessageInputProps> = ({
               e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.15)';
             }}
           >
-            <span style={{ fontSize: '11px', fontWeight: 500 }}>
+            <span className="text-[11px] font-medium">
               {isLaunchingBrowser
                 ? 'Launching browser session...'
                 : 'Browser session not ready. Click here'}
             </span>
           </div>
         )}
-        <div
-          style={{
-            position: 'relative',
-            backgroundColor: 'var(--input-bg)',
-            borderTopLeftRadius: 'var(--border-radius)',
-            borderTopRightRadius: 'var(--border-radius)',
-            padding: '12px',
-          }}
-        >
+        <div className="relative rounded-t p-3 bg-[var(--input-bg)]">
           <style>{`
           .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
@@ -1088,7 +892,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                // Only send if not history mode, connected, not loading, not processing
                 if (!isHistoryMode && isConnected && !isLoadingCache && !isProcessing) {
                   handleSend(currentModel, currentAccount);
                 }
@@ -1102,7 +905,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
                   '[Zen Log] MessageInput onPaste: Upload is not supported, preventing paste.',
                 );
                 e.preventDefault();
-                // Optional: Show toast "Upload not supported by this provider"
                 return;
               }
               handlePaste(e);
@@ -1132,78 +934,31 @@ const MessageInput: React.FC<MessageInputProps> = ({
             }
             disabled={false}
             rows={1}
-            style={{
-              width: '100%',
-              minHeight: '24px',
-              maxHeight: '240px',
-              border: 'none',
-              outline: 'none',
-              resize: 'none',
-              fontFamily: 'inherit',
-              fontSize: 'var(--font-size-sm)',
-              backgroundColor: 'transparent',
-              color: 'var(--primary-text)',
-              overflow: 'hidden',
-              whiteSpace: 'pre-wrap',
-              wordWrap: 'break-word',
-              opacity: 1,
-              cursor: 'text',
-              boxSizing: 'border-box',
-            }}
+            className="w-full min-h-[24px] max-h-[240px] border-none outline-none resize-none font-[inherit] text-sm bg-transparent overflow-hidden whitespace-pre-wrap break-words opacity-100 cursor-text box-border text-[var(--primary-text)]"
           />
         </div>
 
         {/* Bottom Part: Toolbar */}
-        <div
-          style={{
-            backgroundColor: 'var(--input-bg)',
-            borderBottomLeftRadius: 'var(--border-radius)',
-            borderBottomRightRadius: 'var(--border-radius)',
-            padding: '8px 12px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
+        <div className="flex justify-between items-center rounded-b px-3 py-2 bg-[var(--input-bg)]">
           {/* Left Icons */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 'var(--spacing-xs)',
-              alignItems: 'center',
-            }}
-          >
+          <div className="flex gap-1 items-center">
             <div
               onClick={() => {
-                // Use the file input ref from parent
                 if (fileInputRef?.current) {
-                  // Store textOnly flag on the input element for the change handler to use
                   (fileInputRef.current as any).dataset.textOnly = String(!supportsUpload);
                   fileInputRef.current.click();
                 } else {
-                  // Fallback: use handleFileSelect
                   handleFileSelect();
                 }
               }}
               onMouseEnter={() => setIsPlusHovered(true)}
               onMouseLeave={() => setIsPlusHovered(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '22px',
-                width: '22px',
-                boxSizing: 'border-box',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease-in-out',
-                border: '1px solid rgba(128, 128, 128, 0.2)',
-                background: isPlusHovered
-                  ? 'rgba(128, 128, 128, 0.2)'
-                  : 'rgba(128, 128, 128, 0.12)',
-                color: 'var(--vscode-foreground)',
-                opacity: isPlusHovered ? 0.9 : 0.7,
-              }}
+              className={cn(
+                'flex items-center justify-center h-[22px] w-[22px] rounded cursor-pointer box-border transition-all duration-200 ease-in-out border border-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)]',
+                isPlusHovered
+                  ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
+                  : 'bg-[rgba(128,128,128,0.12)] opacity-70'
+              )}
               title={supportsUpload ? 'Attach files' : 'Attach text files only'}
             >
               <PlusIcon />
@@ -1219,33 +974,14 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 }}
                 onMouseEnter={() => setIsGitHovered(true)}
                 onMouseLeave={() => setIsGitHovered(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '22px',
-                  width: '22px',
-                  boxSizing: 'border-box',
-                  borderRadius: '4px',
-                  cursor:
-                    isGitLoading || isProcessing || isGitStatusVisible ? 'default' : 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  border: '1px solid rgba(128, 128, 128, 0.2)',
-                  background:
-                    isGitHovered && !isGitLoading && !isProcessing && !isGitStatusVisible
-                      ? 'rgba(128, 128, 128, 0.2)'
-                      : 'rgba(128, 128, 128, 0.12)',
-                  color:
-                    isGitLoading || isProcessing || isGitStatusVisible
-                      ? 'var(--vscode-descriptionForeground, #8c8c8c)'
-                      : 'var(--vscode-foreground)',
-                  opacity:
-                    isGitHovered && !isGitLoading && !isProcessing && !isGitStatusVisible
-                      ? 0.9
-                      : isGitLoading || isProcessing || isGitStatusVisible
-                        ? 0.5
-                        : 0.7,
-                }}
+                className={cn(
+                  'flex items-center justify-center h-[22px] w-[22px] rounded box-border transition-all duration-200 ease-in-out border border-[rgba(128,128,128,0.2)]',
+                  isGitLoading || isProcessing || isGitStatusVisible
+                    ? 'cursor-default bg-[rgba(128,128,128,0.12)] text-[var(--vscode-descriptionForeground,#8c8c8c)] opacity-50'
+                    : isGitHovered
+                      ? 'cursor-pointer bg-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)] opacity-90'
+                      : 'cursor-pointer bg-[rgba(128,128,128,0.12)] text-[var(--vscode-foreground)] opacity-70'
+                )}
                 title={
                   isGitStatusVisible
                     ? 'Git Status đang hiển thị'
@@ -1292,38 +1028,22 @@ const MessageInput: React.FC<MessageInputProps> = ({
           </div>
 
           {/* Right Icons */}
-          <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
+          <div className="flex gap-1">
             {/* Send / Stop Button */}
             {isConnected && (
               <div
-                style={{
-                  cursor:
-                    isHistoryMode || isLoadingCache
-                      ? 'not-allowed'
-                      : isStreaming || isProcessing
-                        ? 'pointer'
-                        : message.trim() || uploadedFiles.length > 0
-                          ? 'pointer'
-                          : 'default',
-                  padding: 'var(--spacing-xs)',
-                  borderRadius: 'var(--border-radius)',
-                  transition: 'background-color 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color:
-                    isHistoryMode || isLoadingCache
-                      ? 'var(--secondary-text)'
-                      : isStreaming || isProcessing
-                        ? 'var(--vscode-errorForeground, #f44336)' // Red color for stop
-                        : message.trim() || uploadedFiles.length > 0
-                          ? 'var(--accent-text)'
-                          : 'var(--secondary-text)',
-                  pointerEvents: isHistoryMode || isLoadingCache ? 'none' : 'auto',
-                }}
+                className={cn(
+                  'flex items-center justify-center p-1 rounded transition-colors duration-200',
+                  isHistoryMode || isLoadingCache
+                    ? 'cursor-not-allowed text-[var(--secondary-text)] pointer-events-none'
+                    : isStreaming || isProcessing
+                      ? 'cursor-pointer text-[var(--vscode-errorForeground,#f44336)] pointer-events-auto'
+                      : message.trim() || uploadedFiles.length > 0
+                        ? 'cursor-pointer text-[var(--accent-text)] pointer-events-auto'
+                        : 'cursor-default text-[var(--secondary-text)] pointer-events-auto'
+                )}
                 onClick={() => {
                   if ((isStreaming || isProcessing) && onStopGeneration) {
-                    // Stop generation
                     onStopGeneration();
                     return;
                   }
@@ -1350,30 +1070,12 @@ const MessageInput: React.FC<MessageInputProps> = ({
           </div>
         </div>
 
-        {/* Language Badge - HomePanel only */}
+        {/* Language Badge */}
         {!isConversationStarted &&
           isConnected &&
           !isElaraMismatch &&
           LANGUAGES.some((l: { code: string }) => l.code === preferredLanguage) && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                backgroundColor: 'var(--vscode-badge-background)',
-                color: 'var(--vscode-badge-foreground)',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                zIndex: 5,
-                opacity: 0.8,
-                pointerEvents: 'none',
-              }}
-            >
+            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold z-[5] opacity-80 pointer-events-none bg-[var(--vscode-badge-background)] text-[var(--vscode-badge-foreground)]">
               <span>
                 {LANGUAGES.find((l: any) => l.code === preferredLanguage)?.flag || '🇺🇸'}{' '}
                 {preferredLanguage.toUpperCase()}
@@ -1381,32 +1083,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
             </div>
           )}
 
-        {/* Health / Elara Badges (Stuck to Border) */}
+        {/* Elara Version Mismatch Badge */}
         {isConnected && isElaraMismatch && (
           <div
-            style={{
-              position: 'absolute',
-              bottom: '100%',
-              right: '8px',
-              backgroundColor: 'rgba(255, 152, 0, 0.1)',
-              color: 'var(--vscode-editorWarning-foreground, #ff9800)',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: 600,
-              borderTopLeftRadius: 'var(--border-radius)',
-              borderTopRightRadius: 'var(--border-radius)',
-              borderBottomLeftRadius: '0',
-              borderBottomRightRadius: '0',
-              border: '1px solid rgba(255, 152, 0, 0.2)',
-              borderBottom: 'none',
-              cursor: 'pointer',
-              zIndex: 20,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              boxShadow: '0 -2px 4px rgba(0,0,0,0.1)',
-              marginBottom: '-1px',
-            }}
+            className="absolute bottom-full right-2 flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded-t rounded-b-none border-b-0 cursor-pointer z-20 -mb-px bg-[rgba(255,152,0,0.1)] text-[var(--vscode-editorWarning-foreground,#ff9800)] border border-[rgba(255,152,0,0.2)] shadow-[0_-2px_4px_rgba(0,0,0,0.1)]"
             onClick={() => {
               const vscodeApi = (window as any).vscodeApi;
               if (vscodeApi) {

@@ -1,5 +1,5 @@
-import React from "react";
-import { Loader2 } from "lucide-react";
+import React from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface ConfirmDeleteDrawerProps {
   open: boolean;
@@ -24,52 +24,38 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
     <>
       {/* Backdrop */}
       <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
-          zIndex: 200,
-          animation: "cdFadeIn 0.15s ease",
-        }}
+        className="fixed inset-0 z-[200] animate-[cdFadeIn_0.15s_ease]"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
         onClick={() => !loading && onOpenChange(false)}
       />
 
       {/* Bottom Sheet */}
       <div
+        className="fixed bottom-0 left-0 right-0 rounded-t-2xl z-[201] animate-[cdSlideUp_0.22s_ease]"
         style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: "var(--tertiary-bg)",
-          borderTop: "1px solid var(--border-color)",
-          borderTopLeftRadius: "16px",
-          borderTopRightRadius: "16px",
-          boxShadow: "0 -8px 32px rgba(0,0,0,0.25)",
-          zIndex: 201,
-          animation: "cdSlideUp 0.22s ease",
-          padding: "0 0 max(20px, env(safe-area-inset-bottom)) 0",
+          backgroundColor: 'var(--tertiary-bg)',
+          borderTop: '1px solid var(--border-color)',
+          boxShadow: '0 -8px 32px rgba(0,0,0,0.25)',
+          padding: '0 0 max(20px, env(safe-area-inset-bottom)) 0',
         }}
       >
         {/* Drag handle */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px" }}>
-          <div style={{ width: "32px", height: "3px", borderRadius: "2px", backgroundColor: "var(--border-color)" }} />
+        <div className="flex justify-center pt-2.5 pb-1.5">
+          <div
+            className="w-8 h-[3px] rounded-[2px]"
+            style={{ backgroundColor: 'var(--border-color)' }}
+          />
         </div>
 
         {/* Content */}
-        <div style={{ padding: "4px 16px 16px" }}>
+        <div className="px-4 pb-4 pt-1">
           {/* Icon + text row */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
+          <div className="flex items-center gap-3 mb-3.5">
             <div
+              className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
               style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "10px",
-                backgroundColor: "var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.1))",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
+                backgroundColor:
+                  'var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.1))',
               }}
             >
               <svg
@@ -87,78 +73,64 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
                 <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               </svg>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="flex-1 min-w-0">
               <div
-                style={{
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: "var(--primary-text)",
-                  marginBottom: "2px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
+                className="text-sm font-semibold mb-0.5 overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ color: 'var(--primary-text)' }}
               >
                 {title}
               </div>
-              <div style={{ fontSize: "11px", color: "var(--secondary-text)", opacity: 0.75 }}>
+              <div className="text-[11px] opacity-75" style={{ color: 'var(--secondary-text)' }}>
                 {count > 1
                   ? `${count} accounts will be permanently removed.`
-                  : "This account will be permanently removed."}
+                  : 'This account will be permanently removed.'}
               </div>
             </div>
           </div>
 
           {/* Buttons */}
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="flex gap-2">
             <button
               onClick={() => onOpenChange(false)}
               disabled={loading}
+              className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-opacity duration-150"
               style={{
-                flex: 1,
-                padding: "8px 12px",
-                borderRadius: "8px",
-                backgroundColor: "rgba(128,128,128,0.1)",
-                border: "none",
-                color: "var(--secondary-text)",
-                fontSize: "12px",
-                fontWeight: 500,
-                cursor: loading ? "not-allowed" : "pointer",
+                backgroundColor: 'rgba(128,128,128,0.1)',
+                border: 'none',
+                color: 'var(--secondary-text)',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.5 : 1,
-                transition: "opacity 0.15s ease",
               }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = "rgba(128,128,128,0.18)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(128,128,128,0.1)"; }}
+              onMouseEnter={(e) => {
+                if (!loading) e.currentTarget.style.backgroundColor = 'rgba(128,128,128,0.18)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(128,128,128,0.1)';
+              }}
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
               disabled={loading}
+              className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-opacity duration-150"
               style={{
-                flex: 1,
-                padding: "8px 12px",
-                borderRadius: "8px",
-                backgroundColor: "var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.15))",
-                border: "none",
-                color: "var(--vscode-errorForeground)",
-                fontSize: "12px",
-                fontWeight: 600,
-                cursor: loading ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
+                backgroundColor:
+                  'var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.15))',
+                border: 'none',
+                color: 'var(--vscode-errorForeground)',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.7 : 1,
-                transition: "opacity 0.15s ease",
               }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.opacity = "0.8"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = loading ? "0.7" : "1"; }}
+              onMouseEnter={(e) => {
+                if (!loading) e.currentTarget.style.opacity = '0.8';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = loading ? '0.7' : '1';
+              }}
             >
-              {loading && (
-                <Loader2 size={12} style={{ animation: "cdSpin 1s linear infinite" }} />
-              )}
-              {loading ? "Deleting…" : "Delete"}
+              {loading && <Loader2 size={12} style={{ animation: 'cdSpin 1s linear infinite' }} />}
+              {loading ? 'Deleting…' : 'Delete'}
             </button>
           </div>
         </div>

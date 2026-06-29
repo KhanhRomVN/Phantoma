@@ -5,7 +5,7 @@ interface Props { usage: HourEntry[]; title: string; }
 
 const LINE_COLOR = "var(--vscode-textLink-foreground, #3b82f6)";
 const CHART_H = 60;
-const CHART_W = 600; // viewBox width, scales with container
+const CHART_W = 600;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
@@ -37,15 +37,12 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
     return CHART_H - (req / maxReq) * CHART_H;
   };
 
-  // Build polyline points for past/present hours only
   const pastPoints = HOURS.filter((h) => h <= currentHour)
     .map((h) => `${xOf(h)},${yOf(h)}`).join(" ");
 
-  // Future line (flat at bottom or dashed)
   const futurePoints = HOURS.filter((h) => h >= currentHour)
     .map((h) => `${xOf(h)},${CHART_H}`).join(" ");
 
-  // Area fill under past line
   const areaPoints = [
     `${xOf(0)},${CHART_H}`,
     ...HOURS.filter((h) => h <= currentHour).map((h) => `${xOf(h)},${yOf(h)}`),
@@ -59,29 +56,32 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
     const relX = (e.clientX - rect.left) / rect.width;
     const hour = Math.round(relX * 23);
     const clampedH = Math.max(0, Math.min(23, hour));
-    // compute dot position in client coords
     const dotX = rect.left + (xOf(clampedH) / CHART_W) * rect.width;
     const dotY = rect.top + (yOf(clampedH) / CHART_H) * rect.height;
     setTooltip({ hour: clampedH, svgX: dotX, svgY: dotY });
   };
 
   return (
-    <div style={{
-      backgroundColor: "var(--vscode-sideBar-background, rgba(0,0,0,0.15))",
-      border: "1px solid var(--vscode-widget-border, rgba(128,128,128,0.15))",
-      borderRadius: "8px",
-      padding: "14px",
-      boxSizing: "border-box",
-    }}>
-      <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--vscode-foreground)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px", opacity: 0.8 }}>
+    <div
+      className="rounded-lg p-3.5 box-border"
+      style={{
+        backgroundColor: "var(--vscode-sideBar-background, rgba(0,0,0,0.15))",
+        border: "1px solid var(--vscode-widget-border, rgba(128,128,128,0.15))",
+      }}
+    >
+      <div
+        className="text-[11px] font-semibold uppercase tracking-[0.05em] mb-2.5 opacity-80"
+        style={{ color: "var(--vscode-foreground)" }}
+      >
         {title}
       </div>
 
-      <div style={{ position: "relative" }}>
+      <div className="relative">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-          style={{ width: "100%", height: `${CHART_H}px`, display: "block", overflow: "visible" }}
+          className="w-full block overflow-visible"
+          style={{ height: `${CHART_H}px` }}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setTooltip(null)}
         >
@@ -92,17 +92,14 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
             </linearGradient>
           </defs>
 
-          {/* Area fill */}
           {pastPoints && (
             <polygon points={areaPoints} fill="url(#lineAreaGrad)" />
           )}
 
-          {/* Past line */}
           {pastPoints && (
             <polyline points={pastPoints} fill="none" stroke={LINE_COLOR} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
           )}
 
-          {/* Future overlay rect */}
           <rect
             x={xOf(currentHour)}
             y={0}
@@ -111,7 +108,6 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
             fill="rgba(0,0,0,0.35)"
           />
 
-          {/* Hover dot */}
           {tooltip !== null && (
             <circle
               cx={xOf(tooltip.hour)}
@@ -124,25 +120,22 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
           )}
         </svg>
 
-        {/* X-axis labels — density based on container width */}
-        <div ref={containerRef} style={{ display: "flex", marginTop: "4px", position: "relative", height: "12px" }}>
+        <div ref={containerRef} className="flex mt-1 relative h-3">
           {(() => {
-            // ~28px per label minimum
             const maxLabels = Math.max(2, Math.floor(containerWidth / 28));
             const step = Math.ceil(23 / (maxLabels - 1));
             const labelHours: number[] = [];
             for (let h = 0; h <= 23; h += step) labelHours.push(h);
             if (labelHours[labelHours.length - 1] !== 23) labelHours.push(23);
             return labelHours.map((h) => (
-              <span key={h} style={{
-                position: "absolute",
-                left: `${(h / 23) * 100}%`,
-                transform: "translateX(-50%)",
-                fontSize: "9px",
-                color: "var(--vscode-descriptionForeground)",
-                opacity: 0.6,
-                whiteSpace: "nowrap",
-              }}>
+              <span
+                key={h}
+                className="absolute -translate-x-1/2 text-[9px] opacity-60 whitespace-nowrap"
+                style={{
+                  left: `${(h / 23) * 100}%`,
+                  color: "var(--vscode-descriptionForeground)",
+                }}
+              >
                 {String(h).padStart(2, "0")}h
               </span>
             ));
@@ -154,26 +147,21 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
       {tooltip !== null && (() => {
         const entry = dataMap.get(tooltip.hour);
         return (
-          <div style={{
-            position: "fixed",
-            left: tooltip.svgX,
-            top: tooltip.svgY - 8,
-            transform: "translate(-50%, -100%)",
-            backgroundColor: "var(--vscode-editorHoverWidget-background, #1e1e1e)",
-            border: "1px solid var(--vscode-editorHoverWidget-border, rgba(128,128,128,0.3))",
-            borderRadius: "6px",
-            padding: "6px 10px",
-            fontSize: "11px",
-            color: "var(--vscode-foreground)",
-            pointerEvents: "none",
-            zIndex: 9999,
-            whiteSpace: "nowrap",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-          }}>
-            <div style={{ fontWeight: 600, marginBottom: "3px" }}>
+          <div
+            className="fixed -translate-x-1/2 -translate-y-full rounded-md px-2.5 py-1.5 text-[11px] pointer-events-none z-[9999] whitespace-nowrap"
+            style={{
+              left: tooltip.svgX,
+              top: tooltip.svgY - 8,
+              backgroundColor: "var(--vscode-editorHoverWidget-background, #1e1e1e)",
+              border: "1px solid var(--vscode-editorHoverWidget-border, rgba(128,128,128,0.3))",
+              color: "var(--vscode-foreground)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            }}
+          >
+            <div className="font-semibold mb-[3px]">
               {String(tooltip.hour).padStart(2, "0")}:00 – {String(tooltip.hour + 1).padStart(2, "0")}:00
             </div>
-            <div style={{ opacity: 0.75, lineHeight: 1.6 }}>
+            <div className="opacity-75 leading-relaxed">
               <div>{entry?.requests ?? 0} requests</div>
               <div>{(entry?.tokens ?? 0).toLocaleString()} tokens</div>
             </div>

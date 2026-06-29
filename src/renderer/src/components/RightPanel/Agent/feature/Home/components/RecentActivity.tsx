@@ -31,49 +31,29 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
 
   return (
     <div
+      className="rounded-lg p-3.5 box-border"
       style={{
         backgroundColor: 'var(--vscode-sideBar-background, rgba(0,0,0,0.15))',
         border: '1px solid var(--vscode-widget-border, rgba(128,128,128,0.15))',
-        borderRadius: '8px',
-        padding: '14px',
-        boxSizing: 'border-box',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '10px',
-        }}
-      >
+      <div className="flex justify-between items-center mb-2.5">
         <span
-          style={{
-            fontSize: '11px',
-            fontWeight: 600,
-            color: 'var(--vscode-foreground)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            opacity: 0.8,
-          }}
+          className="text-[11px] font-semibold uppercase tracking-[0.05em] opacity-80"
+          style={{ color: 'var(--vscode-foreground)' }}
         >
           Recent Activities
         </span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <div className="flex flex-col gap-0.5">
         {isLoading ? (
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 0',
-              color: 'var(--vscode-disabledForeground)',
-            }}
+            className="flex items-center gap-2 py-2.5"
+            style={{ color: 'var(--vscode-disabledForeground)' }}
           >
             <Loader2 size={12} className="spin-animation" />
-            <span style={{ fontSize: '11px' }}>Loading history...</span>
+            <span className="text-[11px]">Loading history...</span>
           </div>
         ) : conversations.length > 0 ? (
           conversations
@@ -89,12 +69,8 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
             ))
         ) : (
           <div
-            style={{
-              padding: '10px 0',
-              fontSize: '11px',
-              color: 'var(--vscode-disabledForeground)',
-              fontStyle: 'italic',
-            }}
+            className="py-2.5 text-[11px] italic"
+            style={{ color: 'var(--vscode-disabledForeground)' }}
           >
             No recent chats
           </div>

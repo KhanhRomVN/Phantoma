@@ -36,7 +36,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
 
   const folderPath = (window as any).__zenWorkspaceFolderPath as string | null | undefined;
 
-  // MessageInput state
   const [currentModel, setCurrentModel] = useState<any>(() => {
     try {
       const saved = localStorage.getItem('zen_last_model');
@@ -54,7 +53,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
   const [message, setMessage] = useState(initialValue || '');
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  // Persist model/account selection when changed
   useEffect(() => {
     if (currentModel) {
       localStorage.setItem('zen_last_model', JSON.stringify(currentModel));
@@ -67,7 +65,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
     }
   }, [currentAccount]);
 
-  // Dashboard state
   const [sloganIndex, setSloganIndex] = useState(0);
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -88,7 +85,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
   >([]);
   const [providerFavicons, setProviderFavicons] = useState<Record<string, string>>({});
 
-  // Trigger history limit enforcement on mount
   useEffect(() => {
     extensionService.postMessage({
       command: 'getHistory',
@@ -96,7 +92,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
     });
   }, []);
 
-  // Fetch stats from API
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -144,7 +139,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
     fetchStats();
   }, [apiUrl]);
 
-  // Rotate slogans
   useEffect(() => {
     const timer = setInterval(() => {
       setSloganIndex((prev) => (prev + 1) % SLOGANS.length);
@@ -152,7 +146,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch conversation history
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const msg = event.data;
@@ -190,7 +183,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
     return timeB - timeA;
   });
 
-  // MessageInput handlers
   const handleSend = (model: any, account: any) => {
     if (message.trim() || uploadedFiles.length > 0) {
       onSendMessage(message, [...uploadedFiles], model, account);
@@ -219,108 +211,51 @@ const HomePanel: React.FC<HomePanelProps> = ({
     clearFiles,
   } = useFileHandling({
     accountId: currentAccount?.id,
-    onAddAttachedItem: () => {}, // no mention system in home
+    onAddAttachedItem: () => {},
   });
 
   return (
     <div
-      className="home-panel"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        backgroundColor: 'var(--primary-bg)',
-      }}
+      className="home-panel flex flex-col h-screen"
+      style={{ backgroundColor: 'var(--primary-bg)' }}
     >
-      {/* ─── Dashboard scroll area ─── */}
+      {/* Dashboard scroll area */}
       <div
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          backgroundColor: 'var(--secondary-bg)',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
+        className="flex-1 overflow-auto flex flex-col"
+        style={{ backgroundColor: 'var(--secondary-bg)' }}
       >
         <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            padding: '32px 16px 20px 16px',
-            color: 'var(--primary-text)',
-            animation: 'fadeIn 0.5s ease-out',
-            maxWidth: '680px',
-            margin: '0 auto',
-            width: '100%',
-            boxSizing: 'border-box',
-          }}
+          className="flex-1 flex flex-col items-center justify-start px-4 pt-8 pb-5 max-w-[680px] mx-auto w-full box-border animate-[fadeIn_0.5s_ease-out]"
+          style={{ color: 'var(--primary-text)' }}
         >
           {/* Header */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-              textAlign: 'center',
-              width: '100%',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+          <div className="flex flex-col items-center gap-3 text-center w-full">
+            <div className="flex items-center gap-3.5">
+              <div className="w-[42px] h-[42px] rounded-[10px] flex items-center justify-center">
                 <img
                   src={`${imagesUri}/icon.png`}
                   alt="Zen Logo"
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  className="w-full h-full object-contain"
                 />
               </div>
               <h1
+                className="text-[30px] font-extrabold m-0 tracking-[-0.02em]"
                 style={{
-                  fontSize: '30px',
-                  fontWeight: 800,
-                  margin: 0,
                   background:
                     'linear-gradient(to right, var(--vscode-foreground, #fff), var(--vscode-textPreformat-foreground, #a8a8a8))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
-                  letterSpacing: '-0.02em',
                 }}
               >
                 Zen
               </h1>
             </div>
 
-            <div
-              style={{
-                height: '28px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                margin: '0',
-              }}
-            >
+            <div className="h-7 flex items-center justify-center overflow-hidden m-0">
               <div
                 key={sloganIndex}
-                style={{
-                  fontSize: '14px',
-                  color: 'var(--vscode-descriptionForeground, #888)',
-                  fontWeight: 500,
-                  animation: 'slideUp 0.4s ease-out',
-                  whiteSpace: 'nowrap',
-                }}
+                className="text-sm font-medium whitespace-nowrap animate-[slideUp_0.4s_ease-out]"
+                style={{ color: 'var(--vscode-descriptionForeground, #888)' }}
               >
                 {SLOGANS[sloganIndex]}
               </div>
@@ -328,31 +263,20 @@ const HomePanel: React.FC<HomePanelProps> = ({
 
             {/* Elara prerequisite alert */}
             <div
+              className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-left w-full mb-4 box-border"
               style={{
-                padding: '10px 14px',
-                borderRadius: '8px',
                 backgroundColor: 'rgba(234, 179, 8, 0.04)',
                 border: '1px solid rgba(234, 179, 8, 0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                textAlign: 'left',
-                width: '100%',
-                marginBottom: '16px',
-                boxSizing: 'border-box',
               }}
             >
               <Zap
                 size={16}
                 color="var(--vscode-editorWarning-foreground, #eab308)"
-                style={{ flexShrink: 0 }}
+                className="shrink-0"
               />
               <div
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--vscode-foreground)',
-                  lineHeight: '1.4',
-                }}
+                className="text-[11px] leading-relaxed"
+                style={{ color: 'var(--vscode-foreground)' }}
               >
                 <strong
                   style={{
@@ -365,10 +289,9 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 <a
                   href="https://elara-home.vercel.app/"
                   target="_blank"
+                  className="no-underline font-semibold"
                   style={{
                     color: 'var(--vscode-link-activeForeground, #3b82f6)',
-                    textDecoration: 'none',
-                    fontWeight: 600,
                   }}
                 >
                   Elara
@@ -379,14 +302,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
           </div>
 
           {/* Dashboard content */}
-          <div
-            style={{
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
+          <div className="w-full flex flex-col gap-4">
             <StatsGrid
               todayTokens={todayTokens}
               todayRequests={todayRequests}
@@ -433,12 +349,12 @@ const HomePanel: React.FC<HomePanelProps> = ({
         </div>
       </div>
 
-      {/* ─── MessageInput ─── */}
+      {/* MessageInput */}
       <input
         ref={fileInputRef}
         type="file"
         multiple
-        style={{ display: 'none' }}
+        className="hidden"
         onChange={handleFileInputChange}
         accept="image/*,text/*"
       />
@@ -446,7 +362,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
         ref={externalFileInputRef}
         type="file"
         multiple
-        style={{ display: 'none' }}
+        className="hidden"
         onChange={handleExternalFileInputChange}
       />
       <FilesPreviews

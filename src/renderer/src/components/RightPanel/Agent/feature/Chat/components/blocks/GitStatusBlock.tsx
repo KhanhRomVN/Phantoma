@@ -1,6 +1,5 @@
 import React from 'react';
 import { Check, X, Pencil, Trash2, Plus, Move, HelpCircle, FolderOpen } from 'lucide-react';
-import './GitStatusBlock.css';
 import FileIcon from '@renderer/components/common/FileIcon';
 
 export interface GitStatusItem {
@@ -103,20 +102,17 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
     return (
       <div
         key={index}
-        className="git-status-item"
-        style={{
-          borderLeftColor: statusColor,
-          cursor: 'pointer',
-        }}
+        className="git-status-item flex items-center gap-2.5 px-3.5 py-1 text-xs transition-colors duration-[0.15s] border-l-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground,#2a2d2e)]"
+        style={{ borderLeftColor: statusColor }}
         onClick={() => handleRowClick(item.path)}
         title={`Click để xem git diff của ${item.path}`}
       >
         <FileIcon path={item.path} style={{ width: 16, height: 16, flexShrink: 0 }} />
-        <span className="git-status-path">{fileName}</span>
+        <span className="text-[var(--vscode-foreground,#cccccc)] text-xs font-mono break-all flex-1">{fileName}</span>
         {hasDiff && (
-          <span className="git-status-diff">
-            <span className="git-status-diff-added">+{added}</span>
-            <span className="git-status-diff-deleted">-{deleted}</span>
+          <span className="inline-flex items-center gap-1 ml-auto text-[11px] font-medium font-mono shrink-0 opacity-80">
+            <span className="text-[var(--vscode-gitDecoration-addedResourceForeground,#3fb950)]">+{added}</span>
+            <span className="text-[var(--vscode-gitDecoration-deletedResourceForeground,#f14c4c)]">-{deleted}</span>
           </span>
         )}
       </div>
@@ -124,180 +120,150 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
   };
 
   return (
-    <div className="git-status-block">
-      <div className="git-status-body">
-        {unpushedCommits.length > 0 && (
-          <div className="git-status-section">
-            <div
-              className="git-status-section-title"
-              style={{
-                color: 'var(--vscode-editorBracketHighlight-foreground3, #8b5cf6)',
-              }}
-            >
-              📤 Chưa push ({unpushedCommits.length})
+    <>
+      <div className="bg-transparent border-none overflow-hidden my-2 font-[var(--vscode-font-family,'Segoe_UI','Helvetica_Neue',Arial,sans-serif)]">
+        <div className="git-status-body py-1.5 max-h-[280px] overflow-y-auto border border-[var(--vscode-widget-border,#454545)] rounded-md">
+          {unpushedCommits.length > 0 && (
+            <div className="py-1">
+              <div className="text-[11px] font-semibold px-3.5 py-1.5 uppercase tracking-[0.5px] opacity-70 text-[var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)]">
+                📤 Chưa push ({unpushedCommits.length})
+              </div>
+              {unpushedCommits.map((item, index) => {
+                const commitMsg = item.path;
+                const shortMsg =
+                  commitMsg.length > 60 ? commitMsg.substring(0, 60) + '...' : commitMsg;
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2.5 px-3.5 py-1 text-xs transition-colors duration-[0.15s] border-l-2 border-l-[var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)] cursor-default"
+                  >
+                    <span className="w-4 h-4 shrink-0 flex items-center justify-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-[var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)]"
+                      >
+                        <path d="M12 19V5" />
+                        <path d="M5 12l7-7 7 7" />
+                      </svg>
+                    </span>
+                    <span className="text-[var(--vscode-foreground,#cccccc)] text-xs font-mono break-all flex-1 font-[var(--vscode-editor-font-family,monospace)] text-[11px] opacity-85">
+                      {shortMsg}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            {unpushedCommits.map((item, index) => {
-              const commitMsg = item.path;
-              const shortMsg =
-                commitMsg.length > 60 ? commitMsg.substring(0, 60) + '...' : commitMsg;
-              return (
-                <div
-                  key={index}
-                  className="git-status-item"
-                  style={{
-                    borderLeftColor: 'var(--vscode-editorBracketHighlight-foreground3, #8b5cf6)',
-                    cursor: 'default',
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 16,
-                      height: 16,
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{
-                        color: 'var(--vscode-editorBracketHighlight-foreground3, #8b5cf6)',
-                      }}
-                    >
-                      <path d="M12 19V5" />
-                      <path d="M5 12l7-7 7 7" />
-                    </svg>
-                  </span>
-                  <span
-                    className="git-status-path"
-                    style={{
-                      fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                      fontSize: '11px',
-                      opacity: 0.85,
-                    }}
-                  >
-                    {shortMsg}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+          )}
 
-        {stagedItems.length === 0 && unpushedCommits.length === 0 && (
-          <div
+          {stagedItems.length === 0 && unpushedCommits.length === 0 && (
+            <div className="px-3.5 py-4 text-center text-[var(--vscode-descriptionForeground,#8c8c8c)] text-[13px]">
+              <div className="text-2xl mb-2">📂</div>
+              <div className="font-semibold mb-1 text-[var(--vscode-editorWarning-foreground,#d4a72c)]">
+                ⚠️ Chưa có file nào được staged
+              </div>
+              <div className="text-xs opacity-80">
+                Hãy chạy{' '}
+                <code className="bg-[var(--vscode-textCodeBlock-background)] px-1.5 py-0.5 rounded font-mono">
+                  git add {'<file>'}
+                </code>{' '}
+                để thêm file vào staging area
+              </div>
+            </div>
+          )}
+
+          {stagedItems.length > 0 && (
+            <div className="py-1">
+              <div className="text-[11px] font-semibold text-[var(--vscode-descriptionForeground,#8c8c8c)] px-3.5 py-1.5 uppercase tracking-[0.5px] opacity-70">
+                Staged Changes
+              </div>
+              {stagedItems.map((item, index) => renderItem(item, index))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-1.5 py-2 justify-end bg-transparent">
+          <button
+            className="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all duration-200 inline-flex items-center gap-1.5 h-6 border border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => {
+              onConfirm();
+            }}
+            disabled={isProcessing || stagedItems.length === 0}
+            title={
+              stagedItems.length === 0 && unpushedCommits.length > 0
+                ? 'Đã có commit chưa push. Không có thay đổi mới để commit.'
+                : stagedItems.length === 0
+                  ? 'Chưa có file nào được staged. Hãy chạy git add trước.'
+                  : 'Tạo commit message từ các file đã staged'
+            }
             style={{
-              padding: '16px 14px',
-              textAlign: 'center',
-              color: 'var(--vscode-descriptionForeground, #8c8c8c)',
-              fontSize: '13px',
+              background: `color-mix(in srgb, ${buttonColor} 15%, transparent)`,
+              color:
+                stagedItems.length === 0
+                  ? 'var(--vscode-descriptionForeground, #8c8c8c)'
+                  : buttonColor,
+              border: `1px solid color-mix(in srgb, ${stagedItems.length === 0 ? 'var(--vscode-descriptionForeground, #8c8c8c)' : buttonColor} 30%, transparent)`,
+              cursor: stagedItems.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: stagedItems.length === 0 ? 0.5 : 1,
+            }}
+            onMouseEnter={(e) => {
+              if (stagedItems.length > 0) {
+                e.currentTarget.style.background = `color-mix(in srgb, ${buttonColor} 25%, transparent)`;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (stagedItems.length > 0) {
+                e.currentTarget.style.background = `color-mix(in srgb, ${buttonColor} 15%, transparent)`;
+              }
             }}
           >
-            <div style={{ fontSize: '24px', marginBottom: '8px' }}>📂</div>
-            <div
-              style={{
-                fontWeight: 600,
-                marginBottom: '4px',
-                color: 'var(--vscode-editorWarning-foreground, #d4a72c)',
-              }}
-            >
-              ⚠️ Chưa có file nào được staged
-            </div>
-            <div style={{ fontSize: '12px', opacity: 0.8 }}>
-              Hãy chạy{' '}
-              <code
-                style={{
-                  background: 'var(--vscode-textCodeBlock-background)',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                }}
-              >
-                git add {'<file>'}
-              </code>{' '}
-              để thêm file vào staging area
-            </div>
-          </div>
-        )}
-
-        {stagedItems.length > 0 && (
-          <div className="git-status-section">
-            <div className="git-status-section-title">Staged Changes</div>
-            {stagedItems.map((item, index) => renderItem(item, index))}
-          </div>
-        )}
+            <Check size={14} strokeWidth={2.5} />
+            <span>{isProcessing ? 'Processing' : 'Create Commit Message'}</span>
+          </button>
+          <button
+            className="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all duration-200 inline-flex items-center gap-1.5 h-6 border border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => {
+              onCancel();
+            }}
+            disabled={isProcessing}
+            style={{
+              background: `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 15%, transparent)`,
+              color: 'var(--vscode-errorForeground, #ff4d4d)',
+              border: `1px solid color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 30%, transparent)`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 25%, transparent)`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 15%, transparent)`;
+            }}
+          >
+            <X size={14} strokeWidth={2.5} />
+            <span>Cancel</span>
+          </button>
+        </div>
       </div>
 
-      <div className="git-status-actions">
-        <button
-          className="git-status-btn git-status-btn-confirm"
-          onClick={() => {
-            onConfirm();
-          }}
-          disabled={isProcessing || stagedItems.length === 0}
-          title={
-            stagedItems.length === 0 && unpushedCommits.length > 0
-              ? 'Đã có commit chưa push. Không có thay đổi mới để commit.'
-              : stagedItems.length === 0
-                ? 'Chưa có file nào được staged. Hãy chạy git add trước.'
-                : 'Tạo commit message từ các file đã staged'
-          }
-          style={{
-            background: `color-mix(in srgb, ${buttonColor} 15%, transparent)`,
-            color:
-              stagedItems.length === 0
-                ? 'var(--vscode-descriptionForeground, #8c8c8c)'
-                : buttonColor,
-            border: `1px solid color-mix(in srgb, ${stagedItems.length === 0 ? 'var(--vscode-descriptionForeground, #8c8c8c)' : buttonColor} 30%, transparent)`,
-            cursor: stagedItems.length === 0 ? 'not-allowed' : 'pointer',
-            opacity: stagedItems.length === 0 ? 0.5 : 1,
-          }}
-          onMouseEnter={(e) => {
-            if (stagedItems.length > 0) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${buttonColor} 25%, transparent)`;
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (stagedItems.length > 0) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${buttonColor} 15%, transparent)`;
-            }
-          }}
-        >
-          <Check size={14} strokeWidth={2.5} />
-          <span>{isProcessing ? 'Processing' : 'Create Commit Message'}</span>
-        </button>
-        <button
-          className="git-status-btn git-status-btn-cancel"
-          onClick={() => {
-            onCancel();
-          }}
-          disabled={isProcessing}
-          style={{
-            background: `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 15%, transparent)`,
-            color: 'var(--vscode-errorForeground, #ff4d4d)',
-            border: `1px solid color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 30%, transparent)`,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 25%, transparent)`;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 15%, transparent)`;
-          }}
-        >
-          <X size={14} strokeWidth={2.5} />
-          <span>Cancel</span>
-        </button>
-      </div>
-    </div>
+      <style>{`
+        .git-status-body::-webkit-scrollbar {
+          width: 4px;
+        }
+        .git-status-body::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .git-status-body::-webkit-scrollbar-thumb {
+          background: var(--vscode-scrollbarSlider-background, #3a3a3a);
+          border-radius: 4px;
+        }
+      `}</style>
+    </>
   );
 };
 

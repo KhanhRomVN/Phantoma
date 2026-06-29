@@ -50,23 +50,14 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
   const isActive = (id: string) => selectedProvider === id;
 
   return (
-    <div ref={dropdownRef} style={{ position: "relative" }}>
+    <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 h-[34px] px-2.5 rounded-lg text-[13px] font-medium cursor-pointer whitespace-nowrap"
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          height: "34px",
-          padding: "0 10px",
-          borderRadius: "8px",
           backgroundColor: "var(--input-bg)",
           border: "1px solid var(--border-color)",
           color: "var(--primary-text)",
-          cursor: "pointer",
-          fontSize: "13px",
-          fontWeight: 500,
-          whiteSpace: "nowrap",
         }}
       >
         {selectedProvider && selectedProviderObj ? (
@@ -74,7 +65,7 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
             <img
               src={getFaviconUrl(selectedProviderObj.website)}
               alt={selectedProviderObj.provider_name}
-              style={{ width: "16px", height: "16px", borderRadius: "3px" }}
+              className="w-4 h-4 rounded-[3px]"
               onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
             />
             <span>{selectedProviderObj.provider_name}</span>
@@ -87,69 +78,38 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
 
       {isOpen && (
         <div
+          className="absolute top-full right-0 mt-1.5 w-[240px] max-h-[300px] rounded-[10px] z-[1000] overflow-hidden flex flex-col"
           style={{
-            position: "absolute",
-            top: "100%",
-            right: 0,
-            marginTop: "6px",
-            width: "240px",
-            maxHeight: "300px",
             backgroundColor: "var(--tertiary-bg)",
             border: "1px solid var(--border-color)",
-            borderRadius: "10px",
             boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            zIndex: 1000,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
           }}
         >
           {/* Search */}
-          <div style={{ padding: "8px", borderBottom: "1px solid var(--border-color)" }}>
-            <div style={{ position: "relative" }}>
+          <div className="p-2" style={{ borderBottom: "1px solid var(--border-color)" }}>
+            <div className="relative">
               <Search
                 size={13}
-                style={{
-                  position: "absolute",
-                  left: "9px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "var(--secondary-text)",
-                }}
+                className="absolute left-[9px] top-1/2 -translate-y-1/2"
+                style={{ color: "var(--secondary-text)" }}
               />
               <input
                 type="text"
                 placeholder="Search provider..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full py-[7px] px-[28px] text-xs rounded-[7px] outline-none box-border"
                 style={{
-                  width: "100%",
-                  padding: "7px 28px",
-                  fontSize: "12px",
                   backgroundColor: "var(--input-bg)",
                   border: "1px solid var(--border-color)",
-                  borderRadius: "7px",
                   color: "var(--primary-text)",
-                  outline: "none",
-                  boxSizing: "border-box",
                 }}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  style={{
-                    position: "absolute",
-                    right: "7px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    color: "var(--secondary-text)",
-                  }}
+                  className="absolute right-[7px] top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0 flex items-center"
+                  style={{ color: "var(--secondary-text)" }}
                 >
                   <X size={11} />
                 </button>
@@ -158,24 +118,20 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
           </div>
 
           {/* List */}
-          <div style={{ flex: 1, overflowY: "auto" }}>
+          <div className="flex-1 overflow-y-auto">
             {/* All Providers option */}
             <button
               onClick={handleClear}
+              className="w-full flex items-center gap-2.5 px-3 py-[9px] border-none text-xs cursor-pointer text-left"
               style={{
-                width: "100%",
-                padding: "9px 12px",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                border: "none",
-                backgroundColor: isActive("") ? "var(--vscode-list-activeSelectionBackground)" : "transparent",
+                backgroundColor: isActive("")
+                  ? "var(--vscode-list-activeSelectionBackground)"
+                  : "transparent",
                 color: "var(--primary-text)",
-                fontSize: "12px",
-                cursor: "pointer",
-                textAlign: "left",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--hover-bg)")}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
+              }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.backgroundColor = isActive("")
                   ? "var(--vscode-list-activeSelectionBackground)"
@@ -183,18 +139,15 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
               }
             >
               <div
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "4px",
-                  backgroundColor: "rgba(128,128,128,0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
+                className="w-5 h-5 rounded flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "rgba(128,128,128,0.15)" }}
               >
-                <span style={{ fontSize: "9px", fontWeight: "bold", color: "var(--secondary-text)" }}>All</span>
+                <span
+                  className="text-[9px] font-bold"
+                  style={{ color: "var(--secondary-text)" }}
+                >
+                  All
+                </span>
               </div>
               <span>All Providers</span>
             </button>
@@ -203,22 +156,16 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
               <button
                 key={provider.provider_id}
                 onClick={() => handleSelect(provider.provider_id)}
+                className="w-full flex items-center gap-2.5 px-3 py-[9px] border-none text-xs cursor-pointer text-left"
                 style={{
-                  width: "100%",
-                  padding: "9px 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  border: "none",
                   backgroundColor: isActive(provider.provider_id)
                     ? "var(--vscode-list-activeSelectionBackground)"
                     : "transparent",
                   color: "var(--primary-text)",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  textAlign: "left",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--hover-bg)")}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
+                }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.backgroundColor = isActive(provider.provider_id)
                     ? "var(--vscode-list-activeSelectionBackground)"
@@ -226,22 +173,13 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
                 }
               >
                 <div
-                  style={{
-                    width: "20px",
-                    height: "20px",
-                    borderRadius: "4px",
-                    backgroundColor: "rgba(128,128,128,0.1)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    overflow: "hidden",
-                  }}
+                  className="w-5 h-5 rounded flex items-center justify-center shrink-0 overflow-hidden"
+                  style={{ backgroundColor: "rgba(128,128,128,0.1)" }}
                 >
                   <img
                     src={getFaviconUrl(provider.website)}
                     alt={provider.provider_name}
-                    style={{ width: "16px", height: "16px", objectFit: "contain" }}
+                    className="w-4 h-4 object-contain"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
                       const parent = (e.target as HTMLImageElement).parentElement;
@@ -260,13 +198,8 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
 
             {filteredProviders.length === 0 && (
               <div
-                style={{
-                  padding: "16px",
-                  textAlign: "center",
-                  color: "var(--secondary-text)",
-                  fontSize: "12px",
-                  opacity: 0.7,
-                }}
+                className="p-4 text-center text-xs opacity-70"
+                style={{ color: "var(--secondary-text)" }}
               >
                 No providers found
               </div>

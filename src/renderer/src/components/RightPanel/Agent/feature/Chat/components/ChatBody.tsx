@@ -1,19 +1,15 @@
-import React, { useRef, useEffect, useMemo } from "react";
-import {
-  parseAIResponse,
-  ParsedResponse,
-  ToolAction,
-} from "../services/ResponseParser";
-import { useSettings } from "../../../context/SettingsContext";
-import { useCollapseSections } from "../hooks/useCollapseSections";
-import { useToolActions } from "../hooks/useToolActions";
-import { useScrollBehavior } from "../hooks/useScrollBehavior";
-import { getPermissionDecision } from "../hooks/useToolExecution";
-import { Message } from "../types/message";
-import ProcessingIndicator from "./messages/ProcessingIndicator";
-import MessageBox from "./messages/MessageBox";
-import SearchBar from "./SearchBar";
-import { ChatErrorBoundary } from "./ChatErrorBoundary";
+import React, { useRef, useEffect, useMemo } from 'react';
+import { parseAIResponse, ParsedResponse, ToolAction } from '../services/ResponseParser';
+import { useSettings } from '../../../context/SettingsContext';
+import { useCollapseSections } from '../hooks/useCollapseSections';
+import { useToolActions } from '../hooks/useToolActions';
+import { useScrollBehavior } from '../hooks/useScrollBehavior';
+import { getPermissionDecision } from '../hooks/useToolExecution';
+import { Message } from '../types/message';
+import ProcessingIndicator from './messages/ProcessingIndicator';
+import MessageBox from './messages/MessageBox';
+import SearchBar from './SearchBar';
+import { ChatErrorBoundary } from './ChatErrorBoundary';
 
 interface ChatBodyProps {
   messages: Message[];
@@ -22,11 +18,11 @@ interface ChatBodyProps {
     action: ToolAction | ToolAction[],
     message: Message,
     isAutoTrigger?: boolean,
-    actionType?: "accept_all" | "accept_once" | "reject",
+    actionType?: 'accept_all' | 'accept_once' | 'reject',
   ) => void;
   onToolAction?: (
     actionId: string,
-    actionType: "accept_all" | "accept_once" | "reject",
+    actionType: 'accept_all' | 'accept_once' | 'reject',
     toolName?: string,
   ) => void;
   onSendMessage?: (
@@ -39,24 +35,18 @@ interface ChatBodyProps {
     uiHidden?: boolean,
   ) => void | Promise<void>;
   onSelectOption?: (messageId: string, option: string) => void;
-  /** ID of the first user message — used to skip rendering it in some views. */
   firstRequestMessageId?: string;
   executionState?: {
     total: number;
     completed: number;
-    status: "idle" | "running" | "error" | "done";
+    status: 'idle' | 'running' | 'error' | 'done';
   };
   toolOutputs?: Record<string, { output: string; isError: boolean }>;
-  terminalStatus?: Record<string, "busy" | "free">;
-  onLoadConversation?: (
-    conversationId: string,
-    tabId: number,
-    folderPath: string | null,
-  ) => void;
+  terminalStatus?: Record<string, 'busy' | 'free'>;
+  onLoadConversation?: (conversationId: string, tabId: number, folderPath: string | null) => void;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
   onAutoScrollPausedChange?: (paused: boolean) => void;
   scrollToBottomRef?: React.MutableRefObject<(() => void) | null>;
-  /** DeepSeek incomplete SSE continuation flags. */
   isContinuing?: boolean;
   incompleteHasPartialTool?: boolean;
   incompletePartialToolType?: string | null;
@@ -72,10 +62,10 @@ export interface ExtendedChatBodyProps extends ChatBodyProps {
   executionState?: {
     total: number;
     completed: number;
-    status: "idle" | "running" | "error" | "done";
+    status: 'idle' | 'running' | 'error' | 'done';
   };
   toolOutputs?: Record<string, { output: string; isError: boolean }>;
-  terminalStatus?: Record<string, "busy" | "free">;
+  terminalStatus?: Record<string, 'busy' | 'free'>;
   activeTerminalIds?: Set<string>;
   attachedTerminalIds?: Set<string>;
   conversationId?: string;
@@ -84,10 +74,7 @@ export interface ExtendedChatBodyProps extends ChatBodyProps {
   isRestored?: boolean;
   onContinue?: () => void;
   hasInitialMessage?: boolean;
-  singleLineReviewActions?: Record<
-    string,
-    { action: any; actionId: string; messageId: string }
-  >;
+  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>;
   onConfirmSingleLineAction?: (actionId: string) => void;
   onRejectSingleLineAction?: (actionId: string) => void;
   isSearchOpen?: boolean;
@@ -125,7 +112,7 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   onConfirmSingleLineAction,
   onRejectSingleLineAction,
   isSearchOpen = false,
-  searchQuery = "",
+  searchQuery = '',
   onSearchQueryChange,
   onCloseSearch,
   onGitConfirm,
@@ -152,18 +139,17 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   }, [messages]);
 
   const { collapsedSections, toggleCollapse } = useCollapseSections();
-  const { clickedActions, handleToolClick, failedActions, rejectedActions } =
-    useToolActions({
-      onSendToolRequest,
-      onToolAction,
-      parsedMessages,
-      isProcessing,
-      isRestored,
-    });
-  const { autoScrollPaused, scrollToBottom } = useScrollBehavior(
-    messagesEndRef,
-    [messages, isProcessing],
-  );
+  const { clickedActions, handleToolClick, failedActions, rejectedActions } = useToolActions({
+    onSendToolRequest,
+    onToolAction,
+    parsedMessages,
+    isProcessing,
+    isRestored,
+  });
+  const { autoScrollPaused, scrollToBottom } = useScrollBehavior(messagesEndRef, [
+    messages,
+    isProcessing,
+  ]);
 
   const prevPausedRef = useRef(false);
   useEffect(() => {
@@ -180,41 +166,26 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   const hasUnexecutedAutoActions = useMemo(() => {
     if (!isRestored || messages.length === 0) return false;
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role !== "assistant") return false;
+    if (lastMessage.role !== 'assistant') return false;
     const parsed = parseAIResponse(lastMessage.content);
     if (!parsed.actions || parsed.actions.length === 0) return false;
-    const firstPendingAction = parsed.actions.find(
-      (action: any, idx: number) => {
-        if (action.isPartial) return false;
-        const actionId = `${lastMessage.id}-action-${idx}`;
-        const hasOutput = toolOutputs && toolOutputs[actionId];
-        const isClicked = clickedActions.has(actionId);
-        return !hasOutput && !isClicked;
-      },
-    );
+    const firstPendingAction = parsed.actions.find((action: any, idx: number) => {
+      if (action.isPartial) return false;
+      const actionId = `${lastMessage.id}-action-${idx}`;
+      const hasOutput = toolOutputs && toolOutputs[actionId];
+      const isClicked = clickedActions.has(actionId);
+      return !hasOutput && !isClicked;
+    });
     if (!firstPendingAction) return false;
     const isVisible =
       !isSimpleMode ||
-      [
-        "write_to_file",
-        "replace_in_file",
-        "run_command",
-        "execute_agent_action",
-      ].includes(firstPendingAction.type);
+      ['write_to_file', 'replace_in_file', 'run_command', 'execute_agent_action'].includes(
+        firstPendingAction.type,
+      );
     if (isVisible) return false;
-    const decision = getPermissionDecision(
-      permissionMode,
-      firstPendingAction.type,
-    );
-    return decision === "allow";
-  }, [
-    messages,
-    isRestored,
-    toolOutputs,
-    permissionMode,
-    clickedActions,
-    isSimpleMode,
-  ]);
+    const decision = getPermissionDecision(permissionMode, firstPendingAction.type);
+    return decision === 'allow';
+  }, [messages, isRestored, toolOutputs, permissionMode, clickedActions, isSimpleMode]);
 
   const visibleMessages = useMemo(() => {
     return messages.filter((msg) => !msg.uiHidden && !msg.isCancelled);
@@ -222,7 +193,7 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
 
   const lastAssistantIndex = useMemo(() => {
     for (let i = visibleMessages.length - 1; i >= 0; i--) {
-      if (visibleMessages[i].role === "assistant") return i;
+      if (visibleMessages[i].role === 'assistant') return i;
     }
     return -1;
   }, [visibleMessages]);
@@ -230,7 +201,7 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   const isResponding = useMemo(() => {
     if (!isProcessing || visibleMessages.length === 0) return false;
     const lastMessage = visibleMessages[visibleMessages.length - 1];
-    if (lastMessage.role !== "assistant") return false;
+    if (lastMessage.role !== 'assistant') return false;
     const parsedMessage = parsedMessages.find((pm) => pm.id === lastMessage.id);
     if (!parsedMessage) return false;
     const parsed = parsedMessage.parsed;
@@ -240,14 +211,14 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
       parsed.contentBlocks &&
       parsed.contentBlocks.some((b) => {
         switch (b.type) {
-          case "tool":
+          case 'tool':
             return true;
-          case "mixed_content":
+          case 'mixed_content':
             return b.segments.length > 0;
-          case "code":
-          case "html":
-          case "file":
-          case "markdown":
+          case 'code':
+          case 'html':
+          case 'file':
+          case 'markdown':
             return b.content.trim().length > 0;
           default:
             return false;
@@ -259,19 +230,11 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   return (
     <div
       ref={bodyRef}
-      className="chat-body-scroll"
+      className="chat-body-scroll flex-1 overflow-y-auto flex flex-col gap-3 text-sm relative"
       style={{
-        flex: 1,
-        overflowY: "auto",
-        padding: "var(--spacing-lg)",
-        backgroundColor: "var(--secondary-bg)",
-        paddingBottom:
-          visibleMessages.length > 0 ? "200px" : "var(--spacing-lg)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--spacing-md)",
-        fontSize: "14px",
-        position: "relative",
+        backgroundColor: 'var(--secondary-bg)',
+        padding: 'var(--spacing-lg)',
+        paddingBottom: visibleMessages.length > 0 ? '200px' : 'var(--spacing-lg)',
       }}
     >
       {isSearchOpen && (
@@ -283,64 +246,41 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
         />
       )}
 
-      {/* ── New messages indicator ─────────────────────────────────────── */}
+      {/* New messages indicator */}
       {autoScrollPaused && isProcessing && (
-        <div
-          style={{
-            position: "sticky",
-            bottom: "12px",
-            zIndex: 20,
-            display: "flex",
-            justifyContent: "center",
-            pointerEvents: "none",
-          }}
-        >
+        <div className="sticky bottom-3 z-20 flex justify-center pointer-events-none">
           <button
             onClick={scrollToBottom}
+            className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-[5px] rounded-[20px] text-[11px] font-semibold cursor-pointer transition-opacity duration-200"
             style={{
-              pointerEvents: "auto",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "5px 14px",
-              borderRadius: "20px",
               border:
-                "1px solid color-mix(in srgb, var(--vscode-button-background, #007acc) 40%, transparent)",
+                '1px solid color-mix(in srgb, var(--vscode-button-background, #007acc) 40%, transparent)',
               background:
-                "color-mix(in srgb, var(--vscode-editor-background) 85%, var(--vscode-button-background, #007acc))",
-              color: "var(--vscode-button-background, #007acc)",
-              fontSize: "11px",
-              fontWeight: 600,
-              cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-              transition: "opacity 0.2s",
+                'color-mix(in srgb, var(--vscode-editor-background) 85%, var(--vscode-button-background, #007acc))',
+              color: 'var(--vscode-button-background, #007acc)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             }}
           >
-            <span
-              className="codicon codicon-arrow-down"
-              style={{ fontSize: "11px" }}
-            />
+            <span className="codicon codicon-arrow-down text-[11px]" />
             New messages
           </button>
         </div>
       )}
       <div className="chat-timeline-wrapper">
         {visibleMessages.map((message, index) => {
-          const parsedMessage = parsedMessages.find(
-            (pm) => pm.id === message.id,
-          );
+          const parsedMessage = parsedMessages.find((pm) => pm.id === message.id);
           if (!parsedMessage) return null;
           const parsedContent = parsedMessage.parsed;
           const nextUserMessage = messages
             .slice(messages.findIndex((m) => m.id === message.id) + 1)
-            .find((m) => m.role === "user");
+            .find((m) => m.role === 'user');
           const previousAssistantMessage = messages
             .slice(
               0,
               messages.findIndex((m) => m.id === message.id),
             )
             .reverse()
-            .find((m) => m.role === "assistant");
+            .find((m) => m.role === 'assistant');
           return (
             <ChatErrorBoundary key={message.id}>
               <MessageBox
@@ -348,13 +288,9 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
                 message={message}
                 parsedContent={parsedContent}
                 nextUserMessage={nextUserMessage}
-                isGenerating={
-                  isProcessing && index === visibleMessages.length - 1
-                }
+                isGenerating={isProcessing && index === visibleMessages.length - 1}
                 isCollapsed={
-                  message.role === "user"
-                    ? collapsedSections.has(`prompt-${message.id}`)
-                    : false
+                  message.role === 'user' ? collapsedSections.has(`prompt-${message.id}`) : false
                 }
                 onToggleCollapse={() => toggleCollapse(`prompt-${message.id}`)}
                 clickedActions={clickedActions}
@@ -362,10 +298,7 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
                 rejectedActions={rejectedActions}
                 onToolClick={handleToolClick}
                 executionState={executionState}
-                isLastMessage={
-                  index === visibleMessages.length - 1 ||
-                  index === lastAssistantIndex
-                }
+                isLastMessage={index === visibleMessages.length - 1 || index === lastAssistantIndex}
                 toolOutputs={toolOutputs}
                 terminalStatus={terminalStatus}
                 allMessages={messages}
@@ -393,59 +326,31 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
       </div>
 
       {hasUnexecutedAutoActions && onContinue && (
-        <div
-          style={{
-            paddingLeft: "29px",
-            marginTop: "12px",
-            marginBottom: "12px",
-            display: "flex",
-          }}
-        >
+        <div className="pl-[29px] mt-3 mb-3 flex">
           <button
             onClick={onContinue}
+            className="inline-flex items-center justify-center gap-1.5 h-7 px-4 rounded-md text-[11px] font-semibold uppercase tracking-[0.5px] cursor-pointer box-border transition-all duration-200 ease-in-out"
             style={{
               backgroundColor:
-                "color-mix(in srgb, var(--vscode-button-background, #007acc) 15%, transparent)",
-              color: "var(--vscode-button-background, #007acc)",
+                'color-mix(in srgb, var(--vscode-button-background, #007acc) 15%, transparent)',
+              color: 'var(--vscode-button-background, #007acc)',
               border:
-                "1px solid color-mix(in srgb, var(--vscode-button-background, #007acc) 30%, transparent)",
-              padding: "6px 16px",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "11px",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              height: "28px",
-              boxSizing: "border-box",
-              transition: "all 0.2s ease",
+                '1px solid color-mix(in srgb, var(--vscode-button-background, #007acc) 30%, transparent)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor =
-                "color-mix(in srgb, var(--vscode-button-background, #007acc) 25%, transparent)";
+                'color-mix(in srgb, var(--vscode-button-background, #007acc) 25%, transparent)';
               e.currentTarget.style.borderColor =
-                "color-mix(in srgb, var(--vscode-button-background, #007acc) 50%, transparent)";
+                'color-mix(in srgb, var(--vscode-button-background, #007acc) 50%, transparent)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor =
-                "color-mix(in srgb, var(--vscode-button-background, #007acc) 15%, transparent)";
+                'color-mix(in srgb, var(--vscode-button-background, #007acc) 15%, transparent)';
               e.currentTarget.style.borderColor =
-                "color-mix(in srgb, var(--vscode-button-background, #007acc) 30%, transparent)";
+                'color-mix(in srgb, var(--vscode-button-background, #007acc) 30%, transparent)';
             }}
           >
-            <span
-              className="codicon codicon-play"
-              style={{
-                fontSize: "12px",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            />
+            <span className="codicon codicon-play text-xs inline-flex items-center justify-center" />
             <span>Continue Task</span>
           </button>
         </div>
@@ -453,42 +358,27 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
 
       {isContinuing && (
         <div
+          className="flex items-start gap-2.5 px-3.5 py-2 mb-1 mt-1 rounded-lg text-xs"
           style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "10px",
-            padding: "8px 14px",
-            marginBottom: "4px",
-            marginTop: "4px",
             background:
-              "color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 8%, transparent)",
+              'color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 8%, transparent)',
             border:
-              "1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 25%, transparent)",
-            borderRadius: "8px",
-            color: "var(--vscode-editor-foreground)",
-            fontSize: "12px",
+              '1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 25%, transparent)',
+            color: 'var(--vscode-editor-foreground)',
           }}
         >
           <span
+            className="shrink-0 mt-0.5 inline-block w-2 h-2 rounded-full animate-[zen-pulse_1.2s_ease-in-out_infinite]"
             style={{
-              flexShrink: 0,
-              marginTop: "2px",
-              display: "inline-block",
-              width: "8px",
-              height: "8px",
-              borderRadius: "50%",
-              background: "var(--vscode-editorWarning-foreground, #cca700)",
-              animation: "zen-pulse 1.2s ease-in-out infinite",
+              background: 'var(--vscode-editorWarning-foreground, #cca700)',
             }}
           />
-          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            <span style={{ fontWeight: 600, opacity: 0.9 }}>
-              Response bị ngắt — đang tiếp tục…
-            </span>
-            <span style={{ opacity: 0.7, lineHeight: "1.4" }}>
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold opacity-90">Response bị ngắt — đang tiếp tục…</span>
+            <span className="opacity-70 leading-relaxed">
               {incompleteHasPartialTool
-                ? `AI tự động ngắt response dài. Đang ghép phần còn lại của \`${incompletePartialToolType ?? "tool"}\` trước khi thực thi.`
-                : "AI tự động ngắt response dài. Đang lấy phần còn lại…"}
+                ? `AI tự động ngắt response dài. Đang ghép phần còn lại của \`${incompletePartialToolType ?? 'tool'}\` trước khi thực thi.`
+                : 'AI tự động ngắt response dài. Đang lấy phần còn lại…'}
             </span>
           </div>
           <style>{`
@@ -500,9 +390,7 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
         </div>
       )}
 
-      {(isProcessing || hasInitialMessage) && (
-        <ProcessingIndicator isResponding={isResponding} />
-      )}
+      {(isProcessing || hasInitialMessage) && <ProcessingIndicator isResponding={isResponding} />}
 
       <div ref={messagesEndRef} />
       <style>{`

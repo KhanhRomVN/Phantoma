@@ -25,8 +25,6 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
     return () => document.removeEventListener("click", close);
   }, [menuVisible]);
 
-  const providerInfo = undefined; // unused, kept for safety
-
   const handleCopyContent = () => {
     const requestId = `copy-${Date.now()}`;
     extensionService.postMessage({
@@ -65,14 +63,12 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
     });
   };
 
-  // Truncate title
   const title = item.title
     ? item.title.length > 60
       ? item.title.substring(0, 57) + "..."
       : item.title
     : "Untitled";
 
-  // Token badge color based on amount
   const getTokenColor = (n: number) => {
     if (n >= 500000)
       return {
@@ -114,33 +110,18 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
   return (
     <div className="history-card-container">
       <div
-        className="history-card-inner"
+        className="history-card-inner w-full flex items-center justify-between gap-2 px-2.5 py-[7px]"
         onClick={onClick}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenuPosition({ x: e.clientX, y: e.clientY });
           setMenuVisible(true);
         }}
-        style={{
-          width: "100%",
-          padding: "7px 10px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "8px",
-        }}
       >
         {/* Title */}
         <span
-          style={{
-            fontSize: "13px",
-            fontWeight: 500,
-            color: "var(--primary-text)",
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            textOverflow: "ellipsis",
-            flex: 1,
-          }}
+          className="text-[13px] font-medium overflow-hidden whitespace-nowrap text-ellipsis flex-1"
+          style={{ color: "var(--primary-text)" }}
         >
           {title}
         </span>
@@ -151,18 +132,11 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
             const c = getTokenColor(item.totalTokenUsage ?? 0);
             return (
               <div
+                className="flex items-center gap-[3px] shrink-0 px-1.5 py-px rounded text-[10px] font-bold"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "3px",
-                  flexShrink: 0,
-                  padding: "1px 6px",
-                  borderRadius: "4px",
                   backgroundColor: c.bg,
                   border: `1px solid ${c.border}`,
                   color: c.text,
-                  fontSize: "10px",
-                  fontWeight: 700,
                 }}
               >
                 <Zap size={9} />
@@ -175,17 +149,13 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
       {/* Context menu */}
       {menuVisible && (
         <div
+          className="fixed rounded-lg z-[1000] min-w-[180px] p-1"
           style={{
-            position: "fixed",
             top: menuPosition.y,
             left: menuPosition.x,
             backgroundColor: "var(--tertiary-bg)",
             border: "1px solid var(--border-color)",
-            borderRadius: "8px",
             boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            zIndex: 1000,
-            minWidth: "180px",
-            padding: "4px",
           }}
         >
           {[
@@ -219,36 +189,24 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
                 handleOpenFolder();
               },
             },
-          ].map((item, i) => (
+          ].map((menuItem, i) => (
             <button
               key={i}
               onClick={(e) => {
                 e.stopPropagation();
-                item.action(e);
+                menuItem.action(e);
               }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                width: "100%",
-                padding: "7px 12px",
-                borderRadius: "6px",
-                border: "none",
-                backgroundColor: "transparent",
-                color: item.color,
-                fontSize: "12px",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
+              className="flex items-center gap-2 w-full px-3 py-[7px] rounded-md border-none bg-transparent text-xs cursor-pointer text-left"
+              style={{ color: menuItem.color }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = item.hoverBg)
+                (e.currentTarget.style.backgroundColor = menuItem.hoverBg)
               }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.backgroundColor = "transparent")
               }
             >
-              {item.icon}
-              <span>{item.label}</span>
+              {menuItem.icon}
+              <span>{menuItem.label}</span>
             </button>
           ))}
         </div>

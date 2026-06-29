@@ -15,6 +15,8 @@ interface SettingsContextType {
   setIsSimpleMode: (value: boolean) => void;
   liveWritePreview: boolean;
   setLiveWritePreview: (value: boolean) => void;
+  commitMessageLanguage: "en" | "vi";
+  setCommitMessageLanguage: (value: "en" | "vi") => void;
 }
 
 export const defaultToolPermissions: Record<string, "full_access" | "review"> =
@@ -43,12 +45,17 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   >(defaultToolPermissions);
   const [isSimpleMode, setIsSimpleModeState] = useState<boolean>(true);
   const [liveWritePreview, setLiveWritePreviewState] = useState<boolean>(true);
+  const [commitMessageLanguage, setCommitMessageLanguageState] = useState<"en" | "vi">("en");
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem("zen-simple-mode");
       if (saved !== null) {
         setIsSimpleModeState(saved !== "false");
+      }
+      const savedLang = localStorage.getItem("zen-commit-message-language");
+      if (savedLang === "en" || savedLang === "vi") {
+        setCommitMessageLanguageState(savedLang);
       }
     } catch (e) {}
     const storage = extensionService.getStorage();
@@ -135,6 +142,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (e) {}
   };
 
+  const setCommitMessageLanguage = (value: "en" | "vi") => {
+    setCommitMessageLanguageState(value);
+    try {
+      localStorage.setItem("zen-commit-message-language", value);
+    } catch (e) {}
+  };
+
   return (
     <SettingsContext.Provider
       value={{
@@ -149,6 +163,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsSimpleMode,
         liveWritePreview,
         setLiveWritePreview,
+        commitMessageLanguage,
+        setCommitMessageLanguage,
       }}
     >
       {children}

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ToolHeader } from '../tools/ToolHeader';
 import './TerminalBlock.css';
-import './GitDiffBlock.css';
 import { FileIcon } from 'lucide-react';
 
 export interface GitDiffBlockProps {
@@ -158,26 +157,13 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
 
   // Header style - collapse icon + label + file icon + filename + stats + action icon
   const headerTitle = (
-    <div className="terminal-name" style={{ display: 'contents' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '12px',
-          color: 'var(--vscode-editor-foreground)',
-        }}
-      >
-        <span style={{ fontWeight: 600, opacity: 0.8 }}>DIFF{branch ? `(${branch})` : ''}</span>
+    <div className="terminal-name contents">
+      <div className="flex items-center gap-2 text-xs text-[var(--vscode-editor-foreground)]">
+        <span className="font-semibold opacity-80">DIFF{branch ? `(${branch})` : ''}</span>
         <FileIcon path={filePath} style={{ width: '14px', height: '14px', flexShrink: 0 }} />
         <span
-          style={{
-            fontWeight: 500,
-            opacity: 0.9,
-            fontFamily: 'var(--vscode-editor-font-family, monospace)',
-            fontSize: '11px',
-            cursor: onFileClick ? 'pointer' : 'default',
-          }}
+          className="font-medium opacity-90 font-mono text-[11px]"
+          style={{ cursor: onFileClick ? 'pointer' : 'default' }}
           onClick={(e) => {
             e.stopPropagation();
             if (onFileClick) onFileClick(filePath);
@@ -188,36 +174,18 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
         </span>
         {(added > 0 || deleted > 0) && (
           <>
-            <span
-              style={{
-                color: 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
-                fontWeight: 600,
-                fontSize: '11px',
-              }}
-            >
+            <span className="text-[var(--vscode-gitDecoration-addedResourceForeground,#3fb950)] font-semibold text-[11px]">
               +{added}
             </span>
-            <span
-              style={{
-                color: 'var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c)',
-                fontWeight: 600,
-                fontSize: '11px',
-              }}
-            >
+            <span className="text-[var(--vscode-gitDecoration-deletedResourceForeground,#f14c4c)] font-semibold text-[11px]">
               -{deleted}
             </span>
           </>
         )}
         {isPartial && (
-          <span
-            className="codicon codicon-loading codicon-modifier-spin"
-            style={{ fontSize: '12px', opacity: 0.6 }}
-          />
+          <span className="codicon codicon-loading codicon-modifier-spin text-xs opacity-60" />
         )}
-        <span
-          className="codicon codicon-git-pull-request"
-          style={{ fontSize: '14px', marginLeft: '2px' }}
-        />
+        <span className="codicon codicon-git-pull-request text-sm ml-0.5" />
       </div>
     </div>
   );
@@ -230,15 +198,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
   };
 
   return (
-    <div
-      className="terminal-block git-diff-block"
-      style={{
-        marginBottom: '8px',
-        backgroundColor: 'transparent',
-        borderRadius: '0px',
-        overflow: 'visible',
-      }}
-    >
+    <div className="terminal-block git-diff-block mb-2 bg-transparent rounded-none overflow-visible [&_.terminal-block-header]:border-b-0 [&_.terminal-block-header]:bg-transparent [&_.terminal-block-header:hover]:bg-transparent">
       <ToolHeader
         title={headerTitle}
         statusColor={statusColor}
@@ -252,26 +212,8 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
       />
 
       {!isCollapsed && diffContent && (
-        <div
-          style={{
-            padding: '4px 12px 12px 29px',
-          }}
-        >
-          <div
-            style={{
-              background: 'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-              borderRadius: '4px',
-              border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
-              overflow: 'auto',
-              maxHeight: '400px',
-              fontFamily: 'var(--vscode-editor-font-family, monospace)',
-              fontSize: '12px',
-              lineHeight: '1.5',
-              padding: '4px 0',
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word',
-            }}
-          >
+        <div className="pt-1 px-3 pb-3 pl-[29px]">
+          <div className="bg-[var(--vscode-editor-background,var(--vscode-textCodeBlock-background))] rounded-[4px] border border-[var(--vscode-widget-border,rgba(255,255,255,0.08))] overflow-auto max-h-[400px] font-mono text-xs leading-[1.5] py-1 break-words">
             {renderDiffLines(diffContent)}
           </div>
         </div>

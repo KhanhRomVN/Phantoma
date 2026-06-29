@@ -4,7 +4,7 @@ import { useActiveModule } from '../features/Tool/hooks/useActiveModule';
 import { useActiveSubItem } from '../features/Tool/hooks/useActiveSubItem';
 import { useActiveTarget } from '../features/Tool/hooks/useActiveTarget';
 import { ModuleBar } from '../components/ModuleBar';
-import { IntelPanel } from '../components/RightPanel';
+import { RightPanel } from '../components/RightPanel';
 import { FooterBar } from '../components/FooterBar';
 import { PhantomModule } from '../features/Tool/types/types';
 import { ServerHealthGuard } from '../components/ServerHealthGuard';
@@ -71,7 +71,7 @@ const MainLayout = () => {
               <Outlet />
             </ServerHealthGuard>
           </div>
-          <IntelPanel subTarget={activeSubTarget} />
+          <RightPanel subTarget={activeSubTarget} />
         </div>
         <FooterBar />
       </div>
