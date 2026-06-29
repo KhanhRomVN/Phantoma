@@ -10,6 +10,7 @@ import { ResourcesPanel } from './components/Resources';
 import { PayloadPanel } from './components/Repeater';
 import { SourcesPanel } from './components/Source';
 import { LogViewer } from './components/Log';
+import { DevicePanel } from './components/Device';
 import { TargetSidebar } from './components/TargetSidebar';
 import {
   WebModal,
@@ -21,13 +22,13 @@ import {
 // Hooks
 import useTargetData from '../../hooks/useTargetData';
 import { useRequestFilter } from './hooks/useRequestFilter';
-import { useCdpEvents } from './hooks/useCdpEvents';
 
 // Types
 import { NetworkRequest, WebSocketConnection } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 import { ToolType, TOOLS, DEFAULT_TOOL } from './constants/tools';
 import { useTheme } from '@renderer/theme';
+import useNetworkEvents from './hooks/useNetworkEvents';
 
 // Constants
 const mockWsConnections: WebSocketConnection[] = [];
@@ -40,11 +41,11 @@ export default function Emulate({
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
   const { getColorByIndex } = useAccentColors();
 
-  // Module persistence - chỉ giữ lại các state không phải target
-  const [state, setState] = useModulePersistence<
-    Omit<EmulateState, 'targetTabs' | 'activeTargetId'>
-  >('emulate', {
+  // Module persistence - lưu toàn bộ EmulateState
+  const [state, setState] = useModulePersistence<EmulateState>('emulate', {
     selectedTool: DEFAULT_TOOL,
+    targetTabs: [],
+    activeTargetId: null,
     requests: [],
     selectedId: null,
     searchTerm: '',
@@ -55,7 +56,14 @@ export default function Emulate({
     filter: initialFilterState,
   });
 
-  const { selectedTool, selectedId } = state;
+  const {
+    selectedTool,
+    selectedId,
+    targetTabs,
+    activeTargetId,
+    targetStates,
+    requests: savedRequests,
+  } = state;
 
   // Local state
   const [, setLoadedFromIPC] = useState(false);
@@ -90,7 +98,7 @@ export default function Emulate({
     };
 
     await saveTarget(newTab);
-    setTargetTabs((prev) => [...prev, newTab]);
+    setState((prev) => ({ ...prev, targetTabs: [...prev.targetTabs, newTab] }));
     await refreshTargets();
   };
 
@@ -103,28 +111,16 @@ export default function Emulate({
     refresh: refreshTargets,
   } = useTargetData({ autoLoad: true });
 
-  
-
-  // State cho target management (local)
-  const [targetTabs, setTargetTabs] = useState<TargetTab[]>([]);
-  const [activeTargetId, setActiveTargetId] = useState<string | null>(null);
-  const [targetStates, setTargetStates] = useState<
-    Record<
-      string,
-      { isActive: boolean; mode?: 'mitm' | 'cdp'; isIntercepting?: boolean; startTime?: number }
-    >
-  >({});
+  // State cho timer display
   const [timerDisplay, setTimerDisplay] = useState<Record<string, string>>({});
 
-  // Sync targets từ SQLite vào local state
+  // Sync targets từ SQLite vào module state
   useEffect(() => {
-    if (targets.length > 0) {
+    if (targets.length > 0 && targetTabs.length === 0) {
       // Backend already sorts by updated_at DESC (last_used_at included)
-      setTargetTabs(targets);
+      setState((prev) => ({ ...prev, targetTabs: targets }));
     }
   }, [targets]);
-
-  
 
   // Wrapper methods để tương thích với interface cũ
   const addTargetTab = async (tab: TargetTab) => {
@@ -132,17 +128,30 @@ export default function Emulate({
     if (exists) return;
 
     await saveTarget(tab);
-    setTargetTabs((prev) => [...prev, tab]);
+    setState((prev) => ({ ...prev, targetTabs: [...prev.targetTabs, tab] }));
     await refreshTargets();
   };
 
   const removeTargetTab = async (id: string) => {
-    await deleteTarget(id);
-    setTargetTabs((prev) => prev.filter((t) => t.id !== id));
-    if (activeTargetId === id) {
-      setActiveTargetId(targetTabs.length > 0 ? targetTabs[0].id : null);
+    console.log('[Emulate] removeTargetTab called with id:', id);
+    try {
+      const deleted = await deleteTarget(id);
+      console.log('[Emulate] deleteTarget result:', deleted);
+      setState((prev) => {
+        const newTabs = prev.targetTabs.filter((t) => t.id !== id);
+        const newActiveId =
+          prev.activeTargetId === id
+            ? newTabs.length > 0
+              ? newTabs[0].id
+              : null
+            : prev.activeTargetId;
+        return { ...prev, targetTabs: newTabs, activeTargetId: newActiveId };
+      });
+      await refreshTargets();
+      console.log('[Emulate] removeTargetTab completed successfully');
+    } catch (error) {
+      console.error('[Emulate] removeTargetTab error:', error);
     }
-    await refreshTargets();
   };
 
   const setActiveTarget = (id: string | null) => {
@@ -152,38 +161,47 @@ export default function Emulate({
         console.error('[Emulate] Failed to update last_used_at:', err);
       });
     }
-    setActiveTargetId(id);
+    setState((prev) => ({ ...prev, activeTargetId: id }));
   };
 
-  const startTarget = (targetId: string, mode: 'mitm' | 'cdp') => {
-    setTargetStates((prev) => ({
+  const startTarget = (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
+    setState((prev) => ({
       ...prev,
-      [targetId]: {
-        isActive: true,
-        mode,
-        isIntercepting: false,
-        startTime: Date.now(),
+      targetStates: {
+        ...prev.targetStates,
+        [targetId]: {
+          isActive: true,
+          mode,
+          isIntercepting: false,
+          startTime: Date.now(),
+        },
       },
     }));
   };
 
   const stopTarget = (targetId: string) => {
-    setTargetStates((prev) => ({
+    setState((prev) => ({
       ...prev,
-      [targetId]: {
-        isActive: false,
-        mode: undefined,
-        isIntercepting: false,
+      targetStates: {
+        ...prev.targetStates,
+        [targetId]: {
+          isActive: false,
+          mode: undefined,
+          isIntercepting: false,
+        },
       },
     }));
   };
 
   const toggleIntercept = (targetId: string) => {
-    setTargetStates((prev) => ({
+    setState((prev) => ({
       ...prev,
-      [targetId]: {
-        ...prev[targetId],
-        isIntercepting: !prev[targetId]?.isIntercepting,
+      targetStates: {
+        ...prev.targetStates,
+        [targetId]: {
+          ...prev.targetStates[targetId],
+          isIntercepting: !prev.targetStates[targetId]?.isIntercepting,
+        },
       },
     }));
   };
@@ -210,7 +228,12 @@ export default function Emulate({
     return () => clearInterval(interval);
   }, [targetStates]);
 
-  const { requests, clearRequests, unpackedScripts } = useCdpEvents();
+  const { requests, clearRequests, unpackedScripts } = useNetworkEvents({
+    initialRequests: savedRequests,
+    onRequestsChange: (newRequests) => {
+      setState((prev) => ({ ...prev, requests: newRequests }));
+    },
+  });
 
   const { filter, searchTerm, setSearchTerm, updateFilter, filterRequests } = useRequestFilter();
 
@@ -254,7 +277,7 @@ export default function Emulate({
     if (mode === 'cdp') {
       await window.api.invoke('cdp:disconnect');
       await window.api.invoke('app:terminate');
-    } else if (mode === 'mitm') {
+    } else if (mode === 'mitm' || mode === 'frida') {
       await window.api.invoke('proxy:destroy-session', 'default');
       await window.api.invoke('app:terminate');
     }
@@ -264,7 +287,7 @@ export default function Emulate({
     await onStopSession();
   };
 
-  const handleStartTarget = (mode: 'mitm' | 'cdp') => {
+  const handleStartTarget = (mode: 'mitm' | 'cdp' | 'frida') => {
     if (!activeTargetId) return;
     startTarget(activeTargetId, mode);
   };
@@ -278,12 +301,22 @@ export default function Emulate({
     appId: string,
     proxyUrl: string,
     customUrl?: string,
-    mode?: 'browser' | 'electron' | 'native' | 'cdp',
+    mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
+    useEnvInject?: boolean,
   ) => {
+    console.log(`[Emulate] Launching target: appId=${appId}, mode=${mode}, proxyUrl=${proxyUrl}, useEnvInject=${useEnvInject}`);
+
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     try {
-      const result = await window.api.invoke('app:launch', appId, proxyUrl, customUrl, mode);
+      // Lấy executable path từ targetTabs nếu có
+      const target = targetTabs.find((t) => t.id === appId);
+      const launchTarget = target?.executablePath || appId;
+      console.log(`[Emulate] Using launch target: ${launchTarget}`);
+
+      const result = await window.api.invoke('app:launch', launchTarget, proxyUrl, customUrl, mode, useEnvInject);
+      console.log(`[Emulate] Launch result: ${result}`);
+
       if (result) {
         // Tạo target tab từ appId và customUrl
         const newTab: TargetTab = {
@@ -295,7 +328,7 @@ export default function Emulate({
         setActiveTarget(appId);
       }
     } catch (e) {
-      console.error('Launch failed:', e);
+      console.error('[Emulate] Launch failed:', e);
     }
   };
 
@@ -370,7 +403,11 @@ export default function Emulate({
         </div>
 
         {/* Content based on selected tool */}
-        {!activeTargetId || activeTargetId === 'default' ? (
+        {selectedTool === 'device' ? (
+          <div className="flex-1 overflow-hidden">
+            <DevicePanel />
+          </div>
+        ) : !activeTargetId || activeTargetId === 'default' ? (
           <div className="flex-1 flex items-center justify-center text-text-secondary">
             <div className="text-center">
               <div className="text-sm font-medium mb-1">No target selected</div>
@@ -474,7 +511,7 @@ export default function Emulate({
             setEditingApp(null);
           }}
           onAdd={handleAddApp}
-          existingApps={[]}
+          existingApps={targetTabs}
           editApp={editingApp}
           onEdit={() => {}}
         />
@@ -487,7 +524,7 @@ export default function Emulate({
             setEditingApp(null);
           }}
           onAdd={handleAddApp}
-          existingApps={[]}
+          existingApps={targetTabs}
           editApp={editingApp}
           onEdit={() => {}}
         />
@@ -500,7 +537,7 @@ export default function Emulate({
             setEditingApp(null);
           }}
           onAdd={handleAddApp}
-          existingApps={[]}
+          existingApps={targetTabs}
           editApp={editingApp}
           onEdit={() => {}}
         />
@@ -513,7 +550,7 @@ export default function Emulate({
             setEditingApp(null);
           }}
           onAdd={handleAddApp}
-          existingApps={[]}
+          existingApps={targetTabs}
           editApp={editingApp}
           onEdit={() => {}}
         />

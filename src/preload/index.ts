@@ -11,6 +11,9 @@ const api = {
   },
   off: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) =>
     electronAPI.ipcRenderer.removeListener(channel, listener),
+  removeAllListeners: (channel: string) => {
+    electronAPI.ipcRenderer.removeAllListeners(channel);
+  },
 };
 
 // Expose APIs to renderer

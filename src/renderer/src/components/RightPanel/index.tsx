@@ -4,6 +4,13 @@ import type { SubTarget } from '../../features/Tool/types/types';
 import { AgentPanel } from './Agent';
 import { Analytic } from './Analytic';
 import { Terminal } from './Terminal';
+import HomePanel from './Agent/feature/Home';
+import SessionPanel from './Agent/feature/Session';
+import AccountPanel from './Agent/feature/Account';
+import { Analytic as AnalyticFeature } from './Agent/feature/Analytic';
+import HistoryPanel from './Agent/feature/History';
+import { Models as ModelsFeature } from './Agent/feature/Model';
+import SettingsPanel from './Agent/feature/Setting';
 import {
   ChevronDown,
   BarChart3,
@@ -18,11 +25,14 @@ import {
   Settings,
 } from 'lucide-react';
 import { cn } from '../../shared/lib/utils';
+import { SettingsProvider } from './Agent/context/SettingsContext';
 
 type PanelView = 'agent' | 'analytic' | 'terminal';
+type AgentSubView = 'home' | 'session' | 'account' | 'analytic-feature' | 'history' | 'model' | 'setting' | null;
 
 export function IntelPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) {
   const [view, setView] = useState<PanelView>('agent');
+  const [agentSubView, setAgentSubView] = useState<AgentSubView>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEllipsisOpen, setIsEllipsisOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -75,14 +85,15 @@ export function IntelPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
   ];
 
   const ellipsisOptions = [
-    { label: 'Account', icon: User },
-    { label: 'Model', icon: Cpu },
-    { label: 'History', icon: Clock },
-    { label: 'Setting', icon: Settings },
-    { label: 'Analytic', icon: BarChart3 },
+    { label: 'Account', icon: User, subView: 'account' as AgentSubView },
+    { label: 'Model', icon: Cpu, subView: 'model' as AgentSubView },
+    { label: 'History', icon: Clock, subView: 'history' as AgentSubView },
+    { label: 'Setting', icon: Settings, subView: 'setting' as AgentSubView },
+    { label: 'Analytic', icon: BarChart3, subView: 'analytic-feature' as AgentSubView },
   ];
 
   return (
+    <SettingsProvider>
     <div className="w-[450px] shrink-0 border-l border-divider flex flex-col overflow-hidden">
       {/* Header Bar */}
       <div className="h-[37px] border-b border-divider flex items-center px-3 shrink-0">
@@ -109,6 +120,7 @@ export function IntelPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
                     key={option.id}
                     onClick={() => {
                       setView(option.id);
+                      setAgentSubView(null);
                       setIsDropdownOpen(false);
                     }}
                     className={cn(
@@ -129,11 +141,23 @@ export function IntelPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
         {/* Right side icons - only show when Agent is selected */}
         {view === 'agent' && (
           <div className="ml-auto flex items-center gap-2">
-            <button className="p-1 rounded hover:bg-sidebar-item-hover transition-colors">
+            <button
+              onClick={() => setAgentSubView('home')}
+              className={cn(
+                'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
+                agentSubView === 'home' && 'bg-primary/10 text-primary',
+              )}
+            >
               <Plus className="w-4 h-4 text-text-secondary" />
             </button>
             <div className="relative">
-              <button className="p-1 rounded hover:bg-sidebar-item-hover transition-colors">
+              <button
+                onClick={() => setAgentSubView('session')}
+                className={cn(
+                  'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
+                  agentSubView === 'session' && 'bg-primary/10 text-primary',
+                )}
+              >
                 <LayoutDashboard className="w-4 h-4 text-text-secondary" />
               </button>
               <span className="absolute -top-1 -right-1 bg-primary/80 text-text-foreground text-[10px] font-medium rounded-md min-w-[18px] h-[18px] flex items-center justify-center ">
@@ -155,7 +179,7 @@ export function IntelPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
                       <button
                         key={option.label}
                         onClick={() => {
-                          // Placeholder: no functionality yet
+                          setAgentSubView(option.subView);
                           setIsEllipsisOpen(false);
                         }}
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary transition-colors"
@@ -174,10 +198,29 @@ export function IntelPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
 
       {/* Content */}
       <div className="flex-1 overflow-hidden">
-        {view === 'agent' && <AgentPanel />}
+        {view === 'agent' && agentSubView === null && <AgentPanel />}
+        {view === 'agent' && agentSubView === 'home' && (
+          <HomePanel
+            onSendMessage={() => {}}
+            onLoadConversation={() => {}}
+          />
+        )}
+        {view === 'agent' && agentSubView === 'session' && <SessionPanel />}
+        {view === 'agent' && agentSubView === 'account' && (
+          <AccountPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+        )}
+        {view === 'agent' && agentSubView === 'analytic-feature' && <AnalyticFeature />}
+        {view === 'agent' && agentSubView === 'history' && (
+          <HistoryPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+        )}
+        {view === 'agent' && agentSubView === 'model' && <ModelsFeature />}
+        {view === 'agent' && agentSubView === 'setting' && (
+          <SettingsPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+        )}
         {view === 'analytic' && <Analytic />}
         {view === 'terminal' && <Terminal />}
       </div>
     </div>
+  </SettingsProvider>
   );
 }

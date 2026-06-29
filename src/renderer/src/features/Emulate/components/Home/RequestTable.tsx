@@ -78,7 +78,7 @@ interface RequestTableProps {
   currentTargetUrl?: string;
   // Target state from parent
   isTargetActive: boolean;
-  activeTargetMode: 'mitm' | 'cdp' | null;
+  activeTargetMode: 'mitm' | 'cdp' | 'frida' | null;
   isInterceptActive: boolean;
   onToggleIntercept: () => void;
   onStopTarget: () => void;

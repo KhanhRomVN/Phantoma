@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TargetTab } from '../../types/target.types';
 import { useTargetSidebar } from './useTargetSidebar';
 import { TargetList } from './TargetList';
@@ -13,17 +13,19 @@ interface TargetSidebarProps {
   targetTabs: TargetTab[];
   activeTargetId: string | null;
   timerDisplay: Record<string, string>;
-  targetStates: Record<string, { isActive: boolean; mode?: 'mitm' | 'cdp' }>;
+  targetStates: Record<string, { isActive: boolean; mode?: 'mitm' | 'cdp' | 'frida' }>;
   accentColor: string;
   onSelectTarget: (id: string) => void;
   onRemoveTarget: (id: string) => void;
-  onStartTarget: (mode: 'mitm' | 'cdp') => void;
+  onStartTarget: (mode: 'mitm' | 'cdp' | 'frida') => void;
   onStopTarget: () => void;
   onLaunchTarget: (
     appId: string,
     proxyUrl: string,
     customUrl?: string,
-    mode?: 'browser' | 'electron' | 'native' | 'cdp',
+    mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
+    useEnvInject?: boolean,
+    deviceSerial?: string,
   ) => Promise<void>;
   onOpenAddModal: (platform: AppPlatform) => void;
   onEditTarget?: (id: string) => void;
@@ -55,6 +57,41 @@ export function TargetSidebar({
     searchedTargets,
   } = useTargetSidebar(targetTabs);
 
+  // Device list state
+  const [deviceList, setDeviceList] = useState<
+    { name: string; serial: string; type: string }[]
+  >([]);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+
+  const loadDevices = async () => {
+    if (isLoadingDevices) return;
+    setIsLoadingDevices(true);
+    try {
+      const [vms, connected] = await Promise.all([
+        window.api.invoke('mobile:list-genymotion-vms'),
+        window.api.invoke('mobile:detect-emulators'),
+      ]);
+      const list: { name: string; serial: string; type: string }[] = [];
+      connected.forEach((dev: any) =>
+        list.push({
+          name: dev.name || dev.serial,
+          serial: dev.serial,
+          type: dev.type === 'physical' ? 'physical' : 'vm',
+        }),
+      );
+      vms.forEach((vm: string) => {
+        if (!connected.some((d: any) => d.name === vm || d.id === vm)) {
+          list.push({ name: vm, serial: vm, type: 'vm' });
+        }
+      });
+      setDeviceList(list);
+    } catch (e) {
+      console.error('[TargetSidebar] Failed to load devices:', e);
+    } finally {
+      setIsLoadingDevices(false);
+    }
+  };
+
   return (
     <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background relative">
       {/* Header */}
@@ -82,6 +119,8 @@ export function TargetSidebar({
         onOpenAddModal={onOpenAddModal}
         onEditTarget={onEditTarget}
         onStopSession={onStopSession}
+        deviceList={deviceList}
+        onRefreshDevices={loadDevices}
       />
     </div>
   );

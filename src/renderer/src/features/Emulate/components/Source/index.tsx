@@ -6,7 +6,7 @@ import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { NetworkRequest } from '../Home/Filter';
 import { buildSourceTree, type SourceNode, formatSize, type SourceTreeData } from '../../utils/sourceTree';
-import type { CdpScriptUnpackedData } from '../../hooks/useCdpEvents';
+import type { CdpScriptUnpackedData } from '../../hooks/useNetworkEvents';
 import { prettifyCode, isMinified } from '../../utils/prettify';
 
 interface SourcesPanelProps {

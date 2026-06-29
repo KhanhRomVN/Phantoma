@@ -52,6 +52,7 @@
     "check:secrets": "scripts/bin/gitleaks detect --source . -v && scripts/bin/talisman --checksum && ggshield secret scan path . --recursive",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:frida": "tsx tests/frida-injection-test.ts",
     "postinstall": "electron-builder install-app-deps",
     "build:win": "npm run typecheck && electron-vite build && electron-builder --win",
     "build:mac": "npm run typecheck && electron-vite build && electron-builder --mac",
@@ -122,6 +123,7 @@
     "vscode-icons-js": "^11.6.1",
     "wabt": "^1.0.39",
     "ws": "^8.18.3",
+    "xterm": "^5.3.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

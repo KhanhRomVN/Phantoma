@@ -18,18 +18,26 @@ export const PcModal: React.FC<BaseModalProps> = ({
   const [duplicateError, setDuplicateError] = useState<{ name?: string; value?: string }>({});
 
   const loadPcApps = async () => {
+    console.log('[PcModal] loadPcApps called');
     setPcLoading(true);
     try {
-      setDiscoveredApps(await window.api.invoke('apps:scan-pc'));
+      const startTime = performance.now();
+      const apps = await window.api.invoke('apps:scan-pc');
+      const duration = (performance.now() - startTime).toFixed(2);
+      console.log(`[PcModal] apps:scan-pc completed in ${duration}ms, found ${apps.length} apps`);
+      setDiscoveredApps(apps);
     } catch (e) {
-      console.error(e);
+      console.error('[PcModal] Error loading apps:', e);
+      setDiscoveredApps([]);
     } finally {
+      console.log('[PcModal] Setting pcLoading to false');
       setPcLoading(false);
     }
   };
 
   // Duplicate error detection
   useEffect(() => {
+    console.log('[PcModal] existingApps:', existingApps);
     if (selectedPcApp) {
       const error: { name?: string; value?: string } = {};
       const existingByName = existingApps.find(
@@ -39,6 +47,9 @@ export const PcModal: React.FC<BaseModalProps> = ({
         (app) =>
           app.executablePath?.toLowerCase() === (selectedPcApp as any).exec.toLowerCase(),
       );
+      console.log('[PcModal] selectedPcApp:', selectedPcApp.name);
+      console.log('[PcModal] existingByName:', existingByName);
+      console.log('[PcModal] existingByPath:', existingByPath);
       if (existingByName) error.name = `Name "${existingByName.name}" already exists`;
       if (existingByPath) error.value = `Path "${existingByPath.executablePath}" already exists`;
       setDuplicateError(error);
@@ -127,14 +138,22 @@ export const PcModal: React.FC<BaseModalProps> = ({
                     const isSelected =
                       (selectedPcApp as any)?.exec === (app as any).exec &&
                       (selectedPcApp as any)?.name === app.name;
+                    const isExisting = existingApps.some(
+                      (existing) =>
+                        existing.executablePath?.toLowerCase() === (app as any).exec.toLowerCase() ||
+                        existing.name?.toLowerCase() === app.name.toLowerCase()
+                    );
                     return (
                       <button
                         key={`${app.name}-${(app as any).exec}`}
-                        onClick={() => setSelectedPcApp(app)}
+                        onClick={() => !isExisting && setSelectedPcApp(app)}
+                        disabled={isExisting}
                         className={cn(
-                          'flex items-center gap-3 p-3 rounded-xl border text-left transition-all',
-                          isSelected
+                          'flex items-center gap-3 p-3 rounded-xl border text-left transition-all w-full',
+                          isSelected && !isExisting
                             ? 'bg-primary/10 border-primary/40'
+                            : isExisting
+                            ? 'opacity-50 cursor-not-allowed bg-input-background/50 border-border/30'
                             : 'bg-input-background border-border/40 hover:bg-dropdown-item-hover/60',
                         )}
                       >
@@ -155,6 +174,11 @@ export const PcModal: React.FC<BaseModalProps> = ({
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-semibold text-text-primary truncate">
                             {app.name}
+                            {isExisting && (
+                              <span className="ml-2 text-[9px] font-normal text-text-secondary">
+                                (đã tồn tại)
+                              </span>
+                            )}
                           </div>
                           <div className="text-[10px] text-text-secondary truncate">
                             {app.description || 'System Application'}

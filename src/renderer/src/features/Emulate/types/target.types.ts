@@ -18,7 +18,7 @@ export interface TargetTab {
 
 export interface TargetState {
   isActive: boolean;
-  mode: 'mitm' | 'cdp' | null;
+  mode?: 'mitm' | 'cdp' | 'frida';
   isIntercepting: boolean;
   startTime?: number;
 }
@@ -33,11 +33,10 @@ export interface EmulateState {
   targetStates: Record<string, TargetState>;
   // Legacy fields
   isTargetActive: boolean;
-  activeTargetMode: 'mitm' | 'cdp' | null;
+  activeTargetMode: 'mitm' | 'cdp' | 'frida' | null;
   isInterceptActive: boolean;
   filter: InspectorFilter;
 }
-
 export interface EmulateProps {
   activeAppId?: string;
   _activeAppName?: string;
@@ -54,7 +53,8 @@ export interface LaunchTargetOptions {
   appId: string;
   proxyUrl: string;
   customUrl?: string;
-  mode?: 'browser' | 'electron' | 'native' | 'cdp';
+  mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida';
+  useEnvInject?: boolean;
 }
 
 export interface AppLaunchResult {

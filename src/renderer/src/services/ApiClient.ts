@@ -2,13 +2,13 @@
  * ApiClient — Base HTTP client for Go backend server.
  * Only handles request/response, health check, and base URL management.
  * Resource-specific services (TargetService, ScanService, etc.) use this client.
- * 
+ *
  * Usage:
  * import { apiClient } from '@/services/ApiClient';
  * const data = await apiClient.request('/api/v1/targets');
  */
 
-import type { ApiResponse } from '@app/api/types';
+import { ApiResponse } from '@renderer/types/api';
 
 const DEFAULT_BASE_URL = 'http://localhost:8080';
 
@@ -37,10 +37,7 @@ class ApiClient {
    * Generic request method for all API calls.
    * Handles JSON parsing, error handling, and response validation.
    */
-  async request<T>(
-    path: string,
-    options: RequestInit = {},
-  ): Promise<T> {
+  async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const res = await fetch(url, {
       headers: {

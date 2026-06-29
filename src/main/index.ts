@@ -3,6 +3,10 @@ import { electronApp, optimizer } from '@electron-toolkit/utils';
 import * as path from 'path';
 import * as fs from 'fs';
 
+// Setup file logger FIRST to capture all logs
+import { setupLogger } from './utils/logger';
+setupLogger();
+
 // Import shared state
 import { proxyManager } from './shared/proxy-state';
 import { wsManager } from './shared/ws-state';

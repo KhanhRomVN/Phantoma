@@ -1,19 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Search,
-  Loader2,
-  Monitor,
-  RefreshCw,
-  Smartphone,
-  Wifi,
-  Zap,
-  AlertCircle,
-  Check,
-  X,
-} from 'lucide-react';
+import { Search, Smartphone, Monitor, Loader2, RefreshCw, Check } from 'lucide-react';
 import { cn } from '../../../../../shared/lib/utils';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '../../../../../components/ui/Modal';
 import { BaseModalProps } from './types';
+
+interface Device {
+  name: string;
+  serial: string;
+  type: 'physical' | 'vm' | 'running-vm';
+}
 
 export const AndroidModal: React.FC<BaseModalProps> = ({
   isOpen,
@@ -21,347 +16,217 @@ export const AndroidModal: React.FC<BaseModalProps> = ({
   onAdd,
   existingApps = [],
 }) => {
-  const [deviceList, setDeviceList] = useState<
-    { name: string; type: 'vm' | 'physical' | 'running-vm'; serial?: string }[]
-  >([]);
-  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
-  const [androidLoading, setAndroidLoading] = useState(false);
-  const [androidSearch, setAndroidSearch] = useState('');
-  const [androidView, setAndroidView] = useState<'list' | 'connect'>('list');
-  const [wirelessIp, setWirelessIp] = useState('');
-  const [wirelessPort, setWirelessPort] = useState('5555');
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [connectStatus, setConnectStatus] = useState<{
-    type: 'success' | 'error' | null;
-    message: string;
-  }>({ type: null, message: '' });
-  const [enablingWireless, setEnablingWireless] = useState<Record<string, boolean>>({});
-  const [wirelessStatus, setWirelessStatus] = useState<
-    Record<string, { ip?: string; message?: string }>
-  >({});
-  const [duplicateError, setDuplicateError] = useState<{ name?: string; value?: string }>({});
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
-  const loadAndroidDevices = async () => {
-    setAndroidLoading(true);
+  const loadDevices = async () => {
+    setLoading(true);
     try {
       const [vms, connected] = await Promise.all([
         window.api.invoke('mobile:list-genymotion-vms'),
         window.api.invoke('mobile:detect-emulators'),
       ]);
-      const list: typeof deviceList = [];
-      connected.forEach((dev: any) =>
+
+      const list: Device[] = [];
+      connected.forEach((dev: any) => {
         list.push({
           name: dev.name || dev.serial,
-          type: dev.type === 'physical' ? 'physical' : 'running-vm',
           serial: dev.serial,
-        }),
-      );
-      vms.forEach((vm: string) => {
-        if (!connected.some((d: any) => d.name === vm || d.id === vm))
-          list.push({ name: vm, type: 'vm', serial: vm });
+          type: dev.type === 'physical' ? 'physical' : 'running-vm',
+        });
       });
-      setDeviceList(list);
+      vms.forEach((vm: string) => {
+        if (!connected.some((d: any) => d.name === vm || d.id === vm)) {
+          list.push({ name: vm, serial: vm, type: 'vm' });
+        }
+      });
+      setDevices(list);
     } catch (e) {
-      console.error(e);
+      console.error('Failed to load devices:', e);
     } finally {
-      setAndroidLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleEnableWireless = async (device: { name: string; serial?: string }) => {
-    const serial = device.serial || device.name;
-    setEnablingWireless((p) => ({ ...p, [serial]: true }));
-    try {
-      const result = await window.api.invoke('mobile:enable-wireless-adb', serial);
-      setWirelessStatus((p) => ({
-        ...p,
-        [serial]: result.success
-          ? { ip: result.ip, message: result.message }
-          : { message: result.error || 'Failed' },
-      }));
-      if (result.success) await loadAndroidDevices();
-    } catch (e: any) {
-      setWirelessStatus((p) => ({ ...p, [serial]: { message: e.message } }));
-    } finally {
-      setEnablingWireless((p) => ({ ...p, [serial]: false }));
-    }
-  };
-
-  const handleWirelessConnect = async () => {
-    if (!wirelessIp) {
-      setConnectStatus({ type: 'error', message: 'Enter an IP address' });
-      return;
-    }
-    setIsConnecting(true);
-    setConnectStatus({ type: null, message: '' });
-    try {
-      const result = await window.api.invoke('mobile:connect-wireless', wirelessIp, wirelessPort);
-      if (result.success) {
-        setConnectStatus({ type: 'success', message: result.message || 'Connected!' });
-        setTimeout(() => {
-          loadAndroidDevices();
-          setAndroidView('list');
-        }, 1500);
-      } else setConnectStatus({ type: 'error', message: result.error || 'Failed' });
-    } catch (e: any) {
-      setConnectStatus({ type: 'error', message: e.message });
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  // Duplicate error detection
+  // Reset state khi đóng modal
   useEffect(() => {
-    if (selectedDevice) {
-      const device = deviceList.find((d) => (d.serial || d.name) === selectedDevice);
-      if (device) {
-        const error: { name?: string; value?: string } = {};
-        const existingByName = existingApps.find(
-          (app) => app.name?.toLowerCase() === device.name.toLowerCase(),
-        );
-        const existingBySerial = existingApps.find(
-          (app) =>
-            app.emulatorSerial?.toLowerCase() === (device.serial || device.name).toLowerCase(),
-        );
-        if (existingByName) error.name = `Name "${existingByName.name}" already exists`;
-        if (existingBySerial)
-          error.value = `Device "${existingBySerial.emulatorSerial}" already exists`;
-        setDuplicateError(error);
-      }
-    } else {
-      setDuplicateError({});
+    if (!isOpen) {
+      setDevices([]);
+      setSearchQuery('');
+      setSelectedDevice(null);
+      setDuplicateError(null);
     }
-  }, [selectedDevice, deviceList, existingApps]);
-
-  // Load devices on open
-  useEffect(() => {
-    if (!isOpen) return;
-    setSelectedDevice(null);
-    setAndroidSearch('');
-    setAndroidView('list');
-    loadAndroidDevices();
   }, [isOpen]);
 
+  // Load devices khi mở modal
+  useEffect(() => {
+    if (isOpen) {
+      loadDevices();
+    }
+  }, [isOpen]);
+
+  // Lọc danh sách device theo search
   const filteredDevices = useMemo(() => {
-    const existingSerials = new Set(existingApps.map((a) => a.emulatorSerial).filter(Boolean));
-    return deviceList.filter(
+    if (!searchQuery) return devices;
+    const q = searchQuery.toLowerCase();
+    return devices.filter(
       (d) =>
-        d.serial &&
-        !existingSerials.has(d.serial) &&
-        (!androidSearch || d.name.toLowerCase().includes(androidSearch.toLowerCase())),
+        d.name.toLowerCase().includes(q) ||
+        d.serial.toLowerCase().includes(q),
     );
-  }, [deviceList, androidSearch, existingApps]);
+  }, [devices, searchQuery]);
+
+  // Kiểm tra trùng lặp device
+  useEffect(() => {
+    if (!selectedDevice) {
+      setDuplicateError(null);
+      return;
+    }
+
+    const existing = existingApps.find(
+      (app) => app.emulatorSerial?.toLowerCase() === selectedDevice.serial.toLowerCase(),
+    );
+    if (existing) {
+      setDuplicateError(`Device "${existing.name}" (${existing.emulatorSerial}) đã tồn tại`);
+    } else {
+      setDuplicateError(null);
+    }
+  }, [selectedDevice, existingApps]);
 
   const handleSubmit = () => {
     if (!selectedDevice) return;
-    const device = deviceList.find((d) => (d.serial || d.name) === selectedDevice);
-    if (!device) return;
+    if (duplicateError) return;
+
     onAdd({
-      name: device.name,
+      name: selectedDevice.name,
       platform: 'android',
       mode: 'intercept',
-      emulatorSerial: device.serial || device.name,
+      emulatorSerial: selectedDevice.serial,
     });
     onClose();
   };
 
-  const canSubmit = !!selectedDevice && !duplicateError.name && !duplicateError.value;
+  const canSubmit = !!selectedDevice && !duplicateError;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-2xl">
       <ModalHeader
-        title="Add Mobile"
-        description="Configure your mobile target"
+        title="Add Android Device"
+        description="Chọn thiết bị Android từ danh sách scan được"
         onClose={onClose}
       />
       <ModalBody>
         <div className="flex flex-col" style={{ height: '50vh' }}>
-          {androidView === 'list' ? (
-            <>
-              <div className="pb-3 flex gap-2 shrink-0">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
-                  <input
-                    type="text"
-                    placeholder="Search devices..."
-                    value={androidSearch}
-                    onChange={(e) => setAndroidSearch(e.target.value)}
-                    className="w-full bg-input-background border border-border rounded-lg pl-8 pr-3 py-2 text-sm text-text-primary outline-none focus:border-primary/50"
-                  />
-                </div>
-                <button
-                  onClick={() => setAndroidView('connect')}
-                  className="p-2 bg-dropdown-item-hover hover:bg-dropdown-item-hover border border-border rounded-lg"
-                  title="Wireless ADB"
-                >
-                  <Wifi className="w-4 h-4 text-text-secondary" />
-                </button>
-                <button
-                  onClick={loadAndroidDevices}
-                  className="p-2 bg-dropdown-item-hover hover:bg-dropdown-item-hover border border-border rounded-lg"
-                >
-                  <RefreshCw
-                    className={cn(
-                      'w-4 h-4 text-text-secondary',
-                      androidLoading && 'animate-spin',
-                    )}
-                  />
-                </button>
+          {/* Search + Refresh */}
+          <div className="pb-3 flex gap-2 shrink-0">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
+              <input
+                type="text"
+                placeholder="Tìm device theo tên hoặc serial..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-input-background border border-border rounded-lg pl-8 pr-3 py-2 text-sm text-text-primary outline-none focus:border-primary/50"
+              />
+            </div>
+            <button
+              onClick={loadDevices}
+              disabled={loading}
+              className="p-2 bg-dropdown-item-hover hover:bg-dropdown-item-hover border border-border rounded-lg transition-all"
+            >
+              <RefreshCw className={cn('w-4 h-4 text-text-secondary', loading && 'animate-spin')} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto">
+            {loading && devices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm text-text-secondary">Đang quét thiết bị...</p>
               </div>
-              <div className="flex-1 overflow-y-auto">
-                {androidLoading && !deviceList.length ? (
-                  <div className="flex flex-col items-center justify-center h-full gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    <p className="text-sm text-text-secondary">Scanning devices...</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {filteredDevices.map((device) => {
-                      const serial = device.serial || device.name;
-                      const isSelected = selectedDevice === serial;
-                      const isWireless = serial.includes(':5555');
-                      const isEnabling = enablingWireless[serial];
-                      const status = wirelessStatus[serial];
-                      const showWifi =
-                        device.type === 'physical' &&
-                        !isWireless &&
-                        !deviceList.some(
-                          (d) => d.name === device.name && d.serial?.includes(':5555'),
-                        );
-                      return (
-                        <button
-                          key={serial}
-                          onClick={() => setSelectedDevice(serial)}
+            ) : filteredDevices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-text-secondary">
+                <Smartphone className="w-12 h-12 text-text-secondary/30" />
+                <p className="text-sm mt-2">Không tìm thấy thiết bị</p>
+                <p className="text-xs text-text-secondary/60">
+                  Hãy khởi động Genymotion VM hoặc kết nối thiết bị Android
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {filteredDevices.map((device) => {
+                  const isSelected = selectedDevice?.serial === device.serial;
+                  const isExisting = existingApps.some(
+                    (app) => app.emulatorSerial?.toLowerCase() === device.serial.toLowerCase(),
+                  );
+                  const Icon = device.type === 'physical' ? Smartphone : Monitor;
+
+                  return (
+                    <button
+                      key={device.serial}
+                      onClick={() => {
+                        if (isExisting) return;
+                        setSelectedDevice(device);
+                      }}
+                      disabled={isExisting}
+                      className={cn(
+                        'relative flex items-center gap-3 p-3 rounded-xl border text-left transition-all',
+                        isSelected
+                          ? 'bg-primary/10 border-primary/40'
+                          : isExisting
+                            ? 'bg-dropdown-item-hover/40 border-border/40 opacity-50 cursor-not-allowed'
+                            : 'bg-input-background border-border/40 hover:bg-dropdown-item-hover/60',
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
+                          device.type === 'physical' ? 'bg-green/10' : 'bg-blue/10',
+                        )}
+                      >
+                        <Icon
                           className={cn(
-                            'relative flex flex-col p-3 rounded-xl border text-left transition-all',
-                            isSelected
-                              ? 'bg-primary/10 border-primary/40'
-                              : 'bg-input-background border-border/40 hover:bg-dropdown-item-hover/60',
+                            'w-4 h-4',
+                            device.type === 'physical' ? 'text-green' : 'text-blue',
                           )}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div
-                              className={cn(
-                                'w-8 h-8 rounded-lg flex items-center justify-center',
-                                device.type === 'physical'
-                                  ? 'bg-green/10 text-green'
-                                  : device.type === 'running-vm'
-                                    ? 'bg-blue/10 text-blue'
-                                    : 'bg-dropdown-item-hover text-text-secondary',
-                              )}
-                            >
-                              {device.type === 'physical' ? (
-                                <Smartphone className="w-4 h-4" />
-                              ) : device.type === 'running-vm' ? (
-                                <Zap className="w-4 h-4" />
-                              ) : (
-                                <Monitor className="w-4 h-4" />
-                              )}
-                            </div>
-                            {showWifi && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEnableWireless(device);
-                                }}
-                                disabled={isEnabling}
-                                className="p-1.5 rounded-lg bg-dropdown-item-hover hover:bg-blue/20 hover:text-blue text-text-secondary transition-all"
-                              >
-                                {isEnabling ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Wifi className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                            )}
-                          </div>
-                          <div className="text-xs font-semibold text-text-primary truncate">
-                            {device.name}
-                          </div>
-                          <div className="text-[10px] text-text-secondary mt-0.5">
-                            {isWireless
-                              ? 'Wireless'
-                              : device.type === 'physical'
-                                ? 'USB'
-                                : device.type === 'running-vm'
-                                  ? 'Running VM'
-                                  : 'Stopped VM'}
-                          </div>
-                          {status?.message && !status?.ip && (
-                            <div className="mt-1.5 px-2 py-1 bg-warn/10 border border-warn/20 rounded text-[9px] text-warn">
-                              {status.message}
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-text-primary truncate">
+                          {device.name}
+                        </div>
+                        <div className="text-[10px] text-text-secondary truncate font-mono">
+                          {device.serial}
+                        </div>
+                        <div className="text-[9px] text-text-secondary/60 mt-0.5">
+                          {device.type === 'physical'
+                            ? '📱 Physical'
+                            : device.type === 'running-vm'
+                              ? '⚡ Running VM'
+                              : '⏸️ Stopped VM'}
+                        </div>
+                      </div>
+                      {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+                      {isExisting && (
+                        <span className="text-[9px] text-text-secondary shrink-0">Đã có</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-            </>
-          ) : (
-            <div className="space-y-4">
-              <button
-                onClick={() => setAndroidView('list')}
-                className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary"
-              >
-                <X className="w-3.5 h-3.5" />
-                Back to list
-              </button>
-              <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5">
-                  Device IP
-                </label>
-                <input
-                  type="text"
-                  value={wirelessIp}
-                  onChange={(e) => setWirelessIp(e.target.value)}
-                  placeholder="192.168.1.x"
-                  className="w-full bg-input-background border border-border rounded-lg px-3 py-2.5 text-sm font-mono text-text-primary outline-none focus:border-primary"
-                />
+            )}
+          </div>
+
+          {/* Error message */}
+          {duplicateError && (
+            <div className="pt-3 shrink-0">
+              <div className="bg-error/10 border border-error/20 rounded-lg p-2 text-sm text-error">
+                {duplicateError}
               </div>
-              <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5">
-                  Port
-                </label>
-                <input
-                  type="text"
-                  value={wirelessPort}
-                  onChange={(e) => setWirelessPort(e.target.value)}
-                  placeholder="5555"
-                  className="w-full bg-input-background border border-border rounded-lg px-3 py-2.5 text-sm font-mono text-text-primary outline-none focus:border-primary"
-                />
-              </div>
-              {connectStatus.type && (
-                <div
-                  className={cn(
-                    'rounded-lg p-3 flex items-start gap-2 text-sm',
-                    connectStatus.type === 'success'
-                      ? 'bg-success/10 border border-success/20 text-success'
-                      : 'bg-error/10 border border-error/20 text-error',
-                  )}
-                >
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  {connectStatus.message}
-                </div>
-              )}
-              <button
-                onClick={handleWirelessConnect}
-                disabled={isConnecting || !wirelessIp}
-                className="w-full py-2.5 rounded-lg font-bold text-sm bg-primary hover:bg-primary/90 text-white disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isConnecting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" />
-                    Connect
-                  </>
-                )}
-              </button>
             </div>
           )}
         </div>

@@ -7,6 +7,18 @@ export async function connectToTarget(
   retries = 5,
   delay = 1000
 ): Promise<boolean> {
+  // Clean up existing WebSocket before creating a new one
+  if (this.ws) {
+    // Remove all listeners to prevent memory leaks
+    this.ws.removeAllListeners();
+    // Close the connection if it's still open
+    if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+      this.ws.close();
+    }
+    this.ws = null;
+    this.isConnected = false;
+  }
+
   return new Promise((resolve) => {
     this.ws = new WebSocket(wsUrl);
 

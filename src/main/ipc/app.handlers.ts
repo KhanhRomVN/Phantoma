@@ -24,7 +24,8 @@ export function setupAppHandlers() {
   });
 
   ipcMain.handle('apps:scan-pc', async () => {
-    return await scanInstalledApps();
+    const apps = await scanInstalledApps();
+    return apps;
   });
 
   ipcMain.handle('app:get-memory-usage', () => {
@@ -39,9 +40,11 @@ export function setupAppHandlers() {
       appName: string,
       proxyUrl: string,
       customUrl?: string,
-      forceMode?: 'browser' | 'electron' | 'native' | 'cdp',
+      forceMode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
+      useEnvInject?: boolean,
     ) => {
-      return await launchApp(appName, proxyUrl, customUrl, forceMode);
+      console.log(`[IPC] app:launch called: appName=${appName}, useEnvInject=${useEnvInject}`);
+      return await launchApp(appName, proxyUrl, customUrl, forceMode, useEnvInject);
     }
   );
 }

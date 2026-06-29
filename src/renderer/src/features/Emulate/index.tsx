@@ -43,7 +43,7 @@ export {
 export {
   useTargetManagement,
   useRequestFilter,
-  useCdpEvents,
+  useNetworkEvents,
   useTimer,
   useTimerMap,
   usePayloadStorage,

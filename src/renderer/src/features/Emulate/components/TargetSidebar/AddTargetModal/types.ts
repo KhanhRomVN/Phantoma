@@ -21,6 +21,7 @@ export interface BaseModalProps {
     url?: string;
     executablePath?: string;
     emulatorSerial?: string;
+    packageName?: string;
   }[];
   editApp?: { id: string; name: string; url?: string; executablePath?: string } | null;
   onEdit?: (id: string, data: { name: string; url?: string; executablePath?: string }) => void;

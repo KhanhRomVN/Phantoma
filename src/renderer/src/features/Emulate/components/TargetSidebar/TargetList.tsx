@@ -11,6 +11,7 @@ import {
   Terminal,
   Pause,
   Pencil,
+  Syringe,
 } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { TargetTab } from '../../types/target.types';
@@ -38,7 +39,7 @@ interface TargetListProps {
   targetTabs: TargetTab[];
   activeTargetId: string | null;
   timerDisplay: Record<string, string>;
-  targetStates: Record<string, { isActive: boolean; mode?: 'mitm' | 'cdp' }>;
+  targetStates: Record<string, { isActive: boolean; mode?: 'mitm' | 'cdp' | 'frida' }>;
   accentColor: string;
   activeAppId?: string;
   targetSearchQuery: string;
@@ -48,17 +49,21 @@ interface TargetListProps {
   searchedTargets: TargetTab[];
   onSelectTarget: (id: string) => void;
   onRemoveTarget: (id: string) => void;
-  onStartTarget: (mode: 'mitm' | 'cdp') => void;
+  onStartTarget: (mode: 'mitm' | 'cdp' | 'frida') => void;
   onStopTarget: () => void;
   onLaunchTarget: (
     appId: string,
     proxyUrl: string,
     customUrl?: string,
-    mode?: 'browser' | 'electron' | 'native' | 'cdp',
+    mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
+    useEnvInject?: boolean,
+    deviceSerial?: string,
   ) => Promise<void>;
   onOpenAddModal: (platform: AppPlatform) => void;
   onEditTarget?: (id: string) => void;
   onStopSession?: (e: React.MouseEvent, appId: string) => void;
+  deviceList?: { name: string; serial: string; type: string }[];
+  onRefreshDevices?: () => Promise<void>;
 }
 
 export function TargetList({
@@ -81,6 +86,8 @@ export function TargetList({
   onOpenAddModal,
   onEditTarget,
   onStopSession,
+  deviceList = [],
+  onRefreshDevices,
 }: TargetListProps) {
   const handleStartCDP = (targetId: string, targetUrl?: string) => {
     // Update last_used_at immediately when starting CDP
@@ -105,7 +112,7 @@ export function TargetList({
     }
   };
 
-  const handleStartMITM = (targetId: string, targetUrl?: string) => {
+  const handleStartMITM = (targetId: string, targetUrl?: string, useEnvInject: boolean = false, deviceSerial?: string) => {
     // Update last_used_at immediately when starting MITM
     onSelectTarget(targetId);
     onStartTarget('mitm');
@@ -113,10 +120,31 @@ export function TargetList({
       .invoke('proxy:create-session', 'default')
       .then(async () => {
         if (onLaunchTarget) {
-          await onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'browser');
+          await onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'browser', useEnvInject, deviceSerial);
         }
       })
       .catch(() => {
+        onStopTarget();
+      });
+  };
+
+  const handleStartFrida = (targetId: string, targetUrl?: string) => {
+    console.log(`[TargetList] Starting Frida for target: ${targetId}, url: ${targetUrl}`);
+    // Update last_used_at immediately when starting Frida
+    onSelectTarget(targetId);
+    onStartTarget('frida');
+    console.log('[TargetList] Creating proxy session...');
+    window.api
+      .invoke('proxy:create-session', 'default')
+      .then(async () => {
+        console.log('[TargetList] Proxy session created, launching target...');
+        if (onLaunchTarget) {
+          await onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'frida');
+        }
+        console.log('[TargetList] Launch completed.');
+      })
+      .catch((err) => {
+        console.error('[TargetList] Failed to create proxy session:', err);
         onStopTarget();
       });
   };
@@ -272,12 +300,76 @@ export function TargetList({
                           >
                             CDP
                           </DropdownItem>
-                          <DropdownItem
-                            icon={<Shield className="w-3.5 h-3.5 text-amber-400" />}
-                            onClick={() => handleStartMITM(tab.id, tab.url)}
-                          >
-                            MITM
-                          </DropdownItem>
+                          {platform === 'android' ? (
+                            <DropdownSub>
+                              <DropdownSubTrigger
+                                icon={<Shield className="w-3.5 h-3.5 text-amber-400" />}
+                                onMouseEnter={() => {
+                                  if (onRefreshDevices) {
+                                    onRefreshDevices();
+                                  }
+                                }}
+                              >
+                                MITM
+                              </DropdownSubTrigger>
+                              <DropdownSubContent>
+                                {deviceList.length === 0 ? (
+                                  <div className="px-3 py-2 text-xs text-text-secondary">
+                                    No device found
+                                  </div>
+                                ) : (
+                                  deviceList.map((device) => (
+                                    <DropdownItem
+                                      key={device.serial}
+                                      icon={
+                                        device.type === 'physical' ? (
+                                          <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                                        ) : (
+                                          <Monitor className="w-3.5 h-3.5 text-blue-400" />
+                                        )
+                                      }
+                                      onClick={() =>
+                                        handleStartMITM(tab.id, tab.url, false, device.serial)
+                                      }
+                                    >
+                                      {device.name}
+                                      <span className="ml-1 text-[9px] text-text-secondary">
+                                        ({device.type === 'physical' ? 'USB' : 'VM'})
+                                      </span>
+                                    </DropdownItem>
+                                  ))
+                                )}
+                              </DropdownSubContent>
+                            </DropdownSub>
+                          ) : (
+                            <DropdownSub>
+                              <DropdownSubTrigger icon={<Shield className="w-3.5 h-3.5 text-amber-400" />}>
+                                MITM
+                              </DropdownSubTrigger>
+                              <DropdownSubContent>
+                                <DropdownItem
+                                  icon={<Play className="w-3.5 h-3.5" />}
+                                  onClick={() => handleStartMITM(tab.id, tab.url, false)}
+                                >
+                                  Chạy bình thường
+                                </DropdownItem>
+                                <DropdownItem
+                                  icon={<Syringe className="w-3.5 h-3.5 text-green-400" />}
+                                  onClick={() => handleStartMITM(tab.id, tab.url, true)}
+                                >
+                                  Chạy với ENV Inject
+                                </DropdownItem>
+                              </DropdownSubContent>
+                            </DropdownSub>
+                          )}
+                          {platform !== 'web' && platform !== 'android' && (
+                            <DropdownItem
+                              icon={<Syringe className="w-3.5 h-3.5 text-purple-400" />}
+                              onClick={() => handleStartFrida(tab.id, tab.url)}
+                            >
+                              Frida + DLL Injection
+                            </DropdownItem>
+                          )}
                         </DropdownSubContent>
                       </DropdownSub>
                     ) : (

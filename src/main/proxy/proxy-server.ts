@@ -169,6 +169,7 @@ export class ProxyServer extends EventEmitter {
       const code = error?.code;
       if (
         code === 'ECONNRESET' ||
+        code === 'EPIPE' ||
         code === 'HPE_INVALID_METHOD' ||
         code === 'HPE_INVALID_CONSTANT' ||
         error?.message === 'socket hang up'

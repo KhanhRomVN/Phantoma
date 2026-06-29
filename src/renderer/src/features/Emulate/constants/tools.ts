@@ -1,8 +1,8 @@
 // Tool configuration for Emulate main tabs
-import { LayoutPanelLeft, Package, Code, ScrollText, FolderOpen } from 'lucide-react';
+import { LayoutPanelLeft, Package, Code, ScrollText, FolderOpen, Smartphone } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-export type ToolType = 'home' | 'intruder' | 'repeater' | 'resource' | 'source' | 'log';
+export type ToolType = 'home' | 'intruder' | 'repeater' | 'resource' | 'source' | 'log' | 'device';
 
 export interface ToolConfig {
   id: ToolType;
@@ -62,9 +62,17 @@ export const TOOLS: Record<ToolType, ToolConfig> = {
     accentIndex: 5,
     description: 'Android logcat viewer',
   },
+  device: {
+    id: 'device',
+    icon: Smartphone,
+    label: 'Device',
+    color: 'emerald',
+    accentIndex: 6,
+    description: 'Android device management',
+  },
 };
 
-export const TOOL_LIST: ToolType[] = ['home', 'intruder', 'repeater', 'resource', 'source', 'log'];
+export const TOOL_LIST: ToolType[] = ['home', 'intruder', 'repeater', 'resource', 'source', 'log', 'device'];
 
 export function getToolConfig(tool: ToolType): ToolConfig {
   return TOOLS[tool];
