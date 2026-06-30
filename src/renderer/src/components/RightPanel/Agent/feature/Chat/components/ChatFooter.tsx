@@ -1,6 +1,6 @@
-import React from "react";
-import MessageInput from "@/components/MessageInput";
-import FilesPreviews from "@/components/MessageInput/FilesPreviews";
+import React from 'react';
+import FilesPreviews from '../../../components/common/MessageInput/FilesPreviews';
+import MessageInput from '../../../components/common/MessageInput';
 
 interface ChatFooterProps {
   message: string;
@@ -96,9 +96,9 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   return (
     <div
       id="chat-footer-container"
-      className="fixed bottom-0 left-0 right-0 flex flex-col w-full z-[100] overflow-hidden transition-[bottom] duration-200"
+      className="flex flex-col w-full overflow-hidden transition-[bottom] duration-200 flex-shrink-0"
       style={{
-        backgroundColor: "var(--secondary-bg)",
+        backgroundColor: 'var(--secondary-bg)',
         paddingBottom: 0,
       }}
     >
@@ -127,19 +127,19 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
         onAttachedItemClick={(item) => {
           const vscodeApi = (window as any).vscodeApi;
           if (!vscodeApi) return;
-          if (item.type === "file") {
+          if (item.type === 'file') {
             vscodeApi.postMessage({
-              command: "openWorkspaceFile",
+              command: 'openWorkspaceFile',
               path: item.path,
             });
-          } else if (item.type === "folder") {
+          } else if (item.type === 'folder') {
             vscodeApi.postMessage({
-              command: "openWorkspaceFolder",
+              command: 'openWorkspaceFolder',
               path: item.path,
             });
-          } else if (item.type === ("terminal" as any)) {
+          } else if (item.type === ('terminal' as any)) {
             vscodeApi.postMessage({
-              command: "focusTerminal",
+              command: 'focusTerminal',
               terminalId: item.path,
             });
           }

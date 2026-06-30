@@ -1,14 +1,13 @@
-import { useState, useCallback, useMemo } from "react";
-import { Message } from "../types/message";
-import { parseGitStatusOutput } from "../utils/parseGitStatus";
-import { getCommitMessagePrompt } from "../prompts/commit-message";
-import { extensionService } from "@/services/ExtensionService";
+import { useState, useCallback, useMemo } from 'react';
+import { Message } from '../types/message';
+import { parseGitStatusOutput } from '../utils/parseGitStatus';
+import { getCommitMessagePrompt } from '../prompts/commit-message';
 
 interface UseGitOperationsProps {
   currentModel: any;
   currentAccount: any;
   providers: any[];
-  commitMessageLanguage: "en" | "vi";
+  commitMessageLanguage: 'en' | 'vi';
   currentConversationId: string;
   wrappedSendMessage: (
     content: string,
@@ -21,9 +20,7 @@ interface UseGitOperationsProps {
   ) => Promise<void>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setToolOutputs: React.Dispatch<
-    React.SetStateAction<
-      Record<string, { output: string; isError: boolean; terminalId?: string }>
-    >
+    React.SetStateAction<Record<string, { output: string; isError: boolean; terminalId?: string }>>
   >;
 }
 
@@ -55,17 +52,13 @@ export const useGitOperations = ({
   const [showGitStatusBlock, setShowGitStatusBlock] = useState(false);
   const [gitCommitMessage, setGitCommitMessage] = useState<string | null>(null);
   const [gitCommitLoading, setGitCommitLoading] = useState(false);
-  const [gitCommitInput, setGitCommitInput] = useState<string>("");
+  const [gitCommitInput, setGitCommitInput] = useState<string>('');
 
   const enrichedModel = useMemo(() => {
     if (!currentModel) return null;
     if (!Array.isArray(providers)) return currentModel;
-    const providerData = providers.find(
-      (p: any) => p.provider_id === currentModel.providerId,
-    );
-    const modelData = providerData?.models?.find(
-      (m: any) => m.id === currentModel.id,
-    );
+    const providerData = providers.find((p: any) => p.provider_id === currentModel.providerId);
+    const modelData = providerData?.models?.find((m: any) => m.id === currentModel.id);
     if (!modelData) return currentModel;
     return { ...currentModel, ...modelData };
   }, [currentModel, providers]);
@@ -81,8 +74,8 @@ export const useGitOperations = ({
     try {
       const vscodeApi = (window as any).vscodeApi;
       if (!vscodeApi) {
-        console.error("[Git] vscodeApi not available");
-        setGitError("Không thể kết nối với VSCode API");
+        console.error('[Git] vscodeApi not available');
+        setGitError('Không thể kết nối với VSCode API');
         setGitLoading(false);
         return;
       }
@@ -98,15 +91,12 @@ export const useGitOperations = ({
       }>((resolve) => {
         const handler = (event: MessageEvent) => {
           const msg = event.data;
-          if (
-            msg.command === "gitStatusResult" &&
-            msg.requestId === requestId
-          ) {
+          if (msg.command === 'gitStatusResult' && msg.requestId === requestId) {
             if (timeoutId) {
               clearTimeout(timeoutId);
               timeoutId = null;
             }
-            window.removeEventListener("message", handler);
+            window.removeEventListener('message', handler);
             resolve({
               output: msg.output,
               error: msg.error,
@@ -116,38 +106,38 @@ export const useGitOperations = ({
             });
           }
         };
-        window.addEventListener("message", handler);
+        window.addEventListener('message', handler);
         timeoutId = setTimeout(() => {
-          window.removeEventListener("message", handler);
-          resolve({ output: "", error: "Timeout" });
+          window.removeEventListener('message', handler);
+          resolve({ output: '', error: 'Timeout' });
         }, 10000);
       });
 
       vscodeApi.postMessage({
-        command: "runGitStatus",
+        command: 'runGitStatus',
         requestId,
       });
 
       const result = await promise;
-      if (result.error && result.error !== "Timeout") {
-        console.error("[Git] Error from git status:", result.error);
+      if (result.error && result.error !== 'Timeout') {
+        console.error('[Git] Error from git status:', result.error);
         setGitError(result.error);
         setGitLoading(false);
         return;
       }
 
-      if (result.error === "Timeout") {
-        console.error("[Git] Timeout waiting for git status");
-        setGitError("Git status timeout. Vui lòng thử lại.");
+      if (result.error === 'Timeout') {
+        console.error('[Git] Timeout waiting for git status');
+        setGitError('Git status timeout. Vui lòng thử lại.');
         setGitLoading(false);
         return;
       }
 
-      const output = result.output || "";
+      const output = result.output || '';
       const diffStats = result.diffStats || {};
       const unpushedCommits: string[] = result.unpushedCommits || [];
-      const branch: string = (result as any).branch || "";
-      const lines = output.split("\n").filter((l: string) => l.trim());
+      const branch: string = (result as any).branch || '';
+      const lines = output.split('\n').filter((l: string) => l.trim());
 
       // Parse porcelain output for working-directory changes
       const items = lines.length > 0 ? parseGitStatusOutput(output) : [];
@@ -157,14 +147,11 @@ export const useGitOperations = ({
         const trimmed = commitLine.trim();
         if (!trimmed) continue;
         // Format: "hash message"
-        const spaceIdx = trimmed.indexOf(" ");
-        const shortHash =
-          spaceIdx > 0
-            ? trimmed.substring(0, spaceIdx)
-            : trimmed.substring(0, 7);
-        const message = spaceIdx > 0 ? trimmed.substring(spaceIdx + 1) : "";
+        const spaceIdx = trimmed.indexOf(' ');
+        const shortHash = spaceIdx > 0 ? trimmed.substring(0, spaceIdx) : trimmed.substring(0, 7);
+        const message = spaceIdx > 0 ? trimmed.substring(spaceIdx + 1) : '';
         items.push({
-          status: "U", // Unpushed
+          status: 'U', // Unpushed
           path: `${shortHash} ${message}`,
           staged: true,
           added: 0,
@@ -192,7 +179,7 @@ export const useGitOperations = ({
       const statusMessage =
         changeCount > 0
           ? `Đã kiểm tra git status. Tìm thấy ${changeCount} thay đổi.`
-          : "Đã kiểm tra git status. Không có thay đổi nào.";
+          : 'Đã kiểm tra git status. Không có thay đổi nào.';
 
       const toolContent = `<git_status>
 <items>${JSON.stringify(itemsWithStats)}</items>
@@ -203,13 +190,13 @@ ${statusMessage}
       const messageId = `msg-git-${Date.now()}`;
       const assistantMessage: Message = {
         id: messageId,
-        role: "assistant",
+        role: 'assistant',
         content: toolContent,
         timestamp: Date.now(),
       };
 
       setMessages((prev) => {
-        const filtered = prev.filter((msg) => !msg.id.startsWith("msg-git-"));
+        const filtered = prev.filter((msg) => !msg.id.startsWith('msg-git-'));
         return [...filtered, assistantMessage];
       });
 
@@ -223,8 +210,8 @@ ${statusMessage}
       }));
       setGitLoading(false);
     } catch (err) {
-      console.error("[Git] Exception in handleGitPullRequest:", err);
-      setGitError(err instanceof Error ? err.message : "Unknown error");
+      console.error('[Git] Exception in handleGitPullRequest:', err);
+      setGitError(err instanceof Error ? err.message : 'Unknown error');
       setGitLoading(false);
     }
   }, [gitLoading, setMessages, setToolOutputs]);
@@ -236,9 +223,8 @@ ${statusMessage}
         const vscodeApi = (window as any).vscodeApi;
         if (vscodeApi) {
           vscodeApi.postMessage({
-            command: "showInformation",
-            message:
-              "Chưa có thay đổi nào để commit. Hãy thêm file với 'git add' trước.",
+            command: 'showInformation',
+            message: "Chưa có thay đổi nào để commit. Hãy thêm file với 'git add' trước.",
           });
         }
         setShowGitStatusBlock(false);
@@ -247,24 +233,19 @@ ${statusMessage}
 
       setGitCommitLoading(true);
       const gitStatusText = statusItems
-        .map(
-          (item) =>
-            `${item.staged ? "[staged]" : "[unstaged]"} ${item.status} ${item.path}`,
-        )
-        .join("\n");
+        .map((item) => `${item.staged ? '[staged]' : '[unstaged]'} ${item.status} ${item.path}`)
+        .join('\n');
 
       const modelToUse = enrichedModel ?? currentModel;
       const accountToUse = currentAccount;
 
       if (!modelToUse || !accountToUse) {
         setGitCommitLoading(false);
-        setGitError(
-          "Vui lòng chọn model và account trước khi tạo commit message.",
-        );
+        setGitError('Vui lòng chọn model và account trước khi tạo commit message.');
         return;
       }
 
-      const commitLang = commitMessageLanguage || "vi";
+      const commitLang = commitMessageLanguage || 'vi';
       const formattedPrompt = getCommitMessagePrompt(commitLang, gitStatusText);
       const prompt = `[COMMIT_MESSAGE_REQUEST]\n${formattedPrompt}`;
 
@@ -283,11 +264,7 @@ ${statusMessage}
         setShowGitStatusBlock(false);
       } catch (err) {
         setGitCommitLoading(false);
-        setGitError(
-          err instanceof Error
-            ? err.message
-            : "Failed to generate commit message",
-        );
+        setGitError(err instanceof Error ? err.message : 'Failed to generate commit message');
       }
     },
     [
@@ -305,9 +282,9 @@ ${statusMessage}
     setShowGitStatusBlock(false);
     setGitCommitMessage(null);
     setGitError(null);
-    setGitCommitInput("");
+    setGitCommitInput('');
     // Remove the git status message from the conversation
-    setMessages((prev) => prev.filter((msg) => !msg.id.startsWith("msg-git-")));
+    setMessages((prev) => prev.filter((msg) => !msg.id.startsWith('msg-git-')));
   }, [setMessages]);
 
   const handleGitRetry = useCallback(async () => {
@@ -315,20 +292,15 @@ ${statusMessage}
 
     setGitCommitLoading(true);
     const gitStatusText = gitStatus.items
-      .map(
-        (item) =>
-          `${item.staged ? "[staged]" : "[unstaged]"} ${item.status} ${item.path}`,
-      )
-      .join("\n");
+      .map((item) => `${item.staged ? '[staged]' : '[unstaged]'} ${item.status} ${item.path}`)
+      .join('\n');
 
     const modelToUse = enrichedModel ?? currentModel;
     const accountToUse = currentAccount;
 
     if (!modelToUse || !accountToUse) {
       setGitCommitLoading(false);
-      setGitError(
-        "Vui lòng chọn model và account trước khi tạo commit message.",
-      );
+      setGitError('Vui lòng chọn model và account trước khi tạo commit message.');
       return;
     }
 
@@ -357,58 +329,42 @@ Yêu cầu:
         undefined,
       );
       setGitCommitLoading(false);
-      setGitCommitInput("");
+      setGitCommitInput('');
       setShowGitStatusBlock(false);
     } catch (err) {
       setGitCommitLoading(false);
-      setGitError(
-        err instanceof Error
-          ? err.message
-          : "Failed to generate commit message",
-      );
+      setGitError(err instanceof Error ? err.message : 'Failed to generate commit message');
     }
-  }, [
-    gitCommitInput,
-    gitStatus,
-    enrichedModel,
-    currentModel,
-    currentAccount,
-    wrappedSendMessage,
-  ]);
+  }, [gitCommitInput, gitStatus, enrichedModel, currentModel, currentAccount, wrappedSendMessage]);
 
   const handleGitCommit = useCallback(async (message: string) => {
     if (!message.trim()) return;
     const vscodeApi = (window as any).vscodeApi;
     if (!vscodeApi) {
-      setGitError("Không thể kết nối với VSCode API");
+      setGitError('Không thể kết nối với VSCode API');
       return;
     }
 
     setGitCommitLoading(true);
     try {
       const requestId = `git-commit-${Date.now()}`;
-      const promise = new Promise<{ success: boolean; error?: string }>(
-        (resolve) => {
-          const handler = (event: MessageEvent) => {
-            const msg = event.data;
-            if (
-              msg.command === "gitCommitResult" &&
-              msg.requestId === requestId
-            ) {
-              window.removeEventListener("message", handler);
-              resolve({ success: msg.success, error: msg.error });
-            }
-          };
-          window.addEventListener("message", handler);
-          setTimeout(() => {
-            window.removeEventListener("message", handler);
-            resolve({ success: false, error: "Timeout" });
-          }, 15000);
-        },
-      );
+      const promise = new Promise<{ success: boolean; error?: string }>((resolve) => {
+        const handler = (event: MessageEvent) => {
+          const msg = event.data;
+          if (msg.command === 'gitCommitResult' && msg.requestId === requestId) {
+            window.removeEventListener('message', handler);
+            resolve({ success: msg.success, error: msg.error });
+          }
+        };
+        window.addEventListener('message', handler);
+        setTimeout(() => {
+          window.removeEventListener('message', handler);
+          resolve({ success: false, error: 'Timeout' });
+        }, 15000);
+      });
 
       vscodeApi.postMessage({
-        command: "gitCommitAndPush",
+        command: 'gitCommitAndPush',
         requestId,
         message: message.trim(),
       });
@@ -419,25 +375,25 @@ Yêu cầu:
         setGitCommitMessage(null);
         setShowGitStatusBlock(false);
         vscodeApi.postMessage({
-          command: "showInformation",
-          message: "✅ Commit và push thành công!",
+          command: 'showInformation',
+          message: '✅ Commit và push thành công!',
         });
       } else {
-        setGitError(result.error || "Commit failed");
+        setGitError(result.error || 'Commit failed');
       }
     } catch (err) {
       setGitCommitLoading(false);
-      setGitError(err instanceof Error ? err.message : "Commit failed");
+      setGitError(err instanceof Error ? err.message : 'Commit failed');
     }
   }, []);
 
   // Listen for AI response containing commit message
   const handleGitCommitMessageDetected = useCallback((messages: Message[]) => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === "assistant" && !lastMessage.isCancelled) {
+    if (lastMessage?.role === 'assistant' && !lastMessage.isCancelled) {
       const content = lastMessage.content;
-      if (content && content.includes(":") && content.includes("-")) {
-        const lines = content.split("\n").filter((l) => l.trim());
+      if (content && content.includes(':') && content.includes('-')) {
+        const lines = content.split('\n').filter((l) => l.trim());
         const hasCommitFormat = lines.some(
           (l) => /^[\u{1F300}-\u{1F9FF}]/u.test(l) || /^[a-z]+\(/.test(l),
         );

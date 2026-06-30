@@ -1,5 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from "react";
-import "../blocks/TerminalBlock.css";
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 
 interface ToolHeaderProps {
   title: React.ReactNode;
@@ -25,10 +24,10 @@ interface ToolHeaderProps {
 // Truncate path to prevent line wrapping
 // Keep beginning (root folder) and end (filename + a few parent folders)
 const truncatePath = (fullPath: string, maxLength: number = 35): string => {
-  if (!fullPath) return "";
+  if (!fullPath) return '';
   if (fullPath.length <= maxLength) return fullPath;
 
-  const parts = fullPath.split("/");
+  const parts = fullPath.split('/');
   if (parts.length <= 2) return fullPath;
 
   let keepEnd = 2;
@@ -38,9 +37,9 @@ const truncatePath = (fullPath: string, maxLength: number = 35): string => {
 
   const first = parts[0];
   const lastParts = parts.slice(-keepEnd);
-  const middle = "...";
+  const middle = '...';
 
-  return `${first}/${middle}/${lastParts.join("/")}`;
+  return `${first}/${middle}/${lastParts.join('/')}`;
 };
 
 export const ToolHeader: React.FC<ToolHeaderProps> = ({
@@ -89,16 +88,17 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
 
   const maxLength = useMemo(() => {
     if (containerWidth === 0) return 35;
-    
+
     // Use actual path container width if available, otherwise estimate
-    const availableWidth = pathContainerWidth > 0 
-      ? pathContainerWidth - 24 // subtract padding (20px left + 4px right)
-      : Math.max(containerWidth - 80, 100); // less conservative estimate
-    
+    const availableWidth =
+      pathContainerWidth > 0
+        ? pathContainerWidth - 24 // subtract padding (20px left + 4px right)
+        : Math.max(containerWidth - 80, 100); // less conservative estimate
+
     // Font size is 10px, monospace ~6px per char
     const chars = Math.floor(availableWidth / 6);
     const result = Math.max(chars, 30);
-    
+
     // Debug logging
     console.log('[ToolHeader Path Debug]', {
       containerWidth,
@@ -107,53 +107,54 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       calculatedChars: chars,
       maxLength: result,
       pathLength: path?.length || 0,
-      willTruncate: (path?.length || 0) > result
+      willTruncate: (path?.length || 0) > result,
     });
-    
+
     return result;
   }, [containerWidth, pathContainerWidth, path]);
 
   const displayPath = useMemo(() => {
-    if (!path) return "";
+    if (!path) return '';
     const truncated = truncatePath(path, maxLength);
-    
+
     // Debug logging
     if (truncated !== path) {
       console.log('[ToolHeader Path Truncated]', {
         original: path,
         truncated,
         originalLength: path.length,
-        maxLength
+        maxLength,
       });
     }
-    
+
     return truncated;
   }, [path, maxLength]);
 
   return (
+    <>
     <div
       ref={containerRef}
       className="terminal-block-header"
       onClick={onClick || onToggleCollapse}
       style={{
-        cursor: onClick || onToggleCollapse ? "pointer" : "default",
-        paddingTop: "4px",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        width: "100%",
+        cursor: onClick || onToggleCollapse ? 'pointer' : 'default',
+        paddingTop: '4px',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        width: '100%',
       }}
     >
       <div className="terminal-info" style={{ flex: 1, minWidth: 0 }}>
         <div className="terminal-header-top">
           {statusColor && (
             <div
-              className={`terminal-status-dot timeline-dot ${isPartial ? "streaming-pulse" : ""}`}
+              className={`terminal-status-dot timeline-dot ${isPartial ? 'streaming-pulse' : ''}`}
               style={{
                 backgroundColor: statusColor,
-                top: "10px",
-                left: "15px",
-                transform: "translateX(-50%)",
+                top: '10px',
+                left: '15px',
+                transform: 'translateX(-50%)',
                 boxShadow: `0 0 0 2px var(--vscode-editor-background), 0 0 0 3px color-mix(in srgb, ${statusColor} 50%, transparent)`,
               }}
             />
@@ -173,40 +174,36 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
           )}
           <div
             style={{
-              marginTop: "1px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "2px",
+              marginTop: '1px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px',
               flex: 1,
               minWidth: 0,
-              width: "100%",
-              maxWidth: "100%",
-              overflow: "hidden",
+              width: '100%',
+              maxWidth: '100%',
+              overflow: 'hidden',
             }}
           >
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                flexWrap: "wrap",
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                flexWrap: 'wrap',
               }}
             >
               {onToggleCollapse && (
                 <span
-                  className={`collapse-icon codicon codicon-chevron-${isCollapsed ? "right" : "down"}`}
-                  style={{ fontSize: "12px", marginRight: "4px" }}
+                  className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'}`}
+                  style={{ fontSize: '12px', marginRight: '4px' }}
                 />
               )}
-              {icon && (
-                <span style={{ display: "flex", alignItems: "center" }}>
-                  {icon}
-                </span>
-              )}
-              {typeof title === "string" ? (
+              {icon && <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>}
+              {typeof title === 'string' ? (
                 <span className="terminal-name">{title}</span>
               ) : (
-                <div className="terminal-name" style={{ display: "contents" }}>
+                <div className="terminal-name" style={{ display: 'contents' }}>
                   {title}
                 </div>
               )}
@@ -215,45 +212,47 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
               <div
                 ref={pathContainerRef}
                 style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  alignItems: "center",
-                  paddingRight: "4px",
-                  paddingTop: "4px",
-                  marginTop: "2px",
-                  position: "relative",
-                  width: "100%",
-                  maxWidth: "100%",
-                  overflow: "hidden",
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  paddingRight: '4px',
+                  paddingTop: '4px',
+                  marginTop: '2px',
+                  position: 'relative',
+                  width: '100%',
+                  maxWidth: '100%',
+                  overflow: 'hidden',
                 }}
               >
                 {/* Corner line: vertical + horizontal L-shape */}
                 <div
                   style={{
-                    position: "absolute",
-                    left: "0",
-                    top: "0",
-                    width: "16px",
-                    height: "12px",
-                    borderLeft: "1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 20%, transparent)",
-                    borderBottom: "1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 20%, transparent)",
+                    position: 'absolute',
+                    left: '0',
+                    top: '0',
+                    width: '16px',
+                    height: '12px',
+                    borderLeft:
+                      '1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 20%, transparent)',
+                    borderBottom:
+                      '1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 20%, transparent)',
                   }}
                 />
                 <span
                   style={{
-                    fontSize: "10px",
+                    fontSize: '10px',
                     opacity: 0.6,
-                    color: "var(--vscode-descriptionForeground)",
-                    fontFamily: "var(--vscode-editor-font-family, monospace)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    width: "100%",
-                    padding: "0 4px 0 20px",
-                    borderRadius: "2px",
-                    transition: "text-decoration 0.15s ease",
-                    cursor: "default",
-                    textDecoration: "none",
+                    color: 'var(--vscode-descriptionForeground)',
+                    fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    width: '100%',
+                    padding: '0 4px 0 20px',
+                    borderRadius: '2px',
+                    transition: 'text-decoration 0.15s ease',
+                    cursor: 'default',
+                    textDecoration: 'none',
                   }}
                   title={path}
                   onClick={(e) => {
@@ -263,15 +262,15 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
                     }
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.textDecoration = "underline";
+                    e.currentTarget.style.textDecoration = 'underline';
                     e.currentTarget.style.textDecorationColor =
-                      "var(--vscode-focusBorder, rgba(0, 122, 204, 0.6))";
-                    e.currentTarget.style.textUnderlineOffset = "2px";
-                    e.currentTarget.style.cursor = "pointer";
+                      'var(--vscode-focusBorder, rgba(0, 122, 204, 0.6))';
+                    e.currentTarget.style.textUnderlineOffset = '2px';
+                    e.currentTarget.style.cursor = 'pointer';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.textDecoration = "none";
-                    e.currentTarget.style.cursor = "default";
+                    e.currentTarget.style.textDecoration = 'none';
+                    e.currentTarget.style.cursor = 'default';
                   }}
                 >
                   {displayPath}
@@ -281,29 +280,25 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
           </div>
         </div>
         {(subTitle || diffStats) && (
-          <div
-            className={`terminal-sub-info${subTitleClassName ? ` ${subTitleClassName}` : ""}`}
-          >
+          <div className={`terminal-sub-info${subTitleClassName ? ` ${subTitleClassName}` : ''}`}>
             {diffStats ? (
               <span
                 style={{
-                  display: "flex",
-                  gap: "6px",
-                  alignItems: "center",
+                  display: 'flex',
+                  gap: '6px',
+                  alignItems: 'center',
                 }}
               >
                 <span
                   style={{
-                    color:
-                      "var(--vscode-gitDecoration-addedResourceForeground)",
+                    color: 'var(--vscode-gitDecoration-addedResourceForeground)',
                   }}
                 >
                   +{diffStats.added}
                 </span>
                 <span
                   style={{
-                    color:
-                      "var(--vscode-gitDecoration-deletedResourceForeground)",
+                    color: 'var(--vscode-gitDecoration-deletedResourceForeground)',
                   }}
                 >
                   -{diffStats.removed}
@@ -319,10 +314,128 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       <div
         className="header-actions"
         onClick={(e) => e.stopPropagation()}
-        style={{ flexShrink: 0, marginLeft: "8px" }}
+        style={{ flexShrink: 0, marginLeft: '8px' }}
       >
         {headerActions}
       </div>
     </div>
+    <style>{`
+      .terminal-block-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 2px 12px 0px 29px;
+        background-color: transparent;
+        border-bottom: none;
+        user-select: none;
+        cursor: pointer;
+        position: relative;
+      }
+
+      .terminal-block .terminal-block-header {
+        background-color: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-sideBarSection-header-background, rgba(0, 0, 0, 0.1)));
+        border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.12));
+      }
+
+      .terminal-block.git-tool .terminal-block-header {
+        border-bottom: none;
+        background-color: transparent;
+      }
+
+      .terminal-block.commit-message-tool .terminal-block-header {
+        border-bottom: none;
+        background-color: transparent;
+      }
+
+      .terminal-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .terminal-header-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .terminal-status-dot {
+        flex-shrink: 0;
+      }
+
+      .terminal-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--vscode-terminal-foreground);
+        font-family: var(--vscode-editor-font-family, monospace);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 250px;
+      }
+
+      .terminal-sub-info {
+        font-size: 11px;
+        opacity: 0.5;
+        font-family: var(--vscode-font-family);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-left: 29px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: 18px;
+        margin-top: -2px;
+      }
+
+      .terminal-sub-info.error-sub-info {
+        font-size: var(--vscode-font-size, 13px);
+        opacity: 1;
+        color: var(--vscode-foreground);
+        height: auto;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+        line-height: 1.5;
+        padding-top: 2px;
+        padding-bottom: 4px;
+      }
+
+      .terminal-sub-info::before {
+        content: "";
+        position: absolute;
+        left: 15px;
+        top: -8px;
+        width: 10px;
+        height: 16px;
+        border-left: 2px solid var(--vscode-panel-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.3)));
+        border-bottom: 2px solid var(--vscode-panel-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.3)));
+        border-bottom-left-radius: 4px;
+        transform: translateX(-1px);
+      }
+
+      .terminal-state-badge {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 10px;
+        background-color: var(--vscode-badge-background, #4d4d4d);
+        color: var(--vscode-badge-foreground, #ffffff);
+        opacity: 0.8;
+        font-weight: 600;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .execute-button-minimal:hover {
+        color: var(--vscode-button-hoverBackground) !important;
+        background-color: color-mix(in srgb, var(--vscode-foreground) 10%, transparent) !important;
+      }
+    `}</style>
+    </>
   );
 };

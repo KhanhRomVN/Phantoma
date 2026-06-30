@@ -1,10 +1,9 @@
-import React, { useMemo } from "react";
-import { ToolHeader } from "./ToolHeader";
-import { ToolAction } from "../../services/ResponseParser";
-import GitStatusBlock, { GitStatusItem } from "../blocks/GitStatusBlock";
-import "../blocks/TerminalBlock.css";
-import { getToolColor } from "../../utils/toolUtils";
-import { parseGitStatusOutput } from "../../utils/parseGitStatus";
+import React, { useMemo } from 'react';
+import { ToolHeader } from './ToolHeader';
+import { ToolAction } from '../../services/ResponseParser';
+import GitStatusBlock, { GitStatusItem } from '../blocks/GitStatusBlock';
+import { getToolColor } from '../../utils/toolUtils';
+import { parseGitStatusOutput } from '../../utils/parseGitStatus';
 
 interface GitToolRendererProps {
   action: ToolAction;
@@ -19,7 +18,7 @@ interface GitToolRendererProps {
     action: ToolAction,
     messageId: string,
     actionIndex: number,
-    type: "accept_all" | "accept_once" | "reject",
+    type: 'accept_all' | 'accept_once' | 'reject',
   ) => void;
   onConfirm?: (statusItems: GitStatusItem[]) => void;
   onCancel?: () => void;
@@ -66,16 +65,12 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
     }
     // Fallback: parse from action.params.items (restored from conversation)
     const itemsFromParams = action.params?.items;
-    if (
-      itemsFromParams &&
-      Array.isArray(itemsFromParams) &&
-      itemsFromParams.length > 0
-    ) {
+    if (itemsFromParams && Array.isArray(itemsFromParams) && itemsFromParams.length > 0) {
       return itemsFromParams;
     }
     // Last resort: try to parse from raw git output stored in action params
     const rawOutput = action.params?.raw;
-    if (rawOutput && typeof rawOutput === "string") {
+    if (rawOutput && typeof rawOutput === 'string') {
       const parsed = parseGitStatusOutput(rawOutput);
       if (parsed.length > 0) return parsed;
     }
@@ -88,41 +83,33 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
   const getStatusColor = () => {
     if (hasOutput) {
       const output = toolOutputs[actionId];
-      if (output.isError) return "var(--vscode-errorForeground, #f14c4c)";
-      return getToolColor("git_status");
+      if (output.isError) return 'var(--vscode-errorForeground, #f14c4c)';
+      return getToolColor('git_status');
     }
-    return getToolColor("git_status");
+    return getToolColor('git_status');
   };
 
   const getTitleParts = () => {
     if (hasOutput) {
       const output = toolOutputs[actionId];
-      if (output.isError) return { label: "GIT STATUS", stats: "Error" };
-      const totalAdded = effectiveItems.reduce(
-        (sum, item) => sum + (item.added || 0),
-        0,
-      );
-      const totalDeleted = effectiveItems.reduce(
-        (sum, item) => sum + (item.deleted || 0),
-        0,
-      );
+      if (output.isError) return { label: 'GIT STATUS', stats: 'Error' };
+      const totalAdded = effectiveItems.reduce((sum, item) => sum + (item.added || 0), 0);
+      const totalDeleted = effectiveItems.reduce((sum, item) => sum + (item.deleted || 0), 0);
       return {
-        label: `GIT STATUS${branch ? `(${branch})` : ""}`,
+        label: `GIT STATUS${branch ? `(${branch})` : ''}`,
         stats: `${effectiveItems.length} changes +${totalAdded} -${totalDeleted}`,
         totalAdded,
         totalDeleted,
       };
     }
-    return { label: "GIT STATUS", stats: "" };
+    return { label: 'GIT STATUS', stats: '' };
   };
 
   const handleConfirm = () => {
     if (onConfirm && effectiveItems.length > 0) {
       onConfirm(effectiveItems);
     } else {
-      console.warn(
-        "[GitToolRenderer] Cannot confirm - no onConfirm or no items",
-      );
+      console.warn('[GitToolRenderer] Cannot confirm - no onConfirm or no items');
     }
   };
 
@@ -134,58 +121,54 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
 
   return (
     <div
-      className={`terminal-block git-tool ${isActiveGroup ? "active" : ""}`}
+      className={`terminal-block git-tool ${isActiveGroup ? 'active' : ''}`}
       style={{
-        marginBottom: isLastItemInList ? "0" : "8px",
-        backgroundColor: "transparent",
-        borderRadius: "0px",
-        overflow: "visible",
+        marginBottom: isLastItemInList ? '0' : '8px',
+        backgroundColor: 'transparent',
+        borderRadius: '0px',
+        overflow: 'visible',
       }}
     >
       <ToolHeader
         title={
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              color: "var(--vscode-editor-foreground)",
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              color: 'var(--vscode-editor-foreground)',
             }}
           >
-            <span style={{ fontWeight: 600, opacity: 0.8 }}>
-              {getTitleParts().label}
-            </span>
+            <span style={{ fontWeight: 600, opacity: 0.8 }}>{getTitleParts().label}</span>
             {getTitleParts().stats && (
               <>
                 <span
                   style={{
-                    fontSize: "11px",
+                    fontSize: '11px',
                     opacity: 0.5,
-                    marginLeft: "2px",
+                    marginLeft: '2px',
                   }}
                 >
                   {getTitleParts()
-                    .stats.replace(/\+[0-9]+/, "")
-                    .replace(/ -[0-9]+/, "")
+                    .stats.replace(/\+[0-9]+/, '')
+                    .replace(/ -[0-9]+/, '')
                     .trim()}
                 </span>
                 <span
                   style={{
-                    color:
-                      "var(--vscode-gitDecoration-addedResourceForeground, #3fb950)",
+                    color: 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
                     fontWeight: 600,
-                    fontSize: "11px",
+                    fontSize: '11px',
                   }}
                 >
                   +{getTitleParts().totalAdded}
                 </span>
                 <span
                   style={{
-                    color:
-                      "var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c)",
+                    color: 'var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c)',
                     fontWeight: 600,
-                    fontSize: "11px",
+                    fontSize: '11px',
                   }}
                 >
                   -{getTitleParts().totalDeleted}
@@ -194,7 +177,7 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
             )}
             <span
               className="codicon codicon-git-pull-request"
-              style={{ fontSize: "14px", marginLeft: "2px" }}
+              style={{ fontSize: '14px', marginLeft: '2px' }}
             />
           </div>
         }
@@ -203,7 +186,7 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
       />
 
       {hasOutput && (
-        <div style={{ padding: "0px 12px 12px 29px" }}>
+        <div style={{ padding: '0px 12px 12px 29px' }}>
           <GitStatusBlock
             statusItems={effectiveItems}
             onConfirm={handleConfirm}

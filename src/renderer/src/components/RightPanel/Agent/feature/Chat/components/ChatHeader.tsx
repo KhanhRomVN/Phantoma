@@ -18,7 +18,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   contextUsage,
   isSearchOpen,
   setIsSearchOpen,
-  searchQuery,
   setSearchQuery,
 }) => {
   const formatTokens = (num: number) => {
@@ -46,14 +45,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     : 'https://www.google.com/s2/favicons?domain=deepseek.com&sz=64';
 
   return (
-    <div
-      className="flex flex-col border-b"
-      style={{
-        borderBottomColor: 'var(--border-color)',
-        backgroundColor: 'var(--primary-bg)',
-      }}
-    >
-      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
+    <div className="flex flex-col border border-b border-border">
+      <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-2">
         <div
           className="flex items-center gap-1.5 text-xs font-semibold overflow-hidden"
           style={{ color: 'var(--primary-text)' }}

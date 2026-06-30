@@ -13,10 +13,7 @@ import { applyTokenLimitGuard } from "../utils/tokenGuard";
 import { formatGrepResultCompact } from "../utils/grepFormatter";
 export { getPermissionDecision } from "../utils/permissionUtils";
 import { getPermissionDecision } from "../utils/permissionUtils";
-import {
-  extensionService,
-  messageDispatcher,
-} from "@/services/ExtensionService";
+import { extensionService, messageDispatcher } from "../../../services/ExtensionService";
 
 // ── Timeout constants ──────────────────────────────────────────────────────
 /** Standard timeout for file/git/search operations (ms) */
@@ -244,7 +241,7 @@ export const useToolExecution = ({
           });
           messageDispatcher.register(
             requestId,
-            (msg) => {
+            (msg: { error: any; content: any; diagnostics: any[]; }) => {
               if (msg.error) {
                 let readableError = msg.error;
                 if (

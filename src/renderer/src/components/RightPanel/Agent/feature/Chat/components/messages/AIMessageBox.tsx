@@ -7,7 +7,7 @@ import HtmlBlock from '../blocks/HtmlBlock';
 import { ToolHeader } from '../tools/ToolHeader';
 import MarkdownBlock from '../blocks/MarkdownBlock';
 import ErrorBlock from '../blocks/ErrorBlock';
-import '../blocks/TerminalBlock.css';
+
 import '../blocks/MarkdownBlock.css';
 import { buildRetryPrompt } from '../../prompts';
 import FileIcon from '@renderer/components/common/FileIcon';
@@ -976,6 +976,99 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
           );
         });
       })()}
+      <style>{`
+        :root {
+          --timeline-axis: 15px;
+          --timeline-dot-size: 8px;
+        }
+
+        .chat-timeline-wrapper {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .chat-timeline-wrapper::before {
+          display: none;
+        }
+
+        .assistant-message-container {
+          position: relative;
+        }
+
+        .timeline-item {
+          position: relative;
+          margin-left: 0;
+        }
+
+        .timeline-item:last-child {
+          padding-bottom: 0;
+        }
+
+        .assistant-message-container .timeline-item:not(.last)::before {
+          content: "";
+          position: absolute;
+          left: 15px;
+          transform: translateX(-50%);
+          top: 14px;
+          bottom: -24px;
+          width: 2px;
+          background-color: var(--vscode-textBlockQuote-border, var(--vscode-editorLineNumber-foreground));
+          opacity: 0.5;
+          pointer-events: none;
+        }
+
+        .timeline-item.last::before {
+          display: none;
+        }
+
+        .timeline-dot {
+          position: absolute;
+          left: 15px;
+          transform: translateX(-50%);
+          top: 22px;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          z-index: 10;
+          background-color: var(--vscode-descriptionForeground);
+          box-shadow: 0 0 0 2px var(--vscode-editor-background), 0 0 0 3px var(--vscode-textBlockQuote-border, var(--vscode-editorLineNumber-foreground));
+          transition: all 0.2s ease;
+          animation: timeline-dot-fade-in 0.25s ease-out both;
+        }
+
+        @keyframes timeline-dot-fade-in {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) scale(0.5);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+          }
+        }
+
+        .timeline-mask {
+          position: relative;
+        }
+
+        .timeline-mask::after {
+          content: "";
+          position: absolute;
+          left: 15px;
+          transform: translateX(-50%);
+          top: -24px;
+          bottom: 0;
+          width: 4px;
+          background-color: var(--secondary-bg);
+          z-index: 1;
+          pointer-events: none;
+        }
+
+        .timeline-content {
+          padding-left: 29px;
+        }
+      `}</style>
     </div>
   );
 };

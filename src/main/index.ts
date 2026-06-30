@@ -33,6 +33,7 @@ import {
   setupSessionHandlers,
   setupFSHandlers,
   setupTLSHandlers,
+  setupRendererHandlers,
   setupMobileHandlers,
 } from './ipc';
 
@@ -91,6 +92,7 @@ app.whenReady().then(async () => {
   setupSessionHandlers();
   setupFSHandlers();
   setupTLSHandlers();
+  setupRendererHandlers();
   setupMobileHandlers();
 
   // Auto-install certificate when proxy session is created

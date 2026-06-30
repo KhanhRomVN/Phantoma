@@ -1,22 +1,21 @@
-import React from "react";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
-import FileIcon from "@/icons/FileIcon";
-import { extensionService } from "../../../../services/ExtensionService";
+import React from 'react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+import { extensionService } from '../../../../services/ExtensionService';
+import FileIcon from '@renderer/components/common/FileIcon';
 
 const ABSOLUTE_PATH_REGEX = /^(\/[^\s<>"'`]+|[A-Za-z]:\\[^\s<>"'`]+)/;
-const RELATIVE_PATH_WITH_FOLDERS_REGEX =
-  /^[^\s<>"'`|*?:]+[/\\][^\s<>"'`|*?:]+\.[a-zA-Z0-9]{1,10}$/;
+const RELATIVE_PATH_WITH_FOLDERS_REGEX = /^[^\s<>"'`|*?:]+[/\\][^\s<>"'`|*?:]+\.[a-zA-Z0-9]{1,10}$/;
 const FILENAME_REGEX = /^[^\s/\\<>"'`]+\.[a-zA-Z0-9]{1,10}$/;
 const isLikelyFolder = (token: string): boolean => {
-  if (token.endsWith("/") || token.endsWith("\\")) return true;
+  if (token.endsWith('/') || token.endsWith('\\')) return true;
   if (ABSOLUTE_PATH_REGEX.test(token)) {
     const lastSegment =
       token
-        .replace(/[/\\]$/, "")
+        .replace(/[/\\]$/, '')
         .split(/[/\\]/)
-        .pop() || "";
-    return !lastSegment.includes(".");
+        .pop() || '';
+    return !lastSegment.includes('.');
   }
   return false;
 };
@@ -34,32 +33,26 @@ const PathChip: React.FC<PathChipProps> = ({ displayText, resolvedPath }) => {
     e.stopPropagation();
     if (isFolder) {
       extensionService.postMessage({
-        command: "openFolder",
+        command: 'openFolder',
         path: resolvedPath,
       });
     } else {
-      extensionService.postMessage({ command: "openFile", path: resolvedPath });
+      extensionService.postMessage({ command: 'openFile', path: resolvedPath });
     }
   };
 
   return (
     <span
       onClick={handleClick}
-      title={
-        isFolder ? `Open folder: ${resolvedPath}` : `Open file: ${resolvedPath}`
-      }
+      title={isFolder ? `Open folder: ${resolvedPath}` : `Open file: ${resolvedPath}`}
       className="inline-flex items-center gap-[3px] px-1 py-px rounded-[3px] text-[var(--primary-text)] text-[var(--font-size-sm)] font-[inherit] cursor-pointer align-middle transition-opacity duration-[0.15s] select-none no-underline"
-      onMouseEnter={(e) =>
-        ((e.currentTarget as HTMLElement).style.opacity = "0.75")
-      }
-      onMouseLeave={(e) =>
-        ((e.currentTarget as HTMLElement).style.opacity = "1")
-      }
+      onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.75')}
+      onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
     >
       <FileIcon
         path={resolvedPath}
         isFolder={isFolder}
-        style={{ width: "12px", height: "12px", flexShrink: 0 }}
+        style={{ width: '12px', height: '12px', flexShrink: 0 }}
       />
       {displayText}
     </span>
@@ -74,7 +67,7 @@ const domNodeToReact = (
   knownFilePaths: Map<string, string>,
 ): ReactChild => {
   if (node.nodeType === Node.TEXT_NODE) {
-    return node.textContent || "";
+    return node.textContent || '';
   }
 
   if (node.nodeType !== Node.ELEMENT_NODE) {
@@ -85,8 +78,8 @@ const domNodeToReact = (
   const tag = el.tagName.toLowerCase();
 
   // Inline <code> → path detection
-  if (tag === "code" && !el.closest("pre")) {
-    const text = el.textContent?.trim() || "";
+  if (tag === 'code' && !el.closest('pre')) {
+    const text = el.textContent?.trim() || '';
 
     if (text.length >= 2) {
       // Case 1: absolute path → always a PathChip
@@ -103,13 +96,7 @@ const domNodeToReact = (
       if (FILENAME_REGEX.test(text)) {
         const resolvedPath = knownFilePaths.get(text);
         if (resolvedPath) {
-          return (
-            <PathChip
-              key={key}
-              displayText={text}
-              resolvedPath={resolvedPath}
-            />
-          );
+          return <PathChip key={key} displayText={text} resolvedPath={resolvedPath} />;
         }
         // Not found in history → render as plain <code>
       }
@@ -117,7 +104,7 @@ const domNodeToReact = (
   }
 
   // <code> inside <pre> → strip VSCode-injected background
-  if (tag === "code" && el.closest("pre")) {
+  if (tag === 'code' && el.closest('pre')) {
     const children: ReactChild[] = Array.from(el.childNodes).map((child, i) =>
       domNodeToReact(child, `${key}-${i}`, knownFilePaths),
     );
@@ -135,14 +122,14 @@ const domNodeToReact = (
 
   // Build props, copying relevant HTML attributes
   const props: any = { key };
-  if (el.hasAttribute("href")) {
-    props.href = el.getAttribute("href");
-    props.target = "_blank";
-    props.rel = "noopener noreferrer";
+  if (el.hasAttribute('href')) {
+    props.href = el.getAttribute('href');
+    props.target = '_blank';
+    props.rel = 'noopener noreferrer';
   }
-  if (el.hasAttribute("src")) props.src = el.getAttribute("src");
-  if (el.hasAttribute("alt")) props.alt = el.getAttribute("alt");
-  if (el.hasAttribute("class")) props.className = el.getAttribute("class");
+  if (el.hasAttribute('src')) props.src = el.getAttribute('src');
+  if (el.hasAttribute('alt')) props.alt = el.getAttribute('alt');
+  if (el.hasAttribute('class')) props.className = el.getAttribute('class');
 
   return React.createElement(tag, props, ...children);
 };
@@ -166,13 +153,22 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
       const rawHtml = marked.parse(content) as string;
       const sanitized = DOMPurify.sanitize(rawHtml, {
         USE_PROFILES: { html: true },
-        FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur", "onchange", "onsubmit"],
-        FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input"],
+        FORBID_ATTR: [
+          'onerror',
+          'onload',
+          'onclick',
+          'onmouseover',
+          'onfocus',
+          'onblur',
+          'onchange',
+          'onsubmit',
+        ],
+        FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input'],
         ALLOW_DATA_ATTR: false,
       });
 
       // 2. Parse into DOM
-      const wrapper = document.createElement("div");
+      const wrapper = document.createElement('div');
       wrapper.innerHTML = sanitized;
 
       // 3. Walk DOM → React tree with path substitution
@@ -183,10 +179,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
 
     return (
       <>
-        <div
-          className={`markdown-content-inline ${className || ""}`}
-          style={style}
-        >
+        <div className={`markdown-content-inline ${className || ''}`} style={style}>
           {reactNodes}
         </div>
         <style>{`

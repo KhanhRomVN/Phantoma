@@ -1,12 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Message } from "../types/message";
-import { ChatSession } from "../types/chat";
-import { ConversationCache } from "../services/ConversationCache";
-import {
-  saveConversation,
-  deleteConversation,
-} from "../services/ConversationService";
-import { extensionService } from "@/services/ExtensionService";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Message } from '../types/message';
+import { ChatSession } from '../types/chat';
+import { ConversationCache } from '../services/ConversationCache';
+import { deleteConversation } from '../services/ConversationService';
+import { extensionService } from '../../../services/ExtensionService';
 
 interface UseConversationRestoreProps {
   currentChat: ChatSession | null;
@@ -16,9 +13,7 @@ interface UseConversationRestoreProps {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setIsProcessing: (val: boolean) => void;
   setToolOutputs: React.Dispatch<
-    React.SetStateAction<
-      Record<string, { output: string; isError: boolean; terminalId?: string }>
-    >
+    React.SetStateAction<Record<string, { output: string; isError: boolean; terminalId?: string }>>
   >;
   setBackendConversationId: (id: string, meta?: any) => void;
   setCurrentConversationId: (id: string) => void;
@@ -26,9 +21,7 @@ interface UseConversationRestoreProps {
   setCurrentAccount: (account: any) => void;
   onBack: (contentToReturn?: string) => void;
   revertParentMessageIdRef: React.MutableRefObject<string | null>;
-  setRevertInput: React.Dispatch<
-    React.SetStateAction<{ value: string; nonce: number } | null>
-  >;
+  setRevertInput: React.Dispatch<React.SetStateAction<{ value: string; nonce: number } | null>>;
 }
 
 export const useConversationRestore = ({
@@ -47,8 +40,7 @@ export const useConversationRestore = ({
   revertParentMessageIdRef,
   setRevertInput,
 }: UseConversationRestoreProps) => {
-  const [isLoadingConversation, setIsLoadingConversation] =
-    useState<boolean>(true);
+  const [isLoadingConversation, setIsLoadingConversation] = useState<boolean>(true);
   const [isRestored, setIsRestored] = useState<boolean>(false);
   const revertMessageIdRef = useRef<string | null>(null);
   const hasAppendedHistoryContext = useRef(false);
@@ -75,30 +67,23 @@ export const useConversationRestore = ({
         if (cached) {
           // ✅ Restore questionAnswers vào message từ cache (giống toolOutputs)
           let messagesToRestore = cached.messages;
-          if (
-            cached.questionAnswers &&
-            Object.keys(cached.questionAnswers).length > 0
-          ) {
+          if (cached.questionAnswers && Object.keys(cached.questionAnswers).length > 0) {
             console.log(
-              "[useConversationRestore] Restoring questionAnswers from CACHE:",
+              '[useConversationRestore] Restoring questionAnswers from CACHE:',
               cached.questionAnswers,
             );
             messagesToRestore = cached.messages.map((msg) => ({
               ...msg,
-              questionAnswers:
-                cached.questionAnswers![msg.id] || msg.questionAnswers,
+              questionAnswers: cached.questionAnswers![msg.id] || msg.questionAnswers,
             }));
             console.log(
-              "[useConversationRestore] Messages after cache questionAnswers restore:",
+              '[useConversationRestore] Messages after cache questionAnswers restore:',
               messagesToRestore.filter((m) => m.questionAnswers),
             );
           }
 
           setMessages(messagesToRestore);
-          if (
-            cached.toolOutputs &&
-            Object.keys(cached.toolOutputs).length > 0
-          ) {
+          if (cached.toolOutputs && Object.keys(cached.toolOutputs).length > 0) {
             setToolOutputs(cached.toolOutputs);
           }
           if (
@@ -107,15 +92,13 @@ export const useConversationRestore = ({
           ) {
             window.postMessage(
               {
-                command: "restoreSingleLineReviewActions",
+                command: 'restoreSingleLineReviewActions',
                 actions: cached.singleLineReviewActions,
               },
-              "*",
+              '*',
             );
           }
-          const pendingParent = sessionStorage.getItem(
-            `zen-revert-parent:${convId}`,
-          );
+          const pendingParent = sessionStorage.getItem(`zen-revert-parent:${convId}`);
           if (pendingParent) revertParentMessageIdRef.current = pendingParent;
           setIsRestored(cached.messages.length > 0);
           currentConversationIdRef.current = cached.conversationId;
@@ -135,13 +118,13 @@ export const useConversationRestore = ({
 
         const requestId = `conv-${Date.now()}`;
         extensionService.postMessage({
-          command: "getConversation",
+          command: 'getConversation',
           conversationId: convId,
           requestId,
         });
       } else {
         setMessages([]);
-        setCurrentConversationId("");
+        setCurrentConversationId('');
         setIsLoadingConversation(false);
       }
     };
@@ -152,45 +135,34 @@ export const useConversationRestore = ({
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const data = event.data;
-      if (data.command === "conversationResult") {
+      if (data.command === 'conversationResult') {
         if (data.data?.messages) {
-          let restoredMessages = data.data.messages.map(
-            (msg: Message, i: number) => ({
-              ...msg,
-              id: msg.id || `restored-${Date.now()}-${i}`,
-            }),
-          );
+          let restoredMessages = data.data.messages.map((msg: Message, i: number) => ({
+            ...msg,
+            id: msg.id || `restored-${Date.now()}-${i}`,
+          }));
 
           // ✅ FIX: Restore questionAnswers vào message (giống như toolOutputs)
-          if (
-            data.data.questionAnswers &&
-            Object.keys(data.data.questionAnswers).length > 0
-          ) {
+          if (data.data.questionAnswers && Object.keys(data.data.questionAnswers).length > 0) {
             console.log(
-              "[useConversationRestore] Restoring questionAnswers to messages:",
+              '[useConversationRestore] Restoring questionAnswers to messages:',
               data.data.questionAnswers,
             );
             restoredMessages = restoredMessages.map(
               (msg: { id: string | number; questionAnswers: any }) => ({
                 ...msg,
-                questionAnswers:
-                  data.data.questionAnswers[msg.id] || msg.questionAnswers,
+                questionAnswers: data.data.questionAnswers[msg.id] || msg.questionAnswers,
               }),
             );
             console.log(
-              "[useConversationRestore] Messages after questionAnswers restore:",
-              restoredMessages.filter(
-                (m: { questionAnswers: any }) => m.questionAnswers,
-              ),
+              '[useConversationRestore] Messages after questionAnswers restore:',
+              restoredMessages.filter((m: { questionAnswers: any }) => m.questionAnswers),
             );
           }
 
           setMessages(restoredMessages);
 
-          if (
-            data.data.toolOutputs &&
-            Object.keys(data.data.toolOutputs).length > 0
-          ) {
+          if (data.data.toolOutputs && Object.keys(data.data.toolOutputs).length > 0) {
             setToolOutputs(data.data.toolOutputs);
           }
 
@@ -200,10 +172,10 @@ export const useConversationRestore = ({
           ) {
             window.postMessage(
               {
-                command: "restoreSingleLineReviewActions",
+                command: 'restoreSingleLineReviewActions',
                 actions: data.data.singleLineReviewActions,
               },
-              "*",
+              '*',
             );
           }
 
@@ -225,10 +197,7 @@ export const useConversationRestore = ({
             const backendIdFromMsg = lastMsgWithBackendId?.conversationId;
             const lastAssistantWithMeta = [...restoredMessages]
               .reverse()
-              .find(
-                (m: Message) =>
-                  m.role === "assistant" && m.providerId && m.modelId,
-              );
+              .find((m: Message) => m.role === 'assistant' && m.providerId && m.modelId);
             const restoredMeta = lastAssistantWithMeta
               ? {
                   providerId: lastAssistantWithMeta.providerId,
@@ -237,17 +206,12 @@ export const useConversationRestore = ({
                 }
               : undefined;
             const backendIdToUse =
-              backendIdFromMsg ||
-              data.data.backendConversationId ||
-              data.data.conversationId;
+              backendIdFromMsg || data.data.backendConversationId || data.data.conversationId;
             setBackendConversationId(backendIdToUse, restoredMeta);
 
             const lastAssistantMsgForMeta = [...restoredMessages]
               .reverse()
-              .find(
-                (m: Message) =>
-                  m.role === "assistant" && m.providerId && m.modelId,
-              );
+              .find((m: Message) => m.role === 'assistant' && m.providerId && m.modelId);
             let modelToCache: any = undefined;
             let accountToCache: any = undefined;
             if (lastAssistantMsgForMeta) {
@@ -277,11 +241,11 @@ export const useConversationRestore = ({
         }
         setIsLoadingConversation(false);
         setIsProcessing(false);
-      } else if (data.command === "commitError") {
-        const errorMsg = data.error || "Unknown git error";
+      } else if (data.command === 'commitError') {
+        const errorMsg = data.error || 'Unknown git error';
         const errorMessage: Message = {
           id: `msg-error-${Date.now()}`,
-          role: "assistant",
+          role: 'assistant',
           content: `❌ **Lỗi commit/push**\n\n\`\`\`\n${errorMsg}\n\`\`\``,
           timestamp: Date.now(),
           isError: true,
@@ -290,59 +254,50 @@ export const useConversationRestore = ({
         const vscodeApi = (window as any).vscodeApi;
         if (vscodeApi) {
           vscodeApi.postMessage({
-            command: "showError",
-            message: `Lỗi commit/push: ${errorMsg.substring(0, 200)}${errorMsg.length > 200 ? "..." : ""}`,
+            command: 'showError',
+            message: `Lỗi commit/push: ${errorMsg.substring(0, 200)}${errorMsg.length > 200 ? '...' : ''}`,
           });
         }
       } else if (
-        data.command === "clearChatConfirmed" &&
+        data.command === 'clearChatConfirmed' &&
         data.conversationId === currentConversationId
       ) {
         handleClearConfirmed();
       } else if (
-        data.command === "conversationReverted" &&
+        data.command === 'conversationReverted' &&
         data.conversationId === currentConversationId
       ) {
         const targetId = revertMessageIdRef.current;
         revertMessageIdRef.current = null;
-        if (targetId === "__first__") {
+        if (targetId === '__first__') {
           deleteConversation(currentConversationId);
           const firstUserMsg = messagesRef.current.find(
-            (m) => !m.uiHidden && !m.isCancelled && m.role === "user",
+            (m) => !m.uiHidden && !m.isCancelled && m.role === 'user',
           );
-          let content = firstUserMsg?.content || "";
-          const match = content.match(
-            /<zen-user-content>\n([\s\S]*?)\n<\/zen-user-content>/,
-          );
+          let content = firstUserMsg?.content || '';
+          const match = content.match(/<zen-user-content>\n([\s\S]*?)\n<\/zen-user-content>/);
           if (match) content = match[1];
           setMessages([]);
           setIsLoadingConversation(false);
           onBack(content);
         } else {
           setMessages((prev) => {
-            const idx = targetId
-              ? prev.findIndex((m) => m.id === targetId)
-              : -1;
+            const idx = targetId ? prev.findIndex((m) => m.id === targetId) : -1;
             if (idx === -1) return prev;
             const msg = prev[idx];
-            const match = msg.content.match(
-              /<zen-user-content>\n([\s\S]*?)\n<\/zen-user-content>/,
-            );
+            const match = msg.content.match(/<zen-user-content>\n([\s\S]*?)\n<\/zen-user-content>/);
             const content = match ? match[1] : msg.content;
             const prevAssistant = [...prev.slice(0, idx)]
               .reverse()
-              .find((m) => m.role === "assistant");
-            revertParentMessageIdRef.current =
-              prevAssistant?.response_message_id || null;
+              .find((m) => m.role === 'assistant');
+            revertParentMessageIdRef.current = prevAssistant?.response_message_id || null;
             if (revertParentMessageIdRef.current) {
               sessionStorage.setItem(
                 `zen-revert-parent:${currentConversationId}`,
                 revertParentMessageIdRef.current,
               );
             } else {
-              sessionStorage.removeItem(
-                `zen-revert-parent:${currentConversationId}`,
-              );
+              sessionStorage.removeItem(`zen-revert-parent:${currentConversationId}`);
             }
             setRevertInput({ value: content, nonce: Date.now() });
             const reverted = prev.slice(0, idx);
@@ -361,8 +316,8 @@ export const useConversationRestore = ({
         }
       }
     };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
   }, [currentConversationId]);
 
   const handleClearConfirmed = async () => {
@@ -378,15 +333,14 @@ export const useConversationRestore = ({
     (messageId: string, timestamp: number) => {
       if (!currentConversationId) return;
       const visibleUserMessages = messagesRef.current.filter(
-        (m) => !m.uiHidden && !m.isCancelled && m.role === "user",
+        (m) => !m.uiHidden && !m.isCancelled && m.role === 'user',
       );
       const isFirstMessage =
-        visibleUserMessages.length > 0 &&
-        visibleUserMessages[0].id === messageId;
-      revertMessageIdRef.current = isFirstMessage ? "__first__" : messageId;
+        visibleUserMessages.length > 0 && visibleUserMessages[0].id === messageId;
+      revertMessageIdRef.current = isFirstMessage ? '__first__' : messageId;
       setIsLoadingConversation(true);
       extensionService.postMessage({
-        command: "revertConversation",
+        command: 'revertConversation',
         conversationId: currentConversationId,
         messageId,
         timestamp,
@@ -398,9 +352,7 @@ export const useConversationRestore = ({
   return {
     isLoadingConversation,
     isRestored,
-    setIsRestored: setIsRestored as React.Dispatch<
-      React.SetStateAction<boolean>
-    >,
+    setIsRestored: setIsRestored as React.Dispatch<React.SetStateAction<boolean>>,
     setIsLoadingConversation: setIsLoadingConversation as React.Dispatch<
       React.SetStateAction<boolean>
     >,

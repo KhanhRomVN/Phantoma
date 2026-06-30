@@ -14,8 +14,6 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
   isLoading,
   onLoadConversation,
 }) => {
-  console.log('[Phantoma][RecentActivity] render | isLoading:', isLoading, '| conversations count:', conversations?.length, '| conversations:', conversations);
-
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const vscodeApi = (window as any).vscodeApi;

@@ -17,6 +17,10 @@ interface SettingsContextType {
   setLiveWritePreview: (value: boolean) => void;
   commitMessageLanguage: "en" | "vi";
   setCommitMessageLanguage: (value: "en" | "vi") => void;
+  language: string;
+  setLanguage: (value: string) => void;
+  aiLanguage: string;
+  setAiLanguage: (value: string) => void;
 }
 
 export const defaultToolPermissions: Record<string, "full_access" | "review"> =
@@ -46,6 +50,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isSimpleMode, setIsSimpleModeState] = useState<boolean>(true);
   const [liveWritePreview, setLiveWritePreviewState] = useState<boolean>(true);
   const [commitMessageLanguage, setCommitMessageLanguageState] = useState<"en" | "vi">("en");
+  const [language, setLanguageState] = useState<string>("");
+  const [aiLanguage, setAiLanguageState] = useState<string>("");
 
   useEffect(() => {
     try {
@@ -56,6 +62,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       const savedLang = localStorage.getItem("zen-commit-message-language");
       if (savedLang === "en" || savedLang === "vi") {
         setCommitMessageLanguageState(savedLang);
+      }
+      const savedLanguage = localStorage.getItem("zen-language");
+      if (savedLanguage) {
+        setLanguageState(savedLanguage);
+      }
+      const savedAiLanguage = localStorage.getItem("zen-ai-language");
+      if (savedAiLanguage) {
+        setAiLanguageState(savedAiLanguage);
       }
     } catch (e) {}
     const storage = extensionService.getStorage();
@@ -149,6 +163,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (e) {}
   };
 
+  const setLanguage = (value: string) => {
+    setLanguageState(value);
+    try {
+      localStorage.setItem("zen-language", value);
+    } catch (e) {}
+  };
+
+  const setAiLanguage = (value: string) => {
+    setAiLanguageState(value);
+    try {
+      localStorage.setItem("zen-ai-language", value);
+    } catch (e) {}
+  };
+
   return (
     <SettingsContext.Provider
       value={{
@@ -165,6 +193,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         setLiveWritePreview,
         commitMessageLanguage,
         setCommitMessageLanguage,
+        language,
+        setLanguage,
+        aiLanguage,
+        setAiLanguage,
       }}
     >
       {children}

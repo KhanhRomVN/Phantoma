@@ -20,7 +20,12 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   children,
 }) => {
   return (
-    <div className={cn('px-4 pt-1 pb-2 border-b border-divider shrink-0 flex items-center gap-3', className)}>
+    <div
+      className={cn(
+        'px-4 pt-2 pb-2 border-b border-divider shrink-0 flex items-center gap-3',
+        className,
+      )}
+    >
       <div className="flex-1 min-w-0">
         {title && <h3 className="text-base font-bold text-text-primary">{title}</h3>}
         {description && (
@@ -32,7 +37,7 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
         <button
           onClick={onClose}
           className={cn(
-            'p-1.5 rounded-lg border border-border text-text-secondary hover:border-error hover:text-error hover:bg-error/10 transition-all shrink-0'
+            'p-1.5 rounded-lg border border-border text-text-secondary hover:border-error hover:text-error hover:bg-error/10 transition-all shrink-0',
           )}
         >
           <X className="w-4 h-4" />

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ToolHeader } from '../tools/ToolHeader';
-import './TerminalBlock.css';
 import { FileIcon } from 'lucide-react';
 
 export interface GitDiffBlockProps {

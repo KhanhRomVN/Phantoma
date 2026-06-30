@@ -1,27 +1,27 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { Message } from "../types/message";
-import { ToolAction, parseAIResponse } from "../services/ResponseParser";
-import { getDefaultPrompt, combinePrompts } from "../prompts";
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Message } from '../types/message';
+import { ToolAction, parseAIResponse } from '../services/ResponseParser';
+import { getDefaultPrompt, combinePrompts } from '../prompts';
 import {
   PERSISTENT_RULES,
   buildPermissionModeTag,
   buildPermissionModeTagCompact,
-} from "../prompts/persistent-rules";
+} from '../prompts/persistent-rules';
 import {
   logChatToWorkspace,
   saveConversation,
   calculateTokens,
   deleteConversation,
-} from "../services/ConversationService";
-import { useSettings } from "../../../context/SettingsContext";
-import { useProject } from "../../../context/ProjectContext";
-import { extensionService } from "@/services/ExtensionService";
-import { useFileUpload } from "./useFileUpload";
-import { ChatSession } from "../types/chat";
+} from '../services/ConversationService';
+import { useSettings } from '../../../context/SettingsContext';
+import { useProject } from '../../../context/ProjectContext';
+import { useFileUpload } from './useFileUpload';
+import { ChatSession } from '../types/chat';
+import { extensionService } from '../../../services/ExtensionService';
 
 /** Returns only top-level entries from a formatted tree string. */
 const getShallowTree = (tree: string): string => {
-  const lines = tree.split("\n");
+  const lines = tree.split('\n');
   const result: string[] = [];
   let currentFolder: string | null = null;
   let fileCount = 0;
@@ -39,17 +39,17 @@ const getShallowTree = (tree: string): string => {
     const isTopLevel = !/^ /.test(line);
     if (isTopLevel) {
       flush();
-      if (line.trimEnd().endsWith("/")) {
+      if (line.trimEnd().endsWith('/')) {
         currentFolder = line.trimEnd();
       } else {
         result.push(line);
       }
     } else if (currentFolder !== null) {
-      if (!line.trimEnd().endsWith("/")) fileCount++;
+      if (!line.trimEnd().endsWith('/')) fileCount++;
     }
   }
   flush();
-  return result.join("\n");
+  return result.join('\n');
 };
 
 interface UseChatLLMProps {
@@ -60,7 +60,7 @@ interface UseChatLLMProps {
     actions: ToolAction[],
     assistantMessage: Message,
     isAutoTrigger?: boolean,
-    actionType?: "accept_all" | "accept_once" | "reject",
+    actionType?: 'accept_all' | 'accept_once' | 'reject',
   ) => void;
 }
 
@@ -70,11 +70,7 @@ export const useChatLLM = ({
   onConversationIdChange,
   onToolRequest,
 }: UseChatLLMProps) => {
-  const {
-    language: preferredLanguage,
-    aiLanguage,
-    permissionMode,
-  } = useSettings();
+  const { language: preferredLanguage, aiLanguage, permissionMode } = useSettings();
   const { workspace, treeView } = useProject();
   const { uploadFiles } = useFileUpload(apiUrl);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -93,20 +89,16 @@ export const useChatLLM = ({
     isContinuingRef.current = val;
     setIsContinuing(val);
   };
-  const [incompleteHasPartialTool, setIncompleteHasPartialTool] =
-    useState(false);
-  const [incompletePartialToolType, setIncompletePartialToolType] = useState<
-    string | null
-  >(null);
-  const [currentConversationId, setCurrentConversationId] =
-    useState<string>("");
+  const [incompleteHasPartialTool, setIncompleteHasPartialTool] = useState(false);
+  const [incompletePartialToolType, setIncompletePartialToolType] = useState<string | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<string>('');
   const [conversationToolOverrides, setConversationToolOverrides] = useState<
-    Record<string, "auto">
+    Record<string, 'auto'>
   >({});
 
   const messagesRef = useRef<Message[]>([]);
-  const currentConversationIdRef = useRef<string>("");
-  const backendConversationIdRef = useRef<string>(""); // real conversation_id from backend API
+  const currentConversationIdRef = useRef<string>('');
+  const backendConversationIdRef = useRef<string>(''); // real conversation_id from backend API
   const lastUsedModelRef = useRef<any>(null);
   const lastUsedAccountRef = useRef<any>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -132,11 +124,8 @@ export const useChatLLM = ({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const { command, actionId } = event.data;
-      if (
-        (command === "markActionClicked" || command === "markActionFailed") &&
-        actionId
-      ) {
-        const messageId = actionId.split("-action-")[0];
+      if ((command === 'markActionClicked' || command === 'markActionFailed') && actionId) {
+        const messageId = actionId.split('-action-')[0];
         if (messageId) {
           setMessages((prev) => {
             const updated = prev.map((m) => {
@@ -171,8 +160,8 @@ export const useChatLLM = ({
         }
       }
 
-      if (command === "markActionRejected" && actionId) {
-        const messageId = actionId.split("-action-")[0];
+      if (command === 'markActionRejected' && actionId) {
+        const messageId = actionId.split('-action-')[0];
         if (messageId) {
           setMessages((prev) => {
             const updated = prev.map((m) => {
@@ -207,8 +196,8 @@ export const useChatLLM = ({
       }
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [selectedTab]);
 
   /**
@@ -216,13 +205,13 @@ export const useChatLLM = ({
    * Call this when starting a brand-new chat so sendMessage sees isNewSession=true.
    */
   const resetSession = useCallback(() => {
-    currentConversationIdRef.current = "";
-    backendConversationIdRef.current = "";
+    currentConversationIdRef.current = '';
+    backendConversationIdRef.current = '';
     messagesRef.current = [];
     lastUsedModelRef.current = null;
     lastUsedAccountRef.current = null;
     qwenParentIdRef.current = undefined;
-    setCurrentConversationId("");
+    setCurrentConversationId('');
     setMessages([]);
     setIsProcessingSync(false);
     setIsStreaming(false);
@@ -243,7 +232,7 @@ export const useChatLLM = ({
       const chatId = currentConversationIdRef.current;
       if (chatId) {
         deleteConversation(chatId);
-        setCurrentConversationId("");
+        setCurrentConversationId('');
         setMessages([]);
       }
     }
@@ -256,8 +245,8 @@ export const useChatLLM = ({
 
     // Stop all processes in the extension
     extensionService.postMessage({
-      command: "stopCommand",
-      actionId: "all",
+      command: 'stopCommand',
+      actionId: 'all',
       kill: true,
     });
   }, [isProcessing]);
@@ -284,7 +273,7 @@ export const useChatLLM = ({
       const currentMessages = messagesRef.current;
       const filteredMessages = currentMessages.filter((m) => !m.isCancelled);
 
-let effectiveChatUuid = currentConversationIdRef.current;
+      let effectiveChatUuid = currentConversationIdRef.current;
       const isNewSession = !effectiveChatUuid;
 
       // GUARD: tool results must never create a new session — they belong to the current one
@@ -295,7 +284,7 @@ let effectiveChatUuid = currentConversationIdRef.current;
         effectiveChatUuid = crypto.randomUUID?.() || Date.now().toString();
         currentConversationIdRef.current = effectiveChatUuid; // sync update immediately
         setCurrentConversationId(effectiveChatUuid);
-        backendConversationIdRef.current = ""; // reset for new session
+        backendConversationIdRef.current = ''; // reset for new session
         // Pin model/account from caller immediately — before any async ops.
         // This prevents resetSession() race or stream metadata from overwriting
         // the model the user just selected.
@@ -305,22 +294,22 @@ let effectiveChatUuid = currentConversationIdRef.current;
 
         // Tell extension to create an empty log file
         extensionService.postMessage({
-          command: "createEmptyChatLog",
+          command: 'createEmptyChatLog',
           chatUuid: effectiveChatUuid,
         });
       }
 
       const isReq1 = filteredMessages.length === 0 && !skipFirstRequestLogic;
-      let systemPrompt = "";
-      let projectContextStr = "";
+      let systemPrompt = '';
+      let projectContextStr = '';
 
       if (isReq1) {
         let systemInfo = {
-          os: "Unknown OS",
-          ide: "Zen IDE",
-          shell: "unknown",
-          homeDir: "~",
-          cwd: ".",
+          os: 'Unknown OS',
+          ide: 'Zen IDE',
+          shell: 'unknown',
+          homeDir: '~',
+          cwd: '.',
           language: aiLanguage || preferredLanguage,
         };
 
@@ -338,7 +327,7 @@ let effectiveChatUuid = currentConversationIdRef.current;
         const effectiveLang = aiLanguage || preferredLanguage;
         systemPrompt = getDefaultPrompt(effectiveLang);
         // Use real system info if we managed to fetch it, override the default
-        if (systemInfo.os !== "Unknown OS") {
+        if (systemInfo.os !== 'Unknown OS') {
           systemPrompt = combinePrompts({
             language: effectiveLang,
             systemInfo,
@@ -359,26 +348,23 @@ let effectiveChatUuid = currentConversationIdRef.current;
             }>((resolve) => {
               const requestId = `req1-tree-${Date.now()}`;
               const timeout = setTimeout(
-                () => resolve({ treeView: "", workspace: effectiveWorkspace }),
+                () => resolve({ treeView: '', workspace: effectiveWorkspace }),
                 5000,
               );
               const handler = (event: MessageEvent) => {
                 const msg = event.data;
-                if (
-                  msg.command === "projectContextResult" &&
-                  msg.requestId === requestId
-                ) {
+                if (msg.command === 'projectContextResult' && msg.requestId === requestId) {
                   clearTimeout(timeout);
-                  window.removeEventListener("message", handler);
+                  window.removeEventListener('message', handler);
                   resolve({
-                    treeView: msg.data?.treeView || "",
+                    treeView: msg.data?.treeView || '',
                     workspace: msg.data?.workspace || effectiveWorkspace,
                   });
                 }
               };
-              window.addEventListener("message", handler);
+              window.addEventListener('message', handler);
               (window as any).vscodeApi?.postMessage({
-                command: "getProjectContext",
+                command: 'getProjectContext',
                 requestId,
               });
             });
@@ -396,62 +382,55 @@ let effectiveChatUuid = currentConversationIdRef.current;
       }
 
       // Resolve attached items into formatted context
-      let attachedContextStr = "";
+      let attachedContextStr = '';
       if (files && files.length > 0) {
         const attachedItems = files.filter(
           (f: any) =>
-            f.id?.startsWith("attached-") ||
-            f.id?.startsWith("rule-") ||
-            f.id?.startsWith("terminal-"),
+            f.id?.startsWith('attached-') ||
+            f.id?.startsWith('rule-') ||
+            f.id?.startsWith('terminal-'),
         );
         if (attachedItems.length > 0) {
-          attachedContextStr = "\n\n## Attached Context\n";
+          attachedContextStr = '\n\n## Attached Context\n';
 
-          const fileItems = attachedItems.filter((f: any) => f.type === "file");
-          const folderItems = attachedItems.filter(
-            (f: any) => f.type === "folder",
-          );
-          const terminalItems = attachedItems.filter(
-            (f: any) => f.type === "terminal",
-          );
+          const fileItems = attachedItems.filter((f: any) => f.type === 'file');
+          const folderItems = attachedItems.filter((f: any) => f.type === 'folder');
+          const terminalItems = attachedItems.filter((f: any) => f.type === 'terminal');
 
           if (fileItems.length > 0) {
-            attachedContextStr += "\n### Files\n";
+            attachedContextStr += '\n### Files\n';
             fileItems.forEach((f: any) => {
               attachedContextStr += `- ${f.path}\n`;
             });
           }
 
           if (folderItems.length > 0) {
-            attachedContextStr += "\n### Folders (Tree Structure)\n";
+            attachedContextStr += '\n### Folders (Tree Structure)\n';
             for (const f of folderItems) {
               const requestId = `folder-tree-${Date.now()}-${Math.random()}`;
               const treeData: any = await new Promise((resolve) => {
                 const timeoutId = setTimeout(() => resolve(null), 3000);
                 const handler = (event: MessageEvent) => {
                   const msg = event.data;
-                  if (
-                    msg.command === "getFolderTreeResult" &&
-                    msg.requestId === requestId
-                  ) {
+                  if (msg.command === 'getFolderTreeResult' && msg.requestId === requestId) {
                     clearTimeout(timeoutId);
-                    window.removeEventListener("message", handler);
+                    window.removeEventListener('message', handler);
                     resolve(msg.tree);
                   }
                 };
-                window.addEventListener("message", handler);
+                window.addEventListener('message', handler);
                 extensionService.postMessage({
-                  command: "getFolderTree",
+                  command: 'getFolderTree',
                   requestId,
                   path: f.path,
                 });
               });
-              attachedContextStr += `#### ${f.path}\n\`\`\`\n${treeData || "Error fetching tree structure"}\n\`\`\`\n`;
+              attachedContextStr += `#### ${f.path}\n\`\`\`\n${treeData || 'Error fetching tree structure'}\n\`\`\`\n`;
             }
           }
 
           if (terminalItems.length > 0) {
-            attachedContextStr += "\n### Terminals\n";
+            attachedContextStr += '\n### Terminals\n';
             terminalItems.forEach((f: any) => {
               attachedContextStr += `- terminal_id: ${f.path}\n`;
             });
@@ -477,15 +456,18 @@ let effectiveChatUuid = currentConversationIdRef.current;
               const parsed = JSON.parse(existingData.value);
               if (parsed.questionAnswers && Object.keys(parsed.questionAnswers).length > 0) {
                 preservedQuestionAnswers = parsed.questionAnswers;
-                console.log("[useChatLLM] sendMessage - Preserved questionAnswers for auto-triggered request:", {
-                  convId: effectiveChatUuid,
-                  questionAnswersKeys: Object.keys(preservedQuestionAnswers ?? {}),
-                });
+                console.log(
+                  '[useChatLLM] sendMessage - Preserved questionAnswers for auto-triggered request:',
+                  {
+                    convId: effectiveChatUuid,
+                    questionAnswersKeys: Object.keys(preservedQuestionAnswers ?? {}),
+                  },
+                );
               }
             }
           }
         } catch (e) {
-          console.warn("[useChatLLM] sendMessage - Failed to preserve questionAnswers:", e);
+          console.warn('[useChatLLM] sendMessage - Failed to preserve questionAnswers:', e);
         }
       }
 
@@ -493,7 +475,7 @@ let effectiveChatUuid = currentConversationIdRef.current;
         // Detailed trace for tool results to catch duplicates
         const lastToolMsg = [...messagesRef.current]
           .reverse()
-          .find((m) => m.role === "user" && m.actionIds);
+          .find((m) => m.role === 'user' && m.actionIds);
 
         if (lastToolMsg && lastToolMsg.content === fullContent) {
           stopGeneration();
@@ -501,7 +483,7 @@ let effectiveChatUuid = currentConversationIdRef.current;
           // Mark the assistant message that was responding to the previous identical request as cancelled
           let lastAssistantIdx = -1;
           for (let i = messagesRef.current.length - 1; i >= 0; i--) {
-            if (messagesRef.current[i].role === "assistant") {
+            if (messagesRef.current[i].role === 'assistant') {
               lastAssistantIdx = i;
               break;
             }
@@ -533,8 +515,8 @@ let effectiveChatUuid = currentConversationIdRef.current;
       const finalContent = promptPayload;
 
       const userMessage: Message = {
-        id: `msg-${Date.now()}-${skipFirstRequestLogic ? "tool" : "user"}`,
-        role: "user",
+        id: `msg-${Date.now()}-${skipFirstRequestLogic ? 'tool' : 'user'}`,
+        role: 'user',
         content: finalContent,
         timestamp: Date.now(),
         token_usage: calculateTokens(promptPayload),
@@ -546,10 +528,10 @@ let effectiveChatUuid = currentConversationIdRef.current;
       // Log token count for every request (user-initiated and auto/tool)
       const reqTokens = calculateTokens(promptPayload);
       const reqType = skipFirstRequestLogic
-        ? "autoReq (tool flush)"
+        ? 'autoReq (tool flush)'
         : isReq1
-          ? "req1 (first turn)"
-          : "user req";
+          ? 'req1 (first turn)'
+          : 'user req';
 
       const updatedMessages = [...filteredMessages, userMessage];
       setMessages(updatedMessages);
@@ -592,7 +574,7 @@ let effectiveChatUuid = currentConversationIdRef.current;
         // Truly fresh session — safe to restore model from last assistant message
         const lastMetadataMsg = [...filteredMessages]
           .reverse()
-          .find((m) => m.role === "assistant" && m.providerId && m.modelId);
+          .find((m) => m.role === 'assistant' && m.providerId && m.modelId);
 
         if (lastMetadataMsg) {
           finalModel = {
@@ -606,7 +588,7 @@ let effectiveChatUuid = currentConversationIdRef.current;
         // Truly fresh session — safe to restore account from last assistant message
         const lastMetadataMsg = [...filteredMessages]
           .reverse()
-          .find((m) => m.role === "assistant" && m.accountId);
+          .find((m) => m.role === 'assistant' && m.accountId);
 
         if (lastMetadataMsg?.accountId) {
           finalAccount = { id: lastMetadataMsg.accountId };
@@ -627,13 +609,9 @@ let effectiveChatUuid = currentConversationIdRef.current;
         !skipFirstRequestLogic &&
         oldModel &&
         finalModel &&
-        (oldModel.id !== finalModel.id ||
-          oldModel.providerId !== finalModel.providerId);
+        (oldModel.id !== finalModel.id || oldModel.providerId !== finalModel.providerId);
       const accountSwitched =
-        !skipFirstRequestLogic &&
-        oldAccount &&
-        finalAccount &&
-        oldAccount.id !== finalAccount.id;
+        !skipFirstRequestLogic && oldAccount && finalAccount && oldAccount.id !== finalAccount.id;
 
       if (modelSwitched || accountSwitched) {
         console.warn(
@@ -645,7 +623,7 @@ let effectiveChatUuid = currentConversationIdRef.current;
             finalAccount,
           },
         );
-        backendConversationIdRef.current = "";
+        backendConversationIdRef.current = '';
         qwenParentIdRef.current = undefined;
         try {
           sessionStorage.removeItem(`zen-backend-conv:${effectiveChatUuid}`);
@@ -658,16 +636,16 @@ let effectiveChatUuid = currentConversationIdRef.current;
         const localFiles = files
           ? files.filter(
               (f: any) =>
-                !f.id?.startsWith("attached-") &&
-                !f.id?.startsWith("rule-") &&
-                !f.id?.startsWith("terminal-"),
+                !f.id?.startsWith('attached-') &&
+                !f.id?.startsWith('rule-') &&
+                !f.id?.startsWith('terminal-'),
             )
           : [];
 
         if (localFiles.length > 0) {
           if (!finalAccount?.id) {
             throw new Error(
-              "No active account selected for file upload. Please select/add an account first.",
+              'No active account selected for file upload. Please select/add an account first.',
             );
           }
           const uploadedIds = await uploadFiles(localFiles, finalAccount.id);
@@ -693,16 +671,14 @@ let effectiveChatUuid = currentConversationIdRef.current;
 
         // Qwen: ưu tiên qwenParentIdRef (lưu từ stream turn trước), fallback về tham số parentMessageId
         // Note: qwenParentIdRef is cleared above if model/account switched.
-        const effectiveParentMessageId =
-          qwenParentIdRef.current ?? parentMessageId;
+        const effectiveParentMessageId = qwenParentIdRef.current ?? parentMessageId;
 
         // Only reuse backend conversationId if model/account did NOT switch.
         // If they switched, backendConversationIdRef was already cleared above.
         const convIdToSend =
           backendConversationIdRef.current ||
           (effectiveChatUuid
-            ? sessionStorage.getItem(`zen-backend-conv:${effectiveChatUuid}`) ||
-              undefined
+            ? sessionStorage.getItem(`zen-backend-conv:${effectiveChatUuid}`) || undefined
             : undefined);
 
         const body = {
@@ -712,13 +688,11 @@ let effectiveChatUuid = currentConversationIdRef.current;
           messages: finalPayloadMessages,
           stream: true,
           ...(convIdToSend ? { conversationId: convIdToSend } : {}),
-          ...(effectiveParentMessageId
-            ? { parent_message_id: effectiveParentMessageId }
-            : {}),
-          is_thinking: localStorage.getItem("zen-thinking-enabled") === "true",
-          is_search: localStorage.getItem("zen-search-enabled") === "true",
-          thinking: localStorage.getItem("zen-thinking-enabled") === "true",
-          search: localStorage.getItem("zen-search-enabled") === "true",
+          ...(effectiveParentMessageId ? { parent_message_id: effectiveParentMessageId } : {}),
+          is_thinking: localStorage.getItem('zen-thinking-enabled') === 'true',
+          is_search: localStorage.getItem('zen-search-enabled') === 'true',
+          thinking: localStorage.getItem('zen-thinking-enabled') === 'true',
+          search: localStorage.getItem('zen-search-enabled') === 'true',
           ...(ref_file_ids.length > 0 ? { ref_file_ids } : {}),
         };
 
@@ -726,10 +700,10 @@ let effectiveChatUuid = currentConversationIdRef.current;
         abortControllerRef.current = abortController;
         setIsStreaming(true);
 
-        const headers = { "Content-Type": "application/json" };
+        const headers = { 'Content-Type': 'application/json' };
         const bodyStr = JSON.stringify(body);
         const response = await fetch(`${apiUrl}/v1/chat/accounts/messages`, {
-          method: "POST",
+          method: 'POST',
           headers,
           body: bodyStr,
           signal: abortController.signal,
@@ -740,30 +714,29 @@ let effectiveChatUuid = currentConversationIdRef.current;
           try {
             const errBody = await response.json();
             const raw = errBody.error || errBody.message;
-            const msg = typeof raw === "string" ? raw : JSON.stringify(raw);
+            const msg = typeof raw === 'string' ? raw : JSON.stringify(raw);
             errorDetail = msg || errorDetail;
-            if (errBody.error_code)
-              errorDetail = `[${errBody.error_code}] ${errorDetail}`;
+            if (errBody.error_code) errorDetail = `[${errBody.error_code}] ${errorDetail}`;
           } catch {}
           throw new Error(errorDetail);
         }
-        if (!response.body) throw new Error("No response body");
+        if (!response.body) throw new Error('No response body');
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let assistantMessage: Message = {
           id: `msg-${Date.now()}-assistant`,
-          role: "assistant",
-          content: "",
+          role: 'assistant',
+          content: '',
           timestamp: Date.now(),
         };
 
-        let backendConversationId = "";
+        let backendConversationId = '';
 
         setMessages((prev) => [...prev, assistantMessage]);
 
         let done = false;
-        let buffer = "";
+        let buffer = '';
 
         // First-chunk timeout: if no SSE data arrives within 5 minutes, abort the stream.
         // The Elara server has its own 5-minute timeout and sends an error event — this is
@@ -787,18 +760,16 @@ let effectiveChatUuid = currentConversationIdRef.current;
             }
             const chunk = decoder.decode(value, { stream: true });
             buffer += chunk;
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
             for (const line of lines) {
-              if (line.startsWith("data: ")) {
+              if (line.startsWith('data: ')) {
                 const dataStr = line.slice(6).trim();
-                if (dataStr === "[DONE]") continue;
+                if (dataStr === '[DONE]') continue;
                 // Backend may stream a raw UUID line as conversation_id
                 if (
-                  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                    dataStr,
-                  )
+                  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(dataStr)
                 ) {
                   backendConversationId = dataStr;
                   backendConversationIdRef.current = dataStr;
@@ -809,43 +780,34 @@ let effectiveChatUuid = currentConversationIdRef.current;
 
                   // Handle stream error from server
                   if (data.error) {
-                    const code = data.error_code ? `[${data.error_code}] ` : "";
+                    const code = data.error_code ? `[${data.error_code}] ` : '';
                     const err = new Error(`${code}${data.error}`);
-                    console.error("[Zen Stream] server error in SSE:", data);
+                    console.error('[Zen Stream] server error in SSE:', data);
                     (err as any).isServerError = true;
                     throw err;
                   }
 
                   // Capture the real backend conversation_id for subsequent requests
-                  const recvConvId =
-                    data.meta?.conversation_id || data.conversation_id;
+                  const recvConvId = data.meta?.conversation_id || data.conversation_id;
                   if (recvConvId) {
                     backendConversationId = recvConvId;
                     backendConversationIdRef.current = recvConvId;
                     assistantMessage.conversationId = recvConvId;
                     // Persist so it survives resetSession() race conditions
                     try {
-                      sessionStorage.setItem(
-                        `zen-backend-conv:${effectiveChatUuid}`,
-                        recvConvId,
-                      );
+                      sessionStorage.setItem(`zen-backend-conv:${effectiveChatUuid}`, recvConvId);
                     } catch {}
                   }
 
                   const metaObj = data.meta || data.metadata;
                   if (metaObj) {
-                    if (metaObj.providerId)
-                      assistantMessage.providerId = metaObj.providerId;
-                    if (metaObj.modelId)
-                      assistantMessage.modelId = metaObj.modelId;
-                    if (metaObj.accountId)
-                      assistantMessage.accountId = metaObj.accountId;
-                    if (metaObj.websiteUrl)
-                      assistantMessage.websiteUrl = metaObj.websiteUrl;
+                    if (metaObj.providerId) assistantMessage.providerId = metaObj.providerId;
+                    if (metaObj.modelId) assistantMessage.modelId = metaObj.modelId;
+                    if (metaObj.accountId) assistantMessage.accountId = metaObj.accountId;
+                    if (metaObj.websiteUrl) assistantMessage.websiteUrl = metaObj.websiteUrl;
                     if (metaObj.email) assistantMessage.email = metaObj.email;
                     if (metaObj.response_message_id)
-                      assistantMessage.response_message_id =
-                        metaObj.response_message_id;
+                      assistantMessage.response_message_id = metaObj.response_message_id;
 
                     // Qwen: lưu parent_id để dùng cho request tiếp theo
                     // Server forward event này từ response.created của Qwen
@@ -865,12 +827,8 @@ let effectiveChatUuid = currentConversationIdRef.current;
 
                     // DeepSeek: server phát hiện response INCOMPLETE có partial toolcall
                     if (metaObj.incomplete_has_partial_tool !== undefined) {
-                      setIncompleteHasPartialTool(
-                        metaObj.incomplete_has_partial_tool,
-                      );
-                      setIncompletePartialToolType(
-                        metaObj.incomplete_partial_tool_type ?? null,
-                      );
+                      setIncompleteHasPartialTool(metaObj.incomplete_has_partial_tool);
+                      setIncompletePartialToolType(metaObj.incomplete_partial_tool_type ?? null);
                     }
 
                     // DeepSeek: tất cả continuations đã hoàn thành — reset partial tool state
@@ -884,18 +842,15 @@ let effectiveChatUuid = currentConversationIdRef.current;
                     // (finalModel). Never let server metadata silently overwrite a user's
                     // model switch — that is the root cause of the model race-condition bug.
                     if (metaObj.providerId || metaObj.modelId) {
-                      const serverModelId =
-                        metaObj.modelId || lastUsedModelRef.current?.id;
+                      const serverModelId = metaObj.modelId || lastUsedModelRef.current?.id;
                       const serverProviderId =
-                        metaObj.providerId ||
-                        lastUsedModelRef.current?.providerId;
+                        metaObj.providerId || lastUsedModelRef.current?.providerId;
                       // Only write back if it matches what we sent, or if ref is empty
                       const sentModelId = finalModel?.id;
                       const sentProviderId = finalModel?.providerId;
                       if (
                         !lastUsedModelRef.current ||
-                        (serverModelId === sentModelId &&
-                          serverProviderId === sentProviderId)
+                        (serverModelId === sentModelId && serverProviderId === sentProviderId)
                       ) {
                         lastUsedModelRef.current = {
                           id: serverModelId,
@@ -929,16 +884,13 @@ let effectiveChatUuid = currentConversationIdRef.current;
                   if (data.thinking) {
                     assistantMessage = {
                       ...assistantMessage,
-                      thinking:
-                        (assistantMessage.thinking || "") + data.thinking,
+                      thinking: (assistantMessage.thinking || '') + data.thinking,
                     };
                   }
 
                   if (data.usage || data.content || data.thinking) {
                     setMessages((prev) =>
-                      prev.map((m) =>
-                        m.id === assistantMessage.id ? assistantMessage : m,
-                      ),
+                      prev.map((m) => (m.id === assistantMessage.id ? assistantMessage : m)),
                     );
                   }
                 } catch (e) {
@@ -956,27 +908,22 @@ let effectiveChatUuid = currentConversationIdRef.current;
 
         if (isContinuing) {
           console.warn(
-            `[Zen] Stream ended but isContinuing is still true — server may not have sent continuing:false | conversationId=${backendConversationId || currentConversationIdRef.current || "none"}`,
+            `[Zen] Stream ended but isContinuing is still true — server may not have sent continuing:false | conversationId=${backendConversationId || currentConversationIdRef.current || 'none'}`,
           );
         }
-        const remainingLines = buffer
-          .split("\n")
-          .filter((l) => l.trim().startsWith("data: "));
+        const remainingLines = buffer.split('\n').filter((l) => l.trim().startsWith('data: '));
         for (const line of remainingLines) {
           const dataStr = line.slice(6).trim();
-          if (dataStr === "[DONE]") continue;
+          if (dataStr === '[DONE]') continue;
           try {
             const data = JSON.parse(dataStr);
 
             const metaObj = data.meta || data.metadata;
             if (metaObj) {
-              if (metaObj.providerId)
-                assistantMessage.providerId = metaObj.providerId;
+              if (metaObj.providerId) assistantMessage.providerId = metaObj.providerId;
               if (metaObj.modelId) assistantMessage.modelId = metaObj.modelId;
-              if (metaObj.accountId)
-                assistantMessage.accountId = metaObj.accountId;
-              if (metaObj.websiteUrl)
-                assistantMessage.websiteUrl = metaObj.websiteUrl;
+              if (metaObj.accountId) assistantMessage.accountId = metaObj.accountId;
+              if (metaObj.websiteUrl) assistantMessage.websiteUrl = metaObj.websiteUrl;
               if (metaObj.email) assistantMessage.email = metaObj.email;
 
               // Qwen: cập nhật parent_id từ buffer cleanup nếu stream chính chưa nhận được
@@ -986,16 +933,13 @@ let effectiveChatUuid = currentConversationIdRef.current;
 
               // Sync metadata during buffer cleanup — same guard as main stream loop
               if (metaObj.providerId || metaObj.modelId) {
-                const serverModelId =
-                  metaObj.modelId || lastUsedModelRef.current?.id;
-                const serverProviderId =
-                  metaObj.providerId || lastUsedModelRef.current?.providerId;
+                const serverModelId = metaObj.modelId || lastUsedModelRef.current?.id;
+                const serverProviderId = metaObj.providerId || lastUsedModelRef.current?.providerId;
                 const sentModelId = finalModel?.id;
                 const sentProviderId = finalModel?.providerId;
                 if (
                   !lastUsedModelRef.current ||
-                  (serverModelId === sentModelId &&
-                    serverProviderId === sentProviderId)
+                  (serverModelId === sentModelId && serverProviderId === sentProviderId)
                 ) {
                   lastUsedModelRef.current = {
                     id: serverModelId,
@@ -1028,7 +972,7 @@ let effectiveChatUuid = currentConversationIdRef.current;
             if (data.thinking) {
               assistantMessage = {
                 ...assistantMessage,
-                thinking: (assistantMessage.thinking || "") + data.thinking,
+                thinking: (assistantMessage.thinking || '') + data.thinking,
               };
             }
           } catch (e) {}
@@ -1036,31 +980,24 @@ let effectiveChatUuid = currentConversationIdRef.current;
 
         // Final fallback: if token_usage is still missing, calculate it manually
         if (!assistantMessage.token_usage && assistantMessage.content) {
-          assistantMessage.token_usage = calculateTokens(
-            assistantMessage.content,
-          );
+          assistantMessage.token_usage = calculateTokens(assistantMessage.content);
         }
 
         // Log user message first, then assistant message, both with the real conversationId
         try {
           const userMsgToLog = updatedMessages[updatedMessages.length - 1];
-          const finalConversationId =
-            backendConversationId || backendConversationIdRef.current;
+          const finalConversationId = backendConversationId || backendConversationIdRef.current;
 
-          userMsgToLog.providerId =
-            assistantMessage.providerId || effModel?.providerId;
+          userMsgToLog.providerId = assistantMessage.providerId || effModel?.providerId;
           userMsgToLog.modelId = assistantMessage.modelId || effModel?.id;
           userMsgToLog.accountId = assistantMessage.accountId || effAccount?.id;
-          if (assistantMessage.websiteUrl)
-            userMsgToLog.websiteUrl = assistantMessage.websiteUrl;
-          if (assistantMessage.email)
-            userMsgToLog.email = assistantMessage.email;
+          if (assistantMessage.websiteUrl) userMsgToLog.websiteUrl = assistantMessage.websiteUrl;
+          if (assistantMessage.email) userMsgToLog.email = assistantMessage.email;
 
           assistantMessage.providerId = userMsgToLog.providerId;
           assistantMessage.modelId = userMsgToLog.modelId;
           assistantMessage.accountId = userMsgToLog.accountId;
-          if (userMsgToLog.websiteUrl)
-            assistantMessage.websiteUrl = userMsgToLog.websiteUrl;
+          if (userMsgToLog.websiteUrl) assistantMessage.websiteUrl = userMsgToLog.websiteUrl;
           if (userMsgToLog.email) assistantMessage.email = userMsgToLog.email;
 
           logChatToWorkspace(effectiveChatUuid, {
@@ -1108,14 +1045,14 @@ let effectiveChatUuid = currentConversationIdRef.current;
         setIncompleteHasPartialTool(false);
         setIncompletePartialToolType(null);
         abortControllerRef.current = null;
-        if (error instanceof Error && error.name === "AbortError") {
+        if (error instanceof Error && error.name === 'AbortError') {
           setIsProcessingSync(false);
           return;
         }
-        console.error("[Zen sendMessage] caught error:", error);
+        console.error('[Zen sendMessage] caught error:', error);
         const errorMessage: Message = {
           id: `msg-${Date.now()}-error`,
-          role: "assistant",
+          role: 'assistant',
           content: `Error: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
           timestamp: Date.now(),
           isError: true,
@@ -1186,13 +1123,13 @@ let effectiveChatUuid = currentConversationIdRef.current;
     setConversationToolOverrides,
     handleToolAction: (
       actionId: string,
-      actionType: "accept_all" | "accept_once" | "reject",
+      actionType: 'accept_all' | 'accept_once' | 'reject',
       toolName?: string,
     ) => {
-      if (actionType === "accept_all" && toolName) {
+      if (actionType === 'accept_all' && toolName) {
         setConversationToolOverrides((prev) => ({
           ...prev,
-          [toolName]: "auto",
+          [toolName]: 'auto',
         }));
       }
     },
@@ -1238,10 +1175,12 @@ let effectiveChatUuid = currentConversationIdRef.current;
         }
 
         // Extract questionAnswers from the payload
-        const answersToSave = parsedPayload?.answers ? { [messageId]: parsedPayload.answers } : undefined;
+        const answersToSave = parsedPayload?.answers
+          ? { [messageId]: parsedPayload.answers }
+          : undefined;
 
         // ✅ DEBUG: Log questionAnswers before save
-        console.log("[useChatLLM] handleSelectOption - Saving questionAnswers:", {
+        console.log('[useChatLLM] handleSelectOption - Saving questionAnswers:', {
           messageId,
           parsedPayload,
           answersToSave,
@@ -1279,24 +1218,16 @@ let effectiveChatUuid = currentConversationIdRef.current;
                 const question = questions.find((q: any) => q.id === qId);
                 const label = question?.label || qId;
                 const value = Array.isArray(answer.value)
-                  ? answer.value.join(", ")
+                  ? answer.value.join(', ')
                   : String(answer.value);
                 const number = index + 1;
                 return `${number}. ${label}: ${value}`;
               })
-              .join("\n");
+              .join('\n');
             const promptText = `Câu trả lời của người dùng:\n${formattedAnswers}`;
 
             // Use sendMessage directly - it will use the latest messagesRef
-            sendMessage(
-              promptText,
-              undefined,
-              undefined,
-              undefined,
-              true,
-              undefined,
-              true,
-            );
+            sendMessage(promptText, undefined, undefined, undefined, true, undefined, true);
           }, 10);
         }
 
