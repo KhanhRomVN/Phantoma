@@ -205,7 +205,7 @@ function ListFilterSection({
           {showSuggestions && filteredSuggestions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="absolute top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto bg-modal-background border border-divider rounded-md shadow-xl z-50"
+              className="absolute top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto bg-background border border-divider rounded-md shadow-xl z-50"
             >
               <div className="p-1 flex flex-col gap-1">
                 {filteredSuggestions.map((suggestion) => {

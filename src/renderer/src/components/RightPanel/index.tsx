@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../shared/lib/utils';
 import { SettingsProvider } from './Agent/context/SettingsContext';
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/Dropdown';
 
 type PanelView = 'agent' | 'analytic' | 'terminal';
 type AgentSubView =
@@ -42,18 +43,13 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
   const [view, setView] = useState<PanelView>('agent');
   const [agentSubView, setAgentSubView] = useState<AgentSubView>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isEllipsisOpen, setIsEllipsisOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const ellipsisRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsDropdownOpen(false);
-      }
-      if (ellipsisRef.current && !ellipsisRef.current.contains(e.target as Node)) {
-        setIsEllipsisOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -120,7 +116,7 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 min-w-[160px] bg-modal-background border border-border rounded-lg shadow-xl py-1 z-50">
+              <div className="absolute top-full left-0 mt-1 min-w-[160px] bg-background border border-border rounded-lg shadow-xl py-1 z-50">
                 {dropdownOptions.map((option) => {
                   const isActive = view === option.id;
                   return (
@@ -172,53 +168,54 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
                   2
                 </span>
               </div>
-              <div className="relative" ref={ellipsisRef}>
-                <button
-                  onClick={() => setIsEllipsisOpen(!isEllipsisOpen)}
-                  className="p-1 rounded hover:bg-sidebar-item-hover transition-colors"
-                >
-                  <MoreHorizontal className="w-4 h-4 text-text-secondary" />
-                </button>
-                {isEllipsisOpen && (
-                  <div className="absolute top-full right-0 mt-1 min-w-[160px] bg-modal-background border border-border rounded-lg shadow-xl py-1 z-50">
-                    {ellipsisOptions.map((option) => {
-                      const Icon = option.icon;
-                      return (
-                        <button
-                          key={option.label}
-                          onClick={() => {
-                            setAgentSubView(option.subView);
-                            setIsEllipsisOpen(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary transition-colors"
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span>{option.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              <Dropdown>
+                <DropdownTrigger>
+                  <button className="p-1 rounded hover:bg-sidebar-item-hover transition-colors">
+                    <MoreHorizontal className="w-4 h-4 text-text-secondary" />
+                  </button>
+                </DropdownTrigger>
+                <DropdownContent className="min-w-[160px]">
+                  {ellipsisOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <DropdownItem
+                        key={option.label}
+                        icon={<Icon className="w-4 h-4" />}
+                        onClick={() => setAgentSubView(option.subView)}
+                      >
+                        {option.label}
+                      </DropdownItem>
+                    );
+                  })}
+                </DropdownContent>
+              </Dropdown>
             </div>
           )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
           {view === 'agent' && agentSubView === null && <AgentPanel />}
-          {view === 'agent' && agentSubView === 'home' && (
-            <HomePanel onSendMessage={() => {}} onLoadConversation={() => {}} />
+          {view === 'agent' && (
+            <div className={cn('absolute inset-0', agentSubView !== 'home' && 'hidden')}>
+              <HomePanel onSendMessage={() => {}} onLoadConversation={() => {}} />
+            </div>
           )}
-          {view === 'agent' && agentSubView === 'session' && <SessionPanel />}
+          {view === 'agent' && agentSubView === 'session' && (
+            <SessionPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+          )}
           {view === 'agent' && agentSubView === 'account' && (
             <AccountPanel isOpen={true} onClose={() => setAgentSubView(null)} />
           )}
-          {view === 'agent' && agentSubView === 'analytic-feature' && <AnalyticFeature />}
+          {view === 'agent' && agentSubView === 'analytic-feature' && (
+            <AnalyticFeature isOpen={true} onClose={() => setAgentSubView(null)} />
+          )}
           {view === 'agent' && agentSubView === 'history' && (
             <HistoryPanel isOpen={true} onClose={() => setAgentSubView(null)} />
           )}
-          {view === 'agent' && agentSubView === 'model' && <ModelsFeature />}
+          {view === 'agent' && agentSubView === 'model' && (
+            <ModelsFeature isOpen={true} onClose={() => setAgentSubView(null)} />
+          )}
           {view === 'agent' && agentSubView === 'setting' && (
             <SettingsPanel isOpen={true} onClose={() => setAgentSubView(null)} />
           )}

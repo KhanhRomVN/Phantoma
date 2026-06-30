@@ -326,7 +326,7 @@ export function PayloadValueModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
         className={cn(
-          'h-[85vh] bg-modal-background border border-border rounded-lg shadow-2xl flex flex-col transition-all duration-300',
+          'h-[85vh] bg-background border border-border rounded-lg shadow-2xl flex flex-col transition-all duration-300',
           isCurrentValues || (!isScriptOrFile && selectedSource?.type === 'template')
             ? 'w-[70vw] max-w-[900px]'
             : 'w-[90vw] max-w-[1400px]',

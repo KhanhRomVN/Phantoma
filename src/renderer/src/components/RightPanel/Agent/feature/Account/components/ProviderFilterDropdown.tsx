@@ -55,8 +55,8 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 h-[34px] px-2.5 rounded-lg text-[13px] font-medium cursor-pointer whitespace-nowrap"
         style={{
-          backgroundColor: "var(--input-bg)",
-          border: "1px solid var(--border-color)",
+          backgroundColor: "rgb(var(--input-background))",
+          border: "1px solid rgb(var(--border))",
           color: "var(--primary-text)",
         }}
       >
@@ -80,13 +80,13 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
         <div
           className="absolute top-full right-0 mt-1.5 w-[240px] max-h-[300px] rounded-[10px] z-[1000] overflow-hidden flex flex-col"
           style={{
-            backgroundColor: "var(--tertiary-bg)",
-            border: "1px solid var(--border-color)",
+            backgroundColor: "rgb(var(--card-background))",
+            border: "1px solid rgb(var(--border))",
             boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
           }}
         >
           {/* Search */}
-          <div className="p-2" style={{ borderBottom: "1px solid var(--border-color)" }}>
+          <div className="p-2" style={{ borderBottom: "1px solid rgb(var(--border))" }}>
             <div className="relative">
               <Search
                 size={13}
@@ -100,8 +100,8 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full py-[7px] px-[28px] text-xs rounded-[7px] outline-none box-border"
                 style={{
-                  backgroundColor: "var(--input-bg)",
-                  border: "1px solid var(--border-color)",
+                  backgroundColor: "rgb(var(--input-background))",
+                  border: "1px solid rgb(var(--border))",
                   color: "var(--primary-text)",
                 }}
               />

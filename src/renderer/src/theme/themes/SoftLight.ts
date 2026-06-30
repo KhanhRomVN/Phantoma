@@ -189,8 +189,6 @@ export const SoftLight: ThemeConfig = {
     //
     inputBackground: 'rgb(235, 228, 220)',
     //
-    modalBackground: 'rgb(255, 252, 248)',
-    //
     dropdownBackground: 'rgb(255, 252, 248)',
     dropdownItemHover: 'rgb(237, 232, 227)',
     //

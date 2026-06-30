@@ -62,7 +62,6 @@ export function ThemeProvider({
       cardBackground: '--card-background',
       cardBackgroundHover: '--card-background-hover',
       inputBackground: '--input-background',
-      modalBackground: '--modal-background',
       dropdownBackground: '--dropdown-background',
       dropdownItemHover: '--dropdown-item-hover',
       tooltipBackground: '--tooltip-background',

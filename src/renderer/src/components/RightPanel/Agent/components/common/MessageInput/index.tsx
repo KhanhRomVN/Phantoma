@@ -1,7 +1,6 @@
 import React from 'react';
 import { X, Zap, ShieldCheck, Eye, PlusIcon, SendIcon } from 'lucide-react';
 import { GitPullRequestArrow } from 'lucide-react';
-import ModelAccountDrawer from './ModelAccountDrawer';
 import { useSettings } from '../../../context/SettingsContext';
 import { LANGUAGES } from '../../../feature/Setting/components/LanguageSelector';
 import { cn } from '@renderer/shared/lib/utils';
@@ -111,7 +110,7 @@ const ThinkingButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) =
             : 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground2,#a855f7)_12%,transparent)]'
           : isHovered
             ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
-            : 'bg-[rgba(128,128,128,0.12)] opacity-70'
+            : 'bg-[rgba(128,128,128,0.12)] opacity-70',
       )}
       title={title}
     >
@@ -140,7 +139,7 @@ const SearchButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => 
             : 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground1,#0ea5e9)_12%,transparent)]'
           : isHovered
             ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
-            : 'bg-[rgba(128,128,128,0.12)] opacity-70'
+            : 'bg-[rgba(128,128,128,0.12)] opacity-70',
       )}
       title={title}
     >
@@ -169,7 +168,7 @@ const MemoryButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => 
             : 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)_12%,transparent)]'
           : isHovered
             ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
-            : 'bg-[rgba(128,128,128,0.12)] opacity-70'
+            : 'bg-[rgba(128,128,128,0.12)] opacity-70',
       )}
       title={title}
     >
@@ -263,7 +262,7 @@ const GlobalPermissionButton: React.FC = () => {
           'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out opacity-100',
           isHovered
             ? 'bg-[color-mix(in_srgb,var(--permission-color,var(--vscode-editorBracketHighlight-foreground3,#f59e0b))_20%,transparent)]'
-            : 'bg-[color-mix(in_srgb,var(--permission-color,var(--vscode-editorBracketHighlight-foreground3,#f59e0b))_12%,transparent)]'
+            : 'bg-[color-mix(in_srgb,var(--permission-color,var(--vscode-editorBracketHighlight-foreground3,#f59e0b))_12%,transparent)]',
         )}
         style={{
           border: `1px solid ${metadata.color}40`,
@@ -275,9 +274,7 @@ const GlobalPermissionButton: React.FC = () => {
         <span className="text-[11px] font-semibold tracking-[0.3px]">{metadata.label}</span>
       </button>
       {open && (
-        <div
-          className="absolute bottom-[calc(100%+4px)] left-0 z-[1000] rounded-md overflow-hidden min-w-[180px] bg-[color-mix(in_srgb,var(--input-bg)_100%,black_15%)] border border-[var(--vscode-widget-border)] shadow-[0_-4px_12px_rgba(0,0,0,0.2)]"
-        >
+        <div className="absolute bottom-[calc(100%+4px)] left-0 z-[1000] rounded-md overflow-hidden min-w-[180px] bg-[color-mix(in_srgb,var(--input-bg)_100%,black_15%)] border border-[var(--vscode-widget-border)] shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
           {Object.entries(MODE_METADATA).map(([modeId, meta]) => {
             const isSelected = permissionMode === modeId;
             return (
@@ -293,7 +290,7 @@ const GlobalPermissionButton: React.FC = () => {
                   'flex items-center gap-1.5 w-full px-3 py-[7px] text-[11.5px] font-medium text-left border-none cursor-pointer',
                   isSelected
                     ? 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]'
-                    : 'bg-transparent text-[var(--vscode-foreground)]'
+                    : 'bg-transparent text-[var(--vscode-foreground)]',
                 )}
                 onMouseEnter={(e) => handleItemMouseEnter(modeId, e)}
                 onMouseLeave={(e) => handleItemMouseLeave(isSelected, e)}
@@ -367,6 +364,7 @@ interface MessageInputProps {
   onGitPullRequest?: () => void;
   isGitLoading?: boolean;
   isGitStatusVisible?: boolean;
+  onOpenModelDrawer?: () => void;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -405,6 +403,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onGitPullRequest,
   isGitLoading = false,
   isGitStatusVisible = false,
+  onOpenModelDrawer,
 }) => {
   const { apiUrl } = useSettings();
   const isConnected = true;
@@ -413,7 +412,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [isLoadingCache, setIsLoadingCache] = React.useState(true);
   const preferredLanguage = 'en';
   const pendingAccountIdRef = React.useRef<string | null>(null);
-  const [showModelDrawer, setShowModelDrawer] = React.useState(false);
 
   const currentModelRef = React.useRef<any>(null);
   const currentAccountRef = React.useRef<any>(null);
@@ -728,7 +726,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           'flex flex-col relative rounded',
           !isConnected
             ? 'border border-[var(--vscode-errorForeground,#f44336)]'
-            : 'border border-transparent'
+            : 'border border-transparent',
         )}
         style={{
           transition: 'border 0.3s ease',
@@ -740,13 +738,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
           <div
             onClick={() => {
               if (providers.length === 0) fetchProviders();
-              setShowModelDrawer((v) => !v);
+              onOpenModelDrawer?.();
             }}
             className={cn(
-              'absolute left-2 flex items-center gap-2 px-2.5 py-[5px] text-[11px] font-semibold rounded-t-lg rounded-b-none z-20 cursor-pointer transition-all duration-200 ease-in-out bg-[var(--input-bg)] text-[var(--primary-text)] border border-[var(--border-color)] shadow-[0_-2px_6px_rgba(0,0,0,0.1)]',
-              !isConnected
-                ? 'border-b border-[var(--border-color)] mb-0'
-                : 'border-b-0 -mb-px'
+              'absolute left-2 flex items-center gap-2 px-2.5 py-[5px] text-[11px] font-semibold rounded-t-lg rounded-b-none z-20 cursor-pointer transition-all duration-200 ease-in-out bg-[var(--input-bg)] text-[var(--primary-text)] border border-border shadow-[0_-2px_6px_rgba(0,0,0,0.1)]',
+              !isConnected ? 'border-b border-border mb-0' : 'border-b-0 -mb-px',
             )}
             style={{
               bottom: !isConnected ? 'calc(100% + 2px)' : '100%',
@@ -775,9 +771,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 )}
                 {displayModel.providerId}/{displayModel.id}
                 {displayAccount?.email && (
-                  <span className="opacity-80 italic ml-0.5">
-                    {displayAccount.email}
-                  </span>
+                  <span className="opacity-80 italic ml-0.5">{displayAccount.email}</span>
                 )}
               </>
             ) : (
@@ -788,69 +782,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
             )}
           </div>
         )}
-        {showModelDrawer && (
-          <ModelAccountDrawer
-            isOpen={showModelDrawer}
-            onClose={() => setShowModelDrawer(false)}
-            providers={providers}
-            apiUrl={apiUrl}
-            onSelect={(selected) => {
-              const prov = providers.find((p: any) => p.provider_id === selected.providerId);
-              const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
-              let faviconUrl = '';
-              if (prov?.website) {
-                try {
-                  faviconUrl = `${new URL(prov.website).origin}/favicon.ico`;
-                } catch {}
-              }
-
-              const newModel = {
-                ...selected,
-                id: selected.modelId,
-                name: modelObj?.name || selected.modelId,
-                favicon: faviconUrl,
-                is_thinking: modelObj?.is_thinking ?? false,
-                is_search: modelObj?.is_search ?? false,
-                is_upload: modelObj?.is_upload ?? false,
-                is_memory: modelObj?.is_memory ?? prov?.is_memory ?? false,
-              };
-              setCurrentModel(newModel);
-              setCurrentAccount({
-                id: selected.accountId,
-                email: selected.email,
-              });
-
-              const fetchMemoryState = async () => {
-                try {
-                  const response = await fetch(
-                    `${apiUrl}/v1/accounts/${selected.accountId}/memory`,
-                  );
-                  const result = await response.json();
-                  if (result.success && result.data) {
-                    setIsMemory(result.data.is_memory_enabled);
-                    localStorage.setItem(
-                      'zen-memory-enabled',
-                      String(result.data.is_memory_enabled),
-                    );
-                  }
-                } catch (error) {
-                  console.error('Failed to fetch memory state:', error);
-                }
-              };
-              fetchMemoryState();
-              setShowModelDrawer(false);
-            }}
-          />
-        )}
         {/* Browser session warning */}
         {showBrowserWarning && currentModel?.providerId === 'zai-browser' && (
           <div
             onClick={isLaunchingBrowser ? undefined : onLaunchBrowserSession}
             className={cn(
               'absolute top-full right-2 flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-b-lg border-t-0 z-20 -mt-px bg-[rgba(251,146,60,0.15)] border border-[rgba(251,146,60,0.3)]',
-              isLaunchingBrowser
-                ? 'cursor-not-allowed opacity-60'
-                : 'cursor-pointer opacity-100'
+              isLaunchingBrowser ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100',
             )}
             onMouseEnter={(e) => {
               if (!isLaunchingBrowser) {
@@ -868,7 +806,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             </span>
           </div>
         )}
-        <div className="relative rounded-t p-3 bg-[var(--input-bg)]">
+        <div className="relative rounded-t p-3 bg-[rgb(var(--input-background))]">
           <style>{`
           .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
@@ -939,7 +877,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         </div>
 
         {/* Bottom Part: Toolbar */}
-        <div className="flex justify-between items-center rounded-b px-3 py-2 bg-[var(--input-bg)]">
+        <div className="flex justify-between items-center rounded-b px-3 py-2 bg-[rgb(var(--input-background))]">
           {/* Left Icons */}
           <div className="flex gap-1 items-center">
             <div
@@ -957,7 +895,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 'flex items-center justify-center h-[22px] w-[22px] rounded cursor-pointer box-border transition-all duration-200 ease-in-out border border-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)]',
                 isPlusHovered
                   ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
-                  : 'bg-[rgba(128,128,128,0.12)] opacity-70'
+                  : 'bg-[rgba(128,128,128,0.12)] opacity-70',
               )}
               title={supportsUpload ? 'Attach files' : 'Attach text files only'}
             >
@@ -980,7 +918,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                     ? 'cursor-default bg-[rgba(128,128,128,0.12)] text-[var(--vscode-descriptionForeground,#8c8c8c)] opacity-50'
                     : isGitHovered
                       ? 'cursor-pointer bg-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)] opacity-90'
-                      : 'cursor-pointer bg-[rgba(128,128,128,0.12)] text-[var(--vscode-foreground)] opacity-70'
+                      : 'cursor-pointer bg-[rgba(128,128,128,0.12)] text-[var(--vscode-foreground)] opacity-70',
                 )}
                 title={
                   isGitStatusVisible
@@ -1039,8 +977,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
                     : isStreaming || isProcessing
                       ? 'cursor-pointer text-[var(--vscode-errorForeground,#f44336)] pointer-events-auto'
                       : message.trim() || uploadedFiles.length > 0
-                        ? 'cursor-pointer text-[var(--accent-text)] pointer-events-auto'
-                        : 'cursor-default text-[var(--secondary-text)] pointer-events-auto'
+                        ? 'cursor-pointer text-primary pointer-events-auto'
+                        : 'cursor-default text-text-secondary pointer-events-auto',
                 )}
                 onClick={() => {
                   if ((isStreaming || isProcessing) && onStopGeneration) {
@@ -1064,7 +1002,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 }}
                 title={isStreaming || isProcessing ? 'Stop Generation' : 'Send Message'}
               >
-                {isStreaming || isProcessing ? <X size={16} strokeWidth={2.5} /> : <SendIcon />}
+                {isStreaming || isProcessing ? <X size={16} strokeWidth={2.5} /> : <SendIcon size={16} />}
               </div>
             )}
           </div>

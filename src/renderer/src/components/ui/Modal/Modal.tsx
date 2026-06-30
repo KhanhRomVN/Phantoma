@@ -41,7 +41,7 @@ export const Modal: React.FC<ModalProps> = ({
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div
         className={cn(
-          'relative z-10 bg-modal-background border border-border rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200',
+          'relative z-10 bg-background border border-border rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200',
           className,
         )}
       >

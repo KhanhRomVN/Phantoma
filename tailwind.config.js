@@ -5,7 +5,6 @@ module.exports = {
   safelist: [
     'bg-card-background',
     'bg-input-background',
-    'bg-modal-background',
     'bg-dropdown-background',
     'bg-dropdown-item-hover',
     'bg-sidebar-background',
@@ -46,7 +45,6 @@ module.exports = {
         divider: 'rgb(var(--divider) / <alpha-value>)',
         'card-background': 'rgb(var(--card-background) / <alpha-value>)',
         'input-background': 'rgb(var(--input-background) / <alpha-value>)',
-        'modal-background': 'rgb(var(--modal-background) / <alpha-value>)',
         'dropdown-background': 'rgb(var(--dropdown-background) / <alpha-value>)',
         'tooltip-background': 'rgb(var(--tooltip-background) / <alpha-value>)',
         'sidebar-background': 'rgb(var(--sidebar-background) / <alpha-value>)',
@@ -62,9 +60,6 @@ module.exports = {
         },
         input: {
           background: 'rgb(var(--input-background) / <alpha-value>)',
-        },
-        modal: {
-          background: 'rgb(var(--modal-background) / <alpha-value>)',
         },
         dropdown: {
           background: 'rgb(var(--dropdown-background) / <alpha-value>)',

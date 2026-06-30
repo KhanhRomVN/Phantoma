@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Zap } from 'lucide-react';
 import StatsGrid from './components/StatsGrid';
 import RecentActivity from './components/RecentActivity';
 import ModelDistributionCard from './components/ModelDistributionCard';
 import DailyUsageChart from './components/DailyUsageChart';
+import ModelAccountDrawer from '../../components/common/MessageInput/ModelAccountDrawer';
 import { ConversationItem } from '../History/types';
 import { useSettings } from '../../context/SettingsContext';
 import MessageInput from '../../components/common/MessageInput';
@@ -52,6 +53,29 @@ const HomePanel: React.FC<HomePanelProps> = ({
   });
   const [message, setMessage] = useState(initialValue || '');
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // ModelAccountDrawer state
+  const [showModelDrawer, setShowModelDrawer] = useState(false);
+  const [providers, setProviders] = useState<any[]>([]);
+
+  const fetchProviders = useCallback(async () => {
+    try {
+      const response = await fetch(`${apiUrl}/v1/providers`);
+      const result = await response.json();
+      if (result.success) {
+        setProviders(result.data.filter((p: any) => p.is_enabled));
+      }
+    } catch (error) {
+      console.error('[Phantoma][Home] Failed to fetch providers:', error);
+    }
+  }, [apiUrl]);
+
+  const handleOpenModelDrawer = () => {
+    if (providers.length === 0) {
+      fetchProviders();
+    }
+    setShowModelDrawer((v) => !v);
+  };
 
   useEffect(() => {
     if (currentModel) {
@@ -150,6 +174,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
     const handleMessage = (event: MessageEvent) => {
       const msg = event.data;
       if (msg.command === 'historyResult') {
+        console.log('[Phantoma][Home] historyResult received | history count:', msg.history?.length, '| history:', msg.history);
         if (msg.history) setConversations(msg.history);
         setIsLoading(false);
       } else if (msg.command === 'deleteConversationResult') {
@@ -216,7 +241,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
 
   return (
     <div
-      className="home-panel flex flex-col h-screen"
+      className="home-panel flex flex-col h-full relative"
       style={{ backgroundColor: 'var(--primary-bg)' }}
     >
       {/* Dashboard scroll area */}
@@ -229,29 +254,20 @@ const HomePanel: React.FC<HomePanelProps> = ({
           style={{ color: 'var(--primary-text)' }}
         >
           {/* Header */}
-          <div className="flex flex-col items-center gap-3 text-center w-full">
-            <div className="flex items-center gap-3.5">
-              <div className="w-[42px] h-[42px] rounded-[10px] flex items-center justify-center">
-                <img
-                  src={`${imagesUri}/icon.png`}
-                  alt="Zen Logo"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <h1
-                className="text-[30px] font-extrabold m-0 tracking-[-0.02em]"
-                style={{
-                  background:
-                    'linear-gradient(to right, var(--vscode-foreground, #fff), var(--vscode-textPreformat-foreground, #a8a8a8))',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                Zen
-              </h1>
-            </div>
+          <div className="flex flex-col items-center gap-0.5 text-center w-full">
+            <h1
+              className="text-[30px] font-extrabold m-0 tracking-[-0.02em] leading-tight py-1"
+              style={{
+                background:
+                  'linear-gradient(to right, var(--vscode-foreground, #fff), var(--vscode-textPreformat-foreground, #a8a8a8))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Phantoma
+            </h1>
 
-            <div className="h-7 flex items-center justify-center overflow-hidden m-0">
+            <div className="h-7 flex items-center justify-center overflow-hidden m-0 mb-4">
               <div
                 key={sloganIndex}
                 className="text-sm font-medium whitespace-nowrap animate-[slideUp_0.4s_ease-out]"
@@ -261,44 +277,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
               </div>
             </div>
 
-            {/* Elara prerequisite alert */}
-            <div
-              className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-left w-full mb-4 box-border"
-              style={{
-                backgroundColor: 'rgba(234, 179, 8, 0.04)',
-                border: '1px solid rgba(234, 179, 8, 0.12)',
-              }}
-            >
-              <Zap
-                size={16}
-                color="var(--vscode-editorWarning-foreground, #eab308)"
-                className="shrink-0"
-              />
-              <div
-                className="text-[11px] leading-relaxed"
-                style={{ color: 'var(--vscode-foreground)' }}
-              >
-                <strong
-                  style={{
-                    color: 'var(--vscode-editorWarning-foreground, #eab308)',
-                  }}
-                >
-                  Prerequisite
-                </strong>{' '}
-                You'll need to install{' '}
-                <a
-                  href="https://elara-home.vercel.app/"
-                  target="_blank"
-                  className="no-underline font-semibold"
-                  style={{
-                    color: 'var(--vscode-link-activeForeground, #3b82f6)',
-                  }}
-                >
-                  Elara
-                </a>{' '}
-                to ensure the agent works correctly.
-              </div>
-            </div>
+            
           </div>
 
           {/* Dashboard content */}
@@ -348,6 +327,43 @@ const HomePanel: React.FC<HomePanelProps> = ({
           `}</style>
         </div>
       </div>
+
+      {/* ModelAccountDrawer Overlay */}
+      {showModelDrawer && (
+        <ModelAccountDrawer
+          isOpen={showModelDrawer}
+          onClose={() => setShowModelDrawer(false)}
+          providers={providers}
+          apiUrl={apiUrl}
+          onSelect={(selected) => {
+            const prov = providers.find((p: any) => p.provider_id === selected.providerId);
+            const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
+            let faviconUrl = '';
+            if (prov?.website) {
+              try {
+                faviconUrl = `${new URL(prov.website).origin}/favicon.ico`;
+              } catch {}
+            }
+
+            const newModel = {
+              ...selected,
+              id: selected.modelId,
+              name: modelObj?.name || selected.modelId,
+              favicon: faviconUrl,
+              is_thinking: modelObj?.is_thinking ?? false,
+              is_search: modelObj?.is_search ?? false,
+              is_upload: modelObj?.is_upload ?? false,
+              is_memory: modelObj?.is_memory ?? prov?.is_memory ?? false,
+            };
+            setCurrentModel(newModel);
+            setCurrentAccount({
+              id: selected.accountId,
+              email: selected.email,
+            });
+            setShowModelDrawer(false);
+          }}
+        />
+      )}
 
       {/* MessageInput */}
       <input
@@ -410,6 +426,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
         setCurrentAccount={setCurrentAccount}
         isProcessing={false}
         isStreaming={false}
+        onOpenModelDrawer={handleOpenModelDrawer}
       />
     </div>
   );

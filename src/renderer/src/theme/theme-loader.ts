@@ -36,7 +36,6 @@ export interface ThemeConfig {
     divider: string;
     cardBackground: string;
     inputBackground: string;
-    modalBackground: string;
     dropdownContentBackground: string;
     dropdownItemHover: string;
     sidebarBackground: string;

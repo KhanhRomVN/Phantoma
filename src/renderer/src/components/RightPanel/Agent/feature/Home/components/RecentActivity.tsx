@@ -14,6 +14,8 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
   isLoading,
   onLoadConversation,
 }) => {
+  console.log('[Phantoma][RecentActivity] render | isLoading:', isLoading, '| conversations count:', conversations?.length, '| conversations:', conversations);
+
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const vscodeApi = (window as any).vscodeApi;
@@ -31,11 +33,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
 
   return (
     <div
-      className="rounded-lg p-3.5 box-border"
-      style={{
-        backgroundColor: 'var(--vscode-sideBar-background, rgba(0,0,0,0.15))',
-        border: '1px solid var(--vscode-widget-border, rgba(128,128,128,0.15))',
-      }}
+      className="rounded-lg p-3.5 box-border border border-border hover:border-primary transition-all duration-200 ease-in-out"
     >
       <div className="flex justify-between items-center mb-2.5">
         <span

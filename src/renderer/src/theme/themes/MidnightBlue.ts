@@ -189,8 +189,6 @@ export const MidnightBlue: ThemeConfig = {
     //
     inputBackground: 'rgb(10, 14, 20)',
     //
-    modalBackground: 'rgb(10, 14, 20)',
-    //
     dropdownBackground: 'rgb(10, 15, 25)',
     dropdownItemHover: 'rgb(15, 25, 40)',
     //

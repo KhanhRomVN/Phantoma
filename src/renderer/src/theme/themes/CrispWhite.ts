@@ -189,8 +189,6 @@ export const CrispWhite: ThemeConfig = {
     //
     inputBackground: 'rgb(235, 238, 242)',
     //
-    modalBackground: 'rgb(255, 255, 255)',
-    //
     dropdownBackground: 'rgb(255, 255, 255)',
     dropdownItemHover: 'rgb(240, 242, 244)',
     //

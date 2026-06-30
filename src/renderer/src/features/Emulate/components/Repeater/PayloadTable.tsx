@@ -216,7 +216,7 @@ export function PayloadTable({ payloads, onChange, targetId }: PayloadTableProps
               Templates
             </button>
             {showTemplateMenu && (
-              <div className="absolute top-full left-0 mt-1 min-w-[200px] bg-modal-background border border-border rounded-lg shadow-xl z-50 py-1">
+              <div className="absolute top-full left-0 mt-1 min-w-[200px] bg-background border border-border rounded-lg shadow-xl z-50 py-1">
                 {payloadTemplates.map((template) => (
                   <button
                     key={template.id}

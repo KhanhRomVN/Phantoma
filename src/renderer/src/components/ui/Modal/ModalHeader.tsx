@@ -18,7 +18,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   className,
 }) => {
   return (
-    <div className={cn('px-5 pt-5 pb-3 border-b border-divider shrink-0 flex items-start gap-3', className)}>
+    <div className={cn('px-5 pt-5 pb-2 border-b border-divider shrink-0 flex items-center gap-3', className)}>
       <div className="flex-1 min-w-0">
         {title && <h3 className="text-base font-bold text-text-primary">{title}</h3>}
         {description && (

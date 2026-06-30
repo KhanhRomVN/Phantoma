@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import { Trash2, RefreshCw, CheckCircle } from "lucide-react";
 import { FlatAccount } from "../types";
 import { CopyableText } from "../utils";
+import { Button } from '@renderer/components/ui/Button';
 import { cn } from '@renderer/shared/lib/utils';
 
 interface AccountCardProps {
@@ -126,7 +127,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
     ? ReactDOM.createPortal(
         <div
           onMouseDown={(e) => e.stopPropagation()}
-          className="fixed rounded-[10px] overflow-hidden z-[99999] min-w-[180px] bg-[var(--tertiary-bg)] border border-[var(--border-color)] shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
+          className="fixed rounded-[10px] overflow-hidden z-[99999] min-w-[180px] bg-[rgb(var(--card-background))] border border-border shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
           style={{
             top: menuPosition.y,
             left: menuPosition.x,
@@ -250,7 +251,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
         'account-card relative rounded-xl transition-all duration-200 ease-in-out',
         isSelected
           ? 'bg-[var(--vscode-list-activeSelectionBackground,rgba(99,102,241,0.08))] border border-[var(--vscode-focusBorder,rgba(99,102,241,0.4))]'
-          : 'bg-[var(--tertiary-bg)] border border-[var(--border-color)]'
+          : 'bg-[rgb(var(--card-background))] border border-border'
       )}
       onContextMenu={handleContextMenu}
     >
@@ -263,7 +264,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
               'absolute left-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded flex items-center justify-center cursor-pointer z-[1] shrink-0 transition-all duration-150',
               isSelected
                 ? 'border border-[var(--vscode-focusBorder)] bg-[var(--vscode-list-activeSelectionBackground,rgba(99,102,241,0.2))]'
-                : 'border border-[var(--border-color)] bg-[rgba(128,128,128,0.08)]'
+                : 'border border-border bg-[rgba(128,128,128,0.08)]'
             )}
             onClick={handleSelectClick}
           >
@@ -368,16 +369,17 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
           {/* Switch button */}
           {account.is_active_cli === false && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={(e) => {
                 e.stopPropagation();
                 onSwitch();
               }}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium cursor-pointer shrink-0 bg-[var(--vscode-button-secondaryBackground,rgba(128,128,128,0.15))] border border-[var(--border-color)] text-[var(--vscode-button-secondaryForeground,var(--secondary-text))]"
             >
               <RefreshCw size={10} />
               Switch
-            </button>
+            </Button>
           )}
 
           {/* Active badge */}
@@ -392,7 +394,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
       {/* Expanded detail section */}
       {expanded && (
-        <div className="text-xs py-2.5 border-t border-[var(--border-color)] bg-[var(--vscode-list-hoverBackground,rgba(128,128,128,0.04))]">
+        <div className="text-xs py-2.5 border-t border-border bg-[var(--vscode-list-hoverBackground,rgba(128,128,128,0.04))]">
           <div className="grid grid-cols-2 gap-2.5 mb-2.5 px-3">
             <div className="min-w-0">
               <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
@@ -436,7 +438,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
             )}
           </div>
 
-          <div className="text-[10px] text-center pt-2 mx-3 opacity-60 border-t border-dashed border-[var(--border-color)] text-[var(--secondary-text)]">
+          <div className="text-[10px] text-center pt-2 mx-3 opacity-60 border-t border-dashed border-border text-[var(--secondary-text)]">
             Click again to collapse
           </div>
         </div>

@@ -556,7 +556,7 @@ export function PayloadConfigPanel({
             </div>
           </button>
           {isMethodDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 min-w-[120px] bg-modal-background border border-border rounded-lg shadow-xl z-50 py-1">
+            <div className="absolute top-full left-0 mt-1 min-w-[120px] bg-background border border-border rounded-lg shadow-xl z-50 py-1">
               {methods.map((m, index) => {
                 const color = getColorByIndex(index % 10);
                 return (
@@ -708,7 +708,7 @@ export function PayloadConfigPanel({
       {/* Run confirmation modal */}
       {showRunModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-modal-background border border-border rounded-lg shadow-2xl max-w-md w-full">
+          <div className="bg-background border border-border rounded-lg shadow-2xl max-w-md w-full">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-medium text-text-primary">Confirm Execution</h3>
               <button

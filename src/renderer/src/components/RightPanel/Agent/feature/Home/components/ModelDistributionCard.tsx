@@ -70,11 +70,7 @@ const ModelDistributionCard: React.FC<Props> = ({
 
   return (
     <div
-      className="rounded-lg p-3.5 box-border"
-      style={{
-        backgroundColor: "var(--vscode-sideBar-background, rgba(0,0,0,0.15))",
-        border: "1px solid var(--vscode-widget-border, rgba(128,128,128,0.15))",
-      }}
+      className="rounded-lg p-3.5 box-border border border-border hover:border-primary transition-all duration-200 ease-in-out"
     >
       {/* Title */}
       <div
@@ -145,8 +141,7 @@ const ModelDistributionCard: React.FC<Props> = ({
                 y={cy + 11}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-[10px]"
-                style={{ fill: "var(--vscode-descriptionForeground)" }}
+                className="text-[10px] fill-text-secondary"
               >
                 models
               </text>

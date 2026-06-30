@@ -128,7 +128,6 @@ export function RequestTable({
   const targetDropdownRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [rowSelection, setRowSelection] = useState({});
-  
 
   // Feature: Highlighted Rows
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
@@ -414,7 +413,7 @@ export function RequestTable({
         size: 0,
         enableHiding: true,
       },
-{
+      {
         accessorKey: 'method',
         header: 'Method',
         size: 100,
@@ -515,9 +514,7 @@ export function RequestTable({
             colorClass = 'text-red';
           }
           return (
-            <span
-              className={cn('font-bold text-xs text-center w-full', colorClass)}
-            >
+            <span className={cn('font-bold text-xs text-center w-full', colorClass)}>
               {status || 'Pending'}
             </span>
           );
@@ -544,11 +541,7 @@ export function RequestTable({
             other: 'text-text-secondary',
           };
           const colorClass = typeColorMap[type] || 'text-text-secondary';
-          return (
-            <span className={cn('text-xs font-medium', colorClass)}>
-              {formattedType}
-            </span>
-          );
+          return <span className={cn('text-xs font-medium', colorClass)}>{formattedType}</span>;
         },
       },
       {
@@ -1233,60 +1226,60 @@ export function RequestTable({
                       </button>
                     </DropdownTrigger>
                     <DropdownContent className="w-56">
-                  <>
-                    <DropdownItem onClick={() => handleCopySingleAsMarkdown(row.original)}>
-                      <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
-                      <span>Copy as Markdown</span>
-                    </DropdownItem>
-                    <DropdownItem onClick={() => handleCopySingleAsJson(row.original)}>
-                      <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
-                      <span>Copy as JSON</span>
-                    </DropdownItem>
+                      <>
+                        <DropdownItem onClick={() => handleCopySingleAsMarkdown(row.original)}>
+                          <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
+                          <span>Copy as Markdown</span>
+                        </DropdownItem>
+                        <DropdownItem onClick={() => handleCopySingleAsJson(row.original)}>
+                          <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
+                          <span>Copy as JSON</span>
+                        </DropdownItem>
 
-                    <DropdownSeparator />
+                        <DropdownSeparator />
 
-                    <DropdownItem onClick={() => onSetCompare1(row.original)}>
-                      <ArrowLeftRight className="mr-2 h-3.5 w-3.5 text-emerald-400" />
-                      <span>Set as Compare 1</span>
-                    </DropdownItem>
-                    <DropdownItem onClick={() => onSetCompare2(row.original)}>
-                      <ArrowLeftRight className="mr-2 h-3.5 w-3.5 text-emerald-400" />
-                      <span>Set as Compare 2</span>
-                    </DropdownItem>
+                        <DropdownItem onClick={() => onSetCompare1(row.original)}>
+                          <ArrowLeftRight className="mr-2 h-3.5 w-3.5 text-emerald-400" />
+                          <span>Set as Compare 1</span>
+                        </DropdownItem>
+                        <DropdownItem onClick={() => onSetCompare2(row.original)}>
+                          <ArrowLeftRight className="mr-2 h-3.5 w-3.5 text-emerald-400" />
+                          <span>Set as Compare 2</span>
+                        </DropdownItem>
 
-                    <DropdownSeparator />
+                        <DropdownSeparator />
 
-                    <DropdownItem onClick={() => onAnalyzeRequest?.(row.original)}>
-                      <BookmarkPlus className="mr-2 h-3.5 w-3.5 text-indigo-400" />
-                      <span>Analyze Request</span>
-                    </DropdownItem>
+                        <DropdownItem onClick={() => onAnalyzeRequest?.(row.original)}>
+                          <BookmarkPlus className="mr-2 h-3.5 w-3.5 text-indigo-400" />
+                          <span>Analyze Request</span>
+                        </DropdownItem>
 
-                    <DropdownItem onClick={() => onSendToRepeater?.(row.original)}>
-                      <Zap className="mr-2 h-3.5 w-3.5 text-amber-400" />
-                      <span>Send to Repeater</span>
-                    </DropdownItem>
+                        <DropdownItem onClick={() => onSendToRepeater?.(row.original)}>
+                          <Zap className="mr-2 h-3.5 w-3.5 text-amber-400" />
+                          <span>Send to Repeater</span>
+                        </DropdownItem>
 
-                    <DropdownItem onClick={() => toggleHighlight(row.original.id)}>
-                      <Star
-                        className={cn(
-                          'mr-2 h-3.5 w-3.5',
-                          isHighlighted ? 'fill-warning text-warning' : 'text-yellow-400',
-                        )}
-                      />
-                      <span>{isHighlighted ? 'Unhighlight' : 'Highlight'}</span>
-                    </DropdownItem>
+                        <DropdownItem onClick={() => toggleHighlight(row.original.id)}>
+                          <Star
+                            className={cn(
+                              'mr-2 h-3.5 w-3.5',
+                              isHighlighted ? 'fill-warning text-warning' : 'text-yellow-400',
+                            )}
+                          />
+                          <span>{isHighlighted ? 'Unhighlight' : 'Highlight'}</span>
+                        </DropdownItem>
 
-                    <DropdownSeparator />
+                        <DropdownSeparator />
 
-                    <DropdownItem
-                      onClick={() => onDelete?.(row.original.id)}
-                      className="text-error focus:text-error focus:bg-error/10"
-                    >
-                      <Trash2 className="mr-2 h-3.5 w-3.5" />
-                      <span>Delete</span>
-                    </DropdownItem>
-                  </>
-                </DropdownContent>
+                        <DropdownItem
+                          onClick={() => onDelete?.(row.original.id)}
+                          className="text-error focus:text-error focus:bg-error/10"
+                        >
+                          <Trash2 className="mr-2 h-3.5 w-3.5" />
+                          <span>Delete</span>
+                        </DropdownItem>
+                      </>
+                    </DropdownContent>
                   </Dropdown>
                 </div>
               </div>
@@ -1301,7 +1294,7 @@ export function RequestTable({
         )}
       </div>
       {Object.keys(rowSelection).length > 0 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-modal-background border border-border/80 rounded-full shadow-2xl px-4 py-2 flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background border border-border/80 rounded-full shadow-2xl px-4 py-2 flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <span className="text-xs font-medium text-text-secondary">
             {String(Object.keys(rowSelection).length)} selected
           </span>
@@ -1403,7 +1396,7 @@ export function RequestTable({
                 <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2 px-1">
                   Format
                 </div>
-                <div className="flex gap-1 p-0.5 bg-modal-background rounded-lg border border-border">
+                <div className="flex gap-1 p-0.5 bg-background rounded-lg border border-border">
                   <button
                     onClick={(e: React.MouseEvent) => {
                       e.preventDefault();

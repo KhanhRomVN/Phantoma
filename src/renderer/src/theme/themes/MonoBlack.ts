@@ -189,8 +189,6 @@ export const MonoBlack: ThemeConfig = {
     //
     inputBackground: 'rgb(15, 15, 15)',
     //
-    modalBackground: 'rgb(12, 12, 12)',
-    //
     dropdownBackground: 'rgb(12, 12, 12)',
     dropdownItemHover: 'rgb(25, 25, 25)',
     //

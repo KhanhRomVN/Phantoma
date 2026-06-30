@@ -503,7 +503,7 @@ export function ModuleBar({
                 exit={{ opacity: 0, width: 0 }}
                 className={cn(
                   'text-[13px] font-medium truncate flex-1 text-left whitespace-nowrap overflow-hidden',
-                  active === 'settings' ? 'text-[rgb(var(--primary))]' : 'text-text-secondary',
+                  active === 'settings' ? 'text-primary' : 'text-text-secondary',
                 )}
               >
                 Settings

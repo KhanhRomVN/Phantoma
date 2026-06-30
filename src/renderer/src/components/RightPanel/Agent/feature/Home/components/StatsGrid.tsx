@@ -59,11 +59,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
       {cards.map((card, i) => (
         <div
           key={i}
-          className="dashboard-card flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ease-in-out"
-          style={{
-            backgroundColor: 'var(--vscode-sideBar-background, rgba(0,0,0,0.15))',
-            border: '1px solid var(--vscode-widget-border, rgba(128,128,128,0.15))',
-          }}
+          className="dashboard-card flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ease-in-out border border-border hover:border-primary"
         >
           <div
             className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"

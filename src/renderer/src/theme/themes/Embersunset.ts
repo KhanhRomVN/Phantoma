@@ -190,8 +190,6 @@ export const EmberSunset: ThemeConfig = {
     //
     inputBackground: 'rgb(248, 236, 222)',
     //
-    modalBackground: 'rgb(255, 250, 244)',
-    //
     dropdownBackground: 'rgb(255, 250, 244)',
     dropdownItemHover: 'rgb(247, 238, 226)',
     //

@@ -190,8 +190,6 @@ export const DeepForest: ThemeConfig = {
     //
     inputBackground: 'rgb(15, 23, 18)',
     //
-    modalBackground: 'rgb(14, 21, 17)',
-    //
     dropdownBackground: 'rgb(14, 22, 17)',
     dropdownItemHover: 'rgb(20, 31, 25)',
     //

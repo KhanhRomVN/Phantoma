@@ -341,7 +341,7 @@ export function ParamTable({
 
           return (
             <div
-              className="fixed z-50 bg-modal-background border border-border rounded-lg shadow-xl p-3 max-w-xs"
+              className="fixed z-50 bg-background border border-border rounded-lg shadow-xl p-3 max-w-xs"
               style={{
                 left: tooltipPosition.x,
                 top: tooltipPosition.y,

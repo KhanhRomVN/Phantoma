@@ -140,11 +140,11 @@ export function DropdownSub({
   const childrenArray = React.Children.toArray(children);
   const trigger = childrenArray.find(
     (child) =>
-      React.isValidElement(child) && (child.type as any)?.displayName === 'DropdownSubTrigger'
+      React.isValidElement(child) && (child.type as any)?.displayName === 'DropdownSubTrigger',
   );
   const content = childrenArray.find(
     (child) =>
-      React.isValidElement(child) && (child.type as any)?.displayName === 'DropdownSubContent'
+      React.isValidElement(child) && (child.type as any)?.displayName === 'DropdownSubContent',
   );
 
   return (
@@ -161,7 +161,7 @@ export function DropdownSub({
         {open && content && (
           <div
             ref={contentRef}
-            className="fixed z-[9999] min-w-[160px] bg-modal-background border border-border rounded-lg shadow-lg py-1 animate-in fade-in zoom-in duration-100 transition-colors hover:border-primary"
+            className="fixed z-[9999] min-w-[160px] bg-background border border-border rounded-lg shadow-lg py-1 animate-in fade-in zoom-in duration-100 transition-colors hover:border-primary"
             style={{
               top: position.top,
               left: position.left,

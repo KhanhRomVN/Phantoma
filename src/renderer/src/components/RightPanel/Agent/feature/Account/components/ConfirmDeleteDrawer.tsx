@@ -1,5 +1,6 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@renderer/components/ui/Button';
 
 interface ConfirmDeleteDrawerProps {
   open: boolean;
@@ -33,8 +34,8 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
       <div
         className="fixed bottom-0 left-0 right-0 rounded-t-2xl z-[201] animate-[cdSlideUp_0.22s_ease]"
         style={{
-          backgroundColor: 'var(--tertiary-bg)',
-          borderTop: '1px solid var(--border-color)',
+          backgroundColor: 'rgb(var(--card-background))',
+          borderTop: '1px solid rgb(var(--border))',
           boxShadow: '0 -8px 32px rgba(0,0,0,0.25)',
           padding: '0 0 max(20px, env(safe-area-inset-bottom)) 0',
         }}
@@ -43,7 +44,7 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
         <div className="flex justify-center pt-2.5 pb-1.5">
           <div
             className="w-8 h-[3px] rounded-[2px]"
-            style={{ backgroundColor: 'var(--border-color)' }}
+            style={{ backgroundColor: 'rgb(var(--border))' }}
           />
         </div>
 
@@ -90,48 +91,25 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
 
           {/* Buttons */}
           <div className="flex gap-2">
-            <button
-              onClick={() => onOpenChange(false)}
+            <Button
+              variant="outline"
+              size="sm"
+              fullWidth
               disabled={loading}
-              className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-opacity duration-150"
-              style={{
-                backgroundColor: 'rgba(128,128,128,0.1)',
-                border: 'none',
-                color: 'var(--secondary-text)',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.5 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) e.currentTarget.style.backgroundColor = 'rgba(128,128,128,0.18)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(128,128,128,0.1)';
-              }}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
-            </button>
-            <button
-              onClick={onConfirm}
+            </Button>
+            <Button
+              variant="error"
+              size="sm"
+              fullWidth
               disabled={loading}
-              className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-opacity duration-150"
-              style={{
-                backgroundColor:
-                  'var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.15))',
-                border: 'none',
-                color: 'var(--vscode-errorForeground)',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) e.currentTarget.style.opacity = '0.8';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = loading ? '0.7' : '1';
-              }}
+              onClick={onConfirm}
             >
               {loading && <Loader2 size={12} style={{ animation: 'cdSpin 1s linear infinite' }} />}
               {loading ? 'Deleting…' : 'Delete'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -8,7 +8,15 @@ import {
   TableCell,
 } from '../../../../components/ui/Table';
 
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem, DropdownSub, DropdownSubTrigger, DropdownSubContent } from '../../../../components/ui/Dropdown';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+  DropdownSub,
+  DropdownSubTrigger,
+  DropdownSubContent,
+} from '../../../../components/ui/Dropdown';
 import { Copy, Trash2, FileJson, FileText, ChevronDown } from 'lucide-react';
 
 interface DataTableProps {
@@ -34,7 +42,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   onBulkCopyAsJson,
   onBulkCopyAsMarkdown,
 }) => {
-  const selectedRows = table.getSelectedRowModel().rows.map(row => row.original);
+  const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -171,7 +179,9 @@ export const DataTable: React.FC<DataTableProps> = ({
                 Delete record
               </DropdownItem>
               <DropdownSub>
-                <DropdownSubTrigger icon={<Copy className="w-3.5 h-3.5" />}>Copy</DropdownSubTrigger>
+                <DropdownSubTrigger icon={<Copy className="w-3.5 h-3.5" />}>
+                  Copy
+                </DropdownSubTrigger>
                 <DropdownSubContent>
                   <DropdownItem
                     icon={<FileJson className="w-3.5 h-3.5" />}
@@ -191,7 +201,6 @@ export const DataTable: React.FC<DataTableProps> = ({
                   >
                     Copy as Markdown
                   </DropdownItem>
-                  
                 </DropdownSubContent>
               </DropdownSub>
             </DropdownContent>
@@ -201,7 +210,7 @@ export const DataTable: React.FC<DataTableProps> = ({
 
       {/* Bulk Action Bar */}
       {selectedCount > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 bg-modal-background border border-border rounded-lg shadow-lg px-4 py-2 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 bg-background border border-border rounded-lg shadow-lg px-4 py-2 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-200">
           <span className="text-xs text-text-secondary">
             {selectedCount} record{selectedCount > 1 ? 's' : ''} selected
           </span>
@@ -215,7 +224,6 @@ export const DataTable: React.FC<DataTableProps> = ({
               </button>
             </DropdownTrigger>
             <DropdownContent className="w-auto min-w-max">
-              
               <DropdownItem onClick={() => onBulkCopyAsJson?.(selectedRows)}>
                 <FileJson className="w-3.5 h-3.5" />
                 Copy as JSON
