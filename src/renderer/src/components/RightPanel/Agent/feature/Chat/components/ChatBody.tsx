@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { parseAIResponse, ParsedResponse, ToolAction } from '../services/ResponseParser';
+import { parseAIResponse, ParsedResponse, ToolAction } from '../blocks';
 import { useSettings } from '../../../context/SettingsContext';
 import { useCollapseSections } from '../hooks/useCollapseSections';
 import { useToolActions } from '../hooks/useToolActions';
 import { useScrollBehavior } from '../hooks/useScrollBehavior';
-import { getPermissionDecision } from '../hooks/useToolExecution';
+import { getPermissionDecision } from '../blocks';
 import { Message } from '../types/message';
 import ProcessingIndicator from './messages/ProcessingIndicator';
 import MessageBox from './messages/MessageBox';

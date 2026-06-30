@@ -1,19 +1,10 @@
-import {
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-} from "react";
-import { Message } from "../types/message";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
+import { Message } from '../types/message';
 
-import { parseAIResponse } from "../services/ResponseParser";
-import { useSettings, PermissionMode } from "../../../context/SettingsContext";
-import { applyTokenLimitGuard } from "../utils/tokenGuard";
-import { formatGrepResultCompact } from "../utils/grepFormatter";
-export { getPermissionDecision } from "../utils/permissionUtils";
-import { getPermissionDecision } from "../utils/permissionUtils";
-import { extensionService, messageDispatcher } from "../../../services/ExtensionService";
+import { parseAIResponse, getPermissionDecision } from '../blocks';
+import { useSettings, PermissionMode } from '../../../context/SettingsContext';
+import { formatGrepResultCompact } from '../utils/grepFormatter';
+import { extensionService, messageDispatcher } from '../../../services/ExtensionService';
 
 // ── Timeout constants ──────────────────────────────────────────────────────
 /** Standard timeout for file/git/search operations (ms) */
@@ -55,34 +46,25 @@ export const useToolExecution = ({
   const [executionState, setExecutionState] = useState<{
     total: number;
     completed: number;
-    status: "idle" | "running" | "error" | "done";
-  }>({ total: 0, completed: 0, status: "idle" });
+    status: 'idle' | 'running' | 'error' | 'done';
+  }>({ total: 0, completed: 0, status: 'idle' });
 
   const [toolOutputs, setToolOutputs] = useState<
     Record<string, { output: string; isError: boolean; terminalId?: string }>
   >({});
 
-  const [terminalStatus, setTerminalStatus] = useState<
-    Record<string, "busy" | "free">
-  >({});
+  const [terminalStatus, setTerminalStatus] = useState<Record<string, 'busy' | 'free'>>({});
 
   const [clickedActions, setClickedActions] = useState<Set<string>>(new Set());
-  const [rejectedActions, setRejectedActions] = useState<Set<string>>(
-    new Set(),
-  );
+  const [rejectedActions, setRejectedActions] = useState<Set<string>>(new Set());
 
   // Single-line review state for write_to_file actions
   const [singleLineReviewActions, setSingleLineReviewActions] = useState<
-    Record<
-      string,
-      { action: any; actionId: string; messageId: string; messageObj: Message }
-    >
+    Record<string, { action: any; actionId: string; messageId: string; messageObj: Message }>
   >({});
 
   const clickedActionsRef = useRef<Set<string>>(new Set());
-  const pendingToolResolvers = useRef<
-    Map<string, (result: string | null) => void>
-  >(new Map());
+  const pendingToolResolvers = useRef<Map<string, (result: string | null) => void>>(new Map());
   const commandStartTimes = useRef<Map<string, number>>(new Map());
   const earlyCommandResults = useRef<Map<string, any>>(new Map()); // cache commandExecuted that arrived before resolver was set
   const handleSendMessageRef = useRef(sendMessage);
@@ -108,15 +90,12 @@ export const useToolExecution = ({
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
 
-      if (message.command === "commandExecuted") {
+      if (message.command === 'commandExecuted') {
         if (message.actionId) {
           setToolOutputs((prev) => {
             const existing = prev[message.actionId];
-            let finalOutput = message.output || "";
-            if (
-              existing?.output &&
-              existing.output.length > finalOutput.length
-            ) {
+            let finalOutput = message.output || '';
+            if (existing?.output && existing.output.length > finalOutput.length) {
               finalOutput = existing.output;
             }
             return {
@@ -130,21 +109,18 @@ export const useToolExecution = ({
           });
 
           if (pendingToolResolvers.current.has(message.actionId)) {
-            const resolver = pendingToolResolvers.current.get(
-              message.actionId,
-            )!;
+            const resolver = pendingToolResolvers.current.get(message.actionId)!;
             if (message.terminalId) {
               terminalToActionMap.current.delete(message.terminalId);
               // cleanup terminal after command finishes
               extensionService.postMessage({
-                command: "removeTerminal",
+                command: 'removeTerminal',
                 terminalId: message.terminalId,
               });
             }
             commandStartTimes.current.delete(message.actionId);
-            const cmdText =
-              message.commandText || message.commandTextRaw || "command";
-            const outputContent = (message.output || "").trim();
+            const cmdText = message.commandText || message.commandTextRaw || 'command';
+            const outputContent = (message.output || '').trim();
             const resultMsg = message.error
               ? `Output: [run_command for '${cmdText}'] Error - ${message.error}\n\`\`\`\n${outputContent}\n\`\`\``
               : `Output: [run_command for '${cmdText}']\n\`\`\`\n${outputContent}\n\`\`\``;
@@ -154,11 +130,11 @@ export const useToolExecution = ({
             earlyCommandResults.current.set(message.actionId, message);
           }
         }
-      } else if (message.command === "terminalOutput") {
+      } else if (message.command === 'terminalOutput') {
         const actionId = terminalToActionMap.current.get(message.terminalId);
         if (actionId) {
           setToolOutputs((prev) => {
-            const existing = prev[actionId] || { output: "", isError: false };
+            const existing = prev[actionId] || { output: '', isError: false };
             return {
               ...prev,
               [actionId]: {
@@ -169,38 +145,38 @@ export const useToolExecution = ({
             };
           });
         }
-      } else if (message.command === "terminalStatusChanged") {
+      } else if (message.command === 'terminalStatusChanged') {
         setTerminalStatus((prev) => ({
           ...prev,
           [message.terminalId]: message.status,
         }));
-      } else if (message.command === "restoreSingleLineReviewActions") {
+      } else if (message.command === 'restoreSingleLineReviewActions') {
         if (message.actions && Object.keys(message.actions).length > 0) {
           setSingleLineReviewActions(message.actions);
         }
-      } else if (message.command === "runCommandResult") {
+      } else if (message.command === 'runCommandResult') {
         if (message.terminalId && message.actionId) {
           terminalToActionMap.current.set(message.terminalId, message.actionId);
           setToolOutputs((prev) => ({
             ...prev,
             [message.actionId]: {
-              ...(prev[message.actionId] || { output: "", isError: false }),
+              ...(prev[message.actionId] || { output: '', isError: false }),
               terminalId: message.terminalId,
             },
           }));
           // Initially set to busy when command is run
           setTerminalStatus((prev) => ({
             ...prev,
-            [message.terminalId]: "busy",
+            [message.terminalId]: 'busy',
           }));
         }
-      } else if (message.command === "gitStatusResult") {
+      } else if (message.command === 'gitStatusResult') {
         // Handle git status results
         if (message.actionId && message.output !== undefined) {
           setToolOutputs((prev) => ({
             ...prev,
             [message.actionId]: {
-              output: message.output || "",
+              output: message.output || '',
               isError: !!message.error,
             },
           }));
@@ -208,8 +184,8 @@ export const useToolExecution = ({
       }
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   const executeSingleAction = (
@@ -224,38 +200,29 @@ export const useToolExecution = ({
       // We'll use extensionService which we defined to behave like vscodeApi.postMessage
 
       switch (action.type) {
-        case "read_file": {
+        case 'read_file': {
           const requestId = `read-${Date.now()}-${Math.random()}`;
           const filePath = action.params.path || action.params.file_path;
           extensionService.postMessage({
-            command: "readFile",
+            command: 'readFile',
             path: filePath,
-            startLine: action.params.start_line
-              ? parseInt(action.params.start_line)
-              : undefined,
-            endLine: action.params.end_line
-              ? parseInt(action.params.end_line)
-              : undefined,
+            startLine: action.params.start_line ? parseInt(action.params.start_line) : undefined,
+            endLine: action.params.end_line ? parseInt(action.params.end_line) : undefined,
             requestId,
             bypassIgnore,
           });
           messageDispatcher.register(
             requestId,
-            (msg: { error: any; content: any; diagnostics: any[]; }) => {
+            (msg: { error: any; content: any; diagnostics: any[] }) => {
               if (msg.error) {
                 let readableError = msg.error;
-                if (
-                  readableError.includes("tồn tại") ||
-                  readableError.includes("no such file")
-                )
-                  readableError = "File not found in project";
-                resolve(
-                  `[read_file for '${filePath}'] Result: Error - ${readableError}`,
-                );
+                if (readableError.includes('tồn tại') || readableError.includes('no such file'))
+                  readableError = 'File not found in project';
+                resolve(`[read_file for '${filePath}'] Result: Error - ${readableError}`);
               } else {
                 let result = `[read_file for '${filePath}'] Result:\n\`\`\`\n${msg.content}\n\`\`\``;
                 if (msg.diagnostics?.length > 0)
-                  result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join("\n")}`;
+                  result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join('\n')}`;
                 resolve(result);
               }
             },
@@ -264,11 +231,11 @@ export const useToolExecution = ({
           );
           break;
         }
-        case "write_to_file": {
+        case 'write_to_file': {
           const requestId = `write-${Date.now()}-${Math.random()}`;
           const filePath = action.params.path || action.params.file_path;
           extensionService.postMessage({
-            command: "writeFile",
+            command: 'writeFile',
             path: filePath,
             content: action.params.content,
             requestId,
@@ -286,13 +253,11 @@ export const useToolExecution = ({
                   filePath,
                   error: msg.error,
                 });
-                resolve(
-                  `[write_to_file for '${filePath}'] Result: Error - ${msg.error}`,
-                );
+                resolve(`[write_to_file for '${filePath}'] Result: Error - ${msg.error}`);
               } else {
                 let result = `[write_to_file for '${filePath}'] Result: File written successfully`;
                 if (msg.diagnostics?.length > 0)
-                  result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join("\n")}`;
+                  result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join('\n')}`;
                 resolve(result);
               }
             },
@@ -304,11 +269,11 @@ export const useToolExecution = ({
           );
           break;
         }
-        case "replace_in_file": {
+        case 'replace_in_file': {
           const requestId = `replace-${Date.now()}-${Math.random()}`;
           const filePath = action.params.path || action.params.file_path;
           extensionService.postMessage({
-            command: "replaceInFile",
+            command: 'replaceInFile',
             path: filePath,
             diff: action.params.diff,
             requestId,
@@ -326,13 +291,11 @@ export const useToolExecution = ({
                   filePath,
                   error: msg.error,
                 });
-                resolve(
-                  `[replace_in_file for '${filePath}'] Result: Error - ${msg.error}`,
-                );
+                resolve(`[replace_in_file for '${filePath}'] Result: Error - ${msg.error}`);
               } else {
                 let result = `[replace_in_file for '${filePath}'] Result: Diff applied successfully`;
                 if (msg.diagnostics?.length > 0) {
-                  result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join("\n")}`;
+                  result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join('\n')}`;
                   if (msg.content)
                     result += `\n\n<current_file_content_post_edit>\n(The following is the full content of '${filePath}' AFTER the edit. Please review it to fix the diagnostics.)\n\`\`\`\n${msg.content}\n\`\`\`\n</current_file_content_post_edit>`;
                 }
@@ -350,11 +313,11 @@ export const useToolExecution = ({
           );
           break;
         }
-        case "list_files": {
+        case 'list_files': {
           const requestId = `list-${Date.now()}-${Math.random()}`;
           const folderPath = action.params.path || action.params.folder_path;
           extensionService.postMessage({
-            command: "listFiles",
+            command: 'listFiles',
             path: folderPath,
             recursive: action.params.recursive,
             depth: action.params.depth,
@@ -366,9 +329,7 @@ export const useToolExecution = ({
             requestId,
             (msg) => {
               if (msg.error) {
-                resolve(
-                  `[list_files for '${folderPath}'] Result: Error - ${msg.error}`,
-                );
+                resolve(`[list_files for '${folderPath}'] Result: Error - ${msg.error}`);
                 return;
               }
               const listResults = msg.files || msg.results;
@@ -381,11 +342,11 @@ export const useToolExecution = ({
           );
           break;
         }
-        case "run_command": {
+        case 'run_command': {
           const actionId = (action as any).actionId;
           commandStartTimes.current.set(actionId, Date.now());
           extensionService.postMessage({
-            command: "runCommand",
+            command: 'runCommand',
             commandText: action.params.command,
             actionId: actionId,
           });
@@ -394,9 +355,8 @@ export const useToolExecution = ({
           if (earlyCommandResults.current.has(actionId)) {
             const msg = earlyCommandResults.current.get(actionId)!;
             earlyCommandResults.current.delete(actionId);
-            const cmdText =
-              msg.commandText || action.params.command || "command";
-            const outputContent = (msg.output || "").trim();
+            const cmdText = msg.commandText || action.params.command || 'command';
+            const outputContent = (msg.output || '').trim();
             resolve(
               msg.error
                 ? `Output: [run_command for '${cmdText}'] Error - ${msg.error}\n\`\`\`\n${outputContent}\n\`\`\``
@@ -411,11 +371,11 @@ export const useToolExecution = ({
           break;
         }
 
-        case "delete_file": {
+        case 'delete_file': {
           const requestId = `delete-file-${Date.now()}-${Math.random()}`;
           const filePath = action.params.file_path;
           extensionService.postMessage({
-            command: "deleteFile",
+            command: 'deleteFile',
             file_path: filePath,
             requestId,
           });
@@ -423,14 +383,10 @@ export const useToolExecution = ({
             requestId,
             (msg) => {
               if (msg.error) {
-                resolve(
-                  `[delete_file for '${filePath}'] Result: Error - ${msg.error}`,
-                );
+                resolve(`[delete_file for '${filePath}'] Result: Error - ${msg.error}`);
                 return;
               }
-              resolve(
-                `[delete_file for '${filePath}'] Result: File deleted successfully`,
-              );
+              resolve(`[delete_file for '${filePath}'] Result: File deleted successfully`);
             },
             TOOL_TIMEOUT_STANDARD,
             () => resolve(null),
@@ -438,11 +394,11 @@ export const useToolExecution = ({
           break;
         }
 
-        case "delete_folder": {
+        case 'delete_folder': {
           const requestId = `delete-folder-${Date.now()}-${Math.random()}`;
           const folderPath = action.params.folder_path;
           extensionService.postMessage({
-            command: "deleteFolder",
+            command: 'deleteFolder',
             folder_path: folderPath,
             requestId,
           });
@@ -450,14 +406,10 @@ export const useToolExecution = ({
             requestId,
             (msg) => {
               if (msg.error) {
-                resolve(
-                  `[delete_folder for '${folderPath}'] Result: Error - ${msg.error}`,
-                );
+                resolve(`[delete_folder for '${folderPath}'] Result: Error - ${msg.error}`);
                 return;
               }
-              resolve(
-                `[delete_folder for '${folderPath}'] Result: Folder deleted successfully`,
-              );
+              resolve(`[delete_folder for '${folderPath}'] Result: Folder deleted successfully`);
             },
             TOOL_TIMEOUT_STANDARD,
             () => resolve(null),
@@ -465,12 +417,12 @@ export const useToolExecution = ({
           break;
         }
 
-        case "move_file": {
+        case 'move_file': {
           const requestId = `move-file-${Date.now()}-${Math.random()}`;
           const filePath = action.params.file_path;
           const targetFolderPath = action.params.target_folder_path;
           extensionService.postMessage({
-            command: "moveFile",
+            command: 'moveFile',
             file_path: filePath,
             target_folder_path: targetFolderPath,
             requestId,
@@ -494,10 +446,10 @@ export const useToolExecution = ({
           break;
         }
 
-        case "execute_agent_action": {
+        case 'execute_agent_action': {
           const requestId = `agent-${Date.now()}-${Math.random()}`;
           extensionService.postMessage({
-            command: "executeAgentAction",
+            command: 'executeAgentAction',
             action: { ...action.params, requestId },
           });
           messageDispatcher.register(
@@ -508,9 +460,7 @@ export const useToolExecution = ({
                   `[execute_agent_action] Success:\n\`\`\`\n${JSON.stringify(msg.result.data, null, 2)}\n\`\`\``,
                 );
               } else {
-                resolve(
-                  `[execute_agent_action] Result: Error - ${msg.result.error}`,
-                );
+                resolve(`[execute_agent_action] Result: Error - ${msg.result.error}`);
               }
             },
             TOOL_TIMEOUT_EXTENDED,
@@ -519,17 +469,17 @@ export const useToolExecution = ({
           break;
         }
 
-        case "grep": {
+        case 'grep': {
           const requestId = `grep-${Date.now()}-${Math.random()}`;
           const searchTerm = action.params.search_term;
           const filePath = action.params.file_path;
           const folderPath = action.params.folder_path;
-          const targetDesc = filePath || folderPath || "unknown";
+          const targetDesc = filePath || folderPath || 'unknown';
 
           extensionService.postMessage({
-            command: "executeAgentAction",
+            command: 'executeAgentAction',
             action: {
-              type: "grep",
+              type: 'grep',
               search_term: searchTerm,
               file_path: filePath,
               folder_path: folderPath,
@@ -544,17 +494,11 @@ export const useToolExecution = ({
                 const data = msg.result.data;
                 // Format as compact XML-like text to minimize token usage
                 const resultText = formatGrepResultCompact(data);
-                resolve(
-                  `[grep for '${searchTerm}' in '${targetDesc}'] Result:\n${resultText}`,
-                );
+                resolve(`[grep for '${searchTerm}' in '${targetDesc}'] Result:\n${resultText}`);
               } else {
-                const errMsg = msg.result?.error || "Unknown error";
-                console.warn(
-                  `[Zen][grep] Error | requestId=${requestId} | error="${errMsg}"`,
-                );
-                resolve(
-                  `[grep for '${searchTerm}' in '${targetDesc}'] Result: Error - ${errMsg}`,
-                );
+                const errMsg = msg.result?.error || 'Unknown error';
+                console.warn(`[Zen][grep] Error | requestId=${requestId} | error="${errMsg}"`);
+                resolve(`[grep for '${searchTerm}' in '${targetDesc}'] Result: Error - ${errMsg}`);
               }
             },
             TOOL_TIMEOUT_EXTENDED,
@@ -568,16 +512,16 @@ export const useToolExecution = ({
           break;
         }
 
-        case "git_status":
+        case 'git_status':
           // git_status is display-only, no execution needed
           resolve(null);
           break;
 
-        case "git_diff": {
+        case 'git_diff': {
           const requestId = `git-diff-${Date.now()}-${Math.random()}`;
           const filePath = action.params.file_path || action.params.path;
           extensionService.postMessage({
-            command: "gitDiff",
+            command: 'gitDiff',
             file_path: filePath,
             requestId,
           });
@@ -585,28 +529,21 @@ export const useToolExecution = ({
             requestId,
             (msg) => {
               if (msg.error) {
-                resolve(
-                  `[git_diff for '${filePath}'] Result: Error - ${msg.error}`,
-                );
+                resolve(`[git_diff for '${filePath}'] Result: Error - ${msg.error}`);
               } else {
-                let diffContent = msg.diff || "";
+                let diffContent = msg.diff || '';
                 // Clean diff content: remove metadata lines that are not useful for AI
-                const cleanLines = diffContent
-                  .split("\n")
-                  .filter((line: string) => {
-                    const trimmed = line.trim();
-                    if (trimmed.startsWith("diff")) return false;
-                    if (trimmed.startsWith("index ")) return false;
-                    if (trimmed.startsWith("new file mode")) return false;
-                    if (trimmed.startsWith("deleted file mode")) return false;
-                    if (trimmed.includes("No newline at end of file"))
-                      return false;
-                    return true;
-                  });
-                diffContent = cleanLines.join("\n");
-                resolve(
-                  `[git_diff for '${filePath}'] Result:\n\`\`\`diff\n${diffContent}\n\`\`\``,
-                );
+                const cleanLines = diffContent.split('\n').filter((line: string) => {
+                  const trimmed = line.trim();
+                  if (trimmed.startsWith('diff')) return false;
+                  if (trimmed.startsWith('index ')) return false;
+                  if (trimmed.startsWith('new file mode')) return false;
+                  if (trimmed.startsWith('deleted file mode')) return false;
+                  if (trimmed.includes('No newline at end of file')) return false;
+                  return true;
+                });
+                diffContent = cleanLines.join('\n');
+                resolve(`[git_diff for '${filePath}'] Result:\n\`\`\`diff\n${diffContent}\n\`\`\``);
               }
             },
             TOOL_TIMEOUT_EXTENDED,
@@ -618,9 +555,7 @@ export const useToolExecution = ({
         }
 
         default:
-          console.warn(
-            `[Zen][tool] Unhandled tool type: "${action.type}" — resolving null`,
-          );
+          console.warn(`[Zen][tool] Unhandled tool type: "${action.type}" — resolving null`);
           resolve(null);
       }
     });
@@ -631,19 +566,19 @@ export const useToolExecution = ({
       actionOrActions: any,
       message: Message,
       isAutoTrigger: boolean = false,
-      conversationToolOverrides: Record<string, "auto"> = {},
-      actionType?: "accept_all" | "accept_once" | "reject",
+      conversationToolOverrides: Record<string, 'auto'> = {},
+      actionType?: 'accept_all' | 'accept_once' | 'reject',
     ) => {
       // 🐛 FIX: Đọc permissionMode từ ref đã được update đồng bộ qua useLayoutEffect
       const currentPermissionMode = permissionModeRef.current;
       let wasInterruptedByManual = false;
 
-      const actions = (
-        Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions]
-      ).map((a, idx) => ({
-        ...a,
-        _index: a._index !== undefined ? a._index : idx,
-      }));
+      const actions = (Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions]).map(
+        (a, idx) => ({
+          ...a,
+          _index: a._index !== undefined ? a._index : idx,
+        }),
+      );
 
       // Track actions that were pre-skipped (already triggered) vs actually executed
       const validResults: string[] = [];
@@ -651,19 +586,18 @@ export const useToolExecution = ({
       setExecutionState({
         total: actions.length,
         completed: 0,
-        status: "running",
+        status: 'running',
       });
 
       for (let index = 0; index < actions.length; index++) {
         const action = actions[index];
-        const actionId =
-          action.actionId || `${message.id}-action-${action._index}`;
+        const actionId = action.actionId || `${message.id}-action-${action._index}`;
 
         // DEBUG: Log chi tiết cho tất cả các action
 
         // GUARD: Prevent duplicate execution of same action Id
         // 🐛 FIX: Khi reject, KHÔNG skip action dù đã có trong clickedActionsRef
-        const isReject = actionType === "reject";
+        const isReject = actionType === 'reject';
         const isAlreadyClicked = clickedActionsRef.current.has(actionId);
         if (!isReject && isAlreadyClicked) {
           skippedCount++;
@@ -675,23 +609,22 @@ export const useToolExecution = ({
         setClickedActions(new Set(clickedActionsRef.current));
 
         // Skip diagnostics logic optimization
-        const isEditAction =
-          action.type === "replace_in_file" || action.type === "write_to_file";
+        const isEditAction = action.type === 'replace_in_file' || action.type === 'write_to_file';
         let skipDiagnostics = false;
         if (isEditAction) {
           const currentPath = action.params.path;
           const subsequentActions = actions.slice(index + 1);
           skipDiagnostics = subsequentActions.some(
             (a) =>
-              (a.type === "replace_in_file" || a.type === "write_to_file") &&
+              (a.type === 'replace_in_file' || a.type === 'write_to_file') &&
               a.params.path === currentPath,
           );
         }
 
         // SINGLE-LINE REVIEW CHECK: Detect write_to_file with content on a single line > 200 chars
-        if (action.type === "write_to_file") {
-          const content = action.params.content || "";
-          const isSingleLine = !content.includes("\n") && content.length > 100;
+        if (action.type === 'write_to_file') {
+          const content = action.params.content || '';
+          const isSingleLine = !content.includes('\n') && content.length > 100;
           if (isSingleLine) {
             // Pause and require user review
             wasInterruptedByManual = true;
@@ -707,7 +640,7 @@ export const useToolExecution = ({
             setExecutionState({
               total: actions.length,
               completed: index,
-              status: "idle",
+              status: 'idle',
             });
             // Remove from clickedActions since we didn't actually execute
             clickedActionsRef.current.delete(actionId);
@@ -718,15 +651,10 @@ export const useToolExecution = ({
 
         // Check if we should auto-execute this tool
         // 🐛 FIX: Sử dụng currentPermissionMode thay vì permissionModeRef để tránh stale closure
-        const decision = getPermissionDecision(
-          currentPermissionMode,
-          action.type,
-        );
-        const isConversationAuto =
-          conversationToolOverrides[action.type] === "auto";
+        const decision = getPermissionDecision(currentPermissionMode, action.type);
+        const isConversationAuto = conversationToolOverrides[action.type] === 'auto';
 
-        const shouldPauseForManual =
-          decision === "prompt" && !isConversationAuto;
+        const shouldPauseForManual = decision === 'prompt' && !isConversationAuto;
 
         if (isAutoTrigger && shouldPauseForManual) {
           wasInterruptedByManual = true;
@@ -734,26 +662,26 @@ export const useToolExecution = ({
           setExecutionState({
             total: actions.length,
             completed: index,
-            status: "idle",
+            status: 'idle',
           });
           break;
         }
 
         let result: string | null = null;
-        if (actionType === "reject") {
+        if (actionType === 'reject') {
           result = `Output: [${action.type}] Tool execution rejected by user.`;
           setRejectedActions((prev) => {
             const next = new Set(prev).add(actionId);
             return next;
           });
-          window.postMessage({ command: "markActionRejected", actionId }, "*");
-        } else if (decision === "deny") {
+          window.postMessage({ command: 'markActionRejected', actionId }, '*');
+        } else if (decision === 'deny') {
           result = `Output: [${action.type}] Tool execution blocked by permission policy (${permissionModeRef.current}).`;
         } else {
           result = await executeSingleAction(
             { ...action, actionId },
             skipDiagnostics,
-            decision === "allow" || isConversationAuto,
+            decision === 'allow' || isConversationAuto,
           );
         }
 
@@ -763,22 +691,21 @@ export const useToolExecution = ({
           // Update outputs
           let cleanOutput = result;
           const prefixMatch = result.match(/^\[.*?\] Result:\s*/);
-          if (prefixMatch)
-            cleanOutput = result.substring(prefixMatch[0].length);
-          if (cleanOutput.startsWith("```\n") && cleanOutput.endsWith("\n```"))
+          if (prefixMatch) cleanOutput = result.substring(prefixMatch[0].length);
+          if (cleanOutput.startsWith('```\n') && cleanOutput.endsWith('\n```'))
             cleanOutput = cleanOutput.substring(4, cleanOutput.length - 4);
-          else if (cleanOutput.startsWith("```") && cleanOutput.endsWith("```"))
+          else if (cleanOutput.startsWith('```') && cleanOutput.endsWith('```'))
             cleanOutput = cleanOutput.substring(3, cleanOutput.length - 3);
 
           const isError =
-            result.includes("Result: Error") ||
-            result.includes("Tool execution blocked") ||
-            result.includes("Tool execution rejected");
+            result.includes('Result: Error') ||
+            result.includes('Tool execution blocked') ||
+            result.includes('Tool execution rejected');
 
           // CRITICAL: For run_command, we do NOT overwrite toolOutputs with the formatted 'result'
           // because the Raw Terminal Logs are already being updated in real-time by terminalOutput/commandExecuted events.
           // Overwriting here would inject the "Output: [run_command...]" header and backticks into the TerminalBlock UI.
-          if (action.type !== "run_command") {
+          if (action.type !== 'run_command') {
             setToolOutputs((prev) => ({
               ...prev,
               [actionId]: {
@@ -802,10 +729,10 @@ export const useToolExecution = ({
           // UI Notification
           window.postMessage(
             {
-              command: isError ? "markActionFailed" : "markActionClicked",
+              command: isError ? 'markActionFailed' : 'markActionClicked',
               actionId,
             },
-            "*",
+            '*',
           );
           setClickedActions((prev) => {
             const next = new Set(prev).add(actionId);
@@ -813,26 +740,22 @@ export const useToolExecution = ({
             return next;
           });
         } else {
-          setExecutionState((prev) => ({ ...prev, status: "error" }));
+          setExecutionState((prev) => ({ ...prev, status: 'error' }));
           break;
         }
       }
 
       const allActionsPreSkipped = skippedCount === actions.length;
-      if (actionType === "reject") {
+      if (actionType === 'reject') {
       }
       if (allActionsPreSkipped) {
-        if (actionType === "reject") {
+        if (actionType === 'reject') {
         }
-        setExecutionState((prev) =>
-          prev.status === "error" ? prev : { ...prev, status: "done" },
-        );
+        setExecutionState((prev) => (prev.status === 'error' ? prev : { ...prev, status: 'done' }));
         return;
       }
 
-      setExecutionState((prev) =>
-        prev.status === "error" ? prev : { ...prev, status: "done" },
-      );
+      setExecutionState((prev) => (prev.status === 'error' ? prev : { ...prev, status: 'done' }));
 
       // Handle Buffer and Sending
       setAvailableToolResultsBuffer((prev) => {
@@ -843,16 +766,10 @@ export const useToolExecution = ({
         }
 
         if (validResults.length < actions.length) {
-          const textActionIds = actions.map(
-            (a) => `${message.id}-action-${a._index}`,
-          );
+          const textActionIds = actions.map((a) => `${message.id}-action-${a._index}`);
           if (handleSendMessageRef.current && !isStoppedRef?.current) {
-            const rawContent = newBuffer.join("\n\n");
-            const guardedContent = applyTokenLimitGuard(
-              rawContent,
-              actions,
-              validResults,
-            );
+            const rawContent = newBuffer.join('\n\n');
+            const guardedContent = rawContent;
             handleSendMessageRef.current(
               guardedContent,
               undefined,
@@ -865,74 +782,54 @@ export const useToolExecution = ({
           return { ...prev, [message.id]: [] };
         }
 
-        const currentMessage = messagesRef?.current.find(
-          (m) => m.id === message.id,
-        );
+        const currentMessage = messagesRef?.current.find((m) => m.id === message.id);
         const selectedOption = currentMessage?.selectedOption;
         const questionAnswers = currentMessage?.questionAnswers;
         const parsed = parseAIResponse(message.content);
         const hasQuestion = !!parsed.question;
         // Check if question is answered: either legacy selectedOption or new questionAnswers
         const isQuestionAnswered = hasQuestion
-          ? !!(
-              selectedOption ||
-              (questionAnswers && Object.keys(questionAnswers).length > 0)
-            )
+          ? !!(selectedOption || (questionAnswers && Object.keys(questionAnswers).length > 0))
           : true;
 
         const allActionIds = parsed.actions.map(
           (_: any, idx: number) => `${message.id}-action-${idx}`,
         );
-        const currentBatchIds = actions.map(
-          (a) => `${message.id}-action-${a._index}`,
-        );
+        const currentBatchIds = actions.map((a) => `${message.id}-action-${a._index}`);
 
         const isAllComplete =
-          allActionIds.every((id: string) =>
-            clickedActionsRef.current.has(id),
-          ) && isQuestionAnswered;
+          allActionIds.every((id: string) => clickedActionsRef.current.has(id)) &&
+          isQuestionAnswered;
 
         if (isAllComplete && !flushedMessageIdsRef.current.has(message.id)) {
           if (handleSendMessageRef.current && !isStoppedRef?.current) {
             flushedMessageIdsRef.current.add(message.id);
-            let finalContent = newBuffer.join("\n\n");
+            let finalContent = newBuffer.join('\n\n');
             // Handle question answers - both legacy and new
             if (questionAnswers && Object.keys(questionAnswers).length > 0) {
               // New paginated format: send all answers
-              const answerLines = Object.entries(questionAnswers).map(
-                ([qId, answer]) => {
-                  const q = (parsed.question as any)?.questions?.find(
-                    (q: any) => q.id === qId,
-                  );
-                  const label = q?.label || qId;
-                  let valueStr = answer.value;
-                  if (Array.isArray(valueStr)) {
-                    valueStr = valueStr.join(", ");
-                  } else if (typeof valueStr === "boolean") {
-                    valueStr = valueStr ? "Yes" : "No";
-                  }
-                  return `[question: "${label}"] Answer: ${valueStr}`;
-                },
-              );
+              const answerLines = Object.entries(questionAnswers).map(([qId, answer]) => {
+                const q = (parsed.question as any)?.questions?.find((q: any) => q.id === qId);
+                const label = q?.label || qId;
+                let valueStr = answer.value;
+                if (Array.isArray(valueStr)) {
+                  valueStr = valueStr.join(', ');
+                } else if (typeof valueStr === 'boolean') {
+                  valueStr = valueStr ? 'Yes' : 'No';
+                }
+                return `[question: "${label}"] Answer: ${valueStr}`;
+              });
               if (answerLines.length > 0) {
-                finalContent = answerLines.join("\n\n") + "\n\n" + finalContent;
+                finalContent = answerLines.join('\n\n') + '\n\n' + finalContent;
               }
             } else if (selectedOption) {
               const questionTitle =
-                parsed.question?.type === "question"
-                  ? (parsed.question as any).title
-                  : "Question";
-              finalContent = `[question: "${questionTitle || "Question"}"] Answer: ${selectedOption}\n\n${finalContent}`;
+                parsed.question?.type === 'question' ? (parsed.question as any).title : 'Question';
+              finalContent = `[question: "${questionTitle || 'Question'}"] Answer: ${selectedOption}\n\n${finalContent}`;
             }
 
-            const guardedContent = applyTokenLimitGuard(
-              finalContent,
-              actions,
-              newBuffer,
-            );
-
             handleSendMessageRef.current(
-              guardedContent,
+              finalContent,
               undefined,
               undefined,
               undefined,
@@ -994,7 +891,7 @@ export const useToolExecution = ({
         const subsequentActions = allActions.slice(actionIdx + 1);
         skipDiagnostics = subsequentActions.some(
           (a: any) =>
-            (a.type === "replace_in_file" || a.type === "write_to_file") &&
+            (a.type === 'replace_in_file' || a.type === 'write_to_file') &&
             (a.params.path || a.params.file_path) === currentPath,
         );
       }
@@ -1011,15 +908,15 @@ export const useToolExecution = ({
         let cleanOutput = result;
         const prefixMatch = result.match(/^\[.*?\] Result:\s*/);
         if (prefixMatch) cleanOutput = result.substring(prefixMatch[0].length);
-        if (cleanOutput.startsWith("```\n") && cleanOutput.endsWith("\n```"))
+        if (cleanOutput.startsWith('```\n') && cleanOutput.endsWith('\n```'))
           cleanOutput = cleanOutput.substring(4, cleanOutput.length - 4);
-        else if (cleanOutput.startsWith("```") && cleanOutput.endsWith("```"))
+        else if (cleanOutput.startsWith('```') && cleanOutput.endsWith('```'))
           cleanOutput = cleanOutput.substring(3, cleanOutput.length - 3);
 
         const isError =
-          result.includes("Result: Error") ||
-          result.includes("Tool execution blocked") ||
-          result.includes("Tool execution rejected");
+          result.includes('Result: Error') ||
+          result.includes('Tool execution blocked') ||
+          result.includes('Tool execution rejected');
 
         setToolOutputs((prev) => ({
           ...prev,
@@ -1031,10 +928,10 @@ export const useToolExecution = ({
 
         window.postMessage(
           {
-            command: isError ? "markActionFailed" : "markActionClicked",
+            command: isError ? 'markActionFailed' : 'markActionClicked',
             actionId,
           },
-          "*",
+          '*',
         );
 
         // Add to buffer and trigger flush
@@ -1046,68 +943,48 @@ export const useToolExecution = ({
           const allActionIds = parsed.actions.map(
             (_: any, idx: number) => `${messageObj.id}-action-${idx}`,
           );
-          const currentMessage = messagesRef?.current.find(
-            (m) => m.id === messageObj.id,
-          );
+          const currentMessage = messagesRef?.current.find((m) => m.id === messageObj.id);
           const selectedOption = currentMessage?.selectedOption;
           const questionAnswers = currentMessage?.questionAnswers;
           const hasQuestion = !!parsed.question;
           const isQuestionAnswered = hasQuestion
-            ? !!(
-                selectedOption ||
-                (questionAnswers && Object.keys(questionAnswers).length > 0)
-              )
+            ? !!(selectedOption || (questionAnswers && Object.keys(questionAnswers).length > 0))
             : true;
 
           const isAllComplete =
-            allActionIds.every((id: string) =>
-              clickedActionsRef.current.has(id),
-            ) && isQuestionAnswered;
+            allActionIds.every((id: string) => clickedActionsRef.current.has(id)) &&
+            isQuestionAnswered;
 
-          if (
-            isAllComplete &&
-            !flushedMessageIdsRef.current.has(messageObj.id)
-          ) {
+          if (isAllComplete && !flushedMessageIdsRef.current.has(messageObj.id)) {
             if (handleSendMessageRef.current && !isStoppedRef?.current) {
               flushedMessageIdsRef.current.add(messageObj.id);
-              let finalContent = newBuffer.join("\n\n");
+              let finalContent = newBuffer.join('\n\n');
               // Handle question answers - both legacy and new
               if (questionAnswers && Object.keys(questionAnswers).length > 0) {
-                const answerLines = Object.entries(questionAnswers).map(
-                  ([qId, answer]) => {
-                    const q = (parsed.question as any)?.questions?.find(
-                      (q: any) => q.id === qId,
-                    );
-                    const label = q?.label || qId;
-                    let valueStr = answer.value;
-                    if (Array.isArray(valueStr)) {
-                      valueStr = valueStr.join(", ");
-                    } else if (typeof valueStr === "boolean") {
-                      valueStr = valueStr ? "Yes" : "No";
-                    }
-                    return `[question: "${label}"] Answer: ${valueStr}`;
-                  },
-                );
+                const answerLines = Object.entries(questionAnswers).map(([qId, answer]) => {
+                  const q = (parsed.question as any)?.questions?.find((q: any) => q.id === qId);
+                  const label = q?.label || qId;
+                  let valueStr = answer.value;
+                  if (Array.isArray(valueStr)) {
+                    valueStr = valueStr.join(', ');
+                  } else if (typeof valueStr === 'boolean') {
+                    valueStr = valueStr ? 'Yes' : 'No';
+                  }
+                  return `[question: "${label}"] Answer: ${valueStr}`;
+                });
                 if (answerLines.length > 0) {
-                  finalContent =
-                    answerLines.join("\n\n") + "\n\n" + finalContent;
+                  finalContent = answerLines.join('\n\n') + '\n\n' + finalContent;
                 }
               } else if (selectedOption) {
                 const questionTitle =
-                  parsed.question?.type === "question"
+                  parsed.question?.type === 'question'
                     ? (parsed.question as any).title
-                    : "Question";
-                finalContent = `[question: "${questionTitle || "Question"}"] Answer: ${selectedOption}\n\n${finalContent}`;
+                    : 'Question';
+                finalContent = `[question: "${questionTitle || 'Question'}"] Answer: ${selectedOption}\n\n${finalContent}`;
               }
 
-              const guardedContent = applyTokenLimitGuard(
-                finalContent,
-                parsed.actions || [],
-                newBuffer,
-              );
-
               handleSendMessageRef.current(
-                guardedContent,
+                finalContent,
                 undefined,
                 undefined,
                 undefined,
@@ -1148,10 +1025,9 @@ export const useToolExecution = ({
 
       // Mark as rejected
       setRejectedActions((prev) => new Set(prev).add(actionId));
-      window.postMessage({ command: "markActionRejected", actionId }, "*");
+      window.postMessage({ command: 'markActionRejected', actionId }, '*');
 
-      const filePath =
-        action.params.file_path || action.params.path || "unknown";
+      const filePath = action.params.file_path || action.params.path || 'unknown';
       const errorResult = `[write_to_file for '${filePath}'] Result: Error - Nội dung file bị dồn vào 1 dòng duy nhất (${action.params.content?.length || 0} ký tự). Vui lòng chia lại thành nhiều dòng với ngắt dòng (\\n) thực sự trước khi thực hiện write_to_file.`;
 
       // Add to buffer and trigger flush so AI gets the error
@@ -1162,65 +1038,47 @@ export const useToolExecution = ({
         const allActionIds = parsed.actions.map(
           (_: any, idx: number) => `${messageObj.id}-action-${idx}`,
         );
-        const currentMessage = messagesRef?.current.find(
-          (m) => m.id === messageObj.id,
-        );
+        const currentMessage = messagesRef?.current.find((m) => m.id === messageObj.id);
         const selectedOption = currentMessage?.selectedOption;
         const questionAnswers = currentMessage?.questionAnswers;
         const hasQuestion = !!parsed.question;
         const isQuestionAnswered = hasQuestion
-          ? !!(
-              selectedOption ||
-              (questionAnswers && Object.keys(questionAnswers).length > 0)
-            )
+          ? !!(selectedOption || (questionAnswers && Object.keys(questionAnswers).length > 0))
           : true;
 
         const isAllComplete =
           allActionIds.every(
-            (id: string) =>
-              clickedActionsRef.current.has(id) || id === actionId, // this rejected action counts as done
+            (id: string) => clickedActionsRef.current.has(id) || id === actionId, // this rejected action counts as done
           ) && isQuestionAnswered;
 
         if (isAllComplete && !flushedMessageIdsRef.current.has(messageObj.id)) {
           if (handleSendMessageRef.current && !isStoppedRef?.current) {
             flushedMessageIdsRef.current.add(messageObj.id);
-            let finalContent = newBuffer.join("\n\n");
+            let finalContent = newBuffer.join('\n\n');
             // Handle question answers - both legacy and new
             if (questionAnswers && Object.keys(questionAnswers).length > 0) {
-              const answerLines = Object.entries(questionAnswers).map(
-                ([qId, answer]) => {
-                  const q = (parsed.question as any)?.questions?.find(
-                    (q: any) => q.id === qId,
-                  );
-                  const label = q?.label || qId;
-                  let valueStr = answer.value;
-                  if (Array.isArray(valueStr)) {
-                    valueStr = valueStr.join(", ");
-                  } else if (typeof valueStr === "boolean") {
-                    valueStr = valueStr ? "Yes" : "No";
-                  }
-                  return `[question: "${label}"] Answer: ${valueStr}`;
-                },
-              );
+              const answerLines = Object.entries(questionAnswers).map(([qId, answer]) => {
+                const q = (parsed.question as any)?.questions?.find((q: any) => q.id === qId);
+                const label = q?.label || qId;
+                let valueStr = answer.value;
+                if (Array.isArray(valueStr)) {
+                  valueStr = valueStr.join(', ');
+                } else if (typeof valueStr === 'boolean') {
+                  valueStr = valueStr ? 'Yes' : 'No';
+                }
+                return `[question: "${label}"] Answer: ${valueStr}`;
+              });
               if (answerLines.length > 0) {
-                finalContent = answerLines.join("\n\n") + "\n\n" + finalContent;
+                finalContent = answerLines.join('\n\n') + '\n\n' + finalContent;
               }
             } else if (selectedOption) {
               const questionTitle =
-                parsed.question?.type === "question"
-                  ? (parsed.question as any).title
-                  : "Question";
-              finalContent = `[question: "${questionTitle || "Question"}"] Answer: ${selectedOption}\n\n${finalContent}`;
+                parsed.question?.type === 'question' ? (parsed.question as any).title : 'Question';
+              finalContent = `[question: "${questionTitle || 'Question'}"] Answer: ${selectedOption}\n\n${finalContent}`;
             }
 
-            const guardedContent = applyTokenLimitGuard(
-              finalContent,
-              parsed.actions || [],
-              newBuffer,
-            );
-
             handleSendMessageRef.current(
-              guardedContent,
+              finalContent,
               undefined,
               undefined,
               undefined,
@@ -1243,98 +1101,73 @@ export const useToolExecution = ({
   // 🆕 Auto-flush effect: When messages state changes, check if we can now flush buffered results
   // because a question was finally answered.
   useEffect(() => {
-    Object.entries(availableToolResultsBuffer).forEach(
-      ([messageId, buffer]) => {
-        if (buffer.length === 0) return;
+    Object.entries(availableToolResultsBuffer).forEach(([messageId, buffer]) => {
+      if (buffer.length === 0) return;
 
-        const msg = messagesRef?.current.find((m) => m.id === messageId);
-        if (!msg) return;
+      const msg = messagesRef?.current.find((m) => m.id === messageId);
+      if (!msg) return;
 
-        const parsed = parseAIResponse(msg.content);
-        const hasQuestion = !!parsed.question;
-        const isQuestionAnswered = hasQuestion
-          ? !!(
-              msg.selectedOption ||
-              (msg.questionAnswers &&
-                Object.keys(msg.questionAnswers).length > 0)
-            )
-          : true;
+      const parsed = parseAIResponse(msg.content);
+      const hasQuestion = !!parsed.question;
+      const isQuestionAnswered = hasQuestion
+        ? !!(
+            msg.selectedOption ||
+            (msg.questionAnswers && Object.keys(msg.questionAnswers).length > 0)
+          )
+        : true;
 
-        const allActionIds = parsed.actions.map(
-          (_, idx: number) => `${msg.id}-action-${idx}`,
-        );
-        const allToolsDone = allActionIds.every((id) =>
-          clickedActionsRef.current.has(id),
-        );
+      const allActionIds = parsed.actions.map((_, idx: number) => `${msg.id}-action-${idx}`);
+      const allToolsDone = allActionIds.every((id) => clickedActionsRef.current.has(id));
 
-        if (
-          allToolsDone &&
-          isQuestionAnswered &&
-          !flushedMessageIdsRef.current.has(messageId)
-        ) {
-          // Flush!
-          if (handleSendMessageRef.current && !isStoppedRef?.current) {
-            flushedMessageIdsRef.current.add(messageId);
-            let finalContent = buffer.join("\n\n");
-            // Handle question answers - both legacy and new
-            if (
-              msg.questionAnswers &&
-              Object.keys(msg.questionAnswers).length > 0
-            ) {
-              const answerLines = Object.entries(msg.questionAnswers).map(
-                ([qId, answer]) => {
-                  const q = (parsed.question as any)?.questions?.find(
-                    (q: any) => q.id === qId,
-                  );
-                  const label = q?.label || qId;
-                  let valueStr = answer.value;
-                  if (Array.isArray(valueStr)) {
-                    valueStr = valueStr.join(", ");
-                  } else if (typeof valueStr === "boolean") {
-                    valueStr = valueStr ? "Yes" : "No";
-                  }
-                  return `[question: "${label}"] Answer: ${valueStr}`;
-                },
-              );
-              if (answerLines.length > 0) {
-                finalContent = answerLines.join("\n\n") + "\n\n" + finalContent;
+      if (allToolsDone && isQuestionAnswered && !flushedMessageIdsRef.current.has(messageId)) {
+        // Flush!
+        if (handleSendMessageRef.current && !isStoppedRef?.current) {
+          flushedMessageIdsRef.current.add(messageId);
+          let finalContent = buffer.join('\n\n');
+          // Handle question answers - both legacy and new
+          if (msg.questionAnswers && Object.keys(msg.questionAnswers).length > 0) {
+            const answerLines = Object.entries(msg.questionAnswers).map(([qId, answer]) => {
+              const q = (parsed.question as any)?.questions?.find((q: any) => q.id === qId);
+              const label = q?.label || qId;
+              let valueStr = answer.value;
+              if (Array.isArray(valueStr)) {
+                valueStr = valueStr.join(', ');
+              } else if (typeof valueStr === 'boolean') {
+                valueStr = valueStr ? 'Yes' : 'No';
               }
-            } else if (msg.selectedOption) {
-              const questionTitle =
-                parsed.question?.type === "question"
-                  ? (parsed.question as any).title
-                  : "Question";
-              finalContent = `[question: "${questionTitle || "Question"}"] Answer: ${msg.selectedOption}\n\n${finalContent}`;
-            }
-
-            // Build actions list from the message for token guard
-            const msgActions = parsed.actions || [];
-            const guardedContent = applyTokenLimitGuard(
-              finalContent,
-              msgActions,
-              buffer,
-            );
-
-            handleSendMessageRef.current(
-              guardedContent,
-              undefined,
-              undefined,
-              undefined,
-              true,
-              allActionIds,
-              true,
-            );
-
-            // Clear buffer for this message
-            setAvailableToolResultsBuffer((prev) => {
-              const next = { ...prev };
-              delete next[messageId];
-              return next;
+              return `[question: "${label}"] Answer: ${valueStr}`;
             });
+            if (answerLines.length > 0) {
+              finalContent = answerLines.join('\n\n') + '\n\n' + finalContent;
+            }
+          } else if (msg.selectedOption) {
+            const questionTitle =
+              parsed.question?.type === 'question' ? (parsed.question as any).title : 'Question';
+            finalContent = `[question: "${questionTitle || 'Question'}"] Answer: ${msg.selectedOption}\n\n${finalContent}`;
           }
+
+          // Build actions list from the message for token guard
+          const guardedContent = finalContent;
+
+          handleSendMessageRef.current(
+            guardedContent,
+            undefined,
+            undefined,
+            undefined,
+            true,
+            allActionIds,
+            true,
+          );
+
+          // Clear buffer for this message
+          setAvailableToolResultsBuffer((prev) => {
+            const next = { ...prev };
+            delete next[messageId];
+            return next;
+          });
         }
-      },
-    );
+      }
+    });
   }, [messagesRef?.current, clickedActions, availableToolResultsBuffer]);
 
   return {

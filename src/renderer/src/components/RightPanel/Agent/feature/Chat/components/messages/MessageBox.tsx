@@ -1,6 +1,6 @@
 import React from "react";
 import { Message } from "../../types/message";
-import { ParsedResponse } from "../../services/ResponseParser";
+import { ParsedResponse } from "../../blocks";
 import UserMessageBox from "./UserMessageBox";
 import AIMessageBox from "./AIMessageBox";
 

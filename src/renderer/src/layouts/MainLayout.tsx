@@ -8,6 +8,7 @@ import { RightPanel } from '../components/RightPanel';
 import { FooterBar } from '../components/FooterBar';
 import { PhantomModule } from '../features/Tool/types/types';
 import { ServerHealthGuard } from '../components/ServerHealthGuard';
+import { FeatureProvider } from '../components/RightPanel/Agent/context/FeatureContext';
 
 /**
  * MainLayout — Shell of the application
@@ -57,6 +58,7 @@ const MainLayout = () => {
   };
 
   return (
+    <FeatureProvider>
     <div className="flex h-screen w-screen overflow-hidden bg-background font-mono text-xs text-text-primary">
       <ModuleBar
         active={activeModule}
@@ -76,6 +78,7 @@ const MainLayout = () => {
         <FooterBar />
       </div>
     </div>
+    </FeatureProvider>
   );
 };
 

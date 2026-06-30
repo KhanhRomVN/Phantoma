@@ -1,4 +1,4 @@
-import { ACTION_NAMES, TOOL_LABELS, TOOL_COLORS } from "../constants/constants";
+import { ACTION_NAMES, TOOL_LABELS, TOOL_COLORS } from "../blocks";
 
 /** Returns the human-readable action name for a tool type. */
 export const getActionName = (type: string): string => {

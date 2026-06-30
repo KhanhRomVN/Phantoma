@@ -1,12 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Message } from '../types/message';
-import { ToolAction, parseAIResponse } from '../services/ResponseParser';
-import { getDefaultPrompt, combinePrompts } from '../prompts';
+import { ToolAction, parseAIResponse } from '../blocks';
+import { getDefaultPrompt, combinePrompts } from '../prompts/code';
 import {
   PERSISTENT_RULES,
   buildPermissionModeTag,
   buildPermissionModeTagCompact,
-} from '../prompts/persistent-rules';
+} from '../prompts/code/persistent-rules';
 import {
   logChatToWorkspace,
   saveConversation,

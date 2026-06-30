@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ToolAction } from '../services/ResponseParser';
-import { Message } from '../types/message';
-import { CLICKABLE_TOOLS } from '../constants/constants';
+import { ToolAction, CLICKABLE_TOOLS, getPermissionDecision } from '../blocks';
 import { useSettings } from '../../../context/SettingsContext';
-import { getPermissionDecision } from './useToolExecution';
+import { Message } from '../types/message';
 
 interface UseToolActionsProps {
   onSendToolRequest?: (

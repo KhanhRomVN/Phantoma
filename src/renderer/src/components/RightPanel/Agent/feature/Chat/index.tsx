@@ -3,7 +3,7 @@ import { useSettings } from '../../context/SettingsContext';
 
 import { extensionService } from '../../services/ExtensionService';
 import { saveConversation } from './services/ConversationService';
-import { HISTORY_CONTEXT_REMINDER } from './prompts';
+
 
 import { useChatLLM } from './hooks/useChatLLM';
 import { useToolExecution } from './hooks/useToolExecution';
@@ -19,7 +19,7 @@ import ChatHeader from './components/ChatHeader';
 import ChatBody from './components/ChatBody';
 import ChatFooter from './components/ChatFooter';
 import { ChatErrorBoundary } from './components/ChatErrorBoundary';
-import { parseAIResponse } from './services/ResponseParser';
+import { parseAIResponse } from './blocks';
 import { useTerminalPolling } from './hooks/useTerminalPolling';
 import { useBrowserSession } from './hooks/useBrowserSession';
 import { useDraftManagement } from './hooks/useDraftManagement';
@@ -238,11 +238,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       }
       setIsRestored(false);
       let finalContent = content;
-      const isFromHistory = !!(currentChat as any)?.conversationId && !currentChat?.canAccept;
-      if (isFromHistory && !hasAppendedHistoryContext.current) {
-        hasAppendedHistoryContext.current = true;
-        finalContent = content + HISTORY_CONTEXT_REMINDER;
-      }
       const parentMsgId = revertParentMessageIdRef.current || undefined;
       revertParentMessageIdRef.current = null;
       if (parentMsgId && currentConversationId) {
@@ -294,7 +289,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setGitCommitMessage,
     enrichedModel,
     handleGitPullRequest,
-    handleGitConfirm,
     handleGitCancel,
     handleGitRetry,
     handleGitCommit,
@@ -723,7 +717,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             setIsSearchOpen(false);
             setSearchQuery('');
           }}
-          onGitConfirm={handleGitConfirm}
           onGitCancel={handleGitCancel}
           gitStatusItems={gitStatus?.items || []}
           gitStatusBranch={gitStatus?.branch || ''}

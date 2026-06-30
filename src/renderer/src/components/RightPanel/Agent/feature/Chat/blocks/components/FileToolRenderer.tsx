@@ -1,0 +1,1055 @@
+import React, { useEffect, useRef } from 'react';
+import { ToolAction } from '..';
+import { ToolHeader } from './ToolHeader';
+import { getFilename, getToolColor } from '../../utils/toolUtils';
+import { getDisplayPath, collectConvFilePaths } from '../../utils/pathUtils';
+import { Message } from '../../types/message';
+import ExecuteButton from './ExecuteButton';
+import { useSettings } from '../../../../context/SettingsContext';
+import { getPermissionDecision } from '..';
+import GrepBlock from './GrepBlock';
+import { RichtextBlock } from './RichtextBlock';
+import FileStreamingBlock from './FileStreamingBlock';
+import ErrorBlock from './ErrorBlock';
+import { parseDiff } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
+import {
+  extensionService,
+  messageDispatcher,
+} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+import FileIcon from '@renderer/components/common/FileIcon';
+
+// Fixed-height streaming preview box shown while write_to_file / replace_in_file is streaming.
+// Auto-scrolls to bottom as new content arrives. Hidden once streaming finishes.
+const STREAM_BOX_HEIGHT = 154; // px — 120 base + 2 extra lines (≈17px/line)
+
+const StreamingPreviewBox: React.FC<{ content: string }> = ({ content }) => {
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom whenever content grows
+  useEffect(() => {
+    if (boxRef.current) {
+      boxRef.current.scrollTop = boxRef.current.scrollHeight;
+    }
+  }, [content]);
+
+  return (
+    <div
+      ref={boxRef}
+      style={{
+        height: `${STREAM_BOX_HEIGHT}px`,
+        overflowY: 'hidden', // no scrollbar visible — just auto-scroll
+        overflowX: 'hidden',
+        background: 'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
+        borderRadius: '4px',
+        border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+        marginTop: '4px',
+        padding: '6px 10px',
+        fontFamily: 'var(--vscode-editor-font-family, monospace)',
+        fontSize: '11px',
+        lineHeight: '1.5',
+        color: 'var(--vscode-editor-foreground)',
+        whiteSpace: 'pre',
+        wordBreak: 'break-all',
+        opacity: 0.85,
+        position: 'relative',
+        // Fade out the top so it looks like a scrolling ticker
+        maskImage: 'linear-gradient(to bottom, transparent 0%, black 30%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 30%)',
+      }}
+    >
+      {content}
+      {/* Blinking cursor at the end */}
+      <span
+        style={{
+          display: 'inline-block',
+          width: '6px',
+          height: '12px',
+          background: 'var(--vscode-editor-foreground)',
+          marginLeft: '1px',
+          verticalAlign: 'middle',
+          animation: 'zen-cursor-blink 0.6s step-end infinite',
+        }}
+      />
+      <style>{`
+        @keyframes zen-cursor-blink {
+          0%, 100% { opacity: 0.8; }
+          50%       { opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+interface FileToolRendererProps {
+  action: ToolAction;
+  actionIndex: number;
+  messageId: string;
+  isActionClicked: boolean;
+  isActiveGroup?: boolean;
+  isLastMessage?: boolean;
+  isLastItemInList?: boolean;
+  toolOutputs?: Record<string, { output: string; isError: boolean }>;
+  allMessages?: Message[];
+  fileStatsMap: Record<string, { lines: number; loading: boolean }>;
+  onToolClick: (
+    action: ToolAction,
+    messageId: string,
+    index: number,
+    type: 'accept_all' | 'accept_once' | 'reject',
+  ) => void;
+  mergedItems?: { action: ToolAction; index: number }[];
+  conversationId?: string;
+  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>;
+  onConfirmSingleLineAction?: (actionId: string) => void;
+  onRejectSingleLineAction?: (actionId: string) => void;
+}
+
+const FileToolRenderer: React.FC<FileToolRendererProps> = ({
+  action,
+  actionIndex,
+  messageId,
+  isActionClicked,
+  isActiveGroup,
+  isLastMessage,
+  isLastItemInList,
+  toolOutputs,
+  allMessages,
+  fileStatsMap,
+  onToolClick,
+  mergedItems,
+  conversationId,
+  singleLineReviewActions,
+  onConfirmSingleLineAction,
+  onRejectSingleLineAction,
+}) => {
+  const [isCollapsed, setIsCollapsed] = React.useState(true);
+  const [isGrepCollapsed, setIsGrepCollapsed] = React.useState(true);
+  const [isSnapshotLoading, setIsSnapshotLoading] = React.useState(false);
+  const [showRawView, setShowRawView] = React.useState(false);
+  const [isHeaderHovered, setIsHeaderHovered] = React.useState(false);
+  const { permissionMode } = useSettings();
+  const toolType = action.type;
+  const toolColor = getToolColor(toolType);
+  const actionId = `${messageId}-action-${actionIndex}`;
+
+  const rawPath =
+    action.params.file_path ||
+    action.params.symbol ||
+    action.params.folder_path ||
+    action.params.path ||
+    getFilename(action);
+  const allPaths = React.useMemo(() => collectConvFilePaths(allMessages || []), [allMessages]);
+  // Extract only the filename (not the directory path) since full path is shown in line 2
+  const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
+
+  // write_to_file on a new file (CREATE) has no before-snapshot, so treat it as a plain open
+  const isCreateNew = toolType === 'write_to_file' && !fileStatsMap[rawPath];
+  const isSnapshotTool =
+    (toolType === 'write_to_file' || toolType === 'replace_in_file') && !isCreateNew;
+
+  // Fetch snapshot then open diff tab in VSCode editor
+  const openSnapshotInEditor = React.useCallback(() => {
+    if (!conversationId || !actionId || isSnapshotLoading) return;
+    setIsSnapshotLoading(true);
+    const requestId = `snapshot-${Date.now()}-${Math.random()}`;
+    extensionService.postMessage({
+      command: 'getSnapshot',
+      conversationId,
+      actionId,
+      requestId,
+    });
+    messageDispatcher.register(
+      requestId,
+      (msg: {
+        error: any;
+        filePath: any;
+        operation: any;
+        beforeContent: any;
+        afterContent: any;
+      }) => {
+        setIsSnapshotLoading(false);
+        if (!msg.error) {
+          extensionService.postMessage({
+            command: 'openSnapshotDiff',
+            filePath: msg.filePath,
+            operation: msg.operation,
+            beforeContent: msg.beforeContent,
+            afterContent: msg.afterContent,
+            actionId,
+          });
+        } else {
+          // Fallback: just open the file
+          if (rawPath)
+            extensionService.postMessage({
+              command: 'openFile',
+              path: rawPath,
+            });
+        }
+      },
+      10000,
+      () => {
+        setIsSnapshotLoading(false);
+        if (rawPath) extensionService.postMessage({ command: 'openFile', path: rawPath });
+      },
+    );
+  }, [conversationId, actionId, isSnapshotLoading, rawPath]);
+
+  let codeContent = '';
+  if (toolType === 'list_files') {
+    codeContent = toolOutputs?.[actionId]?.output || '';
+  }
+
+  let diffStats: { added: number; removed: number } | null = null;
+  if (action.type === 'replace_in_file' && action.params.diff) {
+    diffStats = parseDiff(action.params.diff).stats;
+  }
+
+  let linesCount =
+    action.type === 'write_to_file' ? action.params.content?.split('\n').length || 0 : 0;
+
+  if (mergedItems && mergedItems.length > 1) {
+    let totalAdded = 0,
+      totalRemoved = 0,
+      totalLines = 0;
+    mergedItems.forEach(({ action: a }) => {
+      if (a.type === 'replace_in_file' && a.params.diff) {
+        const s = parseDiff(a.params.diff).stats;
+        totalAdded += s.added;
+        totalRemoved += s.removed;
+      } else if (a.type === 'write_to_file') {
+        totalLines += a.params.content?.split('\n').length || 0;
+      }
+    });
+    if (totalAdded > 0 || totalRemoved > 0)
+      diffStats = { added: totalAdded, removed: totalRemoved };
+    if (totalLines > 0) linesCount = totalLines;
+  }
+
+  const isPartial = action.isPartial;
+  const isError = !!toolOutputs?.[actionId]?.isError;
+  const errorMessage = isError ? toolOutputs?.[actionId]?.output || '' : '';
+
+  // ─── Thinking content ───────────────────────────────────────────────────────
+  // Extract <thinking>...</thinking> or unclosed <thinking>... from the current
+  // streaming message content. Only shown while the tag is open (streaming).
+  // Once </thinking> is closed, the parser replaces it with __THINKING_N__ and
+  // the raw content no longer contains the open tag → we show nothing.
+  const thinkingContent = React.useMemo(() => {
+    if (!isPartial) return null; // only relevant while streaming
+    const currentMsg = allMessages?.find((m) => m.id === messageId);
+    if (!currentMsg?.content) return null;
+    // Match unclosed <thinking> tag (streaming, no closing tag yet)
+    const unclosedMatch = /<thinking>([\s\S]*)$/i.exec(currentMsg.content);
+    if (unclosedMatch) return unclosedMatch[1];
+    return null;
+  }, [isPartial, allMessages, messageId]);
+
+  // Debug: log khi render với toolOutputs (chỉ log 1 lần per actionId)
+  const debugLoggedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!debugLoggedRef.current) {
+      debugLoggedRef.current = true;
+    }
+  }, [toolOutputs, actionId]);
+
+  // Count diagnostics from read_file output
+  const diagnosticCount = React.useMemo(() => {
+    if (toolType !== 'read_file') return 0;
+    const output = toolOutputs?.[actionId]?.output || '';
+    const diagIdx = output.indexOf('⚠️ **Diagnostics Found:**');
+    if (diagIdx === -1) return 0;
+    const diagSection = output.slice(diagIdx + '⚠️ **Diagnostics Found:**'.length).trim();
+    if (!diagSection) return 0;
+    return diagSection.split('\n').filter((l) => l.trim().length > 0).length;
+  }, [toolType, toolOutputs, actionId]);
+
+  const nextUserMessage = allMessages
+    ? allMessages
+        .slice(allMessages.findIndex((m) => m.id === messageId) + 1)
+        .find((m) => m.role === 'user')
+    : undefined;
+
+  const isWriteOrEditTool =
+    toolType === 'write_to_file' ||
+    toolType === 'replace_in_file' ||
+    toolType === 'delete_file' ||
+    toolType === 'delete_folder' ||
+    toolType === 'move_file';
+  const isGrepTool = toolType === 'grep';
+  const isCompleted: boolean = Boolean(
+    !isPartial &&
+    (!!isActionClicked ||
+      isError ||
+      (isWriteOrEditTool
+        ? !!toolOutputs?.[actionId] || !!nextUserMessage
+        : (codeContent && codeContent.trim().length > 0) || !!nextUserMessage)),
+  );
+
+  // ── Auto-hide completed write/edit tools in approval mode ──
+  // After user clicks "Accept" or "Reject", the tool is considered done.
+  // Hide the content (buttons, code block) but keep the header visible.
+  const isWriteOrEditOnly = toolType === 'write_to_file' || toolType === 'replace_in_file';
+  const shouldHideContent =
+    isWriteOrEditOnly && isCompleted && isActionClicked && !isPartial && !isError;
+
+  const prefix =
+    toolType === 'replace_in_file'
+      ? 'Update'
+      : toolType === 'write_to_file'
+        ? fileStatsMap[rawPath]
+          ? 'Rewrite'
+          : 'Create'
+        : toolType === 'list_files'
+          ? 'List'
+          : toolType === 'grep'
+            ? 'GREP'
+            : toolType === 'delete_file'
+              ? 'Delete'
+              : toolType === 'delete_folder'
+                ? 'Delete'
+                : toolType === 'move_file'
+                  ? 'MOVE'
+                  : 'Read';
+
+  // For grep tool, we'll render in the main flow with ToolHeader
+  const grepCompleted =
+    isGrepTool &&
+    !isPartial &&
+    (isActionClicked || isError || !!toolOutputs?.[actionId] || !!nextUserMessage);
+  const grepErrorMsg = isGrepTool && isError ? toolOutputs?.[actionId]?.output || '' : '';
+  const grepHasResults =
+    isGrepTool && toolOutputs?.[actionId]?.output
+      ? toolOutputs[actionId].output.includes('<grep_results')
+      : false;
+
+  return (
+    <div
+      className="timeline-item"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        paddingBottom: '4px',
+        marginBottom: '2px',
+      }}
+    >
+      <ToolHeader
+        title={
+          isGrepTool ? (
+            // Grep-specific header
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '12px',
+                color: 'var(--vscode-editor-foreground)',
+                cursor: isCompleted ? 'pointer' : 'default',
+                width: '100%',
+              }}
+              onMouseEnter={() => setIsHeaderHovered(true)}
+              onMouseLeave={() => setIsHeaderHovered(false)}
+              onClick={isCompleted ? () => setIsGrepCollapsed((v) => !v) : undefined}
+            >
+              <span style={{ fontWeight: 600, opacity: 0.8 }}>GREP</span>
+              <span
+                style={{
+                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--vscode-textLink-foreground)',
+                  padding: '0 5px',
+                  backgroundColor:
+                    'color-mix(in srgb, var(--vscode-textLink-foreground) 12%, transparent)',
+                  borderRadius: '3px',
+                }}
+              >
+                {action.params.search_term || action.params.searchTerm || ''}
+              </span>
+              {(() => {
+                const folderPath = action.params.folder_path || action.params.folderPath || '';
+                const filePath = action.params.file_path || action.params.filePath || '';
+                const targetPath = folderPath || filePath || '';
+                const isFolder = !!folderPath;
+                if (!targetPath) return null;
+                // Show path for grep even if only 1 segment
+                const segments = targetPath.split('/').filter(Boolean);
+                if (segments.length === 0) return null;
+                return (
+                  <>
+                    <span style={{ opacity: 0.4, fontSize: '11px' }}>in</span>
+                    <FileIcon
+                      path={targetPath}
+                      isFolder={isFolder}
+                      style={{ width: '14px', height: '14px' }}
+                    />
+                    <span
+                      style={{
+                        fontWeight: 500,
+                        opacity: 0.8,
+                        fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                        fontSize: '11px',
+                      }}
+                    >
+                      {getDisplayPath(targetPath, allPaths) || '...'}
+                    </span>
+                  </>
+                );
+              })()}
+              {isPartial && !isCompleted && (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    opacity: 0.55,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <span
+                    className="codicon codicon-loading codicon-modifier-spin"
+                    style={{ fontSize: '10px' }}
+                  />
+                  Searching...
+                </span>
+              )}
+              {isCompleted &&
+                (() => {
+                  const output = toolOutputs?.[actionId]?.output || '';
+                  let totalMatches = 0;
+                  let fileCount = 0;
+                  try {
+                    const match = output.match(/total_matches="(\d+)"/);
+                    if (match) totalMatches = parseInt(match[1], 10);
+                    const fileMatch = output.match(/files="(\d+)"/);
+                    if (fileMatch) fileCount = parseInt(fileMatch[1], 10);
+                  } catch {}
+                  if (totalMatches === 0 && fileCount === 0) {
+                    return (
+                      <span
+                        style={{
+                          opacity: 0.5,
+                          fontSize: '10px',
+                          color: 'var(--vscode-descriptionForeground)',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        no matches
+                      </span>
+                    );
+                  }
+                  return (
+                    <span
+                      style={{
+                        opacity: 0.5,
+                        fontSize: '10px',
+                        color: 'var(--vscode-descriptionForeground)',
+                      }}
+                    >
+                      {totalMatches} {totalMatches === 1 ? 'match' : 'matches'} in {fileCount}{' '}
+                      {fileCount === 1 ? 'file' : 'files'}
+                    </span>
+                  );
+                })()}
+              {isCompleted && (
+                <span
+                  className={`codicon codicon-chevron-${isGrepCollapsed ? 'right' : 'down'}`}
+                  style={{ fontSize: '10px', opacity: 0.5, marginLeft: '2px' }}
+                />
+              )}
+              {isHeaderHovered && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRawView(!showRawView);
+                  }}
+                  style={{
+                    marginLeft: '8px',
+                    fontSize: '10px',
+                    opacity: 0.6,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    fontWeight: 500,
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '2px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.6';
+                  }}
+                >
+                  {showRawView ? 'Hide raw' : 'View raw'}
+                </span>
+              )}
+            </div>
+          ) : (
+            // Original header for non-grep tools
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '12px',
+                color: 'var(--vscode-editor-foreground)',
+                position: 'relative',
+                width: '100%',
+              }}
+              onMouseEnter={() => setIsHeaderHovered(true)}
+              onMouseLeave={() => setIsHeaderHovered(false)}
+            >
+              <span
+                style={{
+                  fontWeight: 600,
+                  opacity: 0.8,
+                  cursor: 'pointer',
+                  transition: 'text-decoration 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = 'underline';
+                  e.currentTarget.style.textUnderlineOffset = '2px';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = 'none';
+                }}
+              >
+                {prefix}
+              </span>
+              <FileIcon
+                path={rawPath}
+                isFolder={toolType === 'list_files' || !!action.params.folder_path}
+                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              <span
+                style={{
+                  fontWeight: 500,
+                  opacity: 0.9,
+                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  transition: 'text-decoration 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = 'underline';
+                  e.currentTarget.style.textUnderlineOffset = '2px';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = 'none';
+                }}
+              >
+                {displayName}
+                {toolType === 'read_file' &&
+                  (() => {
+                    const sl = action.params.start_line;
+                    const el = action.params.end_line;
+                    const totalLines = fileStatsMap[rawPath]?.lines;
+                    if (sl !== undefined && sl !== null && sl !== '') {
+                      const start = parseInt(String(sl), 10) + 1; // convert 0-based to 1-based
+                      const end =
+                        el !== undefined && el !== null && el !== ''
+                          ? parseInt(String(el), 10) + 1
+                          : totalLines;
+                      return (
+                        <span
+                          style={{
+                            opacity: 0.55,
+                            fontSize: '10px',
+                            marginLeft: '2px',
+                          }}
+                        >
+                          ({start}-{end ?? '?'})
+                        </span>
+                      );
+                    }
+                    if (totalLines) {
+                      return (
+                        <span
+                          style={{
+                            opacity: 0.55,
+                            fontSize: '10px',
+                            marginLeft: '2px',
+                          }}
+                        >
+                          (1-{totalLines})
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                {toolType === 'read_file' && diagnosticCount > 0 && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                      marginLeft: '5px',
+                      padding: '0 4px',
+                      backgroundColor:
+                        'color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 15%, transparent)',
+                      color: 'var(--vscode-errorForeground, #f14c4c)',
+                      borderRadius: '3px',
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      lineHeight: '16px',
+                    }}
+                  >
+                    <span className="codicon codicon-error" style={{ fontSize: '9px' }} />
+                    {diagnosticCount}
+                  </span>
+                )}
+              </span>
+              {isPartial && (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    opacity: 0.6,
+                    fontStyle: 'italic',
+                    marginLeft: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <span
+                    className="codicon codicon-loading codicon-modifier-spin"
+                    style={{ fontSize: '10px' }}
+                  />
+                </span>
+              )}
+              {isSnapshotLoading && !isPartial && (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    opacity: 0.5,
+                    marginLeft: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                  }}
+                >
+                  <span
+                    className="codicon codicon-loading codicon-modifier-spin"
+                    style={{ fontSize: '10px' }}
+                  />
+                </span>
+              )}
+              {diffStats && (
+                <span
+                  style={{
+                    display: 'flex',
+                    gap: '4px',
+                    opacity: 0.7,
+                    fontSize: '11px',
+                    marginLeft: '4px',
+                    fontWeight: 500,
+                  }}
+                >
+                  <span
+                    style={{
+                      color: 'var(--vscode-gitDecoration-addedResourceForeground)',
+                    }}
+                  >
+                    +{diffStats.added}
+                  </span>
+                  <span
+                    style={{
+                      color: 'var(--vscode-gitDecoration-deletedResourceForeground)',
+                    }}
+                  >
+                    -{diffStats.removed}
+                  </span>
+                </span>
+              )}
+              {linesCount > 0 && (
+                <span
+                  style={{
+                    opacity: 0.7,
+                    fontSize: '11px',
+                    marginLeft: '4px',
+                    fontWeight: 500,
+                  }}
+                >
+                  +{linesCount} lines
+                </span>
+              )}
+              {isHeaderHovered && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRawView(!showRawView);
+                  }}
+                  style={{
+                    marginLeft: '8px',
+                    fontSize: '10px',
+                    opacity: 0.6,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    fontWeight: 500,
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '2px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.6';
+                  }}
+                >
+                  {showRawView ? 'Hide raw' : 'View raw'}
+                </span>
+              )}
+            </div>
+          )
+        }
+        statusColor={
+          isError
+            ? 'var(--vscode-errorForeground)'
+            : (isCompleted as boolean)
+              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
+              : !!isActiveGroup
+                ? 'var(--vscode-descriptionForeground)' // chờ approve → xám, giống chưa tới lượt
+                : 'var(--vscode-descriptionForeground)'
+        }
+        diffStats={undefined}
+        isPartial={isPartial}
+        onClick={() => {
+          // For replace_in_file: try to open diff if completed, otherwise open file
+          if (toolType === 'replace_in_file') {
+            if (isCompleted && !isPartial) {
+              openSnapshotInEditor();
+            } else {
+              setIsCollapsed((v) => !v);
+              if (rawPath) {
+                extensionService.postMessage({
+                  command: 'openFile',
+                  path: rawPath,
+                });
+              }
+            }
+            return;
+          }
+
+          if (isSnapshotTool && isCompleted && !isPartial) {
+            openSnapshotInEditor();
+          } else {
+            setIsCollapsed((v) => !v);
+            if (rawPath && toolType !== 'list_files') {
+              extensionService.postMessage({
+                command: 'openFile',
+                path: rawPath,
+              });
+            }
+          }
+        }}
+        path={rawPath}
+        onPathClick={(clickedPath) => {
+          // Always open file when clicking on the path itself
+          extensionService.postMessage({
+            command: 'openFile',
+            path: clickedPath,
+          });
+        }}
+      />
+
+      {/* Raw tool data viewer - showing raw XML without header */}
+      {!isGrepTool && showRawView && (
+        <div
+          style={{
+            marginTop: '4px',
+            marginLeft: '29px',
+            padding: '8px 12px',
+            backgroundColor:
+              'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
+            border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+            borderRadius: '4px',
+            fontFamily: 'var(--vscode-editor-font-family, monospace)',
+            fontSize: '11px',
+            lineHeight: '1.5',
+            color: 'var(--vscode-editor-foreground)',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+            overflowX: 'auto',
+          }}
+        >
+          {action.rawXml || JSON.stringify(action, null, 2)}
+        </div>
+      )}
+
+      {/* Single-line review UI for write_to_file with content crammed into 1 line */}
+      {!shouldHideContent &&
+        toolType === 'write_to_file' &&
+        singleLineReviewActions?.[actionId] &&
+        (() => {
+          const reviewContent = action.params.content || '';
+          return (
+            <div
+              style={{
+                marginTop: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              <textarea
+                readOnly
+                value={reviewContent}
+                style={{
+                  width: '100%',
+                  minHeight: '200px',
+                  maxHeight: '400px',
+                  padding: '8px 10px',
+                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                  fontSize: '11px',
+                  lineHeight: '1.5',
+                  color: 'var(--vscode-editor-foreground)',
+                  backgroundColor:
+                    'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
+                  border: '1.5px dashed #e5a100',
+                  borderRadius: '4px',
+                  resize: 'vertical',
+                  outline: 'none',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '11px',
+                    color: '#e5a100',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <span className="codicon codicon-warning" style={{ fontSize: '11px' }} />
+                  Nội dung file bị dồn vào 1 dòng ({reviewContent.length} ký tự)
+                </span>
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRejectSingleLineAction?.(actionId);
+                    }}
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      borderRadius: '4px',
+                      border:
+                        '1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 40%, transparent)',
+                      backgroundColor:
+                        'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 10%, transparent)',
+                      color: 'var(--vscode-errorForeground, #f44336)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <span className="codicon codicon-close" style={{ fontSize: '11px' }} />
+                    Từ chối
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onConfirmSingleLineAction?.(actionId);
+                    }}
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      borderRadius: '4px',
+                      border:
+                        '1px solid color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 40%, transparent)',
+                      backgroundColor:
+                        'color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 10%, transparent)',
+                      color: 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <span className="codicon codicon-check" style={{ fontSize: '11px' }} />
+                    Xác nhận
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+      {!shouldHideContent &&
+        !isCompleted &&
+        !isPartial &&
+        (isActiveGroup || !isLastMessage) &&
+        getPermissionDecision(permissionMode, toolType) === 'prompt' && (
+          <div style={{ marginTop: '8px', marginBottom: '8px', order: 1 }}>
+            <ExecuteButton
+              isActive={!!isActiveGroup}
+              isCompleted={!!isCompleted}
+              isLastMessage={!!isLastMessage}
+              isLoading={false}
+              toolColor={toolColor}
+              title="Approve action"
+              labelText="Approve"
+              onExecute={(e, type) => {
+                onToolClick(action, messageId, actionIndex, type);
+              }}
+            />
+          </div>
+        )}
+
+      {!shouldHideContent &&
+        isError &&
+        errorMessage &&
+        (toolType === 'replace_in_file' ? (
+          // Use ErrorBlock for replace_in_file errors (without header)
+          <div style={{ marginTop: '4px' }}>
+            <ErrorBlock
+              content={errorMessage}
+              errorCode="REPLACE_IN_FILE"
+              isPartial={isPartial}
+              isLast={isLastItemInList}
+              isLastMessage={isLastMessage}
+              showHeader={false}
+              contentPaddingLeft="29px"
+            />
+          </div>
+        ) : (
+          // Inline error display for other tools
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '6px',
+              padding: '5px 8px',
+              backgroundColor:
+                'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 4%, transparent)',
+              border:
+                '1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 20%, transparent)',
+              borderRadius: '4px',
+              marginTop: '2px',
+            }}
+          >
+            <span
+              className="codicon codicon-error"
+              style={{
+                fontSize: '11px',
+                color: 'var(--vscode-errorForeground, #f44336)',
+                opacity: 0.7,
+                marginTop: '1px',
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontSize: '11px',
+                color: 'var(--vscode-errorForeground, #f44336)',
+                opacity: 0.85,
+                fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                wordBreak: 'break-word',
+              }}
+            >
+              {errorMessage}
+            </span>
+          </div>
+        ))}
+
+      {!shouldHideContent && toolType === 'list_files' && codeContent && (
+        <>
+          {!isCollapsed && (
+            <RichtextBlock
+              content={codeContent}
+              showHeader={false}
+              maxHeight={300}
+              defaultCollapsed={false}
+              isFilePathList={true}
+              basePath={action.params.path || action.params.folder_path || ''}
+              onFileClick={(fullPath) =>
+                extensionService.postMessage({
+                  command: 'openFile',
+                  path: fullPath,
+                })
+              }
+            />
+          )}
+        </>
+      )}
+      {/* Streaming preview — visible while AI is still writing the file OR waiting for approval */}
+      {!shouldHideContent &&
+        (isPartial ||
+          ((toolType === 'write_to_file' || toolType === 'replace_in_file') &&
+            !isCompleted &&
+            isActiveGroup)) &&
+        (() => {
+          const streamContent =
+            toolType === 'write_to_file' ? action.params.content || '' : action.params.diff || '';
+          if (!streamContent) return null;
+
+          const isWaitingForApproval =
+            !isPartial &&
+            (toolType === 'write_to_file' || toolType === 'replace_in_file') &&
+            !isCompleted &&
+            isActiveGroup;
+
+          return <FileStreamingBlock content={streamContent} maxHeight={200} />;
+        })()}
+
+      {/* Grep tool results — rendered inside the main flow with ToolHeader */}
+      {isGrepTool && (
+        <>
+          {/* GrepBlock renders the content; header is handled above */}
+          <GrepBlock
+            action={action}
+            actionId={actionId}
+            toolOutputs={toolOutputs}
+            isPartial={!!isPartial}
+            isCompleted={grepCompleted}
+            isError={isError}
+            errorMessage={grepErrorMsg}
+            conversationId={conversationId}
+            allMessages={allMessages}
+            isCollapsed={isGrepCollapsed}
+            onToggleCollapse={() => setIsGrepCollapsed((v) => !v)}
+          />
+          {/* Raw viewer for Grep tool */}
+          {showRawView && (
+            <div
+              style={{
+                marginTop: '4px',
+                marginLeft: '29px',
+                padding: '8px 12px',
+                backgroundColor:
+                  'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
+                border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+                borderRadius: '4px',
+                fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                fontSize: '11px',
+                lineHeight: '1.5',
+                color: 'var(--vscode-editor-foreground)',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all',
+                overflowX: 'auto',
+              }}
+            >
+              {action.rawXml || JSON.stringify(action, null, 2)}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default FileToolRenderer;

@@ -1,4 +1,4 @@
-import { ALLOWED_FILE_EXTENSIONS } from "../constants/constants";
+import { ALLOWED_FILE_EXTENSIONS } from "../blocks";
 
 /** Returns true if the file extension is in the allowed list. */
 export const isFileAllowed = (filename: string): boolean => {

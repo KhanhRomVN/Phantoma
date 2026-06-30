@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Message } from '../types/message';
 import { parseGitStatusOutput } from '../utils/parseGitStatus';
-import { getCommitMessagePrompt } from '../prompts/commit-message';
+
 
 interface UseGitOperationsProps {
   currentModel: any;
@@ -216,68 +216,6 @@ ${statusMessage}
     }
   }, [gitLoading, setMessages, setToolOutputs]);
 
-  const handleGitConfirm = useCallback(
-    async (items?: any[]) => {
-      const statusItems = items || gitStatus?.items || [];
-      if (statusItems.length === 0) {
-        const vscodeApi = (window as any).vscodeApi;
-        if (vscodeApi) {
-          vscodeApi.postMessage({
-            command: 'showInformation',
-            message: "Chưa có thay đổi nào để commit. Hãy thêm file với 'git add' trước.",
-          });
-        }
-        setShowGitStatusBlock(false);
-        return;
-      }
-
-      setGitCommitLoading(true);
-      const gitStatusText = statusItems
-        .map((item) => `${item.staged ? '[staged]' : '[unstaged]'} ${item.status} ${item.path}`)
-        .join('\n');
-
-      const modelToUse = enrichedModel ?? currentModel;
-      const accountToUse = currentAccount;
-
-      if (!modelToUse || !accountToUse) {
-        setGitCommitLoading(false);
-        setGitError('Vui lòng chọn model và account trước khi tạo commit message.');
-        return;
-      }
-
-      const commitLang = commitMessageLanguage || 'vi';
-      const formattedPrompt = getCommitMessagePrompt(commitLang, gitStatusText);
-      const prompt = `[COMMIT_MESSAGE_REQUEST]\n${formattedPrompt}`;
-
-      try {
-        await wrappedSendMessage(
-          prompt,
-          undefined,
-          modelToUse,
-          accountToUse,
-          true,
-          undefined,
-          true,
-        );
-
-        setGitCommitLoading(false);
-        setShowGitStatusBlock(false);
-      } catch (err) {
-        setGitCommitLoading(false);
-        setGitError(err instanceof Error ? err.message : 'Failed to generate commit message');
-      }
-    },
-    [
-      gitStatus,
-      enrichedModel,
-      currentModel,
-      currentAccount,
-      commitMessageLanguage,
-      currentConversationId,
-      wrappedSendMessage,
-    ],
-  );
-
   const handleGitCancel = useCallback(() => {
     setShowGitStatusBlock(false);
     setGitCommitMessage(null);
@@ -418,7 +356,6 @@ Yêu cầu:
     setGitCommitMessage,
     enrichedModel,
     handleGitPullRequest,
-    handleGitConfirm,
     handleGitCancel,
     handleGitRetry,
     handleGitCommit,

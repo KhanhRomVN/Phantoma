@@ -1,15 +1,12 @@
 import React from 'react';
 import { Message } from '../../types/message';
-import { ParsedResponse } from '../../services/ResponseParser';
-import ToolActionsList from '../tools/index';
-import QuestionAnswerBlock from '../blocks/QuestionAnswerBlock';
-import HtmlBlock from '../blocks/HtmlBlock';
-import { ToolHeader } from '../tools/ToolHeader';
-import MarkdownBlock from '../blocks/MarkdownBlock';
-import ErrorBlock from '../blocks/ErrorBlock';
-
-import '../blocks/MarkdownBlock.css';
-import { buildRetryPrompt } from '../../prompts';
+import { ParsedResponse } from '../../blocks';
+import ToolRouter from '../../blocks/components/ToolRouter';
+import QuestionAnswerBlock from '../../blocks/components/QuestionAnswerBlock';
+import HtmlBlock from '../../blocks/components/HtmlBlock';
+import { ToolHeader } from '../../blocks/components/ToolHeader';
+import MarkdownBlock from '../../blocks/components/MarkdownBlock';
+import ErrorBlock from '../../blocks/components/ErrorBlock';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { isDiff, parseDiff } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
 
@@ -166,7 +163,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
    * Falls back to the original message if no mapping found.
    */
   const translateError = (raw: string): string => {
-    const normalized = raw.trim().toLowerCase();
     const errorMap: Array<[RegExp, string]> = [
       [/provider returned empty response/i, 'Provider returned empty response'],
       [/no response body/i, 'No response body'],
@@ -191,11 +187,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
     return raw;
   };
 
-  /**
-   * Build a map of basename → fullPath from prior tool calls in allMessages.
-   * Scans <file_path> tags from read_file, write_to_file, replace_in_file, list_files.
-   * This lets us resolve plain filenames like "z_ai_auth.json" to their full paths.
-   */
   const knownFilePaths = React.useMemo((): Map<string, string> => {
     const map = new Map<string, string>();
     if (!allMessages) return map;
@@ -232,39 +223,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
 
     return map;
   }, [allMessages]);
-
-  const handleRetry = React.useCallback(() => {
-    if (!onSendMessage) return;
-
-    // Trích xuất các file đã thao tác trong lịch sử tin nhắn
-    const operatedFiles = new Set<string>();
-    if (allMessages) {
-      const filePathRegex = /<file_path>([^<]+)<\/file_path>/gi;
-      const pathRegex = /<path>([^<]+)<\/path>/gi;
-      allMessages.forEach((msg) => {
-        if (msg.content) {
-          let match;
-          filePathRegex.lastIndex = 0;
-          while ((match = filePathRegex.exec(msg.content)) !== null) {
-            operatedFiles.add(match[1].trim());
-          }
-          pathRegex.lastIndex = 0;
-          while ((match = pathRegex.exec(msg.content)) !== null) {
-            operatedFiles.add(match[1].trim());
-          }
-        }
-      });
-    }
-
-    const filesList = Array.from(operatedFiles);
-    const errorText = message.content.replace(/^Error:\s*/i, '');
-
-    // Tạo prompt tiếng Anh thông qua hàm buildRetryPrompt từ file retry.ts riêng biệt
-    const promptText = buildRetryPrompt(errorText, filesList);
-
-    // Gửi message retry ẩn dưới nền (uiHidden = true) tương tự các auto-req khác
-    onSendMessage(promptText, undefined, undefined, undefined, undefined, undefined, true);
-  }, [message.content, allMessages, onSendMessage]);
 
   return (
     <div
@@ -811,13 +769,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             const isAnswered =
               !!message.selectedOption ||
               (message.questionAnswers && Object.keys(message.questionAnswers).length > 0);
-            const isThisActive = isLastMessage && !isInteractionBlocked;
-            const dotColor = isAnswered
-              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
-              : isThisActive
-                ? 'var(--vscode-button-background)'
-                : 'var(--vscode-descriptionForeground)';
-
             // Check if this is the new paginated format (has questions array)
             const hasQuestions = group.questions && group.questions.length > 0;
 
@@ -892,13 +843,13 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             return <React.Fragment key={group.key}>{content}</React.Fragment>;
           } else {
             content = (
-              <ToolActionsList
-                message={message}
-                items={group.items}
+              <ToolRouter
+                group={group.items}
+                messageId={message.id}
                 clickedActions={clickedActions}
                 failedActions={failedActions}
                 rejectedActions={rejectedActions}
-                onToolClick={onToolClick}
+                onToolClick={(action, msgId, idx, type) => onToolClick(action, message, idx, type)}
                 executionState={executionState}
                 isLastMessage={isLastMessage}
                 toolOutputs={toolOutputs}
@@ -909,16 +860,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                 attachedTerminalIds={attachedTerminalIds}
                 conversationId={conversationId}
                 allActions={parsedContent.actions}
-                isBlockedByPrecedingInteraction={isInteractionBlocked}
-                isVisibleTool={
-                  isSimpleMode
-                    ? (type) =>
-                        type === 'write_to_file' ||
-                        type === 'replace_in_file' ||
-                        type === 'run_command' ||
-                        type === 'execute_agent_action'
-                    : undefined
-                }
                 singleLineReviewActions={singleLineReviewActions}
                 onConfirmSingleLineAction={onConfirmSingleLineAction}
                 onRejectSingleLineAction={onRejectSingleLineAction}

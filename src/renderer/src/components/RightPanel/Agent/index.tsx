@@ -4,10 +4,13 @@ import HomePanel from './feature/Home';
 import ChatPanel from './feature/Chat';
 import { ChatSession } from './feature/Chat/types/chat';
 import { ProjectProvider } from './context/ProjectContext';
+import { useAgentFeature } from './context/FeatureContext';
+import AgentOverlay from './components/AgentOverlay';
 
 // ─── AgentPanel ────────────────────────────────────────────────────────────
 
 export function AgentPanel() {
+  const { activeFeature } = useAgentFeature();
   const [currentChat, setCurrentChat] = useState<ChatSession | null>(null);
   const [initialMessageData, setInitialMessageData] = useState<{
     content: string;
@@ -61,7 +64,8 @@ export function AgentPanel() {
 
   return (
     <ProjectProvider>
-      <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary">
+      <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
+        {activeFeature !== 'emulate' && <AgentOverlay featureName={activeFeature || undefined} />}
         <div className="flex-1 overflow-hidden bg-background flex flex-col">
           {currentChat ? (
             <ChatPanel

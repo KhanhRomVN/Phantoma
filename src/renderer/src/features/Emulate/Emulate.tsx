@@ -3,6 +3,7 @@ import { useAccentColors } from '../../shared/hooks/useAccentColors';
 import { cn } from '../../shared/lib/utils';
 import { targetService } from '../../services/TargetService';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
+import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 
 // Components
 import { RequestList, RequestDetails, initialFilterState } from './components/Home';
@@ -40,6 +41,14 @@ export default function Emulate({
   const { currentPreset } = useTheme();
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
   const { getColorByIndex } = useAccentColors();
+
+  const { setActiveFeature } = useAgentFeature();
+
+  // Enable Agent for Emulate feature
+  useEffect(() => {
+    setActiveFeature('emulate');
+    return () => setActiveFeature(null);
+  }, [setActiveFeature]);
 
   // Module persistence - lưu toàn bộ EmulateState
   const [state, setState] = useModulePersistence<EmulateState>('emulate', {
@@ -304,7 +313,9 @@ export default function Emulate({
     mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
     useEnvInject?: boolean,
   ) => {
-    console.log(`[Emulate] Launching target: appId=${appId}, mode=${mode}, proxyUrl=${proxyUrl}, useEnvInject=${useEnvInject}`);
+    console.log(
+      `[Emulate] Launching target: appId=${appId}, mode=${mode}, proxyUrl=${proxyUrl}, useEnvInject=${useEnvInject}`,
+    );
 
     await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -314,7 +325,14 @@ export default function Emulate({
       const launchTarget = target?.executablePath || appId;
       console.log(`[Emulate] Using launch target: ${launchTarget}`);
 
-      const result = await window.api.invoke('app:launch', launchTarget, proxyUrl, customUrl, mode, useEnvInject);
+      const result = await window.api.invoke(
+        'app:launch',
+        launchTarget,
+        proxyUrl,
+        customUrl,
+        mode,
+        useEnvInject,
+      );
       console.log(`[Emulate] Launch result: ${result}`);
 
       if (result) {

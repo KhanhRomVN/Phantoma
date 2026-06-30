@@ -1,103 +1,96 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { extensionService } from "../services/ExtensionService";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { extensionService } from '../services/ExtensionService';
 
-export type PermissionMode = "fullAccess" | "approval" | "readOnly";
+export type PermissionMode = 'fullAccess' | 'approval' | 'readOnly';
 
 interface SettingsContextType {
   apiUrl: string;
   setApiUrl: (url: string) => void;
-  toolPermissions: Record<string, "full_access" | "review">;
-  setToolPermission: (toolId: string, value: "full_access" | "review") => void;
-  setAllToolPermissions: (value: "full_access" | "review") => void;
+  toolPermissions: Record<string, 'full_access' | 'review'>;
+  setToolPermission: (toolId: string, value: 'full_access' | 'review') => void;
+  setAllToolPermissions: (value: 'full_access' | 'review') => void;
   permissionMode: PermissionMode;
   setPermissionMode: (mode: PermissionMode) => void;
   isSimpleMode: boolean;
   setIsSimpleMode: (value: boolean) => void;
   liveWritePreview: boolean;
   setLiveWritePreview: (value: boolean) => void;
-  commitMessageLanguage: "en" | "vi";
-  setCommitMessageLanguage: (value: "en" | "vi") => void;
+  commitMessageLanguage: 'en' | 'vi';
+  setCommitMessageLanguage: (value: 'en' | 'vi') => void;
   language: string;
   setLanguage: (value: string) => void;
   aiLanguage: string;
   setAiLanguage: (value: string) => void;
 }
 
-export const defaultToolPermissions: Record<string, "full_access" | "review"> =
-  {
-    read_file: "full_access",
-    write_to_file: "full_access",
-    replace_in_file: "full_access",
-    list_files: "full_access",
-    search_files: "full_access",
-    run_command: "full_access",
-    move_file: "full_access",
-  };
+export const defaultToolPermissions: Record<string, 'full_access' | 'review'> = {
+  read_file: 'full_access',
+  write_to_file: 'full_access',
+  replace_in_file: 'full_access',
+  list_files: 'full_access',
+  search_files: 'full_access',
+  run_command: 'full_access',
+  move_file: 'full_access',
+};
 
-const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined,
-);
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [apiUrl, setApiUrlState] = useState("http://localhost:8888");
-  const [permissionModeState, setPermissionModeState] =
-    useState<PermissionMode>("fullAccess");
-  const [toolPermissionsState, setToolPermissionsState] = useState<
-    Record<string, "full_access" | "review">
-  >(defaultToolPermissions);
+export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [apiUrl, setApiUrlState] = useState('http://localhost:8888');
+  const [permissionModeState, setPermissionModeState] = useState<PermissionMode>('fullAccess');
+  const [toolPermissionsState, setToolPermissionsState] =
+    useState<Record<string, 'full_access' | 'review'>>(defaultToolPermissions);
   const [isSimpleMode, setIsSimpleModeState] = useState<boolean>(true);
   const [liveWritePreview, setLiveWritePreviewState] = useState<boolean>(true);
-  const [commitMessageLanguage, setCommitMessageLanguageState] = useState<"en" | "vi">("en");
-  const [language, setLanguageState] = useState<string>("");
-  const [aiLanguage, setAiLanguageState] = useState<string>("");
+  const [commitMessageLanguage, setCommitMessageLanguageState] = useState<'en' | 'vi'>('en');
+  const [language, setLanguageState] = useState<string>('');
+  const [aiLanguage, setAiLanguageState] = useState<string>('');
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("zen-simple-mode");
+      const saved = localStorage.getItem('zen-simple-mode');
       if (saved !== null) {
-        setIsSimpleModeState(saved !== "false");
+        setIsSimpleModeState(saved !== 'false');
       }
-      const savedLang = localStorage.getItem("zen-commit-message-language");
-      if (savedLang === "en" || savedLang === "vi") {
+      const savedLang = localStorage.getItem('zen-commit-message-language');
+      if (savedLang === 'en' || savedLang === 'vi') {
         setCommitMessageLanguageState(savedLang);
       }
-      const savedLanguage = localStorage.getItem("zen-language");
+      const savedLanguage = localStorage.getItem('zen-language');
       if (savedLanguage) {
         setLanguageState(savedLanguage);
       }
-      const savedAiLanguage = localStorage.getItem("zen-ai-language");
+      const savedAiLanguage = localStorage.getItem('zen-ai-language');
       if (savedAiLanguage) {
         setAiLanguageState(savedAiLanguage);
       }
     } catch (e) {}
     const storage = extensionService.getStorage();
 
-    storage.get("backend-api-url").then((res: any) => {
+    storage.get('backend-api-url').then((res: any) => {
       if (res?.value) {
         setApiUrlState(res.value);
       }
     });
 
-    storage.get("zen_permission_mode").then((res: any) => {
+    storage.get('zen_permission_mode').then((res: any) => {
       if (res?.value) {
         const val = res.value;
         // Migrate old 4-mode values to new 3-mode system
         const migrationMap: Record<string, PermissionMode> = {
-          bypassPermissions: "fullAccess",
-          acceptEdits: "approval",
-          auto: "approval",
-          plan: "readOnly",
-          fullAccess: "fullAccess",
-          approval: "approval",
-          readOnly: "readOnly",
+          bypassPermissions: 'fullAccess',
+          acceptEdits: 'approval',
+          auto: 'approval',
+          plan: 'readOnly',
+          fullAccess: 'fullAccess',
+          approval: 'approval',
+          readOnly: 'readOnly',
         };
-        setPermissionModeState(migrationMap[val] ?? "fullAccess");
+        setPermissionModeState(migrationMap[val] ?? 'fullAccess');
       }
     });
 
-    storage.get("zen_tool_permissions").then((res: any) => {
+    storage.get('zen_tool_permissions').then((res: any) => {
       if (res?.value) {
         try {
           const parsed = JSON.parse(res.value);
@@ -112,68 +105,65 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const setApiUrl = (url: string) => {
     setApiUrlState(url);
     const storage = extensionService.getStorage();
-    storage.set("backend-api-url", url);
+    storage.set('backend-api-url', url);
   };
 
   const setPermissionMode = (mode: PermissionMode) => {
     setPermissionModeState(mode);
     const storage = extensionService.getStorage();
-    storage.set("zen_permission_mode", mode);
+    storage.set('zen_permission_mode', mode);
   };
 
-  const setToolPermission = (
-    toolId: string,
-    value: "full_access" | "review",
-  ) => {
+  const setToolPermission = (toolId: string, value: 'full_access' | 'review') => {
     setToolPermissionsState((prev) => {
       const next = { ...prev, [toolId]: value };
       const storage = extensionService.getStorage();
-      storage.set("zen_tool_permissions", JSON.stringify(next));
+      storage.set('zen_tool_permissions', JSON.stringify(next));
       return next;
     });
   };
 
-  const setAllToolPermissions = (value: "full_access" | "review") => {
+  const setAllToolPermissions = (value: 'full_access' | 'review') => {
     const next = Object.fromEntries(
       Object.keys(defaultToolPermissions).map((k) => [k, value]),
-    ) as Record<string, "full_access" | "review">;
+    ) as Record<string, 'full_access' | 'review'>;
     setToolPermissionsState(next);
     const storage = extensionService.getStorage();
-    storage.set("zen_tool_permissions", JSON.stringify(next));
+    storage.set('zen_tool_permissions', JSON.stringify(next));
   };
 
   const setIsSimpleMode = (value: boolean) => {
     setIsSimpleModeState(value);
     try {
-      localStorage.setItem("zen-simple-mode", String(value));
+      localStorage.setItem('zen-simple-mode', String(value));
     } catch (e) {}
   };
 
   const setLiveWritePreview = (value: boolean) => {
     setLiveWritePreviewState(value);
     try {
-      localStorage.setItem("zen-live-write-preview", String(value));
+      localStorage.setItem('zen-live-write-preview', String(value));
     } catch (e) {}
   };
 
-  const setCommitMessageLanguage = (value: "en" | "vi") => {
+  const setCommitMessageLanguage = (value: 'en' | 'vi') => {
     setCommitMessageLanguageState(value);
     try {
-      localStorage.setItem("zen-commit-message-language", value);
+      localStorage.setItem('zen-commit-message-language', value);
     } catch (e) {}
   };
 
   const setLanguage = (value: string) => {
     setLanguageState(value);
     try {
-      localStorage.setItem("zen-language", value);
+      localStorage.setItem('zen-language', value);
     } catch (e) {}
   };
 
   const setAiLanguage = (value: string) => {
     setAiLanguageState(value);
     try {
-      localStorage.setItem("zen-ai-language", value);
+      localStorage.setItem('zen-ai-language', value);
     } catch (e) {}
   };
 
@@ -207,7 +197,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useSettings = () => {
   const context = useContext(SettingsContext);
   if (context === undefined) {
-    throw new Error("useSettings must be used within a SettingsProvider");
+    throw new Error('useSettings must be used within a SettingsProvider');
   }
   return context;
 };
