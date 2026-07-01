@@ -230,11 +230,12 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   return (
     <div
       ref={bodyRef}
-      className="chat-body-scroll flex-1 overflow-y-auto flex flex-col gap-3 text-sm relative"
+      className="flex-1 overflow-y-auto flex flex-col gap-3 text-sm relative scrollbar-thin"
       style={{
         backgroundColor: 'var(--secondary-bg)',
         padding: 'var(--spacing-lg)',
         paddingBottom: visibleMessages.length > 0 ? '200px' : 'var(--spacing-lg)',
+        scrollbarWidth: 'thin',
       }}
     >
       {isSearchOpen && (
@@ -266,7 +267,7 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
           </button>
         </div>
       )}
-      <div className="chat-timeline-wrapper">
+      <div className="relative flex flex-col">
         {visibleMessages.map((message, index) => {
           const parsedMessage = parsedMessages.find((pm) => pm.id === message.id);
           if (!parsedMessage) return null;
@@ -394,22 +395,14 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
 
       <div ref={messagesEndRef} />
       <style>{`
-        .chat-body-scroll::-webkit-scrollbar {
-          width: 4px;
-          height: 4px;
-        }
-        .chat-body-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .chat-body-scroll::-webkit-scrollbar-thumb {
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
           background: var(--vscode-scrollbarSlider-background, rgba(128, 128, 128, 0.4));
           border-radius: 4px;
         }
-        .chat-body-scroll::-webkit-scrollbar-thumb:hover {
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
           background: var(--vscode-scrollbarSlider-hoverBackground, rgba(128, 128, 128, 0.6));
-        }
-        .chat-body-scroll {
-          scrollbar-width: thin;
         }
       `}</style>
     </div>

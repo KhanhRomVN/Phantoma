@@ -46,8 +46,12 @@ export default function Emulate({
 
   // Enable Agent for Emulate feature
   useEffect(() => {
+    console.log('[DEBUG-Emulate] 🔵 Setting activeFeature = "emulate"');
     setActiveFeature('emulate');
-    return () => setActiveFeature(null);
+    return () => {
+      console.log('[DEBUG-Emulate] 🔴 Clearing activeFeature (unmount)');
+      setActiveFeature(null);
+    };
   }, [setActiveFeature]);
 
   // Module persistence - lưu toàn bộ EmulateState

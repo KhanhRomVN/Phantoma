@@ -27,6 +27,7 @@ import { useDraftManagement } from './hooks/useDraftManagement';
 interface ChatPanelProps {
   currentChat: ChatSession | null;
   onBack: (contentToReturn?: string) => void;
+  feature?: string | null;
   onLoadConversation?: (
     conversationId: string,
     sessionId: number,
@@ -44,10 +45,12 @@ interface ChatPanelProps {
 const ChatPanel: React.FC<ChatPanelProps> = ({
   currentChat,
   onBack,
+  feature,
   onLoadConversation,
   initialMessageData,
   onClearInitialData,
 }) => {
+  console.log('[DEBUG-ChatPanel] 🟢 feature prop =', feature);
   // --- States ---
   const [apiUrl, setApiUrl] = useState('http://localhost:8888');
   const [isApiUrlReady, setIsApiUrlReady] = useState(false);
@@ -134,6 +137,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   } = useChatLLM({
     apiUrl,
     selectedTab: currentChat,
+    feature,
     onToolRequest: (actions, assistantMessage, isAutoTrigger, actionType) =>
       handleToolRequest(
         actions,

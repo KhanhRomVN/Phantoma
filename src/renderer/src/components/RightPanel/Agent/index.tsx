@@ -11,6 +11,7 @@ import AgentOverlay from './components/AgentOverlay';
 
 export function AgentPanel() {
   const { activeFeature } = useAgentFeature();
+  console.log('[DEBUG-Agent] 🟡 activeFeature =', activeFeature);
   const [currentChat, setCurrentChat] = useState<ChatSession | null>(null);
   const [initialMessageData, setInitialMessageData] = useState<{
     content: string;
@@ -71,6 +72,7 @@ export function AgentPanel() {
             <ChatPanel
               currentChat={currentChat}
               onBack={handleBack}
+              feature={activeFeature}
               onLoadConversation={handleLoadConversation}
               initialMessageData={initialMessageData}
               onClearInitialData={() => setInitialMessageData(null)}

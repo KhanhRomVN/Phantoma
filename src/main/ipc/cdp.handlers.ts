@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { cdpManager } from '../features/cdp';
 import { handleInspectorRequest } from '../features/inspector';
+import { launchCdpPort } from '../app-launcher';
 import * as zlib from 'zlib';
 
 // CDP state
@@ -8,6 +9,10 @@ let cdpConnected = false;
 let cdpPort = 0;
 
 export function setupCDPHandlers() {
+  ipcMain.handle('cdp:get-launch-port', async () => {
+    return { port: launchCdpPort };
+  });
+
   ipcMain.handle('cdp:connect', async (_, port: number) => {
     try {
       const success = await cdpManager.connect(port);

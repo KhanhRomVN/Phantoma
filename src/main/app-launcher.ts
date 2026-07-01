@@ -8,6 +8,9 @@ import { appState } from './shared/state';
 import { injectLocalSSLBypass } from './utils/frida';
 import { execSync as execSyncChild } from 'child_process';
 
+/** CDP port used during launch — exposed for IPC handlers to retrieve */
+export let launchCdpPort: number | null = null;
+
 // Web Apps - only browser mode
 const webApps: Record<string, string> = {
   'deepseek-browser': 'https://chat.deepseek.com',
@@ -299,6 +302,7 @@ export async function launchApp(
   // All Websites - launch browser with Google as default start page
   if (appName === '__all_websites__') {
     const cdpPort = forceMode === 'cdp' ? await findAvailablePort(9222) : undefined;
+    if (cdpPort) launchCdpPort = cdpPort;
     const result = launchBrowser('https://google.com', appName, proxyUrl, cdpPort);
     
     // If Frida mode, inject SSL bypass after launch
@@ -317,6 +321,7 @@ export async function launchApp(
   const url = customUrl || webApps[appName];
   if (url) {
     const cdpPort = forceMode === 'cdp' ? await findAvailablePort(9222) : undefined;
+    if (cdpPort) launchCdpPort = cdpPort;
     const result = launchBrowser(url, appName, proxyUrl, cdpPort);
     
     // If Frida mode, inject SSL bypass after launch

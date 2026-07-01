@@ -226,18 +226,12 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
 
   return (
     <div
-      className={`assistant-message-container ${message.isError ? 'is-error' : ''}`}
+      className="flex flex-col gap-0 relative transition-all duration-300 ease"
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0px',
         marginBottom: 'var(--spacing-md)',
-        paddingLeft: '0px',
-        position: 'relative',
         opacity: message.isCancelled ? 0.4 : 1,
         filter: message.isCancelled ? 'grayscale(1) blur(0.5px)' : 'none',
         pointerEvents: message.isCancelled ? 'none' : 'auto',
-        transition: 'all 0.3s ease',
         backgroundColor: 'transparent',
         borderRadius: 'var(--border-radius)',
         border: 'none',
@@ -464,7 +458,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
 
         return renderGroups.map((group, index) => {
           const isLast = index === renderGroups.length - 1 && isLastMessage;
-          const timelineClass = `timeline-item ${isLast ? 'last' : ''}`;
 
           let content = null;
 
@@ -472,14 +465,14 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div style={{ paddingBottom: '8px' }}>
                 <div
-                  className="timeline-dot"
+                  className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
                   style={{
                     backgroundColor: 'transparent',
-                    top: '10px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     border: 'none',
+                    boxShadow: 'none',
                   }}
                 >
                   {group.faviconUrl ? (
@@ -534,14 +527,14 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div style={{ paddingBottom: '8px' }}>
                 <div
-                  className="timeline-dot"
+                  className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
                   style={{
                     backgroundColor: 'transparent',
-                    top: '10px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     border: 'none',
+                    boxShadow: 'none',
                   }}
                 >
                   {/* Animated circle-dot — purple */}
@@ -689,11 +682,10 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div>
                 <div
-                  className="timeline-dot"
+                  className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
                   style={{
                     backgroundColor: dotColor,
                     boxShadow: `0 0 0 2px var(--vscode-editor-background), 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
-                    top: '10px',
                   }}
                 />
                 <div
@@ -715,11 +707,10 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div>
                 <div
-                  className="timeline-dot"
+                  className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
                   style={{
                     backgroundColor: dotColor,
                     boxShadow: `0 0 0 2px var(--vscode-editor-background), 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
-                    top: '10px',
                   }}
                 />
                 <div style={{ paddingLeft: '29px', paddingTop: '4px' }}>
@@ -911,73 +902,16 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
           }
 
           return (
-            <div key={group.key} className={timelineClass}>
+            <div
+              key={group.key}
+              className={`relative ml-0 ${isLast ? 'pb-0' : ''}`}
+            >
               {content}
             </div>
           );
         });
       })()}
       <style>{`
-        :root {
-          --timeline-axis: 15px;
-          --timeline-dot-size: 8px;
-        }
-
-        .chat-timeline-wrapper {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .chat-timeline-wrapper::before {
-          display: none;
-        }
-
-        .assistant-message-container {
-          position: relative;
-        }
-
-        .timeline-item {
-          position: relative;
-          margin-left: 0;
-        }
-
-        .timeline-item:last-child {
-          padding-bottom: 0;
-        }
-
-        .assistant-message-container .timeline-item:not(.last)::before {
-          content: "";
-          position: absolute;
-          left: 15px;
-          transform: translateX(-50%);
-          top: 14px;
-          bottom: -24px;
-          width: 2px;
-          background-color: var(--vscode-textBlockQuote-border, var(--vscode-editorLineNumber-foreground));
-          opacity: 0.5;
-          pointer-events: none;
-        }
-
-        .timeline-item.last::before {
-          display: none;
-        }
-
-        .timeline-dot {
-          position: absolute;
-          left: 15px;
-          transform: translateX(-50%);
-          top: 22px;
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          z-index: 10;
-          background-color: var(--vscode-descriptionForeground);
-          box-shadow: 0 0 0 2px var(--vscode-editor-background), 0 0 0 3px var(--vscode-textBlockQuote-border, var(--vscode-editorLineNumber-foreground));
-          transition: all 0.2s ease;
-          animation: timeline-dot-fade-in 0.25s ease-out both;
-        }
-
         @keyframes timeline-dot-fade-in {
           from {
             opacity: 0;
@@ -987,27 +921,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             opacity: 1;
             transform: translateX(-50%) scale(1);
           }
-        }
-
-        .timeline-mask {
-          position: relative;
-        }
-
-        .timeline-mask::after {
-          content: "";
-          position: absolute;
-          left: 15px;
-          transform: translateX(-50%);
-          top: -24px;
-          bottom: 0;
-          width: 4px;
-          background-color: var(--secondary-bg);
-          z-index: 1;
-          pointer-events: none;
-        }
-
-        .timeline-content {
-          padding-left: 29px;
         }
       `}</style>
     </div>

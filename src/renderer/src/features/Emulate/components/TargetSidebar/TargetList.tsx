@@ -95,8 +95,10 @@ export function TargetList({
     onStartTarget('cdp');
     if (onLaunchTarget) {
       onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'cdp').then(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const ports = [9223, 9224, 9225, 9222];
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        // Get the actual CDP port from the launch process
+        const { port: launchPort } = await window.api.invoke('cdp:get-launch-port');
+        const ports = launchPort ? [launchPort] : [9222];
         for (const port of ports) {
           try {
             const result = await window.api.invoke('cdp:connect', port);

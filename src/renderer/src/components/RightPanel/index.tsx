@@ -42,6 +42,7 @@ type AgentSubView =
 export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) {
   const [view, setView] = useState<PanelView>('agent');
   const [agentSubView, setAgentSubView] = useState<AgentSubView>(null);
+  const [agentPanelKey, setAgentPanelKey] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -146,10 +147,13 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
           {view === 'agent' && (
             <div className="ml-auto flex items-center gap-2">
               <button
-                onClick={() => setAgentSubView('home')}
+                onClick={() => {
+                  setAgentSubView(null);
+                  setAgentPanelKey((k) => k + 1);
+                }}
                 className={cn(
                   'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
-                  agentSubView === 'home' && 'bg-primary/10 text-primary',
+                  agentSubView === null && 'bg-primary/10 text-primary',
                 )}
               >
                 <Plus className="w-4 h-4 text-text-secondary" />
@@ -195,7 +199,7 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
 
         {/* Content */}
         <div className="flex-1 overflow-hidden relative">
-          {view === 'agent' && agentSubView === null && <AgentPanel />}
+          {view === 'agent' && agentSubView === null && <AgentPanel key={agentPanelKey} />}
           {view === 'agent' && (
             <div className={cn('absolute inset-0', agentSubView !== 'home' && 'hidden')}>
               <HomePanel onSendMessage={() => {}} onLoadConversation={() => {}} />

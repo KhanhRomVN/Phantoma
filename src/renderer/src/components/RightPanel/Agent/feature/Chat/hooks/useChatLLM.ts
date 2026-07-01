@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Message } from '../types/message';
 import { ToolAction, parseAIResponse } from '../blocks';
 import { getDefaultPrompt, combinePrompts } from '../prompts/code';
+import { getDefaultPrompt as getDefaultPromptEmulate, combinePrompts as combinePromptsEmulate } from '../prompts/emulate';
 import {
   PERSISTENT_RULES,
   buildPermissionModeTag,
@@ -55,6 +56,7 @@ const getShallowTree = (tree: string): string => {
 interface UseChatLLMProps {
   apiUrl: string;
   selectedTab: ChatSession | null;
+  feature?: string | null;
   onConversationIdChange?: (id: string) => void;
   onToolRequest?: (
     actions: ToolAction[],
@@ -67,6 +69,7 @@ interface UseChatLLMProps {
 export const useChatLLM = ({
   apiUrl,
   selectedTab,
+  feature,
   onConversationIdChange,
   onToolRequest,
 }: UseChatLLMProps) => {
@@ -325,14 +328,24 @@ export const useChatLLM = ({
         } catch (e) {}
 
         const effectiveLang = aiLanguage || preferredLanguage;
-        systemPrompt = getDefaultPrompt(effectiveLang);
+        const isEmulate = feature === 'emulate';
+        console.log('[DEBUG-useChatLLM] 🟣 feature =', feature, '| isEmulate =', isEmulate);
+        systemPrompt = isEmulate
+          ? getDefaultPromptEmulate(effectiveLang)
+          : getDefaultPrompt(effectiveLang);
         // Use real system info if we managed to fetch it, override the default
         if (systemInfo.os !== 'Unknown OS') {
-          systemPrompt = combinePrompts({
-            language: effectiveLang,
-            systemInfo,
-            permissionMode,
-          });
+          systemPrompt = isEmulate
+            ? combinePromptsEmulate({
+                language: effectiveLang,
+                systemInfo,
+                permissionMode,
+              })
+            : combinePrompts({
+                language: effectiveLang,
+                systemInfo,
+                permissionMode,
+              });
         }
 
         try {

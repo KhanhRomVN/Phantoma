@@ -74,14 +74,33 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
       </div>
       {onRevertConversation && (
         <button
-          className="user-message-undo-btn opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded cursor-pointer z-10 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-[0.15s]"
+          style={{
+            background:
+              'color-mix(in srgb, var(--input-bg) 60%, var(--vscode-editor-background))',
+            border:
+              '1px solid color-mix(in srgb, var(--input-bg) 40%, var(--vscode-editor-background))',
+            color:
+              'color-mix(in srgb, var(--primary-text) 90%, var(--vscode-editor-foreground))',
+          }}
           onClick={() => setShowRevertModal(true)}
           title="Revert conversation to this state"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background =
+              'color-mix(in srgb, var(--input-bg) 40%, var(--vscode-editor-background))';
+            e.currentTarget.style.color = 'var(--vscode-terminal-foreground)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background =
+              'color-mix(in srgb, var(--input-bg) 60%, var(--vscode-editor-background))';
+            e.currentTarget.style.color =
+              'color-mix(in srgb, var(--primary-text) 90%, var(--vscode-editor-foreground))';
+          }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -130,36 +149,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
           </div>,
           document.body,
         )}
-      <style>{`
-        .user-message-undo-btn {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          background: color-mix(in srgb, var(--input-bg) 60%, var(--vscode-editor-background));
-          border: 1px solid color-mix(in srgb, var(--input-bg) 40%, var(--vscode-editor-background));
-          border-radius: 4px;
-          width: 28px;
-          height: 28px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: color-mix(in srgb, var(--primary-text) 90%, var(--vscode-editor-foreground));
-          cursor: pointer;
-          transition: opacity 0.15s ease;
-          z-index: 10;
-        }
-
-        .user-message-undo-btn:hover {
-          background: color-mix(in srgb, var(--input-bg) 40%, var(--vscode-editor-background));
-          color: var(--vscode-terminal-foreground);
-        }
-
-        .user-message-undo-btn svg {
-          width: 14px;
-          height: 14px;
-          stroke-width: 2px;
-        }
-      `}</style>
+      
     </div>
   );
 };
