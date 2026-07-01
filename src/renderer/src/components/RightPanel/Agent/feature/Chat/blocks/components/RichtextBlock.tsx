@@ -87,7 +87,7 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
                 isClickable
                   ? (e) => {
                       e.currentTarget.style.background =
-                        'var(--vscode-list-hoverBackground, rgba(255,255,255,0.06))';
+                        'var(--sidebar-item-hover, rgba(255,255,255,0.06))';
                     }
                   : undefined
               }
@@ -104,12 +104,12 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
                 isFolder={isFolder}
                 style={{ width: '16px', height: '16px', opacity: 0.9 }}
               />
-              <span className="text-[var(--vscode-editor-foreground)] opacity-90 whitespace-nowrap overflow-hidden text-ellipsis">
+              <span className="text-primary opacity-90 whitespace-nowrap overflow-hidden text-ellipsis">
                 {name}
                 {isFolder && '/'}
               </span>
               {lineCount && (
-                <span className="text-[var(--vscode-descriptionForeground)] text-[11px] opacity-60 ml-1">
+                <span className="text-secondary text-[11px] opacity-60 ml-1">
                   {lineCount} lines
                 </span>
               )}
@@ -133,11 +133,11 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
         />
       )}
       {prefix && (
-        <span className="font-medium text-[var(--vscode-foreground)]">
+        <span className="font-medium text-primary">
           {prefix}
         </span>
       )}
-      <span className="text-[var(--vscode-editor-foreground)] font-[var(--vscode-font-family)]">
+      <span className="text-primary">
         {title || 'Output'}
       </span>
       {headerActions && (
@@ -149,9 +149,9 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
   );
 
   const ExpandedView = () => (
-    <div className="bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border,rgba(128,128,128,0.2))]">
+    <div className="bg-background border">
       <div
-        className="flex justify-between items-center py-1.5 px-0 bg-[var(--vscode-editorGroupHeader-tabsBackground,var(--vscode-sideBarSectionHeader-background,rgba(0,0,0,0.1)))] border-b border-[var(--vscode-panel-border,rgba(128,128,128,0.2))] text-[var(--vscode-editor-foreground)] font-[var(--vscode-font-family)] text-[13px] select-none cursor-pointer"
+        className="flex justify-between items-center py-1.5 px-0 bg-[var(--sidebar-background,rgba(0,0,0,0.1))] border-b text-primary text-[13px] select-none cursor-pointer"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
@@ -163,7 +163,7 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
             />
           )}
           {prefix && <span className="font-semibold opacity-80 text-xs">{prefix}</span>}
-          <span className="font-medium text-xs text-[var(--vscode-editor-foreground)] font-[var(--vscode-font-family)]">
+          <span className="font-medium text-xs text-primary">
             {title || 'Output'}
           </span>
         </div>
@@ -173,7 +173,7 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
         {isFilePathList ? (
           renderFileTree()
         ) : (
-          <pre className="m-0 font-mono text-xs whitespace-pre-wrap break-all text-[var(--vscode-editor-foreground)] bg-none">
+          <pre className="m-0 font-mono text-xs whitespace-pre-wrap break-all text-primary bg-none">
             <code className="bg-none p-0">{content}</code>
           </pre>
         )}
@@ -184,12 +184,12 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
   return (
     <div className={cn('mb-3 overflow-hidden rounded-md', isCollapsed && '!bg-transparent mb-2')}>
       {!showHeader ? (
-        <div className="bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border,rgba(128,128,128,0.2))]">
+        <div className="bg-background border">
           <div className="px-3 py-2 max-h-[300px] overflow-y-auto" style={contentStyle}>
             {isFilePathList ? (
               renderFileTree()
             ) : (
-              <pre className="m-0 font-mono text-xs whitespace-pre-wrap break-all text-[var(--vscode-editor-foreground)] bg-none">
+              <pre className="m-0 font-mono text-xs whitespace-pre-wrap break-all text-primary bg-none">
                 <code className="bg-none p-0">{content}</code>
               </pre>
             )}

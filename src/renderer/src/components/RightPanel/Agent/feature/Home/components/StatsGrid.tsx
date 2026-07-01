@@ -18,7 +18,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
     {
       icon: <MessageSquare size={16} />,
       iconBg: 'rgba(59, 130, 246, 0.12)',
-      iconColor: 'var(--vscode-textLink-foreground, #3b82f6)',
+      iconColor: 'var(--primary, #3b82f6)',
       value: todayTokens.toLocaleString(),
       label: 'Total Chats',
       valueStyle: { fontSize: '16px', fontWeight: 700 } as React.CSSProperties,
@@ -26,7 +26,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
     {
       icon: <Zap size={16} />,
       iconBg: 'rgba(16, 185, 129, 0.12)',
-      iconColor: 'var(--vscode-gitDecoration-addedResourceForeground, #10b981)',
+      iconColor: 'var(--success, #10b981)',
       value: String(todayRequests),
       label: 'Tools Executed',
       valueStyle: { fontSize: '16px', fontWeight: 700 } as React.CSSProperties,
@@ -34,7 +34,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
     {
       icon: <Brain size={16} />,
       iconBg: 'rgba(245, 158, 11, 0.12)',
-      iconColor: 'var(--vscode-editorWarning-foreground, #f59e0b)',
+      iconColor: 'var(--warn, #f59e0b)',
       value: favoriteModel,
       label: 'Estimated Savings',
       valueStyle: {
@@ -47,7 +47,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
     {
       icon: <Users size={16} />,
       iconBg: 'rgba(139, 92, 246, 0.12)',
-      iconColor: 'var(--vscode-symbolIcon-namespaceForeground, #8b5cf6)',
+      iconColor: 'var(--purple, #8b5cf6)',
       value: String(totalAccounts),
       label: 'Success Rate',
       valueStyle: { fontSize: '16px', fontWeight: 700 } as React.CSSProperties,
@@ -72,10 +72,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
           </div>
           <div className="flex flex-col gap-0.5">
             <span style={card.valueStyle}>{card.value}</span>
-            <span
-              className="text-[10px] font-medium"
-              style={{ color: 'var(--vscode-descriptionForeground)' }}
-            >
+            <span className="text-[10px] font-medium text-secondary">
               {card.label}
             </span>
           </div>

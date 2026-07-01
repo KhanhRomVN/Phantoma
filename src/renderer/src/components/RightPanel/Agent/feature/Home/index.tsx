@@ -257,9 +257,8 @@ const HomePanel: React.FC<HomePanelProps> = ({
           <div className="flex flex-col items-center gap-0.5 text-center w-full">
             <h1
               className="text-[30px] font-extrabold m-0 tracking-[-0.02em] leading-tight py-1"
+              className="bg-gradient-to-r from-[var(--primary-text,#fff)] to-[var(--secondary-text,#a8a8a8)] bg-clip-text text-transparent"
               style={{
-                background:
-                  'linear-gradient(to right, var(--vscode-foreground, #fff), var(--vscode-textPreformat-foreground, #a8a8a8))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
@@ -271,7 +270,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
               <div
                 key={sloganIndex}
                 className="text-sm font-medium whitespace-nowrap animate-[slideUp_0.4s_ease-out]"
-                style={{ color: 'var(--vscode-descriptionForeground, #888)' }}
+                className="text-secondary"
               >
                 {SLOGANS[sloganIndex]}
               </div>
@@ -321,7 +320,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
             }
             .dashboard-card:hover {
               transform: translateY(-2px);
-              border-color: var(--vscode-focusBorder) !important;
+              border-color: var(--primary) !important;
               box-shadow: 0 4px 12px rgba(0,0,0,0.12);
             }
           `}</style>

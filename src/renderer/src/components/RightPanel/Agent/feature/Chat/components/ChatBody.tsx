@@ -255,10 +255,10 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
             className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-[5px] rounded-[20px] text-[11px] font-semibold cursor-pointer transition-opacity duration-200"
             style={{
               border:
-                '1px solid color-mix(in srgb, var(--vscode-button-background, #007acc) 40%, transparent)',
+                '1px solid color-mix(in srgb, var(--primary, #007acc) 40%, transparent)',
               background:
-                'color-mix(in srgb, var(--vscode-editor-background) 85%, var(--vscode-button-background, #007acc))',
-              color: 'var(--vscode-button-background, #007acc)',
+                'color-mix(in srgb, var(--background) 85%, var(--primary, #007acc))',
+              color: 'var(--primary, #007acc)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             }}
           >
@@ -333,22 +333,22 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
             className="inline-flex items-center justify-center gap-1.5 h-7 px-4 rounded-md text-[11px] font-semibold uppercase tracking-[0.5px] cursor-pointer box-border transition-all duration-200 ease-in-out"
             style={{
               backgroundColor:
-                'color-mix(in srgb, var(--vscode-button-background, #007acc) 15%, transparent)',
-              color: 'var(--vscode-button-background, #007acc)',
+                'color-mix(in srgb, var(--primary, #007acc) 15%, transparent)',
+              color: 'var(--primary, #007acc)',
               border:
-                '1px solid color-mix(in srgb, var(--vscode-button-background, #007acc) 30%, transparent)',
+                '1px solid color-mix(in srgb, var(--primary, #007acc) 30%, transparent)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor =
-                'color-mix(in srgb, var(--vscode-button-background, #007acc) 25%, transparent)';
+                'color-mix(in srgb, var(--primary, #007acc) 25%, transparent)';
               e.currentTarget.style.borderColor =
-                'color-mix(in srgb, var(--vscode-button-background, #007acc) 50%, transparent)';
+                'color-mix(in srgb, var(--primary, #007acc) 50%, transparent)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor =
-                'color-mix(in srgb, var(--vscode-button-background, #007acc) 15%, transparent)';
+                'color-mix(in srgb, var(--primary, #007acc) 15%, transparent)';
               e.currentTarget.style.borderColor =
-                'color-mix(in srgb, var(--vscode-button-background, #007acc) 30%, transparent)';
+                'color-mix(in srgb, var(--primary, #007acc) 30%, transparent)';
             }}
           >
             <span className="codicon codicon-play text-xs inline-flex items-center justify-center" />
@@ -362,16 +362,16 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
           className="flex items-start gap-2.5 px-3.5 py-2 mb-1 mt-1 rounded-lg text-xs"
           style={{
             background:
-              'color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 8%, transparent)',
+              'color-mix(in srgb, var(--warn, #cca700) 8%, transparent)',
             border:
-              '1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 25%, transparent)',
-            color: 'var(--vscode-editor-foreground)',
+              '1px solid color-mix(in srgb, var(--warn, #cca700) 25%, transparent)',
+            color: 'var(--primary-text)',
           }}
         >
           <span
             className="shrink-0 mt-0.5 inline-block w-2 h-2 rounded-full animate-[zen-pulse_1.2s_ease-in-out_infinite]"
             style={{
-              background: 'var(--vscode-editorWarning-foreground, #cca700)',
+              background: 'var(--warn, #cca700)',
             }}
           />
           <div className="flex flex-col gap-0.5">
@@ -398,11 +398,11 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
         .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
         .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
         .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: var(--vscode-scrollbarSlider-background, rgba(128, 128, 128, 0.4));
+          background: rgba(128, 128, 128, 0.4);
           border-radius: 4px;
         }
         .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-          background: var(--vscode-scrollbarSlider-hoverBackground, rgba(128, 128, 128, 0.6));
+          background: rgba(128, 128, 128, 0.6);
         }
       `}</style>
     </div>

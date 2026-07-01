@@ -33,9 +33,9 @@ export const CopyableText: React.FC<CopyableTextProps> = ({ value, monospace }) 
         fontSize,
         fontFamily,
         color: copied
-          ? 'var(--vscode-testing-iconPassed, #22c55e)'
+          ? 'var(--success, #22c55e)'
           : hovered
-            ? 'var(--vscode-textLink-foreground)'
+            ? 'var(--primary)'
             : 'var(--primary-text)',
         cursor: value ? 'pointer' : 'default',
         transition: 'color 0.15s ease',

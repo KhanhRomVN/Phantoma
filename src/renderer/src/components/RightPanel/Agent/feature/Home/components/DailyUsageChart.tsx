@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from "react";
 interface HourEntry { date: string; requests: number; tokens: number; }
 interface Props { usage: HourEntry[]; title: string; }
 
-const LINE_COLOR = "var(--vscode-textLink-foreground, #3b82f6)";
+const LINE_COLOR = "var(--primary, #3b82f6)";
 const CHART_H = 60;
 const CHART_W = 600;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -66,8 +66,7 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
       className="rounded-lg p-3.5 box-border border border-border hover:border-primary transition-all duration-200 ease-in-out"
     >
       <div
-        className="text-[11px] font-semibold uppercase tracking-[0.05em] mb-2.5 opacity-80"
-        style={{ color: "var(--vscode-foreground)" }}
+        className="text-[11px] font-semibold uppercase tracking-[0.05em] mb-2.5 opacity-80 text-primary"
       >
         {title}
       </div>
@@ -110,7 +109,7 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
               cy={yOf(tooltip.hour)}
               r={3}
               fill={tooltip.hour <= currentHour ? LINE_COLOR : "rgba(128,128,128,0.5)"}
-              stroke="var(--vscode-editor-background, #1e1e1e)"
+              stroke="var(--background, #1e1e1e)"
               strokeWidth="1.5"
             />
           )}
@@ -129,7 +128,7 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
                 className="absolute -translate-x-1/2 text-[9px] opacity-60 whitespace-nowrap"
                 style={{
                   left: `${(h / 23) * 100}%`,
-                  color: "var(--vscode-descriptionForeground)",
+                  color: "var(--secondary-text)",
                 }}
               >
                 {String(h).padStart(2, "0")}h
@@ -144,14 +143,10 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
         const entry = dataMap.get(tooltip.hour);
         return (
           <div
-            className="fixed -translate-x-1/2 -translate-y-full rounded-md px-2.5 py-1.5 text-[11px] pointer-events-none z-[9999] whitespace-nowrap"
+            className="fixed -translate-x-1/2 -translate-y-full rounded-md px-2.5 py-1.5 text-[11px] pointer-events-none z-[9999] whitespace-nowrap bg-dropdown-background border text-primary shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
             style={{
               left: tooltip.svgX,
               top: tooltip.svgY - 8,
-              backgroundColor: "var(--vscode-editorHoverWidget-background, #1e1e1e)",
-              border: "1px solid var(--vscode-editorHoverWidget-border, rgba(128,128,128,0.3))",
-              color: "var(--vscode-foreground)",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
             }}
           >
             <div className="font-semibold mb-[3px]">

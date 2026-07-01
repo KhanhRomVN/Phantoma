@@ -69,7 +69,7 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
   contentPaddingLeft = '36px',
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const errorColor = 'var(--vscode-errorForeground, #f44336)';
+  const errorColor = 'var(--error, #f44336)';
 
   // Extract the actual error message (remove "Error:" prefix if present)
   const cleanContent = content.replace(/^Error:\s*/i, '');
@@ -90,7 +90,7 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
         {showHeader && (
           <ToolHeader
             title={
-              <div className="flex items-center gap-2 text-xs text-[var(--vscode-editor-foreground)]">
+              <div className="flex items-center gap-2 text-xs text-primary">
                 <span style={{ fontWeight: 600, opacity: 0.8, color: errorColor }}>ERROR</span>
                 {displayErrorCode && (
                   <span
@@ -112,7 +112,7 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
 
         {!isCollapsed && (
           <div
-            className="error-block-content pt-2 px-3 pb-3 font-mono text-xs leading-[1.6] text-[var(--vscode-editor-foreground)] whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto border border-[color-mix(in_srgb,var(--vscode-errorForeground,#f44336)_40%,transparent)] rounded-md bg-[color-mix(in_srgb,var(--vscode-errorForeground,#f44336)_6%,transparent)] mt-1 mx-3 mb-2"
+            className="error-block-content pt-2 px-3 pb-3 font-mono text-xs leading-[1.6] text-primary whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto border border-[color-mix(in_srgb,var(--error,#f44336)_40%,transparent)] rounded-md bg-[color-mix(in_srgb,var(--error,#f44336)_6%,transparent)] mt-1 mx-3 mb-2"
             style={{
               marginLeft: showHeader ? '36px' : contentPaddingLeft,
               marginTop: '0',
@@ -123,7 +123,7 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
               minHeight: '32px',
             }}
           >
-            <div className="whitespace-pre-wrap break-words text-[var(--vscode-errorForeground,#f14c4c)]">
+            <div className="whitespace-pre-wrap break-words text-error">
               {displayMessage}
             </div>
           </div>
@@ -138,11 +138,11 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
           background: transparent;
         }
         .error-block-content::-webkit-scrollbar-thumb {
-          background: color-mix(in srgb, var(--vscode-errorForeground, #f44336) 50%, transparent);
+          background: color-mix(in srgb, var(--error, #f44336) 50%, transparent);
           border-radius: 2px;
         }
         .error-block-content::-webkit-scrollbar-thumb:hover {
-          background: color-mix(in srgb, var(--vscode-errorForeground, #f44336) 80%, transparent);
+          background: color-mix(in srgb, var(--error, #f44336) 80%, transparent);
         }
       `}</style>
     </div>

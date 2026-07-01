@@ -41,7 +41,7 @@ const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({ isResponding 
             to right,
             var(--secondary-text) 0%,
             var(--secondary-text) 40%,
-            var(--vscode-editor-foreground, #ffffff) 50%,
+            var(--primary-text, #ffffff) 50%,
             var(--secondary-text) 60%,
             var(--secondary-text) 100%
           );

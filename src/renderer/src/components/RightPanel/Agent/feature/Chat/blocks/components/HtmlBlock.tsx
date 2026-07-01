@@ -35,7 +35,7 @@ const HtmlBlock: React.FC<HtmlBlockProps> = ({ content }) => {
   return (
     <div
       ref={containerRef}
-      className="w-full aspect-video overflow-hidden bg-[var(--vscode-editor-background,#1e1e1e)] rounded-[var(--border-radius)] border border-[var(--vscode-widget-border)] relative"
+      className="w-full aspect-video overflow-hidden bg-background rounded-[var(--border-radius)] border relative"
     >
       <div
         className="absolute top-0 left-0 pointer-events-none"
@@ -53,7 +53,7 @@ const HtmlBlock: React.FC<HtmlBlockProps> = ({ content }) => {
               <head>
                 <meta charset="utf-8">
                 <style>
-                  body { margin: 0; overflow: hidden; background-color: var(--vscode-editor-background, #fff); color: var(--vscode-editor-foreground, #000); height: 100vh; width: 100vw; }
+                  body { margin: 0; overflow: hidden; background-color: var(--background, #fff); color: var(--primary-text, #000); height: 100vh; width: 100vw; }
                   /* Basic Reset */
                   * { box-sizing: border-box; }
                 </style>

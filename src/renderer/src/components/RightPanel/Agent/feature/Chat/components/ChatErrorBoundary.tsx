@@ -48,33 +48,28 @@ export class ChatErrorBoundary extends React.Component<
           className="flex flex-col gap-2 px-5 py-4 m-3 rounded-lg"
           style={{
             border:
-              "1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 30%, transparent)",
+              "1px solid color-mix(in srgb, var(--error, #f44336) 30%, transparent)",
             background:
-              "color-mix(in srgb, var(--vscode-errorForeground, #f44336) 5%, transparent)",
+              "color-mix(in srgb, var(--error, #f44336) 5%, transparent)",
           }}
         >
-          <div
-            className="flex items-center gap-2 font-semibold text-[13px]"
-            style={{ color: "var(--vscode-errorForeground, #f44336)" }}
-          >
+          <div className="flex items-center gap-2 font-semibold text-[13px] text-error">
             <span className="codicon codicon-error text-sm" />
             Something went wrong rendering this message
           </div>
           {this.state.error && (
             <pre
-              className="text-[11px] m-0 whitespace-pre-wrap break-words max-h-[120px] overflow-y-auto"
-              style={{ color: "var(--vscode-descriptionForeground)" }}
+              className="text-[11px] m-0 whitespace-pre-wrap break-words max-h-[120px] overflow-y-auto text-secondary"
             >
               {this.state.error.message}
             </pre>
           )}
           <button
             onClick={this.handleReset}
-            className="self-start px-3 py-1 text-[11px] font-semibold rounded cursor-pointer bg-transparent"
+            className="self-start px-3 py-1 text-[11px] font-semibold rounded cursor-pointer bg-transparent text-primary"
             style={{
               border:
-                "1px solid color-mix(in srgb, var(--vscode-foreground) 25%, transparent)",
-              color: "var(--vscode-foreground)",
+                "1px solid color-mix(in srgb, var(--primary-text) 25%, transparent)",
             }}
           >
             Try again

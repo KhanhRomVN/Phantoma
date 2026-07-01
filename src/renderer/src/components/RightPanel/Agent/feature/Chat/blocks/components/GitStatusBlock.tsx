@@ -70,13 +70,13 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
 
   const getStatusColor = (status: string): string => {
     if (status === 'M' || status === 'MM' || status === 'AM')
-      return 'var(--vscode-editorWarning-foreground, #d4a72c)';
+      return 'var(--warn, #d4a72c)';
     if (status === 'A' || status === 'R' || status === 'C')
-      return 'var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)';
-    if (status === 'D') return 'var(--vscode-errorForeground, #f14c4c)';
-    if (status === '?') return 'var(--vscode-editorBracketHighlight-foreground1, #569cd6)';
-    if (status === 'U') return 'var(--vscode-editorBracketHighlight-foreground3, #8b5cf6)';
-    return 'var(--vscode-foreground)';
+      return 'var(--teal, #4ec9b0)';
+    if (status === 'D') return 'var(--error, #f14c4c)';
+    if (status === '?') return 'var(--info, #569cd6)';
+    if (status === 'U') return 'var(--violet, #8b5cf6)';
+    return 'var(--primary-text)';
   };
 
   const stagedItems = statusItems.filter((item) => item.staged && !item.isUnpushedCommit);
@@ -87,10 +87,10 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
   const hasStaged = statusItems.some((item) => item.staged && !item.isUnpushedCommit);
   const hasUnpushed = statusItems.some((item) => item.isUnpushedCommit);
   const buttonColor = hasStaged
-    ? 'var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)'
+    ? 'var(--teal, #4ec9b0)'
     : hasUnpushed
-      ? 'var(--vscode-editorBracketHighlight-foreground3, #8b5cf6)'
-      : 'var(--vscode-editorWarning-foreground, #d4a72c)';
+      ? 'var(--violet, #8b5cf6)'
+      : 'var(--warn, #d4a72c)';
 
   const renderItem = (item: GitStatusItem, index: number) => {
     const statusColor = getStatusColor(item.status);
@@ -102,17 +102,17 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
     return (
       <div
         key={index}
-        className="git-status-item flex items-center gap-2.5 px-3.5 py-1 text-xs transition-colors duration-[0.15s] border-l-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground,#2a2d2e)]"
+        className="git-status-item flex items-center gap-2.5 px-3.5 py-1 text-xs transition-colors duration-[0.15s] border-l-2 cursor-pointer hover:bg-[var(--sidebar-item-hover,#2a2d2e)]"
         style={{ borderLeftColor: statusColor }}
         onClick={() => handleRowClick(item.path)}
         title={`Click để xem git diff của ${item.path}`}
       >
         <FileIcon path={item.path} style={{ width: 16, height: 16, flexShrink: 0 }} />
-        <span className="text-[var(--vscode-foreground,#cccccc)] text-xs font-mono break-all flex-1">{fileName}</span>
+        <span className="text-primary text-xs font-mono break-all flex-1">{fileName}</span>
         {hasDiff && (
           <span className="inline-flex items-center gap-1 ml-auto text-[11px] font-medium font-mono shrink-0 opacity-80">
-            <span className="text-[var(--vscode-gitDecoration-addedResourceForeground,#3fb950)]">+{added}</span>
-            <span className="text-[var(--vscode-gitDecoration-deletedResourceForeground,#f14c4c)]">-{deleted}</span>
+            <span className="text-success">+{added}</span>
+            <span className="text-error">-{deleted}</span>
           </span>
         )}
       </div>
@@ -121,11 +121,11 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
 
   return (
     <>
-      <div className="bg-transparent border-none overflow-hidden my-2 font-[var(--vscode-font-family,'Segoe_UI','Helvetica_Neue',Arial,sans-serif)]">
-        <div className="git-status-body py-1.5 max-h-[280px] overflow-y-auto border border-[var(--vscode-widget-border,#454545)] rounded-md">
+      <div className="bg-transparent border-none overflow-hidden my-2 font-[var(--font-family,'Segoe_UI','Helvetica_Neue',Arial,sans-serif)]">
+        <div className="git-status-body py-1.5 max-h-[280px] overflow-y-auto border rounded-md">
           {unpushedCommits.length > 0 && (
             <div className="py-1">
-              <div className="text-[11px] font-semibold px-3.5 py-1.5 uppercase tracking-[0.5px] opacity-70 text-[var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)]">
+              <div className="text-[11px] font-semibold px-3.5 py-1.5 uppercase tracking-[0.5px] opacity-70 text-violet">
                 📤 Chưa push ({unpushedCommits.length})
               </div>
               {unpushedCommits.map((item, index) => {
@@ -135,7 +135,7 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
                 return (
                   <div
                     key={index}
-                    className="flex items-center gap-2.5 px-3.5 py-1 text-xs transition-colors duration-[0.15s] border-l-2 border-l-[var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)] cursor-default"
+                    className="flex items-center gap-2.5 px-3.5 py-1 text-xs transition-colors duration-[0.15s] border-l-2 border-l-violet cursor-default"
                   >
                     <span className="w-4 h-4 shrink-0 flex items-center justify-center">
                       <svg
@@ -148,13 +148,13 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="text-[var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)]"
+                        className="text-violet"
                       >
                         <path d="M12 19V5" />
                         <path d="M5 12l7-7 7 7" />
                       </svg>
                     </span>
-                    <span className="text-[var(--vscode-foreground,#cccccc)] text-xs font-mono break-all flex-1 font-[var(--vscode-editor-font-family,monospace)] text-[11px] opacity-85">
+                    <span className="text-primary text-xs font-mono break-all flex-1 text-[11px] opacity-85">
                       {shortMsg}
                     </span>
                   </div>
@@ -164,14 +164,14 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
           )}
 
           {stagedItems.length === 0 && unpushedCommits.length === 0 && (
-            <div className="px-3.5 py-4 text-center text-[var(--vscode-descriptionForeground,#8c8c8c)] text-[13px]">
+            <div className="px-3.5 py-4 text-center text-secondary text-[13px]">
               <div className="text-2xl mb-2">📂</div>
-              <div className="font-semibold mb-1 text-[var(--vscode-editorWarning-foreground,#d4a72c)]">
+              <div className="font-semibold mb-1 text-warn">
                 ⚠️ Chưa có file nào được staged
               </div>
               <div className="text-xs opacity-80">
                 Hãy chạy{' '}
-                <code className="bg-[var(--vscode-textCodeBlock-background)] px-1.5 py-0.5 rounded font-mono">
+                <code className="bg-background px-1.5 py-0.5 rounded font-mono">
                   git add {'<file>'}
                 </code>{' '}
                 để thêm file vào staging area
@@ -181,7 +181,7 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
 
           {stagedItems.length > 0 && (
             <div className="py-1">
-              <div className="text-[11px] font-semibold text-[var(--vscode-descriptionForeground,#8c8c8c)] px-3.5 py-1.5 uppercase tracking-[0.5px] opacity-70">
+              <div className="text-[11px] font-semibold text-secondary px-3.5 py-1.5 uppercase tracking-[0.5px] opacity-70">
                 Staged Changes
               </div>
               {stagedItems.map((item, index) => renderItem(item, index))}
@@ -207,9 +207,9 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
               background: `color-mix(in srgb, ${buttonColor} 15%, transparent)`,
               color:
                 stagedItems.length === 0
-                  ? 'var(--vscode-descriptionForeground, #8c8c8c)'
+                  ? 'var(--secondary-text, #8c8c8c)'
                   : buttonColor,
-              border: `1px solid color-mix(in srgb, ${stagedItems.length === 0 ? 'var(--vscode-descriptionForeground, #8c8c8c)' : buttonColor} 30%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${stagedItems.length === 0 ? 'var(--secondary-text, #8c8c8c)' : buttonColor} 30%, transparent)`,
               cursor: stagedItems.length === 0 ? 'not-allowed' : 'pointer',
               opacity: stagedItems.length === 0 ? 0.5 : 1,
             }}
@@ -234,15 +234,15 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
             }}
             disabled={isProcessing}
             style={{
-              background: `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 15%, transparent)`,
-              color: 'var(--vscode-errorForeground, #ff4d4d)',
-              border: `1px solid color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 30%, transparent)`,
+              background: `color-mix(in srgb, var(--error, #ff4d4d) 15%, transparent)`,
+              color: 'var(--error, #ff4d4d)',
+              border: `1px solid color-mix(in srgb, var(--error, #ff4d4d) 30%, transparent)`,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 25%, transparent)`;
+              e.currentTarget.style.background = `color-mix(in srgb, var(--error, #ff4d4d) 25%, transparent)`;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 15%, transparent)`;
+              e.currentTarget.style.background = `color-mix(in srgb, var(--error, #ff4d4d) 15%, transparent)`;
             }}
           >
             <X size={14} strokeWidth={2.5} />
@@ -259,7 +259,7 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
           background: transparent;
         }
         .git-status-body::-webkit-scrollbar-thumb {
-          background: var(--vscode-scrollbarSlider-background, #3a3a3a);
+          background: #3a3a3a;
           border-radius: 4px;
         }
       `}</style>

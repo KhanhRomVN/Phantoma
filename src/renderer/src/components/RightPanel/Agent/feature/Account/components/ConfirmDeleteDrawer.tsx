@@ -56,7 +56,7 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
               className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
               style={{
                 backgroundColor:
-                  'var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.1))',
+                  'var(--error, rgba(239,68,68,0.1))',
               }}
             >
               <svg
@@ -64,7 +64,7 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
                 height="16"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--vscode-errorForeground)"
+                stroke="var(--error)"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"

@@ -77,24 +77,24 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
           className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded cursor-pointer z-10 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-[0.15s]"
           style={{
             background:
-              'color-mix(in srgb, var(--input-bg) 60%, var(--vscode-editor-background))',
+              'color-mix(in srgb, var(--input-bg) 60%, var(--background))',
             border:
-              '1px solid color-mix(in srgb, var(--input-bg) 40%, var(--vscode-editor-background))',
+              '1px solid color-mix(in srgb, var(--input-bg) 40%, var(--background))',
             color:
-              'color-mix(in srgb, var(--primary-text) 90%, var(--vscode-editor-foreground))',
+              'color-mix(in srgb, var(--primary-text) 90%, var(--primary-text))',
           }}
           onClick={() => setShowRevertModal(true)}
           title="Revert conversation to this state"
           onMouseEnter={(e) => {
             e.currentTarget.style.background =
-              'color-mix(in srgb, var(--input-bg) 40%, var(--vscode-editor-background))';
-            e.currentTarget.style.color = 'var(--vscode-terminal-foreground)';
+              'color-mix(in srgb, var(--input-bg) 40%, var(--background))';
+            e.currentTarget.style.color = 'var(--primary-text)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background =
-              'color-mix(in srgb, var(--input-bg) 60%, var(--vscode-editor-background))';
+              'color-mix(in srgb, var(--input-bg) 60%, var(--background))';
             e.currentTarget.style.color =
-              'color-mix(in srgb, var(--primary-text) 90%, var(--vscode-editor-foreground))';
+              'color-mix(in srgb, var(--primary-text) 90%, var(--primary-text))';
           }}
         >
           <svg

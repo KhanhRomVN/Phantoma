@@ -155,7 +155,7 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
                 top: '10px',
                 left: '15px',
                 transform: 'translateX(-50%)',
-                boxShadow: `0 0 0 2px var(--vscode-editor-background), 0 0 0 3px color-mix(in srgb, ${statusColor} 50%, transparent)`,
+                boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in srgb, ${statusColor} 50%, transparent)`,
               }}
             />
           )}
@@ -233,17 +233,17 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
                     width: '16px',
                     height: '12px',
                     borderLeft:
-                      '1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 20%, transparent)',
+                      '1px solid color-mix(in srgb, var(--secondary-text) 20%, transparent)',
                     borderBottom:
-                      '1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 20%, transparent)',
+                      '1px solid color-mix(in srgb, var(--secondary-text) 20%, transparent)',
                   }}
                 />
                 <span
                   style={{
                     fontSize: '10px',
                     opacity: 0.6,
-                    color: 'var(--vscode-descriptionForeground)',
-                    fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                    color: 'var(--secondary-text)',
+                    fontFamily: 'var(--font-family, monospace)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -264,7 +264,7 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
                   onMouseEnter={(e) => {
                     e.currentTarget.style.textDecoration = 'underline';
                     e.currentTarget.style.textDecorationColor =
-                      'var(--vscode-focusBorder, rgba(0, 122, 204, 0.6))';
+                      'var(--primary, rgba(0, 122, 204, 0.6))';
                     e.currentTarget.style.textUnderlineOffset = '2px';
                     e.currentTarget.style.cursor = 'pointer';
                   }}
@@ -291,14 +291,14 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
               >
                 <span
                   style={{
-                    color: 'var(--vscode-gitDecoration-addedResourceForeground)',
+                    color: 'var(--success)',
                   }}
                 >
                   +{diffStats.added}
                 </span>
                 <span
                   style={{
-                    color: 'var(--vscode-gitDecoration-deletedResourceForeground)',
+                    color: 'var(--error)',
                   }}
                 >
                   -{diffStats.removed}
@@ -333,8 +333,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       }
 
       .terminal-block .terminal-block-header {
-        background-color: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-sideBarSection-header-background, rgba(0, 0, 0, 0.1)));
-        border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.12));
+        background-color: var(--sidebar-background, var(--sidebar-background, rgba(0, 0, 0, 0.1)));
+        border-bottom: 1px solid var(--border, rgba(128, 128, 128, 0.12));
       }
 
       .terminal-block.git-tool .terminal-block-header {
@@ -366,8 +366,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       .terminal-name {
         font-size: 13px;
         font-weight: 600;
-        color: var(--vscode-terminal-foreground);
-        font-family: var(--vscode-editor-font-family, monospace);
+        color: var(--primary-text);
+        font-family: var(--font-family, monospace);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -377,7 +377,7 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       .terminal-sub-info {
         font-size: 11px;
         opacity: 0.5;
-        font-family: var(--vscode-font-family);
+        font-family: var(--font-family);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -390,9 +390,9 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       }
 
       .terminal-sub-info.error-sub-info {
-        font-size: var(--vscode-font-size, 13px);
+        font-size: var(--font-size, 13px);
         opacity: 1;
-        color: var(--vscode-foreground);
+        color: var(--primary-text);
         height: auto;
         white-space: normal;
         overflow: visible;
@@ -409,8 +409,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
         top: -8px;
         width: 10px;
         height: 16px;
-        border-left: 2px solid var(--vscode-panel-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.3)));
-        border-bottom: 2px solid var(--vscode-panel-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.3)));
+        border-left: 2px solid var(--border, var(--border, rgba(128, 128, 128, 0.3)));
+        border-bottom: 2px solid var(--border, var(--border, rgba(128, 128, 128, 0.3)));
         border-bottom-left-radius: 4px;
         transform: translateX(-1px);
       }
@@ -419,8 +419,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
         font-size: 10px;
         padding: 1px 6px;
         border-radius: 10px;
-        background-color: var(--vscode-badge-background, #4d4d4d);
-        color: var(--vscode-badge-foreground, #ffffff);
+        background-color: var(--primary, #4d4d4d);
+        color: var(--text-foreground, #ffffff);
         opacity: 0.8;
         font-weight: 600;
       }
@@ -432,8 +432,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       }
 
       .execute-button-minimal:hover {
-        color: var(--vscode-button-hoverBackground) !important;
-        background-color: color-mix(in srgb, var(--vscode-foreground) 10%, transparent) !important;
+        color: var(--primary) !important;
+        background-color: color-mix(in srgb, var(--primary-text) 10%, transparent) !important;
       }
     `}</style>
     </>

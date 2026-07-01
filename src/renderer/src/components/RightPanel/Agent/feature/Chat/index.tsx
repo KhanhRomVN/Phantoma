@@ -665,7 +665,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       className="chat-panel flex flex-col h-full"
       style={{
         backgroundColor: 'var(--secondary-bg)',
-        color: 'var(--vscode-editor-foreground)',
+        color: 'var(--primary-text)',
       }}
     >
       {/* ChatHeader */}

@@ -107,7 +107,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         mark.dataset.matchIdx = String(total++);
         mark.textContent = m[0];
         mark.style.cssText =
-          'background:var(--vscode-editor-findMatchHighlightBackground,rgba(255,255,0,0.35));color:inherit;border-radius:2px;padding:0 1px;';
+          'background:rgba(255,255,0,0.35);color:inherit;border-radius:2px;padding:0 1px;';
         frag.appendChild(mark);
         last = m.index + m[0].length;
         if (m[0].length === 0) regex.lastIndex++;
@@ -125,16 +125,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
     if (!root) return;
     const marks = root.querySelectorAll('mark.zen-search-hl');
     marks.forEach((m) => {
-      (m as HTMLElement).style.background =
-        'var(--vscode-editor-findMatchHighlightBackground,rgba(255,255,0,0.35))';
+      (m as HTMLElement).style.background = 'rgba(255,255,0,0.35)';
       (m as HTMLElement).style.outline = '';
     });
     const next = ((currentIdx - 1 + dir + matchCount) % matchCount) + 1;
     setCurrentIdx(next);
     const target = marks[next - 1] as HTMLElement | undefined;
     if (target) {
-      target.style.background = 'var(--vscode-editor-findMatchBackground,rgba(255,165,0,0.6))';
-      target.style.outline = '1px solid var(--vscode-editor-findMatchBorder,orange)';
+      target.style.background = 'rgba(255,165,0,0.6)';
+      target.style.outline = '1px solid orange';
       target.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
   };
@@ -151,12 +150,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
       className="flex items-center justify-center p-[2px_4px] rounded-[3px] shrink-0 cursor-pointer transition-all duration-[0.12s] ease-in-out"
       style={{
         background: active
-          ? 'color-mix(in srgb, var(--vscode-button-background) 20%, transparent)'
+          ? 'color-mix(in srgb, var(--primary, #0a84ff) 20%, transparent)'
           : 'transparent',
         border: active
-          ? '1px solid color-mix(in srgb, var(--vscode-button-background) 45%, transparent)'
+          ? '1px solid color-mix(in srgb, var(--primary, #0a84ff) 45%, transparent)'
           : '1px solid transparent',
-        color: active ? 'var(--vscode-button-background)' : 'var(--vscode-icon-foreground)',
+        color: active ? 'var(--primary, #0a84ff)' : 'var(--secondary-text)',
         opacity: active ? 1 : 0.6,
       }}
       onMouseEnter={(e) => {
@@ -173,20 +172,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div
       className="sticky top-0 z-[100] self-end inline-flex items-center gap-1 mb-1.5 rounded-md px-1 py-[3px]"
-      style={{
-        boxShadow: '0 2px 10px rgba(0,0,0,0.32)',
-        backgroundColor:
-          'var(--vscode-editorWidget-background, var(--vscode-input-background, var(--primary-bg)))',
-        border:
-          '1px solid var(--vscode-editorWidget-border, var(--vscode-input-border, var(--border-color)))',
-      }}
+      className="sticky top-0 z-[100] self-end inline-flex items-center gap-1 mb-1.5 rounded-md px-1 py-[3px] shadow-[0_2px_10px_rgba(0,0,0,0.32)] bg-[var(--input-background,var(--primary-bg))] border"
     >
-      <div
-        className="flex items-stretch overflow-hidden rounded-[3px]"
-        style={{
-          backgroundColor: 'var(--vscode-input-background, var(--primary-bg))',
-        }}
-      >
+      <div className="flex items-stretch overflow-hidden rounded-[3px] bg-[var(--input-background,var(--primary-bg))]">
         <input
           ref={inputRef}
           type="text"
@@ -200,20 +188,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
               navigate(e.shiftKey ? -1 : 1);
             }
           }}
-          className="border-none outline-none text-xs py-1 px-1.5 w-[180px]"
-          style={{
-            background: 'var(--vscode-input-background, var(--primary-bg))',
-            color: 'var(--vscode-input-foreground)',
-            fontFamily: 'var(--vscode-font-family, sans-serif)',
-          }}
+          className="border-none outline-none text-xs py-1 px-1.5 w-[180px] bg-[var(--input-background,var(--primary-bg))] text-primary font-[var(--font-family,sans-serif)]"
         />
-        <div
-          className="flex items-center gap-px px-1 py-0.5"
-          style={{
-            borderLeft: '1px solid var(--vscode-input-border, var(--border-color))',
-            backgroundColor: 'var(--vscode-input-background, var(--primary-bg))',
-          }}
-        >
+        <div className="flex items-center gap-px px-1 py-0.5 border-l bg-[var(--input-background,var(--primary-bg))]">
           {iconBtn(
             flags.has('matchCase'),
             'Match Case (Alt+C)',
@@ -238,8 +215,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       </div>
 
       <span
-        className="text-[11px] whitespace-nowrap min-w-[72px] text-center select-none"
-        style={{ color: 'var(--vscode-descriptionForeground)' }}
+        className="text-[11px] whitespace-nowrap min-w-[72px] text-center select-none text-secondary"
       >
         {localQuery
           ? matchCount === 0
@@ -252,10 +228,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
         title="Previous match (Shift+Enter)"
         onClick={() => navigate(-1)}
         disabled={matchCount === 0}
-        className="flex items-center p-[2px_3px] bg-transparent border-none transition-opacity duration-[0.12s]"
+        className="flex items-center p-[2px_3px] bg-transparent border-none transition-opacity duration-[0.12s] text-secondary"
         style={{
           cursor: matchCount > 0 ? 'pointer' : 'default',
-          color: 'var(--vscode-icon-foreground)',
           opacity: matchCount > 0 ? 0.7 : 0.3,
         }}
         onMouseEnter={(e) => {
@@ -284,10 +259,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
         title="Next match (Enter)"
         onClick={() => navigate(1)}
         disabled={matchCount === 0}
-        className="flex items-center p-[2px_3px] bg-transparent border-none transition-opacity duration-[0.12s]"
+        className="flex items-center p-[2px_3px] bg-transparent border-none transition-opacity duration-[0.12s] text-secondary"
         style={{
           cursor: matchCount > 0 ? 'pointer' : 'default',
-          color: 'var(--vscode-icon-foreground)',
           opacity: matchCount > 0 ? 0.7 : 0.3,
         }}
         onMouseEnter={(e) => {
@@ -318,8 +292,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           handleQueryChange('');
           onCloseSearch?.();
         }}
-        className="flex items-center p-[2px_3px] bg-transparent border-none cursor-pointer opacity-55 transition-opacity duration-[0.12s]"
-        style={{ color: 'var(--vscode-icon-foreground)' }}
+        className="flex items-center p-[2px_3px] bg-transparent border-none cursor-pointer opacity-55 transition-opacity duration-[0.12s] text-secondary"
         onMouseEnter={(e) => {
           e.currentTarget.style.opacity = '1';
         }}

@@ -90,16 +90,7 @@ const MessageBoxCodeBlock: React.FC<{
               e.stopPropagation();
               navigator.clipboard.writeText(code);
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--vscode-foreground)',
-              cursor: 'pointer',
-              opacity: 0.7,
-              display: 'flex',
-              alignItems: 'center',
-              padding: '2px',
-            }}
+            className="bg-transparent border-none text-primary cursor-pointer opacity-70 flex items-center p-0.5"
             title="Copy Code"
           >
             <div className="codicon codicon-copy" style={{ fontSize: '14px' }} />
@@ -109,17 +100,9 @@ const MessageBoxCodeBlock: React.FC<{
       {!isCollapsed && (
         <div style={{ paddingLeft: '29px' }}>
           <pre
-            style={{
-              margin: 0,
-              padding: '8px',
-              overflow: 'auto',
-              fontFamily: 'var(--vscode-editor-font-family, monospace)',
-              fontSize: '12px',
-              background: 'var(--vscode-editor-background)',
-              borderRadius: '4px',
-            }}
+            className="m-0 p-2 overflow-auto font-mono text-xs bg-background rounded"
           >
-            <code style={{ background: 'none', padding: 0 }}>{code}</code>
+            <code className="!bg-transparent p-0">{code}</code>
           </pre>
         </div>
       )}
@@ -490,7 +473,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                         if (parent) {
                           const icon = document.createElement('span');
                           icon.className = 'codicon codicon-server-process';
-                          icon.style.color = 'var(--vscode-descriptionForeground)';
+                          icon.style.color = 'var(--secondary-text)';
                           icon.style.fontSize = '14px';
                           parent.appendChild(icon);
                         }
@@ -500,7 +483,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                     <span
                       className="codicon codicon-server-process"
                       style={{
-                        color: 'var(--vscode-descriptionForeground)',
+                        color: 'var(--secondary-text)',
                         fontSize: '14px',
                       }}
                     />
@@ -511,7 +494,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                     paddingLeft: '29px',
                     paddingTop: '4px',
                     fontSize: 'var(--font-size-sm)',
-                    color: 'var(--vscode-descriptionForeground)',
+                    color: 'var(--secondary-text)',
                     lineHeight: 1.6,
                     fontStyle: 'italic',
                     display: 'flex',
@@ -554,7 +537,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                         width: '12px',
                         height: '12px',
                         borderRadius: '50%',
-                        background: 'var(--vscode-editorBracketHighlight-foreground2, #a855f7)',
+                        background: 'var(--purple, #a855f7)',
                         opacity: 0.25,
                       }}
                     />
@@ -563,7 +546,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                         width: '6px',
                         height: '6px',
                         borderRadius: '50%',
-                        background: 'var(--vscode-editorBracketHighlight-foreground2, #a855f7)',
+                        background: 'var(--purple, #a855f7)',
                         flexShrink: 0,
                       }}
                     />
@@ -585,7 +568,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                         fontWeight: 700,
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase',
-                        color: 'var(--vscode-editorBracketHighlight-foreground2, #a855f7)',
+                        color: 'var(--purple, #a855f7)',
                         opacity: 0.85,
                       }}
                     >
@@ -596,22 +579,21 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                   <div
                     style={{
                       padding: '6px 10px',
-                      background:
-                        'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
+                      background: 'var(--background, var(--textCodeBlock-background))',
                       borderRadius: '4px',
                       border:
-                        '1px solid color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #a855f7) 20%, var(--vscode-widget-border, rgba(255,255,255,0.08)))',
-                      fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                        '1px solid color-mix(in srgb, var(--purple, #a855f7) 20%, var(--border, rgba(255,255,255,0.08)))',
+                      fontFamily: 'var(--font-family, monospace)',
                       fontSize: '11px',
                       lineHeight: '1.5',
-                      color: 'var(--vscode-descriptionForeground, var(--vscode-editor-foreground))',
+                      color: 'var(--secondary-text, var(--primary-text))',
                       opacity: 0.85,
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'break-word',
                       maxHeight: '240px',
                       overflowY: 'auto',
                       scrollbarWidth: 'thin',
-                      scrollbarColor: 'var(--vscode-scrollbarSlider-background) transparent',
+                      scrollbarColor: 'rgba(128,128,128,0.4) transparent',
                     }}
                   >
                     {group.content}
@@ -624,14 +606,14 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             let displayCode = group.content;
             let diffStats: { added: number; removed: number } | undefined = undefined;
             let prefix: string | undefined = undefined;
-            let statusColor: string | undefined = 'var(--vscode-descriptionForeground, #6a737d)';
+            let statusColor: string | undefined = 'var(--secondary-text, #6a737d)';
 
             if (isDiffBlock) {
               const diffResult = parseDiff(group.content);
               displayCode = diffResult.code;
               diffStats = diffResult.stats;
               prefix = 'Edit';
-              statusColor = 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)';
+              statusColor = 'var(--success, #3fb950)';
             }
 
             content = (
@@ -655,8 +637,8 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                   gap: '6px',
                   padding: '4px 8px',
                   borderRadius: '4px',
-                  backgroundColor: 'var(--vscode-badge-background)',
-                  color: 'var(--vscode-badge-foreground)',
+                  backgroundColor: 'var(--primary, #4d4d4d)',
+                  color: 'var(--text-foreground, #ffffff)',
                   fontSize: '12px',
                   cursor: 'pointer',
                   marginLeft: '29px',
@@ -677,15 +659,15 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             );
           } else if (group.type === 'markdown') {
             const dotColor = message.isError
-              ? 'var(--vscode-errorForeground, #ff4d4f)'
-              : 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)';
+              ? 'var(--error, #ff4d4f)'
+              : 'var(--success, #3fb950)';
             content = (
               <div>
                 <div
                   className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
                   style={{
                     backgroundColor: dotColor,
-                    boxShadow: `0 0 0 2px var(--vscode-editor-background), 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
+                    boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
                   }}
                 />
                 <div
@@ -702,15 +684,15 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             );
           } else if (group.type === 'mixed_content') {
             const dotColor = message.isError
-              ? 'var(--vscode-errorForeground, #ff4d4f)'
-              : 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)';
+              ? 'var(--error, #ff4d4f)'
+              : 'var(--success, #3fb950)';
             content = (
               <div>
                 <div
                   className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
                   style={{
                     backgroundColor: dotColor,
-                    boxShadow: `0 0 0 2px var(--vscode-editor-background), 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
+                    boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
                   }}
                 />
                 <div style={{ paddingLeft: '29px', paddingTop: '4px' }}>
@@ -718,18 +700,8 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                     if (seg.type === 'code') {
                       return (
                         <div key={i} style={{ marginBottom: '8px', marginTop: '4px' }}>
-                          <pre
-                            style={{
-                              margin: 0,
-                              padding: '8px',
-                              overflow: 'auto',
-                              fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                              fontSize: '12px',
-                              background: 'var(--vscode-editor-background)',
-                              borderRadius: '4px',
-                            }}
-                          >
-                            <code style={{ background: 'none', padding: 0 }}>{seg.content}</code>
+                          <pre className="m-0 p-2 overflow-auto font-mono text-xs bg-background rounded">
+                            <code className="!bg-transparent p-0">{seg.content}</code>
                           </pre>
                         </div>
                       );

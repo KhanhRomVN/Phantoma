@@ -110,7 +110,7 @@ const highlightMatch = (text: string, searchTerm: string): React.ReactNode => {
         return (
           <span
             key={index}
-            className="bg-[color-mix(in_srgb,var(--vscode-editor-findMatchHighlightBackground)_60%,transparent)] text-[var(--vscode-editor-foreground)] font-semibold rounded-[2px] px-0.5"
+            className="bg-[rgba(255,255,0,0.21)] text-primary font-semibold rounded-[2px] px-0.5"
           >
             {part}
           </span>
@@ -192,7 +192,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   // Loading state: show spinner placeholder
   if (isPartial && !isCompleted) {
     return (
-      <div className="flex items-center justify-center gap-1.5 py-2 text-[var(--vscode-descriptionForeground)] text-xs opacity-60">
+      <div className="flex items-center justify-center gap-1.5 py-2 text-secondary text-xs opacity-60">
         <span className="codicon codicon-loading codicon-modifier-spin text-xs" />
         <span>Searching...</span>
       </div>
@@ -202,9 +202,9 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   // Error state: show error message
   if (isError && errorMessage) {
     return (
-      <div className="flex items-start gap-1.5 px-2 py-[5px] bg-[color-mix(in_srgb,var(--vscode-errorForeground)_4%,transparent)] border border-[color-mix(in_srgb,var(--vscode-errorForeground)_20%,transparent)] rounded-[4px]">
-        <span className="codicon codicon-error text-[11px] text-[var(--vscode-errorForeground)] opacity-70 mt-px shrink-0" />
-        <span className="text-[11px] text-[var(--vscode-errorForeground)] opacity-85 font-mono break-words">
+      <div className="flex items-start gap-1.5 px-2 py-[5px] bg-[color-mix(in_srgb,var(--error)_4%,transparent)] border border-[color-mix(in_srgb,var(--error)_20%,transparent)] rounded-[4px]">
+        <span className="codicon codicon-error text-[11px] text-error opacity-70 mt-px shrink-0" />
+        <span className="text-[11px] text-error opacity-85 font-mono break-words">
           {errorMessage}
         </span>
       </div>
@@ -222,7 +222,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
 
   if (!hasResults) {
     return (
-      <div className="mt-1 px-3 py-2 pl-[29px] bg-[color-mix(in_srgb,var(--vscode-editor-background)_50%,transparent)] rounded-[4px] text-[11px] text-[var(--vscode-descriptionForeground)] text-left">
+      <div className="mt-1 px-3 py-2 pl-[29px] bg-[color-mix(in_srgb,var(--background)_50%,transparent)] rounded-[4px] text-[11px] text-secondary text-left">
         <span className="codicon codicon-search-stop mr-1.5" />
         No results for "{grepResult.searchTerm}" in {grepResult.totalFilesSearched} files
       </div>
@@ -231,10 +231,10 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
 
   return (
     <div
-      className="max-h-[320px] overflow-y-auto mt-0.5 ml-[29px] pl-3 pr-2.5 py-1.5 bg-[var(--vscode-editor-background,var(--vscode-textCodeBlock-background))] border border-[var(--vscode-widget-border,rgba(255,255,255,0.08))] rounded-[4px]"
+      className="max-h-[320px] overflow-y-auto mt-0.5 ml-[29px] pl-3 pr-2.5 py-1.5 bg-background border rounded-[4px]"
       style={{
         scrollbarWidth: 'thin',
-        scrollbarColor: 'var(--vscode-scrollbarSlider-background) transparent',
+        scrollbarColor: 'rgba(128,128,128,0.4) transparent',
       }}
     >
       {filePaths.map((filePathKey) => {
@@ -252,7 +252,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
               style={{ marginBottom: isFileCollapsed ? '0' : '6px' }}
             >
               <span
-                className={`codicon codicon-chevron-${isFileCollapsed ? 'right' : 'down'} text-xs opacity-60 text-[var(--vscode-descriptionForeground)]`}
+                className={`codicon codicon-chevron-${isFileCollapsed ? 'right' : 'down'} text-xs opacity-60 text-secondary`}
               />
               <img
                 src={fileIconPath}
@@ -265,15 +265,15 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
                     const fallback = document.createElement('span');
                     fallback.className = 'codicon codicon-file';
                     fallback.style.cssText =
-                      'font-size: 12px; color: var(--vscode-descriptionForeground); opacity: 0.7; flex-shrink: 0;';
+                      'font-size: 12px; color: var(--secondary-text); opacity: 0.7; flex-shrink: 0;';
                     parent.insertBefore(fallback, e.currentTarget);
                   }
                 }}
               />
-              <span className="font-mono text-[11px] font-medium text-[var(--vscode-editor-foreground)]">
+              <span className="font-mono text-[11px] font-medium text-primary">
                 {displayFilePath}
               </span>
-              <span className="text-[10px] text-[var(--vscode-descriptionForeground)] opacity-50 ml-auto">
+              <span className="text-[10px] text-secondary opacity-50 ml-auto">
                 {matches.length} {matches.length === 1 ? 'line' : 'lines'}
               </span>
             </div>
@@ -289,16 +289,16 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
                     className="flex items-start gap-2 px-1 py-0.5 rounded-[3px] cursor-pointer font-mono text-[11px] leading-[1.4] transition-colors duration-[0.1s]"
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor =
-                        'var(--vscode-list-hoverBackground, rgba(255,255,255,0.05))';
+                        'var(--sidebar-item-hover, rgba(255,255,255,0.05))';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <span className="min-w-[32px] text-[var(--vscode-editorLineNumber-foreground)] opacity-65 text-right shrink-0">
+                    <span className="min-w-[32px] text-secondary opacity-65 text-right shrink-0">
                       {match.lineNumber}
                     </span>
-                    <span className="flex-1 whitespace-pre-wrap break-all text-[var(--vscode-editor-foreground)] opacity-90">
+                    <span className="flex-1 whitespace-pre-wrap break-all text-primary opacity-90">
                       {highlightMatch(match.lineContent, searchTermLocal)}
                     </span>
                   </div>

@@ -179,7 +179,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
 
       {/* Bulk Actions Bar */}
       {selectedAccounts.size > 0 && (
-        <div className="mt-2 mx-4 px-3 py-2 rounded-[10px] flex items-center justify-between bg-[var(--vscode-list-activeSelectionBackground,rgba(128,128,128,0.1))]">
+        <div className="mt-2 mx-4 px-3 py-2 rounded-[10px] flex items-center justify-between bg-[var(--sidebar-item-hover,rgba(128,128,128,0.1))]">
           <span className="text-xs text-[var(--primary-text)]">
             {selectedAccounts.size} selected
           </span>

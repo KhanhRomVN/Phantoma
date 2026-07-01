@@ -19,19 +19,19 @@ export const TOOL_LABELS: Record<string, string> = {
 };
 
 export const TOOL_COLORS: Record<string, string> = {
-  read_file: "var(--vscode-textLink-foreground, #3b82f6)",
-  write_to_file: "var(--vscode-gitDecoration-addedResourceForeground, #10b981)",
+  read_file: "var(--primary, #3b82f6)",
+  write_to_file: "var(--success, #10b981)",
   replace_in_file:
-    "var(--vscode-gitDecoration-addedResourceForeground, #10b981)",
-  grep: "var(--vscode-textLink-foreground, #3b82f6)",
-  delete_file: "var(--vscode-errorForeground, #ef4444)",
-  delete_folder: "var(--vscode-errorForeground, #ef4444)",
-  move_file: "var(--vscode-editorWarning-foreground, #f59e0b)",
-  run_command: "var(--vscode-editorWarning-foreground, #f59e0b)",
-  git_status: "var(--vscode-gitDecoration-addedResourceForeground, #10b981)",
-  commit_message: "var(--vscode-editorBracketHighlight-foreground2, #b39ddb)",
-  git_diff: "var(--vscode-gitDecoration-addedResourceForeground, #3fb950)",
-  default: "var(--vscode-descriptionForeground, #6b7280)",
+    "var(--success, #10b981)",
+  grep: "var(--primary, #3b82f6)",
+  delete_file: "var(--error, #ef4444)",
+  delete_folder: "var(--error, #ef4444)",
+  move_file: "var(--warn, #f59e0b)",
+  run_command: "var(--warn, #f59e0b)",
+  git_status: "var(--success, #10b981)",
+  commit_message: "var(--teal, #b39ddb)",
+  git_diff: "var(--success, #3fb950)",
+  default: "var(--secondary-text, #6b7280)",
 };
 
 export const CLICKABLE_TOOLS = [

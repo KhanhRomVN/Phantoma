@@ -58,7 +58,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
             className="shrink-0 w-10 h-[22px] rounded-[11px] border-none cursor-pointer relative transition-colors duration-200"
             style={{
               backgroundColor: isSimpleMode
-                ? 'var(--vscode-button-background, #0e639c)'
+                ? 'var(--primary, #0e639c)'
                 : 'rgba(128,128,128,0.3)',
             }}
           >

@@ -19,7 +19,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
   added = 0,
   deleted = 0,
   isPartial = false,
-  statusColor = 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
+  statusColor = 'var(--success, #3fb950)',
   onFileClick,
   branch,
 }) => {
@@ -101,17 +101,17 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
     const { lines, types } = parseDiffContent(content);
     return lines.map((line, index) => {
       const type = types[index] || 'context';
-      let color = 'var(--vscode-editor-foreground)';
+      let color = 'var(--primary-text)';
       let backgroundColor = 'transparent';
 
       if (type === 'added') {
-        color = 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)';
+        color = 'var(--success, #3fb950)';
         backgroundColor =
-          'color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 12%, transparent)';
+          'color-mix(in srgb, var(--success, #3fb950) 12%, transparent)';
       } else if (type === 'removed') {
-        color = 'var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c)';
+        color = 'var(--error, #f14c4c)';
         backgroundColor =
-          'color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 12%, transparent)';
+          'color-mix(in srgb, var(--error, #f14c4c) 12%, transparent)';
       } else if (type === 'empty') {
         color = 'transparent';
         backgroundColor = 'transparent';
@@ -122,7 +122,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
             style={{
               padding: '0 8px',
               height: '20px',
-              fontFamily: 'var(--vscode-editor-font-family, monospace)',
+              fontFamily: 'var(--font-family, monospace)',
               fontSize: '12px',
               lineHeight: '1.5',
             }}
@@ -137,7 +137,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
             padding: '0 8px',
             color,
             backgroundColor,
-            fontFamily: 'var(--vscode-editor-font-family, monospace)',
+            fontFamily: 'var(--font-family, monospace)',
             fontSize: '12px',
             lineHeight: '1.5',
             whiteSpace: 'pre-wrap',
@@ -157,7 +157,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
   // Header style - collapse icon + label + file icon + filename + stats + action icon
   const headerTitle = (
     <div className="terminal-name contents">
-      <div className="flex items-center gap-2 text-xs text-[var(--vscode-editor-foreground)]">
+      <div className="flex items-center gap-2 text-xs text-primary">
         <span className="font-semibold opacity-80">DIFF{branch ? `(${branch})` : ''}</span>
         <FileIcon path={filePath} style={{ width: '14px', height: '14px', flexShrink: 0 }} />
         <span
@@ -173,10 +173,10 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
         </span>
         {(added > 0 || deleted > 0) && (
           <>
-            <span className="text-[var(--vscode-gitDecoration-addedResourceForeground,#3fb950)] font-semibold text-[11px]">
+            <span className="text-success font-semibold text-[11px]">
               +{added}
             </span>
-            <span className="text-[var(--vscode-gitDecoration-deletedResourceForeground,#f14c4c)] font-semibold text-[11px]">
+            <span className="text-error font-semibold text-[11px]">
               -{deleted}
             </span>
           </>
@@ -212,7 +212,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
 
       {!isCollapsed && diffContent && (
         <div className="pt-1 px-3 pb-3 pl-[29px]">
-          <div className="bg-[var(--vscode-editor-background,var(--vscode-textCodeBlock-background))] rounded-[4px] border border-[var(--vscode-widget-border,rgba(255,255,255,0.08))] overflow-auto max-h-[400px] font-mono text-xs leading-[1.5] py-1 break-words">
+          <div className="bg-background rounded-[4px] border overflow-auto max-h-[400px] font-mono text-xs leading-[1.5] py-1 break-words">
             {renderDiffLines(diffContent)}
           </div>
         </div>

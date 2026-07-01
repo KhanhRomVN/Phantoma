@@ -39,15 +39,15 @@ const StreamingPreviewBox: React.FC<{ content: string }> = ({ content }) => {
         height: `${STREAM_BOX_HEIGHT}px`,
         overflowY: 'hidden', // no scrollbar visible — just auto-scroll
         overflowX: 'hidden',
-        background: 'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
+        background: 'var(--background, var(--background))',
         borderRadius: '4px',
-        border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+        border: '1px solid var(--border, rgba(255,255,255,0.08))',
         marginTop: '4px',
         padding: '6px 10px',
-        fontFamily: 'var(--vscode-editor-font-family, monospace)',
+        fontFamily: 'var(--font-family, monospace)',
         fontSize: '11px',
         lineHeight: '1.5',
-        color: 'var(--vscode-editor-foreground)',
+        color: 'var(--primary-text)',
         whiteSpace: 'pre',
         wordBreak: 'break-all',
         opacity: 0.85,
@@ -64,7 +64,7 @@ const StreamingPreviewBox: React.FC<{ content: string }> = ({ content }) => {
           display: 'inline-block',
           width: '6px',
           height: '12px',
-          background: 'var(--vscode-editor-foreground)',
+          background: 'var(--primary-text)',
           marginLeft: '1px',
           verticalAlign: 'middle',
           animation: 'zen-cursor-blink 0.6s step-end infinite',
@@ -343,7 +343,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 alignItems: 'center',
                 gap: '8px',
                 fontSize: '12px',
-                color: 'var(--vscode-editor-foreground)',
+                color: 'var(--primary-text)',
                 cursor: isCompleted ? 'pointer' : 'default',
                 width: '100%',
               }}
@@ -354,13 +354,13 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
               <span style={{ fontWeight: 600, opacity: 0.8 }}>GREP</span>
               <span
                 style={{
-                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                  fontFamily: 'var(--font-family, monospace)',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: 'var(--vscode-textLink-foreground)',
+                  color: 'var(--primary)',
                   padding: '0 5px',
                   backgroundColor:
-                    'color-mix(in srgb, var(--vscode-textLink-foreground) 12%, transparent)',
+                    'color-mix(in srgb, var(--primary) 12%, transparent)',
                   borderRadius: '3px',
                 }}
               >
@@ -387,7 +387,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       style={{
                         fontWeight: 500,
                         opacity: 0.8,
-                        fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                        fontFamily: 'var(--font-family, monospace)',
                         fontSize: '11px',
                       }}
                     >
@@ -430,7 +430,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                         style={{
                           opacity: 0.5,
                           fontSize: '10px',
-                          color: 'var(--vscode-descriptionForeground)',
+                          color: 'var(--secondary-text)',
                           fontStyle: 'italic',
                         }}
                       >
@@ -443,7 +443,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       style={{
                         opacity: 0.5,
                         fontSize: '10px',
-                        color: 'var(--vscode-descriptionForeground)',
+                        color: 'var(--secondary-text)',
                       }}
                     >
                       {totalMatches} {totalMatches === 1 ? 'match' : 'matches'} in {fileCount}{' '}
@@ -492,7 +492,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 alignItems: 'center',
                 gap: '8px',
                 fontSize: '12px',
-                color: 'var(--vscode-editor-foreground)',
+                color: 'var(--primary-text)',
                 position: 'relative',
                 width: '100%',
               }}
@@ -525,7 +525,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 style={{
                   fontWeight: 500,
                   opacity: 0.9,
-                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                  fontFamily: 'var(--font-family, monospace)',
                   fontSize: '11px',
                   cursor: 'pointer',
                   transition: 'text-decoration 0.15s ease',
@@ -586,8 +586,8 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       marginLeft: '5px',
                       padding: '0 4px',
                       backgroundColor:
-                        'color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 15%, transparent)',
-                      color: 'var(--vscode-errorForeground, #f14c4c)',
+                        'color-mix(in srgb, var(--error, #f14c4c) 15%, transparent)',
+                      color: 'var(--error, #f14c4c)',
                       borderRadius: '3px',
                       fontSize: '10px',
                       fontWeight: 600,
@@ -647,14 +647,14 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 >
                   <span
                     style={{
-                      color: 'var(--vscode-gitDecoration-addedResourceForeground)',
+                      color: 'var(--success)',
                     }}
                   >
                     +{diffStats.added}
                   </span>
                   <span
                     style={{
-                      color: 'var(--vscode-gitDecoration-deletedResourceForeground)',
+                      color: 'var(--error)',
                     }}
                   >
                     -{diffStats.removed}
@@ -704,12 +704,12 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
         }
         statusColor={
           isError
-            ? 'var(--vscode-errorForeground)'
+            ? 'var(--error)'
             : (isCompleted as boolean)
-              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
+              ? 'var(--success, #3fb950)'
               : !!isActiveGroup
-                ? 'var(--vscode-descriptionForeground)' // chờ approve → xám, giống chưa tới lượt
-                : 'var(--vscode-descriptionForeground)'
+                ? 'var(--secondary-text)' // chờ approve → xám, giống chưa tới lượt
+                : 'var(--secondary-text)'
         }
         diffStats={undefined}
         isPartial={isPartial}
@@ -760,13 +760,13 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
             marginLeft: '29px',
             padding: '8px 12px',
             backgroundColor:
-              'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-            border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+              'var(--background, var(--background))',
+            border: '1px solid var(--border, rgba(255,255,255,0.08))',
             borderRadius: '4px',
-            fontFamily: 'var(--vscode-editor-font-family, monospace)',
+            fontFamily: 'var(--font-family, monospace)',
             fontSize: '11px',
             lineHeight: '1.5',
-            color: 'var(--vscode-editor-foreground)',
+            color: 'var(--primary-text)',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-all',
             overflowX: 'auto',
@@ -799,12 +799,12 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                   minHeight: '200px',
                   maxHeight: '400px',
                   padding: '8px 10px',
-                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                  fontFamily: 'var(--font-family, monospace)',
                   fontSize: '11px',
                   lineHeight: '1.5',
-                  color: 'var(--vscode-editor-foreground)',
+                  color: 'var(--primary-text)',
                   backgroundColor:
-                    'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
+                    'var(--background, var(--background))',
                   border: '1.5px dashed #e5a100',
                   borderRadius: '4px',
                   resize: 'vertical',
@@ -846,10 +846,10 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       fontWeight: 600,
                       borderRadius: '4px',
                       border:
-                        '1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 40%, transparent)',
+                        '1px solid color-mix(in srgb, var(--error, #f44336) 40%, transparent)',
                       backgroundColor:
-                        'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 10%, transparent)',
-                      color: 'var(--vscode-errorForeground, #f44336)',
+                        'color-mix(in srgb, var(--error, #f44336) 10%, transparent)',
+                      color: 'var(--error, #f44336)',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -870,10 +870,10 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       fontWeight: 600,
                       borderRadius: '4px',
                       border:
-                        '1px solid color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 40%, transparent)',
+                        '1px solid color-mix(in srgb, var(--success, #3fb950) 40%, transparent)',
                       backgroundColor:
-                        'color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 10%, transparent)',
-                      color: 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
+                        'color-mix(in srgb, var(--success, #3fb950) 10%, transparent)',
+                      color: 'var(--success, #3fb950)',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -935,9 +935,9 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
               gap: '6px',
               padding: '5px 8px',
               backgroundColor:
-                'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 4%, transparent)',
+                'color-mix(in srgb, var(--error, #f44336) 4%, transparent)',
               border:
-                '1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 20%, transparent)',
+                '1px solid color-mix(in srgb, var(--error, #f44336) 20%, transparent)',
               borderRadius: '4px',
               marginTop: '2px',
             }}
@@ -946,7 +946,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
               className="codicon codicon-error"
               style={{
                 fontSize: '11px',
-                color: 'var(--vscode-errorForeground, #f44336)',
+                color: 'var(--error, #f44336)',
                 opacity: 0.7,
                 marginTop: '1px',
                 flexShrink: 0,
@@ -955,9 +955,9 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
             <span
               style={{
                 fontSize: '11px',
-                color: 'var(--vscode-errorForeground, #f44336)',
+                color: 'var(--error, #f44336)',
                 opacity: 0.85,
-                fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                fontFamily: 'var(--font-family, monospace)',
                 wordBreak: 'break-word',
               }}
             >
@@ -1031,13 +1031,13 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 marginLeft: '29px',
                 padding: '8px 12px',
                 backgroundColor:
-                  'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-                border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+                  'var(--background, var(--background))',
+                border: '1px solid var(--border, rgba(255,255,255,0.08))',
                 borderRadius: '4px',
-                fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                fontFamily: 'var(--font-family, monospace)',
                 fontSize: '11px',
                 lineHeight: '1.5',
-                color: 'var(--vscode-editor-foreground)',
+                color: 'var(--primary-text)',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-all',
                 overflowX: 'auto',

@@ -28,9 +28,9 @@ const ExecuteButton: React.FC<ExecuteButtonProps> = ({
   labelText,
 }) => {
   const iconColor = isCompleted
-    ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
+    ? 'var(--success, #3fb950)'
     : isFailed
-      ? 'var(--vscode-errorForeground)'
+      ? 'var(--error)'
       : toolColor;
   const isClickable = !isLoading && (!isCompleted || isFailed || isActive);
 
@@ -128,7 +128,7 @@ const ExecuteButton: React.FC<ExecuteButtonProps> = ({
         },
         {
           type: 'reject' as const,
-          color: 'var(--vscode-errorForeground, #ff4d4d)',
+          color: 'var(--error, #ff4d4d)',
           icon: <X size={14} strokeWidth={2.5} />,
           label: 'Reject',
           title: 'Reject this tool call',

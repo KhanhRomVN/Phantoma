@@ -91,7 +91,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
           style={{
             backgroundColor: trashHover ? 'rgba(234,179,8,0.12)' : 'rgba(128,128,128,0.12)',
             border: trashHover ? '1px solid rgba(234,179,8,0.4)' : '1px solid transparent',
-            color: trashHover ? 'var(--vscode-editorWarning-foreground, #fbbf24)' : 'var(--secondary-text)',
+            color: trashHover ? 'var(--warn, #fbbf24)' : 'var(--secondary-text)',
           }}
           title="Clear all history"
         >

@@ -219,14 +219,14 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           title="QUESTION"
           statusColor={
             legacyAnswered
-              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
-              : 'var(--vscode-descriptionForeground)'
+              ? 'var(--success, #3fb950)'
+              : 'var(--secondary-text)'
           }
           icon={<span className="codicon codicon-question text-sm" />}
         />
         <div className="pl-9 mt-1">
           {title && (
-            <div className="text-[13px] font-medium text-[var(--vscode-foreground)] mb-2">
+            <div className="text-[13px] font-medium text-[var(--primary-text)] mb-2">
               {title}
             </div>
           )}
@@ -239,13 +239,13 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
                 className={cn(
                   'py-1.5 px-3 border-none rounded-none text-[13px] text-left transition-all duration-[0.15s] w-full',
                   legacySelected === option
-                    ? 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] font-semibold opacity-100'
-                    : 'bg-transparent text-[var(--vscode-foreground)] font-normal',
+                    ? 'bg-[var(--primary)] text-[var(--text-foreground)] font-semibold opacity-100'
+                    : 'bg-transparent text-[var(--primary-text)] font-normal',
                   legacyAnswered && legacySelected !== option && 'opacity-50'
                 )}
                 style={{
                   cursor: disabled || legacyAnswered ? 'default' : 'pointer',
-                  borderLeft: `3px solid ${legacySelected === option ? 'var(--vscode-button-background)' : 'var(--vscode-descriptionForeground)'}`,
+                  borderLeft: `3px solid ${legacySelected === option ? 'var(--primary)' : 'var(--secondary-text)'}`,
                 }}
               >
                 {option}
@@ -279,9 +279,9 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
 
   // Determine status color for ToolHeader dot
   const getStatusColor = () => {
-    if (isAllAnswered) return 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)';
-    if (isCurrentAnswered()) return 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)';
-    return 'var(--vscode-descriptionForeground)';
+    if (isAllAnswered) return 'var(--success, #3fb950)';
+    if (isCurrentAnswered()) return 'var(--success, #3fb950)';
+    return 'var(--secondary-text)';
   };
 
   // Render single question type
@@ -328,22 +328,22 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           className={cn(
             'flex items-center px-4 py-2 transition-all duration-[0.15s] cursor-pointer',
             isSelected
-              ? 'bg-[color-mix(in_srgb,var(--vscode-button-background)_20%,transparent)]'
+              ? 'bg-[color-mix(in_srgb,var(--primary)_20%,transparent)]'
               : 'bg-transparent'
           )}
           style={{
-            borderLeft: `3px solid ${isSelected ? 'var(--vscode-button-background)' : 'var(--vscode-descriptionForeground)'}`,
+            borderLeft: `3px solid ${isSelected ? 'var(--primary)' : 'var(--secondary-text)'}`,
           }}
           onMouseEnter={(e) => {
             if (!isDisabled && !isSelected) {
-              e.currentTarget.style.borderLeftColor = 'var(--vscode-descriptionForeground)';
+              e.currentTarget.style.borderLeftColor = 'var(--secondary-text)';
               e.currentTarget.style.backgroundColor =
-                'color-mix(in srgb, var(--vscode-descriptionForeground) 10%, transparent)';
+                'color-mix(in srgb, var(--secondary-text) 10%, transparent)';
             }
           }}
           onMouseLeave={(e) => {
             if (!isDisabled && !isSelected) {
-              e.currentTarget.style.borderLeftColor = 'var(--vscode-descriptionForeground)';
+              e.currentTarget.style.borderLeftColor = 'var(--secondary-text)';
               e.currentTarget.style.backgroundColor = 'transparent';
             }
           }}
@@ -380,7 +380,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
             onFocus={(e) => e.target.select()}
             placeholder={placeholder}
             disabled={isDisabled}
-            className="flex-1 p-0 bg-transparent text-[var(--vscode-foreground)] border-none outline-none text-[13px] font-[inherit] min-w-0"
+            className="flex-1 p-0 bg-transparent text-[var(--primary-text)] border-none outline-none text-[13px] font-[inherit] min-w-0"
             style={{ fontWeight: isSelected ? 600 : 400 }}
           />
         </div>
@@ -405,25 +405,25 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           className={cn(
             'question-option-btn py-2 px-4 border-none rounded-none text-[13px] text-left transition-[background-color,color,border-color,font-weight] duration-[0.15s] w-full',
             isSelected
-              ? 'bg-[color-mix(in_srgb,var(--vscode-button-background)_20%,transparent)] text-[var(--vscode-button-background)] font-semibold opacity-100'
-              : 'bg-transparent text-[var(--vscode-foreground)] font-normal'
+              ? 'bg-[color-mix(in_srgb,var(--primary)_20%,transparent)] text-[var(--primary)] font-semibold opacity-100'
+              : 'bg-transparent text-[var(--primary-text)] font-normal'
           )}
           style={{
             cursor: isDisabled ? 'default' : 'pointer',
-            borderLeft: `3px solid ${isSelected ? 'var(--vscode-button-background)' : 'var(--vscode-descriptionForeground)'}`,
+            borderLeft: `3px solid ${isSelected ? 'var(--primary)' : 'var(--secondary-text)'}`,
           }}
           onMouseEnter={(e) => {
             if (!isDisabled && !isSelected) {
-              e.currentTarget.style.borderLeftColor = 'var(--vscode-descriptionForeground)';
-              e.currentTarget.style.color = 'var(--vscode-foreground)';
+              e.currentTarget.style.borderLeftColor = 'var(--secondary-text)';
+              e.currentTarget.style.color = 'var(--primary-text)';
               e.currentTarget.style.background =
-                'color-mix(in srgb, var(--vscode-descriptionForeground) 10%, transparent)';
+                'color-mix(in srgb, var(--secondary-text) 10%, transparent)';
             }
           }}
           onMouseLeave={(e) => {
             if (!isDisabled && !isSelected) {
-              e.currentTarget.style.borderLeftColor = 'var(--vscode-descriptionForeground)';
-              e.currentTarget.style.color = 'var(--vscode-foreground)';
+              e.currentTarget.style.borderLeftColor = 'var(--secondary-text)';
+              e.currentTarget.style.color = 'var(--primary-text)';
               e.currentTarget.style.background = 'transparent';
             }
           }}
@@ -513,8 +513,8 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
                   className="w-4 h-4"
                   style={{
                     accentColor: isSelected
-                      ? 'var(--vscode-button-background)'
-                      : 'var(--vscode-descriptionForeground)',
+                      ? 'var(--primary)'
+                      : 'var(--secondary-text)',
                     cursor: isDisabled || isAnswered ? 'default' : 'pointer',
                     opacity: isSelected ? 1 : 0.4,
                   }}
@@ -533,7 +533,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
                       }}
                       placeholder="Khác (ý kiến của bạn)"
                       disabled={isDisabled}
-                      className="flex-1 py-0.5 px-2 bg-transparent text-[var(--vscode-foreground)] border-none outline-none text-[13px] font-[inherit] min-w-[60px]"
+                      className="flex-1 py-0.5 px-2 bg-transparent text-[var(--primary-text)] border-none outline-none text-[13px] font-[inherit] min-w-[60px]"
                       onFocus={(e) => e.target.select()}
                     />
                   </>
@@ -561,7 +561,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           onKeyDown={handleKeyDown}
           placeholder="Nhập câu trả lời của bạn..."
           disabled={isDisabled || isAnswered}
-          className="w-full min-h-[80px] bg-[var(--vscode-input-background)] text-[var(--vscode-input-foreground)] border border-[var(--vscode-input-border)] rounded-[4px] p-2 text-[13px] font-[inherit] resize-y outline-none"
+          className="w-full min-h-[80px] bg-[var(--input-background)] text-[var(--primary-text)] border border-[var(--border)] rounded-[4px] p-2 text-[13px] font-[inherit] resize-y outline-none"
         />
       </div>
     );
@@ -572,8 +572,8 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     const isDisabled = disabled || isAllAnswered;
     const isAnswered = !!answers[q.id];
     const selected = confirmValues[q.id];
-    const greenColor = 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)';
-    const redColor = 'var(--vscode-gitDecoration-deletedResourceForeground, #f85149)';
+    const greenColor = 'var(--success, #3fb950)';
+    const redColor = 'var(--error, #f85149)';
     const customValue = customValues[q.id] || '';
 
     const updateCustomSelection = (value: string) => {
@@ -603,7 +603,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     };
 
     const renderOptionBar = (value: boolean, label: string, color: string, isSelected: boolean) => {
-      const borderColor = isSelected ? color : 'var(--vscode-descriptionForeground)';
+      const borderColor = isSelected ? color : 'var(--secondary-text)';
       const bgColor = isSelected ? `color-mix(in srgb, ${color} 20%, transparent)` : 'transparent';
 
       return (
@@ -621,20 +621,20 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
             backgroundColor: bgColor,
             cursor: isDisabled ? 'default' : 'pointer',
             fontWeight: isSelected ? 600 : 400,
-            color: isSelected ? color : 'var(--vscode-foreground)',
+            color: isSelected ? color : 'var(--primary-text)',
           }}
           onMouseEnter={(e) => {
             if (!isDisabled && !isSelected) {
-              e.currentTarget.style.borderLeftColor = 'var(--vscode-descriptionForeground)';
-              e.currentTarget.style.color = 'var(--vscode-foreground)';
+              e.currentTarget.style.borderLeftColor = 'var(--secondary-text)';
+              e.currentTarget.style.color = 'var(--primary-text)';
               e.currentTarget.style.backgroundColor =
-                'color-mix(in srgb, var(--vscode-descriptionForeground) 10%, transparent)';
+                'color-mix(in srgb, var(--secondary-text) 10%, transparent)';
             }
           }}
           onMouseLeave={(e) => {
             if (!isDisabled && !isSelected) {
-              e.currentTarget.style.borderLeftColor = 'var(--vscode-descriptionForeground)';
-              e.currentTarget.style.color = 'var(--vscode-foreground)';
+              e.currentTarget.style.borderLeftColor = 'var(--secondary-text)';
+              e.currentTarget.style.color = 'var(--primary-text)';
               e.currentTarget.style.backgroundColor = 'transparent';
             }
           }}
@@ -653,22 +653,22 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           className={cn(
             'flex items-center px-4 py-2 transition-all duration-[0.15s] cursor-pointer',
             customValue.trim()
-              ? 'bg-[color-mix(in_srgb,var(--vscode-button-background)_20%,transparent)]'
+              ? 'bg-[color-mix(in_srgb,var(--primary)_20%,transparent)]'
               : 'bg-transparent'
           )}
           style={{
-            borderLeft: `3px solid ${customValue.trim() ? 'var(--vscode-button-background)' : 'var(--vscode-descriptionForeground)'}`,
+            borderLeft: `3px solid ${customValue.trim() ? 'var(--primary)' : 'var(--secondary-text)'}`,
           }}
           onMouseEnter={(e) => {
             if (!isDisabled && !customValue.trim()) {
-              e.currentTarget.style.borderLeftColor = 'var(--vscode-descriptionForeground)';
+              e.currentTarget.style.borderLeftColor = 'var(--secondary-text)';
               e.currentTarget.style.backgroundColor =
-                'color-mix(in srgb, var(--vscode-descriptionForeground) 10%, transparent)';
+                'color-mix(in srgb, var(--secondary-text) 10%, transparent)';
             }
           }}
           onMouseLeave={(e) => {
             if (!isDisabled && !customValue.trim()) {
-              e.currentTarget.style.borderLeftColor = 'var(--vscode-descriptionForeground)';
+              e.currentTarget.style.borderLeftColor = 'var(--secondary-text)';
               e.currentTarget.style.backgroundColor = 'transparent';
             }
           }}
@@ -683,7 +683,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
             onFocus={(e) => e.target.select()}
             placeholder="Ý kiến khác..."
             disabled={isDisabled}
-            className="flex-1 p-0 bg-transparent text-[var(--vscode-foreground)] border-none outline-none text-[13px] font-[inherit] min-w-0"
+            className="flex-1 p-0 bg-transparent text-[var(--primary-text)] border-none outline-none text-[13px] font-[inherit] min-w-0"
             style={{ fontWeight: customValue.trim() ? 600 : 400 }}
           />
         </div>
@@ -712,7 +712,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   // Navigation icons for view mode (after all answered)
   const renderNavIcons = () => {
     if (totalQuestions <= 1) return null;
-    const iconColor = 'var(--vscode-foreground)';
+    const iconColor = 'var(--primary-text)';
     const bgColor = `color-mix(in srgb, ${iconColor} 10%, transparent)`;
     return (
       <div className="flex gap-0.5 items-center">
@@ -783,8 +783,8 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     const answerCount = Object.keys(answers).length;
     const statusColor =
       answerCount === totalQuestions
-        ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
-        : 'var(--vscode-descriptionForeground)';
+        ? 'var(--success, #3fb950)'
+        : 'var(--secondary-text)';
 
     const formatAnswer = (answer: QuestionAnswer): string => {
       const value = answer.value;
@@ -807,7 +807,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
       <div className={wrapperClassName}>
         <ToolHeader
           title={
-            <div className="flex items-center gap-2 text-xs text-[var(--vscode-editor-foreground)]">
+            <div className="flex items-center gap-2 text-xs text-[var(--primary-text)]">
               <span className="font-semibold opacity-80">QUESTION</span>
               <span className="text-[10px] opacity-50 font-normal ml-1">
                 ✅ Đã trả lời {answerCount}/{totalQuestions}
@@ -819,7 +819,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
         />
         <div className="pl-9 mt-2">
           {title && (
-            <div className="text-[13px] font-medium text-[var(--vscode-foreground)] mb-3 py-1">
+            <div className="text-[13px] font-medium text-[var(--primary-text)] mb-3 py-1">
               {title}
             </div>
           )}
@@ -831,8 +831,8 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
 
               return (
                 <div key={q.id} className="flex flex-col gap-0.5 px-3 py-1.5 rounded-none">
-                  <div className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--vscode-foreground)]">
-                    <span className="text-[13px] font-semibold text-[var(--vscode-descriptionForeground)] opacity-60 min-w-[28px]">
+                  <div className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--primary-text)]">
+                    <span className="text-[13px] font-semibold text-[var(--secondary-text)] opacity-60 min-w-[28px]">
                       {index + 1}.
                     </span>
                     <span className="-ml-0.5">{q.label}</span>
@@ -841,12 +841,12 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
                     className={cn(
                       'text-[13px] pl-[30px]',
                       isAnswered
-                        ? 'text-[var(--vscode-foreground)] font-medium opacity-100'
-                        : 'text-[var(--vscode-descriptionForeground)] font-normal opacity-50'
+                        ? 'text-[var(--primary-text)] font-medium opacity-100'
+                        : 'text-[var(--secondary-text)] font-normal opacity-50'
                     )}
                   >
                     {isAnswered ? (
-                      <span className="inline-block px-2.5 py-0.5 bg-[color-mix(in_srgb,var(--vscode-button-background)_15%,transparent)] rounded text-xs">
+                      <span className="inline-block px-2.5 py-0.5 bg-[color-mix(in_srgb,var(--primary)_15%,transparent)] rounded text-xs">
                         {answer}
                       </span>
                     ) : (
@@ -872,7 +872,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     <div className={wrapperClassName}>
       <ToolHeader
         title={
-          <div className="flex items-center gap-2 text-xs text-[var(--vscode-editor-foreground)]">
+          <div className="flex items-center gap-2 text-xs text-[var(--primary-text)]">
             <span className="font-semibold opacity-80">QUESTION</span>
             <span className="text-[10px] opacity-50 font-normal ml-1">
               {`${answeredCount} / ${totalQuestions} đã trả lời`}
@@ -885,10 +885,10 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
       />
       <div className="pl-9 mt-2">
         {/* Question Label */}
-        <div className="text-sm font-medium text-[var(--vscode-foreground)] py-1 pb-2">
+        <div className="text-sm font-medium text-[var(--primary-text)] py-1 pb-2">
           {currentQuestion?.label}
           {currentQuestion?.type && (
-            <span className="text-[10px] font-normal text-[var(--vscode-descriptionForeground)] ml-2 opacity-60 uppercase tracking-[0.3px]">
+            <span className="text-[10px] font-normal text-[var(--secondary-text)] ml-2 opacity-60 uppercase tracking-[0.3px]">
               ({getTypeLabel(currentQuestion.type)})
             </span>
           )}
@@ -904,7 +904,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
               onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
               className={cn(
-                'py-1 px-3 bg-transparent text-[var(--vscode-foreground)] border-none text-[11px]',
+                'py-1 px-3 bg-transparent text-[var(--primary-text)] border-none text-[11px]',
                 currentIndex === 0 ? 'cursor-default opacity-30' : 'cursor-pointer opacity-70'
               )}
             >
@@ -956,8 +956,8 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
               className={cn(
                 'py-1 px-3 border-none rounded text-[11px] font-medium',
                 isCurrentAnswered()
-                  ? 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] cursor-pointer opacity-100'
-                  : 'bg-transparent text-[var(--vscode-foreground)] cursor-default opacity-30'
+                  ? 'bg-[var(--primary)] text-[var(--text-foreground)] cursor-pointer opacity-100'
+                  : 'bg-transparent text-[var(--primary-text)] cursor-default opacity-30'
               )}
             >
               {isLastQuestion ? 'Hoàn tất →' : 'Tiếp theo →'}

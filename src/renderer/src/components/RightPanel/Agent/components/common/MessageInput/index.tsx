@@ -102,12 +102,12 @@ const ThinkingButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) =
       className={cn(
         'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out',
         isOn
-          ? 'border border-[var(--vscode-editorBracketHighlight-foreground2,rgba(168,85,247,0.4))] text-[var(--vscode-editorBracketHighlight-foreground2,#a855f7)] opacity-100'
-          : 'border border-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)]',
+          ? 'border border-[var(--teal,rgba(168,85,247,0.4))] text-[var(--teal,#a855f7)] opacity-100'
+          : 'border border-[rgba(128,128,128,0.2)] text-[var(--primary-text)]',
         isOn
           ? isHovered
-            ? 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground2,#a855f7)_20%,transparent)]'
-            : 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground2,#a855f7)_12%,transparent)]'
+            ? 'bg-[color-mix(in_srgb,var(--teal,#a855f7)_20%,transparent)]'
+            : 'bg-[color-mix(in_srgb,var(--teal,#a855f7)_12%,transparent)]'
           : isHovered
             ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
             : 'bg-[rgba(128,128,128,0.12)] opacity-70',
@@ -131,12 +131,12 @@ const SearchButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => 
       className={cn(
         'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out',
         isOn
-          ? 'border border-[var(--vscode-editorBracketHighlight-foreground1,rgba(14,165,233,0.4))] text-[var(--vscode-editorBracketHighlight-foreground1,#0ea5e9)] opacity-100'
-          : 'border border-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)]',
+          ? 'border border-[var(--info,rgba(14,165,233,0.4))] text-[var(--info,#0ea5e9)] opacity-100'
+          : 'border border-[rgba(128,128,128,0.2)] text-[var(--primary-text)]',
         isOn
           ? isHovered
-            ? 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground1,#0ea5e9)_20%,transparent)]'
-            : 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground1,#0ea5e9)_12%,transparent)]'
+            ? 'bg-[color-mix(in_srgb,var(--info,#0ea5e9)_20%,transparent)]'
+            : 'bg-[color-mix(in_srgb,var(--info,#0ea5e9)_12%,transparent)]'
           : isHovered
             ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
             : 'bg-[rgba(128,128,128,0.12)] opacity-70',
@@ -160,12 +160,12 @@ const MemoryButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => 
       className={cn(
         'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out',
         isOn
-          ? 'border border-[var(--vscode-editorBracketHighlight-foreground3,rgba(139,92,246,0.4))] text-[var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)] opacity-100'
-          : 'border border-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)]',
+          ? 'border border-[var(--violet,rgba(139,92,246,0.4))] text-[var(--violet,#8b5cf6)] opacity-100'
+          : 'border border-[rgba(128,128,128,0.2)] text-[var(--primary-text)]',
         isOn
           ? isHovered
-            ? 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)_20%,transparent)]'
-            : 'bg-[color-mix(in_srgb,var(--vscode-editorBracketHighlight-foreground3,#8b5cf6)_12%,transparent)]'
+            ? 'bg-[color-mix(in_srgb,var(--violet,#8b5cf6)_20%,transparent)]'
+            : 'bg-[color-mix(in_srgb,var(--violet,#8b5cf6)_12%,transparent)]'
           : isHovered
             ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
             : 'bg-[rgba(128,128,128,0.12)] opacity-70',
@@ -214,19 +214,19 @@ const GlobalPermissionButton: React.FC = () => {
       label: 'Full Access',
       desc: 'All tool operations execute automatically',
       icon: <Zap size={11} />,
-      color: 'var(--vscode-editorBracketHighlight-foreground3, #f59e0b)',
+      color: 'var(--violet, #f59e0b)',
     },
     approval: {
       label: 'Approval',
       desc: 'Each edit requires your approval',
       icon: <ShieldCheck size={11} />,
-      color: 'var(--vscode-symbolIcon-interfaceForeground, #3b82f6)',
+      color: 'var(--info, #3b82f6)',
     },
     readOnly: {
       label: 'Read Only',
       desc: 'Tools can read files but not modify',
       icon: <Eye size={11} />,
-      color: 'var(--vscode-symbolIcon-classForeground, #8b5cf6)',
+      color: 'var(--purple, #8b5cf6)',
     },
   };
 
@@ -236,7 +236,7 @@ const GlobalPermissionButton: React.FC = () => {
       !e.currentTarget.style.backgroundColor ||
       e.currentTarget.style.backgroundColor === 'transparent'
     ) {
-      e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
+      e.currentTarget.style.backgroundColor = 'var(--sidebar-item-hover)';
     }
     const rect = e.currentTarget.getBoundingClientRect();
     tooltipTimer.current = setTimeout(() => {
@@ -261,8 +261,8 @@ const GlobalPermissionButton: React.FC = () => {
         className={cn(
           'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out opacity-100',
           isHovered
-            ? 'bg-[color-mix(in_srgb,var(--permission-color,var(--vscode-editorBracketHighlight-foreground3,#f59e0b))_20%,transparent)]'
-            : 'bg-[color-mix(in_srgb,var(--permission-color,var(--vscode-editorBracketHighlight-foreground3,#f59e0b))_12%,transparent)]',
+            ? 'bg-[color-mix(in_srgb,var(--permission-color,var(--violet,#f59e0b))_20%,transparent)]'
+            : 'bg-[color-mix(in_srgb,var(--permission-color,var(--violet,#f59e0b))_12%,transparent)]',
         )}
         style={{
           border: `1px solid ${metadata.color}40`,
@@ -274,7 +274,7 @@ const GlobalPermissionButton: React.FC = () => {
         <span className="text-[11px] font-semibold tracking-[0.3px]">{metadata.label}</span>
       </button>
       {open && (
-        <div className="absolute bottom-[calc(100%+4px)] left-0 z-[1000] rounded-md overflow-hidden min-w-[180px] bg-[color-mix(in_srgb,var(--input-bg)_100%,black_15%)] border border-[var(--vscode-widget-border)] shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
+        <div className="absolute bottom-[calc(100%+4px)] left-0 z-[1000] rounded-md overflow-hidden min-w-[180px] bg-[color-mix(in_srgb,var(--input-bg)_100%,black_15%)] border border-[var(--border)] shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
           {Object.entries(MODE_METADATA).map(([modeId, meta]) => {
             const isSelected = permissionMode === modeId;
             return (
@@ -289,8 +289,8 @@ const GlobalPermissionButton: React.FC = () => {
                 className={cn(
                   'flex items-center gap-1.5 w-full px-3 py-[7px] text-[11.5px] font-medium text-left border-none cursor-pointer',
                   isSelected
-                    ? 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]'
-                    : 'bg-transparent text-[var(--vscode-foreground)]',
+                    ? 'bg-[var(--primary)] text-[var(--text-foreground)]'
+                    : 'bg-transparent text-[var(--primary-text)]',
                 )}
                 onMouseEnter={(e) => handleItemMouseEnter(modeId, e)}
                 onMouseLeave={(e) => handleItemMouseLeave(isSelected, e)}
@@ -309,7 +309,7 @@ const GlobalPermissionButton: React.FC = () => {
       )}
       {tooltip && MODE_METADATA[tooltip.id] && (
         <div
-          className="fixed z-[9999] rounded-md px-2.5 py-2 max-w-[220px] text-[11px] leading-relaxed pointer-events-none bg-[var(--vscode-editorHoverWidget-background,#1e1e1e)] border border-[var(--vscode-editorHoverWidget-border,#454545)] text-[var(--vscode-foreground)] shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+          className="fixed z-[9999] rounded-md px-2.5 py-2 max-w-[220px] text-[11px] leading-relaxed pointer-events-none bg-dropdown-background border text-primary shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
           style={{
             left: tooltip.x,
             top: tooltip.y,
@@ -725,7 +725,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         className={cn(
           'flex flex-col relative rounded',
           !isConnected
-            ? 'border border-[var(--vscode-errorForeground,#f44336)]'
+            ? 'border border-[var(--error,#f44336)]'
             : 'border border-transparent',
         )}
         style={{
@@ -892,7 +892,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               onMouseEnter={() => setIsPlusHovered(true)}
               onMouseLeave={() => setIsPlusHovered(false)}
               className={cn(
-                'flex items-center justify-center h-[22px] w-[22px] rounded cursor-pointer box-border transition-all duration-200 ease-in-out border border-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)]',
+                'flex items-center justify-center h-[22px] w-[22px] rounded cursor-pointer box-border transition-all duration-200 ease-in-out border border-[rgba(128,128,128,0.2)] text-[var(--primary-text)]',
                 isPlusHovered
                   ? 'bg-[rgba(128,128,128,0.2)] opacity-90'
                   : 'bg-[rgba(128,128,128,0.12)] opacity-70',
@@ -915,10 +915,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 className={cn(
                   'flex items-center justify-center h-[22px] w-[22px] rounded box-border transition-all duration-200 ease-in-out border border-[rgba(128,128,128,0.2)]',
                   isGitLoading || isProcessing || isGitStatusVisible
-                    ? 'cursor-default bg-[rgba(128,128,128,0.12)] text-[var(--vscode-descriptionForeground,#8c8c8c)] opacity-50'
+                    ? 'cursor-default bg-[rgba(128,128,128,0.12)] text-[var(--secondary-text,#8c8c8c)] opacity-50'
                     : isGitHovered
-                      ? 'cursor-pointer bg-[rgba(128,128,128,0.2)] text-[var(--vscode-foreground)] opacity-90'
-                      : 'cursor-pointer bg-[rgba(128,128,128,0.12)] text-[var(--vscode-foreground)] opacity-70',
+                      ? 'cursor-pointer bg-[rgba(128,128,128,0.2)] text-[var(--primary-text)] opacity-90'
+                      : 'cursor-pointer bg-[rgba(128,128,128,0.12)] text-[var(--primary-text)] opacity-70',
                 )}
                 title={
                   isGitStatusVisible
@@ -975,7 +975,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                   isHistoryMode || isLoadingCache
                     ? 'cursor-not-allowed text-[var(--secondary-text)] pointer-events-none'
                     : isStreaming || isProcessing
-                      ? 'cursor-pointer text-[var(--vscode-errorForeground,#f44336)] pointer-events-auto'
+                      ? 'cursor-pointer text-[var(--error,#f44336)] pointer-events-auto'
                       : message.trim() || uploadedFiles.length > 0
                         ? 'cursor-pointer text-primary pointer-events-auto'
                         : 'cursor-default text-text-secondary pointer-events-auto',
@@ -1013,7 +1013,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           isConnected &&
           !isElaraMismatch &&
           LANGUAGES.some((l: { code: string }) => l.code === preferredLanguage) && (
-            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold z-[5] opacity-80 pointer-events-none bg-[var(--vscode-badge-background)] text-[var(--vscode-badge-foreground)]">
+            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold z-[5] opacity-80 pointer-events-none bg-[var(--primary)] text-[var(--text-foreground)]">
               <span>
                 {LANGUAGES.find((l: any) => l.code === preferredLanguage)?.flag || '🇺🇸'}{' '}
                 {preferredLanguage.toUpperCase()}
@@ -1024,7 +1024,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         {/* Elara Version Mismatch Badge */}
         {isConnected && isElaraMismatch && (
           <div
-            className="absolute bottom-full right-2 flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded-t rounded-b-none border-b-0 cursor-pointer z-20 -mb-px bg-[rgba(255,152,0,0.1)] text-[var(--vscode-editorWarning-foreground,#ff9800)] border border-[rgba(255,152,0,0.2)] shadow-[0_-2px_4px_rgba(0,0,0,0.1)]"
+            className="absolute bottom-full right-2 flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded-t rounded-b-none border-b-0 cursor-pointer z-20 -mb-px bg-[rgba(255,152,0,0.1)] text-[var(--warn,#ff9800)] border border-[rgba(255,152,0,0.2)] shadow-[0_-2px_4px_rgba(0,0,0,0.1)]"
             onClick={() => {
               const vscodeApi = (window as any).vscodeApi;
               if (vscodeApi) {

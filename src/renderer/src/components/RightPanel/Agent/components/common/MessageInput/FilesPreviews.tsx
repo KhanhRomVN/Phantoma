@@ -63,16 +63,14 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       file.isUploading
                         ? 'cursor-default opacity-50 blur-[0.5px]'
                         : 'cursor-pointer opacity-100',
-                      file.error
-                        ? 'border border-[var(--vscode-errorForeground,#f44336)]'
-                        : 'border border-[var(--border-color)]',
+                      file.error ? 'border border-error' : 'border border-[var(--border-color)]',
                     )}
                   />
                   {file.isUploading && (
                     <div className="absolute inset-0 flex items-center justify-center rounded pointer-events-none bg-black/40">
                       <Loader2
                         size={16}
-                        color="var(--vscode-editor-foreground, #ffffff)"
+                        color="var(--primary-text, #ffffff)"
                         className="spin-animation"
                       />
                     </div>
@@ -80,7 +78,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                   {file.error && (
                     <div
                       title={file.error}
-                      className="absolute inset-0 flex items-center justify-center rounded text-xs font-bold cursor-help bg-[rgba(244,67,54,0.6)] text-[var(--vscode-editor-foreground,#fff)]"
+                      className="absolute inset-0 flex items-center justify-center rounded text-xs font-bold cursor-help bg-[rgba(244,67,54,0.6)] text-primary"
                     >
                       ⚠️
                     </div>
@@ -114,7 +112,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                 className={cn(
                   'flex items-center gap-1 px-2 py-1 rounded text-xs bg-transparent',
                   file.error
-                    ? 'border border-[var(--vscode-errorForeground,#f44336)] text-[var(--vscode-errorForeground,#f44336)]'
+                    ? 'border border-error text-error'
                     : 'border-none text-[var(--primary-text)]',
                   file.isUploading && 'opacity-60',
                 )}
@@ -131,10 +129,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                   <span className="text-[10px] text-[var(--secondary-text)]">(uploading...)</span>
                 )}
                 {file.error && (
-                  <span
-                    className="text-[10px] text-[var(--vscode-errorForeground,#f44336)]"
-                    title={file.error}
-                  >
+                  <span className="text-[10px] text-error" title={file.error}>
                     ⚠️
                   </span>
                 )}

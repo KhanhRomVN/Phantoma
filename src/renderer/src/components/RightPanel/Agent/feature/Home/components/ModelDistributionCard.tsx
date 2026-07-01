@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 
 const COLORS = [
-  "var(--vscode-textLink-foreground, #3b82f6)",
-  "var(--vscode-editorWarning-foreground, #d97706)",
-  "var(--vscode-symbolIcon-namespaceForeground, #8b5cf6)",
-  "var(--vscode-gitDecoration-addedResourceForeground, #10b981)",
-  "var(--vscode-errorForeground, #f43f5e)",
+  "var(--primary, #3b82f6)",
+  "var(--warn, #d97706)",
+  "var(--purple, #8b5cf6)",
+  "var(--success, #10b981)",
+  "var(--error, #f43f5e)",
 ];
 const COLLAPSE_THRESHOLD = 4;
 const SIZE = 96;
@@ -74,8 +74,7 @@ const ModelDistributionCard: React.FC<Props> = ({
     >
       {/* Title */}
       <div
-        className="text-[11px] font-semibold uppercase tracking-[0.05em] mb-3 opacity-80"
-        style={{ color: "var(--vscode-foreground)" }}
+        className="text-[11px] font-semibold uppercase tracking-[0.05em] mb-3 opacity-80 text-primary"
       >
         {title}
       </div>
@@ -93,7 +92,7 @@ const ModelDistributionCard: React.FC<Props> = ({
                 cy={cy}
                 r={R}
                 fill="none"
-                stroke="var(--vscode-widget-border, rgba(128,128,128,0.15))"
+                stroke="var(--border, rgba(128,128,128,0.15))"
                 strokeWidth={STROKE}
               />
               {/* Arcs */}
@@ -132,7 +131,7 @@ const ModelDistributionCard: React.FC<Props> = ({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 className="text-[17px] font-bold"
-                style={{ fill: "var(--vscode-foreground)" }}
+                style={{ fill: "var(--primary-text)" }}
               >
                 {modelDistribution.length}
               </text>
@@ -153,16 +152,10 @@ const ModelDistributionCard: React.FC<Props> = ({
               const pct = Math.round((m.total_requests / total) * 100);
               return (
                 <div
-                  className="fixed -translate-x-1/2 -translate-y-full rounded-md px-2.5 py-[7px] text-[11px] pointer-events-none z-[9999] whitespace-nowrap"
+                  className="fixed -translate-x-1/2 -translate-y-full rounded-md px-2.5 py-[7px] text-[11px] pointer-events-none z-[9999] whitespace-nowrap bg-dropdown-background border text-primary shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                   style={{
                     left: tooltip.x,
                     top: tooltip.y - 8,
-                    backgroundColor:
-                      "var(--vscode-editorHoverWidget-background, #1e1e1e)",
-                    border:
-                      "1px solid var(--vscode-editorHoverWidget-border, rgba(128,128,128,0.3))",
-                    color: "var(--vscode-foreground)",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                   }}
                 >
                   <div className="flex items-center gap-1.5 mb-1">
@@ -230,9 +223,7 @@ const ModelDistributionCard: React.FC<Props> = ({
               <button
                 onClick={() => setExpanded((v) => !v)}
                 className="col-span-full bg-transparent border-none cursor-pointer text-[11px] text-left py-0.5 mt-0.5"
-                style={{
-                  color: "var(--vscode-textLink-foreground, #3b82f6)",
-                }}
+                className="text-primary"
               >
                 {expanded
                   ? "▲ Show less"

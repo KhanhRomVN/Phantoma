@@ -228,10 +228,10 @@ const AccountCard: React.FC<AccountCardProps> = ({
               setShowMenu(false);
               onDelete();
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-[var(--vscode-errorForeground,#f87171)]"
+            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-error"
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor =
-                "var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.1))";
+                "var(--error, rgba(239,68,68,0.1))";
             }}
             onMouseLeave={(e) =>
               (e.currentTarget.style.backgroundColor = "transparent")
@@ -250,7 +250,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
       className={cn(
         'account-card relative rounded-xl transition-all duration-200 ease-in-out',
         isSelected
-          ? 'bg-[var(--vscode-list-activeSelectionBackground,rgba(99,102,241,0.08))] border border-[var(--vscode-focusBorder,rgba(99,102,241,0.4))]'
+          ? 'bg-[var(--sidebar-item-hover,rgba(99,102,241,0.08))] border border-[var(--primary,rgba(99,102,241,0.4))]'
           : 'bg-[rgb(var(--card-background))] border border-border'
       )}
       onContextMenu={handleContextMenu}
@@ -263,7 +263,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
             className={cn(
               'absolute left-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded flex items-center justify-center cursor-pointer z-[1] shrink-0 transition-all duration-150',
               isSelected
-                ? 'border border-[var(--vscode-focusBorder)] bg-[var(--vscode-list-activeSelectionBackground,rgba(99,102,241,0.2))]'
+                ? 'border border-primary bg-[var(--sidebar-item-hover,rgba(99,102,241,0.2))]'
                 : 'border border-border bg-[rgba(128,128,128,0.08)]'
             )}
             onClick={handleSelectClick}
@@ -274,7 +274,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 height="12"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--vscode-list-activeSelectionForeground, currentColor)"
+                stroke="var(--primary-text, currentColor)"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -293,7 +293,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
           )}
         >
           {/* Provider icon */}
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-[rgba(128,128,128,0.1)] text-[var(--vscode-foreground)]">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-[rgba(128,128,128,0.1)] text-[var(--primary-text)]">
             {providerIconUrl ? (
               <img
                 src={providerIconUrl}
@@ -353,8 +353,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
                     className={cn(
                       'text-[9px] opacity-80',
                       account.successful_requests / account.total_requests > 0.8
-                        ? 'text-[var(--vscode-testing-iconPassed,#22c55e)]'
-                        : 'text-[var(--vscode-editorWarning-foreground,#f97316)]'
+                        ? 'text-[var(--success,#22c55e)]'
+                        : 'text-[var(--warn,#f97316)]'
                     )}
                   >
                     •{" "}
@@ -384,7 +384,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
           {/* Active badge */}
           {account.is_active_cli === true && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium shrink-0 bg-[var(--vscode-testing-iconPassed-background,rgba(34,197,94,0.1))] border border-[var(--vscode-testing-iconPassed,rgba(34,197,94,0.3))] text-[var(--vscode-testing-iconPassed,#22c55e)]">
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium shrink-0 bg-[rgba(34,197,94,0.1)] border border-success/30 text-success">
               <CheckCircle size={10} />
               Active
             </div>
@@ -394,7 +394,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
       {/* Expanded detail section */}
       {expanded && (
-        <div className="text-xs py-2.5 border-t border-border bg-[var(--vscode-list-hoverBackground,rgba(128,128,128,0.04))]">
+        <div className="text-xs py-2.5 border-t border-border bg-[var(--sidebar-item-hover,rgba(128,128,128,0.04))]">
           <div className="grid grid-cols-2 gap-2.5 mb-2.5 px-3">
             <div className="min-w-0">
               <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
@@ -449,7 +449,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
       <style>{`
         .account-card:hover {
           transform: translateY(-1px);
-          border-color: var(--vscode-focusBorder);
+          border-color: var(--primary);
           box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
       `}</style>

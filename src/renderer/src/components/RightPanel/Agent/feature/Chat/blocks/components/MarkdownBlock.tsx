@@ -194,7 +194,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
             margin-top: 12px;
             margin-bottom: 8px;
             font-weight: 600;
-            color: var(--vscode-foreground);
+            color: var(--primary-text);
           }
           .markdown-content-inline h1 { font-size: 1.25em; }
           .markdown-content-inline h2 { font-size: 1.1em; }
@@ -237,19 +237,19 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
           }
           .markdown-content-inline th,
           .markdown-content-inline td {
-            border: 1px solid var(--vscode-panel-border);
+            border: 1px solid var(--border);
             padding: 6px 10px;
             text-align: left;
           }
           .markdown-content-inline th {
-            background-color: var(--vscode-editor-lineHighlightBackground);
+            background-color: var(--table-header-background);
             font-weight: 600;
           }
           .markdown-content-inline :not(pre) > code {
-            background-color: var(--vscode-editor-lineHighlightBackground);
+            background-color: var(--table-header-background);
             padding: 2px 4px;
             border-radius: 4px;
-            font-family: var(--vscode-editor-font-family, monospace);
+            font-family: var(--font-family, monospace);
             font-size: 0.9em;
           }
           .markdown-content-inline pre > code {
@@ -257,26 +257,26 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
             padding: 0;
           }
           .markdown-content-inline pre {
-            background-color: var(--vscode-textCodeBlock-background, var(--vscode-editor-background, #1e1e1e));
+            background-color: var(--background, #1e1e1e);
             border-radius: 4px;
             padding: 10px 12px;
             overflow-x: auto;
             margin: 8px 0;
-            font-family: var(--vscode-editor-font-family, monospace);
+            font-family: var(--font-family, monospace);
             font-size: 0.9em;
             line-height: 1.5;
           }
           .markdown-content-inline a {
-            color: var(--vscode-textLink-foreground);
+            color: var(--primary);
             text-decoration: none;
           }
           .markdown-content-inline a:hover {
             text-decoration: underline;
           }
           .markdown-content-inline blockquote {
-            border-left: 4px solid var(--vscode-panel-border);
+            border-left: 4px solid var(--border);
             padding-left: 12px;
-            color: var(--vscode-descriptionForeground);
+            color: var(--secondary-text);
             margin: 12px 0;
           }
         `}</style>

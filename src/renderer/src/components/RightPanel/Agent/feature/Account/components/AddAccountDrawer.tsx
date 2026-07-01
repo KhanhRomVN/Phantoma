@@ -51,8 +51,8 @@ const ProviderRow: React.FC<{
       : "bg-[rgba(34,197,94,0.1)]";
   const connectionBadgeText =
     connectionType === "browser"
-      ? "text-[var(--vscode-editorWarning-foreground,#f97316)]"
-      : "text-[var(--vscode-testing-iconPassed,#22c55e)]";
+      ? "text-[var(--warn,#f97316)]"
+      : "text-[var(--success,#22c55e)]";
 
   const handleClick = () => {
     if (disabled) return;
@@ -91,7 +91,7 @@ const ProviderRow: React.FC<{
             onError={() => setImgError(true)}
           />
         ) : (
-          <span className="text-[13px] font-bold opacity-70 text-[var(--vscode-foreground)]">
+          <span className="text-[13px] font-bold opacity-70 text-[var(--primary-text)]">
             {provider.provider_name.slice(0, 2).toUpperCase()}
           </span>
         )}
@@ -339,7 +339,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             />
           </div>
           {error && (
-            <div className="mt-3 rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-[var(--vscode-inputValidation-errorBackground,rgba(239,68,68,0.08))] text-[var(--vscode-errorForeground)]">
+            <div className="mt-3 rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-[var(--error,rgba(239,68,68,0.08))] text-[var(--error)]">
               <AlertCircle size={12} />
               <span>{error}</span>
             </div>
@@ -388,7 +388,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
               />
             </div>
             {error && (
-              <div className="rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-[var(--vscode-inputValidation-errorBackground,rgba(239,68,68,0.08))] text-[var(--vscode-errorForeground)]">
+              <div className="rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-[var(--error,rgba(239,68,68,0.08))] text-[var(--error)]">
                 <AlertCircle size={12} />
                 <span>{error}</span>
               </div>
@@ -419,7 +419,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
       <DrawerBody>
         {loadingProviders ? (
           <div className="h-[120px] flex flex-col items-center justify-center gap-2.5 text-text-secondary">
-            <Loader2 size={24} className="text-[var(--vscode-foreground)]" style={{ animation: "aaSpin 1s linear infinite" }} />
+            <Loader2 size={24} className="text-[var(--primary-text)]" style={{ animation: "aaSpin 1s linear infinite" }} />
             <span className="text-xs">Loading providers…</span>
           </div>
         ) : (
@@ -462,7 +462,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         )}
 
         {error && (
-          <div className="mt-2.5 rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-[var(--vscode-inputValidation-errorBackground,rgba(239,68,68,0.08))] text-[var(--vscode-errorForeground)]">
+          <div className="mt-2.5 rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-[var(--error,rgba(239,68,68,0.08))] text-[var(--error)]">
             <AlertCircle size={12} />
             <span>{error}</span>
           </div>
