@@ -18,8 +18,8 @@ export function LogTab({ messages }: LogTabProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-1 justify-end">
-        <Btn label="⬇ EXPORT LOG" color="var(--primary)" size="sm" />
-        <Btn label="🗑 CLEAR" color="var(--error)" size="sm" />
+        <Btn label="⬇ EXPORT LOG" color={$('--primary') || '#3686ff'} size="sm" />
+        <Btn label="🗑 CLEAR" color={$('--error') || '#ef4444'} size="sm" />
       </div>
       <div
         ref={ref}
@@ -39,13 +39,15 @@ export function LogTab({ messages }: LogTabProps) {
               msg.toLowerCase().includes('failed') ||
               msg.includes('✗');
             const isWarn = msg.includes('⚠') || msg.toLowerCase().includes('warn');
-            const color = isSuccess ? 'var(--green)' : isError ? 'var(--error)' : isWarn ? 'var(--yellow)' : 'var(--text-secondary)';
+            const color = isSuccess
+              ? $('--green')
+              : isError
+                ? $('--error')
+                : isWarn
+                  ? ($('--yellow') || '#eab308')
+                  : $('--text-secondary');
             return (
-              <div
-                key={i}
-                className="text-[9px] mb-0.5 tracking-[0.02em]"
-                style={{ color }}
-              >
+              <div key={i} className="text-[9px] mb-0.5 tracking-[0.02em]" style={{ color }}>
                 {msg}
               </div>
             );

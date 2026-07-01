@@ -1,6 +1,7 @@
 import React from 'react';
 import { PortResult } from '../types';
 import { stateColor } from '../utils';
+import { $ } from '@renderer/utils/color';
 
 interface PortsTableProps {
   ports: PortResult[];
@@ -41,7 +42,7 @@ const PortsTable: React.FC<PortsTableProps> = ({ ports, accentColor, showRisk = 
               <th
                 key={h}
                 className="text-left p-2"
-                style={{ color: 'rgb(var(--text-secondary))', borderBottom: '1px solid rgb(var(--border))' }}
+                style={{ color: $('--text-secondary'), borderBottom: '1px solid ' + ($('--border') || '') }}
               >
                 {h}
               </th>
@@ -57,7 +58,7 @@ const PortsTable: React.FC<PortsTableProps> = ({ ports, accentColor, showRisk = 
                 <td className="p-2 font-bold" style={{ color: accentColor }}>
                   {p.port}
                 </td>
-                <td className="p-2" style={{ color: 'rgb(var(--text-secondary))' }}>
+                <td className="p-2" style={{ color: $('--text-secondary') }}>
                   {p.protocol}
                 </td>
                 <td className="p-2">
@@ -65,10 +66,10 @@ const PortsTable: React.FC<PortsTableProps> = ({ ports, accentColor, showRisk = 
                     {p.state.toUpperCase()}
                   </span>
                 </td>
-                <td className="p-2" style={{ color: 'rgb(var(--text-secondary))' }}>
+                <td className="p-2" style={{ color: $('--text-secondary') }}>
                   {p.service}
                 </td>
-                <td className="p-2" style={{ color: 'rgb(var(--text-secondary))' }}>
+                <td className="p-2" style={{ color: $('--text-secondary') }}>
                   {p.version || '—'}
                 </td>
                 {showRisk && (

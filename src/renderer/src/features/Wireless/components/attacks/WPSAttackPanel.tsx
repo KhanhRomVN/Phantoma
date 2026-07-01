@@ -4,16 +4,16 @@
 
 import type { WiFiNetwork } from '../../types';
 import { Btn } from '../shared/Btn';
+import { $ } from '@renderer/utils/color';
 
 // Helper function to resolve color from CSS variable or hex
 function resolveColor(color: string): string {
   const colorMap: Record<string, string> = {
-    'var(--success)': '#10b981',
-    'var(--error)': '#ef4444',
-    'var(--warning)': '#f59e0b',
-    'var(--primary)': '#3686ff',
-    'var(--accent-purple)': '#a78bfa',
-    'var(--text-secondary)': '#9ca3af',
+    '--success': '#10b981',
+    '--error': '#ef4444',
+    '--warning': '#f59e0b',
+    '--primary': '#3686ff',
+    '--text-secondary': '#9ca3af',
   };
   if (!color.startsWith('var(--')) {
     return color;
@@ -54,7 +54,7 @@ export function WPSAttackPanel({ networks, onAction }: WPSAttackPanelProps) {
         WPS TARGETS ({wpsTargets.length})
         <Btn
           label="🔓 PIXIE DUST ALL VULNERABLE"
-          color="var(--error)"
+          color={$('--error') || '#ef4444'}
           size="xs"
           onClick={() =>
             wpsTargets.filter((n) => n.wpsVulnerable).forEach((n) => onAction('wps', n))
@@ -75,7 +75,13 @@ export function WPSAttackPanel({ networks, onAction }: WPSAttackPanelProps) {
               <span className="text-[8px] text-text-secondary">{net.bssid}</span>
               <span
                 className="ml-auto text-[8px] font-bold"
-                style={{ color: net.wpsVulnerable ? 'var(--error)' : net.wpsLocked ? 'var(--text-secondary)' : 'var(--yellow)' }}
+                style={{
+                  color: net.wpsVulnerable
+                    ? $('--error')
+                    : net.wpsLocked
+                      ? $('--text-secondary')
+                      : $('--yellow') || '#eab308',
+                }}
               >
                 {net.wpsVulnerable ? '⚡ VULNERABLE' : net.wpsLocked ? '🔒 LOCKED' : '● ACTIVE'}
               </span>
@@ -94,8 +100,7 @@ export function WPSAttackPanel({ networks, onAction }: WPSAttackPanelProps) {
               )}
               {net.crackedPassword && (
                 <span className="text-text-secondary">
-                  PSK{' '}
-                  <span className="text-success font-bold">{net.crackedPassword}</span>
+                  PSK <span className="text-success font-bold">{net.crackedPassword}</span>
                 </span>
               )}
             </div>
@@ -103,15 +108,22 @@ export function WPSAttackPanel({ networks, onAction }: WPSAttackPanelProps) {
               {net.wpsVulnerable && !net.wpsPin && (
                 <Btn
                   label="⚡ PIXIE DUST"
-                  color="var(--error)"
+                  color={$('--error') || '#ef4444'}
                   onClick={() => onAction('wps', net)}
                   size="xs"
                 />
               )}
               {!net.wpsLocked && (
-                <Btn label="🔑 PIN BRUTEFORCE" color="var(--warning)" size="xs" onClick={() => {}} />
+                <Btn
+                  label="🔑 PIN BRUTEFORCE"
+                  color={$('--warning') || '#f59e0b'}
+                  size="xs"
+                  onClick={() => {}}
+                />
               )}
-              {net.wpsPin && <Badge label={`✓ PIN: ${net.wpsPin}`} color="var(--success)" />}
+              {net.wpsPin && (
+                <Badge label={`✓ PIN: ${net.wpsPin}`} color={$('--success') || '#10b981'} />
+              )}
             </div>
           </div>
         ))}

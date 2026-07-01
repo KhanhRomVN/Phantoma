@@ -17,68 +17,7 @@ import {
   messageDispatcher,
 } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 import FileIcon from '@renderer/components/common/FileIcon';
-
-// Fixed-height streaming preview box shown while write_to_file / replace_in_file is streaming.
-// Auto-scrolls to bottom as new content arrives. Hidden once streaming finishes.
-const STREAM_BOX_HEIGHT = 154; // px — 120 base + 2 extra lines (≈17px/line)
-
-const StreamingPreviewBox: React.FC<{ content: string }> = ({ content }) => {
-  const boxRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom whenever content grows
-  useEffect(() => {
-    if (boxRef.current) {
-      boxRef.current.scrollTop = boxRef.current.scrollHeight;
-    }
-  }, [content]);
-
-  return (
-    <div
-      ref={boxRef}
-      style={{
-        height: `${STREAM_BOX_HEIGHT}px`,
-        overflowY: 'hidden', // no scrollbar visible — just auto-scroll
-        overflowX: 'hidden',
-        background: 'var(--background, var(--background))',
-        borderRadius: '4px',
-        border: '1px solid var(--border, rgba(255,255,255,0.08))',
-        marginTop: '4px',
-        padding: '6px 10px',
-        fontFamily: 'var(--font-family, monospace)',
-        fontSize: '11px',
-        lineHeight: '1.5',
-        color: 'var(--primary-text)',
-        whiteSpace: 'pre',
-        wordBreak: 'break-all',
-        opacity: 0.85,
-        position: 'relative',
-        // Fade out the top so it looks like a scrolling ticker
-        maskImage: 'linear-gradient(to bottom, transparent 0%, black 30%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 30%)',
-      }}
-    >
-      {content}
-      {/* Blinking cursor at the end */}
-      <span
-        style={{
-          display: 'inline-block',
-          width: '6px',
-          height: '12px',
-          background: 'var(--primary-text)',
-          marginLeft: '1px',
-          verticalAlign: 'middle',
-          animation: 'zen-cursor-blink 0.6s step-end infinite',
-        }}
-      />
-      <style>{`
-        @keyframes zen-cursor-blink {
-          0%, 100% { opacity: 0.8; }
-          50%       { opacity: 0; }
-        }
-      `}</style>
-    </div>
-  );
-};
+import { $ } from '@renderer/utils/color';
 
 interface FileToolRendererProps {
   action: ToolAction;
@@ -343,7 +282,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 alignItems: 'center',
                 gap: '8px',
                 fontSize: '12px',
-                color: 'var(--primary-text)',
+                color: $('--text-primary'),
                 cursor: isCompleted ? 'pointer' : 'default',
                 width: '100%',
               }}
@@ -354,13 +293,12 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
               <span style={{ fontWeight: 600, opacity: 0.8 }}>GREP</span>
               <span
                 style={{
-                  fontFamily: 'var(--font-family, monospace)',
+                  fontFamily: $('--font-family') || 'monospace',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: 'var(--primary)',
+                  color: $('--primary'),
                   padding: '0 5px',
-                  backgroundColor:
-                    'color-mix(in srgb, var(--primary) 12%, transparent)',
+                  backgroundColor: `color-mix(in srgb, ${$('--primary')} 12%, transparent)`,
                   borderRadius: '3px',
                 }}
               >
@@ -387,7 +325,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       style={{
                         fontWeight: 500,
                         opacity: 0.8,
-                        fontFamily: 'var(--font-family, monospace)',
+                        fontFamily: $('--font-family') || 'monospace',
                         fontSize: '11px',
                       }}
                     >
@@ -430,7 +368,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                         style={{
                           opacity: 0.5,
                           fontSize: '10px',
-                          color: 'var(--secondary-text)',
+                          color: $('--secondary-text'),
                           fontStyle: 'italic',
                         }}
                       >
@@ -443,7 +381,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       style={{
                         opacity: 0.5,
                         fontSize: '10px',
-                        color: 'var(--secondary-text)',
+                        color: $('--secondary-text'),
                       }}
                     >
                       {totalMatches} {totalMatches === 1 ? 'match' : 'matches'} in {fileCount}{' '}
@@ -492,7 +430,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 alignItems: 'center',
                 gap: '8px',
                 fontSize: '12px',
-                color: 'var(--primary-text)',
+                color: $('--text-primary'),
                 position: 'relative',
                 width: '100%',
               }}
@@ -525,7 +463,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 style={{
                   fontWeight: 500,
                   opacity: 0.9,
-                  fontFamily: 'var(--font-family, monospace)',
+                  fontFamily: $('--font-family') || 'monospace',
                   fontSize: '11px',
                   cursor: 'pointer',
                   transition: 'text-decoration 0.15s ease',
@@ -585,9 +523,8 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       gap: '2px',
                       marginLeft: '5px',
                       padding: '0 4px',
-                      backgroundColor:
-                        'color-mix(in srgb, var(--error, #f14c4c) 15%, transparent)',
-                      color: 'var(--error, #f14c4c)',
+                      backgroundColor: 'color-mix(in srgb, ' + ($('--error') || '#f14c4c') + ' 15%, transparent)',
+                      color: $('--error') || '#f14c4c',
                       borderRadius: '3px',
                       fontSize: '10px',
                       fontWeight: 600,
@@ -647,14 +584,14 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 >
                   <span
                     style={{
-                      color: 'var(--success)',
+                      color: $('--success'),
                     }}
                   >
                     +{diffStats.added}
                   </span>
                   <span
                     style={{
-                      color: 'var(--error)',
+                      color: $('--error'),
                     }}
                   >
                     -{diffStats.removed}
@@ -704,12 +641,12 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
         }
         statusColor={
           isError
-            ? 'var(--error)'
+            ? $('--error')
             : (isCompleted as boolean)
-              ? 'var(--success, #3fb950)'
+              ? $('--success, #3fb950')
               : !!isActiveGroup
-                ? 'var(--secondary-text)' // chờ approve → xám, giống chưa tới lượt
-                : 'var(--secondary-text)'
+                ? $('--secondary-text') // chờ approve → xám, giống chưa tới lượt
+                : $('--secondary-text')
         }
         diffStats={undefined}
         isPartial={isPartial}
@@ -759,14 +696,12 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
             marginTop: '4px',
             marginLeft: '29px',
             padding: '8px 12px',
-            backgroundColor:
-              'var(--background, var(--background))',
-            border: '1px solid var(--border, rgba(255,255,255,0.08))',
-            borderRadius: '4px',
-            fontFamily: 'var(--font-family, monospace)',
+backgroundColor: $('--background'),
+                  border: '1px solid ' + ($('--border') || 'rgba(255,255,255,0.08)'),
+                  fontFamily: $('--font-family') || 'monospace',
             fontSize: '11px',
             lineHeight: '1.5',
-            color: 'var(--primary-text)',
+            color: $('--text-primary'),
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-all',
             overflowX: 'auto',
@@ -799,12 +734,11 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                   minHeight: '200px',
                   maxHeight: '400px',
                   padding: '8px 10px',
-                  fontFamily: 'var(--font-family, monospace)',
+                  fontFamily: $('--font-family, monospace'),
                   fontSize: '11px',
                   lineHeight: '1.5',
-                  color: 'var(--primary-text)',
-                  backgroundColor:
-                    'var(--background, var(--background))',
+                  color: $('--text-primary'),
+                  backgroundColor: $('--background'),
                   border: '1.5px dashed #e5a100',
                   borderRadius: '4px',
                   resize: 'vertical',
@@ -846,10 +780,9 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       fontWeight: 600,
                       borderRadius: '4px',
                       border:
-                        '1px solid color-mix(in srgb, var(--error, #f44336) 40%, transparent)',
-                      backgroundColor:
-                        'color-mix(in srgb, var(--error, #f44336) 10%, transparent)',
-                      color: 'var(--error, #f44336)',
+                        `1px solid color-mix(in srgb, ${$('--error, #f44336')} 40%, transparent)`,
+                      backgroundColor: `color-mix(in srgb, ${$('--error, #f44336')} 10%, transparent)`,
+                      color: $('--error, #f44336'),
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -870,10 +803,10 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       fontWeight: 600,
                       borderRadius: '4px',
                       border:
-                        '1px solid color-mix(in srgb, var(--success, #3fb950) 40%, transparent)',
+                        `1px solid color-mix(in srgb, ${$('--success, #3fb950')} 40%, transparent)`,
                       backgroundColor:
-                        'color-mix(in srgb, var(--success, #3fb950) 10%, transparent)',
-                      color: 'var(--success, #3fb950)',
+                        `color-mix(in srgb, ${$('--success, #3fb950')} 10%, transparent)`,
+                      color: $('--success, #3fb950'),
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -934,10 +867,8 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
               alignItems: 'flex-start',
               gap: '6px',
               padding: '5px 8px',
-              backgroundColor:
-                'color-mix(in srgb, var(--error, #f44336) 4%, transparent)',
-              border:
-                '1px solid color-mix(in srgb, var(--error, #f44336) 20%, transparent)',
+              backgroundColor: `color-mix(in srgb, ${$('--error, #f44336')} 4%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${$('--error, #f44336')} 20%, transparent)`,
               borderRadius: '4px',
               marginTop: '2px',
             }}
@@ -946,7 +877,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
               className="codicon codicon-error"
               style={{
                 fontSize: '11px',
-                color: 'var(--error, #f44336)',
+                color: $('--error, #f44336'),
                 opacity: 0.7,
                 marginTop: '1px',
                 flexShrink: 0,
@@ -955,9 +886,9 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
             <span
               style={{
                 fontSize: '11px',
-                color: 'var(--error, #f44336)',
+                color: $('--error, #f44336'),
                 opacity: 0.85,
-                fontFamily: 'var(--font-family, monospace)',
+                fontFamily: $('--font-family, monospace'),
                 wordBreak: 'break-word',
               }}
             >
@@ -1030,14 +961,12 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 marginTop: '4px',
                 marginLeft: '29px',
                 padding: '8px 12px',
-                backgroundColor:
-                  'var(--background, var(--background))',
-                border: '1px solid var(--border, rgba(255,255,255,0.08))',
-                borderRadius: '4px',
-                fontFamily: 'var(--font-family, monospace)',
+backgroundColor: $('--background'),
+                    border: '1px solid ' + ($('--border') || 'rgba(255,255,255,0.08)'),
+                    fontFamily: $('--font-family') || 'monospace',
                 fontSize: '11px',
                 lineHeight: '1.5',
-                color: 'var(--primary-text)',
+                color: $('--text-primary'),
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-all',
                 overflowX: 'auto',

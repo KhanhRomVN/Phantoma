@@ -75,22 +75,22 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
               onMouseEnter={(e) => {
                 if (!active) {
                   e.currentTarget.style.borderColor = accentColor + '50';
-                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.color = $('--text-primary');
                   e.currentTarget.style.background = accentColor + '08';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!active) {
-                  e.currentTarget.style.borderColor = 'var(--input-border-default)';
-                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.borderColor = $('--input-border-default') || '';
+                  e.currentTarget.style.color = $('--text-secondary');
                   e.currentTarget.style.background = 'transparent';
                 }
               }}
               className="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded text-xs font-semibold font-mono whitespace-nowrap transition-all duration-100"
               style={{
-                border: `1px solid ${active ? accentColor + '60' : 'var(--input-border-default)'}`,
-                background: active ? 'var(--primary-10)' : 'transparent',
-                color: active ? accentColor : 'var(--text-secondary)',
+                border: `1px solid ${active ? accentColor + '60' : ($('--input-border-default') || '')}`,
+                background: active ? ($('--primary-10') || '') : 'transparent',
+                color: active ? accentColor : $('--text-secondary'),
               }}
             >
               <span>{flag.label}</span>
@@ -264,7 +264,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             }}
             onMouseLeave={(e) => {
               onTooltipShow(null);
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+              (e.currentTarget as HTMLButtonElement).style.color = $('--text-secondary');
             }}
             className="bg-transparent border-none cursor-pointer p-1 transition-colors shrink-0 text-text-secondary"
           >
@@ -287,18 +287,34 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
       {(() => {
         const command = buildCommand(params);
         const explanations: { flag: string; text: string }[] = [];
-        
+
         // Parse scan type
-        if (command.includes('-sS')) explanations.push({ flag: '-sS', text: 'SYN stealth scan (nhanh, không hoàn thành TCP handshake)' });
-        if (command.includes('-sT')) explanations.push({ flag: '-sT', text: 'TCP connect scan (hoàn thành handshake, dễ bị phát hiện)' });
-        if (command.includes('-sU')) explanations.push({ flag: '-sU', text: 'UDP scan (chậm, phát hiện dịch vụ UDP)' });
-        if (command.includes('-sP')) explanations.push({ flag: '-sP', text: 'Ping sweep (quét các host đang hoạt động)' });
-        
+        if (command.includes('-sS'))
+          explanations.push({
+            flag: '-sS',
+            text: 'SYN stealth scan (nhanh, không hoàn thành TCP handshake)',
+          });
+        if (command.includes('-sT'))
+          explanations.push({
+            flag: '-sT',
+            text: 'TCP connect scan (hoàn thành handshake, dễ bị phát hiện)',
+          });
+        if (command.includes('-sU'))
+          explanations.push({ flag: '-sU', text: 'UDP scan (chậm, phát hiện dịch vụ UDP)' });
+        if (command.includes('-sP'))
+          explanations.push({ flag: '-sP', text: 'Ping sweep (quét các host đang hoạt động)' });
+
         // Parse OS and version detection
-        if (command.includes('-O')) explanations.push({ flag: '-O', text: 'Phát hiện hệ điều hành' });
-        if (command.includes('-sV')) explanations.push({ flag: '-sV', text: 'Phát hiện phiên bản dịch vụ' });
-        if (command.includes('-A')) explanations.push({ flag: '-A', text: 'Bật chế độ aggressive (OS, version, script, traceroute)' });
-        
+        if (command.includes('-O'))
+          explanations.push({ flag: '-O', text: 'Phát hiện hệ điều hành' });
+        if (command.includes('-sV'))
+          explanations.push({ flag: '-sV', text: 'Phát hiện phiên bản dịch vụ' });
+        if (command.includes('-A'))
+          explanations.push({
+            flag: '-A',
+            text: 'Bật chế độ aggressive (OS, version, script, traceroute)',
+          });
+
         // Parse timing
         const timingMatch = command.match(/-T(\d)/);
         if (timingMatch) {
@@ -306,18 +322,27 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           const timingNames = ['Paranoid', 'Sneaky', 'Polite', 'Normal', 'Aggressive', 'Insane'];
           explanations.push({ flag: `-T${timing}`, text: `Tốc độ quét: ${timingNames[timing]}` });
         }
-        
+
         // Parse common flags
-        if (command.includes('-Pn')) explanations.push({ flag: '-Pn', text: 'Bỏ qua host discovery (coi tất cả host đều online)' });
+        if (command.includes('-Pn'))
+          explanations.push({
+            flag: '-Pn',
+            text: 'Bỏ qua host discovery (coi tất cả host đều online)',
+          });
         if (command.includes('-n')) explanations.push({ flag: '-n', text: 'Không phân giải DNS' });
-        if (command.includes('-v')) explanations.push({ flag: '-v', text: 'Verbose output (chi tiết hơn)' });
-        if (command.includes('-vv')) explanations.push({ flag: '-vv', text: 'Very verbose output (rất chi tiết)' });
-        if (command.includes('-f')) explanations.push({ flag: '-f', text: 'Fragment packets (tránh firewall)' });
-        if (command.includes('-D')) explanations.push({ flag: '-D', text: 'Decoy scan (che giấu IP nguồn)' });
-        if (command.includes('--script')) explanations.push({ flag: '--script', text: 'Chạy NSE scripts' });
-        
+        if (command.includes('-v'))
+          explanations.push({ flag: '-v', text: 'Verbose output (chi tiết hơn)' });
+        if (command.includes('-vv'))
+          explanations.push({ flag: '-vv', text: 'Very verbose output (rất chi tiết)' });
+        if (command.includes('-f'))
+          explanations.push({ flag: '-f', text: 'Fragment packets (tránh firewall)' });
+        if (command.includes('-D'))
+          explanations.push({ flag: '-D', text: 'Decoy scan (che giấu IP nguồn)' });
+        if (command.includes('--script'))
+          explanations.push({ flag: '--script', text: 'Chạy NSE scripts' });
+
         if (explanations.length === 0) return null;
-        
+
         return (
           <div className="mt-1 mb-2">
             <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
@@ -368,9 +393,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           }}
         />
         {showTargetSuggestions && targetHistory.length > 0 && (
-          <div
-            className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto border border-border bg-dropdown-background"
-          >
+          <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[180px] overflow-y-auto border border-border bg-dropdown-background">
             {targetHistory.map((t, i) => (
               <div
                 key={i}
@@ -380,7 +403,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 }}
                 className="p-2 cursor-pointer text-[12px] transition-colors text-text-primary hover:bg-dropdown-item-hover"
                 style={{
-                  borderBottom: i < targetHistory.length - 1 ? '1px solid var(--border)' : 'none',
+                  borderBottom: i < targetHistory.length - 1 ? '1px solid ' + ($('--border') || '') : 'none',
                 }}
               >
                 {t}
@@ -444,7 +467,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                     : 'bg-input-background text-text-secondary border-input-border-default'
                 }`}
                 style={{
-                  border: `1px solid ${params.timing === t ? 'rgb(var(--primary))' : 'var(--input-border-default)'}`,
+                  border: `1px solid ${params.timing === t ? ($('--primary') || '') : ($('--input-border-default') || '')}`,
                 }}
               >
                 {t}
@@ -478,11 +501,11 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 onClick={() => setParams({ ...params, scanType: st.value as any })}
                 onMouseEnter={(e) => {
                   showTooltip(st.note, e);
-                  if (!active) e.currentTarget.style.borderColor = 'var(--input-border-default)';
+                  if (!active) e.currentTarget.style.borderColor = $('--input-border-default') || 'rgba(128,128,128,0.2)';
                 }}
                 onMouseLeave={(e) => {
                   onTooltipShow(null);
-                  if (!active) e.currentTarget.style.borderColor = 'var(--input-border-default)';
+                  if (!active) e.currentTarget.style.borderColor = $('--input-border-default') || 'rgba(128,128,128,0.2)';
                 }}
                 className={`flex-1 py-2 px-2 rounded font-mono transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                   active
@@ -490,7 +513,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                     : 'bg-input-background text-text-secondary border-input-border-default'
                 }`}
                 style={{
-                  border: `1px solid ${active ? 'rgb(var(--primary))' : 'var(--input-border-default)'}`,
+                  border: `1px solid ${active ? ($('--primary') || '') : ($('--input-border-default') || '')}`,
                 }}
               >
                 <span className="text-[11px] font-bold">{st.flag}</span>
@@ -680,27 +703,28 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
       <div className="flex justify-between items-center gap-3 pt-4 mt-2 border-t border-border">
         <div className="flex-1" />
         <div className="flex gap-3">
-          {!scanning && (() => {
-            const isProfileExists = savedProfiles.some(
-              (profile) =>
-                profile.params.target === params.target &&
-                profile.params.ports === params.ports &&
-                profile.params.timing === params.timing &&
-                profile.params.scanType === params.scanType &&
-                profile.params.additionalFlags === params.additionalFlags
-            );
-            const isSaveDisabled = !params.target.trim() || isProfileExists;
-            return (
-              <button
-                onClick={onSaveProfile}
-                disabled={isSaveDisabled}
-                className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed rounded"
-              >
-                <Save size={14} />
-                {isProfileExists ? 'PROFILE EXISTS' : 'SAVE PROFILE'}
-              </button>
-            );
-          })()}
+          {!scanning &&
+            (() => {
+              const isProfileExists = savedProfiles.some(
+                (profile) =>
+                  profile.params.target === params.target &&
+                  profile.params.ports === params.ports &&
+                  profile.params.timing === params.timing &&
+                  profile.params.scanType === params.scanType &&
+                  profile.params.additionalFlags === params.additionalFlags,
+              );
+              const isSaveDisabled = !params.target.trim() || isProfileExists;
+              return (
+                <button
+                  onClick={onSaveProfile}
+                  disabled={isSaveDisabled}
+                  className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+                >
+                  <Save size={14} />
+                  {isProfileExists ? 'PROFILE EXISTS' : 'SAVE PROFILE'}
+                </button>
+              );
+            })()}
           {scanning && onCancel && (
             <button
               onClick={onCancel}
@@ -717,7 +741,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             disabled={scanning || !params.target.trim()}
             className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary text-text-foreground disabled:bg-input-background disabled:text-text-secondary disabled:cursor-not-allowed rounded"
             style={{
-              border: `1px solid ${scanning || !params.target.trim() ? 'var(--input-border-default)' : 'transparent'}`,
+border: `1px solid ${params.target ? accentColor + '50' : ($('--input-border-default') || '')}`,
               boxShadow: scanning || !params.target.trim() ? 'none' : `0 0 18px ${glow}`,
             }}
           >

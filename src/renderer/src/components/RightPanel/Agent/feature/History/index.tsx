@@ -4,6 +4,7 @@ import { FolderOpen, Loader2, Search } from 'lucide-react';
 import { useConversationHistory } from './hooks/useConversationHistory';
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
+import { $ } from '@renderer/utils/color';
 
 interface HistoryPanelProps {
   isOpen: boolean;
@@ -79,7 +80,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-sm rounded outline-none box-border bg-[rgb(var(--input-background))] border border-border text-text-primary"
+            className="w-full pl-8 pr-3 py-1.5 text-sm rounded outline-none box-border bg-input-background border border-border text-text-primary"
           />
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary" />
         </div>
@@ -91,7 +92,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
           style={{
             backgroundColor: trashHover ? 'rgba(234,179,8,0.12)' : 'rgba(128,128,128,0.12)',
             border: trashHover ? '1px solid rgba(234,179,8,0.4)' : '1px solid transparent',
-            color: trashHover ? 'var(--warn, #fbbf24)' : 'var(--secondary-text)',
+            color: trashHover ? $('--warn') || '#fbbf24' : $('--secondary-text') || 'currentColor',
           }}
           title="Clear all history"
         >
@@ -116,7 +117,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
       {/* Confirm modal */}
       {showConfirm && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50">
-          <div className="flex flex-col gap-3 p-5 w-[calc(100%-32px)] rounded-[10px] bg-[rgb(var(--card-background))] border border-border">
+          <div className="flex flex-col gap-3 p-5 w-[calc(100%-32px)] rounded-[10px] bg-card-background border border-border">
             <p className="m-0 text-[15px] font-semibold text-text-primary">Clear All History</p>
             <p className="m-0 text-[13px] opacity-80 text-text-secondary">
               Are you sure? This will permanently delete all conversations.
@@ -144,7 +145,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
       <DrawerBody className="p-3">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-[160px] gap-2 text-text-secondary">
-            <Loader2 className="w-6 h-6 animate-spin text-[var(--accent-text)]" />
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: $('--accent-text') || 'currentColor' }} />
             <span className="text-xs">Loading...</span>
           </div>
         ) : conversations.length === 0 ? (

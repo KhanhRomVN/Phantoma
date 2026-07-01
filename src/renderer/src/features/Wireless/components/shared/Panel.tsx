@@ -12,7 +12,7 @@ interface PanelProps {
   style?: React.CSSProperties;
 }
 
-export function Panel({ title, accent = 'var(--primary)', right, children, style }: PanelProps) {
+export function Panel({ title, accent = $('--primary'), right, children, style }: PanelProps) {
   return (
     <div
       className="bg-card-background border border-border rounded-md overflow-hidden"

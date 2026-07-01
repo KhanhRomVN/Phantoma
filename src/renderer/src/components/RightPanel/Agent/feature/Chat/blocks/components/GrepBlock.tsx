@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ToolAction } from '..';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 import { getFileIconPath } from '@renderer/utils/fileIconMapper';
+import { $ } from '@renderer/utils/color';
 
 interface GrepBlockProps {
   action: ToolAction;
@@ -202,7 +203,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   // Error state: show error message
   if (isError && errorMessage) {
     return (
-      <div className="flex items-start gap-1.5 px-2 py-[5px] bg-[color-mix(in_srgb,var(--error)_4%,transparent)] border border-[color-mix(in_srgb,var(--error)_20%,transparent)] rounded-[4px]">
+      <div className="flex items-start gap-1.5 px-2 py-[5px] bg-error/4 border border-error/20 rounded-[4px]">
         <span className="codicon codicon-error text-[11px] text-error opacity-70 mt-px shrink-0" />
         <span className="text-[11px] text-error opacity-85 font-mono break-words">
           {errorMessage}
@@ -222,7 +223,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
 
   if (!hasResults) {
     return (
-      <div className="mt-1 px-3 py-2 pl-[29px] bg-[color-mix(in_srgb,var(--background)_50%,transparent)] rounded-[4px] text-[11px] text-secondary text-left">
+      <div className="mt-1 px-3 py-2 pl-[29px] bg-background/50 rounded-[4px] text-[11px] text-secondary text-left">
         <span className="codicon codicon-search-stop mr-1.5" />
         No results for "{grepResult.searchTerm}" in {grepResult.totalFilesSearched} files
       </div>
@@ -265,7 +266,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
                     const fallback = document.createElement('span');
                     fallback.className = 'codicon codicon-file';
                     fallback.style.cssText =
-                      'font-size: 12px; color: var(--secondary-text); opacity: 0.7; flex-shrink: 0;';
+                      'font-size: 12px; color: ' + $('--secondary-text') + '; opacity: 0.7; flex-shrink: 0;';
                     parent.insertBefore(fallback, e.currentTarget);
                   }
                 }}
@@ -288,8 +289,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
                     }}
                     className="flex items-start gap-2 px-1 py-0.5 rounded-[3px] cursor-pointer font-mono text-[11px] leading-[1.4] transition-colors duration-[0.1s]"
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'var(--sidebar-item-hover, rgba(255,255,255,0.05))';
+                      e.currentTarget.style.backgroundColor = $('--sidebar-item-hover') || 'rgba(255,255,255,0.05)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';

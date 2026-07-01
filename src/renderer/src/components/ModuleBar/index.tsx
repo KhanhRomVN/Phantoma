@@ -8,6 +8,7 @@ import {
   Wrench as WrenchIcon,
 } from 'lucide-react';
 import { useAccentColors } from '../../shared/hooks/useAccentColors';
+import { $ } from '@renderer/utils/color';
 
 // ─── Color Helper ──────────────────────────────────────────────────────────
 // Helper to get color for a module (deterministic based on module id)
@@ -44,9 +45,9 @@ const getModuleColor = (moduleId: PhantomModule) => {
   }
   return {
     base: color || unifiedAccentCache,
-    bg: 'var(--sidebar-item-hover)',
-    border: 'var(--divider)',
-    hover: 'var(--sidebar-item-hover)',
+    bg: $('--sidebar-item-hover'),
+    border: $('--divider'),
+    hover: $('--sidebar-item-hover'),
   };
 };
 
@@ -76,6 +77,10 @@ const NAV_MODULES: NavModuleConfig[] = [
   {
     id: 'tools',
     title: 'Tools',
+  },
+  {
+    id: 'test',
+    title: 'Test',
   },
   {
     id: 'emulate',
@@ -283,6 +288,8 @@ function NavIcon({ module }: { module: PhantomModule }) {
       );
     case 'tools':
       return <WrenchIcon className="w-4 h-4" strokeWidth={1.3} />;
+    case 'test':
+      return <WrenchIcon className="w-4 h-4" strokeWidth={1.3} />;
     case 'settings':
       return <SettingsIcon className="w-4 h-4" strokeWidth={1.3} />;
     case 'target':
@@ -406,7 +413,7 @@ export function ModuleBar({
                   style={
                     isActive
                       ? ({
-                          '--module-color': moduleColor?.base || 'var(--text-primary)',
+                          '--module-color': moduleColor?.base || $('--text-primary'),
                         } as React.CSSProperties)
                       : undefined
                   }
@@ -428,7 +435,7 @@ export function ModuleBar({
                         'text-[13px] font-semibold truncate flex-1 text-left whitespace-nowrap overflow-hidden',
                       )}
                       style={
-                        isActive ? { color: moduleColor?.base || 'var(--text-primary)' } : undefined
+                        isActive ? { color: moduleColor?.base || $('--text-primary') } : undefined
                       }
                     >
                       {item.title}
@@ -481,11 +488,11 @@ export function ModuleBar({
               expanded ? 'px-3 py-2 rounded-lg' : 'w-9 h-9 px-0 rounded-md justify-center',
               !expanded && 'mx-auto',
               active === 'settings'
-                ? 'bg-[rgba(var(--primary),0.1)] text-[rgb(var(--primary))]'
+                ? 'bg-primary/10 text-primary'
                 : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
               !expanded && 'border-l-2 border-solid',
               !expanded &&
-                (active === 'settings' ? 'border-[rgb(var(--primary))]' : 'border-transparent'),
+                (active === 'settings' ? 'border-primary' : 'border-transparent'),
             )}
           >
             <div

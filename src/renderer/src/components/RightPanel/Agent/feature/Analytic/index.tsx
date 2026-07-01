@@ -1,5 +1,4 @@
-import React from 'react';
-import { BarChart3, Activity, TrendingUp, Users } from 'lucide-react';
+import { Activity, TrendingUp, Users } from 'lucide-react';
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
 
 interface AnalyticProps {
@@ -10,11 +9,7 @@ interface AnalyticProps {
 export function Analytic({ isOpen = true, onClose }: AnalyticProps) {
   return (
     <Drawer isOpen={isOpen} onClose={onClose || (() => {})} height="100%" strategy="absolute">
-      <DrawerHeader
-        title="Analytic"
-        description="View your usage statistics"
-        onClose={onClose}
-      />
+      <DrawerHeader title="Analytic" description="View your usage statistics" onClose={onClose} />
       <DrawerBody>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">

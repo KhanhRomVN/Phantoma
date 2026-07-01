@@ -5,7 +5,7 @@ interface SectionHeaderProps {
   children: React.ReactNode;
 }
 
-export function SectionHeader({ accent = 'var(--primary)', children }: SectionHeaderProps) {
+export function SectionHeader({ accent = $('--primary'), children }: SectionHeaderProps) {
   return (
     <div className="flex items-center gap-2 mb-2">
       <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accent }} />

@@ -1,5 +1,6 @@
 import React from 'react';
 import { TooltipState } from '../types';
+import { $ } from '@renderer/utils/color';
 
 interface TooltipProps {
   tooltip: TooltipState | null;
@@ -15,8 +16,8 @@ const Tooltip: React.FC<TooltipProps> = ({ tooltip, accentColor }) => {
       style={{
         top: tooltip.y,
         left: tooltip.x,
-        background: 'rgb(var(--card-background))',
-        color: 'rgb(var(--text-primary))',
+        background: $('--card-background'),
+        color: $('--text-primary'),
         fontSize: 11,
         padding: '6px 12px',
         borderRadius: 4,

@@ -83,7 +83,7 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
   const getStatusColor = () => {
     if (hasOutput) {
       const output = toolOutputs[actionId];
-      if (output.isError) return 'var(--error, #f14c4c)';
+      if (output.isError) return $('--error') || '#f14c4c';
       return getToolColor('git_status');
     }
     return getToolColor('git_status');
@@ -137,7 +137,7 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
               alignItems: 'center',
               gap: '6px',
               fontSize: '12px',
-              color: 'var(--primary-text)',
+              color: $('--text-primary'),
             }}
           >
             <span style={{ fontWeight: 600, opacity: 0.8 }}>{getTitleParts().label}</span>
@@ -157,7 +157,7 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
                 </span>
                 <span
                   style={{
-                    color: 'var(--success, #3fb950)',
+                    color: $('--success') || '#3fb950',
                     fontWeight: 600,
                     fontSize: '11px',
                   }}
@@ -166,7 +166,7 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
                 </span>
                 <span
                   style={{
-                    color: 'var(--error, #f14c4c)',
+                    color: $('--error') || '#f14c4c',
                     fontWeight: 600,
                     fontSize: '11px',
                   }}

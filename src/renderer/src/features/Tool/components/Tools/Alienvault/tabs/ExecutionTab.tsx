@@ -3,6 +3,7 @@ import { AlienvaultScanParams, TooltipState } from '../types';
 import { INDICATOR_TYPES } from '../constants';
 import { CodeBlock } from '../../../../../../components/common/CodeBlock';
 import { Play, Save } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
 
 interface ExecutionTabProps {
   params: AlienvaultScanParams;
@@ -74,7 +75,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 onMouseLeave={() => onTooltipShow(null)}
                 className={`flex-1 py-2.5 rounded font-mono transition-all flex flex-col items-center gap-1 ${active ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
                 style={{
-                  border: `1px solid ${active ? `${accentColor}60` : 'var(--input-border-default)'}`,
+                  border: `1px solid ${active ? `${accentColor}60` : ($('--input-border-default') || '')}`,
                   background: active ? `${accentColor}20` : undefined,
                 }}
               >
@@ -113,7 +114,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           placeholder={currentType?.placeholder}
           className="w-full box-border p-2.5 rounded text-[13px] font-inherit outline-none transition-colors bg-input-background text-text-primary placeholder:text-text-secondary"
           style={{
-            border: `1px solid ${params.indicator ? `${accentColor}50` : 'var(--input-border-default)'}`,
+            border: `1px solid ${params.indicator ? `${accentColor}50` : ($('--input-border-default') || 'rgba(128,128,128,0.2)')}`,
             boxShadow: params.indicator ? `0 0 10px ${accentColor}20` : 'none',
           }}
         />
@@ -127,7 +128,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   setShowIndicatorSuggestions(false);
                 }}
                 className="p-2 cursor-pointer text-[12px] transition-colors text-text-primary hover:bg-dropdown-item-hover"
-                style={{ borderBottom: i < indicatorHistory.length - 1 ? '1px solid var(--border)' : 'none' }}
+                style={{ borderBottom: i < indicatorHistory.length - 1 ? '1px solid ' + ($('--border') || '') : 'none' }}
               >
                 {t}
               </div>
@@ -165,7 +166,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           onKeyDown={(e) => e.key === 'Enter' && onScan()}
           placeholder="Enter your OTX API key..."
           className="w-full box-border p-2.5 rounded text-[12px] font-mono font-inherit outline-none transition-colors bg-input-background text-text-primary placeholder:text-text-secondary"
-          style={{ border: `1px solid ${params.apiKey ? `${accentColor}50` : 'var(--input-border-default)'}` }}
+          style={{ border: `1px solid ${params.apiKey ? `${accentColor}50` : ($('--input-border-default') || '')}` }}
         />
         {showApiKeyInfo && (
           <div className="mt-2 p-2 rounded text-[10px] bg-border text-text-secondary">
@@ -210,7 +211,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             disabled={scanning || !params.indicator.trim() || !params.apiKey.trim()}
             className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary text-text-foreground disabled:bg-input-background disabled:text-text-secondary disabled:cursor-not-allowed rounded"
             style={{
-              border: `1px solid ${scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'var(--input-border-default)' : 'transparent'}`,
+              border: `1px solid ${scanning || !params.indicator.trim() || !params.apiKey.trim() ? ($('--input-border-default') || '') : 'transparent'}`,
               boxShadow: scanning || !params.indicator.trim() || !params.apiKey.trim() ? 'none' : `0 0 18px ${accentColor}20`,
             }}
           >

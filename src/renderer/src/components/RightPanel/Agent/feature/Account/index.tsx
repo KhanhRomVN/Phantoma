@@ -20,6 +20,7 @@ import { extensionService } from '../../services/ExtensionService';
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
 import { cn } from '@renderer/shared/lib/utils';
+import { $ } from '@renderer/utils/color';
 
 interface AccountPanelProps {
   isOpen: boolean;
@@ -117,9 +118,9 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
             placeholder="Search by email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-[34px] pl-8 pr-3 text-[13px] rounded-lg outline-none box-border bg-[rgb(var(--input-background))] border border-border text-[var(--primary-text)]"
+            className="w-full h-[34px] pl-8 pr-3 text-[13px] rounded-lg outline-none box-border bg-input-background border border-border text-text-primary"
           />
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--secondary-text)]" />
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary" />
         </div>
 
         <ProviderFilterDropdown
@@ -142,7 +143,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="w-[34px] h-[34px] rounded-lg border flex items-center justify-center shrink-0 cursor-pointer bg-[rgb(var(--input-background))] border-border text-[var(--secondary-text)]"
+            className="w-[34px] h-[34px] rounded-lg border flex items-center justify-center shrink-0 cursor-pointer bg-input-background border-border text-text-secondary"
             title="More options"
           >
             <svg
@@ -162,11 +163,11 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
             </svg>
           </button>
           {showDropdown && (
-            <div className="absolute right-0 top-full mt-2 w-[160px] rounded-xl overflow-hidden z-[100] bg-[rgb(var(--card-background))] border border-border shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
+            <div className="absolute right-0 top-full mt-2 w-[160px] rounded-xl overflow-hidden z-[100] bg-card-background border border-border shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
               <button
                 onClick={handleImport}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-[13px] cursor-pointer text-left text-[var(--primary-text)]"
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--hover-bg)')}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-[13px] cursor-pointer text-left text-text-primary"
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <Upload size={14} />
@@ -179,8 +180,8 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
 
       {/* Bulk Actions Bar */}
       {selectedAccounts.size > 0 && (
-        <div className="mt-2 mx-4 px-3 py-2 rounded-[10px] flex items-center justify-between bg-[var(--sidebar-item-hover,rgba(128,128,128,0.1))]">
-          <span className="text-xs text-[var(--primary-text)]">
+        <div className="mt-2 mx-4 px-3 py-2 rounded-[10px] flex items-center justify-between bg-sidebar-item-hover/10">
+          <span className="text-xs text-text-primary">
             {selectedAccounts.size} selected
           </span>
           <div className="flex gap-2">
@@ -198,16 +199,15 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
       {/* Account List */}
       <DrawerBody className="p-3 flex flex-col gap-2.5">
         {loading && accounts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[200px] gap-3 text-[var(--secondary-text)]">
+          <div className="flex flex-col items-center justify-center h-[200px] gap-3 text-text-secondary">
             <Loader2
               size={28}
-              className="text-[var(--accent-text)]"
-              style={{ animation: 'spin 1s linear infinite' }}
+              style={{ color: $('--accent-text'), animation: 'spin 1s linear infinite' }}
             />
             <span className="text-xs">Loading accounts...</span>
           </div>
         ) : accounts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[200px] gap-3 text-center text-[var(--secondary-text)]">
+          <div className="flex flex-col items-center justify-center h-[200px] gap-3 text-center text-text-secondary">
             <Users size={40} className="opacity-30" />
             <div>
               <p className="text-sm font-medium m-0 mb-1">
@@ -237,7 +237,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
       {/* Pagination */}
       {pagination.total_pages > 1 && (
         <DrawerFooter>
-          <span className="text-[11px] text-[var(--secondary-text)]">
+          <span className="text-[11px] text-text-secondary">
             {pagination.page} / {pagination.total_pages}
           </span>
           <div className="flex gap-2 ml-auto">

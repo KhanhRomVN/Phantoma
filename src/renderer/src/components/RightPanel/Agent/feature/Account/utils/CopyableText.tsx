@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTruncatedText } from './truncateText';
+import { $ } from '@renderer/utils/color';
 
 interface CopyableTextProps {
   value: string;
@@ -33,10 +34,10 @@ export const CopyableText: React.FC<CopyableTextProps> = ({ value, monospace }) 
         fontSize,
         fontFamily,
         color: copied
-          ? 'var(--success, #22c55e)'
+          ? $('--success, #22c55e')
           : hovered
-            ? 'var(--primary)'
-            : 'var(--primary-text)',
+            ? $('--primary')
+            : $('--text-primary'),
         cursor: value ? 'pointer' : 'default',
         transition: 'color 0.15s ease',
         overflow: 'hidden',

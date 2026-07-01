@@ -2,6 +2,7 @@ import React from 'react';
 import { ScanResult } from '../types';
 import { stateColor } from '../utils';
 import PortsTable from './PortsTable';
+import { $ } from '@renderer/utils/color';
 
 interface ScanCardProps {
   scan: ScanResult;
@@ -38,7 +39,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
     <div
       className={`rounded-md transition-all mb-2 cursor-pointer bg-card-background ${isExpanded ? 'border border-border' : ''}`}
       style={{
-        border: !isExpanded ? `1px solid rgb(var(--border))` : undefined,
+        border: !isExpanded ? `1px solid ${$('--border') || ''}` : undefined,
       }}
       onContextMenu={(e) => onContextMenu(e, scan)}
     >
@@ -121,7 +122,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
           className="pt-3 px-4 pb-4"
           style={{
             borderTop: `1px solid ${accentColor}30`,
-            background: 'rgb(var(--input-background))',
+            background: $('--input-background'),
           }}
         >
           <div className="mb-3">

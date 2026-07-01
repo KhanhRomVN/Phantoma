@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
-import ReactDOM from "react-dom";
-import { Trash2, RefreshCw, CheckCircle } from "lucide-react";
-import { FlatAccount } from "../types";
-import { CopyableText } from "../utils";
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { Trash2, RefreshCw, CheckCircle } from 'lucide-react';
+import { FlatAccount } from '../types';
+import { CopyableText } from '../utils';
 import { Button } from '@renderer/components/ui/Button';
 import { cn } from '@renderer/shared/lib/utils';
+import { $ } from '@renderer/utils/color';
 
 interface AccountCardProps {
   account: FlatAccount;
@@ -75,8 +76,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
   useEffect(() => {
     if (!showMenu) return;
     const close = () => setShowMenu(false);
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
   }, [showMenu]);
 
   const handleCopyAccount = (e: React.MouseEvent) => {
@@ -116,10 +117,10 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
   const formatDate = (ts: number) =>
     new Date(ts).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
 
   // Portal-based context menu
@@ -127,7 +128,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
     ? ReactDOM.createPortal(
         <div
           onMouseDown={(e) => e.stopPropagation()}
-          className="fixed rounded-[10px] overflow-hidden z-[99999] min-w-[180px] bg-[rgb(var(--card-background))] border border-border shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
+          className="fixed rounded-[10px] overflow-hidden z-[99999] min-w-[180px] bg-card-background border border-border shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
           style={{
             top: menuPosition.y,
             left: menuPosition.x,
@@ -140,13 +141,9 @@ const AccountCard: React.FC<AccountCardProps> = ({
               setShowMenu(false);
               onToggleSelect();
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-[var(--primary-text)]"
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "transparent")
-            }
+            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary"
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -170,19 +167,15 @@ const AccountCard: React.FC<AccountCardProps> = ({
               <path d="M21 9v2" />
               <path d="M3 14v1" />
             </svg>
-            <span>{isSelected ? "Deselect" : "Select"} Account</span>
+            <span>{isSelected ? 'Deselect' : 'Select'} Account</span>
           </button>
 
           {/* Copy JSON */}
           <button
             onMouseDown={handleCopyAccount}
-            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-[var(--primary-text)]"
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "transparent")
-            }
+            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary"
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <svg
               width="12"
@@ -208,13 +201,9 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 setShowMenu(false);
                 onSwitch();
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-[var(--primary-text)]"
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "transparent")
-              }
+              className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary"
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               <RefreshCw size={12} />
               <span>Switch to CLI</span>
@@ -228,14 +217,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
               setShowMenu(false);
               onDelete();
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-error"
+            className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary"
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor =
-                "var(--error, rgba(239,68,68,0.1))";
+              e.currentTarget.style.backgroundColor = $('--error, rgba(239,68,68,0.1)');
             }}
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "transparent")
-            }
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <Trash2 size={12} />
             <span>Delete Account</span>
@@ -250,8 +236,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
       className={cn(
         'account-card relative rounded-xl transition-all duration-200 ease-in-out',
         isSelected
-          ? 'bg-[var(--sidebar-item-hover,rgba(99,102,241,0.08))] border border-[var(--primary,rgba(99,102,241,0.4))]'
-          : 'bg-[rgb(var(--card-background))] border border-border'
+          ? 'bg-sidebar-item-hover/10 border border-primary/40'
+          : 'bg-card-background border border-border',
       )}
       onContextMenu={handleContextMenu}
     >
@@ -263,8 +249,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
             className={cn(
               'absolute left-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded flex items-center justify-center cursor-pointer z-[1] shrink-0 transition-all duration-150',
               isSelected
-                ? 'border border-primary bg-[var(--sidebar-item-hover,rgba(99,102,241,0.2))]'
-                : 'border border-border bg-[rgba(128,128,128,0.08)]'
+                ? 'border border-primary bg-sidebar-item-hover/20'
+                : 'border border-border bg-[rgba(128,128,128,0.08)]',
             )}
             onClick={handleSelectClick}
           >
@@ -274,7 +260,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 height="12"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--primary-text, currentColor)"
+                stroke={$('--primary-text, currentColor')}
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -289,23 +275,23 @@ const AccountCard: React.FC<AccountCardProps> = ({
         <div
           className={cn(
             'flex items-center gap-2.5 transition-all duration-150',
-            anySelected ? 'pl-6' : 'pl-0'
+            anySelected ? 'pl-6' : 'pl-0',
           )}
         >
           {/* Provider icon */}
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-[rgba(128,128,128,0.1)] text-[var(--primary-text)]">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-[rgba(128,128,128,0.1)] text-text-primary">
             {providerIconUrl ? (
               <img
                 src={providerIconUrl}
                 alt={account.provider_id}
                 className="w-5 h-5 object-contain"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
+                  (e.target as HTMLImageElement).style.display = 'none';
                   const parent = (e.target as HTMLImageElement).parentElement;
                   if (parent) {
-                    const fallback = document.createElement("div");
+                    const fallback = document.createElement('div');
                     fallback.style.cssText =
-                      "width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;";
+                      'width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;';
                     fallback.textContent = account.provider_id.slice(0, 2).toUpperCase();
                     (e.target as HTMLImageElement).replaceWith(fallback);
                   }
@@ -318,31 +304,29 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
           {/* Name + email */}
           <div className="flex-1 min-w-0">
-            <p className="m-0 text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap text-[var(--primary-text)]">
+            <p className="m-0 text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap text-text-primary">
               <span className="font-semibold">
                 {providerConfig?.provider_name || account.provider_id}
               </span>
-              <span className="mx-1 text-[var(--secondary-text)]">
-                |
-              </span>
-              <span>{account.email || "No email"}</span>
+              <span className="mx-1 text-text-secondary">|</span>
+              <span>{account.email || 'No email'}</span>
             </p>
 
             {/* Daily stats */}
             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
               {account.daily_requests !== undefined && account.daily_requests > 0 && (
-                <span className="text-[9px] opacity-60 text-[var(--secondary-text)]">
+                <span className="text-[9px] opacity-60 text-text-secondary">
                   {account.daily_requests.toLocaleString()} req today
                 </span>
               )}
               {account.daily_tokens !== undefined && account.daily_tokens > 0 && (
-                <span className="text-[9px] opacity-60 text-[var(--secondary-text)]">
-                  •{" "}
+                <span className="text-[9px] opacity-60 text-text-secondary">
+                  •{' '}
                   {account.daily_tokens >= 1000000
-                    ? (account.daily_tokens / 1000000).toFixed(1) + "M"
+                    ? (account.daily_tokens / 1000000).toFixed(1) + 'M'
                     : account.daily_tokens >= 1000
-                      ? (account.daily_tokens / 1000).toFixed(1) + "k"
-                      : account.daily_tokens}{" "}
+                      ? (account.daily_tokens / 1000).toFixed(1) + 'k'
+                      : account.daily_tokens}{' '}
                   tokens
                 </span>
               )}
@@ -353,15 +337,12 @@ const AccountCard: React.FC<AccountCardProps> = ({
                     className={cn(
                       'text-[9px] opacity-80',
                       account.successful_requests / account.total_requests > 0.8
-                        ? 'text-[var(--success,#22c55e)]'
-                        : 'text-[var(--warn,#f97316)]'
+                        ? 'text-success'
+                        : 'text-warn',
                     )}
                   >
-                    •{" "}
-                    {Math.round(
-                      (account.successful_requests / account.total_requests) * 100,
-                    )}
-                    % success rate
+                    • {Math.round((account.successful_requests / account.total_requests) * 100)}%
+                    success rate
                   </span>
                 )}
             </div>
@@ -394,31 +375,25 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
       {/* Expanded detail section */}
       {expanded && (
-        <div className="text-xs py-2.5 border-t border-border bg-[var(--sidebar-item-hover,rgba(128,128,128,0.04))]">
+        <div className="text-xs py-2.5 border-t border-border bg-sidebar-item-hover/5">
           <div className="grid grid-cols-2 gap-2.5 mb-2.5 px-3">
             <div className="min-w-0">
-              <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
-                Account ID
-              </div>
+              <div className="text-[10px] mb-0.5 text-text-secondary">Account ID</div>
               <CopyableText value={account.id} monospace />
             </div>
 
             <div className="min-w-0">
-              <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
-                Credential
-              </div>
-              <CopyableText value={account.credential || ""} monospace />
+              <div className="text-[10px] mb-0.5 text-text-secondary">Credential</div>
+              <CopyableText value={account.credential || ''} monospace />
             </div>
 
             {(account.usage != null || account.reset_period != null) && (
               <div>
-                <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
-                  Usage
-                </div>
-                <div className="text-[11px] font-medium text-[var(--primary-text)]">
-                  {account.usage ?? "—"}
+                <div className="text-[10px] mb-0.5 text-text-secondary">Usage</div>
+                <div className="text-[11px] font-medium text-text-primary">
+                  {account.usage ?? '—'}
                   {account.reset_period != null && (
-                    <span className="text-[10px] ml-1 text-[var(--secondary-text)]">
+                    <span className="text-[10px] ml-1 text-text-secondary">
                       / {account.reset_period}
                     </span>
                   )}
@@ -428,17 +403,15 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
             {account.last_refreshed_at != null && (
               <div>
-                <div className="text-[10px] mb-0.5 text-[var(--secondary-text)]">
-                  Last Refreshed
-                </div>
-                <div className="text-[11px] font-medium text-[var(--primary-text)]">
+                <div className="text-[10px] mb-0.5 text-text-secondary">Last Refreshed</div>
+                <div className="text-[11px] font-medium text-text-primary">
                   {formatDate(account.last_refreshed_at)}
                 </div>
               </div>
             )}
           </div>
 
-          <div className="text-[10px] text-center pt-2 mx-3 opacity-60 border-t border-dashed border-border text-[var(--secondary-text)]">
+          <div className="text-[10px] text-center pt-2 mx-3 opacity-60 border-t border-dashed border-border text-text-secondary">
             Click again to collapse
           </div>
         </div>
@@ -449,7 +422,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
       <style>{`
         .account-card:hover {
           transform: translateY(-1px);
-          border-color: var(--primary);
+          border-color: $('--primary');
           box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
       `}</style>

@@ -9,20 +9,20 @@ interface ResultsTableProps {
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ subdomains, accentColor, onCopy }) => {
   const [filter, setFilter] = useState('');
-  
-  const filtered = filter 
-    ? subdomains.filter(s => s.name.toLowerCase().includes(filter.toLowerCase()))
+
+  const filtered = filter
+    ? subdomains.filter((s) => s.name.toLowerCase().includes(filter.toLowerCase()))
     : subdomains;
-  
+
   const handleCopyAll = () => {
-    const text = filtered.map(s => s.name).join('\n');
+    const text = filtered.map((s) => s.name).join('\n');
     if (onCopy) {
       onCopy(text);
     } else {
       navigator.clipboard.writeText(text);
     }
   };
-  
+
   const handleCopySingle = (name: string) => {
     if (onCopy) {
       onCopy(name);
@@ -30,7 +30,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ subdomains, accentColor, on
       navigator.clipboard.writeText(name);
     }
   };
-  
+
   return (
     <div className="flex flex-col gap-3">
       {/* Filter and actions */}
@@ -43,7 +43,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ subdomains, accentColor, on
             placeholder="Filter subdomains..."
             className="w-full px-3 py-1.5 rounded text-[11px] outline-none font-inherit bg-input-background text-text-primary placeholder:text-text-secondary"
             style={{
-              border: `1px solid ${filter ? accentColor + '50' : 'var(--border)'}`,
+              border: `1px solid ${filter ? accentColor + '50' : $('--border')}`,
             }}
           />
         </div>
@@ -58,24 +58,33 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ subdomains, accentColor, on
           Copy All ({filtered.length})
         </button>
       </div>
-      
+
       {/* Results count */}
       <div className="text-[10px] text-text-secondary">
         Showing {filtered.length} of {subdomains.length} subdomains
       </div>
-      
+
       {/* Table */}
       <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 400 }}>
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr>
-              <th className="text-left p-2 text-text-secondary" style={{ borderBottom: '1px solid var(--border)' }}>
+              <th
+                className="text-left p-2 text-text-secondary"
+                style={{ borderBottom: '1px solid ' + ($('--border') || '') }}
+              >
                 SUBDOMAIN
               </th>
-              <th className="text-left p-2 text-text-secondary" style={{ borderBottom: '1px solid var(--border)' }}>
+              <th
+                className="text-left p-2 text-text-secondary"
+                style={{ borderBottom: '1px solid ' + ($('--border') || '') }}
+              >
                 SOURCE
               </th>
-              <th className="text-left p-2 text-text-secondary" style={{ borderBottom: '1px solid var(--border)' }}>
+              <th
+                className="text-left p-2 text-text-secondary"
+                style={{ borderBottom: '1px solid ' + ($('--border') || '') }}
+              >
                 ACTION
               </th>
             </tr>
@@ -86,9 +95,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ subdomains, accentColor, on
                 <td className="p-2 font-medium" style={{ color: accentColor }}>
                   {sub.name}
                 </td>
-                <td className="p-2 text-text-secondary">
-                  {sub.source || '—'}
-                </td>
+                <td className="p-2 text-text-secondary">{sub.source || '—'}</td>
                 <td className="p-2">
                   <button
                     onClick={() => handleCopySingle(sub.name)}

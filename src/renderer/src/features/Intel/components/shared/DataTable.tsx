@@ -92,7 +92,7 @@ export function DataTable({
               {columns.includes('value') && (
                 <td
                   className="py-1.5 px-2 max-w-[400px] truncate"
-                  style={{ color: dp.isNoise ? 'var(--text-secondary)' : 'var(--text-primary)' }}
+                  style={{ color: dp.isNoise ? $('--text-secondary') : $('--text-primary') }}
                   title={dp.displayValue || String(dp.value)}
                 >
                   {dp.displayValue || String(dp.value)}
@@ -108,9 +108,12 @@ export function DataTable({
                   <span
                     className="text-[9px] px-1.5 py-0.5 rounded"
                     style={{
-                      color: dp.verificationStatus === 'verified' ? 'var(--success)' : 'var(--text-secondary)',
+                      color:
+                        dp.verificationStatus === 'verified'
+                          ? $('--success')
+                          : $('--text-secondary'),
                       backgroundColor:
-                        dp.verificationStatus === 'verified' ? 'var(--success)15' : 'var(--border)',
+                        dp.verificationStatus === 'verified' ? ($('--success') || '#10b981') + '15' : $('--border'),
                     }}
                   >
                     {dp.label}

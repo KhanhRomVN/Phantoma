@@ -6,13 +6,14 @@ import type { ActiveAttack } from '../../types';
 import { STATUS_STYLE, ATK_LABEL } from '../../constants';
 import { progressBar, fmtTime, fmtNum } from '../../utils';
 import { Btn } from '../shared/Btn';
+import { $ } from '@renderer/utils/color';
 
 interface AttacksTabProps {
   attacks: ActiveAttack[];
   onStop: (id: string) => void;
 }
 
-const ACCENT = 'var(--primary)';
+const ACCENT = $('--primary');
 
 export function AttacksTab({ attacks, onStop }: AttacksTabProps) {
   return (
@@ -25,18 +26,16 @@ export function AttacksTab({ attacks, onStop }: AttacksTabProps) {
       {attacks.map((atk) => {
         const ss = STATUS_STYLE[atk.status];
         return (
-          <div
-            key={atk.id}
-            className="bg-card-background border border-border rounded-md p-3"
-          >
+          <div key={atk.id} className="bg-card-background border border-border rounded-md p-3">
             <div className="flex items-center gap-2.5 mb-2">
               <div
                 className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ background: ss.dot, boxShadow: atk.status === 'running' ? `0 0 8px ${ss.dot}` : 'none' }}
+                style={{
+                  background: ss.dot,
+                  boxShadow: atk.status === 'running' ? `0 0 8px ${ss.dot}` : 'none',
+                }}
               />
-              <span className="text-xs font-bold text-text-primary">
-                {ATK_LABEL[atk.type]}
-              </span>
+              <span className="text-xs font-bold text-text-primary">{ATK_LABEL[atk.type]}</span>
               <span className="text-[9px] text-text-secondary">→ {atk.targetSSID}</span>
               <span className="text-[8px] text-text-secondary">{atk.targetBSSID}</span>
               <span className="ml-auto text-[9px] font-bold" style={{ color: ss.color }}>
@@ -44,7 +43,7 @@ export function AttacksTab({ attacks, onStop }: AttacksTabProps) {
               </span>
               <span className="text-[9px] text-text-secondary">{fmtTime(atk.elapsedSeconds)}</span>
               {atk.status === 'running' && (
-                <Btn label="■ STOP" color="var(--error)" onClick={() => onStop(atk.id)} size="xs" />
+                <Btn label="■ STOP" color={$('--error') || '#ff4d4d'} onClick={() => onStop(atk.id)} size="xs" />
               )}
             </div>
             {atk.status === 'running' && (
@@ -73,7 +72,12 @@ export function AttacksTab({ attacks, onStop }: AttacksTabProps) {
                 <div
                   key={i}
                   className="mb-0.5"
-                  style={{ color: l.includes('✅') || l.includes('found') ? 'var(--green)' : 'var(--text-secondary)' }}
+                  style={{
+                    color:
+                      l.includes('✅') || l.includes('found')
+                        ? $('--green')
+                        : $('--text-secondary'),
+                  }}
                 >
                   {l}
                 </div>

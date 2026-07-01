@@ -7,16 +7,16 @@ import type { WiFiNetwork, DeauthSession } from '../../types';
 import { fmtNum } from '../../utils';
 import { Panel } from '../shared/Panel';
 import { Btn } from '../shared/Btn';
+import { $ } from '@renderer/utils/color';
 
 // Helper function to resolve color from CSS variable or hex
 function resolveColor(color: string): string {
   const colorMap: Record<string, string> = {
-    'var(--warning)': '#f59e0b',
-    'var(--success)': '#10b981',
-    'var(--error)': '#ef4444',
-    'var(--primary)': '#3686ff',
-    'var(--accent-purple)': '#a78bfa',
-    'var(--text-secondary)': '#9ca3af',
+    '--warning': '#f59e0b',
+    '--success': '#10b981',
+    '--error': '#ef4444',
+    '--primary': '#3686ff',
+    '--text-secondary': '#9ca3af',
   };
   if (!color.startsWith('var(--')) {
     return color;
@@ -50,9 +50,9 @@ interface DeauthManagerProps {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'var(--input-background)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-secondary)',
+  background: $('--input-background'),
+  border: '1px solid ' + ($('--border') || ''),
+  color: $('--text-secondary'),
   fontSize: 9,
   padding: '5px 8px',
   borderRadius: 4,
@@ -84,7 +84,7 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
   }, []);
 
   return (
-    <Panel title="Deauthentication Manager · aireplay-ng -0" accent="var(--error)">
+    <Panel title="Deauthentication Manager · aireplay-ng -0" accent={$('--error') || '#ef4444'}>
       <div className="grid grid-cols-[1fr_140px_80px_110px_100px] gap-2 mb-2.5 items-end">
         <div>
           <div className="text-[8px] text-text-secondary mb-1 font-bold">TARGET BSSID</div>
@@ -134,7 +134,7 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
         <div className="pt-3.5">
           <Btn
             label="⚡ LAUNCH"
-            color="var(--error)"
+            color={$('--error') || '#ef4444'}
             size="sm"
             onClick={() => {
               const net = networks.find((n) => n.bssid === targetNet);
@@ -168,10 +168,7 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
           'REASON',
           'STARTED',
         ].map((h) => (
-          <span
-            key={h}
-            className="text-[7px] text-text-secondary font-bold tracking-[0.1em]"
-          >
+          <span key={h} className="text-[7px] text-text-secondary font-bold tracking-[0.1em]">
             {h}
           </span>
         ))}
@@ -186,7 +183,12 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
           <span className="text-[8px] text-text-secondary">{s.targetBSSID}</span>
           <span
             className="text-[8px]"
-            style={{ color: s.clientMAC === 'FF:FF:FF:FF:FF:FF' ? 'var(--yellow)' : 'var(--text-secondary)' }}
+            style={{
+              color:
+                s.clientMAC === 'FF:FF:FF:FF:FF:FF'
+                  ? $('--yellow') || '#eab308'
+                  : $('--text-secondary'),
+            }}
           >
             {s.clientMAC === 'FF:FF:FF:FF:FF:FF' ? '✱ BROADCAST' : s.clientMAC}
           </span>
@@ -195,16 +197,19 @@ export function DeauthManager({ sessions, networks }: DeauthManagerProps) {
           <div className="flex items-center gap-1">
             <div
               className="w-1.5 h-1.5 rounded-full"
-              style={{ background: s.status === 'running' ? 'var(--green)' : 'var(--text-secondary)' }}
+              style={{ background: s.status === 'running' ? $('--green') : $('--text-secondary') }}
             />
             <span
               className="text-[8px] font-bold"
-              style={{ color: s.status === 'running' ? 'var(--green)' : 'var(--text-secondary)' }}
+              style={{ color: s.status === 'running' ? $('--green') : $('--text-secondary') }}
             >
               {s.status.toUpperCase()}
             </span>
           </div>
-          <Badge label={s.reason.replace('_', ' ').toUpperCase()} color="var(--warning)" />
+          <Badge
+            label={s.reason.replace('_', ' ').toUpperCase()}
+            color={$('--warning') || '#f59e0b'}
+          />
           <span className="text-[8px] text-text-secondary">{s.startedAt}</span>
         </div>
       ))}

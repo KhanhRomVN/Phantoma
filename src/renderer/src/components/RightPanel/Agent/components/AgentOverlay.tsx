@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bot, ShieldAlert } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
 
 interface AgentOverlayProps {
   featureName?: string;
@@ -7,12 +8,15 @@ interface AgentOverlayProps {
 
 const AgentOverlay: React.FC<AgentOverlayProps> = ({ featureName }) => {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--secondary-bg)] backdrop-blur-[8px] z-50 gap-4 p-8">
+    <div 
+      className="absolute inset-0 flex flex-col items-center justify-center backdrop-blur-[8px] z-50 gap-4 p-8"
+      style={{ backgroundColor: $('--secondary-bg') }}
+    >
       <div
         className="flex items-center justify-center w-16 h-16 rounded-full"
         style={{
-          backgroundColor: 'color-mix(in srgb, var(--error, #f87171) 15%, transparent)',
-          border: '2px solid color-mix(in srgb, var(--error, #f87171) 30%, transparent)',
+          backgroundColor: 'color-mix(in srgb, ' + $('--error') + ' 15%, transparent)',
+          border: '2px solid color-mix(in srgb, ' + $('--error') + ' 30%, transparent)',
         }}
       >
         <ShieldAlert className="w-8 h-8 text-error opacity-80" />
@@ -36,8 +40,8 @@ const AgentOverlay: React.FC<AgentOverlayProps> = ({ featureName }) => {
       <div
         className="flex items-center gap-1.5 py-1.5 px-3 rounded-md mt-2"
         style={{
-          backgroundColor: 'color-mix(in srgb, var(--primary, #3b82f6) 10%, transparent)',
-          border: '1px solid color-mix(in srgb, var(--primary, #3b82f6) 20%, transparent)',
+          backgroundColor: 'color-mix(in srgb, ' + $('--primary') + ' 10%, transparent)',
+          border: '1px solid color-mix(in srgb, ' + $('--primary') + ' 20%, transparent)',
         }}
       >
         <Bot className="w-3.5 h-3.5 text-primary" />

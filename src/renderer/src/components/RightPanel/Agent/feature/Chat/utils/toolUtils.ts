@@ -1,4 +1,4 @@
-import { ACTION_NAMES, TOOL_LABELS, TOOL_COLORS } from "../blocks";
+import { ACTION_NAMES, TOOL_LABELS } from "../blocks";
 
 /** Returns the human-readable action name for a tool type. */
 export const getActionName = (type: string): string => {
@@ -12,7 +12,7 @@ export const getToolLabel = (type: string): string => {
 
 /** Returns the color token for a tool type. */
 export const getToolColor = (type: string): string => {
-  return TOOL_COLORS[type] || TOOL_COLORS.default;
+  return "var(--primary, #3b82f6)";
 };
 
 /**

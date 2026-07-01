@@ -4,22 +4,21 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Scan, Monitor, Search } from 'lucide-react';
-import type { WiFiNetwork, Encryption, ScanConfig } from '../../types';
+import type { WiFiNetwork, ScanConfig } from '../../types';
 import { ENC_PALETTE } from '../../constants';
 import { SCAN_FILTERS } from '../../constants/scan';
-import { signalBar, progressBar, encBadge } from '../../utils';
+import { signalBar } from '../../utils';
 import { Btn } from '../shared/Btn';
-import { ClientBadge } from '../shared/ClientBadge';
 import { fmtNum } from '../../utils';
+import { $ } from '@renderer/utils/color';
 
 // Inline Badge component
 function Badge({ label, color }: { label: string; color: string }) {
   // Map CSS variables to actual hex colors for background/border opacity
   const colorMap: Record<string, string> = {
-    'var(--text-secondary)': '#9ca3af',
-    'var(--success)': '#10b981',
-    'var(--primary)': '#3686ff',
-    'var(--accent-purple)': '#a78bfa',
+    '--text-secondary': '#9ca3af',
+    '--success': '#10b981',
+    '--primary': '#3686ff',
   };
   const resolvedColor = colorMap[color] || color;
 
@@ -51,7 +50,7 @@ interface ScanTabProps {
   onTooltipShow?: (tooltip: { text: string; x: number; y: number } | null) => void;
 }
 
-const ACCENT = 'var(--primary)';
+const ACCENT = $('--primary');
 
 export function ScanTab({
   networks,
@@ -64,28 +63,42 @@ export function ScanTab({
   setExpandedRow,
   onTooltipShow,
 }: ScanTabProps) {
-const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crackProbability'>(
+  const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crackProbability'>(
     'signal',
   );
   const [filterEnc, setFilterEnc] = useState<string>('all');
   const [filterVuln, setFilterVuln] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; netId: string } | null>(null);
-  
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; netId: string } | null>(
+    null,
+  );
+
   // Dropdown states
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const interfaceRef = useRef<HTMLDivElement>(null);
   const bandRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<HTMLDivElement>(null);
-  
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (openDropdown === 'interface' && interfaceRef.current && !interfaceRef.current.contains(event.target as Node)) {
+      if (
+        openDropdown === 'interface' &&
+        interfaceRef.current &&
+        !interfaceRef.current.contains(event.target as Node)
+      ) {
         setOpenDropdown(null);
-      } else if (openDropdown === 'band' && bandRef.current && !bandRef.current.contains(event.target as Node)) {
+      } else if (
+        openDropdown === 'band' &&
+        bandRef.current &&
+        !bandRef.current.contains(event.target as Node)
+      ) {
         setOpenDropdown(null);
-      } else if (openDropdown === 'channel' && channelRef.current && !channelRef.current.contains(event.target as Node)) {
+      } else if (
+        openDropdown === 'channel' &&
+        channelRef.current &&
+        !channelRef.current.contains(event.target as Node)
+      ) {
         setOpenDropdown(null);
       }
     };
@@ -111,9 +124,9 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
   });
 
   const selectStyle: React.CSSProperties = {
-    background: 'var(--input-background)',
-    border: '1px solid var(--border)',
-    color: 'var(--text-secondary)',
+    background: $('--input-background'),
+    border: '1px solid ' + ($('--border') || ''),
+    color: $('--text-secondary'),
     fontSize: 9,
     padding: '3px 6px',
     borderRadius: 4,
@@ -140,7 +153,12 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {openDropdown === 'interface' && (
@@ -183,7 +201,12 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {openDropdown === 'band' && (
@@ -231,7 +254,12 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {openDropdown === 'channel' && (
@@ -266,7 +294,10 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                   </button>
                 ))}
                 <div className="border-t border-border my-1"></div>
-                {[36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 149, 153, 157, 161, 165].map((c) => (
+                {[
+                  36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136,
+                  140, 149, 153, 157, 161, 165,
+                ].map((c) => (
                   <button
                     key={c}
                     onClick={() => {
@@ -350,7 +381,7 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
             }
             // Change background on hover if not active
             if (!isActive) {
-              e.currentTarget.style.backgroundColor = 'var(--card-background-hover)';
+              e.currentTarget.style.backgroundColor = $('--card-background-hover') || '';
             }
           };
 
@@ -381,9 +412,11 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 letterSpacing: '0.08em',
-                border: isActive ? `1px solid ${activeColor}80` : '1px solid var(--border)',
+                border: isActive
+                  ? `1px solid ${activeColor}80`
+                  : '1px solid ' + ($('--border') || ''),
                 backgroundColor: isActive ? `${activeColor}25` : 'transparent',
-                color: isActive ? activeColor : 'var(--text-secondary)',
+                color: isActive ? activeColor : $('--text-secondary'),
                 transition: 'all 0.15s',
               }}
             >
@@ -504,32 +537,33 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                     <div
                       style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}
                     >
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: $('--text-primary') }}>
                         {net.hidden ? '‹hidden›' : net.ssid}
                       </span>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        {net.hidden && <Badge label="HIDDEN" color="var(--text-secondary)" />}
-                        {net.crackedPassword && <Badge label="CRACKED" color="var(--green)" />}
-                        {net.handshakeCaptured && <Badge label="HS" color={ACCENT} />}
-                        {net.pmkidCaptured && <Badge label="PMKID" color="var(--accent-purple)" />}
+                        {net.hidden && (
+                          <Badge label="HIDDEN" color={$('--text-secondary') || '#9ca3af'} />
+                        )}
+                        {net.crackedPassword && (
+                          <Badge label="CRACKED" color={$('--green') || '#10b981'} />
+                        )}
+                        {net.pmkidCaptured && (
+                          <Badge label="PMKID" color={$('--accent-purple') || '#a78bfa'} />
+                        )}
                       </div>
                     </div>
-                    <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    <div style={{ fontSize: 9, color: $('--text-secondary'), marginTop: 2 }}>
                       {net.bssid} · {net.vendor}
                     </div>
                   </div>
 
                   {/* Channel */}
-                  <div
-                    style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'center' }}
-                  >
+                  <div style={{ fontSize: 11, color: $('--text-secondary'), textAlign: 'center' }}>
                     {net.channel}
                   </div>
 
                   {/* Band */}
-                  <div
-                    style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'center' }}
-                  >
+                  <div style={{ fontSize: 11, color: $('--text-secondary'), textAlign: 'center' }}>
                     {net.band}
                   </div>
 
@@ -544,7 +578,7 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                   >
                     <span
                       style={{
-                        color: ENC_PALETTE[net.encryption]?.color || 'var(--text-secondary)',
+                        color: ENC_PALETTE[net.encryption]?.color || $('--text-secondary'),
                       }}
                     >
                       {net.encryption.toUpperCase()}
@@ -578,9 +612,7 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                   </div>
 
                   {/* Clients */}
-                  <div
-                    style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'center' }}
-                  >
+                  <div style={{ fontSize: 11, color: $('--text-secondary'), textAlign: 'center' }}>
                     {net.clients.length}
                   </div>
 
@@ -712,7 +744,7 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                           {net.encryption === 'enterprise' && (
                             <Btn
                               label="🏢 Rogue RADIUS"
-                              color="var(--warning)"
+                              color={$('--warning') || '#f59e0b'}
                               onClick={() => onAction('enterprise', net)}
                               size="xs"
                             />
@@ -720,7 +752,7 @@ const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crack
                           {net.krackVulnerable && (
                             <Btn
                               label="💀 KRACK Test"
-                              color="var(--error)"
+                              color={$('--error') || '#ef4444'}
                               onClick={() => onAction('krack', net)}
                               size="xs"
                             />

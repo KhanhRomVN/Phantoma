@@ -2,8 +2,10 @@
 // Scan constants — Filter types and configurations
 // ============================================================================
 
+import { $ } from '@renderer/utils/color';
+
 export const SCAN_FILTERS = [
-  { id: 'all', label: 'ALL', color: 'var(--primary)' },
+  { id: 'all', label: 'ALL', color: $('--primary') },
   { id: 'open', label: 'OPEN', color: '#34d399' },
   { id: 'wep', label: 'WEP', color: '#ef4444' },
   { id: 'wpa', label: 'WPA', color: '#f97316' },
@@ -12,4 +14,4 @@ export const SCAN_FILTERS = [
   { id: 'enterprise', label: 'ENTERPRISE', color: '#fbbf24' },
 ] as const;
 
-export type ScanFilterId = typeof SCAN_FILTERS[number]['id'];
+export type ScanFilterId = (typeof SCAN_FILTERS)[number]['id'];

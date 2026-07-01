@@ -102,7 +102,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       className={`text-[13px] font-bold tracking-[0.05em] ${
                         isSelected ? '' : 'text-text-primary'
                       }`}
-                      style={{ color: isSelected ? accentColor : 'var(--text-primary)' }}
+                      style={{ color: isSelected ? accentColor : $('--text-primary') }}
                     >
                       {tool.name}
                     </span>
@@ -153,7 +153,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                       const b = parseInt(rgbMatch[2]);
                       return `rgba(${r}, ${g}, ${b}, 0.15)`;
                     }
-                    return 'var(--card-background)';
+                    return $('--card-background');
                   })(),
                   border: `1px solid ${getToolColor(currentTool.id)}40`,
                   color: getToolColor(currentTool.id),
@@ -239,8 +239,8 @@ const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onTool
                   onClick={() => setToolActiveTab(tab.id as typeof toolActiveTab)}
                   className={`px-4 py-2.5 cursor-pointer font-inherit bg-transparent border-none text-[11px] font-bold tracking-[0.12em] transition-all duration-150 ${
                     toolActiveTab === tab.id
-                      ? 'text-[rgb(var(--primary))] border-b-2 border-[rgb(var(--primary))]'
-                      : 'text-[rgb(var(--text-secondary))] border-b-2 border-transparent'
+                      ? 'text-primary border-b-2 border-primary'
+                      : 'text-text-secondary border-b-2 border-transparent'
                   }`}
                 >
                   {tab.label}

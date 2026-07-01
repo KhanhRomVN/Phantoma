@@ -23,9 +23,6 @@ export interface TargetDTO {
   executable_path: string | null;
   startup_args: string | null;
   environment: Record<string, string> | null;
-  created_at: string;
-  updated_at: string;
-}
   is_electron: boolean | null;
   created_at: string;
   updated_at: string;

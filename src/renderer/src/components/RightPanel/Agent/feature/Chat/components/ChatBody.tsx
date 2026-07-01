@@ -254,10 +254,8 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
             onClick={scrollToBottom}
             className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-[5px] rounded-[20px] text-[11px] font-semibold cursor-pointer transition-opacity duration-200"
             style={{
-              border:
-                '1px solid color-mix(in srgb, var(--primary, #007acc) 40%, transparent)',
-              background:
-                'color-mix(in srgb, var(--background) 85%, var(--primary, #007acc))',
+              border: '1px solid color-mix(in srgb, var(--primary, #007acc) 40%, transparent)',
+              background: 'color-mix(in srgb, var(--background) 85%, var(--primary, #007acc))',
               color: 'var(--primary, #007acc)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             }}
@@ -332,11 +330,9 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
             onClick={onContinue}
             className="inline-flex items-center justify-center gap-1.5 h-7 px-4 rounded-md text-[11px] font-semibold uppercase tracking-[0.5px] cursor-pointer box-border transition-all duration-200 ease-in-out"
             style={{
-              backgroundColor:
-                'color-mix(in srgb, var(--primary, #007acc) 15%, transparent)',
+              backgroundColor: 'color-mix(in srgb, var(--primary, #007acc) 15%, transparent)',
               color: 'var(--primary, #007acc)',
-              border:
-                '1px solid color-mix(in srgb, var(--primary, #007acc) 30%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--primary, #007acc) 30%, transparent)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor =
@@ -361,11 +357,9 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
         <div
           className="flex items-start gap-2.5 px-3.5 py-2 mb-1 mt-1 rounded-lg text-xs"
           style={{
-            background:
-              'color-mix(in srgb, var(--warn, #cca700) 8%, transparent)',
-            border:
-              '1px solid color-mix(in srgb, var(--warn, #cca700) 25%, transparent)',
-            color: 'var(--primary-text)',
+            background: 'color-mix(in srgb, var(--warn, #cca700) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--warn, #cca700) 25%, transparent)',
+            color: 'var(--text-primary)',
           }}
         >
           <span

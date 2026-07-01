@@ -2,6 +2,7 @@ import React from "react";
 import { ConversationItem } from "../types";
 import { Trash2, Copy, FolderOpen, Zap } from "lucide-react";
 import { extensionService } from "../../../services/ExtensionService";
+import { $ } from '@renderer/utils/color';
 
 interface HistoryCardProps {
   item: ConversationItem;
@@ -121,7 +122,7 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
         {/* Title */}
         <span
           className="text-[13px] font-medium overflow-hidden whitespace-nowrap text-ellipsis flex-1"
-          style={{ color: "var(--primary-text)" }}
+          style={{ color: $('--primary-text') || 'currentColor' }}
         >
           {title}
         </span>
@@ -153,8 +154,8 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
           style={{
             top: menuPosition.y,
             left: menuPosition.x,
-            backgroundColor: "var(--tertiary-bg)",
-            border: "1px solid var(--border-color)",
+            backgroundColor: $('--tertiary-bg') || 'transparent',
+            border: `1px solid ${$('--border-color') || 'rgba(128,128,128,0.2)'}`,
             boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
           }}
         >
@@ -162,7 +163,7 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
             {
               icon: <Trash2 size={13} />,
               label: "Xóa",
-              color: "var(--error-color)",
+              color: $('--error-color') || '#ef4444',
               hoverBg: "rgba(244,67,54,0.1)",
               action: (e: React.MouseEvent) => {
                 setMenuVisible(false);
@@ -172,8 +173,8 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
             {
               icon: <Copy size={13} />,
               label: "Copy nội dung",
-              color: "var(--primary-text)",
-              hoverBg: "var(--hover-bg)",
+              color: $('--primary-text') || 'currentColor',
+              hoverBg: $('--hover-bg') || 'rgba(128,128,128,0.1)',
               action: () => {
                 setMenuVisible(false);
                 handleCopyContent();
@@ -182,8 +183,8 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
             {
               icon: <FolderOpen size={13} />,
               label: "Mở thư mục conv",
-              color: "var(--primary-text)",
-              hoverBg: "var(--hover-bg)",
+              color: $('--primary-text') || 'currentColor',
+              hoverBg: $('--hover-bg') || 'rgba(128,128,128,0.1)',
               action: () => {
                 setMenuVisible(false);
                 handleOpenFolder();

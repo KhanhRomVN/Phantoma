@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
+import { $ } from '@renderer/utils/color';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
             value={apiUrl}
             onChange={(e) => setApiUrl(e.target.value)}
             placeholder="http://localhost:8888"
-            className="w-full px-3 py-2.5 rounded-md text-sm outline-none box-border bg-[rgb(var(--input-background))] border border-border text-text-primary"
+            className="w-full px-3 py-2.5 rounded-md text-sm outline-none box-border bg-input-background border border-border text-text-primary"
           />
         </div>
 
@@ -58,7 +59,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
             className="shrink-0 w-10 h-[22px] rounded-[11px] border-none cursor-pointer relative transition-colors duration-200"
             style={{
               backgroundColor: isSimpleMode
-                ? 'var(--primary, #0e639c)'
+                ? $('--primary') || '#0e639c'
                 : 'rgba(128,128,128,0.3)',
             }}
           >

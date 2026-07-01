@@ -10,7 +10,7 @@ interface BtnProps {
   size?: 'xs' | 'sm' | 'md';
 }
 
-export function Btn({ label, color = 'var(--primary)', onClick, disabled, size = 'sm' }: BtnProps) {
+export function Btn({ label, color = $('--primary'), onClick, disabled, size = 'sm' }: BtnProps) {
   const fs = size === 'xs' ? 8 : size === 'sm' ? 9 : 10;
   const px = size === 'xs' ? 7 : size === 'sm' ? 10 : 14;
   const py = size === 'xs' ? 3 : size === 'sm' ? 4 : 6;
@@ -22,9 +22,9 @@ export function Btn({ label, color = 'var(--primary)', onClick, disabled, size =
       style={{
         fontSize: fs,
         padding: `${py}px ${px}px`,
-        border: `1px solid ${disabled ? 'var(--border)' : `${color}30`}`,
+        border: `1px solid ${disabled ? $('--border') : `${color}30`}`,
         background: disabled ? 'transparent' : `${color}10`,
-        color: disabled ? 'var(--text-secondary)' : color,
+        color: disabled ? $('--text-secondary') : color,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
       }}

@@ -493,14 +493,18 @@ export function RequestDetails({
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               const accent = tabAccents[tab.accentKey];
-              const accentColor = accent?.color || 'var(--primary)';
+              const accentColor = accent?.color || $('--primary');
 
               if (isActive) {
                 const bgColor = toRgba(accentColor, 0.12);
                 return (
                   <div
                     key={tab.id}
-                    className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all border-b-2 text-[var(--accent)] bg-[var(--accent)]/12"
+                    className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all border-b-2"
+                    style={{
+                      color: accentColor,
+                      background: bgColor,
+                    }}
                     style={{
                       borderBottomColor: accentColor,
                       background: bgColor,
@@ -516,7 +520,9 @@ export function RequestDetails({
                         {currentTabHasMatches && (
                           <button
                             onClick={scrollToNextMatch}
-                            className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary hover:text-[var(--accent)]"
+                            className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary"
+                            onMouseEnter={(e) => e.currentTarget.style.color = $('--accent')}
+                            onMouseLeave={(e) => e.currentTarget.style.color = $('--text-secondary')}
                             title="Next match"
                           >
                             <ScanEye className="w-3.5 h-3.5" />
@@ -525,7 +531,9 @@ export function RequestDetails({
 
                         <button
                           onClick={handleCopy}
-                          className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary hover:text-[var(--accent)]"
+                          className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary"
+                          onMouseEnter={(e) => e.currentTarget.style.color = $('--accent')}
+                          onMouseLeave={(e) => e.currentTarget.style.color = $('--text-secondary')}
                           title="Copy tab content"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -535,7 +543,7 @@ export function RequestDetails({
                           className="p-0.5 rounded bg-transparent cursor-pointer transition-all"
                           style={{
                             background: isRawMode ? toRgba(accentColor, 0.2) : 'transparent',
-                            color: isRawMode ? accentColor : 'var(--text-secondary)',
+                            color: isRawMode ? accentColor : $('--text-secondary'),
                           }}
                           onMouseEnter={(e) => {
                             if (!isRawMode) {
@@ -545,7 +553,7 @@ export function RequestDetails({
                           }}
                           onMouseLeave={(e) => {
                             if (!isRawMode) {
-                              e.currentTarget.style.color = 'var(--text-secondary)';
+                              e.currentTarget.style.color = $('--text-secondary');
                               e.currentTarget.style.background = 'transparent';
                             }
                           }}
@@ -563,7 +571,10 @@ export function RequestDetails({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all bg-transparent border-b-2 border-transparent text-text-secondary cursor-pointer hover:text-text-primary hover:bg-[var(--accent)]/8"
+                  className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all bg-transparent border-b-2 border-transparent text-text-secondary cursor-pointer hover:text-text-primary"
+                  style={{
+                    hover: { background: `color-mix(in srgb, ${accentColor} 8%, transparent)` },
+                  }}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {tab.label}

@@ -2,6 +2,7 @@ import React from 'react';
 import { FileIcon as FileIconLucide, Terminal, Loader2 } from 'lucide-react';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { cn } from '@renderer/shared/lib/utils';
+import { $ } from '@renderer/utils/color';
 
 interface UploadedFile {
   id: string;
@@ -47,7 +48,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
     <>
       {/* Uploaded Files Preview */}
       {uploadedFiles.length > 0 && (
-        <div className="flex flex-nowrap overflow-x-auto gap-1 max-h-[80px] px-3 py-2 border-t border-[var(--border-color)] bg-transparent">
+        <div className="flex flex-nowrap overflow-x-auto gap-1 max-h-[80px] px-3 py-2 border-t border-border bg-transparent">
           {uploadedFiles.map((file) => {
             const isImage = file.type.startsWith('image/');
             if (isImage) {
@@ -63,14 +64,14 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       file.isUploading
                         ? 'cursor-default opacity-50 blur-[0.5px]'
                         : 'cursor-pointer opacity-100',
-                      file.error ? 'border border-error' : 'border border-[var(--border-color)]',
+                      file.error ? 'border border-error' : 'border border-border',
                     )}
                   />
                   {file.isUploading && (
                     <div className="absolute inset-0 flex items-center justify-center rounded pointer-events-none bg-black/40">
                       <Loader2
                         size={16}
-                        color="var(--primary-text, #ffffff)"
+                        color={$('--primary-text')}
                         className="spin-animation"
                       />
                     </div>
@@ -88,7 +89,8 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       e.stopPropagation();
                       onRemoveFile(file.id);
                     }}
-                    className="absolute -top-1 -right-1 w-[14px] h-[14px] rounded-full flex items-center justify-center cursor-pointer z-10 bg-[var(--secondary-bg)] border border-[var(--border-color)] shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
+                    className="absolute -top-1 -right-1 w-[14px] h-[14px] rounded-full flex items-center justify-center cursor-pointer z-10 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
+                    style={{ backgroundColor: $('--secondary-bg') }}
                   >
                     <svg
                       width="8"
@@ -113,7 +115,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                   'flex items-center gap-1 px-2 py-1 rounded text-xs bg-transparent',
                   file.error
                     ? 'border border-error text-error'
-                    : 'border-none text-[var(--primary-text)]',
+                    : 'border-none text-text-primary',
                   file.isUploading && 'opacity-60',
                 )}
               >
@@ -124,9 +126,9 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                 >
                   {file.name}
                 </span>
-                <span className="text-[var(--secondary-text)]">({formatFileSize(file.size)})</span>
+                <span className="text-text-secondary">({formatFileSize(file.size)})</span>
                 {file.isUploading && (
-                  <span className="text-[10px] text-[var(--secondary-text)]">(uploading...)</span>
+                  <span className="text-[10px] text-text-secondary">(uploading...)</span>
                 )}
                 {file.error && (
                   <span className="text-[10px] text-error" title={file.error}>
@@ -157,18 +159,18 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
 
       {/* Attached Items Display Area (Files/Folders from @ mention) */}
       {attachedItems.length > 0 && (
-        <div className="px-3 py-2 border-t border-[var(--border-color)] bg-transparent">
+        <div className="px-3 py-2 border-t border-border bg-transparent">
           {/* Files Row */}
           {attachedItems.filter((item) => item.type === 'file').length > 0 && (
             <div className="mb-1">
-              <div className="text-xs mb-1 text-[var(--secondary-text)]">Files:</div>
+              <div className="text-xs mb-1 text-text-secondary">Files:</div>
               <div className="flex flex-wrap gap-1">
                 {attachedItems
                   .filter((item) => item.type === 'file')
                   .map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-[var(--secondary-text)]"
+className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
                       onClick={() => onAttachedItemClick(item)}
                       title={`Click to open: ${item.path}`}
                     >
@@ -204,14 +206,14 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
           {/* Folders Row */}
           {attachedItems.filter((item) => item.type === 'folder').length > 0 && (
             <div className="mb-1">
-              <div className="text-xs mb-1 text-[var(--secondary-text)]">Folders:</div>
+              <div className="text-xs mb-1 text-text-secondary">Folders:</div>
               <div className="flex flex-wrap gap-1">
                 {attachedItems
                   .filter((item) => item.type === 'folder')
                   .map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-[var(--secondary-text)]"
+className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
                       onClick={() => onAttachedItemClick(item)}
                       title={item.path}
                     >
@@ -251,14 +253,14 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
           {/* External Files Row */}
           {attachedItems.filter((item) => item.type === 'external').length > 0 && (
             <div className="mb-1">
-              <div className="text-xs mb-1 text-[var(--secondary-text)]">External Files:</div>
+              <div className="text-xs mb-1 text-text-secondary">External Files:</div>
               <div className="flex flex-wrap gap-1">
                 {attachedItems
                   .filter((item) => item.type === 'external')
                   .map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-[var(--secondary-text)]"
+className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
                       onClick={() => onAttachedItemClick(item)}
                       title={`External file: ${item.path}`}
                     >
@@ -294,14 +296,14 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
           {/* Terminals Row */}
           {attachedItems.filter((item) => item.type === ('terminal' as any)).length > 0 && (
             <div className="mb-1">
-              <div className="text-xs mb-1 text-[var(--secondary-text)]">Terminals:</div>
+              <div className="text-xs mb-1 text-text-secondary">Terminals:</div>
               <div className="flex flex-wrap gap-1">
                 {attachedItems
                   .filter((item) => item.type === ('terminal' as any))
                   .map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-[var(--secondary-text)]"
+className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
                       onClick={() => onAttachedItemClick(item)}
                       title={`Terminal ID: ${item.path}`}
                     >

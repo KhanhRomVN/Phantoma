@@ -30,7 +30,7 @@ interface ExportButtonsProps {
 
 const ExportButtons: React.FC<ExportButtonsProps> = ({ buttons, accentColor }) => {
   const buttonStyle = {
-    background: 'rgb(var(--card-background))',
+    background: $('--card-background'),
     border: `1px solid ${accentColor}30`,
     color: accentColor,
   };
@@ -224,7 +224,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           </div>
           <div className="text-[10px] font-mono bg-input-background p-3 rounded max-h-[400px] overflow-y-auto whitespace-pre-wrap break-words">
             {scan.rawOutput.map((line, i) => {
-              let color = 'var(--text-secondary)';
+              let color = $('--text-secondary');
               if (line.includes('[INF]')) color = '#34d399';
               else if (line.includes('[ERR]')) color = '#ef4444';
               else if (line.includes('[WRN]')) color = '#fbbf24';
@@ -263,7 +263,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           placeholder="Search by target, mode, or subdomain..."
           className="w-full py-2 px-3 pl-8 bg-input-background rounded text-text-primary text-[11px] outline-none font-inherit"
           style={{
-            border: `1px solid ${historySearchQuery ? accentColor + '50' : 'var(--input-border-default)'}`,
+            border: `1px solid ${historySearchQuery ? accentColor + '50' : ($('--input-border-default') || '')}`,
           }}
         />
       </div>
@@ -314,7 +314,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           style={{
             top: contextMenu.y,
             left: contextMenu.x,
-            background: 'var(--dropdown-background)',
+            background: $('--dropdown-background'),
             border: `1px solid ${accentColor}50`,
             boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
           }}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface ProcessingIndicatorProps {
   isResponding?: boolean;
@@ -23,12 +24,12 @@ const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({ isResponding 
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 'var(--spacing-xs)',
-        padding: '0 var(--spacing-sm)',
-        marginTop: '-var(--spacing-sm)',
-        color: 'var(--secondary-text)',
-        fontSize: 'var(--font-size-md)', // 13px
-        marginBottom: 'var(--spacing-md)',
+        gap: $('--spacing-xs') || '4px',
+        padding: `0 ${$('--spacing-sm') || '8px'}`,
+        marginTop: `-${$('--spacing-sm') || '8px'}`,
+        color: $('--secondary-text') || 'currentColor',
+        fontSize: $('--font-size-md') || '13px',
+        marginBottom: $('--spacing-md') || '16px',
       }}
     >
       <span className="processing-text">

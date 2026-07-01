@@ -6,6 +6,7 @@ import { getFaviconUrl } from "../utils";
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
 import { cn } from '@renderer/shared/lib/utils';
+import { $ } from '@renderer/utils/color';
 
 interface Provider {
   provider_id: string;
@@ -51,8 +52,8 @@ const ProviderRow: React.FC<{
       : "bg-[rgba(34,197,94,0.1)]";
   const connectionBadgeText =
     connectionType === "browser"
-      ? "text-[var(--warn,#f97316)]"
-      : "text-[var(--success,#22c55e)]";
+      ? "text-warn"
+      : "text-success";
 
   const handleClick = () => {
     if (disabled) return;
@@ -76,11 +77,12 @@ const ProviderRow: React.FC<{
         'flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-all duration-[0.13s] ease-in-out border border-border',
         hovered && !disabled
           ? 'bg-card-hover cursor-pointer opacity-100'
-          : 'bg-[var(--secondary-bg)]',
+          : '',
         disabled
           ? 'cursor-not-allowed opacity-45'
           : 'cursor-pointer opacity-100'
       )}
+      style={!hovered || disabled ? { backgroundColor: $('--secondary-bg') } : undefined}
     >
       <div className="w-[38px] h-[38px] rounded-[10px] flex items-center justify-center overflow-hidden shrink-0 bg-[rgba(128,128,128,0.1)]">
         {iconUrl && !imgError ? (
@@ -91,7 +93,7 @@ const ProviderRow: React.FC<{
             onError={() => setImgError(true)}
           />
         ) : (
-          <span className="text-[13px] font-bold opacity-70 text-[var(--primary-text)]">
+          <span className="text-[13px] font-bold opacity-70 text-text-primary">
             {provider.provider_name.slice(0, 2).toUpperCase()}
           </span>
         )}
@@ -334,12 +336,12 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-[11px] py-[9px] rounded-[9px] text-[13px] outline-none box-border bg-[rgb(var(--input-background))] border border-border text-text-primary"
+              className="w-full px-[11px] py-[9px] rounded-[9px] text-[13px] outline-none box-border bg-input-background border border-border text-text-primary"
               autoFocus
             />
           </div>
           {error && (
-            <div className="mt-3 rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-[var(--error,rgba(239,68,68,0.08))] text-[var(--error)]">
+            <div className="mt-3 rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-error/10 text-error">
               <AlertCircle size={12} />
               <span>{error}</span>
             </div>
@@ -375,7 +377,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 type="email"
                 value={pendingAccount.email || ""}
                 onChange={(e) => setPendingAccount({ ...pendingAccount, email: e.target.value })}
-                className="w-full px-[11px] py-[9px] rounded-[9px] text-[13px] outline-none box-border bg-[rgb(var(--input-background))] border border-border text-text-primary"
+                className="w-full px-[11px] py-[9px] rounded-[9px] text-[13px] outline-none box-border bg-input-background border border-border text-text-primary"
               />
             </div>
             <div>
@@ -384,11 +386,11 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 type="text"
                 value={pendingAccount.credential ? `${pendingAccount.credential.substring(0, 10)}...${pendingAccount.credential.slice(-5)}` : "N/A"}
                 readOnly
-                className="w-full px-[11px] py-[9px] rounded-[9px] text-xs font-mono outline-none box-border bg-[rgb(var(--input-background))] border border-border text-text-secondary"
+                className="w-full px-[11px] py-[9px] rounded-[9px] text-xs font-mono outline-none box-border bg-input-background border border-border text-text-secondary"
               />
             </div>
             {error && (
-              <div className="rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-[var(--error,rgba(239,68,68,0.08))] text-[var(--error)]">
+              <div className="rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-error/10 text-error">
                 <AlertCircle size={12} />
                 <span>{error}</span>
               </div>
@@ -419,7 +421,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
       <DrawerBody>
         {loadingProviders ? (
           <div className="h-[120px] flex flex-col items-center justify-center gap-2.5 text-text-secondary">
-            <Loader2 size={24} className="text-[var(--primary-text)]" style={{ animation: "aaSpin 1s linear infinite" }} />
+            <Loader2 size={24} className="text-text-primary" style={{ animation: "aaSpin 1s linear infinite" }} />
             <span className="text-xs">Loading providers…</span>
           </div>
         ) : (
@@ -437,13 +439,13 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         )}
 
         {contextMenu && ReactDOM.createPortal(
-          <div className="fixed rounded-[10px] overflow-hidden z-[99999] min-w-[200px] bg-[rgb(var(--card-background))] border border-border shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
+          <div className="fixed rounded-[10px] overflow-hidden z-[99999] min-w-[200px] bg-card-background border border-border shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
             style={{ top: contextMenu.y, left: contextMenu.x }}
             onClick={(e) => e.stopPropagation()}
           >
             <button onClick={() => handleLogin(contextMenu.provider, "basic")}
               className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary border-b border-border"
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--hover-bg)")}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             >
               <span className="text-sm">🌐</span>
@@ -451,7 +453,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             </button>
             <button onClick={() => handleLogin(contextMenu.provider, "cdp")}
               className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary"
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--hover-bg)")}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             >
               <span className="text-sm">🛡️</span>
@@ -462,7 +464,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         )}
 
         {error && (
-          <div className="mt-2.5 rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-[var(--error,rgba(239,68,68,0.08))] text-[var(--error)]">
+          <div className="mt-2.5 rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-error/10 text-error">
             <AlertCircle size={12} />
             <span>{error}</span>
           </div>

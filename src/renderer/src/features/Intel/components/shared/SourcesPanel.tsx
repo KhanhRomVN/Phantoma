@@ -13,7 +13,12 @@ export function SourcesPanel({ sources }: SourcesPanelProps) {
       <div className="space-y-1">
         {sources.map((src) => {
           const credibility = Math.round(src.credibility * 100);
-          const color = src.credibility >= 0.7 ? 'var(--success)' : src.credibility >= 0.4 ? 'var(--warning)' : 'var(--error)';
+          const color =
+            src.credibility >= 0.7
+              ? $('--success')
+              : src.credibility >= 0.4
+                ? $('--warning')
+                : $('--error');
           return (
             <div
               key={src.id}

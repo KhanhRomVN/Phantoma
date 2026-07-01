@@ -6,6 +6,7 @@ import type { EvilTwinSession } from '../../types';
 import { fmtTime } from '../../utils';
 import { Btn } from '../shared/Btn';
 import { Stat } from '../shared/Stat';
+import { $ } from '@renderer/utils/color';
 
 interface EvilTwinTabProps {
   sessions: EvilTwinSession[];
@@ -45,15 +46,15 @@ export function EvilTwinTab({ sessions, onStop }: EvilTwinTabProps) {
               Uptime: {fmtTime(session.uptimeSeconds)}
             </span>
             {session.status === 'active' && (
-              <Btn label="■ STOP AP" color="var(--error)" onClick={() => onStop(session.id)} size="xs" />
+              <Btn label="■ STOP AP" color={$('--error') || '#ef4444'} onClick={() => onStop(session.id)} size="xs" />
             )}
           </div>
 
           <div className="grid grid-cols-4 gap-0.5 p-3 mb-1">
-            <Stat label="Clients" value={session.clientsConnected} accent="var(--primary)" />
-            <Stat label="Deauths Sent" value={session.deauthSent} accent="var(--error)" />
-            <Stat label="Handshakes" value={session.handshakesCollected} accent="var(--success)" />
-            <Stat label="Credentials" value={session.credentials.length} accent="var(--accent-purple)" />
+            <Stat label="Clients" value={session.clientsConnected} accent={$('--primary') || '#3686ff'} />
+            <Stat label="Deauths Sent" value={session.deauthSent} accent={$('--error') || '#ef4444'} />
+            <Stat label="Handshakes" value={session.handshakesCollected} accent={$('--success') || '#10b981'} />
+            <Stat label="Credentials" value={session.credentials.length} accent={$('--accent-purple') || '#a78bfa'} />
           </div>
 
           {session.credentials.length > 0 && (

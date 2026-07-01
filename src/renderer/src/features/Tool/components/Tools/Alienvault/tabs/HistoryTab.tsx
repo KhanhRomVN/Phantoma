@@ -1,10 +1,20 @@
 import React, { useRef, useEffect } from 'react';
-import { Search, ArrowLeft, Eye, Trash2, Copy, Activity, MapPin, Bug, Radio, FileText } from 'lucide-react';
+import {
+  Search,
+  ArrowLeft,
+  Eye,
+  Trash2,
+  Copy,
+  Activity,
+  MapPin,
+  Bug,
+  Radio,
+  FileText,
+} from 'lucide-react';
 import { ScanResult, ContextMenuState, TooltipState } from '../types';
 import { groupHistoryByDate, getReputationColor, getReputationIcon } from '../utils';
 import { REPUTATION_LABELS } from '../constants';
 import IndicatorCard from '../components/IndicatorCard';
-
 
 interface HistoryTabProps {
   history: ScanResult[];
@@ -110,7 +120,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         </div>
 
         {/* Scan Header */}
-        <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+        <div
+          className="p-4 rounded-md bg-card-background"
+          style={{ border: `1px solid ${accentColor}30` }}
+        >
           <div className="flex justify-between items-center mb-3">
             <div>
               <h3 className="m-0 text-base text-text-primary">{scan.indicator}</h3>
@@ -139,14 +152,19 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         {/* Reputation & Basic Info */}
         {result && (
           <>
-            <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+            <div
+              className="p-4 rounded-md bg-card-background"
+              style={{ border: `1px solid ${accentColor}30` }}
+            >
               <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
                 <Activity size={14} className="text-text-secondary" /> REPUTATION & ACTIVITY
               </h4>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
                 <div>
                   <span className="text-text-secondary">Reputation:</span>{' '}
-                  <span className="font-bold" style={{ color: reputationColor }}>{reputationLabel}</span>
+                  <span className="font-bold" style={{ color: reputationColor }}>
+                    {reputationLabel}
+                  </span>
                 </div>
                 <div>
                   <span className="text-text-secondary">Activity Count:</span>{' '}
@@ -165,14 +183,19 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
 
             {/* Geo Location */}
             {result.geoData && (
-              <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+              <div
+                className="p-4 rounded-md bg-card-background"
+                style={{ border: `1px solid ${accentColor}30` }}
+              >
                 <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
                   <MapPin size={14} className="text-text-secondary" /> GEO LOCATION
                 </h4>
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
                   <div>
                     <span className="text-text-secondary">Country:</span>{' '}
-                    <span className="text-text-primary">{result.geoData.country} ({result.geoData.countryCode})</span>
+                    <span className="text-text-primary">
+                      {result.geoData.country} ({result.geoData.countryCode})
+                    </span>
                   </div>
                   {result.geoData.city && (
                     <div>
@@ -186,7 +209,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
 
             {/* Malware Families */}
             {result.malwareFamilies && result.malwareFamilies.length > 0 && (
-              <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+              <div
+                className="p-4 rounded-md bg-card-background"
+                style={{ border: `1px solid ${accentColor}30` }}
+              >
                 <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
                   <Bug size={14} className="text-text-secondary" /> MALWARE FAMILIES
                 </h4>
@@ -210,7 +236,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
 
             {/* Pulses */}
             {result.pulses && result.pulses.length > 0 && (
-              <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+              <div
+                className="p-4 rounded-md bg-card-background"
+                style={{ border: `1px solid ${accentColor}30` }}
+              >
                 <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
                   <Radio size={14} className="text-text-secondary" /> RELATED PULSES
                 </h4>
@@ -222,14 +251,14 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                       style={{ border: `1px solid ${accentColor}20` }}
                     >
                       <div className="flex justify-between mb-1.5">
-                        <span className="font-bold" style={{ color: accentColor }}>{pulse.name}</span>
+                        <span className="font-bold" style={{ color: accentColor }}>
+                          {pulse.name}
+                        </span>
                         <span className="text-[10px] text-text-secondary">
                           {new Date(pulse.modified).toLocaleDateString()}
                         </span>
                       </div>
-                      <div className="text-[11px] text-text-primary mb-2">
-                        {pulse.description}
-                      </div>
+                      <div className="text-[11px] text-text-primary mb-2">{pulse.description}</div>
                       <div className="flex flex-wrap gap-1">
                         {pulse.tags.map((tag, j) => (
                           <span
@@ -249,7 +278,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         )}
 
         {/* Raw Output */}
-        <div className="p-4 rounded-md bg-card-background" style={{ border: `1px solid ${accentColor}30` }}>
+        <div
+          className="p-4 rounded-md bg-card-background"
+          style={{ border: `1px solid ${accentColor}30` }}
+        >
           <div className="flex justify-between items-center mb-3">
             <h4 className="m-0 text-[13px] flex items-center gap-2 text-text-primary">
               <FileText size={14} className="text-text-secondary" /> RAW OUTPUT
@@ -296,7 +328,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           placeholder="Search by indicator, type, malware family, or pulse name..."
           className="w-full py-2 px-3 pl-8 bg-input-background rounded text-text-primary text-[11px] outline-none font-inherit"
           style={{
-            border: `1px solid ${historySearchQuery ? `${accentColor}50` : 'var(--input-border-default)'}`,
+            border: `1px solid ${historySearchQuery ? `${accentColor}50` : ($('--input-border-default') || '')}`,
           }}
         />
       </div>
@@ -347,7 +379,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           style={{
             top: contextMenu.y,
             left: contextMenu.x,
-            background: 'var(--dropdown-background)',
+            background: $('--dropdown-background'),
             border: `1px solid ${accentColor}50`,
             boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
           }}

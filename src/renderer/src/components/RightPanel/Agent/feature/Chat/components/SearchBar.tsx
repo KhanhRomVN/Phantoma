@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { $ } from '@renderer/utils/color';
 
 export interface SearchBarProps {
   searchQuery: string;
@@ -155,7 +156,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         border: active
           ? '1px solid color-mix(in srgb, var(--primary, #0a84ff) 45%, transparent)'
           : '1px solid transparent',
-        color: active ? 'var(--primary, #0a84ff)' : 'var(--secondary-text)',
+        color: active ? $('--primary') || '#0a84ff' : $('--secondary-text') || 'currentColor',
         opacity: active ? 1 : 0.6,
       }}
       onMouseEnter={(e) => {
@@ -172,9 +173,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div
       className="sticky top-0 z-[100] self-end inline-flex items-center gap-1 mb-1.5 rounded-md px-1 py-[3px]"
-      className="sticky top-0 z-[100] self-end inline-flex items-center gap-1 mb-1.5 rounded-md px-1 py-[3px] shadow-[0_2px_10px_rgba(0,0,0,0.32)] bg-[var(--input-background,var(--primary-bg))] border"
+      className="sticky top-0 z-[100] self-end inline-flex items-center gap-1 mb-1.5 rounded-md px-1 py-[3px] shadow-[0_2px_10px_rgba(0,0,0,0.32)] bg-input-background border"
     >
-      <div className="flex items-stretch overflow-hidden rounded-[3px] bg-[var(--input-background,var(--primary-bg))]">
+      <div className="flex items-stretch overflow-hidden rounded-[3px] bg-input-background">
         <input
           ref={inputRef}
           type="text"
@@ -188,9 +189,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
               navigate(e.shiftKey ? -1 : 1);
             }
           }}
-          className="border-none outline-none text-xs py-1 px-1.5 w-[180px] bg-[var(--input-background,var(--primary-bg))] text-primary font-[var(--font-family,sans-serif)]"
+          className="border-none outline-none text-xs py-1 px-1.5 w-[180px] bg-input-background text-primary font-[var(--font-family,sans-serif)]"
         />
-        <div className="flex items-center gap-px px-1 py-0.5 border-l bg-[var(--input-background,var(--primary-bg))]">
+        <div className="flex items-center gap-px px-1 py-0.5 border-l bg-input-background">
           {iconBtn(
             flags.has('matchCase'),
             'Match Case (Alt+C)',

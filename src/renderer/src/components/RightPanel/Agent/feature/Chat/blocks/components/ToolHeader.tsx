@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface ToolHeaderProps {
   title: React.ReactNode;
@@ -132,37 +133,37 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
 
   return (
     <>
-    <div
-      ref={containerRef}
-      className="terminal-block-header"
-      onClick={onClick || onToggleCollapse}
-      style={{
-        cursor: onClick || onToggleCollapse ? 'pointer' : 'default',
-        paddingTop: '4px',
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        width: '100%',
-      }}
-    >
-      <div className="terminal-info" style={{ flex: 1, minWidth: 0 }}>
-        <div className="terminal-header-top">
-          {statusColor && (
-            <div
-              className={`terminal-status-dot timeline-dot ${isPartial ? 'streaming-pulse' : ''}`}
-              style={{
-                backgroundColor: statusColor,
-                top: '10px',
-                left: '15px',
-                transform: 'translateX(-50%)',
-                boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in srgb, ${statusColor} 50%, transparent)`,
-              }}
-            />
-          )}
-          {isPartial && (
-            <style>{`
+      <div
+        ref={containerRef}
+        className="terminal-block-header"
+        onClick={onClick || onToggleCollapse}
+        style={{
+          cursor: onClick || onToggleCollapse ? 'pointer' : 'default',
+          paddingTop: '4px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          width: '100%',
+        }}
+      >
+        <div className="terminal-info" style={{ flex: 1, minWidth: 0 }}>
+          <div className="terminal-header-top">
+            {statusColor && (
+              <div
+                className={`terminal-status-dot timeline-dot ${isPartial ? 'streaming-pulse' : ''}`}
+                style={{
+                  backgroundColor: statusColor,
+                  top: '10px',
+                  left: '15px',
+                  transform: 'translateX(-50%)',
+                  boxShadow: `0 0 0 2px ${$('--background') || ''}, 0 0 0 3px color-mix(in srgb, ${statusColor} 50%, transparent)`,
+                }}
+              />
+            )}
+            {isPartial && (
+              <style>{`
               @keyframes pulse {
-                0% { box-shadow: 0 0 0 0 var(--pulse-color); }
+                0% { box-shadow: 0 0 0 0 ${$('--pulse-color') || ''}; }
                 70% { box-shadow: 0 0 0 6px rgba(0, 0, 0, 0); }
                 100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
               }
@@ -171,155 +172,155 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
                 --pulse-color: ${statusColor}60;
               }
             `}</style>
-          )}
-          <div
-            style={{
-              marginTop: '1px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '2px',
-              flex: 1,
-              minWidth: 0,
-              width: '100%',
-              maxWidth: '100%',
-              overflow: 'hidden',
-            }}
-          >
+            )}
             <div
               style={{
+                marginTop: '1px',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                flexWrap: 'wrap',
+                flexDirection: 'column',
+                gap: '2px',
+                flex: 1,
+                minWidth: 0,
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'hidden',
               }}
             >
-              {onToggleCollapse && (
-                <span
-                  className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'}`}
-                  style={{ fontSize: '12px', marginRight: '4px' }}
-                />
-              )}
-              {icon && <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>}
-              {typeof title === 'string' ? (
-                <span className="terminal-name">{title}</span>
-              ) : (
-                <div className="terminal-name" style={{ display: 'contents' }}>
-                  {title}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {onToggleCollapse && (
+                  <span
+                    className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'}`}
+                    style={{ fontSize: '12px', marginRight: '4px' }}
+                  />
+                )}
+                {icon && <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>}
+                {typeof title === 'string' ? (
+                  <span className="terminal-name">{title}</span>
+                ) : (
+                  <div className="terminal-name" style={{ display: 'contents' }}>
+                    {title}
+                  </div>
+                )}
+              </div>
+              {displayPath && path && path.includes('/') && (
+                <div
+                  ref={pathContainerRef}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    paddingRight: '4px',
+                    paddingTop: '4px',
+                    marginTop: '2px',
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Corner line: vertical + horizontal L-shape */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '0',
+                      top: '0',
+                      width: '16px',
+                      height: '12px',
+                      borderLeft:
+                        `1px solid color-mix(in srgb, ${$('--secondary-text')} 20%, transparent)`,
+                      borderBottom:
+                        `1px solid color-mix(in srgb, ${$('--secondary-text')} 20%, transparent)`,
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      opacity: 0.6,
+                      color: $('--secondary-text'),
+                      fontFamily: $('--font-family, monospace'),
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      width: '100%',
+                      padding: '0 4px 0 20px',
+                      borderRadius: '2px',
+                      transition: 'text-decoration 0.15s ease',
+                      cursor: 'default',
+                      textDecoration: 'none',
+                    }}
+                    title={path}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onPathClick && path) {
+                        onPathClick(path);
+                      }
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.textDecoration = 'underline';
+                      e.currentTarget.style.textDecorationColor =
+                        $('--primary, rgba(0, 122, 204, 0.6)');
+                      e.currentTarget.style.textUnderlineOffset = '2px';
+                      e.currentTarget.style.cursor = 'pointer';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.textDecoration = 'none';
+                      e.currentTarget.style.cursor = 'default';
+                    }}
+                  >
+                    {displayPath}
+                  </span>
                 </div>
               )}
             </div>
-            {displayPath && path && path.includes('/') && (
-              <div
-                ref={pathContainerRef}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  alignItems: 'center',
-                  paddingRight: '4px',
-                  paddingTop: '4px',
-                  marginTop: '2px',
-                  position: 'relative',
-                  width: '100%',
-                  maxWidth: '100%',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Corner line: vertical + horizontal L-shape */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: '0',
-                    top: '0',
-                    width: '16px',
-                    height: '12px',
-                    borderLeft:
-                      '1px solid color-mix(in srgb, var(--secondary-text) 20%, transparent)',
-                    borderBottom:
-                      '1px solid color-mix(in srgb, var(--secondary-text) 20%, transparent)',
-                  }}
-                />
+          </div>
+          {(subTitle || diffStats) && (
+            <div className={`terminal-sub-info${subTitleClassName ? ` ${subTitleClassName}` : ''}`}>
+              {diffStats ? (
                 <span
                   style={{
-                    fontSize: '10px',
-                    opacity: 0.6,
-                    color: 'var(--secondary-text)',
-                    fontFamily: 'var(--font-family, monospace)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    width: '100%',
-                    padding: '0 4px 0 20px',
-                    borderRadius: '2px',
-                    transition: 'text-decoration 0.15s ease',
-                    cursor: 'default',
-                    textDecoration: 'none',
-                  }}
-                  title={path}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onPathClick && path) {
-                      onPathClick(path);
-                    }
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.textDecoration = 'underline';
-                    e.currentTarget.style.textDecorationColor =
-                      'var(--primary, rgba(0, 122, 204, 0.6))';
-                    e.currentTarget.style.textUnderlineOffset = '2px';
-                    e.currentTarget.style.cursor = 'pointer';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.textDecoration = 'none';
-                    e.currentTarget.style.cursor = 'default';
+                    display: 'flex',
+                    gap: '6px',
+                    alignItems: 'center',
                   }}
                 >
-                  {displayPath}
+                  <span
+                    style={{
+                      color: $('--success'),
+                    }}
+                  >
+                    +{diffStats.added}
+                  </span>
+                  <span
+                    style={{
+                      color: $('--error'),
+                    }}
+                  >
+                    -{diffStats.removed}
+                  </span>
+                  <span>lines</span>
                 </span>
-              </div>
-            )}
-          </div>
+              ) : (
+                subTitle
+              )}
+            </div>
+          )}
         </div>
-        {(subTitle || diffStats) && (
-          <div className={`terminal-sub-info${subTitleClassName ? ` ${subTitleClassName}` : ''}`}>
-            {diffStats ? (
-              <span
-                style={{
-                  display: 'flex',
-                  gap: '6px',
-                  alignItems: 'center',
-                }}
-              >
-                <span
-                  style={{
-                    color: 'var(--success)',
-                  }}
-                >
-                  +{diffStats.added}
-                </span>
-                <span
-                  style={{
-                    color: 'var(--error)',
-                  }}
-                >
-                  -{diffStats.removed}
-                </span>
-                <span>lines</span>
-              </span>
-            ) : (
-              subTitle
-            )}
-          </div>
-        )}
+        <div
+          className="header-actions"
+          onClick={(e) => e.stopPropagation()}
+          style={{ flexShrink: 0, marginLeft: '8px' }}
+        >
+          {headerActions}
+        </div>
       </div>
-      <div
-        className="header-actions"
-        onClick={(e) => e.stopPropagation()}
-        style={{ flexShrink: 0, marginLeft: '8px' }}
-      >
-        {headerActions}
-      </div>
-    </div>
-    <style>{`
+      <style>{`
       .terminal-block-header {
         display: flex;
         align-items: center;
@@ -333,8 +334,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       }
 
       .terminal-block .terminal-block-header {
-        background-color: var(--sidebar-background, var(--sidebar-background, rgba(0, 0, 0, 0.1)));
-        border-bottom: 1px solid var(--border, rgba(128, 128, 128, 0.12));
+        background-color: ${$('--sidebar-background') || 'rgba(0, 0, 0, 0.1)'};
+        border-bottom: 1px solid ${$('--border') || 'rgba(128, 128, 128, 0.12)'};
       }
 
       .terminal-block.git-tool .terminal-block-header {
@@ -366,8 +367,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       .terminal-name {
         font-size: 13px;
         font-weight: 600;
-        color: var(--primary-text);
-        font-family: var(--font-family, monospace);
+        color: ${$('--primary-text')};
+        font-family: ${$('--font-family') || 'monospace'};
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -377,7 +378,7 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       .terminal-sub-info {
         font-size: 11px;
         opacity: 0.5;
-        font-family: var(--font-family);
+        font-family: ${$('--font-family')};
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -390,9 +391,9 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       }
 
       .terminal-sub-info.error-sub-info {
-        font-size: var(--font-size, 13px);
+        font-size: ${$('--font-size') || '13px'};
         opacity: 1;
-        color: var(--primary-text);
+        color: ${$('--primary-text')};
         height: auto;
         white-space: normal;
         overflow: visible;
@@ -409,8 +410,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
         top: -8px;
         width: 10px;
         height: 16px;
-        border-left: 2px solid var(--border, var(--border, rgba(128, 128, 128, 0.3)));
-        border-bottom: 2px solid var(--border, var(--border, rgba(128, 128, 128, 0.3)));
+        border-left: 2px solid ${$('--border') || 'rgba(128, 128, 128, 0.3)'};
+        border-bottom: 2px solid ${$('--border') || 'rgba(128, 128, 128, 0.3)'};
         border-bottom-left-radius: 4px;
         transform: translateX(-1px);
       }
@@ -419,8 +420,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
         font-size: 10px;
         padding: 1px 6px;
         border-radius: 10px;
-        background-color: var(--primary, #4d4d4d);
-        color: var(--text-foreground, #ffffff);
+        background-color: ${$('--primary') || '#4d4d4d'};
+        color: ${$('--text-foreground') || '#ffffff'};
         opacity: 0.8;
         font-weight: 600;
       }
@@ -432,8 +433,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
       }
 
       .execute-button-minimal:hover {
-        color: var(--primary) !important;
-        background-color: color-mix(in srgb, var(--primary-text) 10%, transparent) !important;
+        color: ${$('--primary')} !important;
+        background-color: color-mix(in srgb, ${$('--primary-text')} 10%, transparent) !important;
       }
     `}</style>
     </>

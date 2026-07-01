@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '../../../shared/lib/utils';
 import { TooltipProps } from './type';
+import { $ } from '@renderer/utils/color';
 
 export const Tooltip: React.FC<TooltipProps> = ({
   children,
@@ -141,8 +142,8 @@ export const Tooltip: React.FC<TooltipProps> = ({
           <div
             className="absolute w-0 h-0 border-solid pointer-events-none"
             style={{
-              color: 'rgb(var(--tooltip-background, 26 31 46))',
-              filter: 'drop-shadow(0 0 0 1px var(--border))',
+              color: $('--tooltip-background') || 'rgb(26, 31, 46)',
+              filter: `drop-shadow(0 0 0 1px ${$('--border') || 'rgba(128,128,128,0.2)'})`,
               ...(side === 'top' && {
                 bottom: '-6px',
                 left: '50%',

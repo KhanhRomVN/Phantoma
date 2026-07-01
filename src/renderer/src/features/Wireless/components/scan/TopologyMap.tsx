@@ -4,6 +4,7 @@
 
 import type { WiFiNetwork, Encryption } from '../../types';
 import { ENC_PALETTE } from '../../constants';
+import { $ } from '@renderer/utils/color';
 
 interface TopologyMapProps {
   networks: WiFiNetwork[];
@@ -23,11 +24,11 @@ export function TopologyMap({ networks }: TopologyMapProps) {
         <div className="relative h-[240px] bg-gradient-to-br from-input-background to-card-background rounded-lg overflow-hidden border border-border shadow-inner">
           {/* Radial grid lines */}
           <svg className="absolute inset-0 w-full h-full opacity-20">
-            <circle cx="50%" cy="50%" r="25%" stroke="var(--border)" strokeWidth="0.5" fill="none" />
-            <circle cx="50%" cy="50%" r="50%" stroke="var(--border)" strokeWidth="0.5" fill="none" />
-            <circle cx="50%" cy="50%" r="75%" stroke="var(--border)" strokeWidth="0.5" fill="none" />
-            <line x1="50%" y1="0" x2="50%" y2="100%" stroke="var(--border)" strokeWidth="0.5" />
-            <line x1="0" y1="50%" x2="100%" y2="50%" stroke="var(--border)" strokeWidth="0.5" />
+            <circle cx="50%" cy="50%" r="25%" stroke={$('--border') || ''} strokeWidth="0.5" fill="none" />
+            <circle cx="50%" cy="50%" r="50%" stroke={$('--border') || ''} strokeWidth="0.5" fill="none" />
+            <circle cx="50%" cy="50%" r="75%" stroke={$('--border') || ''} strokeWidth="0.5" fill="none" />
+            <line x1="50%" y1="0" x2="50%" y2="100%" stroke={$('--border') || ''} strokeWidth="0.5" />
+            <line x1="0" y1="50%" x2="100%" y2="50%" stroke={$('--border') || ''} strokeWidth="0.5" />
           </svg>
           
           {/* Center node */}

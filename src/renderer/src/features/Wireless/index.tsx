@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import type { TabType } from './types';
-import { Wifi, Zap, VenetianMask, KeyRound, ShieldCheck, Monitor, ScrollText, BarChart3 } from 'lucide-react';
+import {
+  Wifi,
+  Zap,
+  VenetianMask,
+  KeyRound,
+  ShieldCheck,
+  Monitor,
+  ScrollText,
+  BarChart3,
+} from 'lucide-react';
 import { useWireless } from './hooks/useWireless';
 import { ScanTab } from './components/scan/ScanTab';
 import { AttacksTab } from './components/attacks/AttacksTab';
@@ -16,6 +25,7 @@ import { MacTab } from './components/mac/MacTab';
 import { LogTab } from './components/log/LogTab';
 import { ReportTab } from './components/report/ReportTab';
 import { PMKIDPanel } from './components/attacks/PMKIDPanel';
+import { $ } from '@renderer/utils/color';
 
 interface TooltipState {
   text: string;
@@ -58,15 +68,56 @@ export function Wireless() {
 
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
-  const TABS: { id: TabType; label: string; accent: string; badge?: number; icon: React.ReactNode }[] = [
-    { id: 'scan', label: 'SCAN', accent: 'var(--primary)', badge: networks.length, icon: <Wifi size={14} /> },
-    { id: 'attacks', label: 'ATTACKS', accent: 'var(--error)', badge: stats.running || undefined, icon: <Zap size={14} /> },
-    { id: 'evil_twin', label: 'EVIL TWIN', accent: 'var(--accent-purple)', badge: stats.evilActive || undefined, icon: <VenetianMask size={14} /> },
-    { id: 'crack', label: 'CRACK', accent: 'var(--warning)', badge: crackJobs.filter((j) => j.status === 'running').length || undefined, icon: <KeyRound size={14} /> },
-    { id: 'wpa3_ent', label: 'WPA3/ENT', accent: 'var(--warning)', icon: <ShieldCheck size={14} /> },
-    { id: 'mac', label: 'MAC SPOOF', accent: 'var(--success)', icon: <Monitor size={14} /> },
-    { id: 'log', label: 'LOG', accent: 'var(--text-secondary)', badge: logMessages.length > 3 ? logMessages.length : undefined, icon: <ScrollText size={14} /> },
-    { id: 'report', label: 'REPORT', accent: 'var(--primary)', icon: <BarChart3 size={14} /> },
+  const TABS: {
+    id: TabType;
+    label: string;
+    accent: string;
+    badge?: number;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      id: 'scan',
+      label: 'SCAN',
+      accent: $('--primary'),
+      badge: networks.length,
+      icon: <Wifi size={14} />,
+    },
+    {
+      id: 'attacks',
+      label: 'ATTACKS',
+      accent: $('--error'),
+      badge: stats.running || undefined,
+      icon: <Zap size={14} />,
+    },
+    {
+      id: 'evil_twin',
+      label: 'EVIL TWIN',
+      accent: $('--accent-purple') || '#a78bfa',
+      badge: stats.evilActive || undefined,
+      icon: <VenetianMask size={14} />,
+    },
+    {
+      id: 'crack',
+      label: 'CRACK',
+      accent: $('--warning'),
+      badge: crackJobs.filter((j) => j.status === 'running').length || undefined,
+      icon: <KeyRound size={14} />,
+    },
+    {
+      id: 'wpa3_ent',
+      label: 'WPA3/ENT',
+      accent: $('--warning'),
+      icon: <ShieldCheck size={14} />,
+    },
+    { id: 'mac', label: 'MAC SPOOF', accent: $('--success'), icon: <Monitor size={14} /> },
+    {
+      id: 'log',
+      label: 'LOG',
+      accent: $('--text-secondary'),
+      badge: logMessages.length > 3 ? logMessages.length : undefined,
+      icon: <ScrollText size={14} />,
+    },
+    { id: 'report', label: 'REPORT', accent: $('--primary'), icon: <BarChart3 size={14} /> },
   ];
 
   return (
@@ -89,7 +140,9 @@ export function Wireless() {
                 ${isActive ? `border-b-2 border-solid border-[${tab.accent}]` : 'border-b-2 border-transparent'}
               `}
             >
-              <span className={`flex items-center ${isActive ? `text-[${tab.accent}]` : 'text-text-secondary'}`}>
+              <span
+                className={`flex items-center ${isActive ? `text-[${tab.accent}]` : 'text-text-secondary'}`}
+              >
                 {tab.icon}
               </span>
               <span className="text-text-primary">{tab.label}</span>
@@ -173,7 +226,7 @@ export function Wireless() {
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
             fontFamily: 'monospace',
-            border: '1px solid var(--primary)',
+            border: '1px solid ' + ($('--primary') || ''),
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}
         >

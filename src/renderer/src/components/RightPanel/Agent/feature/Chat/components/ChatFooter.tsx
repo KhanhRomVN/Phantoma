@@ -1,6 +1,7 @@
 import React from 'react';
 import FilesPreviews from '../../../components/common/MessageInput/FilesPreviews';
 import MessageInput from '../../../components/common/MessageInput';
+import { $ } from '@renderer/utils/color';
 
 interface ChatFooterProps {
   message: string;
@@ -98,7 +99,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
       id="chat-footer-container"
       className="flex flex-col w-full overflow-hidden transition-[bottom] duration-200 flex-shrink-0"
       style={{
-        backgroundColor: 'var(--secondary-bg)',
+        backgroundColor: $('--secondary-bg'),
         paddingBottom: 0,
       }}
     >

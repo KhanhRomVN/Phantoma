@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
 
 export interface ExecuteButtonProps {
   isCompleted: boolean;
@@ -27,11 +28,7 @@ const ExecuteButton: React.FC<ExecuteButtonProps> = ({
   showText,
   labelText,
 }) => {
-  const iconColor = isCompleted
-    ? 'var(--success, #3fb950)'
-    : isFailed
-      ? 'var(--error)'
-      : toolColor;
+  const iconColor = isCompleted ? ($('--success') || '#3fb950') : isFailed ? $('--error') : toolColor;
   const isClickable = !isLoading && (!isCompleted || isFailed || isActive);
 
   if (isCompleted || isLoading || !isActive) {
@@ -128,7 +125,7 @@ const ExecuteButton: React.FC<ExecuteButtonProps> = ({
         },
         {
           type: 'reject' as const,
-          color: 'var(--error, #ff4d4d)',
+          color: $('--error') || '#ff4d4d',
           icon: <X size={14} strokeWidth={2.5} />,
           label: 'Reject',
           title: 'Reject this tool call',

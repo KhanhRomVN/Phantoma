@@ -95,14 +95,14 @@ const TerminalToolRenderer: React.FC<TerminalToolRendererProps> = ({
   const isCompleted = hasOutput && !isTerminalBusy;
   const toolColor = getToolColor('run_command');
   const dotColor = isRejected
-    ? 'var(--error, #ff4d4d)'
+    ? $('--error') || '#ff4d4d'
     : isCompleted
-      ? 'var(--success, #3fb950)'
+      ? $('--success') || '#3fb950'
       : isTerminalBusy || (isActionClicked && !outputData)
-        ? 'var(--warn, #e3b341)'
+        ? $('--warn') || '#e3b341'
         : isActiveGroup
-          ? 'var(--primary)'
-          : 'var(--secondary-text)';
+          ? $('--primary')
+          : $('--secondary-text') || '';
 
   return (
     <div className="timeline-item" style={{ marginTop: '4px', paddingLeft: '29px' }}>
@@ -110,7 +110,7 @@ const TerminalToolRenderer: React.FC<TerminalToolRendererProps> = ({
         className="timeline-dot"
         style={{
           backgroundColor: dotColor,
-          boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
+          boxShadow: `0 0 0 2px ${$('--background') || ''}, 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
           top: '10px',
         }}
       />
@@ -146,7 +146,7 @@ const TerminalToolRenderer: React.FC<TerminalToolRendererProps> = ({
             style={{
               fontSize: '12px',
               fontWeight: 700,
-              color: 'var(--primary-text)',
+              color: $('--text-primary'),
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               flexShrink: 0,
@@ -182,12 +182,10 @@ const TerminalToolRenderer: React.FC<TerminalToolRendererProps> = ({
               }}
               title="Finalize output, kill process and delete terminal"
               style={{
-                background:
-                  'color-mix(in srgb, var(--error, #f44336) 10%, transparent)',
-                border:
-                  '1px solid color-mix(in srgb, var(--error, #f44336) 30%, transparent)',
+                background: 'color-mix(in srgb, ' + ($('--error') || '#f44336') + ' 10%, transparent)',
+                border: '1px solid color-mix(in srgb, ' + ($('--error') || '#f44336') + ' 30%, transparent)',
                 cursor: 'pointer',
-                color: 'var(--error, #f44336)',
+                color: $('--error') || '#f44336',
                 padding: '4px 8px',
                 borderRadius: '6px',
                 display: 'flex',
@@ -219,12 +217,12 @@ const TerminalToolRenderer: React.FC<TerminalToolRendererProps> = ({
         <div
           onClick={() => setIsCollapsed(false)}
           style={{
-            fontFamily: 'var(--font-family, monospace)',
+            fontFamily: $('--font-family') || 'monospace',
             fontSize: '12px',
-            color: 'var(--primary-text, #cccccc)',
+            color: $('--primary-text') || '#cccccc',
             padding: '6px 10px',
-            backgroundColor: 'var(--background, #1e1e1e)',
-            border: '1px solid var(--border, rgba(128,128,128,0.2))',
+            backgroundColor: $('--background') || '#1e1e1e',
+            border: '1px solid ' + ($('--border') || 'rgba(128,128,128,0.2)'),
             borderRadius: '6px',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-all',

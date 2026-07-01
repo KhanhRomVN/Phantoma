@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from "react";
+import { $ } from '@renderer/utils/color';
 
 export interface FileStreamingBlockProps {
   content: string;
@@ -30,7 +31,7 @@ const FileStreamingBlock: React.FC<FileStreamingBlockProps> = ({
     <>
       <div
         ref={containerRef}
-        className={`file-streaming-block overflow-y-auto overflow-x-hidden bg-[var(--background,var(--background))] border border-[var(--border,rgba(255,255,255,0.08))] !border-t-0 rounded-b-[4px] my-1 mx-3 mb-3 ml-[29px] px-2.5 py-1.5 font-mono text-[11px] leading-[1.5] text-[var(--primary-text)] whitespace-pre break-all opacity-85 relative shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.3)] ${className}`}
+        className={`file-streaming-block overflow-y-auto overflow-x-hidden bg-background border border-border !border-t-0 rounded-b-[4px] my-1 mx-3 mb-3 ml-[29px] px-2.5 py-1.5 font-mono text-[11px] leading-[1.5] text-text-primary whitespace-pre break-all opacity-85 relative shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.3)] ${className}`}
         style={{
           maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight,
         }}
@@ -59,7 +60,7 @@ const FileStreamingBlock: React.FC<FileStreamingBlockProps> = ({
           display: inline-block;
           width: 6px;
           height: 12px;
-          background: var(--primary-text);
+          background: $('--primary-text');
           margin-left: 1px;
           vertical-align: middle;
           animation: zen-cursor-blink 0.6s step-end infinite;

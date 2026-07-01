@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
+import { $ } from '@renderer/utils/color';
 
 interface HourEntry { date: string; requests: number; tokens: number; }
 interface Props { usage: HourEntry[]; title: string; }
@@ -128,7 +129,7 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
                 className="absolute -translate-x-1/2 text-[9px] opacity-60 whitespace-nowrap"
                 style={{
                   left: `${(h / 23) * 100}%`,
-                  color: "var(--secondary-text)",
+                  color: $('--secondary-text') || 'currentColor',
                 }}
               >
                 {String(h).padStart(2, "0")}h

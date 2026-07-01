@@ -1,4 +1,5 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface ChatHeaderProps {
   displayedModel: any;
@@ -95,8 +96,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
                 ? '1px solid color-mix(in srgb, var(--primary, #0a84ff) 40%, transparent)'
                 : '1px solid transparent',
               color: isSearchOpen
-                ? 'var(--primary, #0a84ff)'
-                : 'var(--secondary-text)',
+                ? $('--primary') || '#0a84ff'
+                : $('--secondary-text') || 'currentColor',
               opacity: isSearchOpen ? 1 : 0.65,
             }}
             onMouseEnter={(e) => {

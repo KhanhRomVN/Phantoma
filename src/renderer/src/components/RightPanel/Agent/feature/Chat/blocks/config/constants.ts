@@ -18,21 +18,7 @@ export const TOOL_LABELS: Record<string, string> = {
   default: "Zen",
 };
 
-export const TOOL_COLORS: Record<string, string> = {
-  read_file: "var(--primary, #3b82f6)",
-  write_to_file: "var(--success, #10b981)",
-  replace_in_file:
-    "var(--success, #10b981)",
-  grep: "var(--primary, #3b82f6)",
-  delete_file: "var(--error, #ef4444)",
-  delete_folder: "var(--error, #ef4444)",
-  move_file: "var(--warn, #f59e0b)",
-  run_command: "var(--warn, #f59e0b)",
-  git_status: "var(--success, #10b981)",
-  commit_message: "var(--teal, #b39ddb)",
-  git_diff: "var(--success, #3fb950)",
-  default: "var(--secondary-text, #6b7280)",
-};
+
 
 export const CLICKABLE_TOOLS = [
   "read_file",

@@ -4,7 +4,6 @@ import { useSettings } from '../../context/SettingsContext';
 import { extensionService } from '../../services/ExtensionService';
 import { saveConversation } from './services/ConversationService';
 
-
 import { useChatLLM } from './hooks/useChatLLM';
 import { useToolExecution } from './hooks/useToolExecution';
 import { useWorkspaceData } from './hooks/useWorkspaceData';
@@ -23,6 +22,7 @@ import { parseAIResponse } from './blocks';
 import { useTerminalPolling } from './hooks/useTerminalPolling';
 import { useBrowserSession } from './hooks/useBrowserSession';
 import { useDraftManagement } from './hooks/useDraftManagement';
+import { $ } from '@renderer/utils/color';
 
 interface ChatPanelProps {
   currentChat: ChatSession | null;
@@ -664,8 +664,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     <div
       className="chat-panel flex flex-col h-full"
       style={{
-        backgroundColor: 'var(--secondary-bg)',
-        color: 'var(--primary-text)',
+        backgroundColor: $('--secondary-bg'),
+        color: $('--text-primary'),
       }}
     >
       {/* ChatHeader */}

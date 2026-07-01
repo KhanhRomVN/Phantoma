@@ -3,6 +3,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { extensionService } from '../../../../services/ExtensionService';
 import FileIcon from '@renderer/components/common/FileIcon';
+import { $ } from '@renderer/utils/color';
 
 const ABSOLUTE_PATH_REGEX = /^(\/[^\s<>"'`]+|[A-Za-z]:\\[^\s<>"'`]+)/;
 const RELATIVE_PATH_WITH_FOLDERS_REGEX = /^[^\s<>"'`|*?:]+[/\\][^\s<>"'`|*?:]+\.[a-zA-Z0-9]{1,10}$/;
@@ -42,10 +43,10 @@ const PathChip: React.FC<PathChipProps> = ({ displayText, resolvedPath }) => {
   };
 
   return (
-    <span
+<span
       onClick={handleClick}
       title={isFolder ? `Open folder: ${resolvedPath}` : `Open file: ${resolvedPath}`}
-      className="inline-flex items-center gap-[3px] px-1 py-px rounded-[3px] text-[var(--primary-text)] text-[var(--font-size-sm)] font-[inherit] cursor-pointer align-middle transition-opacity duration-[0.15s] select-none no-underline"
+      className="inline-flex items-center gap-[3px] px-1 py-px rounded-[3px] text-text-primary text-sm hover:opacity-75 transition-opacity"
       onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.75')}
       onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
     >
@@ -109,7 +110,7 @@ const domNodeToReact = (
       domNodeToReact(child, `${key}-${i}`, knownFilePaths),
     );
     return (
-      <code key={key} className="!bg-transparent p-0">
+      <code key={key} className="bg-transparent p-0">
         {children}
       </code>
     );
@@ -185,8 +186,8 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
         <style>{`
           .markdown-content-inline {
             line-height: 1.6;
-            font-size: var(--font-size-sm);
-            color: var(--primary-text);
+            font-size: ${$('--font-size-sm') || '13px'};
+            color: ${$('--primary-text')};
           }
           .markdown-content-inline h1,
           .markdown-content-inline h2,
@@ -194,7 +195,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
             margin-top: 12px;
             margin-bottom: 8px;
             font-weight: 600;
-            color: var(--primary-text);
+            color: ${$('--primary-text')};
           }
           .markdown-content-inline h1 { font-size: 1.25em; }
           .markdown-content-inline h2 { font-size: 1.1em; }
@@ -237,19 +238,19 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
           }
           .markdown-content-inline th,
           .markdown-content-inline td {
-            border: 1px solid var(--border);
+            border: 1px solid ${$('--border')};
             padding: 6px 10px;
             text-align: left;
           }
           .markdown-content-inline th {
-            background-color: var(--table-header-background);
+            background-color: ${$('--table-header-background')};
             font-weight: 600;
           }
           .markdown-content-inline :not(pre) > code {
-            background-color: var(--table-header-background);
+            background-color: ${$('--table-header-background')};
             padding: 2px 4px;
             border-radius: 4px;
-            font-family: var(--font-family, monospace);
+            font-family: ${$('--font-family') || 'monospace'};
             font-size: 0.9em;
           }
           .markdown-content-inline pre > code {
@@ -257,26 +258,26 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
             padding: 0;
           }
           .markdown-content-inline pre {
-            background-color: var(--background, #1e1e1e);
+            background-color: ${$('--background') || '#1e1e1e'};
             border-radius: 4px;
             padding: 10px 12px;
             overflow-x: auto;
             margin: 8px 0;
-            font-family: var(--font-family, monospace);
+            font-family: ${$('--font-family') || 'monospace'};
             font-size: 0.9em;
             line-height: 1.5;
           }
           .markdown-content-inline a {
-            color: var(--primary);
+            color: ${$('--primary')};
             text-decoration: none;
           }
           .markdown-content-inline a:hover {
             text-decoration: underline;
           }
           .markdown-content-inline blockquote {
-            border-left: 4px solid var(--border);
+            border-left: 4px solid ${$('--border')};
             padding-left: 12px;
-            color: var(--secondary-text);
+            color: ${$('--secondary-text')};
             margin: 12px 0;
           }
         `}</style>

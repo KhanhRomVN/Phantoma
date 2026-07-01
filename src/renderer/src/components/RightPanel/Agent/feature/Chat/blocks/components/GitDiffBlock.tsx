@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileIcon } from 'lucide-react';
 import { ToolHeader } from './ToolHeader';
+import { $ } from '@renderer/utils/color';
 
 export interface GitDiffBlockProps {
   filePath: string;
@@ -19,7 +20,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
   added = 0,
   deleted = 0,
   isPartial = false,
-  statusColor = 'var(--success, #3fb950)',
+  statusColor = $('--success') || '#3fb950',
   onFileClick,
   branch,
 }) => {
@@ -101,17 +102,15 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
     const { lines, types } = parseDiffContent(content);
     return lines.map((line, index) => {
       const type = types[index] || 'context';
-      let color = 'var(--primary-text)';
+      let color = $('--text-primary');
       let backgroundColor = 'transparent';
 
       if (type === 'added') {
-        color = 'var(--success, #3fb950)';
-        backgroundColor =
-          'color-mix(in srgb, var(--success, #3fb950) 12%, transparent)';
+        color = $('--success') || '#3fb950';
+        backgroundColor = 'color-mix(in srgb, ' + ($('--success') || '#3fb950') + ' 12%, transparent)';
       } else if (type === 'removed') {
-        color = 'var(--error, #f14c4c)';
-        backgroundColor =
-          'color-mix(in srgb, var(--error, #f14c4c) 12%, transparent)';
+        color = $('--error') || '#f14c4c';
+        backgroundColor = 'color-mix(in srgb, ' + ($('--error') || '#f14c4c') + ' 12%, transparent)';
       } else if (type === 'empty') {
         color = 'transparent';
         backgroundColor = 'transparent';
@@ -122,7 +121,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
             style={{
               padding: '0 8px',
               height: '20px',
-              fontFamily: 'var(--font-family, monospace)',
+              fontFamily: $('--font-family') || 'monospace',
               fontSize: '12px',
               lineHeight: '1.5',
             }}
@@ -137,7 +136,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
             padding: '0 8px',
             color,
             backgroundColor,
-            fontFamily: 'var(--font-family, monospace)',
+            fontFamily: $('--font-family') || 'monospace',
             fontSize: '12px',
             lineHeight: '1.5',
             whiteSpace: 'pre-wrap',
@@ -173,12 +172,8 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
         </span>
         {(added > 0 || deleted > 0) && (
           <>
-            <span className="text-success font-semibold text-[11px]">
-              +{added}
-            </span>
-            <span className="text-error font-semibold text-[11px]">
-              -{deleted}
-            </span>
+            <span className="text-success font-semibold text-[11px]">+{added}</span>
+            <span className="text-error font-semibold text-[11px]">-{deleted}</span>
           </>
         )}
         {isPartial && (

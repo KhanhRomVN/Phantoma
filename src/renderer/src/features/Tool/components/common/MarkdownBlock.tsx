@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { $ } from '@renderer/utils/color';
 
 interface MarkdownBlockProps {
   content: string;
@@ -9,7 +10,7 @@ interface MarkdownBlockProps {
 
 const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
   content,
-  accentColor = 'rgb(var(--primary))',
+  accentColor = $('--primary') || '',
 }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -22,7 +23,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
                 style={{
                   fontSize: 24,
                   fontWeight: 700,
-                  color: 'rgb(var(--text-primary))',
+                  color: $('--text-primary'),
                   marginBottom: 12,
                   letterSpacing: '0.1em',
                 }}
@@ -35,7 +36,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
                 style={{
                   fontSize: 20,
                   fontWeight: 600,
-                  color: 'rgb(var(--text-primary))',
+                  color: $('--text-primary'),
                   marginTop: 16,
                   marginBottom: 8,
                 }}
@@ -48,7 +49,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
                 style={{
                   fontSize: 16,
                   fontWeight: 600,
-                  color: 'rgb(var(--text-primary))',
+                  color: $('--text-primary'),
                   marginBottom: 8,
                 }}
               >
@@ -59,7 +60,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
               <p
                 style={{
                   fontSize: 15,
-                  color: 'rgb(var(--text-secondary))',
+                  color: $('--text-secondary'),
                   lineHeight: 1.6,
                   marginBottom: 12,
                 }}
@@ -71,7 +72,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
               <ul
                 style={{
                   fontSize: 15,
-                  color: 'rgb(var(--text-secondary))',
+                  color: $('--text-secondary'),
                   margin: '8px 0',
                   paddingLeft: 20,
                   listStyleType: 'disc',
@@ -87,8 +88,8 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
                 <pre
                   style={{
                     fontSize: 14,
-                    color: 'rgb(var(--text-primary))',
-                    background: 'rgb(var(--input-background))',
+                    color: $('--text-primary'),
+                    background: $('--input-background') || 'rgba(128,128,128,0.1)',
                     padding: 12,
                     borderRadius: 4,
                     overflowX: 'auto',
@@ -122,7 +123,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
                 style={{
                   textAlign: 'left',
                   padding: '8px',
-                  color: 'rgb(var(--text-primary))',
+                  color: $('--text-primary') || 'currentColor',
                   borderBottom: `1px solid ${accentColor}30`,
                 }}
               >
@@ -133,8 +134,8 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = ({
               <td
                 style={{
                   padding: '6px 8px',
-                  color: 'rgb(var(--text-primary))',
-                  borderBottom: '1px solid rgb(var(--border))',
+                  color: $('--text-primary'),
+                  borderBottom: '1px solid ' + ($('--border') || ''),
                 }}
               >
                 {children}

@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Zap } from 'lucide-react';
 import StatsGrid from './components/StatsGrid';
 import RecentActivity from './components/RecentActivity';
 import ModelDistributionCard from './components/ModelDistributionCard';
@@ -11,6 +10,7 @@ import MessageInput from '../../components/common/MessageInput';
 import FilesPreviews from '../../components/common/MessageInput/FilesPreviews';
 import { extensionService } from '../../services/ExtensionService';
 import { useFileHandling } from '../../hooks/useFileHandling';
+import { $ } from '@renderer/utils/color';
 
 const SLOGANS = [
   'Your AI-powered coding assistant',
@@ -32,7 +32,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
   onLoadConversation,
   initialValue,
 }) => {
-  const imagesUri = (window as any).__zenImagesUri;
   const { apiUrl } = useSettings();
 
   const folderPath = (window as any).__zenWorkspaceFolderPath as string | null | undefined;
@@ -174,7 +173,12 @@ const HomePanel: React.FC<HomePanelProps> = ({
     const handleMessage = (event: MessageEvent) => {
       const msg = event.data;
       if (msg.command === 'historyResult') {
-        console.log('[Phantoma][Home] historyResult received | history count:', msg.history?.length, '| history:', msg.history);
+        console.log(
+          '[Phantoma][Home] historyResult received | history count:',
+          msg.history?.length,
+          '| history:',
+          msg.history,
+        );
         if (msg.history) setConversations(msg.history);
         setIsLoading(false);
       } else if (msg.command === 'deleteConversationResult') {
@@ -242,22 +246,21 @@ const HomePanel: React.FC<HomePanelProps> = ({
   return (
     <div
       className="home-panel flex flex-col h-full relative"
-      style={{ backgroundColor: 'var(--primary-bg)' }}
+      style={{ backgroundColor: $('--primary-bg') || 'transparent' }}
     >
       {/* Dashboard scroll area */}
       <div
         className="flex-1 overflow-auto flex flex-col"
-        style={{ backgroundColor: 'var(--secondary-bg)' }}
+        style={{ backgroundColor: $('--secondary-bg') || 'transparent' }}
       >
         <div
           className="flex-1 flex flex-col items-center justify-start px-4 pt-8 pb-5 max-w-[680px] mx-auto w-full box-border animate-[fadeIn_0.5s_ease-out]"
-          style={{ color: 'var(--primary-text)' }}
+          style={{ color: $('--text-primary') }}
         >
           {/* Header */}
           <div className="flex flex-col items-center gap-0.5 text-center w-full">
             <h1
-              className="text-[30px] font-extrabold m-0 tracking-[-0.02em] leading-tight py-1"
-              className="bg-gradient-to-r from-[var(--primary-text,#fff)] to-[var(--secondary-text,#a8a8a8)] bg-clip-text text-transparent"
+              className="text-[30px] font-extrabold m-0 tracking-[-0.02em] leading-tight py-1 bg-gradient-to-r from-text-text-primary to-text-text-secondary bg-clip-text text-transparent"
               style={{
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -269,14 +272,11 @@ const HomePanel: React.FC<HomePanelProps> = ({
             <div className="h-7 flex items-center justify-center overflow-hidden m-0 mb-4">
               <div
                 key={sloganIndex}
-                className="text-sm font-medium whitespace-nowrap animate-[slideUp_0.4s_ease-out]"
-                className="text-secondary"
+                className="text-sm font-medium whitespace-nowrap animate-[slideUp_0.4s_ease-out] text-secondary"
               >
                 {SLOGANS[sloganIndex]}
               </div>
             </div>
-
-            
           </div>
 
           {/* Dashboard content */}

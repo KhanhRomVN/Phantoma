@@ -1,7 +1,5 @@
 // ─── Agent Constants ─────────────────────────────────────────────────────────
 
-import { Message } from '../types'
-
 export const SYSTEM_PROMPT = `You are Phantoma AI Agent, a specialized assistant for network traffic analysis, penetration testing, and security auditing.
 
 Your capabilities include:
@@ -35,16 +33,16 @@ I need to list all requests from github.com
 
 <list_requests>
 {"domain": "github.com"}
-</list_requests>`
+</list_requests>`;
 
 export const TABS = [
   { id: 'chat' as const, icon: 'MessageSquare', label: 'Chat' },
   { id: 'models' as const, icon: 'Cpu', label: 'Models' },
   { id: 'accounts' as const, icon: 'Users', label: 'Accounts' },
   { id: 'settings' as const, icon: 'Settings', label: 'Settings' },
-] as const
+] as const;
 
-export type TabId = (typeof TABS)[number]['id']
+export type TabId = (typeof TABS)[number]['id'];
 
 export const DEFAULT_SETTINGS = {
   apiUrl: 'http://localhost:8888',
@@ -52,7 +50,7 @@ export const DEFAULT_SETTINGS = {
   aiLanguage: 'English',
   activeModelId: null as string | null,
   activeAccountId: null as string | null,
-}
+};
 
 export const WELCOME_SUGGESTIONS = [
   {
@@ -70,9 +68,9 @@ export const WELCOME_SUGGESTIONS = [
     description: '"Show request details for the first request and analyze its security headers"',
     prompt: 'Show request details for the first request and analyze its security headers',
   },
-]
+];
 
-export const PROVIDER_FAVICON_CACHE: Record<string, string> = {}
+export const PROVIDER_FAVICON_CACHE: Record<string, string> = {};
 
 // Mock data for development
 export const MOCK_PROVIDERS: any[] = [
@@ -131,7 +129,7 @@ export const MOCK_PROVIDERS: any[] = [
       },
     ],
   },
-]
+];
 
 export const MOCK_ACCOUNTS: any[] = [
   {
@@ -152,4 +150,4 @@ export const MOCK_ACCOUNTS: any[] = [
     daily_requests: 28,
     is_active: false,
   },
-]
+];

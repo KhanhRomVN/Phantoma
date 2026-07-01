@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
+import { $ } from '@renderer/utils/color';
 
 interface ProviderFilterDropdownProps {
   providerConfigs: any[];
@@ -53,12 +54,7 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 h-[34px] px-2.5 rounded-lg text-[13px] font-medium cursor-pointer whitespace-nowrap"
-        style={{
-          backgroundColor: "rgb(var(--input-background))",
-          border: "1px solid rgb(var(--border))",
-          color: "var(--primary-text)",
-        }}
+        className="flex items-center gap-2 h-[34px] px-2.5 rounded-lg text-[13px] font-medium cursor-pointer whitespace-nowrap bg-input-background border border-border text-text-primary"
       >
         {selectedProvider && selectedProviderObj ? (
           <>
@@ -78,38 +74,26 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
 
       {isOpen && (
         <div
-          className="absolute top-full right-0 mt-1.5 w-[240px] max-h-[300px] rounded-[10px] z-[1000] overflow-hidden flex flex-col"
-          style={{
-            backgroundColor: "rgb(var(--card-background))",
-            border: "1px solid rgb(var(--border))",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-          }}
+          className="absolute top-full right-0 mt-1.5 w-[240px] max-h-[300px] rounded-[10px] z-[1000] overflow-hidden flex flex-col bg-card-background border border-border shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
         >
           {/* Search */}
-          <div className="p-2" style={{ borderBottom: "1px solid rgb(var(--border))" }}>
+          <div className="p-2 border-b border-border">
             <div className="relative">
               <Search
                 size={13}
-                className="absolute left-[9px] top-1/2 -translate-y-1/2"
-                style={{ color: "var(--secondary-text)" }}
+                className="absolute left-[9px] top-1/2 -translate-y-1/2 text-text-secondary"
               />
               <input
                 type="text"
                 placeholder="Search provider..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-[7px] px-[28px] text-xs rounded-[7px] outline-none box-border"
-                style={{
-                  backgroundColor: "rgb(var(--input-background))",
-                  border: "1px solid rgb(var(--border))",
-                  color: "var(--primary-text)",
-                }}
+                className="w-full py-[7px] px-[28px] text-xs rounded-[7px] outline-none box-border bg-input-background border border-border text-text-primary"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-[7px] top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0 flex items-center"
-                  style={{ color: "var(--secondary-text)" }}
+                  className="absolute right-[7px] top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0 flex items-center text-text-secondary"
                 >
                   <X size={11} />
                 </button>
@@ -122,19 +106,18 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
             {/* All Providers option */}
             <button
               onClick={handleClear}
-              className="w-full flex items-center gap-2.5 px-3 py-[9px] border-none text-xs cursor-pointer text-left"
+              className="w-full flex items-center gap-2.5 px-3 py-[9px] border-none text-xs cursor-pointer text-left text-text-primary"
               style={{
                 backgroundColor: isActive("")
-                  ? "var(--sidebar-item-hover)"
+                  ? $('--sidebar-item-hover')
                   : "transparent",
-                color: "var(--primary-text)",
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
+                (e.currentTarget.style.backgroundColor = $('--hover-bg'))
               }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.backgroundColor = isActive("")
-                  ? "var(--sidebar-item-hover)"
+                  ? $('--sidebar-item-hover')
                   : "transparent")
               }
             >
@@ -142,10 +125,7 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
                 className="w-5 h-5 rounded flex items-center justify-center shrink-0"
                 style={{ backgroundColor: "rgba(128,128,128,0.15)" }}
               >
-                <span
-                  className="text-[9px] font-bold"
-                  style={{ color: "var(--secondary-text)" }}
-                >
+                <span className="text-[9px] font-bold text-text-secondary">
                   All
                 </span>
               </div>
@@ -156,19 +136,18 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
               <button
                 key={provider.provider_id}
                 onClick={() => handleSelect(provider.provider_id)}
-                className="w-full flex items-center gap-2.5 px-3 py-[9px] border-none text-xs cursor-pointer text-left"
+                className="w-full flex items-center gap-2.5 px-3 py-[9px] border-none text-xs cursor-pointer text-left text-text-primary"
                 style={{
                   backgroundColor: isActive(provider.provider_id)
-                    ? "var(--sidebar-item-hover)"
+                    ? $('--sidebar-item-hover')
                     : "transparent",
-                  color: "var(--primary-text)",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "var(--hover-bg)")
+                  (e.currentTarget.style.backgroundColor = $('--hover-bg'))
                 }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.backgroundColor = isActive(provider.provider_id)
-                    ? "var(--sidebar-item-hover)"
+                    ? $('--sidebar-item-hover')
                     : "transparent")
                 }
               >
@@ -197,10 +176,7 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
             ))}
 
             {filteredProviders.length === 0 && (
-              <div
-                className="p-4 text-center text-xs opacity-70"
-                style={{ color: "var(--secondary-text)" }}
-              >
+              <div className="p-4 text-center text-xs opacity-70 text-text-secondary">
                 No providers found
               </div>
             )}

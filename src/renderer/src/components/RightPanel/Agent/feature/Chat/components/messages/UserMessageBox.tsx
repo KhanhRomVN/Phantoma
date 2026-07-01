@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Message } from '../../types/message';
+import { $ } from '@renderer/utils/color';
 
 interface UserMessageBoxProps {
   message: Message;
@@ -76,25 +77,22 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
         <button
           className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded cursor-pointer z-10 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-[0.15s]"
           style={{
-            background:
-              'color-mix(in srgb, var(--input-bg) 60%, var(--background))',
-            border:
-              '1px solid color-mix(in srgb, var(--input-bg) 40%, var(--background))',
-            color:
-              'color-mix(in srgb, var(--primary-text) 90%, var(--primary-text))',
+            background: `color-mix(in srgb, ${$('--input-bg') || 'transparent'} 60%, ${$('--background') || 'transparent'})`,
+            border: `1px solid color-mix(in srgb, ${$('--input-bg') || 'transparent'} 40%, ${$('--background') || 'transparent'})`,
+            color: `color-mix(in srgb, ${$('--primary-text') || 'currentColor'} 90%, ${$('--primary-text') || 'currentColor'})`,
           }}
           onClick={() => setShowRevertModal(true)}
           title="Revert conversation to this state"
           onMouseEnter={(e) => {
             e.currentTarget.style.background =
-              'color-mix(in srgb, var(--input-bg) 40%, var(--background))';
-            e.currentTarget.style.color = 'var(--primary-text)';
+              `color-mix(in srgb, ${$('--input-bg') || 'transparent'} 40%, ${$('--background') || 'transparent'})`;
+            e.currentTarget.style.color = $('--text-primary') || 'currentColor';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background =
-              'color-mix(in srgb, var(--input-bg) 60%, var(--background))';
+              `color-mix(in srgb, ${$('--input-bg') || 'transparent'} 60%, ${$('--background') || 'transparent'})`;
             e.currentTarget.style.color =
-              'color-mix(in srgb, var(--primary-text) 90%, var(--primary-text))';
+              `color-mix(in srgb, ${$('--primary-text') || 'currentColor'} 90%, ${$('--primary-text') || 'currentColor'})`;
           }}
         >
           <svg
@@ -149,7 +147,6 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
           </div>,
           document.body,
         )}
-      
     </div>
   );
 };

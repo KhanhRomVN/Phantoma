@@ -18,20 +18,25 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
     <div className="flex-1 overflow-y-auto p-3">
       {/* Top stats row */}
       <div className="grid grid-cols-4 gap-2 mb-3">
-        <StatBox label="Data Points" value={totalDataPoints} sub="processed" accent="var(--primary)" />
-        <StatBox label="Entities" value={entityCount} sub="identified" accent="var(--success)" />
-        <StatBox label="Sources" value={sourceCount} sub="integrated" accent="var(--warning)" />
+        <StatBox
+          label="Data Points"
+          value={totalDataPoints}
+          sub="processed"
+          accent={$('--primary') || '#3686ff'}
+        />
+        <StatBox label="Entities" value={entityCount} sub="identified" accent={$('--success') || '#10b981'} />
+        <StatBox label="Sources" value={sourceCount} sub="integrated" accent={$('--warning') || '#f59e0b'} />
         <StatBox
           label="High Risk"
           value={highRiskEntities}
           sub="entities ≥75"
-          accent={highRiskEntities > 0 ? 'var(--error)' : 'var(--success)'}
+          accent={highRiskEntities > 0 ? $('--error') : $('--success')}
         />
       </div>
 
       {/* Scan Info Card */}
       <div className="bg-card-background border border-border rounded p-3 mb-3">
-        <SectionHeader accent="var(--primary)">Target Information</SectionHeader>
+        <SectionHeader accent={$('--primary') || '#3686ff'}>Target Information</SectionHeader>
         <div className="flex justify-between items-center py-1 border-b border-border">
           <span className="text-[11px] font-mono text-text-secondary uppercase tracking-wide">
             Domain
@@ -61,7 +66,7 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
           <span
             className={cn(
               'text-[12px] font-mono',
-              result.overallConfidence >= 0.7 ? 'text-success' : 'text-warning'
+              result.overallConfidence >= 0.7 ? 'text-success' : 'text-warning',
             )}
           >
             {Math.round(result.overallConfidence * 100)}%
@@ -71,7 +76,7 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
 
       {/* Entities Card */}
       <div className="bg-card-background border border-border rounded p-3 mb-3">
-        <SectionHeader accent="var(--accent-purple)">
+        <SectionHeader accent={$('--accent-purple') || '#a78bfa'}>
           Top Entities
           <span className="text-[10px] font-normal text-text-secondary ml-1">
             ({result.entities.length})
@@ -85,8 +90,12 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
               className="flex items-center justify-between px-2 py-1.5 bg-card-background border border-border rounded cursor-pointer hover:border-border transition-all"
             >
               <div>
-                <span className="text-[12px] font-mono text-text-primary">{entity.displayName}</span>
-                <span className="text-[10px] font-mono text-text-secondary ml-2">{entity.summary}</span>
+                <span className="text-[12px] font-mono text-text-primary">
+                  {entity.displayName}
+                </span>
+                <span className="text-[10px] font-mono text-text-secondary ml-2">
+                  {entity.summary}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[9px] font-mono px-1 rounded bg-border text-text-secondary">
@@ -100,7 +109,7 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
                         ? 'text-error bg-error/15'
                         : entity.riskScore >= 50
                           ? 'text-warning bg-warning/15'
-                          : 'text-success bg-success/15'
+                          : 'text-success bg-success/15',
                     )}
                   >
                     R{entity.riskScore}
@@ -114,7 +123,7 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
 
       {/* Category Breakdown */}
       <div className="bg-card-background border border-border rounded p-3 mb-3">
-        <SectionHeader accent="var(--success)">Category Breakdown</SectionHeader>
+        <SectionHeader accent={$('--success') || '#10b981'}>Category Breakdown</SectionHeader>
         <div className="flex flex-wrap gap-2">
           {result.activeCategoryGroups
             .filter(
@@ -139,7 +148,7 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
       {/* Warnings */}
       {result.warnings.length > 0 && (
         <div className="bg-card-background border border-border rounded p-3">
-          <SectionHeader accent="var(--warning)">Warnings ({result.warnings.length})</SectionHeader>
+          <SectionHeader accent={$('--warning') || '#f59e0b'}>Warnings ({result.warnings.length})</SectionHeader>
           <div className="space-y-1">
             {result.warnings.slice(0, 5).map((w, i) => (
               <div key={i} className="text-[11px] font-mono text-warning py-0.5">

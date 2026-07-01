@@ -31,12 +31,12 @@ const ScanCard: React.FC<ScanCardProps> = ({
   glow,
 }) => {
   const uniqueSubdomains = scan.subdomains.length;
-  
+
   return (
     <div
       className="rounded-md transition-all mb-2 bg-card-background"
       style={{
-        border: `1px solid ${isExpanded ? accentColor : 'var(--border)'}`,
+        border: `1px solid ${isExpanded ? accentColor : $('--border')}`,
       }}
       onContextMenu={(e) => onContextMenu(e, scan)}
     >
@@ -53,23 +53,15 @@ const ScanCard: React.FC<ScanCardProps> = ({
                 boxShadow: scan.status === 'completed' ? '0 0 6px #34d399' : 'none',
               }}
             />
-            <span className="text-[13px] font-bold text-text-primary">
-              {scan.target}
-            </span>
-            <span
-              className="text-[11px] px-2 py-0.5 rounded bg-border text-text-secondary"
-            >
+            <span className="text-[13px] font-bold text-text-primary">{scan.target}</span>
+            <span className="text-[11px] px-2 py-0.5 rounded bg-border text-text-secondary">
               {scan.mode.toUpperCase()}
             </span>
           </div>
-          <div className="text-[10px] text-text-secondary pl-5">
-            {formatDate(scan.timestamp)}
-          </div>
+          <div className="text-[10px] text-text-secondary pl-5">{formatDate(scan.timestamp)}</div>
         </div>
-        
-        <div
-          className="grid grid-cols-3 gap-5 items-center"
-        >
+
+        <div className="grid grid-cols-3 gap-5 items-center">
           <div>
             <span className="text-[10px] block text-text-secondary">Duration</span>
             <span className="text-[11px] text-text-secondary">{scan.duration}</span>
@@ -86,7 +78,7 @@ const ScanCard: React.FC<ScanCardProps> = ({
           )}
         </div>
       </div>
-      
+
       {isExpanded && (
         <div
           className="pt-3 px-4 pb-4 bg-input-background"
@@ -96,18 +88,16 @@ const ScanCard: React.FC<ScanCardProps> = ({
         >
           {/* Subdomains list */}
           <div className="mb-3">
-            <div
-              className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
-            >
+            <div className="text-[11px] font-bold mb-2 tracking-wide text-text-primary">
               SUBDOMAINS FOUND ({uniqueSubdomains})
             </div>
-            <div
-              className="max-h-[200px] overflow-y-auto text-[11px] font-mono bg-card-background p-2 rounded"
-            >
+            <div className="max-h-[200px] overflow-y-auto text-[11px] font-mono bg-card-background p-2 rounded">
               {scan.subdomains.slice(0, 50).map((sub, i) => (
                 <div key={i} className="mb-1" style={{ color: accentColor }}>
                   {sub.name}
-                  {sub.source && <span className="text-text-secondary text-[10px]"> ({sub.source})</span>}
+                  {sub.source && (
+                    <span className="text-text-secondary text-[10px]"> ({sub.source})</span>
+                  )}
                 </div>
               ))}
               {scan.subdomains.length > 50 && (
@@ -117,36 +107,42 @@ const ScanCard: React.FC<ScanCardProps> = ({
               )}
             </div>
           </div>
-          
+
           {/* Stats */}
           {scan.stats && (
             <div className="mb-3">
-              <div
-                className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
-              >
+              <div className="text-[11px] font-bold mb-2 tracking-wide text-text-primary">
                 STATISTICS
               </div>
-              <div
-                className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2"
-              >
-                <div><span className="text-text-secondary">Total:</span> <span className="text-text-secondary">{scan.stats.total}</span></div>
-                <div><span className="text-text-secondary">Unique:</span> <span className="text-text-secondary">{scan.stats.unique}</span></div>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
+                <div>
+                  <span className="text-text-secondary">Total:</span>{' '}
+                  <span className="text-text-secondary">{scan.stats.total}</span>
+                </div>
+                <div>
+                  <span className="text-text-secondary">Unique:</span>{' '}
+                  <span className="text-text-secondary">{scan.stats.unique}</span>
+                </div>
                 {scan.stats.fromPassive !== undefined && (
-                  <div><span className="text-text-secondary">Passive:</span> <span className="text-text-secondary">{scan.stats.fromPassive}</span></div>
+                  <div>
+                    <span className="text-text-secondary">Passive:</span>{' '}
+                    <span className="text-text-secondary">{scan.stats.fromPassive}</span>
+                  </div>
                 )}
                 {scan.stats.fromActive !== undefined && (
-                  <div><span className="text-text-secondary">Active:</span> <span className="text-text-secondary">{scan.stats.fromActive}</span></div>
+                  <div>
+                    <span className="text-text-secondary">Active:</span>{' '}
+                    <span className="text-text-secondary">{scan.stats.fromActive}</span>
+                  </div>
                 )}
               </div>
             </div>
           )}
-          
+
           {/* Sources used */}
           {scan.sourcesUsed && scan.sourcesUsed.length > 0 && (
             <div className="mb-3">
-              <div
-                className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
-              >
+              <div className="text-[11px] font-bold mb-2 tracking-wide text-text-primary">
                 DATA SOURCES ({scan.sourcesUsed.length})
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -166,17 +162,13 @@ const ScanCard: React.FC<ScanCardProps> = ({
               </div>
             </div>
           )}
-          
+
           {/* Raw output (first 10 lines) */}
           <div>
-            <div
-              className="text-[11px] font-bold mb-2 tracking-wide text-text-primary"
-            >
+            <div className="text-[11px] font-bold mb-2 tracking-wide text-text-primary">
               RAW OUTPUT (first 10 lines)
             </div>
-            <div
-              className="text-[10px] font-mono bg-card-background p-2 rounded max-h-[150px] overflow-y-auto text-text-secondary"
-            >
+            <div className="text-[10px] font-mono bg-card-background p-2 rounded max-h-[150px] overflow-y-auto text-text-secondary">
               {scan.rawOutput.slice(0, 10).map((line, i) => (
                 <div key={i}>{line}</div>
               ))}

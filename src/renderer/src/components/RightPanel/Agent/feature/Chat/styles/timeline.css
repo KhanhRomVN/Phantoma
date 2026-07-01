@@ -1,0 +1,106 @@
+/* ============================================
+   Timeline Styles
+   Ported from Zen TerminalBlock.css
+   Used by: AIMessageBox, ToolHeader, ErrorBlock,
+   FileToolRenderer, ToolRouter, TerminalToolRenderer,
+   QuestionAnswerBlock
+   ============================================ */
+
+:root {
+  --timeline-axis: 15px;
+  --timeline-dot-size: 8px;
+}
+
+.chat-timeline-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* No global line - line is drawn per timeline-item */
+.chat-timeline-wrapper::before {
+  display: none;
+}
+
+/* assistant-message-container scopes the timeline */
+.assistant-message-container {
+  position: relative;
+}
+
+.timeline-item {
+  position: relative;
+  margin-left: 0;
+  /* No z-index: avoid stacking context that hides ::before line */
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+/* Each non-last item draws a connecting line from its dot down to next item */
+.assistant-message-container .timeline-item:not(.last)::before {
+  content: "";
+  position: absolute;
+  left: var(--timeline-axis);
+  transform: translateX(-50%);
+  top: 14px; /* Start exactly at dot center (dot is at top:10px, size 8px -> center is 14px) */
+  bottom: -24px; /* Extend through 24px padding gap to connect to next item */
+  width: 2px;
+  background-color: var(--border, rgba(128, 128, 128, 0.3));
+  /* No z-index: paint naturally in stacking context */
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Final dot: explicitly no line below */
+.timeline-item.last::before {
+  display: none;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: var(--timeline-axis);
+  transform: translateX(-50%);
+  top: 10px;
+  width: var(--timeline-dot-size);
+  height: var(--timeline-dot-size);
+  border-radius: 50%;
+  z-index: 10;
+  background-color: var(--secondary-text, #888);
+  box-shadow: 0 0 0 2px var(--background, #fff), 0 0 0 3px var(--border, rgba(128, 128, 128, 0.3));
+  transition: all 0.2s ease;
+  animation: timeline-dot-fade-in 0.25s ease-out both;
+}
+
+@keyframes timeline-dot-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* Mask to hide the global timeline axis for specific sections */
+.timeline-mask {
+  position: relative;
+}
+
+.timeline-mask::after {
+  content: "";
+  position: absolute;
+  left: var(--timeline-axis);
+  transform: translateX(-50%);
+  top: -24px;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--sidebar-background, rgba(0, 0, 0, 0.05));
+  z-index: 1;
+  pointer-events: none;
+}
+
+.timeline-content {
+  padding-left: 29px; /* Offset for timeline area */
+}

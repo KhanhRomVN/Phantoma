@@ -9,6 +9,7 @@ import TerminalToolRenderer from "./TerminalToolRenderer";
 import GitToolRenderer from "./GitToolRenderer";
 import { ToolHeader } from "./ToolHeader";
 import GitDiffBlock from "./GitDiffBlock";
+import { $ } from '@renderer/utils/color';
 
 interface ToolRouterProps {
   group: { action: ToolAction; index: number }[];
@@ -396,9 +397,9 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
     const isRejected = rejectedActions?.has(actionId) || false;
     const [isCommitted, setIsCommitted] = React.useState(false);
     const statusColor = isRejected
-      ? "var(--error, #ff4d4d)"
+      ? $('--error, #ff4d4d')
       : isCommitted
-        ? "var(--success, #3fb950)"
+        ? $('--success, #3fb950')
         : commitColor;
 
     return (
@@ -423,7 +424,7 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                   alignItems: "center",
                   gap: "8px",
                   fontSize: "12px",
-                  color: "var(--primary-text)",
+                  color: $('--primary-text'),
                 }}
               >
                 <span style={{ fontWeight: 600, opacity: 0.8 }}>
@@ -438,9 +439,9 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                     style={{
                       fontSize: "10px",
                       fontWeight: 600,
-                      color: "var(--error, #ff4d4d)",
+                      color: $('--error, #ff4d4d'),
                       background:
-                        "color-mix(in srgb, var(--error, #ff4d4d) 15%, transparent)",
+                        `color-mix(in srgb, ${$('--error, #ff4d4d')} 15%, transparent)`,
                       padding: "2px 8px",
                       borderRadius: "4px",
                       marginLeft: "4px",
@@ -455,9 +456,9 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                       fontSize: "10px",
                       fontWeight: 600,
                       color:
-                        "var(--success, #3fb950)",
+                        $('--success, #3fb950'),
                       background:
-                        "color-mix(in srgb, var(--success, #3fb950) 15%, transparent)",
+                        `color-mix(in srgb, ${$('--success, #3fb950')} 15%, transparent)`,
                       padding: "2px 8px",
                       borderRadius: "4px",
                       marginLeft: "4px",
@@ -475,14 +476,14 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
             <div
               style={{
                 padding: "12px 14px",
-                background: "var(--background, #1e1e1e)",
+                background: $('--background, #1e1e1e'),
                 borderRadius: "6px",
-                border: "1px solid var(--border, #454545)",
-                fontFamily: "var(--font-family, monospace)",
+                border: `1px solid ${$('--border, #454545')}`,
+                fontFamily: $('--font-family, monospace'),
                 fontSize: "13px",
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
-                color: "var(--primary-text, #cccccc)",
+                color: $('--primary-text, #cccccc'),
                 maxHeight: "auto",
                 overflowY: "visible",
               }}
@@ -493,20 +494,20 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                   style={{
                     marginTop: "12px",
                     padding: "10px 14px",
-                    background:
-                      "color-mix(in srgb, var(--success, #3fb950) 10%, transparent)",
+background:
+                      `color-mix(in srgb, ${$('--success, #3fb950')} 10%, transparent)`,
                     border:
-                      "1px solid color-mix(in srgb, var(--success, #3fb950) 30%, transparent)",
+                      `1px solid color-mix(in srgb, ${$('--success, #3fb950')} 30%, transparent)`,
+                    color: $('--primary-text'),
                     borderRadius: "6px",
                     fontSize: "12px",
-                    color: "var(--primary-text)",
                   }}
                 >
                   <div
                     style={{
                       fontWeight: 600,
                       color:
-                        "var(--success, #3fb950)",
+                        $('--success, #3fb950'),
                       marginBottom: "4px",
                     }}
                   >
@@ -516,11 +517,11 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                     Hãy chạy{" "}
                     <code
                       style={{
-                        background: "var(--background)",
+                        background: $('--background'),
                         padding: "2px 6px",
                         borderRadius: "4px",
                         fontFamily:
-                          "var(--font-family, monospace)",
+                          $('--font-family, monospace'),
                         fontSize: "11px",
                       }}
                     >
@@ -552,10 +553,10 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                     }
                   }}
                   style={{
-                    background: `color-mix(in srgb, var(--teal, #4ec9b0) 15%, transparent)`,
+                    background: `color-mix(in srgb, ${$('--teal, #4ec9b0')} 15%, transparent)`,
                     color:
-                      "var(--teal, #4ec9b0)",
-                    border: `1px solid color-mix(in srgb, var(--teal, #4ec9b0) 30%, transparent)`,
+                      $('--teal, #4ec9b0'),
+                    border: `1px solid color-mix(in srgb, ${$('--teal, #4ec9b0')} 30%, transparent)`,
                     padding: "4px 10px",
                     borderRadius: "6px",
                     fontSize: "11px",
@@ -567,10 +568,10 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                     height: "24px",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `color-mix(in srgb, var(--teal, #4ec9b0) 25%, transparent)`;
+                    e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal, #4ec9b0')} 25%, transparent)`;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = `color-mix(in srgb, var(--teal, #4ec9b0) 15%, transparent)`;
+                    e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal, #4ec9b0')} 15%, transparent)`;
                   }}
                 >
                   <svg
@@ -601,9 +602,9 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                     }
                   }}
                   style={{
-                    background: `color-mix(in srgb, var(--error, #ff4d4d) 15%, transparent)`,
-                    color: "var(--error, #ff4d4d)",
-                    border: `1px solid color-mix(in srgb, var(--error, #ff4d4d) 30%, transparent)`,
+                    background: `color-mix(in srgb, ${$('--error, #ff4d4d')} 15%, transparent)`,
+                    color: $('--error, #ff4d4d'),
+                    border: `1px solid color-mix(in srgb, ${$('--error, #ff4d4d')} 30%, transparent)`,
                     padding: "4px 10px",
                     borderRadius: "6px",
                     fontSize: "11px",
@@ -618,12 +619,12 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                   disabled={isRejected}
                   onMouseEnter={(e) => {
                     if (!isRejected) {
-                      e.currentTarget.style.background = `color-mix(in srgb, var(--error, #ff4d4d) 25%, transparent)`;
+                      e.currentTarget.style.background = `color-mix(in srgb, ${$('--error, #ff4d4d')} 25%, transparent)`;
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isRejected) {
-                      e.currentTarget.style.background = `color-mix(in srgb, var(--error, #ff4d4d) 15%, transparent)`;
+                      e.currentTarget.style.background = `color-mix(in srgb, ${$('--error, #ff4d4d')} 15%, transparent)`;
                     }
                   }}
                 >
@@ -767,17 +768,17 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
         <div key={index} style={{ marginBottom: "8px" }}>
           <div
             style={{
-              padding: "var(--spacing-sm) var(--spacing-md)",
-              backgroundColor: "var(--secondary-bg)",
+              padding: `${$('--spacing-sm')} ${$('--spacing-md')}`,
+              backgroundColor: $('--secondary-bg'),
               border: `2px solid ${toolColor}`,
-              borderRadius: "var(--border-radius-lg)",
+              borderRadius: $('--border-radius-lg'),
               cursor: clickableTools.includes(action.type)
                 ? "pointer"
                 : "default",
               transition: "all 0.2s",
               display: "flex",
               alignItems: "center",
-              gap: "var(--spacing-sm)",
+              gap: $('--spacing-sm'),
               width: "fit-content",
             }}
             onClick={() => {
@@ -787,8 +788,8 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
           >
             <span
               style={{
-                fontSize: "var(--font-size-sm)",
-                color: "var(--primary-text)",
+fontSize: $('--font-size-sm'),
+                color: $('--primary-text'),
                 fontWeight: 600,
                 flex: 1,
               }}

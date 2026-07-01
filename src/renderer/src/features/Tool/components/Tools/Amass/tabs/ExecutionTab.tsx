@@ -73,22 +73,22 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
               onMouseEnter={(e) => {
                 if (!active) {
                   e.currentTarget.style.borderColor = accentColor + '50';
-                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.color = $('--text-primary');
                   e.currentTarget.style.background = accentColor + '08';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!active) {
-                  e.currentTarget.style.borderColor = 'var(--input-border-default)';
-                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.borderColor = $('--input-border-default') || '';
+                  e.currentTarget.style.color = $('--text-secondary');
                   e.currentTarget.style.background = 'transparent';
                 }
               }}
               className="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded text-xs font-semibold font-mono whitespace-nowrap transition-all duration-100"
               style={{
-                border: `1px solid ${active ? accentColor + '60' : 'var(--input-border-default)'}`,
-                background: active ? 'var(--primary-10)' : 'transparent',
-                color: active ? accentColor : 'var(--text-secondary)',
+                border: `1px solid ${active ? accentColor + '60' : ($('--input-border-default') || '')}`,
+                background: active ? ($('--primary-10') || '') : 'transparent',
+                color: active ? accentColor : $('--text-secondary'),
               }}
             >
               <span>{flag.label}</span>
@@ -179,7 +179,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             }}
             onMouseLeave={(e) => {
               onTooltipShow(null);
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+              (e.currentTarget as HTMLButtonElement).style.color = $('--text-secondary');
             }}
             className="bg-transparent border-none cursor-pointer p-1 transition-colors shrink-0 text-text-secondary"
           >
@@ -221,7 +221,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           placeholder="example.com  ·  sub.example.com  ·  example.org"
           className="w-full box-border p-2.5 rounded text-[13px] font-inherit outline-none transition-colors bg-input-background text-text-primary placeholder:text-text-secondary"
           style={{
-            border: `1px solid ${params.target ? accentColor + '50' : 'var(--input-border-default)'}`,
+            border: `1px solid ${params.target ? accentColor + '50' : ($('--input-border-default') || '')}`,
             boxShadow: params.target ? `0 0 10px ${glow}` : 'none',
           }}
         />
@@ -244,12 +244,12 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   padding: '8px 12px',
                   cursor: 'pointer',
                   fontSize: 12,
-                  color: 'var(--text-primary)',
-                  borderBottom: i < targetHistory.length - 1 ? '1px solid var(--border)' : 'none',
+                  color: $('--text-primary'),
+                  borderBottom: i < targetHistory.length - 1 ? '1px solid ' + ($('--border') || '') : 'none',
                   transition: 'background 0.12s',
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = 'var(--dropdown-item-hover)')
+                  (e.currentTarget.style.background = $('--dropdown-item-hover') || '')
                 }
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
@@ -286,7 +286,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   onClick={() => setParams({ ...params, mode: mode.value as any })}
                   className={`flex-1 py-2.5 px-2 rounded font-mono transition-all text-center ${active ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
                   style={{
-                    border: `1px solid ${active ? accentColor + '60' : 'var(--input-border-default)'}`,
+                    border: `1px solid ${active ? accentColor + '60' : ($('--input-border-default') || '')}`,
                     background: active ? glow : undefined,
                   }}
                 >
@@ -351,12 +351,20 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
         </div>
       </div>
 
-{/* Row: Enumeration Type + Output Format */}
+      {/* Row: Enumeration Type + Output Format */}
       <div className="grid grid-cols-2 gap-3">
         {/* Enumeration Type - Passive/Active/Brute */}
         <div>
           <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
-            <span onMouseEnter={(e) => showTooltip('Passive: không gửi request trực tiếp. Active: DNS resolution & zone transfer. Brute Force: thử hàng loạt subdomain phổ biến.', e)} onMouseLeave={() => onTooltipShow(null)}>
+            <span
+              onMouseEnter={(e) =>
+                showTooltip(
+                  'Passive: không gửi request trực tiếp. Active: DNS resolution & zone transfer. Brute Force: thử hàng loạt subdomain phổ biến.',
+                  e,
+                )
+              }
+              onMouseLeave={() => onTooltipShow(null)}
+            >
               ENUMERATION TYPE
             </span>
           </label>
@@ -365,7 +373,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               onClick={() => setParams({ ...params, passiveOnly: true, activeEnabled: false })}
               className={`flex-1 py-2 px-3 rounded text-[11px] font-semibold font-inherit transition-all ${params.passiveOnly && !params.activeEnabled ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
               style={{
-                border: `1px solid ${params.passiveOnly && !params.activeEnabled ? accentColor + '60' : 'var(--input-border-default)'}`,
+                border: `1px solid ${params.passiveOnly && !params.activeEnabled ? accentColor + '60' : ($('--input-border-default') || '')}`,
                 background: params.passiveOnly && !params.activeEnabled ? glow : undefined,
                 color: params.passiveOnly && !params.activeEnabled ? accentColor : undefined,
               }}
@@ -376,7 +384,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               onClick={() => setParams({ ...params, passiveOnly: false, activeEnabled: true })}
               className={`flex-1 py-2 px-3 rounded text-[11px] font-semibold font-inherit transition-all ${params.activeEnabled && !params.passiveOnly ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
               style={{
-                border: `1px solid ${params.activeEnabled && !params.passiveOnly ? accentColor + '60' : 'var(--input-border-default)'}`,
+                border: `1px solid ${params.activeEnabled && !params.passiveOnly ? accentColor + '60' : ($('--input-border-default') || '')}`,
                 background: params.activeEnabled && !params.passiveOnly ? glow : undefined,
                 color: params.activeEnabled && !params.passiveOnly ? accentColor : undefined,
               }}
@@ -387,7 +395,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               onClick={() => setParams({ ...params, bruteForce: !params.bruteForce })}
               className={`flex-1 py-2 px-3 rounded text-[11px] font-semibold font-inherit transition-all ${params.bruteForce ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
               style={{
-                border: `1px solid ${params.bruteForce ? accentColor + '60' : 'var(--input-border-default)'}`,
+                border: `1px solid ${params.bruteForce ? accentColor + '60' : ($('--input-border-default') || '')}`,
                 background: params.bruteForce ? glow : undefined,
                 color: params.bruteForce ? accentColor : undefined,
               }}
@@ -404,19 +412,30 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           </label>
           <div className="flex gap-2">
             {OUTPUT_FORMATS.map((fmt) => (
-              <button key={fmt.value} onClick={() => setParams({ ...params, outputFormat: fmt.value as any })} className={`flex-1 py-2 px-3 rounded text-[11px] font-semibold font-inherit transition-all ${params.outputFormat === fmt.value ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`} style={{ border: `1px solid ${params.outputFormat === fmt.value ? accentColor + '60' : 'var(--input-border-default)'}`, background: params.outputFormat === fmt.value ? glow : undefined }}>
+              <button
+                key={fmt.value}
+                onClick={() => setParams({ ...params, outputFormat: fmt.value as any })}
+                className={`flex-1 py-2 px-3 rounded text-[11px] font-semibold font-inherit transition-all ${params.outputFormat === fmt.value ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
+                style={{
+                  border: `1px solid ${params.outputFormat === fmt.value ? accentColor + '60' : ($('--input-border-default') || '')}`,
+                  background: params.outputFormat === fmt.value ? glow : undefined,
+                }}
+              >
                 {fmt.label}
               </button>
             ))}
           </div>
         </div>
       </div>
-{/* Row: Data Sources + Additional Flags */}
+      {/* Row: Data Sources + Additional Flags */}
       <div className="grid grid-cols-2 gap-3">
         {/* Data Sources Section with Multi-Choice Badges */}
         <div>
           <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
-            <span onMouseEnter={(e) => showTooltip('Chọn nguồn dữ liệu để thu thập', e)} onMouseLeave={() => onTooltipShow(null)}>
+            <span
+              onMouseEnter={(e) => showTooltip('Chọn nguồn dữ liệu để thu thập', e)}
+              onMouseLeave={() => onTooltipShow(null)}
+            >
               DATA SOURCES
             </span>
           </label>
@@ -429,7 +448,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               onBlur={() => setTimeout(() => setShowSourceSuggestions(false), 150)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && sourceInputValue.trim()) {
-                  const currentSources = params.includeSources.split(',').filter(s => s.trim());
+                  const currentSources = params.includeSources.split(',').filter((s) => s.trim());
                   if (!currentSources.includes(sourceInputValue.trim())) {
                     const newSources = [...currentSources, sourceInputValue.trim()].join(',');
                     setParams({ ...params, includeSources: newSources });
@@ -443,40 +462,62 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             />
             {showSourceSuggestions && filteredSources.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[150px] overflow-y-auto border border-border bg-[#0a0f19]">
-                {filteredSources.filter(src => !params.includeSources.split(',').map(s => s.trim()).includes(src)).slice(0, 10).map((src, i) => (
-                  <div key={i} onClick={() => {
-                    const currentSources = params.includeSources.split(',').filter(s => s.trim());
-                    if (!currentSources.includes(src)) {
-                      const newSources = [...currentSources, src].join(',');
-                      setParams({ ...params, includeSources: newSources });
-                    }
-                    setShowSourceSuggestions(false);
-                    setSourceInputValue('');
-                  }} className="p-1.5 cursor-pointer text-[11px] transition-colors text-text-primary hover:bg-dropdown-item-hover" style={{ borderBottom: i < 9 ? '1px solid var(--border)' : 'none' }}>
-                    {src}
-                  </div>
-                ))}
+                {filteredSources
+                  .filter(
+                    (src) =>
+                      !params.includeSources
+                        .split(',')
+                        .map((s) => s.trim())
+                        .includes(src),
+                  )
+                  .slice(0, 10)
+                  .map((src, i) => (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        const currentSources = params.includeSources
+                          .split(',')
+                          .filter((s) => s.trim());
+                        if (!currentSources.includes(src)) {
+                          const newSources = [...currentSources, src].join(',');
+                          setParams({ ...params, includeSources: newSources });
+                        }
+                        setShowSourceSuggestions(false);
+                        setSourceInputValue('');
+                      }}
+                      className="p-1.5 cursor-pointer text-[11px] transition-colors text-text-primary hover:bg-dropdown-item-hover"
+                      style={{ borderBottom: i < 9 ? '1px solid ' + ($('--border') || '') : 'none' }}
+                    >
+                      {src}
+                    </div>
+                  ))}
               </div>
             )}
           </div>
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {params.includeSources.split(',').filter(s => s.trim()).map((src, idx) => (
-              <span
-                key={idx}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-primary/10 text-primary border border-primary/30"
-              >
-                {src.trim()}
-                <button
-                  onClick={() => {
-                    const newSources = params.includeSources.split(',').filter(s => s.trim() !== src.trim()).join(',');
-                    setParams({ ...params, includeSources: newSources });
-                  }}
-                  className="ml-1 hover:text-red-400 transition-colors"
+            {params.includeSources
+              .split(',')
+              .filter((s) => s.trim())
+              .map((src, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-primary/10 text-primary border border-primary/30"
                 >
-                  ×
-                </button>
-              </span>
-            ))}
+                  {src.trim()}
+                  <button
+                    onClick={() => {
+                      const newSources = params.includeSources
+                        .split(',')
+                        .filter((s) => s.trim() !== src.trim())
+                        .join(',');
+                      setParams({ ...params, includeSources: newSources });
+                    }}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
           </div>
           <div className="text-[9px] text-text-secondary mt-1">
             Available: crtsh, alienvault, wayback, shodan, censys, virustotal, dnsdb, ...
@@ -486,7 +527,12 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
         {/* Additional Flags with Input + Combobox */}
         <div>
           <label className="block text-xs font-bold tracking-wide mb-1.5 cursor-default text-text-secondary">
-            <span onMouseEnter={(e) => showTooltip('Các flag bổ sung cho Amass (cách nhau bằng dấu cách)', e)} onMouseLeave={() => onTooltipShow(null)}>
+            <span
+              onMouseEnter={(e) =>
+                showTooltip('Các flag bổ sung cho Amass (cách nhau bằng dấu cách)', e)
+              }
+              onMouseLeave={() => onTooltipShow(null)}
+            >
               ADDITIONAL FLAGS
             </span>
           </label>
@@ -502,49 +548,60 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             />
             {showFlagSuggestions && (
               <div className="absolute top-full left-0 right-0 mt-1 rounded-md z-10 max-h-[150px] overflow-y-auto border border-border bg-[#0a0f19]">
-                {COMMON_FLAGS.filter(flag => 
-                  !params.additionalFlags.includes(flag.value) &&
-                  (flag.label.toLowerCase().includes(params.additionalFlags.toLowerCase()) ||
-                   flag.desc.toLowerCase().includes(params.additionalFlags.toLowerCase()))
-                ).slice(0, 10).map((flag, i) => (
-                  <div
-                    key={flag.value}
-                    onClick={() => {
-                      const currentFlags = params.additionalFlags.split(' ').filter(f => f.trim());
-                      if (!currentFlags.includes(flag.value)) {
-                        const newFlags = [...currentFlags, flag.value].join(' ');
-                        setParams({ ...params, additionalFlags: newFlags });
-                      }
-                      setShowFlagSuggestions(false);
-                    }}
-                    className="p-1.5 cursor-pointer text-[11px] transition-colors text-text-primary hover:bg-dropdown-item-hover flex justify-between items-center"
-                    style={{ borderBottom: i < 9 ? '1px solid var(--border)' : 'none' }}
-                  >
-                    <span className="font-mono">{flag.label}</span>
-                    <span className="text-[9px] text-text-secondary">{flag.desc}</span>
-                  </div>
-                ))}
+                {COMMON_FLAGS.filter(
+                  (flag) =>
+                    !params.additionalFlags.includes(flag.value) &&
+                    (flag.label.toLowerCase().includes(params.additionalFlags.toLowerCase()) ||
+                      flag.desc.toLowerCase().includes(params.additionalFlags.toLowerCase())),
+                )
+                  .slice(0, 10)
+                  .map((flag, i) => (
+                    <div
+                      key={flag.value}
+                      onClick={() => {
+                        const currentFlags = params.additionalFlags
+                          .split(' ')
+                          .filter((f) => f.trim());
+                        if (!currentFlags.includes(flag.value)) {
+                          const newFlags = [...currentFlags, flag.value].join(' ');
+                          setParams({ ...params, additionalFlags: newFlags });
+                        }
+                        setShowFlagSuggestions(false);
+                      }}
+                      className="p-1.5 cursor-pointer text-[11px] transition-colors text-text-primary hover:bg-dropdown-item-hover flex justify-between items-center"
+                      style={{ borderBottom: i < 9 ? '1px solid ' + ($('--border') || '') : 'none' }}
+                    >
+                      <span className="font-mono">{flag.label}</span>
+                      <span className="text-[9px] text-text-secondary">{flag.desc}</span>
+                    </div>
+                  ))}
               </div>
             )}
           </div>
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {params.additionalFlags.split(' ').filter(f => f.trim()).map((flag, idx) => (
-              <span
-                key={idx}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-primary/10 text-primary border border-primary/30"
-              >
-                {flag}
-                <button
-                  onClick={() => {
-                    const newFlags = params.additionalFlags.split(' ').filter(f => f !== flag).join(' ');
-                    setParams({ ...params, additionalFlags: newFlags });
-                  }}
-                  className="ml-1 hover:text-red-400 transition-colors"
+            {params.additionalFlags
+              .split(' ')
+              .filter((f) => f.trim())
+              .map((flag, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-primary/10 text-primary border border-primary/30"
                 >
-                  ×
-                </button>
-              </span>
-            ))}
+                  {flag}
+                  <button
+                    onClick={() => {
+                      const newFlags = params.additionalFlags
+                        .split(' ')
+                        .filter((f) => f !== flag)
+                        .join(' ');
+                      setParams({ ...params, additionalFlags: newFlags });
+                    }}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
           </div>
         </div>
       </div>
@@ -564,7 +621,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 profile.params.bruteForce === params.bruteForce &&
                 profile.params.includeSources === params.includeSources &&
                 profile.params.outputFormat === params.outputFormat &&
-                profile.params.additionalFlags === params.additionalFlags
+                profile.params.additionalFlags === params.additionalFlags,
             );
             const isSaveDisabled = scanning || !params.target.trim() || isProfileExists;
             return (
@@ -583,7 +640,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             disabled={scanning || !params.target.trim()}
             className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary text-text-foreground disabled:bg-input-background disabled:text-text-secondary disabled:cursor-not-allowed rounded"
             style={{
-              border: `1px solid ${scanning || !params.target.trim() ? 'var(--input-border-default)' : 'transparent'}`,
+              border: `1px solid ${scanning || !params.target.trim() ? ($('--input-border-default') || '') : 'transparent'}`,
               boxShadow: scanning || !params.target.trim() ? 'none' : `0 0 18px ${glow}`,
             }}
           >

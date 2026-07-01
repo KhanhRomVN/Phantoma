@@ -102,7 +102,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             }}
             className="flex items-center gap-2 px-3 py-1.5 rounded text-[11px] font-bold cursor-pointer font-inherit"
             style={{
-              background: 'var(--card-background)',
+              background: $('--card-background'),
               border: `1px solid ${accentColor}30`,
               color: accentColor,
             }}
@@ -115,22 +115,18 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
         <div
           className="p-4 rounded-md"
           style={{
-            background: 'var(--card-background)',
+            background: $('--card-background'),
             border: `1px solid ${accentColor}30`,
           }}
         >
           <div className="flex justify-between items-center mb-3">
             <div>
-              <h3 className="m-0 text-base text-text-primary">
-                {scan.target}
-              </h3>
+              <h3 className="m-0 text-base text-text-primary">{scan.target}</h3>
               <p className="m-0 mt-1 text-[11px] text-text-secondary">
                 {scan.scanType} • {scan.duration}
               </p>
             </div>
-            <span
-              className="px-3 py-1 rounded text-[11px] font-bold bg-border text-primary"
-            >
+            <span className="px-3 py-1 rounded text-[11px] font-bold bg-border text-primary">
               {new Date(scan.timestamp).toLocaleString()}
             </span>
           </div>
@@ -215,7 +211,14 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                 )}
                 <div>
                   <span className="text-text-secondary">Status:</span>{' '}
-                  <span style={{ color: parsedData.host.status === 'up' ? 'rgb(var(--primary))' : 'rgb(var(--error))' }}>
+                  <span
+                    style={{
+                      color:
+                        parsedData.host.status === 'up'
+                          ? $('--primary')
+                          : $('--error'),
+                    }}
+                  >
                     {parsedData.host.status.toUpperCase()}
                   </span>
                 </div>
@@ -252,8 +255,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           }}
         >
           <h4 className="m-0 mb-3 text-[13px] flex items-center gap-2 text-text-primary">
-            <Shield size={14} className="text-text-secondary" /> PORTS SCANNED (
-            {scan.ports.length} total, {scan.ports.filter((p) => p.state === 'open').length} open)
+            <Shield size={14} className="text-text-secondary" /> PORTS SCANNED ({scan.ports.length}{' '}
+            total, {scan.ports.filter((p) => p.state === 'open').length} open)
           </h4>
           <PortsTable ports={scan.ports} accentColor={accentColor} showRisk={true} />
         </div>
@@ -280,20 +283,22 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               <Copy size={14} />
             </button>
           </div>
-          <div
-            className="text-[10px] font-mono p-3 rounded max-h-[400px] overflow-y-auto whitespace-pre-wrap break-words text-text-primary bg-background"
-          >
+          <div className="text-[10px] font-mono p-3 rounded max-h-[400px] overflow-y-auto whitespace-pre-wrap break-words text-text-primary bg-background">
             {scan.rawOutput.map((line, i) => {
-              let color = 'var(--text-secondary)';
-              if (line.startsWith('<?xml') || line.startsWith('<!DOCTYPE')) color = 'rgb(var(--warning))';
-              else if (line.includes('<nmaprun') || line.includes('</nmaprun>')) color = 'rgb(var(--primary))';
-              else if (line.includes('<host') || line.includes('</host>')) color = 'rgb(var(--info))';
-              else if (line.includes('<port') || line.includes('</port>')) color = 'rgb(var(--accent))';
-              else if (line.includes('<service')) color = 'rgb(var(--highlight))';
-              else if (line.includes('state="open"')) color = 'rgb(var(--primary))';
-              else if (line.includes('state="filtered"')) color = 'rgb(var(--warning))';
-              else if (line.includes('state="closed"')) color = 'rgb(var(--error))';
-              else if (line.startsWith('<!--')) color = 'var(--text-secondary)';
+              let color = $('--text-secondary');
+              if (line.startsWith('<?xml') || line.startsWith('<!DOCTYPE'))
+                color = $('--warning') || '';
+              else if (line.includes('<nmaprun') || line.includes('</nmaprun>'))
+                color = $('--primary') || '';
+              else if (line.includes('<host') || line.includes('</host>'))
+                color = $('--info') || '';
+              else if (line.includes('<port') || line.includes('</port>'))
+                color = $('--accent') || '';
+              else if (line.includes('<service')) color = $('--highlight') || '';
+              else if (line.includes('state="open"')) color = $('--primary') || '';
+              else if (line.includes('state="filtered"')) color = $('--warning') || '';
+              else if (line.includes('state="closed"')) color = $('--error') || '';
+              else if (line.startsWith('<!--')) color = $('--text-secondary');
               return (
                 <div key={i} style={{ color, whiteSpace: 'pre-wrap' }}>
                   {line}
@@ -401,10 +406,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             className="w-full px-4 py-2.5 bg-transparent border-none text-[12px] font-bold text-left cursor-pointer font-inherit transition-colors flex items-center gap-2"
             style={{
               borderTop: `1px solid ${accentColor}20`,
-              color: 'rgb(var(--error))',
+              color: $('--error') || '',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgb(var(--error) / 0.1)';
+              e.currentTarget.style.background = 'color-mix(in srgb, ' + ($('--error') || '') + ' 10%, transparent)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';

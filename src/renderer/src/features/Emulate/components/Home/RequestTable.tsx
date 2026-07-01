@@ -866,7 +866,7 @@ export function RequestTable({
         /* For Firefox - use thin scrollbar with fixed ratio approximation */
         .request-table-scroll {
           scrollbar-width: thin;
-          scrollbar-color: var(--scrollbar-thumb, #4a4a6a) transparent;
+          scrollbar-color: ${$('--scrollbar-thumb') || '#4a4a6a'} transparent;
         }
       `}</style>
       <div className="h-10 flex items-center px-2 border-b border-divider gap-2 shrink-0">

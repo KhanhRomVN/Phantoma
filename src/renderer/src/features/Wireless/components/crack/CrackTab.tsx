@@ -6,16 +6,16 @@ import type { CrackJob } from '../../types';
 import { STATUS_STYLE, CRACK_MODE_COLORS } from '../../constants';
 import { progressBar, fmtTime, fmtNum } from '../../utils';
 import { Btn } from '../shared/Btn';
+import { $ } from '@renderer/utils/color';
 
 // Helper function to resolve color from CSS variable or hex
 function resolveColor(color: string): string {
   const colorMap: Record<string, string> = {
-    'var(--accent-purple)': '#a78bfa',
-    'var(--success)': '#10b981',
-    'var(--error)': '#ef4444',
-    'var(--warning)': '#f59e0b',
-    'var(--primary)': '#3686ff',
-    'var(--text-secondary)': '#9ca3af',
+    '--success': '#10b981',
+    '--error': '#ef4444',
+    '--warning': '#f59e0b',
+    '--primary': '#3686ff',
+    '--text-secondary': '#9ca3af',
   };
   // If it's already a hex color or doesn't need mapping
   if (!color.startsWith('var(--')) {
@@ -52,23 +52,18 @@ export function CrackTab({ jobs, onNewJob }: CrackTabProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-end gap-1.5">
-        <Btn label="+ NEW JOB" color="var(--primary)" onClick={onNewJob} size="sm" />
-        <Btn label="📂 SELECT WORDLIST" color="var(--text-secondary)" size="sm" />
-        <Btn label="⚙ HASHCAT GPU CONFIG" color="var(--text-secondary)" size="sm" />
+        <Btn label="+ NEW JOB" color={$('--primary') || '#3686ff'} onClick={onNewJob} size="sm" />
+        <Btn label="📂 SELECT WORDLIST" color={$('--text-secondary') || '#9ca3af'} size="sm" />
+        <Btn label="⚙ HASHCAT GPU CONFIG" color={$('--text-secondary') || '#9ca3af'} size="sm" />
       </div>
       {jobs.map((job) => {
         const accentColor = CRACK_MODE_COLORS[job.mode];
         const ss = STATUS_STYLE[job.status];
         return (
-          <div
-            key={job.id}
-            className="bg-card-background border border-border rounded-md p-3"
-          >
+          <div key={job.id} className="bg-card-background border border-border rounded-md p-3">
             <div className="flex items-center gap-2.5 mb-2">
               <Badge label={job.mode.toUpperCase()} color={accentColor} />
-              <span className="text-xs font-bold text-text-primary">
-                {job.targetSSID}
-              </span>
+              <span className="text-xs font-bold text-text-primary">{job.targetSSID}</span>
               <span className="text-[9px] text-text-secondary">{job.targetBSSID}</span>
               <span className="ml-auto text-[9px] font-bold" style={{ color: ss.color }}>
                 {ss.label}

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { $ } from '@renderer/utils/color';
 
 const COLORS = [
   "var(--primary, #3b82f6)",
@@ -131,7 +132,7 @@ const ModelDistributionCard: React.FC<Props> = ({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 className="text-[17px] font-bold"
-                style={{ fill: "var(--primary-text)" }}
+                style={{ fill: $('--primary-text') || 'currentColor' }}
               >
                 {modelDistribution.length}
               </text>

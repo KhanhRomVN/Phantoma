@@ -1,5 +1,6 @@
 import { cn } from '@renderer/shared/lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
+import { $ } from '@renderer/utils/color';
 
 export const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -67,17 +68,14 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   const selectedLanguage = LANGUAGES.find((l) => l.code === value) || LANGUAGES[0];
 
   return (
-    <div
-      className={cn('relative w-full', className)}
-      ref={dropdownRef}
-    >
+    <div className={cn('relative w-full', className)} ref={dropdownRef}>
       <button
         type="button"
         className="w-full h-9 px-3 rounded text-sm flex items-center justify-between cursor-pointer"
         style={{
-          backgroundColor: 'var(--input-bg)',
-          border: '1px solid var(--border-color)',
-          color: 'var(--primary-text)',
+          backgroundColor: $('--input-bg') || 'transparent',
+          border: `1px solid ${$('--border-color') || 'rgba(128,128,128,0.2)'}`,
+          color: $('--text-primary'),
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -85,7 +83,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           <span className="text-base leading-none">{selectedLanguage.flag}</span>
           <span className="font-medium text-foreground">{selectedLanguage.name}</span>
         </div>
-        <div style={{ color: 'var(--secondary-text)' }}>
+        <div style={{ color: $('--secondary-text') || 'currentColor' }}>
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </div>
       </button>
@@ -94,8 +92,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         <div
           className="absolute top-full left-0 z-[1000] w-full mt-1 rounded overflow-hidden"
           style={{
-            backgroundColor: 'var(--input-bg)',
-            border: '1px solid var(--border-color)',
+            backgroundColor: $('--input-bg') || 'transparent',
+            border: `1px solid ${$('--border-color') || 'rgba(128,128,128,0.2)'}`,
             boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
           }}
         >
@@ -105,9 +103,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 key={lang.code}
                 className="flex items-center justify-between px-3 py-2 text-sm cursor-pointer"
                 style={{
-                  color: 'var(--primary-text)',
-                  backgroundColor:
-                    value === lang.code ? 'var(--hover-bg)' : 'transparent',
+                  color: $('--text-primary'),
+                  backgroundColor: value === lang.code ? ($('--hover-bg') || 'rgba(128,128,128,0.1)') : 'transparent',
                 }}
                 onClick={() => {
                   onChange(lang.code);
@@ -115,7 +112,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   if (value !== lang.code) {
-                    e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                    e.currentTarget.style.backgroundColor = $('--hover-bg') || 'rgba(128,128,128,0.1)';
                   }
                 }}
                 onMouseLeave={(e) => {

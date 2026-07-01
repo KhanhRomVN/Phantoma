@@ -1,4 +1,5 @@
 import React from "react";
+import { $ } from '@renderer/utils/color';
 
 interface ChatErrorBoundaryState {
   hasError: boolean;
@@ -68,8 +69,7 @@ export class ChatErrorBoundary extends React.Component<
             onClick={this.handleReset}
             className="self-start px-3 py-1 text-[11px] font-semibold rounded cursor-pointer bg-transparent text-primary"
             style={{
-              border:
-                "1px solid color-mix(in srgb, var(--primary-text) 25%, transparent)",
+              border: `1px solid color-mix(in srgb, ${$('--primary-text') || 'currentColor'} 25%, transparent)`,
             }}
           >
             Try again

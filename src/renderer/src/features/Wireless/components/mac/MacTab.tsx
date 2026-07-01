@@ -6,16 +6,16 @@ import { useState } from 'react';
 import type { MacEntry } from '../../types';
 import { Panel } from '../shared/Panel';
 import { Btn } from '../shared/Btn';
+import { $ } from '@renderer/utils/color';
 
 // Helper function to resolve color from CSS variable or hex
 function resolveColor(color: string): string {
   const colorMap: Record<string, string> = {
-    'var(--success)': '#10b981',
-    'var(--text-secondary)': '#9ca3af',
-    'var(--error)': '#ef4444',
-    'var(--warning)': '#f59e0b',
-    'var(--primary)': '#3686ff',
-    'var(--accent-purple)': '#a78bfa',
+    '--success': '#10b981',
+    '--text-secondary': '#9ca3af',
+    '--error': '#ef4444',
+    '--warning': '#f59e0b',
+    '--primary': '#3686ff',
   };
   if (!color.startsWith('var(--')) {
     return color;
@@ -49,9 +49,9 @@ interface MacTabProps {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'var(--input-background)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-secondary)',
+  background: $('--input-background'),
+  border: '1px solid ' + ($('--border') || ''),
+  color: $('--text-secondary'),
   fontSize: 9,
   padding: '5px 8px',
   borderRadius: 4,
@@ -66,7 +66,7 @@ const selectStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   fontSize: 8,
-  color: 'var(--text-secondary)',
+  color: $('--text-secondary'),
   marginBottom: 4,
   fontWeight: 700,
 };
@@ -79,7 +79,7 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Panel title="MAC Spoof Configuration" accent="var(--success)">
+      <Panel title="MAC Spoof Configuration" accent={$('--success') || '#10b981'}>
         <div
           style={{
             display: 'grid',
@@ -90,11 +90,7 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
         >
           <div>
             <div style={labelStyle}>INTERFACE</div>
-            <select
-              value={iface}
-              onChange={(e) => setIface(e.target.value)}
-              style={selectStyle}
-            >
+            <select value={iface} onChange={(e) => setIface(e.target.value)} style={selectStyle}>
               {['wlan0', 'wlan1', 'eth0', 'eth1'].map((i) => (
                 <option key={i}>{i}</option>
               ))}
@@ -113,9 +109,7 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
             </select>
           </div>
           <div>
-            <div style={labelStyle}>
-              TARGET MAC {mode === 'random' && '(auto)'}
-            </div>
+            <div style={labelStyle}>TARGET MAC {mode === 'random' && '(auto)'}</div>
             <input
               value={targetMac}
               onChange={(e) => setTargetMac(e.target.value)}
@@ -123,7 +117,7 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
               disabled={mode === 'random'}
               style={{
                 ...inputStyle,
-                background: mode === 'random' ? 'var(--background)' : 'var(--input-background)',
+                background: mode === 'random' ? $('--background') : $('--input-background'),
               }}
             />
           </div>
@@ -138,15 +132,22 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <Btn label="⚡ APPLY SPOOF" color="var(--success)" onClick={onAdd} size="sm" />
-          <Btn label="↩ RESTORE ORIGINAL" color="var(--warning)" size="sm" />
-          <Btn label="🔄 RANDOM & APPLY" color="var(--text-secondary)" size="sm" />
+          <Btn
+            label="⚡ APPLY SPOOF"
+            color={$('--success') || '#10b981'}
+            onClick={onAdd}
+            size="sm"
+          />
+          <Btn label="↩ RESTORE ORIGINAL" color={$('--warning') || '#f59e0b'} size="sm" />
+          <Btn label="🔄 RANDOM & APPLY" color={$('--text-secondary') || '#9ca3af'} size="sm" />
         </div>
       </Panel>
 
-      <Panel title="MAC History / Active Spoofs" accent="var(--success)">
+      <Panel title="MAC History / Active Spoofs" accent={$('--success') || '#10b981'}>
         {entries.length === 0 ? (
-          <div style={{ fontSize: 9, color: 'var(--text-secondary)', padding: 16, textAlign: 'center' }}>
+          <div
+            style={{ fontSize: 9, color: $('--text-secondary'), padding: 16, textAlign: 'center' }}
+          >
             No MAC changes recorded.
           </div>
         ) : (
@@ -158,7 +159,7 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
                 gap: 6,
                 padding: '4px 8px',
                 marginBottom: 5,
-                borderBottom: '1px solid var(--border)',
+                borderBottom: '1px solid ' + ($('--border') || ''),
               }}
             >
               {['IFACE', 'ORIGINAL MAC', 'CURRENT MAC', 'STATUS', 'REASON', 'TIME'].map((h) => (
@@ -166,7 +167,7 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
                   key={h}
                   style={{
                     fontSize: 8,
-                    color: 'var(--text-secondary)',
+                    color: $('--text-secondary'),
                     fontWeight: 700,
                     letterSpacing: '0.1em',
                   }}
@@ -183,16 +184,16 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
                   gridTemplateColumns: '70px 130px 130px 100px 1fr 70px',
                   gap: 6,
                   padding: '6px 8px',
-                  borderBottom: '1px solid var(--divider)',
+                  borderBottom: '1px solid ' + ($('--divider') || ''),
                   alignItems: 'center',
                 }}
               >
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{e.interface}</span>
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{e.originalMac}</span>
+                <span style={{ fontSize: 9, color: $('--text-secondary') }}>{e.interface}</span>
+                <span style={{ fontSize: 9, color: $('--text-secondary') }}>{e.originalMac}</span>
                 <span
                   style={{
                     fontSize: 9,
-                    color: e.spoofed ? 'var(--green)' : 'var(--text-secondary)',
+                    color: e.spoofed ? $('--green') : $('--text-secondary'),
                     fontWeight: e.spoofed ? 700 : 400,
                   }}
                 >
@@ -200,10 +201,10 @@ export function MacTab({ entries, onAdd }: MacTabProps) {
                 </span>
                 <Badge
                   label={e.spoofed ? '● SPOOFED' : '○ ORIGINAL'}
-                  color={e.spoofed ? 'var(--green)' : 'var(--text-secondary)'}
+                  color={e.spoofed ? $('--green') : $('--text-secondary')}
                 />
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{e.reason}</span>
-                <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>{e.timestamp}</span>
+                <span style={{ fontSize: 9, color: $('--text-secondary') }}>{e.reason}</span>
+                <span style={{ fontSize: 8, color: $('--text-secondary') }}>{e.timestamp}</span>
               </div>
             ))}
           </>

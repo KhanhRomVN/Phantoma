@@ -9,6 +9,7 @@ import ProfilesTab from './tabs/ProfilesTab';
 import Tooltip from '../../common/Tooltip';
 import { TooltipState, ContextMenuState } from './types';
 import { NMAP_DOC } from './constants';
+import { $ } from '@renderer/utils/color';
 
 interface NmapToolProps {
   accentColor?: string;
@@ -132,7 +133,7 @@ const NmapTool: React.FC<NmapToolProps> = ({
       )}
 
       {activeTab === 'logs' && (
-        <div className="p-5 text-center" style={{ color: 'rgb(var(--text-secondary))' }}>
+        <div className="p-5 text-center" style={{ color: $('--text-secondary') }}>
           Logs tab - Coming soon
         </div>
       )}

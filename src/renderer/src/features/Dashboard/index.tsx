@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../shared/lib/utils';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
+import { $ } from '@renderer/utils/color';
 
 const stats = {
   totalVulns: 27,
@@ -239,7 +240,7 @@ function DonutChart() {
   return (
     <div className="flex items-center gap-3">
       <svg viewBox="0 0 80 80" className="w-20 h-20 shrink-0">
-        <circle cx="40" cy="40" r="32" fill="none" stroke="var(--border)" strokeWidth="10" />
+        <circle cx="40" cy="40" r="32" fill="none" stroke={$('--border') || ''} strokeWidth="10" />
         {slices.map((s, i) => {
           const pct = s.val / total;
           const dash = pct * circ;
@@ -266,12 +267,19 @@ function DonutChart() {
           textAnchor="middle"
           fontSize="12"
           fontWeight="bold"
-          fill="var(--text-primary)"
+          fill={$('--text-primary') || ''}
           fontFamily="monospace"
         >
           {total}
         </text>
-        <text x="40" y="49" textAnchor="middle" fontSize="6" fill="var(--text-secondary)" fontFamily="monospace">
+        <text
+          x="40"
+          y="49"
+          textAnchor="middle"
+          fontSize="6"
+          fill={$('--text-secondary') || ''}
+          fontFamily="monospace"
+        >
           VULNS
         </text>
       </svg>
@@ -313,7 +321,7 @@ function RiskGauge({ score }: { score: number }) {
       <path
         d="M 8 36 A 28 28 0 0 1 64 36"
         fill="none"
-        stroke="var(--border)"
+        stroke={$('--border') || ''}
         strokeWidth="7"
         strokeLinecap="round"
       />
@@ -336,7 +344,14 @@ function RiskGauge({ score }: { score: number }) {
       >
         {score}
       </text>
-      <text x="36" y="41" textAnchor="middle" fontSize="5.5" fill="var(--text-secondary)" fontFamily="monospace">
+      <text
+        x="36"
+        y="41"
+        textAnchor="middle"
+        fontSize="5.5"
+        fill={$('--text-secondary') || ''}
+        fontFamily="monospace"
+      >
         RISK SCORE
       </text>
     </svg>
@@ -361,7 +376,7 @@ function ActivityBar({ data }: { data: number[] }) {
           className="flex-1 rounded-sm"
           style={{
             height: `${(v / max) * 100}%`,
-            background: i === data.length - 1 ? '#0af' : 'var(--border)',
+            background: i === data.length - 1 ? '#0af' : $('--border'),
           }}
         />
       ))}
@@ -392,7 +407,7 @@ function StatBox({
       </div>
       <div
         className="text-[20px] font-bold font-mono leading-none"
-        style={{ color: accent ?? 'var(--text-primary)' }}
+        style={{ color: accent ?? $('--text-primary') }}
       >
         {value}
       </div>
@@ -520,7 +535,12 @@ interface DashboardState {
 
 export function Dashboard() {
   const [state] = useModulePersistence<DashboardState>('dashboard', {
-    greeting: new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening',
+    greeting:
+      new Date().getHours() < 12
+        ? 'Good morning'
+        : new Date().getHours() < 18
+          ? 'Good afternoon'
+          : 'Good evening',
   });
 
   const { greeting } = state;
@@ -642,7 +662,9 @@ export function Dashboard() {
                     >
                       {a.type}
                     </span>
-                    <span className="text-[9px] text-text-secondary leading-tight">{a.message}</span>
+                    <span className="text-[9px] text-text-secondary leading-tight">
+                      {a.message}
+                    </span>
                   </div>
                 );
               })}
@@ -745,7 +767,7 @@ export function Dashboard() {
                 return (
                   <div key={m.name}>
                     <div className="flex items-center justify-between mb-0.5">
-<span className="text-[9px] font-mono text-text-secondary">{m.name}</span>
+                      <span className="text-[9px] font-mono text-text-secondary">{m.name}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-[8px] font-mono text-[#2a3548]">
                           {m.findings} findings

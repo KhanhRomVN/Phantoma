@@ -31,7 +31,7 @@ export function encBadge(enc: Encryption): React.ReactElement {
 export function signalBar(dbm: number): React.ReactElement {
   // Use direct hex colors to ensure visibility
   let colorHex = '';
-  
+
   if (dbm >= -55) {
     colorHex = '#10b981'; // success green
   } else if (dbm >= -72) {
@@ -39,25 +39,33 @@ export function signalBar(dbm: number): React.ReactElement {
   } else {
     colorHex = '#ef4444'; // error red
   }
-  
+
   return React.createElement(
     'span',
-    { 
-      style: { 
-        color: colorHex, 
-        fontSize: 12, 
-        fontWeight: 700, 
-        textShadow: '0 0 1px rgba(0,0,0,0.5)'
-      } 
+    {
+      style: {
+        color: colorHex,
+        fontSize: 12,
+        fontWeight: 700,
+        textShadow: '0 0 1px rgba(0,0,0,0.5)',
+      },
     },
     `${dbm}dBm`,
   );
 }
 
-export function progressBar(pct: number, color = 'var(--primary)', h = 3): React.ReactElement {
+export function progressBar(pct: number, color = $('--primary'), h = 3): React.ReactElement {
   return React.createElement(
     'div',
-    { style: { height: h, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', flex: 1 } },
+    {
+      style: {
+        height: h,
+        background: $('--border'),
+        borderRadius: 2,
+        overflow: 'hidden',
+        flex: 1,
+      },
+    },
     React.createElement('div', {
       style: {
         width: `${pct}%`,
@@ -111,7 +119,13 @@ export function estimateCrackTime(keyspaceSize: number, keysPerSec: number): str
 /**
  * Determine if a network is considered high-risk based on its properties.
  */
-export function isHighRisk(net: { encryption: Encryption; wps?: boolean; wpsVulnerable?: boolean; mfpEnabled?: boolean; crackProbability: number }): boolean {
+export function isHighRisk(net: {
+  encryption: Encryption;
+  wps?: boolean;
+  wpsVulnerable?: boolean;
+  mfpEnabled?: boolean;
+  crackProbability: number;
+}): boolean {
   return (
     net.encryption === 'open' ||
     net.encryption === 'wep' ||
@@ -124,7 +138,12 @@ export function isHighRisk(net: { encryption: Encryption; wps?: boolean; wpsVuln
 /**
  * Severity tier for findings report.
  */
-export function getSeverity(net: { encryption: Encryption; wpsVulnerable?: boolean; mfpEnabled?: boolean; crackProbability: number }): 'critical' | 'high' | 'medium' | 'low' | 'info' {
+export function getSeverity(net: {
+  encryption: Encryption;
+  wpsVulnerable?: boolean;
+  mfpEnabled?: boolean;
+  crackProbability: number;
+}): 'critical' | 'high' | 'medium' | 'low' | 'info' {
   if (net.encryption === 'open' || net.encryption === 'wep') return 'critical';
   if (net.wpsVulnerable) return 'high';
   if (!net.mfpEnabled) return 'medium';

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { cn } from '@renderer/shared/lib/utils';
+import { $ } from '@renderer/utils/color';
 
 interface RichtextBlockProps {
   content: string;
@@ -87,7 +88,7 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
                 isClickable
                   ? (e) => {
                       e.currentTarget.style.background =
-                        'var(--sidebar-item-hover, rgba(255,255,255,0.06))';
+                        $('--sidebar-item-hover') || 'rgba(255,255,255,0.06)';
                     }
                   : undefined
               }
@@ -151,7 +152,8 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
   const ExpandedView = () => (
     <div className="bg-background border">
       <div
-        className="flex justify-between items-center py-1.5 px-0 bg-[var(--sidebar-background,rgba(0,0,0,0.1))] border-b text-primary text-[13px] select-none cursor-pointer"
+        className="flex justify-between items-center py-1.5 px-0 border-b text-primary text-[13px] select-none cursor-pointer"
+        style={{ backgroundColor: $('--sidebar-background') || 'rgba(0,0,0,0.1)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">

@@ -3,6 +3,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import { useProject } from '../../../../context/ProjectContext';
+import { $ } from '@renderer/utils/color';
 
 interface TerminalBlockProps {
   logs: string;
@@ -87,13 +88,11 @@ const CopyButton: React.FC<{ getText: () => string; title?: string }> = ({ getTe
       className="terminal-copy-btn flex items-center justify-center w-[22px] h-[22px] p-0 border-none rounded-[4px] cursor-pointer shrink-0 transition-[background,color,opacity] duration-[0.15s]"
       style={{
         background: copied
-          ? 'color-mix(in srgb, var(--success) 15%, transparent)'
+          ? 'color-mix(in srgb, ' + ($('--success') || '') + ' 15%, transparent)'
           : hovered
-            ? 'color-mix(in srgb, var(--primary-text) 22%, transparent)'
+            ? 'color-mix(in srgb, ' + ($('--primary-text') || '') + ' 22%, transparent)'
             : 'transparent',
-        color: copied
-          ? 'var(--success)'
-          : 'var(--primary-text)',
+        color: copied ? $('--success') : $('--text-primary'),
       }}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
@@ -123,7 +122,7 @@ const TerminalInputBar: React.FC<{ onInput: (data: string) => void }> = ({ onInp
   };
 
   return (
-    <div className="flex items-end px-2.5 py-1 border-t border-[var(--border)] bg-[var(--input-background,var(--background))]">
+    <div className="flex items-end px-2.5 py-1 border-t border-border bg-input-background">
       <textarea
         ref={textareaRef}
         value={value}
@@ -131,7 +130,7 @@ const TerminalInputBar: React.FC<{ onInput: (data: string) => void }> = ({ onInp
         onKeyDown={handleKeyDown}
         placeholder="type and press Enter…"
         rows={1}
-        className="flex-1 bg-transparent border-none outline-none resize-none overflow-hidden text-[var(--primary-text)] font-mono text-xs leading-[18px] p-0 min-h-[18px] max-h-[54px]"
+        className="flex-1 bg-transparent border-none outline-none resize-none overflow-hidden text-text-primary font-mono text-xs leading-[1.5]"
       />
     </div>
   );
@@ -227,7 +226,7 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
         cursorInactiveStyle: 'none',
         disableStdin: true,
         fontSize: 12,
-        fontFamily: 'var(--font-family, "Courier New", Courier, monospace)',
+        fontFamily: $('--font-family') || '"Courier New", Courier, monospace',
         theme: buildXtermTheme(),
         allowProposedApi: true,
         rows: rows,
@@ -296,8 +295,7 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
       xtermRef.current.options.cursorBlink = status === 'busy';
       xtermRef.current.options.theme = {
         ...xtermRef.current.options.theme,
-        cursor:
-          status === 'busy' ? getCSSVar('--terminal-foreground', '#cccccc') : 'transparent',
+        cursor: status === 'busy' ? getCSSVar('--terminal-foreground', '#cccccc') : 'transparent',
       };
     }
   }, [logs, status, isXtermVisible, rows]);
@@ -308,12 +306,11 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
   return (
     <>
       <div
-        className="terminal-block-container flex flex-col bg-[var(--background)] rounded-md overflow-hidden font-mono border border-[var(--border)]"
+        className="terminal-block-container flex flex-col bg-background rounded-md overflow-hidden font-mono border border-border"
         style={
           rejectedOutline
             ? {
-                outline:
-                  '1px solid color-mix(in srgb, var(--error, #f44336) 60%, transparent)',
+                outline: '1px solid color-mix(in srgb, ' + ($('--error') || '#f44336') + ' 60%, transparent)',
                 borderRadius: '6px',
               }
             : undefined
@@ -322,20 +319,20 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
         {/* ── COMMAND HEADER ── Copy button hidden by default, shown on hover via CSS */}
         {isXtermVisible && (
           <div
-            className="terminal-fixed-header terminal-cmd-area flex items-center gap-2 px-2.5 py-1.5 bg-[var(--background)] border-b border-[var(--border)] z-[5] sticky top-0 select-none transition-colors duration-200"
+            className="terminal-fixed-header terminal-cmd-area flex items-center gap-2 px-2.5 py-1.5 bg-background border-b border-border z-[5] sticky top-0 select-none transition-colors duration-200"
             onClick={toggleExpand}
             style={{ cursor: canExpand ? 'pointer' : 'default' }}
             onMouseEnter={(e) => {
               if (canExpand)
                 e.currentTarget.style.backgroundColor =
-                  'var(--sidebar-item-hover, var(--background))';
+                  $('--sidebar-item-hover') || $('--background') || '';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--background, #1e1e1e)';
+              e.currentTarget.style.backgroundColor = $('--background') || '#1e1e1e';
             }}
           >
             {/* Command text — same style as output */}
-            <div className="font-mono text-xs text-[var(--primary-text,#cccccc)] leading-[1.5] whitespace-pre-wrap break-all flex-1 min-w-0">
+            <div className="font-mono text-xs text-text-primary leading-[1.5] whitespace-pre-wrap break-all flex-1 min-w-0">
               {initialCommand ? formatCommand(initialCommand) : 'Terminal'}
             </div>
 
@@ -348,7 +345,7 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
               <CopyButton getText={getCommand} title="Copy command" />
               {canExpand && (
                 <div
-                  className={`codicon codicon-chevron-${isExpanded ? 'up' : 'down'} text-xs opacity-70 cursor-pointer text-[var(--primary-text,#cccccc)]`}
+                  className={`codicon codicon-chevron-${isExpanded ? 'up' : 'down'} text-xs opacity-70 cursor-pointer text-text-primary`}
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleExpand();
@@ -368,7 +365,7 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
           )}
 
           <div
-            className="terminal-content-wrapper px-3 py-2 bg-[var(--background)] overflow-y-auto"
+            className="terminal-content-wrapper px-3 py-2 bg-background overflow-y-auto"
             style={{
               maxHeight: `${maxHeight}px`,
               pointerEvents: 'auto',
@@ -376,8 +373,8 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
             }}
           >
             {!isXtermVisible ? (
-              <div className="terminal-richtext-fallback flex flex-wrap gap-2 items-center py-2 px-1 text-[13px] leading-[1.5] text-[var(--primary-text)] font-mono whitespace-pre-wrap break-all">
-                <div className="font-mono text-xs text-[var(--primary-text,#cccccc)] leading-[1.5] whitespace-pre-wrap break-all">
+              <div className="terminal-richtext-fallback flex flex-wrap gap-2 items-center py-2 px-1 text-[13px] leading-[1.5] text-text-primary">
+                <div className="font-mono text-xs text-text-primary leading-[1.5] whitespace-pre-wrap break-all">
                   {initialCommand ? formatCommand(initialCommand) : 'No command executed yet.'}
                 </div>
               </div>

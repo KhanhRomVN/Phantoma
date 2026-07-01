@@ -7,15 +7,15 @@ import { encBadge } from '../../utils';
 import { Panel } from '../shared/Panel';
 import { Stat } from '../shared/Stat';
 import { Btn } from '../shared/Btn';
+import { $ } from '@renderer/utils/color';
 
 // Helper function to resolve color from CSS variable
 function resolveColor(color: string): string {
   const colorMap: Record<string, string> = {
-    'var(--success)': '#10b981',
-    'var(--error)': '#ef4444',
-    'var(--warning)': '#f59e0b',
-    'var(--primary)': '#3686ff',
-    'var(--accent-purple)': '#a78bfa',
+    '--success': '#10b981',
+    '--error': '#ef4444',
+    '--warning': '#f59e0b',
+    '--primary': '#3686ff',
   };
   return colorMap[color] || color;
 }
@@ -56,15 +56,23 @@ export function ReportTab({ networks, attacks: _attacks, crackedCount }: ReportT
 
   return (
     <div className="flex flex-col gap-3">
-      <Panel title="Executive Summary" accent="var(--primary)">
+      <Panel title="Executive Summary" accent={$('--primary') || '#3686ff'}>
         <div className="grid grid-cols-4 gap-2 mb-3">
-          <Stat label="Networks Scanned" value={networks.length} accent="var(--primary)" />
-          <Stat label="Vulnerable" value={vulns.length} accent="var(--error)" />
-          <Stat label="Passwords Cracked" value={crackedCount} accent="var(--success)" />
+          <Stat
+            label="Networks Scanned"
+            value={networks.length}
+            accent={$('--primary') || '#3686ff'}
+          />
+          <Stat label="Vulnerable" value={vulns.length} accent={$('--error') || '#ef4444'} />
+          <Stat
+            label="Passwords Cracked"
+            value={crackedCount}
+            accent={$('--success') || '#10b981'}
+          />
           <Stat
             label="Risk Score"
             value={`${Math.min(100, Math.round((vulns.length / networks.length) * 100))}%`}
-            accent="var(--warning)"
+            accent={$('--warning') || '#f59e0b'}
           />
         </div>
         <div className="text-[9px] text-text-secondary leading-relaxed">
@@ -79,17 +87,18 @@ export function ReportTab({ networks, attacks: _attacks, crackedCount }: ReportT
         </div>
       </Panel>
 
-      <Panel title="Vulnerability Findings" accent="var(--error)">
+      <Panel title="Vulnerability Findings" accent={$('--error') || '#ef4444'}>
         {vulns.map((n) => {
           const reasons: { label: string; color: string }[] = [];
           if (n.encryption === 'open')
-            reasons.push({ label: 'CRITICAL: No encryption', color: 'var(--error)' });
+            reasons.push({ label: 'CRITICAL: No encryption', color: $('--error') });
           if (n.encryption === 'wep')
-            reasons.push({ label: 'CRITICAL: WEP (deprecated)', color: 'var(--error)' });
-          if (n.wpsVulnerable) reasons.push({ label: 'HIGH: WPS Pixie Dust', color: 'var(--warning)' });
-          if (!n.mfpEnabled) reasons.push({ label: 'MEDIUM: MFP disabled', color: 'var(--warning)' });
+            reasons.push({ label: 'CRITICAL: WEP (deprecated)', color: $('--error') });
+          if (n.wpsVulnerable)
+            reasons.push({ label: 'HIGH: WPS Pixie Dust', color: $('--warning') });
+          if (!n.mfpEnabled) reasons.push({ label: 'MEDIUM: MFP disabled', color: $('--warning') });
           if (n.crackProbability >= 70 && !reasons.length)
-            reasons.push({ label: 'HIGH: Weak password', color: 'var(--warning)' });
+            reasons.push({ label: 'HIGH: Weak password', color: $('--warning') });
 
           return (
             <div
@@ -97,12 +106,12 @@ export function ReportTab({ networks, attacks: _attacks, crackedCount }: ReportT
               className="py-2 px-3 bg-input-background border border-border rounded mb-1.5"
             >
               <div className="flex items-center gap-2.5 mb-1.5">
-                <span className="text-xs font-bold text-text-primary">
-                  {n.ssid || '‹hidden›'}
-                </span>
+                <span className="text-xs font-bold text-text-primary">{n.ssid || '‹hidden›'}</span>
                 <span className="text-[9px] text-text-secondary">{n.bssid}</span>
                 {encBadge(n.encryption)}
-                {n.crackedPassword && <Badge label={`PSK: ${n.crackedPassword}`} color="var(--success)" />}
+                {n.crackedPassword && (
+                  <Badge label={`PSK: ${n.crackedPassword}`} color={$('--success') || '#10b981'} />
+                )}
               </div>
               <div className="flex gap-1.5 flex-wrap">
                 {reasons.map((r, i) => (
@@ -114,52 +123,46 @@ export function ReportTab({ networks, attacks: _attacks, crackedCount }: ReportT
         })}
       </Panel>
 
-      <Panel title="Recommendations" accent="var(--success)">
+      <Panel title="Recommendations" accent={$('--success') || '#10b981'}>
         {[
           [
             'Disable WEP',
             'Replace all WEP-encrypted networks with WPA2 or WPA3. WEP is cryptographically broken.',
-            'var(--error)',
+            $('--error'),
           ],
           [
             'Disable WPS',
             'Turn off WPS on all routers. WPS is vulnerable to Pixie Dust and brute-force attacks.',
-            'var(--warning)',
+            $('--warning'),
           ],
           [
             'Enable WPA3 / SAE',
             'Migrate to WPA3 where hardware supports. Enables forward secrecy and dragonfly handshake.',
-            'var(--success)',
+            $('--success'),
           ],
           [
             'Enable MFP (802.11w)',
             'Mandatory Management Frame Protection prevents deauthentication attacks.',
-            'var(--warning)',
+            $('--warning'),
           ],
           [
             'Use Strong Passphrases',
             'Wi-Fi passwords should be 20+ characters, avoiding dictionary words.',
-            'var(--primary)',
+            $('--primary'),
           ],
           [
             'Deploy RADIUS / 802.1X',
             'Enterprise networks should use per-user certificates instead of shared PSK.',
-            'var(--accent-purple)',
+            $('--accent-purple') || '#a78bfa',
           ],
         ].map(([title, desc, color]) => (
-          <div
-            key={title}
-            className="flex gap-3 py-2 border-b border-divider"
-          >
+          <div key={title} className="flex gap-3 py-2 border-b border-divider">
             <div
               className="w-[5px] flex-shrink-0 rounded-sm self-stretch"
               style={{ background: color as string }}
             />
             <div>
-              <div
-                className="text-[10px] font-bold mb-0.5"
-                style={{ color: color as string }}
-              >
+              <div className="text-[10px] font-bold mb-0.5" style={{ color: color as string }}>
                 {title}
               </div>
               <div className="text-[9px] text-text-secondary leading-relaxed">{desc}</div>
@@ -167,9 +170,9 @@ export function ReportTab({ networks, attacks: _attacks, crackedCount }: ReportT
           </div>
         ))}
         <div className="mt-3 flex gap-1.5">
-          <Btn label="📄 EXPORT PDF REPORT" color="var(--primary)" size="sm" />
-          <Btn label="📊 EXPORT JSON" color="var(--success)" size="sm" />
-          <Btn label="📋 COPY SUMMARY" color="var(--text-secondary)" size="sm" />
+          <Btn label="📄 EXPORT PDF REPORT" color={$('--primary') || '#3686ff'} size="sm" />
+          <Btn label="📊 EXPORT JSON" color={$('--success') || '#10b981'} size="sm" />
+          <Btn label="📋 COPY SUMMARY" color={$('--text-secondary') || '#9ca3af'} size="sm" />
         </div>
       </Panel>
     </div>

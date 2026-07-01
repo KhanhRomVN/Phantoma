@@ -9,6 +9,7 @@ import MarkdownBlock from '../../blocks/components/MarkdownBlock';
 import ErrorBlock from '../../blocks/components/ErrorBlock';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { isDiff, parseDiff } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
+import { $ } from '@renderer/utils/color';
 
 interface AIMessageBoxProps {
   message: Message;
@@ -99,9 +100,7 @@ const MessageBoxCodeBlock: React.FC<{
       />
       {!isCollapsed && (
         <div style={{ paddingLeft: '29px' }}>
-          <pre
-            className="m-0 p-2 overflow-auto font-mono text-xs bg-background rounded"
-          >
+          <pre className="m-0 p-2 overflow-auto font-mono text-xs bg-background rounded">
             <code className="!bg-transparent p-0">{code}</code>
           </pre>
         </div>
@@ -211,12 +210,12 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
     <div
       className="flex flex-col gap-0 relative transition-all duration-300 ease"
       style={{
-        marginBottom: 'var(--spacing-md)',
+        marginBottom: $('--spacing-md'),
         opacity: message.isCancelled ? 0.4 : 1,
         filter: message.isCancelled ? 'grayscale(1) blur(0.5px)' : 'none',
         pointerEvents: message.isCancelled ? 'none' : 'auto',
         backgroundColor: 'transparent',
-        borderRadius: 'var(--border-radius)',
+        borderRadius: $('--border-radius'),
         border: 'none',
         padding: '0px',
       }}
@@ -473,7 +472,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                         if (parent) {
                           const icon = document.createElement('span');
                           icon.className = 'codicon codicon-server-process';
-                          icon.style.color = 'var(--secondary-text)';
+                          icon.style.color = $('--secondary-text');
                           icon.style.fontSize = '14px';
                           parent.appendChild(icon);
                         }
@@ -483,7 +482,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                     <span
                       className="codicon codicon-server-process"
                       style={{
-                        color: 'var(--secondary-text)',
+                        color: $('--secondary-text') || 'currentColor',
                         fontSize: '14px',
                       }}
                     />
@@ -493,8 +492,8 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                   style={{
                     paddingLeft: '29px',
                     paddingTop: '4px',
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--secondary-text)',
+                    fontSize: $('--font-size-sm'),
+                    color: $('--secondary-text'),
                     lineHeight: 1.6,
                     fontStyle: 'italic',
                     display: 'flex',
@@ -537,7 +536,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                         width: '12px',
                         height: '12px',
                         borderRadius: '50%',
-                        background: 'var(--purple, #a855f7)',
+                        background: $('--purple, #a855f7'),
                         opacity: 0.25,
                       }}
                     />
@@ -546,7 +545,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                         width: '6px',
                         height: '6px',
                         borderRadius: '50%',
-                        background: 'var(--purple, #a855f7)',
+                        background: $('--purple, #a855f7'),
                         flexShrink: 0,
                       }}
                     />
@@ -568,7 +567,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                         fontWeight: 700,
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase',
-                        color: 'var(--purple, #a855f7)',
+                        color: $('--purple, #a855f7'),
                         opacity: 0.85,
                       }}
                     >
@@ -579,14 +578,14 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                   <div
                     style={{
                       padding: '6px 10px',
-                      background: 'var(--background, var(--textCodeBlock-background))',
+                      background: $('--background') || $('--textCodeBlock-background') || '#1e1e1e',
                       borderRadius: '4px',
                       border:
-                        '1px solid color-mix(in srgb, var(--purple, #a855f7) 20%, var(--border, rgba(255,255,255,0.08)))',
-                      fontFamily: 'var(--font-family, monospace)',
+                        `1px solid color-mix(in srgb, ${$('--purple, #a855f7')} 20%, ${$('--border, rgba(255,255,255,0.08)')})`,
+                      fontFamily: $('--font-family, monospace'),
                       fontSize: '11px',
                       lineHeight: '1.5',
-                      color: 'var(--secondary-text, var(--primary-text))',
+                      color: $('--secondary-text') || $('--primary-text') || 'currentColor',
                       opacity: 0.85,
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'break-word',
@@ -606,14 +605,14 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             let displayCode = group.content;
             let diffStats: { added: number; removed: number } | undefined = undefined;
             let prefix: string | undefined = undefined;
-            let statusColor: string | undefined = 'var(--secondary-text, #6a737d)';
+            let statusColor: string | undefined = $('--secondary-text, #6a737d');
 
             if (isDiffBlock) {
               const diffResult = parseDiff(group.content);
               displayCode = diffResult.code;
               diffStats = diffResult.stats;
               prefix = 'Edit';
-              statusColor = 'var(--success, #3fb950)';
+              statusColor = $('--success, #3fb950');
             }
 
             content = (
@@ -637,8 +636,8 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                   gap: '6px',
                   padding: '4px 8px',
                   borderRadius: '4px',
-                  backgroundColor: 'var(--primary, #4d4d4d)',
-                  color: 'var(--text-foreground, #ffffff)',
+                  backgroundColor: $('--primary, #4d4d4d'),
+                  color: $('--text-foreground, #ffffff'),
                   fontSize: '12px',
                   cursor: 'pointer',
                   marginLeft: '29px',
@@ -658,24 +657,22 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
               </div>
             );
           } else if (group.type === 'markdown') {
-            const dotColor = message.isError
-              ? 'var(--error, #ff4d4f)'
-              : 'var(--success, #3fb950)';
+            const dotColor = message.isError ? $('--error, #ff4d4f') : $('--success, #3fb950');
             content = (
               <div>
                 <div
                   className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
                   style={{
                     backgroundColor: dotColor,
-                    boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
+                    boxShadow: `0 0 0 2px ${$('--background') || 'transparent'}, 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
                   }}
                 />
                 <div
                   style={{
                     paddingLeft: '29px',
                     paddingTop: '4px',
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--primary-text)',
+                    fontSize: $('--font-size-sm'),
+                    color: $('--text-primary'),
                   }}
                 >
                   <MarkdownBlock content={group.content} knownFilePaths={knownFilePaths} />
@@ -683,16 +680,14 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
               </div>
             );
           } else if (group.type === 'mixed_content') {
-            const dotColor = message.isError
-              ? 'var(--error, #ff4d4f)'
-              : 'var(--success, #3fb950)';
+            const dotColor = message.isError ? $('--error, #ff4d4f') : $('--success, #3fb950');
             content = (
               <div>
                 <div
                   className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
                   style={{
                     backgroundColor: dotColor,
-                    boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
+                    boxShadow: `0 0 0 2px ${$('--background') || 'transparent'}, 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
                   }}
                 />
                 <div style={{ paddingLeft: '29px', paddingTop: '4px' }}>
@@ -874,10 +869,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
           }
 
           return (
-            <div
-              key={group.key}
-              className={`relative ml-0 ${isLast ? 'pb-0' : ''}`}
-            >
+            <div key={group.key} className={`relative ml-0 ${isLast ? 'pb-0' : ''}`}>
               {content}
             </div>
           );

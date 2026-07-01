@@ -5,12 +5,12 @@
 import type { WiFiNetwork } from '../../types';
 import { Panel } from '../shared/Panel';
 import { Btn } from '../shared/Btn';
+import { $ } from '@renderer/utils/color';
 
 // Helper function to resolve color from CSS variable
 function resolveColor(color: string): string {
   const colorMap: Record<string, string> = {
-    'var(--accent-purple)': '#a78bfa',
-    'var(--success)': '#10b981',
+    '--success': '#10b981',
   };
   return colorMap[color] || color;
 }
@@ -43,7 +43,10 @@ export function PMKIDPanel({ networks, onAction }: PMKIDPanelProps) {
   const wpa2Targets = networks.filter((n) => n.encryption === 'wpa2' || n.encryption === 'wpa');
 
   return (
-    <Panel title="PMKID Attack · hcxdumptool — No Deauth Required" accent="var(--accent-purple)">
+    <Panel
+      title="PMKID Attack · hcxdumptool — No Deauth Required"
+      accent={$('--accent-purple') || '#a78bfa'}
+    >
       <div className="text-[9px] text-text-secondary mb-3 leading-relaxed py-2 px-2.5 bg-info border border-accent-purple/20 rounded">
         PMKID attacks capture the RSN IE PMKID from beacon/association frames — no client needed, no
         deauth sent. Use <span className="text-accent-purple">hcxdumptool</span> to capture, then
@@ -59,8 +62,10 @@ export function PMKIDPanel({ networks, onAction }: PMKIDPanelProps) {
               <span className="text-[10px] font-bold text-text-primary">
                 {net.ssid || '‹hidden›'}
               </span>
-              {net.pmkidCaptured && <Badge label="✓ CAPTURED" color="var(--accent-purple)" />}
-              {net.crackedPassword && <Badge label="CRACKED" color="var(--success)" />}
+              {net.pmkidCaptured && (
+                <Badge label="✓ CAPTURED" color={$('--accent-purple') || '#a78bfa'} />
+              )}
+              {net.crackedPassword && <Badge label="CRACKED" color={$('--success') || '#10b981'} />}
             </div>
             <div className="flex gap-2.5 text-[9px] mb-1.5">
               <span className="text-text-secondary">
@@ -83,19 +88,19 @@ export function PMKIDPanel({ networks, onAction }: PMKIDPanelProps) {
               {!net.pmkidCaptured ? (
                 <Btn
                   label="🧬 CAPTURE PMKID"
-                  color="var(--accent-purple)"
+                  color={$('--accent-purple') || '#a78bfa'}
                   onClick={() => onAction('pmkid', net)}
                   size="xs"
                 />
               ) : !net.crackedPassword ? (
                 <Btn
                   label="🔓 CRACK (hashcat)"
-                  color="var(--warning)"
+                  color={$('--warning') || '#f59e0b'}
                   onClick={() => onAction('crack', net)}
                   size="xs"
                 />
               ) : (
-                <Badge label="✓ PASSWORD RECOVERED" color="var(--success)" />
+                <Badge label="✓ PASSWORD RECOVERED" color={$('--success') || '#10b981'} />
               )}
             </div>
           </div>
@@ -104,12 +109,12 @@ export function PMKIDPanel({ networks, onAction }: PMKIDPanelProps) {
       <div className="flex gap-1.5 mt-2.5">
         <Btn
           label="🧬 CAPTURE ALL PMKID"
-          color="var(--accent-purple)"
+          color={$('--accent-purple') || '#a78bfa'}
           size="sm"
           onClick={() => wpa2Targets.forEach((n) => onAction('pmkid', n))}
         />
-        <Btn label="⚙ hcxdumptool CONFIG" color="var(--text-secondary)" size="sm" />
-        <Btn label="📊 EXPORT .hc22000" color="var(--text-secondary)" size="sm" />
+        <Btn label="⚙ hcxdumptool CONFIG" color={$('--text-secondary') || '#9ca3af'} size="sm" />
+        <Btn label="📊 EXPORT .hc22000" color={$('--text-secondary') || '#9ca3af'} size="sm" />
       </div>
     </Panel>
   );
