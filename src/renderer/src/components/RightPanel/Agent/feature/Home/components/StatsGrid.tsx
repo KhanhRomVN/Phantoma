@@ -1,5 +1,6 @@
 import React from 'react';
 import { MessageSquare, Zap, Brain, Users } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
 
 interface StatsGridProps {
   todayTokens: number;
@@ -18,7 +19,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
     {
       icon: <MessageSquare size={16} />,
       iconBg: 'rgba(59, 130, 246, 0.12)',
-      iconColor: 'var(--primary, #3b82f6)',
+      iconColor: $('--primary'),
       value: todayTokens.toLocaleString(),
       label: 'Total Chats',
       valueStyle: { fontSize: '16px', fontWeight: 700 } as React.CSSProperties,
@@ -26,7 +27,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
     {
       icon: <Zap size={16} />,
       iconBg: 'rgba(16, 185, 129, 0.12)',
-      iconColor: 'var(--success, #10b981)',
+      iconColor: $('--success'),
       value: String(todayRequests),
       label: 'Tools Executed',
       valueStyle: { fontSize: '16px', fontWeight: 700 } as React.CSSProperties,
@@ -34,7 +35,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
     {
       icon: <Brain size={16} />,
       iconBg: 'rgba(245, 158, 11, 0.12)',
-      iconColor: 'var(--warn, #f59e0b)',
+      iconColor: $('--warn'),
       value: favoriteModel,
       label: 'Estimated Savings',
       valueStyle: {
@@ -47,7 +48,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
     {
       icon: <Users size={16} />,
       iconBg: 'rgba(139, 92, 246, 0.12)',
-      iconColor: 'var(--purple, #8b5cf6)',
+      iconColor: $('--purple'),
       value: String(totalAccounts),
       label: 'Success Rate',
       valueStyle: { fontSize: '16px', fontWeight: 700 } as React.CSSProperties,
@@ -59,7 +60,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
       {cards.map((card, i) => (
         <div
           key={i}
-          className="dashboard-card flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ease-in-out border border-border hover:border-primary"
+          className="dashboard-card flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary"
         >
           <div
             className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
@@ -72,9 +73,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({
           </div>
           <div className="flex flex-col gap-0.5">
             <span style={card.valueStyle}>{card.value}</span>
-            <span className="text-[10px] font-medium text-secondary">
-              {card.label}
-            </span>
+            <span className="text-[10px] font-medium text-secondary">{card.label}</span>
           </div>
         </div>
       ))}

@@ -35,6 +35,7 @@ func NewRouter(cfg *config.Config) http.Handler {
 
 	// Register all route groups
 	RegisterHealthRoutes(mux)
+	RegisterDatabaseRoutes(mux, cfg)
 	RegisterTargetRoutes(mux, targetSvc)
 	RegisterNmapRoutes(mux, nmapSvc)
 	RegisterNiktoRoutes(mux, niktoSvc)

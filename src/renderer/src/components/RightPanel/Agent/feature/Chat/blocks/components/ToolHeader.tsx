@@ -135,19 +135,15 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
     <>
       <div
         ref={containerRef}
-        className="terminal-block-header"
+        className="terminal-block-header flex items-center justify-between px-3 pt-0.5 pb-0 bg-transparent border-b-0 select-none cursor-pointer relative"
         onClick={onClick || onToggleCollapse}
         style={{
           cursor: onClick || onToggleCollapse ? 'pointer' : 'default',
-          paddingTop: '4px',
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
           width: '100%',
         }}
       >
-        <div className="terminal-info" style={{ flex: 1, minWidth: 0 }}>
-          <div className="terminal-header-top">
+        <div className="terminal-info flex flex-col gap-0.5" style={{ flex: 1, minWidth: 0 }}>
+          <div className="terminal-header-top flex items-center gap-2.5">
             {statusColor && (
               <div
                 className={`terminal-status-dot timeline-dot ${isPartial ? 'streaming-pulse' : ''}`}
@@ -202,7 +198,7 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
                 )}
                 {icon && <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>}
                 {typeof title === 'string' ? (
-                  <span className="terminal-name">{title}</span>
+                  <span className="terminal-name text-[13px] font-semibold text-text-primary font-mono whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]">{title}</span>
                 ) : (
                   <div className="terminal-name" style={{ display: 'contents' }}>
                     {title}
@@ -233,10 +229,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
                       top: '0',
                       width: '16px',
                       height: '12px',
-                      borderLeft:
-                        `1px solid color-mix(in srgb, ${$('--secondary-text')} 20%, transparent)`,
-                      borderBottom:
-                        `1px solid color-mix(in srgb, ${$('--secondary-text')} 20%, transparent)`,
+                      borderLeft: `1px solid color-mix(in srgb, ${$('--secondary-text')} 20%, transparent)`,
+                      borderBottom: `1px solid color-mix(in srgb, ${$('--secondary-text')} 20%, transparent)`,
                     }}
                   />
                   <span
@@ -264,8 +258,9 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.textDecoration = 'underline';
-                      e.currentTarget.style.textDecorationColor =
-                        $('--primary, rgba(0, 122, 204, 0.6)');
+                      e.currentTarget.style.textDecorationColor = $(
+                        '--primary, rgba(0, 122, 204, 0.6)',
+                      );
                       e.currentTarget.style.textUnderlineOffset = '2px';
                       e.currentTarget.style.cursor = 'pointer';
                     }}
@@ -281,7 +276,7 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
             </div>
           </div>
           {(subTitle || diffStats) && (
-            <div className={`terminal-sub-info${subTitleClassName ? ` ${subTitleClassName}` : ''}`}>
+            <div className={`terminal-sub-info text-[11px] opacity-50 font-mono whitespace-nowrap overflow-hidden text-ellipsis pl-[29px] relative flex items-center h-[18px] -mt-0.5${subTitleClassName ? ` ${subTitleClassName}` : ''}`}>
               {diffStats ? (
                 <span
                   style={{
@@ -313,7 +308,7 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
           )}
         </div>
         <div
-          className="header-actions"
+          className="header-actions flex items-center gap-2"
           onClick={(e) => e.stopPropagation()}
           style={{ flexShrink: 0, marginLeft: '8px' }}
         >
@@ -321,18 +316,6 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
         </div>
       </div>
       <style>{`
-      .terminal-block-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 2px 12px 0px 29px;
-        background-color: transparent;
-        border-bottom: none;
-        user-select: none;
-        cursor: pointer;
-        position: relative;
-      }
-
       .terminal-block .terminal-block-header {
         background-color: ${$('--sidebar-background') || 'rgba(0, 0, 0, 0.1)'};
         border-bottom: 1px solid ${$('--border') || 'rgba(128, 128, 128, 0.12)'};
@@ -348,61 +331,6 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
         background-color: transparent;
       }
 
-      .terminal-info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-
-      .terminal-header-top {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .terminal-status-dot {
-        flex-shrink: 0;
-      }
-
-      .terminal-name {
-        font-size: 13px;
-        font-weight: 600;
-        color: ${$('--primary-text')};
-        font-family: ${$('--font-family') || 'monospace'};
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 250px;
-      }
-
-      .terminal-sub-info {
-        font-size: 11px;
-        opacity: 0.5;
-        font-family: ${$('--font-family')};
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        padding-left: 29px;
-        position: relative;
-        display: flex;
-        align-items: center;
-        height: 18px;
-        margin-top: -2px;
-      }
-
-      .terminal-sub-info.error-sub-info {
-        font-size: ${$('--font-size') || '13px'};
-        opacity: 1;
-        color: ${$('--primary-text')};
-        height: auto;
-        white-space: normal;
-        overflow: visible;
-        text-overflow: unset;
-        line-height: 1.5;
-        padding-top: 2px;
-        padding-bottom: 4px;
-      }
-
       .terminal-sub-info::before {
         content: "";
         position: absolute;
@@ -414,22 +342,6 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
         border-bottom: 2px solid ${$('--border') || 'rgba(128, 128, 128, 0.3)'};
         border-bottom-left-radius: 4px;
         transform: translateX(-1px);
-      }
-
-      .terminal-state-badge {
-        font-size: 10px;
-        padding: 1px 6px;
-        border-radius: 10px;
-        background-color: ${$('--primary') || '#4d4d4d'};
-        color: ${$('--text-foreground') || '#ffffff'};
-        opacity: 0.8;
-        font-weight: 600;
-      }
-
-      .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
       }
 
       .execute-button-minimal:hover {

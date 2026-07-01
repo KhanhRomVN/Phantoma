@@ -16,6 +16,7 @@ import (
 
 // DB là instance database toàn cục.
 var DB *sql.DB
+var currentDBPath string
 
 // Init mở kết nối SQLite và chạy migration.
 // Trả về error nếu có lỗi xảy ra.
@@ -39,6 +40,7 @@ func Init(dbPath string) error {
 	}
 
 	DB = db
+	currentDBPath = dbPath
 	logger.Info("database connected", logger.F("path", dbPath))
 
 	// Chạy migration
@@ -48,6 +50,31 @@ func Init(dbPath string) error {
 	}
 
 	return nil
+}
+
+// ReInit đóng kết nối database hiện tại và mở kết nối mới với dbPath mới.
+// Trả về error nếu có lỗi xảy ra.
+func ReInit(newPath string) error {
+	// Đóng kết nối cũ nếu có
+	if DB != nil {
+		if err := DB.Close(); err != nil {
+			logger.Warn("failed to close old database connection", logger.F("error", err))
+		}
+		DB = nil
+	}
+
+	// Mở kết nối mới
+	if err := Init(newPath); err != nil {
+		return fmt.Errorf("failed to re-initialize database: %w", err)
+	}
+
+	logger.Info("database re-initialized", logger.F("new_path", newPath))
+	return nil
+}
+
+// GetCurrentPath trả về đường dẫn database hiện tại.
+func GetCurrentPath() string {
+	return currentDBPath
 }
 
 // Close đóng kết nối database.

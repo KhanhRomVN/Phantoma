@@ -3,7 +3,7 @@
 // Previously handled by VS Code extension host.
 // ──────────────────────────────────────────────────────────────────────────
 
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, dialog } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -173,10 +173,83 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
 
     // ─── History ────────────────────────────────────────────────────
     case 'getHistory': {
-      sendToRenderer('historyResult', {
-        requestId,
-        history: [],
-      });
+      try {
+        const win = getMainWindow();
+        if (!win || win.isDestroyed()) {
+          sendToRenderer('historyResult', {
+            requestId,
+            history: [],
+          });
+          return { success: true };
+        }
+
+        // Execute JavaScript in renderer to get conversations from localStorage
+        const result = await win.webContents.executeJavaScript(`
+          (function() {
+            try {
+              // Get all conversation IDs
+              const keys = Object.keys(localStorage);
+              const convKeys = keys.filter(k => k.startsWith('agent-conversation-'));
+              
+              const conversations = [];
+              for (const key of convKeys) {
+                try {
+                  const data = localStorage.getItem(key);
+                  if (!data) continue;
+                  const parsed = JSON.parse(data);
+                  const convId = key.replace('agent-conversation-', '');
+                  
+                  // Extract metadata from messages
+                  const messages = parsed || [];
+                  const title = messages.length > 0 
+                    ? (messages[0]?.content?.substring(0, 50) || 'New Conversation')
+                    : 'New Conversation';
+                  const lastModified = messages.length > 0 
+                    ? (messages[messages.length - 1]?.timestamp || Date.now())
+                    : Date.now();
+                  const createdAt = messages.length > 0 
+                    ? (messages[0]?.timestamp || Date.now())
+                    : Date.now();
+                  
+                  conversations.push({
+                    id: convId,
+                    title: title,
+                    lastModified: lastModified,
+                    createdAt: createdAt,
+                    messageCount: messages.length,
+                    totalRequests: messages.filter(m => m.role === 'user').length,
+                    totalTokenUsage: messages.reduce((sum, m) => sum + (m.token_usage || 0), 0),
+                    sessionId: 0,
+                    folderPath: null,
+                  });
+                } catch (e) {
+                  console.warn('[getHistory] Failed to parse conversation:', key, e);
+                }
+              }
+              
+              // Sort by lastModified descending
+              conversations.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
+              
+              return conversations;
+            } catch (e) {
+              console.warn('[getHistory] Failed to get conversations:', e);
+              return [];
+            }
+          })();
+        `);
+
+        console.log(`[getHistory] Found ${result?.length || 0} conversations`);
+        sendToRenderer('historyResult', {
+          requestId,
+          history: result || [],
+        });
+      } catch (error) {
+        console.error('[getHistory] Error:', error);
+        sendToRenderer('historyResult', {
+          requestId,
+          history: [],
+        });
+      }
       return { success: true };
     }
 
@@ -674,6 +747,42 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
       return { success: true };
     }
 
+    case 'selectFile': {
+      try {
+        const result = await dialog.showOpenDialog({
+          title: 'Select SQLite Database File',
+          properties: ['openFile'],
+          filters: [
+            { name: 'SQLite Database', extensions: ['sql', 'db', 'sqlite', 'sqlite3'] },
+            { name: 'All Files', extensions: ['*'] },
+          ],
+        });
+        if (!result.canceled && result.filePaths.length > 0) {
+          return { success: true, filePath: result.filePaths[0] };
+        }
+        return { success: false, canceled: true };
+      } catch (e: any) {
+        console.error('[RendererHandler] selectFile error:', e);
+        return { success: false, error: e.message };
+      }
+    }
+
+    case 'selectFolder': {
+      try {
+        const result = await dialog.showOpenDialog({
+          title: 'Select Folder for New Database',
+          properties: ['openDirectory', 'createDirectory'],
+        });
+        if (!result.canceled && result.filePaths.length > 0) {
+          return { success: true, folderPath: result.filePaths[0] };
+        }
+        return { success: false, canceled: true };
+      } catch (e: any) {
+        console.error('[RendererHandler] selectFolder error:', e);
+        return { success: false, error: e.message };
+      }
+    }
+
     // ─── Snapshot / Diff ────────────────────────────────────────────
     case 'getSnapshot': {
       sendToRenderer('messageResponse', {
@@ -793,6 +902,8 @@ export function setupRendererHandlers() {
     // File Navigation
     'openFileAtLine',
     'openFolder',
+    'selectFile',
+    'selectFolder',
     // Snapshot
     'getSnapshot',
     'openSnapshotDiff',

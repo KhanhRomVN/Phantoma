@@ -262,8 +262,8 @@ const GlobalPermissionButton: React.FC = () => {
         className={cn(
           'flex items-center gap-1 h-[22px] px-2 rounded text-[11px] font-semibold tracking-[0.3px] cursor-pointer box-border leading-none align-middle transition-all duration-200 ease-in-out opacity-100',
           isHovered
-            ? 'bg-[color-mix(in_srgb,var(--permission-color,var(--violet,#f59e0b))_20%,transparent)]'
-            : 'bg-[color-mix(in_srgb,var(--permission-color,var(--violet,#f59e0b))_12%,transparent)]',
+            ? `bg-[color-mix(in_srgb,${metadata.color}_20%,transparent)]`
+            : `bg-[color-mix(in_srgb,${metadata.color}_12%,transparent)]`,
         )}
         style={{
           border: `1px solid ${metadata.color}40`,
@@ -809,22 +809,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
           </div>
         )}
         <div className="relative rounded-t p-3 bg-input-background">
-          <style>{`
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: $('--scrollbar-thumb');
-            border-radius: 10px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background-color: $('--scrollbar-thumb-hover');
-          }
-        `}</style>
-
           <textarea
             ref={textareaRef}
             value={message}

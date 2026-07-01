@@ -43,10 +43,7 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-2.5 pb-1.5">
-          <div
-            className="w-8 h-[3px] rounded-[2px]"
-            style={{ backgroundColor: $('--border') }}
-          />
+          <div className="w-8 h-[3px] rounded-[2px]" style={{ backgroundColor: $('--border') }} />
         </div>
 
         {/* Content */}
@@ -104,21 +101,6 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes cdSlideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-        @keyframes cdFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes cdSpin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </>
   );
 };

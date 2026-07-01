@@ -39,7 +39,7 @@ export function DropdownItem({
       {...props}
     >
       {icon && <span className="shrink-0">{icon}</span>}
-      <span className="flex-1">{children}</span>
+      {children}
     </div>
   );
 }

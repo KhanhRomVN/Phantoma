@@ -64,6 +64,11 @@ func (c *Config) IsDevelopment() bool {
 	return c.Env == "development"
 }
 
+// SetDBPath cập nhật đường dẫn database trong config.
+func (c *Config) SetDBPath(path string) {
+	c.DBPath = path
+}
+
 func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val

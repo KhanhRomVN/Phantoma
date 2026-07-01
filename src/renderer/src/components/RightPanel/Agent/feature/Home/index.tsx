@@ -170,40 +170,58 @@ const HomePanel: React.FC<HomePanelProps> = ({
   }, []);
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const msg = event.data;
-      if (msg.command === 'historyResult') {
-        console.log(
-          '[Phantoma][Home] historyResult received | history count:',
-          msg.history?.length,
-          '| history:',
-          msg.history,
-        );
-        if (msg.history) setConversations(msg.history);
-        setIsLoading(false);
-      } else if (msg.command === 'deleteConversationResult') {
-        if (msg.success) {
-          setConversations((prev) => prev.filter((c) => c.id !== msg.conversationId));
-        }
-      } else if (msg.command === 'deleteConfirmed' && msg.conversationId) {
-        const vscodeApi = (window as any).vscodeApi;
-        if (vscodeApi) {
-          vscodeApi.postMessage({
-            command: 'deleteConversation',
-            conversationId: msg.conversationId,
-          });
-        }
+    // Subscribe to historyResult events from main process via IPC
+    const unsubscribe = extensionService.onMessage('historyResult', (msg: any) => {
+      console.log(
+        '[Phantoma][Home] historyResult received | history count:',
+        msg?.history?.length,
+        '| history:',
+        msg?.history,
+      );
+      console.log(
+        '[Phantoma][Home] historyResult raw data:',
+        JSON.stringify(msg?.history, null, 2),
+      );
+      if (msg?.history) {
+        // Ensure each conversation has required fields
+        const validHistory = msg.history.filter((c: any) => c && c.id);
+        console.log('[Phantoma][Home] Valid history count:', validHistory.length);
+        setConversations(validHistory);
       }
+      setIsLoading(false);
+    });
+
+    // Also listen for deleteConversationResult events
+    const unsubscribeDelete = extensionService.onMessage('deleteConversationResult', (msg: any) => {
+      if (msg?.success) {
+        setConversations((prev) => prev.filter((c) => c.id !== msg.conversationId));
+      }
+    });
+
+    // Listen for deleteConfirmed events (triggered by HistoryCard)
+    const unsubscribeConfirm = extensionService.onMessage('deleteConfirmed', (msg: any) => {
+      if (msg?.conversationId) {
+        console.log('[Phantoma][Home] deleteConfirmed received for:', msg.conversationId);
+        extensionService.postMessage({
+          command: 'deleteConversation',
+          conversationId: msg.conversationId,
+        });
+      }
+    });
+
+    // Send getHistory request
+    console.log('[Phantoma][Home] Sending getHistory request via extensionService...');
+    extensionService.postMessage({
+      command: 'getHistory',
+      requestId: `welcome-hist-${Date.now()}`,
+    });
+
+    // Cleanup subscriptions
+    return () => {
+      unsubscribe();
+      unsubscribeDelete();
+      unsubscribeConfirm();
     };
-    window.addEventListener('message', handleMessage);
-    const vscodeApi = (window as any).vscodeApi;
-    if (vscodeApi) {
-      vscodeApi.postMessage({
-        command: 'getHistory',
-        requestId: `welcome-hist-${Date.now()}`,
-      });
-    }
-    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   const sortedConversations = [...conversations].sort((a, b) => {
@@ -259,13 +277,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
         >
           {/* Header */}
           <div className="flex flex-col items-center gap-0.5 text-center w-full">
-            <h1
-              className="text-[30px] font-extrabold m-0 tracking-[-0.02em] leading-tight py-1 bg-gradient-to-r from-text-text-primary to-text-text-secondary bg-clip-text text-transparent"
-              style={{
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
+            <h1 className="text-[30px] font-extrabold m-0 tracking-[-0.02em] leading-tight py-1 text-text-primary">
               Phantoma
             </h1>
 
@@ -303,27 +315,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
               onLoadConversation={onLoadConversation}
             />
           </div>
-
-          <style>{`
-            @keyframes fadeIn {
-              from { opacity: 0; transform: translateY(8px); }
-              to   { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes slideUp {
-              from { opacity: 0; transform: translateY(16px); }
-              to   { opacity: 1; transform: translateY(0); }
-            }
-            .spin-animation { animation: spin 1s linear infinite; }
-            @keyframes spin {
-              from { transform: rotate(0deg); }
-              to   { transform: rotate(360deg); }
-            }
-            .dashboard-card:hover {
-              transform: translateY(-2px);
-              border-color: var(--primary) !important;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-            }
-          `}</style>
         </div>
       </div>
 

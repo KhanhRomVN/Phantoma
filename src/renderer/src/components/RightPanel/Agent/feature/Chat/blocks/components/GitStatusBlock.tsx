@@ -120,7 +120,10 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
 
   return (
     <>
-      <div className="bg-transparent border-none overflow-hidden my-2" style={{ fontFamily: $('--font-family') || "'Segoe UI','Helvetica Neue',Arial,sans-serif" }}>
+      <div
+        className="bg-transparent border-none overflow-hidden my-2"
+        style={{ fontFamily: $('--font-family') || "'Segoe UI','Helvetica Neue',Arial,sans-serif" }}
+      >
         <div className="git-status-body py-1.5 max-h-[280px] overflow-y-auto border rounded-md">
           {unpushedCommits.length > 0 && (
             <div className="py-1">
@@ -202,8 +205,8 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
             }
             style={{
               background: `color-mix(in srgb, ${buttonColor} 15%, transparent)`,
-              color: stagedItems.length === 0 ? ($('--secondary-text') || '#8c8c8c') : buttonColor,
-              border: `1px solid color-mix(in srgb, ${stagedItems.length === 0 ? ($('--secondary-text') || '#8c8c8c') : buttonColor} 30%, transparent)`,
+              color: stagedItems.length === 0 ? $('--secondary-text') || '#8c8c8c' : buttonColor,
+              border: `1px solid color-mix(in srgb, ${stagedItems.length === 0 ? $('--secondary-text') || '#8c8c8c' : buttonColor} 30%, transparent)`,
               cursor: stagedItems.length === 0 ? 'not-allowed' : 'pointer',
               opacity: stagedItems.length === 0 ? 0.5 : 1,
             }}
@@ -244,19 +247,6 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
           </button>
         </div>
       </div>
-
-      <style>{`
-        .git-status-body::-webkit-scrollbar {
-          width: 4px;
-        }
-        .git-status-body::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .git-status-body::-webkit-scrollbar-thumb {
-          background: #3a3a3a;
-          border-radius: 4px;
-        }
-      `}</style>
     </>
   );
 };

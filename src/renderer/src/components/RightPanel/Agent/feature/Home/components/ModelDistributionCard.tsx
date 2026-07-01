@@ -131,8 +131,7 @@ const ModelDistributionCard: React.FC<Props> = ({
                 y={cy - 6}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-[17px] font-bold"
-                style={{ fill: $('--primary-text') || 'currentColor' }}
+                className="text-[17px] font-bold text-text-primary"
               >
                 {modelDistribution.length}
               </text>
@@ -141,7 +140,7 @@ const ModelDistributionCard: React.FC<Props> = ({
                 y={cy + 11}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-[10px] fill-text-secondary"
+                className="text-[10px] text-text-secondary"
               >
                 models
               </text>

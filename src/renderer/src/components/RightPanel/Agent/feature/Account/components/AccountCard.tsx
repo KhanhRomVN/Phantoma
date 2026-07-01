@@ -416,16 +416,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
           </div>
         </div>
       )}
-
       {contextMenu}
-
-      <style>{`
-        .account-card:hover {
-          transform: translateY(-1px);
-          border-color: $('--primary');
-          box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-        }
-      `}</style>
     </div>
   );
 };

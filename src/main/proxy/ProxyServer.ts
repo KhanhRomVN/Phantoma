@@ -277,9 +277,6 @@ export class ProxyServer extends EventEmitter {
           socket.write('HTTP/1.1 200 Connection Established\r\n\r\n', 'utf-8', () => {
             // Now client will send WebSocket upgrade, forward everything
 
-            const clientBuffer = Buffer.alloc(0);
-            const serverBuffer = Buffer.alloc(0);
-
             // Capture server response headers (first response from server)
             let responseHeadersCaptured = false;
             let serverHeaderBuffer = '';
@@ -1124,7 +1121,7 @@ export class ProxyServer extends EventEmitter {
     const windowExists = this.window && !this.window.isDestroyed();
     console.log('[Proxy Debug] sendToRenderer:', channel, 'Window exists:', windowExists);
     if (windowExists) {
-      this.window.webContents.send(channel, data);
+      this.window?.webContents.send(channel, data);
     } else {
       console.log('[Proxy Debug] sendToRenderer - Window not available, channel:', channel);
     }

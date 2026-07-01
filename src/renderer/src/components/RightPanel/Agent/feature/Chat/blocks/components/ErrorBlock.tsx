@@ -124,28 +124,10 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
               minHeight: '32px',
             }}
           >
-            <div className="whitespace-pre-wrap break-words text-error">
-              {displayMessage}
-            </div>
+            <div className="whitespace-pre-wrap break-words text-error">{displayMessage}</div>
           </div>
         )}
       </div>
-
-      <style>{`
-        .error-block-content::-webkit-scrollbar {
-          width: 1px;
-        }
-        .error-block-content::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .error-block-content::-webkit-scrollbar-thumb {
-          background: color-mix(in srgb, $('--error') || '#f44336' 50%, transparent);
-          border-radius: 2px;
-        }
-        .error-block-content::-webkit-scrollbar-thumb:hover {
-          background: color-mix(in srgb, $('--error') || '#f44336' 80%, transparent);
-        }
-      `}</style>
     </div>
   );
 };

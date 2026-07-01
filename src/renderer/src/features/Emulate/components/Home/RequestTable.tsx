@@ -846,29 +846,6 @@ export function RequestTable({
 
   return (
     <div className="h-full w-full flex flex-col text-sm overflow-hidden relative">
-      <style>{`
-        @keyframes intercept-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
-        }
-        @keyframes intercept-border-pulse {
-          0%, 100% { border-left-color: rgba(245, 158, 11, 0.4); }
-          50% { border-left-color: rgba(245, 158, 11, 0.9); }
-        }
-        .intercept-pending-row {
-          animation: intercept-border-pulse 1.5s ease-in-out infinite;
-        }
-        /* Fix scrollbar thumb height to 50% of container */
-        .request-table-scroll::-webkit-scrollbar-thumb {
-          height: 50% !important;
-          min-height: 40px !important;
-        }
-        /* For Firefox - use thin scrollbar with fixed ratio approximation */
-        .request-table-scroll {
-          scrollbar-width: thin;
-          scrollbar-color: ${$('--scrollbar-thumb') || '#4a4a6a'} transparent;
-        }
-      `}</style>
       <div className="h-10 flex items-center px-2 border-b border-divider gap-2 shrink-0">
         <div className="flex-1 flex items-center gap-2 bg-input-background border border-border rounded px-3 h-7">
           <div className="relative flex-1">

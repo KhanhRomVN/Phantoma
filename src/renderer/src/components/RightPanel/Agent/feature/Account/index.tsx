@@ -103,11 +103,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} height="100%" strategy="absolute">
-      <DrawerHeader
-        title="Accounts"
-        description="Manage your API accounts"
-        onClose={onClose}
-      />
+      <DrawerHeader title="Accounts" description="Manage your API accounts" onClose={onClose} />
 
       {/* Action Bar */}
       <div className="px-4 pt-3 pb-2 shrink-0 flex gap-2 items-center bg-background">
@@ -181,9 +177,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
       {/* Bulk Actions Bar */}
       {selectedAccounts.size > 0 && (
         <div className="mt-2 mx-4 px-3 py-2 rounded-[10px] flex items-center justify-between bg-sidebar-item-hover/10">
-          <span className="text-xs text-text-primary">
-            {selectedAccounts.size} selected
-          </span>
+          <span className="text-xs text-text-primary">{selectedAccounts.size} selected</span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleSelectAll}>
               {allVisibleSelected ? 'Deselect All' : 'Select All'}
@@ -279,15 +273,6 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
         }
         count={deleteItem ? 1 : selectedAccounts.size}
       />
-
-      <style>
-        {`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}
-      </style>
     </Drawer>
   );
 };

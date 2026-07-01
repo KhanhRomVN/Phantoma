@@ -10,6 +10,8 @@ import ProcessingIndicator from './messages/ProcessingIndicator';
 import MessageBox from './messages/MessageBox';
 import SearchBar from './SearchBar';
 import { ChatErrorBoundary } from './ChatErrorBoundary';
+import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 interface ChatBodyProps {
   messages: Message[];
@@ -230,13 +232,10 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   return (
     <div
       ref={bodyRef}
-      className="flex-1 overflow-y-auto flex flex-col gap-3 text-sm relative scrollbar-thin"
-      style={{
-        backgroundColor: 'var(--secondary-bg)',
-        padding: 'var(--spacing-lg)',
-        paddingBottom: visibleMessages.length > 0 ? '200px' : 'var(--spacing-lg)',
-        scrollbarWidth: 'thin',
-      }}
+      className={cn(
+        'flex-1 overflow-y-auto flex flex-col gap-3 text-sm relativ p-4',
+        visibleMessages.length > 0 ? 'pb-[200px]' : 'pb-4',
+      )}
     >
       {isSearchOpen && (
         <SearchBar
@@ -254,9 +253,9 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
             onClick={scrollToBottom}
             className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-[5px] rounded-[20px] text-[11px] font-semibold cursor-pointer transition-opacity duration-200"
             style={{
-              border: '1px solid color-mix(in srgb, var(--primary, #007acc) 40%, transparent)',
-              background: 'color-mix(in srgb, var(--background) 85%, var(--primary, #007acc))',
-              color: 'var(--primary, #007acc)',
+              border: `1px solid color-mix(in srgb, ${$('--primary')} 40%, transparent)`,
+              background: `color-mix(in srgb, ${$('--background')} 85%, ${$('--primary')})`,
+              color: $('--primary'),
               boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             }}
           >
@@ -330,21 +329,17 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
             onClick={onContinue}
             className="inline-flex items-center justify-center gap-1.5 h-7 px-4 rounded-md text-[11px] font-semibold uppercase tracking-[0.5px] cursor-pointer box-border transition-all duration-200 ease-in-out"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--primary, #007acc) 15%, transparent)',
-              color: 'var(--primary, #007acc)',
-              border: '1px solid color-mix(in srgb, var(--primary, #007acc) 30%, transparent)',
+              backgroundColor: `color-mix(in srgb, ${$('--primary')} 15%, transparent)`,
+              color: $('--primary'),
+              border: `1px solid color-mix(in srgb, ${$('--primary')} 30%, transparent)`,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor =
-                'color-mix(in srgb, var(--primary, #007acc) 25%, transparent)';
-              e.currentTarget.style.borderColor =
-                'color-mix(in srgb, var(--primary, #007acc) 50%, transparent)';
+              e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--primary')} 25%, transparent)`;
+              e.currentTarget.style.borderColor = `color-mix(in srgb, ${$('--primary')} 50%, transparent)`;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor =
-                'color-mix(in srgb, var(--primary, #007acc) 15%, transparent)';
-              e.currentTarget.style.borderColor =
-                'color-mix(in srgb, var(--primary, #007acc) 30%, transparent)';
+              e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--primary')} 15%, transparent)`;
+              e.currentTarget.style.borderColor = `color-mix(in srgb, ${$('--primary')} 30%, transparent)`;
             }}
           >
             <span className="codicon codicon-play text-xs inline-flex items-center justify-center" />
@@ -357,15 +352,15 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
         <div
           className="flex items-start gap-2.5 px-3.5 py-2 mb-1 mt-1 rounded-lg text-xs"
           style={{
-            background: 'color-mix(in srgb, var(--warn, #cca700) 8%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--warn, #cca700) 25%, transparent)',
-            color: 'var(--text-primary)',
+            background: `color-mix(in srgb, ${$('--warn')} 8%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${$('--warn')} 25%, transparent)`,
+            color: $('--text-primary'),
           }}
         >
           <span
             className="shrink-0 mt-0.5 inline-block w-2 h-2 rounded-full animate-[zen-pulse_1.2s_ease-in-out_infinite]"
             style={{
-              background: 'var(--warn, #cca700)',
+              background: $('--warn'),
             }}
           />
           <div className="flex flex-col gap-0.5">
@@ -388,17 +383,6 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
       {(isProcessing || hasInitialMessage) && <ProcessingIndicator isResponding={isResponding} />}
 
       <div ref={messagesEndRef} />
-      <style>{`
-        .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
-        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: rgba(128, 128, 128, 0.4);
-          border-radius: 4px;
-        }
-        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-          background: rgba(128, 128, 128, 0.6);
-        }
-      `}</style>
     </div>
   );
 };
