@@ -502,10 +502,6 @@ export function RequestDetails({
                     key={tab.id}
                     className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all border-b-2"
                     style={{
-                      color: accentColor,
-                      background: bgColor,
-                    }}
-                    style={{
                       borderBottomColor: accentColor,
                       background: bgColor,
                       color: accentColor,
@@ -521,8 +517,10 @@ export function RequestDetails({
                           <button
                             onClick={scrollToNextMatch}
                             className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary"
-                            onMouseEnter={(e) => e.currentTarget.style.color = $('--accent')}
-                            onMouseLeave={(e) => e.currentTarget.style.color = $('--text-secondary')}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = $('--accent'))}
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.color = $('--text-secondary'))
+                            }
                             title="Next match"
                           >
                             <ScanEye className="w-3.5 h-3.5" />
@@ -532,8 +530,10 @@ export function RequestDetails({
                         <button
                           onClick={handleCopy}
                           className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary"
-                          onMouseEnter={(e) => e.currentTarget.style.color = $('--accent')}
-                          onMouseLeave={(e) => e.currentTarget.style.color = $('--text-secondary')}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = $('--accent'))}
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.color = $('--text-secondary'))
+                          }
                           title="Copy tab content"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -572,8 +572,11 @@ export function RequestDetails({
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all bg-transparent border-b-2 border-transparent text-text-secondary cursor-pointer hover:text-text-primary"
-                  style={{
-                    hover: { background: `color-mix(in srgb, ${accentColor} 8%, transparent)` },
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `color-mix(in srgb, ${accentColor} 8%, transparent)`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
                   }}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -647,6 +650,7 @@ export { RequestTable } from './RequestTable';
 import { RequestTable } from './RequestTable';
 import { initialFilterState as filterInitialState } from './Filter';
 import { WebSocketConnection } from '../../types/inspector';
+import { $ } from '@renderer/utils/color';
 
 interface RequestListProps {
   filteredRequests: NetworkRequest[];

@@ -2,6 +2,7 @@
 // ProbeSniffer — Probe request monitor (Redesigned)
 // ============================================================================
 
+import { $ } from '@renderer/utils/color';
 import type { ProbeEntry } from '../../types';
 import { useState } from 'react';
 

@@ -25,6 +25,7 @@ import {
   Play,
   Pause,
   ShieldAlert,
+  Square,
   Star,
   Target,
   Trash2,
@@ -903,176 +904,26 @@ export function RequestTable({
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-1 border-l border-divider pl-2 h-full">
-          {/* Start/Stop Target button */}
-          <div ref={targetDropdownRef} className="relative flex items-center gap-0.5">
-            {isTargetActive && activeTargetMode && (
-              <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary bg-card-background border border-border/30 rounded">
-                <span
-                  className={cn(
-                    'w-1.5 h-1.5 rounded-full animate-pulse',
-                    activeTargetMode === 'cdp' ? 'bg-blue-400' : 'bg-amber-400',
-                  )}
-                />
-                Running by {activeTargetMode.toUpperCase()}
-              </span>
-            )}
+        {isTargetActive && (
+          <div className="flex items-center gap-1 border-l border-divider pl-2 h-full">
+            <span className="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-text-secondary border border-border/30 rounded">
+              <span
+                className={cn(
+                  'w-1.5 h-1.5 rounded-full animate-pulse',
+                  activeTargetMode === 'cdp' ? 'bg-blue-400' : 'bg-amber-400',
+                )}
+              />
+              Running by {activeTargetMode?.toUpperCase() || 'Active'}
+            </span>
             <button
-              onClick={() => {
-                if (isTargetActive) {
-                  // Stop: disconnect CDP or stop proxy
-                  onStopTarget();
-                  // Clear all requests data
-                  onClearRequests?.();
-                } else {
-                  setIsTargetDropdownOpen(!isTargetDropdownOpen);
-                }
-              }}
-              className={cn(
-                'flex items-center gap-1 px-2 py-1 rounded transition-all duration-300 text-xs font-medium',
-                isTargetActive
-                  ? 'bg-error/20 text-error hover:bg-error/30'
-                  : 'bg-card-background text-text-secondary hover:bg-card-hover',
-              )}
-              title={isTargetActive ? 'Stop target' : 'Start target'}
+              onClick={onStopTarget}
+              className="flex items-center gap-1.5 px-2 py-1 text-[11px] rounded-md transition-all border bg-error/10 text-error border-error/20 hover:bg-error/20"
             >
-              {isTargetActive ? (
-                <>
-                  <Pause className="w-3.5 h-3.5" />
-                  <span>Stop</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3.5 h-3.5" />
-                  <span>Start</span>
-                </>
-              )}
+              <Square className="w-3 h-3" />
+              <span>Stop</span>
             </button>
-            {isTargetDropdownOpen && !isTargetActive && (
-              <div
-                className="fixed mt-1 rounded-md border border-border group-hover:border-primary bg-dropdown-background shadow-[0_4px_20px_rgba(0,0,0,0.15)] z-[9999] min-w-[220px] overflow-hidden group"
-                style={{
-                  top: targetDropdownRef.current
-                    ? targetDropdownRef.current.getBoundingClientRect().bottom + 4
-                    : 0,
-                  left: targetDropdownRef.current
-                    ? targetDropdownRef.current.getBoundingClientRect().left
-                    : 0,
-                }}
-              >
-                <button
-                  onClick={() => {
-                    // Clear old requests before starting new session
-                    onClearRequests?.();
-                    // Call parent to update state (this will trigger re-render with new props)
-                    onStartTarget('mitm');
-                    setIsTargetDropdownOpen(false);
-                    // Start MITM proxy
-                    window.api
-                      .invoke('proxy:create-session', 'default')
-                      .then(async () => {
-                        // Launch target app/browser
-                        if (onLaunchTarget && currentTargetAppId) {
-                          await onLaunchTarget(
-                            currentTargetAppId,
-                            'http://127.0.0.1:8081',
-                            currentTargetUrl,
-                            'browser',
-                          );
-                        }
-                      })
-                      .catch(() => {
-                        // Revert state on failure
-                        onStopTarget();
-                      });
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all border-b border-border last:border-b-0"
-                >
-                  <Shield className="w-3.5 h-3.5 text-amber-400" />
-                  <span>MITM</span>
-                  <span className="text-text-secondary text-[10px]">(Man-in-the-Middle)</span>
-                </button>
-                <button
-                  onClick={() => {
-                    // Clear old requests before starting new session
-                    onClearRequests?.();
-                    console.log('[CDP] Starting CDP mode');
-                    // Call parent to update state (this will trigger re-render with new props)
-                    onStartTarget('cdp');
-                    setIsTargetDropdownOpen(false);
-                    // Launch target with CDP mode first, then connect
-                    if (onLaunchTarget && currentTargetAppId) {
-                      onLaunchTarget(
-                        currentTargetAppId,
-                        'http://127.0.0.1:8081',
-                        currentTargetUrl,
-                        'cdp',
-                      )
-                        .then(async () => {
-                          // Wait a bit for Chrome to start
-                          await new Promise((resolve) => setTimeout(resolve, 2000));
-                          // Try connecting on ports
-                          const ports = [9223, 9224, 9225, 9222];
-                          let connected = false;
-                          for (const port of ports) {
-                            try {
-                              const result = await window.api.invoke('cdp:connect', port);
-                              if (result?.success) {
-                                connected = true;
-                                await window.api.invoke('cdp:reload');
-                                // Inject subtle monitoring border
-                                await window.api.invoke('cdp:inject-border');
-                                break;
-                              }
-                            } catch {
-                              // Continue to next port
-                            }
-                          }
-                          if (!connected) {
-                            // Revert state on failure
-                            onStopTarget();
-                          }
-                        })
-                        .catch(() => {
-                          // Revert state on failure
-                          onStopTarget();
-                        });
-                    } else {
-                      // Revert state if no target
-                      onStopTarget();
-                    }
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-dropdown-item-hover transition-all"
-                >
-                  <Monitor className="w-3.5 h-3.5 text-blue" />
-                  <span>CDP</span>
-                  <span className="text-text-secondary text-[10px]">
-                    (Chrome DevTools Protocol)
-                  </span>
-                </button>
-              </div>
-            )}
           </div>
-
-          {/* Start Intercept button - only shows when MITM is active (Stop state) */}
-          {isTargetActive && activeTargetMode === 'mitm' && (
-            <button
-              onClick={() => {
-                onToggleIntercept();
-              }}
-              className={cn(
-                'flex items-center gap-1 px-2 py-1 rounded transition-all duration-300 text-xs font-medium',
-                propsIsInterceptActive
-                  ? 'bg-primary/20 text-primary hover:bg-primary/30'
-                  : 'bg-transparent text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
-              )}
-              title={propsIsInterceptActive ? 'Stop intercept' : 'Start intercept'}
-            >
-              <CircleDashed className="w-3.5 h-3.5" />
-              <span>{propsIsInterceptActive ? 'Intercepting' : 'Intercept'}</span>
-            </button>
-          )}
-        </div>
+        )}
       </div>
       <div
         ref={tableContainerRef}

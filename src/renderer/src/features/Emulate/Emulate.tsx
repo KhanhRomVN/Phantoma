@@ -42,14 +42,12 @@ export default function Emulate({
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
   const { getColorByIndex } = useAccentColors();
 
-  const { setActiveFeature } = useAgentFeature();
+  const { setActiveFeature, setEmulateState } = useAgentFeature();
 
   // Enable Agent for Emulate feature
   useEffect(() => {
-    console.log('[DEBUG-Emulate] 🔵 Setting activeFeature = "emulate"');
     setActiveFeature('emulate');
     return () => {
-      console.log('[DEBUG-Emulate] 🔴 Clearing activeFeature (unmount)');
       setActiveFeature(null);
     };
   }, [setActiveFeature]);
@@ -77,6 +75,15 @@ export default function Emulate({
     targetStates,
     requests: savedRequests,
   } = state;
+
+  // Update Agent context with Emulate state
+  useEffect(() => {
+    console.log('[Agent] Update state:', JSON.stringify({ activeTargetId, targetStates }, null, 2));
+    setEmulateState({
+      activeTargetId,
+      targetStates,
+    });
+  }, [activeTargetId, targetStates, setEmulateState]);
 
   // Local state
   const [, setLoadedFromIPC] = useState(false);
@@ -126,6 +133,38 @@ export default function Emulate({
 
   // State cho timer display
   const [timerDisplay, setTimerDisplay] = useState<Record<string, string>>({});
+
+  // Real-time timer for active targets
+  useEffect(() => {
+    // Find any active target
+    const activeTargetId = Object.keys(targetStates).find(
+      (id) => targetStates[id]?.isActive
+    );
+    
+    if (!activeTargetId) {
+      // Clear timer when no active target
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const state = targetStates[activeTargetId];
+      if (!state?.isActive || !state?.startTime) {
+        return;
+      }
+
+      const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+      const minutes = Math.floor(elapsed / 60);
+      const seconds = elapsed % 60;
+      const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      
+      setTimerDisplay((prev) => ({
+        ...prev,
+        [activeTargetId]: formatted,
+      }));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [targetStates]);
 
   // Sync targets từ SQLite vào module state
   useEffect(() => {
@@ -178,18 +217,24 @@ export default function Emulate({
   };
 
   const startTarget = (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
-    setState((prev) => ({
-      ...prev,
-      targetStates: {
-        ...prev.targetStates,
-        [targetId]: {
-          isActive: true,
-          mode,
-          isIntercepting: false,
-          startTime: Date.now(),
+    console.log('[Agent] startTarget called:', { targetId, mode });
+    console.log('[Agent] Current targetStates before update:', JSON.stringify(targetStates, null, 2));
+    setState((prev) => {
+      const newState = {
+        ...prev,
+        targetStates: {
+          ...prev.targetStates,
+          [targetId]: {
+            isActive: true,
+            mode,
+            isIntercepting: false,
+            startTime: Date.now(),
+          },
         },
-      },
-    }));
+      };
+      console.log('[Agent] New targetStates after update:', JSON.stringify(newState.targetStates, null, 2));
+      return newState;
+    });
   };
 
   const stopTarget = (targetId: string) => {
@@ -320,6 +365,12 @@ export default function Emulate({
     console.log(
       `[Emulate] Launching target: appId=${appId}, mode=${mode}, proxyUrl=${proxyUrl}, useEnvInject=${useEnvInject}`,
     );
+
+    // Check if window.api is available
+    if (!window.api || typeof window.api.invoke !== 'function') {
+      console.error('[Emulate] window.api is not available. Preload may not be loaded.');
+      return;
+    }
 
     await new Promise((resolve) => setTimeout(resolve, 500));
 

@@ -172,20 +172,20 @@ const HomePanel: React.FC<HomePanelProps> = ({
   useEffect(() => {
     // Subscribe to historyResult events from main process via IPC
     const unsubscribe = extensionService.onMessage('historyResult', (msg: any) => {
-      console.log(
-        '[Phantoma][Home] historyResult received | history count:',
-        msg?.history?.length,
-        '| history:',
-        msg?.history,
-      );
-      console.log(
-        '[Phantoma][Home] historyResult raw data:',
-        JSON.stringify(msg?.history, null, 2),
-      );
+      // console.log(
+      //   '[Phantoma][Home] historyResult received | history count:',
+      //   msg?.history?.length,
+      //   '| history:',
+      //   msg?.history,
+      // );
+      // console.log(
+      //   '[Phantoma][Home] historyResult raw data:',
+      //   JSON.stringify(msg?.history, null, 2),
+      // );
       if (msg?.history) {
         // Ensure each conversation has required fields
         const validHistory = msg.history.filter((c: any) => c && c.id);
-        console.log('[Phantoma][Home] Valid history count:', validHistory.length);
+        // console.log('[Phantoma][Home] Valid history count:', validHistory.length);
         setConversations(validHistory);
       }
       setIsLoading(false);

@@ -14,6 +14,7 @@ export interface TargetTab {
   executablePath?: string;
   startupArgs?: string;
   environment?: string;
+  emulatorSerial?: string; // For Android targets
 }
 
 export interface TargetState {

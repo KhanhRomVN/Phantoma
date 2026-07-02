@@ -214,9 +214,9 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       unpackedScriptsRef.current.set(data.requestId, data);
       
       // Log comparison result
-      if (data.isDifferent) {
-        console.log(`[CDP:Unpacked] Script differs! ${data.url} - Compression: ${data.compressionRatio}`);
-      }
+      // if (data.isDifferent) {
+      //   console.log(`[CDP:Unpacked] Script differs! ${data.url} - Compression: ${data.compressionRatio}`);
+      // }
 
       onScriptUnpacked?.(data);
     },
@@ -225,7 +225,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
   const handleScriptSource = useCallback(
     (data: CdpScriptSourceData) => {
-      console.log(`[CDP:ScriptSource] Received unpacked source for ${data.url} (${data.size} bytes)`);
+      // console.log(`[CDP:ScriptSource] Received unpacked source for ${data.url} (${data.size} bytes)`);
       onScriptSource?.(data);
     },
     [onScriptSource],

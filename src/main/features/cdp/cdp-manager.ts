@@ -74,11 +74,11 @@ export class CdpManager extends EventEmitter {
           console.error('[CDP] No targets found');
           return false;
         }
-        console.log('[CDP] No page target found, connecting to browser target:', browserTarget.url || 'unknown');
+        // console.log('[CDP] No page target found, connecting to browser target:', browserTarget.url || 'unknown');
         return this.connectToTarget(browserTarget.webSocketDebuggerUrl, retries, delay);
       }
 
-      console.log('[CDP] Selected page target - URL:', pageTarget.url, ', Title:', pageTarget.title);
+      // console.log('[CDP] Selected page target - URL:', pageTarget.url, ', Title:', pageTarget.title);
       return this.connectToTarget(pageTarget.webSocketDebuggerUrl, retries, delay);
     } catch (error) {
       console.error('[CDP] Failed to get targets:', error);
@@ -173,12 +173,12 @@ export class CdpManager extends EventEmitter {
   }
 
   public async injectMonitoringBorder(): Promise<boolean> {
-    console.log('[CDP] injectMonitoringBorder called - checking connection...');
+    // console.log('[CDP] injectMonitoringBorder called - checking connection...');
     if (!this.isConnected || !this.ws) {
-      console.warn('[CDP] Cannot inject border: not connected (isConnected:', this.isConnected, ', ws:', !!this.ws, ')');
+      // console.warn('[CDP] Cannot inject border: not connected (isConnected:', this.isConnected, ', ws:', !!this.ws, ')');
       return false;
     }
-    console.log('[CDP] Connection OK, preparing CSS injection...');
+    // console.log('[CDP] Connection OK, preparing CSS injection...');
     try {
       // Inject overlay border on top of everything
       const css = `

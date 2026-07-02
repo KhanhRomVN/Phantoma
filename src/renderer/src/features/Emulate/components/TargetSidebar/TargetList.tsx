@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Plus,
   Play,
@@ -20,12 +20,10 @@ import {
   DropdownContent,
   DropdownItem,
   DropdownSeparator,
-  DropdownSub,
-  DropdownSubTrigger,
-  DropdownSubContent,
   DropdownTrigger,
 } from '../../../../components/ui/Dropdown';
 import { Button } from '../../../../components/ui/Button';
+import { RunningOptionTargetModal } from './RunningOptionTargetModal';
 import {
   AppPlatform,
   getTargetPlatform,
@@ -89,6 +87,9 @@ export function TargetList({
   deviceList = [],
   onRefreshDevices,
 }: TargetListProps) {
+  const [showRunningModal, setShowRunningModal] = useState(false);
+  const [selectedTargetForModal, setSelectedTargetForModal] = useState<TargetTab | null>(null);
+
   const handleStartCDP = (targetId: string, targetUrl?: string) => {
     // Update last_used_at immediately when starting CDP
     onSelectTarget(targetId);
@@ -97,6 +98,10 @@ export function TargetList({
       onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'cdp').then(async () => {
         await new Promise((resolve) => setTimeout(resolve, 3000));
         // Get the actual CDP port from the launch process
+        if (!window.api || typeof window.api.invoke !== 'function') {
+          console.error('[TargetList] window.api is not available');
+          return;
+        }
         const { port: launchPort } = await window.api.invoke('cdp:get-launch-port');
         const ports = launchPort ? [launchPort] : [9222];
         for (const port of ports) {
@@ -202,6 +207,16 @@ export function TargetList({
               const platform = getTargetPlatform(tab);
               const faviconSrc = getTargetFavicon(tab);
               const isActive = tab.id === activeAppId;
+              
+              // Check if mobile device is running
+              const isMobileDeviceRunning = (() => {
+                if (platform !== 'android') return true;
+                if (!tab.emulatorSerial) return false;
+                return deviceList.some(d => d.serial === tab.emulatorSerial);
+              })();
+              
+              // Card is disabled if it's a mobile target and device is not running
+              const isCardDisabled = platform === 'android' && !isMobileDeviceRunning;
 
               return (
                 <Dropdown
@@ -222,10 +237,13 @@ export function TargetList({
                         onOpenMenuChange(tab.id);
                       }}
                       className={cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-all text-sm group relative',
+                        'flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm group relative',
+                        isCardDisabled
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'cursor-pointer hover:bg-dropdown-item-hover',
                         activeTargetId === tab.id
                           ? 'bg-dropdown-item-hover text-text-primary'
-                          : 'text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary',
+                          : 'text-text-secondary hover:text-text-primary',
                       )}
                     >
                       {/* Badge icon: favicon for web, app icon for pc, lucide fallback */}
@@ -263,19 +281,19 @@ export function TargetList({
                               : getPlatformLabel(platform)}
                         </div>
                       </div>
-                      {/* Timer */}
+                      {/* Timer - luôn hiển thị ở góc phải trên cùng khi running */}
+                      {(() => {
+                        console.log(`[TargetList] Timer check for ${tab.id}:`, {
+                          isRunning,
+                          elapsed,
+                          mode: targetStates[tab.id]?.mode,
+                          timerDisplayValue: timerDisplay[tab.id]
+                        });
+                        return null;
+                      })()}
                       {isRunning && (
-                        <span className="text-xs font-mono text-text-secondary shrink-0 transition-transform group-hover:-translate-x-4">
+                        <span className="absolute top-1.5 right-2 text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                           {elapsed}
-                        </span>
-                      )}
-                      {/* Hover pause icon (only when running) */}
-                      {isRunning && (
-                        <span
-                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary"
-                          title="Running"
-                        >
-                          <Pause className="w-3.5 h-3.5" />
                         </span>
                       )}
                       {/* Stop session button for active app */}
@@ -291,89 +309,28 @@ export function TargetList({
                   </DropdownTrigger>
                   <DropdownContent>
                     {!isRunning ? (
-                      <DropdownSub>
-                        <DropdownSubTrigger icon={<Play className="w-3.5 h-3.5" />}>
-                          Start target
-                        </DropdownSubTrigger>
-                        <DropdownSubContent>
-                          <DropdownItem
-                            icon={<Monitor className="w-3.5 h-3.5 text-sky-400" />}
-                            onClick={() => handleStartCDP(tab.id, tab.url)}
-                          >
-                            CDP
-                          </DropdownItem>
-                          {platform === 'android' ? (
-                            <DropdownSub>
-                              <DropdownSubTrigger
-                                icon={<Shield className="w-3.5 h-3.5 text-amber-400" />}
-                                onMouseEnter={() => {
-                                  if (onRefreshDevices) {
-                                    onRefreshDevices();
-                                  }
-                                }}
-                              >
-                                MITM
-                              </DropdownSubTrigger>
-                              <DropdownSubContent>
-                                {deviceList.length === 0 ? (
-                                  <div className="px-3 py-2 text-xs text-text-secondary">
-                                    No device found
-                                  </div>
-                                ) : (
-                                  deviceList.map((device) => (
-                                    <DropdownItem
-                                      key={device.serial}
-                                      icon={
-                                        device.type === 'physical' ? (
-                                          <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-                                        ) : (
-                                          <Monitor className="w-3.5 h-3.5 text-blue-400" />
-                                        )
-                                      }
-                                      onClick={() =>
-                                        handleStartMITM(tab.id, tab.url, false, device.serial)
-                                      }
-                                    >
-                                      {device.name}
-                                      <span className="ml-1 text-[9px] text-text-secondary">
-                                        ({device.type === 'physical' ? 'USB' : 'VM'})
-                                      </span>
-                                    </DropdownItem>
-                                  ))
-                                )}
-                              </DropdownSubContent>
-                            </DropdownSub>
-                          ) : (
-                            <DropdownSub>
-                              <DropdownSubTrigger icon={<Shield className="w-3.5 h-3.5 text-amber-400" />}>
-                                MITM
-                              </DropdownSubTrigger>
-                              <DropdownSubContent>
-                                <DropdownItem
-                                  icon={<Play className="w-3.5 h-3.5" />}
-                                  onClick={() => handleStartMITM(tab.id, tab.url, false)}
-                                >
-                                  Chạy bình thường
-                                </DropdownItem>
-                                <DropdownItem
-                                  icon={<Syringe className="w-3.5 h-3.5 text-green-400" />}
-                                  onClick={() => handleStartMITM(tab.id, tab.url, true)}
-                                >
-                                  Chạy với ENV Inject
-                                </DropdownItem>
-                              </DropdownSubContent>
-                            </DropdownSub>
-                          )}
-                          {platform !== 'web' && platform !== 'android' && (
-                            <DropdownItem
-                              icon={<Syringe className="w-3.5 h-3.5 text-purple-400" />}
-                              onClick={() => handleStartFrida(tab.id, tab.url)}
-                            >
-                              Frida + DLL Injection
-                            </DropdownItem>
-                          )}
-                        </DropdownSubContent>
-                      </DropdownSub>
+                      <DropdownItem
+                        icon={<Play className="w-3.5 h-3.5" />}
+                        disabled={isCardDisabled}
+                        onClick={() => {
+                          if (isCardDisabled) return;
+                          console.log('[TargetList] Start target clicked for:', tab.id);
+                          console.log('[TargetList] showRunningModal currently:', showRunningModal);
+                          // Only open modal if not already open
+                          if (!showRunningModal) {
+                            // Close the dropdown first
+                            onOpenMenuChange(null);
+                            // Then open the modal
+                            setSelectedTargetForModal(tab);
+                            setShowRunningModal(true);
+                            console.log('[TargetList] showRunningModal set to true');
+                          } else {
+                            console.log('[TargetList] Modal already open, skipping');
+                          }
+                        }}
+                      >
+                        {isCardDisabled ? 'Device not running' : 'Start target'}
+                      </DropdownItem>
                     ) : (
                       <DropdownItem
                         icon={<Square className="w-3.5 h-3.5" />}
@@ -383,21 +340,25 @@ export function TargetList({
                       </DropdownItem>
                     )}
                     <DropdownSeparator />
-                    {onEditTarget && (
-                      <DropdownItem
-                        icon={<Pencil className="w-3.5 h-3.5" />}
-                        onClick={() => onEditTarget(tab.id)}
-                      >
-                        Chỉnh sửa
-                      </DropdownItem>
+                    {!isRunning && (
+                      <>
+                        {onEditTarget && (
+                          <DropdownItem
+                            icon={<Pencil className="w-3.5 h-3.5" />}
+                            onClick={() => onEditTarget(tab.id)}
+                          >
+                            Edit
+                          </DropdownItem>
+                        )}
+                        <DropdownItem
+                          icon={<Trash2 className="w-3.5 h-3.5 text-red-400" />}
+                          variant="error"
+                          onClick={() => onRemoveTarget(tab.id)}
+                        >
+                          Delete
+                        </DropdownItem>
+                      </>
                     )}
-                    <DropdownItem
-                      icon={<Trash2 className="w-3.5 h-3.5 text-red-400" />}
-                      variant="error"
-                      onClick={() => onRemoveTarget(tab.id)}
-                    >
-                      Xóa target
-                    </DropdownItem>
                   </DropdownContent>
                 </Dropdown>
               );
@@ -409,6 +370,23 @@ export function TargetList({
           </div>
         )}
       </div>
+      <RunningOptionTargetModal
+        isOpen={showRunningModal}
+        onClose={() => {
+          console.log('[TargetList] Modal onClose called');
+          setShowRunningModal(false);
+          setSelectedTargetForModal(null);
+        }}
+        target={selectedTargetForModal}
+        platform={selectedTargetForModal ? getTargetPlatform(selectedTargetForModal) : null}
+        isRunning={selectedTargetForModal ? targetStates[selectedTargetForModal.id]?.isActive || false : false}
+        deviceList={deviceList}
+        onStartCDP={handleStartCDP}
+        onStartMITM={handleStartMITM}
+        onStartFrida={handleStartFrida}
+        onStopTarget={onStopTarget}
+        onRefreshDevices={onRefreshDevices}
+      />
     </>
   );
 }
