@@ -12,6 +12,7 @@ import SearchBar from './SearchBar';
 import { ChatErrorBoundary } from './ChatErrorBoundary';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/lib/utils';
+import '../styles/timeline.css';
 
 interface ChatBodyProps {
   messages: Message[];
@@ -264,7 +265,7 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
           </button>
         </div>
       )}
-      <div className="relative flex flex-col">
+      <div className="chat-timeline-wrapper relative flex flex-col">
         {visibleMessages.map((message, index) => {
           const parsedMessage = parsedMessages.find((pm) => pm.id === message.id);
           if (!parsedMessage) return null;

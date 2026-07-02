@@ -10,6 +10,7 @@ import ErrorBlock from '../../blocks/components/ErrorBlock';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { isDiff, parseDiff } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
 import { $ } from '@renderer/utils/color';
+import '../../styles/timeline.css';
 
 interface AIMessageBoxProps {
   message: Message;
@@ -208,7 +209,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
 
   return (
     <div
-      className="flex flex-col gap-0 relative transition-all duration-300 ease"
+      className="assistant-message-container flex flex-col gap-0 relative transition-all duration-300 ease"
       style={{
         marginBottom: $('--spacing-md'),
         opacity: message.isCancelled ? 0.4 : 1,
@@ -420,7 +421,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
           }
         }
 
-        let isInteractionBlocked = false;
+        // let isInteractionBlocked = false; // Removed - unused variable
 
         // In simple mode, filter out tool groups where all items are invisible
         const SIMPLE_MODE_VISIBLE = new Set([
@@ -447,7 +448,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div style={{ paddingBottom: '8px' }}>
                 <div
-                  className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
+                  className="timeline-dot"
                   style={{
                     backgroundColor: 'transparent',
                     display: 'flex',
@@ -509,7 +510,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div style={{ paddingBottom: '8px' }}>
                 <div
-                  className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
+                  className="timeline-dot"
                   style={{
                     backgroundColor: 'transparent',
                     display: 'flex',
@@ -661,10 +662,9 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div>
                 <div
-                  className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
+                  className="timeline-dot"
                   style={{
                     backgroundColor: dotColor,
-                    boxShadow: `0 0 0 2px ${$('--background') || 'transparent'}, 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
                   }}
                 />
                 <div
@@ -684,10 +684,9 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div>
                 <div
-                  className="absolute left-[15px] -translate-x-1/2 top-[10px] w-2 h-2 rounded-full z-10 transition-all duration-200 ease animate-[timeline-dot-fade-in_0.25s_ease-out_both]"
+                  className="timeline-dot"
                   style={{
                     backgroundColor: dotColor,
-                    boxShadow: `0 0 0 2px ${$('--background') || 'transparent'}, 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
                   }}
                 />
                 <div style={{ paddingLeft: '29px', paddingTop: '4px' }}>
@@ -780,8 +779,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
               />
             );
 
-            // Update blocking state
-            if (!isAnswered) isInteractionBlocked = true;
+            // Update blocking state (removed - variable was unused)
           } else if (group.type === 'error') {
             const errorText = group.content.replace(/^Error:\s*/i, '');
             // Parse error code from "[CODE] message" format
@@ -807,7 +805,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                 clickedActions={clickedActions}
                 failedActions={failedActions}
                 rejectedActions={rejectedActions}
-                onToolClick={(action, msgId, idx, type) => onToolClick(action, message, idx, type)}
+                onToolClick={(action, _msgId, idx, type) => onToolClick(action, message, idx, type)}
                 executionState={executionState}
                 isLastMessage={isLastMessage}
                 toolOutputs={toolOutputs}
@@ -861,7 +859,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
               }
               return false;
             });
-            if (hasUnclickedOrBusyAction) isInteractionBlocked = true;
           }
 
           if (group.type === 'tools') {
@@ -869,7 +866,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
           }
 
           return (
-            <div key={group.key} className={`relative ml-0 ${isLast ? 'pb-0' : ''}`}>
+            <div key={group.key} className={`timeline-item relative ml-0 ${isLast ? 'last pb-0' : ''}`}>
               {content}
             </div>
           );
