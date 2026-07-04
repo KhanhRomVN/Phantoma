@@ -13,7 +13,7 @@ export interface TargetTab {
   platform?: string;
   executablePath?: string;
   startupArgs?: string;
-  environment?: string;
+  environment?: Record<string, string>;
   emulatorSerial?: string; // For Android targets
 }
 

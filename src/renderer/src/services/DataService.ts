@@ -1,11 +1,11 @@
 import { targetService } from './TargetService';
-import type { TargetDTO, CreateTargetDTO, UpdateTargetDTO } from '@app/api/types';
 import type { TargetTab } from '../features/Emulate/types/target.types';
+import { CreateTargetDTO, TargetDTO, UpdateTargetDTO } from '@renderer/types/api';
 
 /**
  * DataService - Centralized data access layer
  * Giao tiếp với Go backend qua REST API thay vì SQLite IPC.
- * 
+ *
  * Usage:
  * import { dataService } from '@/services/DataService';
  * const targets = await dataService.getTargets();
@@ -90,22 +90,37 @@ class DataService {
   async searchTargets(query: string): Promise<TargetTab[]> {
     const all = await this.getTargets();
     const q = query.toLowerCase();
-    return all.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.url?.toLowerCase().includes(q),
-    );
+    return all.filter((t) => t.title.toLowerCase().includes(q) || t.url?.toLowerCase().includes(q));
   }
 
   async saveTarget(target: TargetTab): Promise<TargetTab> {
-    // Try update first, create if not found
+    // Check if target exists first
     try {
-      const dto = await targetService.updateTarget(target.id, toUpdateDTO(target));
-      return toTargetTab(dto);
-    } catch {
-      const dto = await targetService.createTarget(toCreateDTO(target));
-      return toTargetTab(dto);
+      const existing = await targetService.getTarget(target.id);
+      if (existing) {
+        // Target exists → update
+        const dto = await targetService.updateTarget(target.id, toUpdateDTO(target));
+        return toTargetTab(dto);
+      }
+    } catch (error: any) {
+      console.log('[DataService] saveTarget catch error:', error);
+      const message = error?.message || '';
+      const status = error?.status || 0;
+      const isNotFound = message.includes('missing target id') || 
+                         message.includes('not found') ||
+                         status === 400 || 
+                         status === 404;
+      console.log('[DataService] saveTarget isNotFound:', isNotFound, 'message:', message, 'status:', status);
+      if (!isNotFound) {
+        // Re-throw unexpected errors
+        throw error;
+      }
+      // Target doesn't exist, will create new below
     }
+
+    // Create new target
+    const dto = await targetService.createTarget(toCreateDTO(target));
+    return toTargetTab(dto);
   }
 
   async saveTargets(targets: TargetTab[]): Promise<TargetTab[]> {

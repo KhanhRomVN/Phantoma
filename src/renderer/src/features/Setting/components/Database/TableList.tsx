@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { Database, Table, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { Database, Table, RefreshCw, Search } from 'lucide-react';
 import { TableInfo } from '../../types/database';
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem, DropdownSub, DropdownSubTrigger, DropdownSubContent } from '../../../../components/ui/Dropdown';
 
 interface TableListProps {
   tables: TableInfo[];
@@ -46,7 +45,6 @@ export const TableList: React.FC<TableListProps> = ({
             <span className="text-xs text-text-secondary ml-1">({tables.length})</span>
           </div>
           <div className="flex items-center gap-1">
-            
             <button
               onClick={onRefresh}
               className="p-1.5 rounded hover:bg-primary/10 hover:text-primary transition-colors shrink-0"

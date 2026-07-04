@@ -176,16 +176,16 @@ export function TargetList({
             </DropdownTrigger>
             <DropdownContent className="min-w-[180px]">
               {[
-                { id: 'web' as AppPlatform, label: 'Website', icon: Globe },
-                { id: 'pc' as AppPlatform, label: 'App', icon: Monitor },
-                { id: 'android' as AppPlatform, label: 'Mobile', icon: Smartphone },
-                { id: 'cli' as AppPlatform, label: 'CLI', icon: Terminal },
+                { id: 'web' as AppPlatform, label: 'Website', icon: Globe, color: '#3b82f6' },
+                { id: 'pc' as AppPlatform, label: 'App', icon: Monitor, color: '#8b5cf6' },
+                { id: 'android' as AppPlatform, label: 'Mobile', icon: Smartphone, color: '#f59e0b' },
+                { id: 'cli' as AppPlatform, label: 'CLI', icon: Terminal, color: '#6b7280' },
               ].map((platform) => {
                 const Icon = platform.icon;
                 return (
                   <DropdownItem
                     key={platform.id}
-                    icon={<Icon className="w-3.5 h-3.5" style={{ color: accentColor }} />}
+                    icon={<Icon className="w-3.5 h-3.5" style={{ color: platform.color }} />}
                     onClick={() => onOpenAddModal(platform.id)}
                   >
                     {platform.label}
@@ -329,7 +329,7 @@ export function TargetList({
                           }
                         }}
                       >
-                        {isCardDisabled ? 'Device not running' : 'Start target'}
+                        {isCardDisabled ? 'Device not running' : 'Start'}
                       </DropdownItem>
                     ) : (
                       <DropdownItem
@@ -339,7 +339,6 @@ export function TargetList({
                         Stop target
                       </DropdownItem>
                     )}
-                    <DropdownSeparator />
                     {!isRunning && (
                       <>
                         {onEditTarget && (

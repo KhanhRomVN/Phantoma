@@ -19,7 +19,7 @@ export function useDatabase() {
 
       // Server-managed database — expose available endpoints as "tables"
       setTables([
-        { name: 'targets', sql: 'REST API: GET /api/v1/targets' },
+        { name: 'emulate_targets', sql: 'REST API: GET /api/v1/emulate-targets' },
       ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tables');
@@ -37,7 +37,7 @@ export function useDatabase() {
       setLoading(true);
       setError(null);
 
-      if (tableName === 'targets') {
+      if (tableName === 'emulate_targets') {
         const targets = await targetService.getTargets();
         console.log('[useDatabase] targets data:', targets);
 
@@ -156,7 +156,7 @@ export function useDatabase() {
       setLoading(true);
       setError(null);
 
-      if (selectedTable === 'targets') {
+      if (selectedTable === 'emulate_targets') {
         // Delete each target via API
         for (const id of rowIds) {
           await targetService.deleteTarget(String(id));

@@ -7,9 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/phantoma/server/pkg/logger"
 )
@@ -85,29 +82,12 @@ func Close() {
 	}
 }
 
-// runMigrations chạy các file migration từ thư mục migrations/.
+// runMigrations chạy migration tự động bằng embedded migrations.
 func runMigrations(dbPath string) error {
-	// Lấy đường dẫn tuyệt đối đến thư mục migrations
-	migrationsDir, err := filepath.Abs("migrations")
-	if err != nil {
-		return fmt.Errorf("failed to resolve migrations directory: %w", err)
+	// Sử dụng AutoMigrate với embedded migrations
+	if err := AutoMigrate(DB); err != nil {
+		return fmt.Errorf("auto-migrate failed: %w", err)
 	}
-
-	// Tạo migrate instance
-	m, err := migrate.New(
-		"file://"+migrationsDir,
-		"sqlite3://"+dbPath,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create migrate instance: %w", err)
-	}
-	defer m.Close()
-
-	// Chạy migration
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("migration up failed: %w", err)
-	}
-
 	logger.Info("database migrations applied successfully")
 	return nil
 }

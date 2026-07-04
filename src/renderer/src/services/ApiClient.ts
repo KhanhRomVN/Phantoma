@@ -5,7 +5,7 @@
  *
  * Usage:
  * import { apiClient } from '@/services/ApiClient';
- * const data = await apiClient.request('/api/v1/targets');
+ * const data = await apiClient.request('/api/v1/emulate-targets');
  */
 
 import { ApiResponse } from '@renderer/types/api';
@@ -47,11 +47,40 @@ class ApiClient {
       ...options,
     });
 
-    const json: ApiResponse<T> = await res.json();
-
-    if (!json.success) {
-      throw new Error(json.error || `API error: ${res.status}`);
+    const text = await res.text();
+    console.log('[ApiClient] Raw response:', text);
+    
+    // Remove BOM if present (U+FEFF at start)
+    let cleanedText = text;
+    if (cleanedText.charCodeAt(0) === 0xFEFF) {
+      cleanedText = cleanedText.slice(1);
+      console.log('[ApiClient] Removed BOM from response');
     }
+    
+    // Trim whitespace
+    cleanedText = cleanedText.trim();
+    
+    let json: ApiResponse<T>;
+    try {
+      json = JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error('[ApiClient] Failed to parse JSON. Raw response:', cleanedText);
+      throw new Error(`Invalid JSON response: ${cleanedText.substring(0, 100)}...`);
+    }
+
+    // Check if response is wrapped in ApiResponse format
+    // If not, assume it's the raw data
+    let data: T;
+    if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
+      if (!json.success) {
+        throw new Error(json.error || `API error: ${res.status}`);
+      }
+      data = json.data as T;
+    } else {
+      // If the server returns raw data without wrapper, treat it as the data
+      data = json as unknown as T;
+    }
+    return data;
 
     return json.data as T;
   }

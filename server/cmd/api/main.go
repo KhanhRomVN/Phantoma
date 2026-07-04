@@ -44,6 +44,18 @@ func main() {
 		os.Exit(1)
 	}
 	defer database.Close()
+	logger.Info("database initialized and migrated successfully")
+
+	// Kiểm tra connection thực tế
+	if database.DB == nil {
+		logger.Error("database connection is nil after Init")
+		os.Exit(1)
+	}
+	if err := database.DB.Ping(); err != nil {
+		logger.Error("database ping failed - connection is not alive", logger.F("error", err))
+		os.Exit(1)
+	}
+	logger.Info("database ping successful")
 
 	// ── Pre-flight: check Docker containers ──────────────────────────────────
 	startup.CheckDependencies(cfg)

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Bug } from 'lucide-react';
 import { cn } from '../../../../../shared/lib/utils';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '../../../../../components/ui/Modal';
 import { BaseModalProps } from './types';
@@ -17,6 +18,8 @@ export const WebModal: React.FC<BaseModalProps> = ({
   const [suggestions, setSuggestions] = useState<
     Array<{ name: string; url?: string; executablePath?: string }>
   >([]);
+  const [faviconStatus, setFaviconStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
 
   const isEdit = !!editApp;
 
@@ -96,6 +99,87 @@ export const WebModal: React.FC<BaseModalProps> = ({
     setDuplicateError(error);
   }, [name, url, existingApps, isEdit, editApp]);
 
+  // Fetch favicon when URL changes
+  useEffect(() => {
+    if (!url) {
+      setFaviconStatus('idle');
+      setFaviconUrl(null);
+      return;
+    }
+    
+    let isMounted = true;
+    setFaviconStatus('loading');
+    
+    const fetchFavicon = async () => {
+      try {
+        // Extract domain from URL
+        let domain = url;
+        if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+          domain = `https://${domain}`;
+        }
+        const urlObj = new URL(domain);
+        const hostname = urlObj.hostname;
+        
+        // Try Google S2 favicon service first (supports CORS)
+        const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`;
+        
+        // Test if favicon loads using Image
+        const img = new Image();
+        let loaded = false;
+        
+        const checkImage = (src: string): Promise<boolean> => {
+          return new Promise((resolve) => {
+            const testImg = new Image();
+            testImg.onload = () => resolve(true);
+            testImg.onerror = () => resolve(false);
+            testImg.src = src;
+          });
+        };
+        
+        // Try Google S2 first
+        const googleLoaded = await checkImage(googleFaviconUrl);
+        if (googleLoaded && isMounted) {
+          setFaviconUrl(googleFaviconUrl);
+          setFaviconStatus('success');
+          return;
+        }
+        
+        // Try direct favicon.ico
+        const icoUrl = `https://${hostname}/favicon.ico`;
+        const icoLoaded = await checkImage(icoUrl);
+        if (icoLoaded && isMounted) {
+          setFaviconUrl(icoUrl);
+          setFaviconStatus('success');
+          return;
+        }
+        
+        // Try favicon.png
+        const pngUrl = `https://${hostname}/favicon.png`;
+        const pngLoaded = await checkImage(pngUrl);
+        if (pngLoaded && isMounted) {
+          setFaviconUrl(pngUrl);
+          setFaviconStatus('success');
+          return;
+        }
+        
+        // All failed
+        if (isMounted) {
+          setFaviconStatus('error');
+        }
+      } catch {
+        if (isMounted) {
+          setFaviconStatus('error');
+        }
+      }
+    };
+    
+    fetchFavicon();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [url]);
+
   // Reset on open/edit
   useEffect(() => {
     if (!isOpen) return;
@@ -106,6 +190,8 @@ export const WebModal: React.FC<BaseModalProps> = ({
       setName('');
       setUrl('');
     }
+    setFaviconStatus('idle');
+    setFaviconUrl(null);
   }, [isOpen, editApp]);
 
   const handleSubmit = () => {
@@ -176,16 +262,43 @@ export const WebModal: React.FC<BaseModalProps> = ({
           </div>
           <div>
             <label className="block text-xs font-bold text-text-secondary mb-1.5">URL</label>
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com"
-              className={cn(
-                'w-full bg-input-background border rounded-lg px-3 py-2.5 text-sm font-mono text-text-primary outline-none focus:border-primary',
-                duplicateError.value ? 'border-error' : 'border-border',
-              )}
-            />
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                'w-9 h-9 shrink-0 rounded-lg flex items-center justify-center border-2 transition-all bg-input-background',
+                faviconStatus === 'idle' && 'border-border',
+                faviconStatus === 'loading' && 'border-border animate-pulse',
+                faviconStatus === 'success' && 'border-success',
+                faviconStatus === 'error' && 'border-error',
+              )}>
+                {faviconStatus === 'loading' && (
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                )}
+                {faviconStatus === 'success' && faviconUrl && (
+                  <img
+                    src={faviconUrl}
+                    alt="Favicon"
+                    className="w-6 h-6 object-contain"
+                    onError={() => setFaviconStatus('error')}
+                  />
+                )}
+                {faviconStatus === 'error' && (
+                  <Bug className="w-5 h-5 text-error" />
+                )}
+                {faviconStatus === 'idle' && (
+                  <div className="w-6 h-6 rounded bg-border/30" />
+                )}
+              </div>
+              <input
+                type="text"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://example.com"
+                className={cn(
+                  'flex-1 bg-input-background border rounded-lg px-3 py-2.5 text-sm font-mono text-text-primary outline-none focus:border-primary',
+                  duplicateError.value ? 'border-error' : 'border-border',
+                )}
+              />
+            </div>
             {duplicateError.value && (
               <p className="text-xs text-error mt-1.5">{duplicateError.value}</p>
             )}

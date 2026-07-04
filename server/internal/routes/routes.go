@@ -6,7 +6,7 @@ import (
 	"github.com/phantoma/server/internal/config"
 	"github.com/phantoma/server/internal/middleware"
 	"github.com/phantoma/server/internal/repository"
-	targetsvc "github.com/phantoma/server/internal/service/target"
+	emulatetargetsvc "github.com/phantoma/server/internal/service/emulatetargets"
 	"github.com/phantoma/server/internal/service/tools"
 )
 
@@ -15,10 +15,10 @@ func NewRouter(cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
 
 	// Initialize repository
-	targetRepo := repository.NewTargetRepository()
+	emulateTargetRepo := repository.NewEmulateTargetRepository()
 
 	// Initialize services
-	targetSvc := targetsvc.NewService(targetRepo)
+	emulateTargetSvc := emulatetargetsvc.NewService(emulateTargetRepo)
 	nmapSvc := tools.NewNmapService(cfg.NmapContainer)
 	niktoSvc := tools.NewNiktoService(cfg.NiktoContainer)
 	searchsploitSvc := tools.NewSearchsploitService(cfg.SearchsploitContainer)
@@ -36,7 +36,7 @@ func NewRouter(cfg *config.Config) http.Handler {
 	// Register all route groups
 	RegisterHealthRoutes(mux)
 	RegisterDatabaseRoutes(mux, cfg)
-	RegisterTargetRoutes(mux, targetSvc)
+	RegisterEmulateTargetRoutes(mux, emulateTargetSvc)
 	RegisterNmapRoutes(mux, nmapSvc)
 	RegisterNiktoRoutes(mux, niktoSvc)
 	RegisterExploitRoutes(mux, searchsploitSvc, metasploitSvc)

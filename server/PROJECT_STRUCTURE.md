@@ -27,7 +27,7 @@ server/
 ├── internal/
 │   ├── app/                           # Application core (business logic)
 │   │   ├── domain/                    # Entity, Value Object, Domain errors
-│   │   │   ├── target/
+│   │   │   ├── emulatetargets/
 │   │   │   │   ├── entity.go
 │   │   │   │   ├── value_objects.go
 │   │   │   │   └── errors.go
@@ -39,7 +39,7 @@ server/
 │   │   │       └── errors.go
 │   │   │
 │   │   ├── usecase/                   # UseCase / Service layer
-│   │   │   ├── target/
+│   │   │   ├── emulatetargets/
 │   │   │   │   ├── create.go
 │   │   │   │   ├── list.go
 │   │   │   │   ├── get_by_id.go
@@ -63,7 +63,7 @@ server/
 │   ├── infrastructure/                # Implementation của các port
 │   │   ├── repository/
 │   │   │   ├── sqlite/
-│   │   │   │   ├── target_repo.go     # implements port.TargetRepository
+│   │   │   │   ├── emulatetarget_repo.go     # implements port.TargetRepository
 │   │   │   │   └── scan_result_repo.go
 │   │   │   └── memory/                # (cho test)
 │   │   │       └── target_repo.go
@@ -80,7 +80,7 @@ server/
 │   ├── handler/                       # HTTP handlers (delivery layer)
 │   │   ├── health/
 │   │   │   └── health.go
-│   │   ├── target/
+│   │   ├── emulatetargets/
 │   │   │   ├── handler.go
 │   │   │   └── dto.go                 # Request/Response DTOs
 │   │   ├── scan/
@@ -117,8 +117,8 @@ server/
 │   └── errors/                        # Error wrapping utilities
 │
 ├── migrations/                        # Database migration files
-│   ├── 000001_create_targets.up.sql
-│   └── 000001_create_targets.down.sql
+│   ├── 000001_create_emulate_targets.up.sql
+│   └── 000001_create_emulate_targets.down.sql
 │
 ├── docker/                            # Docker configuration
 │   ├── docker-compose.yml
@@ -149,7 +149,7 @@ server/
 ### 3.1 Domain Layer (`internal/app/domain/target/entity.go`)
 
 ```go
-package target
+package emulatetargets
 
 import (
     "time"
@@ -224,7 +224,7 @@ type TargetFilter struct {
 ### 3.3 UseCase (`internal/app/usecase/target/create.go`)
 
 ```go
-package target
+package emulatetargets
 
 import (
     "context"
@@ -290,7 +290,7 @@ func NewTargetRepository(db *sql.DB) port.TargetRepository {
 
 func (r *TargetRepository) Save(ctx context.Context, t *target.Target) error {
     _, err := r.db.ExecContext(ctx, `
-        INSERT INTO targets (id, title, url, created_at, updated_at)
+        INSERT INTO emulate_targets (id, title, url, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
     `, t.ID, t.Title, t.URL, t.CreatedAt, t.UpdatedAt)
     return err
@@ -302,7 +302,7 @@ func (r *TargetRepository) Save(ctx context.Context, t *target.Target) error {
 ### 3.5 Handler (`internal/handler/target/handler.go`)
 
 ```go
-package target
+package emulatetargets
 
 import (
     "encoding/json"
@@ -397,7 +397,7 @@ func main() {
     targetHandler := app.InitializeTargetHandler(db)
     
     // Register routes
-    routes.RegisterTargetRoutes(mux, targetHandler)
+    routes.RegisterEmulateTargetRoutes(mux, targetHandler)
     // ...
 }
 ```
@@ -422,7 +422,7 @@ func main() {
 ### Domain errors (`internal/app/domain/target/errors.go`)
 
 ```go
-package target
+package emulatetargets
 
 import "errors"
 
