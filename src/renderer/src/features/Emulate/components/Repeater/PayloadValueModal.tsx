@@ -80,16 +80,16 @@ export function PayloadValueModal({
 
       const scriptsData = localStorage.getItem(getStorageKey('scripts'));
       if (scriptsData) setScripts(JSON.parse(scriptsData));
-    } catch (error) {
-      console.error('Failed to load persisted data:', error);
+    } catch {
+      // Failed to load persisted data
     }
   };
 
   const saveToStorage = (type: 'files' | 'scripts', data: SourceFile[]) => {
     try {
       localStorage.setItem(getStorageKey(type), JSON.stringify(data));
-    } catch (error) {
-      console.error(`Failed to save ${type} to storage:`, error);
+    } catch {
+      // Failed to save to storage
     }
   };
 
@@ -137,18 +137,10 @@ export function PayloadValueModal({
 
   // Handle template click - show preview only, doesn't affect current values
   const handleTemplateClick = (template: (typeof defaultTemplates)[0]) => {
-    console.log(
-      '[DEBUG] handleTemplateClick:',
-      template.name,
-      'values length:',
-      template.values.length,
-    );
-    console.log('[DEBUG] currentPreviewValues before:', currentPreviewValues);
     setSelectedSource({ type: 'template', id: template.id });
     setTemplatePreviewValues(template.values);
     setEditingContent(template.values.join('\n'));
     setOutputText('');
-    console.log('[DEBUG] templatePreviewValues set to:', template.values.length, 'values');
   };
 
   // Handle file upload
@@ -171,11 +163,9 @@ export function PayloadValueModal({
         filePath,
         language: 'text',
       };
-      console.log('[DEBUG] handleFileUpload - new file:', file.name);
       setFiles((prev) => [...prev, newFile]);
       setSelectedSource({ type: 'file', id: newFile.id });
       setEditingContent(content);
-      console.log('[DEBUG] File upload - setting currentPreviewValues to []');
       setCurrentPreviewValues([]);
       setTemplatePreviewValues([]);
       setOutputText(filePath ? `📁 ${filePath}` : '');
@@ -204,11 +194,9 @@ export function PayloadValueModal({
       language: 'javascript',
     };
 
-    console.log('[DEBUG] handleCreateScript - new script:', finalScriptName);
     setScripts((prev) => [...prev, newScript]);
     setSelectedSource({ type: 'script', id: newScript.id });
     setEditingContent(defaultCode);
-    console.log('[DEBUG] Script created - setting currentPreviewValues to []');
     setCurrentPreviewValues([]);
     setTemplatePreviewValues([]);
     setOutputText('');
@@ -223,7 +211,6 @@ export function PayloadValueModal({
 
   // Handle compile/run
   const handleCompile = () => {
-    console.log('[DEBUG] handleCompile - selectedSource:', selectedSource);
     if (!selectedSource) return;
 
     if (selectedSource.type === 'template') {
@@ -241,14 +228,12 @@ export function PayloadValueModal({
         .map((l) => l.trim())
         .filter((l) => l);
 
-      console.log('[DEBUG] Compile file - parsed lines:', lines.length);
       setFiles((prev) =>
         prev.map((f) => (f.id === file.id ? { ...f, content: editingContent, output: lines } : f)),
       );
       setCurrentPreviewValues(lines);
       setTemplatePreviewValues(lines);
       setOutputText(`✅ Parsed ${lines.length} values from file`);
-      console.log('[DEBUG] File compiled - currentPreviewValues:', lines);
     }
 
     if (selectedSource.type === 'script') {
@@ -265,7 +250,6 @@ export function PayloadValueModal({
 
         const values = result.map((v) => String(v));
 
-        console.log('[DEBUG] Script compiled - generated values:', values.length);
         setScripts((prev) =>
           prev.map((s) =>
             s.id === script.id ? { ...s, content: editingContent, output: values } : s,
@@ -274,10 +258,8 @@ export function PayloadValueModal({
         setCurrentPreviewValues(values);
         setTemplatePreviewValues(values);
         setOutputText(`✅ Generated ${values.length} values`);
-        console.log('[DEBUG] Script compiled - currentPreviewValues:', values);
       } catch (error: any) {
         setOutputText(`❌ Error: ${error.message}`);
-        console.log('[DEBUG] Script compile error:', error.message);
       }
     }
   };
@@ -300,8 +282,6 @@ export function PayloadValueModal({
   };
 
   const handleSave = () => {
-    console.log('[DEBUG] handleSave - saving:', currentPreviewValues);
-    console.log('[DEBUG] handleSave - length:', currentPreviewValues.length);
     onSave(currentPreviewValues);
     // Clean up storage when saving (optional - keep for future use)
     onClose();
@@ -356,9 +336,6 @@ export function PayloadValueModal({
               <div className="text-xs font-medium text-text-secondary mb-2">Current Values</div>
               <button
                 onClick={() => {
-                  console.log('[DEBUG] Click Current Values button');
-                  console.log('[DEBUG] currentPreviewValues:', currentPreviewValues);
-                  console.log('[DEBUG] currentPreviewValues.length:', currentPreviewValues.length);
                   setSelectedSource({ type: 'current', id: 'current' });
                   setTemplatePreviewValues(currentPreviewValues);
                   setEditingContent(currentPreviewValues.join('\n'));
@@ -584,8 +561,6 @@ export function PayloadValueModal({
                       {templatePreviewValues.length > 0 && (
                         <button
                           onClick={() => {
-                            console.log('[DEBUG] Apply Output to Current Values');
-                            console.log('[DEBUG] templatePreviewValues:', templatePreviewValues);
                             setCurrentPreviewValues(templatePreviewValues);
                             setOutputText(
                               `✅ Applied ${templatePreviewValues.length} values to Current Values`,
@@ -671,10 +646,6 @@ export function PayloadValueModal({
                         values = [newText.trim()];
                       }
 
-                      console.log(`📊 [Payload Value] Current values count: ${values.length}`);
-                      if (values.length > 0) {
-                        console.log(`📊 [Payload Value] First 3 values:`, values.slice(0, 3));
-                      }
                       setCurrentPreviewValues(values);
                       setTemplatePreviewValues(values);
                     }}
@@ -695,8 +666,6 @@ export function PayloadValueModal({
                     {templatePreviewValues.length > 0 && (
                       <button
                         onClick={() => {
-                          console.log('[DEBUG] Apply Template to Current Values');
-                          console.log('[DEBUG] templatePreviewValues:', templatePreviewValues);
                           setCurrentPreviewValues(templatePreviewValues);
                           setOutputText(
                             `✅ Applied ${templatePreviewValues.length} values to Current Values`,

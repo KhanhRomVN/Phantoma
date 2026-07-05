@@ -108,16 +108,10 @@ export function PayloadConfigPanel({
       detectedNames.add(match[1]);
     }
 
-    console.log('🔍 Auto-detect payloads:', {
-      detectedNames: Array.from(detectedNames),
-      existingPayloads: payloads.map((p) => p.name),
-    });
-
     // Create missing payloads
     const newPayloads: PayloadItem[] = [];
     detectedNames.forEach((name) => {
       if (!payloads.some((p) => p.name === name)) {
-        console.log('✨ Auto-creating payload:', name);
         newPayloads.push({
           id: crypto.randomUUID(),
           name,

@@ -128,7 +128,6 @@ export function PayloadPanel({
 
   const handleSwitchTab = (tab: string) => {
     // Handle tab switching in PayloadConfigPanel if needed
-    console.log('Switch to tab:', tab);
   };
 
   return (

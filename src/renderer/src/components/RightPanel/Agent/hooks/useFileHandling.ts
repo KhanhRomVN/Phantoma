@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { UploadedFile, ExternalFile, AttachedItem } from '../types/file-uploader';
 import { useSettings } from '../context/SettingsContext';
 import { isFileAllowed, readFileAsText } from '../feature/Chat/utils/fileUtils';
-import { ALLOWED_FILE_EXTENSIONS } from '../feature/Chat/blocks/config/constants';
+import { ALLOWED_FILE_EXTENSIONS } from '../feature/Chat/constants/constants';
 
 interface UseFileHandlingProps {
   accountId?: string;

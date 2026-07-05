@@ -1,4 +1,4 @@
-import { Message } from "../types/message";
+import { Message } from '../types/message';
 
 export interface CachedConversation {
   messages: Message[];
@@ -6,14 +6,8 @@ export interface CachedConversation {
   backendConversationId?: string;
   currentModel?: any;
   currentAccount?: any;
-  toolOutputs?: Record<
-    string,
-    { output: string; isError: boolean; terminalId?: string }
-  >;
-  singleLineReviewActions?: Record<
-    string,
-    { action: any; actionId: string; messageId: string }
-  >;
+  toolOutputs?: Record<string, { output: string; isError: boolean; terminalId?: string }>;
+  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>;
   questionAnswers?: Record<string, Record<string, any>>;
 }
 
@@ -53,13 +47,11 @@ export const ConversationCache = {
     return questionAnswersStore[conversationId];
   },
   delete: (conversationId: string) => {
-    console.log(`[Zen][Cache] 🗑️ DELETE ${conversationId}`);
     const idx = cacheKeys.indexOf(conversationId);
     if (idx !== -1) cacheKeys.splice(idx, 1);
     delete cache[conversationId];
   },
   clear: () => {
-    console.log(`[Zen][Cache] 🗑️ CLEAR all (${cacheKeys.length} items)`);
     cacheKeys.length = 0;
     Object.keys(cache).forEach((k) => delete cache[k]);
   },

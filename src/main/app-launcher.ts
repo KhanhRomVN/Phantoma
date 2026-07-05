@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron';
-import { spawn, execFile } from 'child_process';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { cdpManager } from './features/cdp';
@@ -56,21 +56,17 @@ function launchBrowser(
   // Find browser (Linux)
   const browsers = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
   let executable = '';
-  console.log(`[Launch] Looking for browser executable...`);
   for (const b of browsers) {
     try {
       execSyncChild(`which ${b}`);
       executable = b;
-      console.log(`[Launch] Found browser: ${executable}`);
       break;
     } catch {
-      console.log(`[Launch] ${b} not found`);
       continue;
     }
   }
 
   if (!executable) {
-    console.error(`[Launch] No browser executable found!`);
     return false;
   }
 
@@ -95,13 +91,11 @@ function launchBrowser(
     args.push(`--remote-debugging-port=${cdpPort}`);
   }
 
-  console.log(`[Launch] Spawning browser: ${executable} with args:`, args);
   const child = spawn(executable, args, {
     detached: true,
     stdio: 'ignore',
   });
   appState.activeChildProcess = child;
-  console.log(`[Launch] Browser spawned with PID: ${child.pid}`);
 
   child.on('exit', () => {
     if (appState.activeChildProcess === child) {
@@ -128,7 +122,6 @@ export async function launchApp(
   forceMode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
   useEnvInject?: boolean,
 ): Promise<boolean> {
-  console.log(`[Launch] launchApp called: appName=${appName}, proxyUrl=${proxyUrl}, useEnvInject=${useEnvInject}`);
   if (appName === 'vscode') {
     appState.activeProxyUrl = proxyUrl;
     const debugPort = await findAvailablePort(9222);
@@ -189,8 +182,8 @@ export async function launchApp(
     setTimeout(async () => {
       try {
         await cdpManager.connect(debugPort);
-      } catch (e) {
-        console.error('[Launch] Failed to connect CDP:', e);
+      } catch {
+        // CDP connection failed silently
       }
     }, 3000);
 
@@ -217,7 +210,6 @@ export async function launchApp(
       if (useEnvInject) {
         env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
         env.NODE_EXTRA_CA_CERTS = '/usr/local/share/ca-certificates/phantoma.crt';
-        console.log(`[Launch] ENV Inject enabled: NODE_TLS_REJECT_UNAUTHORIZED=0, NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/phantoma.crt`);
       }
     }
 
@@ -241,34 +233,27 @@ export async function launchApp(
 
     if (child.pid) {
       setTimeout(() => {
-        injectLocalSSLBypass(child.pid!, (msg) => console.log(`[SSL Bypass] ${msg}`));
+        injectLocalSSLBypass(child.pid!, () => {});
         
         // Also inject into child processes (Node.js extension host, etc.)
         setTimeout(() => {
-          console.log(`[Frida] Looking for child processes of PID ${child.pid}...`);
           try {
             const { execSync } = require('child_process');
             const output = execSync(`pgrep -P ${child.pid}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-            const childPids = output.trim().split('\n').filter(pid => pid.length > 0);
+            const childPids = output.trim().split('\n').filter((pid: string) => pid.length > 0);
             
             if (childPids.length > 0) {
-              console.log(`[Frida] Found ${childPids.length} child processes: ${childPids.join(', ')}`);
-              childPids.forEach((pidStr) => {
+              childPids.forEach((pidStr: string) => {
                 const pid = parseInt(pidStr, 10);
                 if (!isNaN(pid)) {
-                  console.log(`[Frida] Injecting SSL bypass into child PID ${pid}...`);
                   setTimeout(() => {
-                    injectLocalSSLBypass(pid, (msg) => 
-                      console.log(`[Frida] [Child ${pid}] ${msg}`)
-                    );
+                    injectLocalSSLBypass(pid, () => {});
                   }, 500);
                 }
               });
-            } else {
-              console.log(`[Frida] No child processes found for PID ${child.pid}`);
             }
           } catch (e) {
-            console.log(`[Frida] Could not find child processes: ${e.message}`);
+            // Failed to find child processes
           }
         }, 3000);
       }, 2000);
@@ -279,14 +264,10 @@ export async function launchApp(
     }
 
     if (child.stderr) {
-      child.stderr.on('data', (data) => {
-        console.error(`[Antigravity stderr]: ${data}`);
-      });
+      child.stderr.on('data', () => {});
     }
 
-    child.on('error', (err) => {
-      console.error('[Antigravity] Failed to start process:', err);
-    });
+    child.on('error', () => {});
 
     child.on('exit', () => {
       if (appState.activeChildProcess === child) {
@@ -305,12 +286,25 @@ export async function launchApp(
     if (cdpPort) launchCdpPort = cdpPort;
     const result = launchBrowser('https://google.com', appName, proxyUrl, cdpPort);
     
+    // If CDP mode, connect to the browser's debugging port after launch
+    if (forceMode === 'cdp' && result && cdpPort) {
+      setTimeout(async () => {
+        try {
+          // Set main window for CDP manager
+          const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
+          if (win) cdpManager.setMainWindow(win);
+          
+          await cdpManager.connect(cdpPort);
+        } catch {
+          // CDP connection failed silently
+        }
+      }, 2000);
+    }
+    
     // If Frida mode, inject SSL bypass after launch
     if (forceMode === 'frida' && result && appState.activeChildProcess?.pid) {
       setTimeout(() => {
-        injectLocalSSLBypass(appState.activeChildProcess!.pid!, (msg) => 
-          console.log(`[Frida] ${msg}`)
-        );
+        injectLocalSSLBypass(appState.activeChildProcess!.pid!, () => {});
       }, 2000);
     }
     
@@ -324,12 +318,25 @@ export async function launchApp(
     if (cdpPort) launchCdpPort = cdpPort;
     const result = launchBrowser(url, appName, proxyUrl, cdpPort);
     
+    // If CDP mode, connect to the browser's debugging port after launch
+    if (forceMode === 'cdp' && result && cdpPort) {
+      setTimeout(async () => {
+        try {
+          // Set main window for CDP manager
+          const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
+          if (win) cdpManager.setMainWindow(win);
+          
+          await cdpManager.connect(cdpPort);
+        } catch {
+          // CDP connection failed silently
+        }
+      }, 2000);
+    }
+    
     // If Frida mode, inject SSL bypass after launch
     if (forceMode === 'frida' && result && appState.activeChildProcess?.pid) {
       setTimeout(() => {
-        injectLocalSSLBypass(appState.activeChildProcess!.pid!, (msg) => 
-          console.log(`[Frida] ${msg}`)
-        );
+        injectLocalSSLBypass(appState.activeChildProcess!.pid!, () => {});
       }, 2000);
     }
     
@@ -340,8 +347,6 @@ export async function launchApp(
   // appName might be the executable path or a registered app name
   const possibleExePath = appName.includes('/') ? appName : null;
   if (possibleExePath) {
-    console.log(`[Launch] Attempting to launch native app: ${possibleExePath}`);
-    
     // For native apps, we use spawn directly with proxy env
     const env = { ...process.env };
     if (proxyUrl) {
@@ -356,19 +361,14 @@ export async function launchApp(
       if (useEnvInject) {
         env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
         env.NODE_EXTRA_CA_CERTS = '/usr/local/share/ca-certificates/phantoma.crt';
-        console.log(`[Launch] Native app ENV Inject enabled: NODE_TLS_REJECT_UNAUTHORIZED=0, NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/phantoma.crt`);
       }
     }
 
-    console.log(`[Launch] Spawning native app: ${possibleExePath}`);
-    
     // Normalize path: remove escaped backslashes if present
     let normalizedPath = possibleExePath.replace(/\\ /g, ' ');
-    console.log(`[Launch] Normalized path: ${normalizedPath}`);
     
     // Check if executable exists
     if (!fs.existsSync(normalizedPath)) {
-      console.error(`[Launch] Executable not found: ${normalizedPath}`);
       return false;
     }
     
@@ -382,7 +382,6 @@ export async function launchApp(
     });
     
     appState.activeChildProcess = child;
-    console.log(`[Launch] Native app spawned with PID: ${child.pid}`);
     
     child.on('exit', () => {
       if (appState.activeChildProcess === child) {
@@ -395,57 +394,42 @@ export async function launchApp(
       }
     });
     
-    child.on('error', (err) => {
-      console.error(`[Launch] Error spawning native app: ${err.message}`);
-    });
+    child.on('error', () => {});
     
     child.unref();
     
     // If Frida mode, inject SSL bypass after launch
     if (forceMode === 'frida' && child.pid) {
-      console.log(`[Frida] Scheduling SSL bypass injection for PID ${child.pid} in 2s...`);
       setTimeout(() => {
-        console.log(`[Frida] Injecting SSL bypass into PID ${child.pid}...`);
-        injectLocalSSLBypass(child.pid!, (msg) => 
-          console.log(`[Frida] ${msg}`)
-        );
+        injectLocalSSLBypass(child.pid!, () => {});
         
         // Also inject into child processes (e.g., Node.js extension host)
         setTimeout(() => {
-          console.log(`[Frida] Looking for child processes of PID ${child.pid}...`);
           try {
             const { execSync } = require('child_process');
             // Find all child processes using pgrep -P
             const output = execSync(`pgrep -P ${child.pid}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-            const childPids = output.trim().split('\n').filter(pid => pid.length > 0);
+            const childPids = output.trim().split('\n').filter((pid: string) => pid.length > 0);
             
             if (childPids.length > 0) {
-              console.log(`[Frida] Found ${childPids.length} child processes: ${childPids.join(', ')}`);
-              childPids.forEach((pidStr) => {
+              childPids.forEach((pidStr: string) => {
                 const pid = parseInt(pidStr, 10);
                 if (!isNaN(pid)) {
-                  console.log(`[Frida] Injecting SSL bypass into child PID ${pid}...`);
                   setTimeout(() => {
-                    injectLocalSSLBypass(pid, (msg) => 
-                      console.log(`[Frida] [Child ${pid}] ${msg}`)
-                    );
+                    injectLocalSSLBypass(pid, () => {});
                   }, 500);
                 }
               });
-            } else {
-              console.log(`[Frida] No child processes found for PID ${child.pid}`);
             }
-          } catch (e) {
-            console.log(`[Frida] Could not find child processes: ${e.message}`);
+          } catch {
+            // Failed to find child processes
           }
         }, 3000);
       }, 2000);
     }
     
-    console.log(`[Launch] Native app launched with PID: ${child.pid}`);
     return true;
   }
 
-  console.warn(`[Launch] Unknown app: ${appName}`);
   return false;
 }

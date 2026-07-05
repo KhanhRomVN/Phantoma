@@ -24,10 +24,10 @@ export const CliModal: React.FC<BaseModalProps> = ({
     const error: { name?: string; value?: string } = {};
     if (name && command) {
       const existingByName = appsToCheck.find(
-        (app) => app.name?.toLowerCase() === name.toLowerCase(),
+        (app) => app.name?.toLowerCase() === name?.toLowerCase(),
       );
       const existingByCommand = appsToCheck.find(
-        (app) => app.executablePath?.toLowerCase() === command.toLowerCase(),
+        (app) => app.executablePath?.toLowerCase() === command?.toLowerCase(),
       );
       if (existingByName) error.name = `Name "${existingByName.name}" already exists`;
       if (existingByCommand)
@@ -48,15 +48,19 @@ export const CliModal: React.FC<BaseModalProps> = ({
     }
   }, [isOpen, editApp]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isEdit && editApp && onEdit) {
       onEdit(editApp.id, { name, executablePath: command });
       onClose();
       return;
     }
     if (!name || !command) return;
-    onAdd({ name, executablePath: command, mode: 'intercept', platform: 'cli' });
-    onClose();
+    try {
+      await onAdd({ name, executablePath: command, mode: 'intercept', platform: 'cli' });
+      onClose();
+    } catch (error) {
+      console.error('[CliModal] Add target failed:', error);
+    }
   };
 
   const canSubmit = !!(name && command) && !duplicateError.name && !duplicateError.value;

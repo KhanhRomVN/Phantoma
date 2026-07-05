@@ -4,7 +4,14 @@ import { cn } from '../../../../shared/lib/utils';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '../../../../components/ui/Modal';
 import { Button } from '../../../../components/ui/Button';
 import { TargetTab } from '../../types/target.types';
-import { AppPlatform, getTargetPlatform, getPlatformLabel, getPlatformIcon, getPlatformColor, getTargetFavicon } from './utils';
+import {
+  AppPlatform,
+  getTargetPlatform,
+  getPlatformLabel,
+  getPlatformIcon,
+  getPlatformColor,
+  getTargetFavicon,
+} from './utils';
 
 interface RunningOptionTargetModalProps {
   isOpen: boolean;
@@ -14,7 +21,12 @@ interface RunningOptionTargetModalProps {
   isRunning: boolean;
   deviceList: { name: string; serial: string; type: string }[];
   onStartCDP: (targetId: string, targetUrl?: string) => void;
-  onStartMITM: (targetId: string, targetUrl?: string, useEnvInject?: boolean, deviceSerial?: string) => void;
+  onStartMITM: (
+    targetId: string,
+    targetUrl?: string,
+    useEnvInject?: boolean,
+    deviceSerial?: string,
+  ) => void;
   onStartFrida: (targetId: string, targetUrl?: string) => void;
   onStopTarget: () => void;
   onRefreshDevices?: () => Promise<void>;
@@ -34,7 +46,9 @@ export function RunningOptionTargetModal({
   onRefreshDevices,
 }: RunningOptionTargetModalProps) {
   const [selectedDeviceSerial, setSelectedDeviceSerial] = useState<string>('');
-  const [selectedAction, setSelectedAction] = useState<'cdp' | 'mitm-normal' | 'mitm-env' | 'frida' | 'stop' | null>(null);
+  const [selectedAction, setSelectedAction] = useState<
+    'cdp' | 'mitm-normal' | 'mitm-env' | 'frida' | 'stop' | null
+  >(null);
   const [isDeviceDropdownOpen, setIsDeviceDropdownOpen] = useState(false);
   const hasOpenedRef = React.useRef(false);
 
@@ -42,7 +56,6 @@ export function RunningOptionTargetModal({
   useEffect(() => {
     if (isOpen) {
       if (!hasOpenedRef.current) {
-        console.log('[RunningOptionTargetModal] Modal opened, resetting state (first time)');
         hasOpenedRef.current = true;
         setSelectedAction(null);
         setSelectedDeviceSerial(deviceList.length > 0 ? deviceList[0].serial : '');
@@ -50,22 +63,24 @@ export function RunningOptionTargetModal({
         if (onRefreshDevices && platform === 'android') {
           onRefreshDevices();
         }
-      } else {
-        console.log('[RunningOptionTargetModal] Modal already opened, skipping reset');
       }
     } else {
-      console.log('[RunningOptionTargetModal] Modal closed');
       hasOpenedRef.current = false;
     }
-  }, [isOpen, platform, deviceList, onRefreshDevices, setSelectedAction, setSelectedDeviceSerial, setIsDeviceDropdownOpen]);
+  }, [
+    isOpen,
+    platform,
+    deviceList,
+    onRefreshDevices,
+    setSelectedAction,
+    setSelectedDeviceSerial,
+    setIsDeviceDropdownOpen,
+  ]);
 
   if (!target || !platform) return null;
 
   const handleActionSelect = (action: 'cdp' | 'mitm-normal' | 'mitm-env' | 'frida' | 'stop') => {
-    console.log('[RunningOptionTargetModal] handleActionSelect called with:', action);
-    console.log('[RunningOptionTargetModal] Current selectedAction:', selectedAction);
     setSelectedAction(action);
-    console.log('[RunningOptionTargetModal] New selectedAction set to:', action);
   };
 
   const handleStart = () => {
@@ -102,7 +117,8 @@ export function RunningOptionTargetModal({
 
   const getTargetSubtitle = (): string => {
     if (platform === 'web' && target.url) return target.url;
-    if ((platform === 'pc' || platform === 'cli') && target.executablePath) return target.executablePath;
+    if ((platform === 'pc' || platform === 'cli') && target.executablePath)
+      return target.executablePath;
     return getPlatformLabel(platform);
   };
 
@@ -115,24 +131,25 @@ export function RunningOptionTargetModal({
           key="stop"
           onClick={(e) => {
             e.stopPropagation();
-            console.log('[RunningOptionTargetModal] Stop card clicked');
             handleActionSelect('stop');
           }}
           className={cn(
             'w-full text-left px-4 py-3 rounded-lg border transition-all',
             selectedAction === 'stop'
               ? 'border-red-500 bg-red-500/10'
-              : 'border-border hover:bg-dropdown-item-hover'
+              : 'border-border hover:bg-dropdown-item-hover',
           )}
         >
           <div className="flex items-center gap-3">
             <Square className="w-4 h-4 text-red-400 shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">Stop target</div>
-              <div className="text-xs text-text-secondary mt-0.5">Stop the running target session</div>
+              <div className="text-xs text-text-secondary mt-0.5">
+                Stop the running target session
+              </div>
             </div>
           </div>
-        </button>
+        </button>,
       );
       return buttons;
     }
@@ -144,24 +161,25 @@ export function RunningOptionTargetModal({
           key="cdp"
           onClick={(e) => {
             e.stopPropagation();
-            console.log('[RunningOptionTargetModal] CDP card clicked');
             handleActionSelect('cdp');
           }}
           className={cn(
             'w-full text-left px-4 py-3 rounded-lg border transition-all',
             selectedAction === 'cdp'
               ? 'border-sky-400 bg-sky-400/10'
-              : 'border-border hover:bg-dropdown-item-hover'
+              : 'border-border hover:bg-dropdown-item-hover',
           )}
         >
           <div className="flex items-center gap-3">
             <Monitor className="w-4 h-4 text-sky-400 shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">CDP</div>
-              <div className="text-xs text-text-secondary mt-0.5">Chrome DevTools Protocol for debugging and automation</div>
+              <div className="text-xs text-text-secondary mt-0.5">
+                Chrome DevTools Protocol for debugging and automation
+              </div>
             </div>
           </div>
-        </button>
+        </button>,
       );
     }
 
@@ -172,14 +190,13 @@ export function RunningOptionTargetModal({
         key="mitm-normal"
         onClick={(e) => {
           e.stopPropagation();
-          console.log('[RunningOptionTargetModal] MITM Normal card clicked');
           handleActionSelect('mitm-normal');
         }}
         className={cn(
           'w-full text-left px-4 py-3 rounded-lg border transition-all',
           selectedAction === 'mitm-normal'
             ? 'border-amber-400 bg-amber-400/10'
-            : 'border-border hover:bg-dropdown-item-hover'
+            : 'border-border hover:bg-dropdown-item-hover',
         )}
       >
         <div className="flex items-center gap-3">
@@ -189,10 +206,12 @@ export function RunningOptionTargetModal({
               <span className="text-sm font-medium">{mitmLabel}</span>
               <span className="text-xs text-text-secondary">Normal</span>
             </div>
-            <div className="text-xs text-text-secondary mt-0.5">Standard MITM proxy interception for traffic analysis</div>
+            <div className="text-xs text-text-secondary mt-0.5">
+              Standard MITM proxy interception for traffic analysis
+            </div>
           </div>
         </div>
-      </button>
+      </button>,
     );
 
     // MITM with ENV Inject - only for PC and CLI
@@ -202,14 +221,13 @@ export function RunningOptionTargetModal({
           key="mitm-env"
           onClick={(e) => {
             e.stopPropagation();
-            console.log('[RunningOptionTargetModal] MITM ENV Inject card clicked');
             handleActionSelect('mitm-env');
           }}
           className={cn(
             'w-full text-left px-4 py-3 rounded-lg border transition-all',
             selectedAction === 'mitm-env'
               ? 'border-green-400 bg-green-400/10'
-              : 'border-border hover:bg-dropdown-item-hover'
+              : 'border-border hover:bg-dropdown-item-hover',
           )}
         >
           <div className="flex items-center gap-3">
@@ -219,10 +237,12 @@ export function RunningOptionTargetModal({
                 <span className="text-sm font-medium">MITM</span>
                 <span className="text-xs text-text-secondary">ENV Inject</span>
               </div>
-              <div className="text-xs text-text-secondary mt-0.5">Intercept traffic with environment variable injection</div>
+              <div className="text-xs text-text-secondary mt-0.5">
+                Intercept traffic with environment variable injection
+              </div>
             </div>
           </div>
-        </button>
+        </button>,
       );
     }
 
@@ -233,24 +253,25 @@ export function RunningOptionTargetModal({
           key="frida"
           onClick={(e) => {
             e.stopPropagation();
-            console.log('[RunningOptionTargetModal] Frida card clicked');
             handleActionSelect('frida');
           }}
           className={cn(
             'w-full text-left px-4 py-3 rounded-lg border transition-all',
             selectedAction === 'frida'
               ? 'border-purple-400 bg-purple-400/10'
-              : 'border-border hover:bg-dropdown-item-hover'
+              : 'border-border hover:bg-dropdown-item-hover',
           )}
         >
           <div className="flex items-center gap-3">
             <Syringe className="w-4 h-4 text-purple-400 shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">Frida + DLL Injection</div>
-              <div className="text-xs text-text-secondary mt-0.5">Dynamic instrumentation for runtime manipulation</div>
+              <div className="text-xs text-text-secondary mt-0.5">
+                Dynamic instrumentation for runtime manipulation
+              </div>
             </div>
           </div>
-        </button>
+        </button>,
       );
     }
 
@@ -312,8 +333,12 @@ export function RunningOptionTargetModal({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-text-primary truncate">{target.title}</div>
-                <div className="text-xs text-text-secondary truncate font-mono">{getTargetSubtitle()}</div>
+                <div className="text-sm font-semibold text-text-primary truncate">
+                  {target.title}
+                </div>
+                <div className="text-xs text-text-secondary truncate font-mono">
+                  {getTargetSubtitle()}
+                </div>
               </div>
               <div className="shrink-0">
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-dropdown-item-hover text-text-secondary">
@@ -324,10 +349,12 @@ export function RunningOptionTargetModal({
             <div className="mt-2 pt-2 border-t border-border/50">
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-text-secondary">Status:</span>
-                <span className={cn(
-                  'font-medium',
-                  isRunning ? 'text-green-400' : 'text-text-secondary'
-                )}>
+                <span
+                  className={cn(
+                    'font-medium',
+                    isRunning ? 'text-green-400' : 'text-text-secondary',
+                  )}
+                >
                   {isRunning ? 'Running' : 'Stopped'}
                 </span>
               </div>
@@ -345,7 +372,8 @@ export function RunningOptionTargetModal({
                 >
                   <span>
                     {selectedDeviceSerial
-                      ? deviceList.find(d => d.serial === selectedDeviceSerial)?.name || 'Select device'
+                      ? deviceList.find((d) => d.serial === selectedDeviceSerial)?.name ||
+                        'Select device'
                       : 'Select device'}
                   </span>
                   <span className="text-text-secondary">▼</span>
@@ -361,7 +389,7 @@ export function RunningOptionTargetModal({
                         }}
                         className={cn(
                           'w-full text-left px-3 py-2 text-sm text-text-primary hover:bg-dropdown-item-hover transition-colors flex items-center gap-2',
-                          selectedDeviceSerial === device.serial && 'bg-primary/10'
+                          selectedDeviceSerial === device.serial && 'bg-primary/10',
                         )}
                       >
                         {device.type === 'physical' ? (
@@ -379,7 +407,9 @@ export function RunningOptionTargetModal({
                 )}
               </div>
               {deviceList.length === 0 && (
-                <p className="text-xs text-text-secondary">No devices found. Please connect a device.</p>
+                <p className="text-xs text-text-secondary">
+                  No devices found. Please connect a device.
+                </p>
               )}
             </div>
           )}
@@ -387,18 +417,16 @@ export function RunningOptionTargetModal({
           {/* Action buttons */}
           {!isRunning && (
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-text-secondary">Select launch mode</label>
-              <div className="space-y-1.5">
-                {renderActionButtons()}
-              </div>
+              <label className="block text-xs font-medium text-text-secondary">
+                Select launch mode
+              </label>
+              <div className="space-y-1.5">{renderActionButtons()}</div>
             </div>
           )}
           {isRunning && (
             <div className="space-y-2">
               <label className="block text-xs font-medium text-text-secondary">Actions</label>
-              <div className="space-y-1.5">
-                {renderActionButtons()}
-              </div>
+              <div className="space-y-1.5">{renderActionButtons()}</div>
             </div>
           )}
         </div>

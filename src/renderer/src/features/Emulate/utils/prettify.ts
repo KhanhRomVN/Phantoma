@@ -17,9 +17,8 @@ interface PrettifyOptions {
  * Optimized for large files
  */
 function simpleBeautify(code: string): string {
-  console.log('[Prettify] Starting beautify for code length:', code.length);
   const startTime = performance.now();
-  
+
   let result = '';
   let indent = 0;
   const tab = '  ';
@@ -136,11 +135,6 @@ function simpleBeautify(code: string): string {
 
   // Flush remaining buffer
   flushBuffer();
-
-  const endTime = performance.now();
-  console.log(`[Prettify] Beautify completed in ${(endTime - startTime).toFixed(2)}ms`);
-  console.log(`[Prettify] Input: ${code.length} chars, Output: ${result.length} chars`);
-  
   return result;
 }
 
@@ -150,10 +144,8 @@ function simpleBeautify(code: string): string {
 export async function prettifyCode(
   code: string,
   language: string = 'javascript',
-  options: PrettifyOptions = {}
+  options: PrettifyOptions = {},
 ): Promise<{ formatted: string; error?: string }> {
-  console.log('[Prettify] Request to format', language, 'code:', code.length, 'chars');
-  
   // Determine parser based on language
   const parserMap: Record<string, string> = {
     javascript: 'babel',
@@ -186,23 +178,17 @@ export async function prettifyCode(
     // Check file size and warn for very large files
     const sizeKB = code.length / 1024;
     if (sizeKB > 500) {
-      console.warn(`[Prettify] Large file detected: ${sizeKB.toFixed(0)}KB - formatting may take time`);
+      console.warn(
+        `[Prettify] Large file detected: ${sizeKB.toFixed(0)}KB - formatting may take time`,
+      );
     }
-    
-    // Use simple beautifier (Prettier integration can be added later)
-    console.log('[Prettify] Using simple beautifier for', language);
-    
-    // For very large files, show progress
-    if (code.length > 100000) {
-      console.log('[Prettify] Processing large file, please wait...');
-    }
-    
+
     const formatted = simpleBeautify(code);
-    
+
     if (formatted.length === 0) {
       throw new Error('Beautify returned empty result');
     }
-    
+
     return { formatted };
   } catch (error) {
     console.error('[Prettify] Error formatting code:', error);
@@ -232,7 +218,7 @@ export function isCodePrettified(code: string): boolean {
   // Check if at least some lines have indentation
   let indentedLines = 0;
   let totalNonEmptyLines = 0;
-  
+
   // Sample first 100 lines for performance
   const sampleSize = Math.min(lines.length, 100);
   for (let i = 0; i < sampleSize; i++) {
@@ -247,7 +233,7 @@ export function isCodePrettified(code: string): boolean {
   }
 
   // If more than 30% of non-empty lines are indented, consider it prettified
-  return totalNonEmptyLines > 0 && (indentedLines / totalNonEmptyLines) > 0.3;
+  return totalNonEmptyLines > 0 && indentedLines / totalNonEmptyLines > 0.3;
 }
 
 /**
@@ -267,13 +253,11 @@ export function isMinified(code: string): boolean {
 
   // If average line length > 300, likely minified
   if (avgLineLength > 300) {
-    console.log('[Prettify] Detected minified: avgLineLength =', avgLineLength.toFixed(0));
     return true;
   }
 
   // If less than 10 lines for more than 1000 chars, likely minified
   if (lines.length < 10 && code.length > 1000) {
-    console.log('[Prettify] Detected minified: few lines for large code');
     return true;
   }
 
@@ -287,7 +271,6 @@ export function isMinified(code: string): boolean {
   }
 
   if (indentedCount < checkLines * 0.2) {
-    console.log('[Prettify] Detected minified: lack of indentation');
     return true;
   }
 

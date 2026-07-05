@@ -1,11 +1,27 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { FileCode, Search, Folder, ChevronRight, ChevronDown, AlignLeft, Globe, ChevronsRight, ChevronsDown, Loader2 } from 'lucide-react';
+import {
+  FileCode,
+  Search,
+  Folder,
+  ChevronRight,
+  ChevronDown,
+  AlignLeft,
+  Globe,
+  ChevronsRight,
+  ChevronsDown,
+  Loader2,
+} from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { ResizableSplit } from '../../../../components/ui/ResizableSplit/ResizableSplit';
 import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { NetworkRequest } from '../Home/Filter';
-import { buildSourceTree, type SourceNode, formatSize, type SourceTreeData } from '../../utils/sourceTree';
+import {
+  buildSourceTree,
+  type SourceNode,
+  formatSize,
+  type SourceTreeData,
+} from '../../utils/sourceTree';
 import type { CdpScriptUnpackedData } from '../../hooks/useNetworkEvents';
 import { prettifyCode, isMinified } from '../../utils/prettify';
 
@@ -38,7 +54,7 @@ function TreeNodeItem({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (node.type === 'file') {
       onSelect(node);
     } else {
@@ -148,7 +164,7 @@ function FileTree({
   // Collect all expandable node IDs (domains + folders)
   const getAllExpandableIds = useCallback(() => {
     const ids: string[] = [];
-    
+
     function traverse(node: SourceNode) {
       if (node.type === 'domain' || node.type === 'folder') {
         ids.push(node.id);
@@ -157,7 +173,7 @@ function FileTree({
         node.children.forEach(traverse);
       }
     }
-    
+
     tree.roots.forEach(traverse);
     return ids;
   }, [tree]);
@@ -166,13 +182,11 @@ function FileTree({
   const handleExpandAll = useCallback(() => {
     const allIds = getAllExpandableIds();
     setExpandedPaths(new Set(allIds));
-    console.log('[FileTree] Expanded all nodes:', allIds.length);
   }, [getAllExpandableIds]);
 
   // Collapse all
   const handleCollapseAll = useCallback(() => {
     setExpandedPaths(new Set());
-    console.log('[FileTree] Collapsed all nodes');
   }, []);
 
   const handleToggle = useCallback((path: string) => {
@@ -269,43 +283,29 @@ function SourceView({
         return;
       }
 
-      console.log('[SourceView] Checking if code needs formatting...', {
-        length: content.length,
-        lines: content.split('\n').length,
-      });
-
       // Check if code is minified
       const needsFormatting = isMinified(content);
-      console.log('[SourceView] Minified check result:', needsFormatting);
-      
+
       if (needsFormatting) {
-        const sizeKB = content.length / 1024;
-        console.log(`[SourceView] Code is minified (${sizeKB.toFixed(0)}KB), auto-prettifying...`);
         setIsFormatting(true);
-        
+
         try {
           const result = await prettifyCode(content, language || 'javascript');
-          
+
           if (result.error) {
-            console.warn('[SourceView] Prettify failed, showing original:', result.error);
             setDisplayContent(content);
             setIsPrettified(false);
           } else {
-            console.log('[SourceView] Code prettified successfully');
-            console.log('[SourceView] Original lines:', content.split('\n').length);
-            console.log('[SourceView] Formatted lines:', result.formatted.split('\n').length);
             setDisplayContent(result.formatted);
             setIsPrettified(true);
           }
-        } catch (error) {
-          console.error('[SourceView] Exception during prettify:', error);
+        } catch {
           setDisplayContent(content);
           setIsPrettified(false);
         }
-        
+
         setIsFormatting(false);
       } else {
-        console.log('[SourceView] Code already formatted, displaying as-is');
         setDisplayContent(content);
         setIsPrettified(true);
       }
@@ -315,26 +315,13 @@ function SourceView({
   }, [content, language]);
 
   const handleFormatClick = useCallback(() => {
-    console.log('[SourceView] ========== FORMAT BUTTON CLICKED ==========');
-    console.log('[SourceView] CodeBlock ref exists:', !!codeBlockRef.current);
-    console.log('[SourceView] CodeBlock ref object:', codeBlockRef.current);
-    
     if (codeBlockRef.current) {
-      console.log('[SourceView] Ref methods available:', Object.keys(codeBlockRef.current));
-      console.log('[SourceView] format method type:', typeof codeBlockRef.current.format);
-      
       try {
-        console.log('[SourceView] Calling format() method...');
         codeBlockRef.current.format();
-        console.log('[SourceView] ✓ format() completed successfully');
-      } catch (error) {
-        console.error('[SourceView] ✗ Error calling format():', error);
-        console.error('[SourceView] Error stack:', (error as Error).stack);
+      } catch {
+        // Format failed silently
       }
-    } else {
-      console.warn('[SourceView] ✗ CodeBlock ref is null - editor may not be mounted yet');
     }
-    console.log('[SourceView] ========================================');
   }, []);
 
   if (!content) {
@@ -375,8 +362,6 @@ function SourceView({
   };
 
   const monacoLang = language ? langMap[language.toLowerCase()] || 'javascript' : 'javascript';
-
-  console.log('[SourceView] Rendering with language:', monacoLang, 'content length:', content.length);
 
   return (
     <div className="h-full w-full min-h-[200px] flex flex-col">
@@ -462,15 +447,16 @@ export function SourcesPanel({ requests = [], unpackedScripts }: SourcesPanelPro
         req.type?.toUpperCase() === 'JS' ||
         req.type?.toUpperCase() === 'CSS' ||
         req.type?.toUpperCase() === 'HTML';
-      
+
       if (isSource && req.responseBody) {
         // Check if already added from unpacked
-        const alreadyExists = sources.some(s => s.url === req.url);
+        const alreadyExists = sources.some((s) => s.url === req.url);
         if (!alreadyExists) {
-          const bodyContent = typeof req.responseBody === 'string'
-            ? req.responseBody
-            : JSON.stringify(req.responseBody);
-          
+          const bodyContent =
+            typeof req.responseBody === 'string'
+              ? req.responseBody
+              : JSON.stringify(req.responseBody);
+
           sources.push({
             url: req.url,
             size: bodyContent.length,
@@ -488,7 +474,7 @@ export function SourcesPanel({ requests = [], unpackedScripts }: SourcesPanelPro
 
     // Prefer unpacked source
     const content = node.unpackedSource || node.staticSource || '';
-    
+
     setSelectedContent({
       content,
       fileName: node.name,

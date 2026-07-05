@@ -103,19 +103,16 @@ class DataService {
         return toTargetTab(dto);
       }
     } catch (error: any) {
-      console.log('[DataService] saveTarget catch error:', error);
       const message = error?.message || '';
       const status = error?.status || 0;
-      const isNotFound = message.includes('missing target id') || 
-                         message.includes('not found') ||
-                         status === 400 || 
-                         status === 404;
-      console.log('[DataService] saveTarget isNotFound:', isNotFound, 'message:', message, 'status:', status);
+      const isNotFound =
+        message.includes('missing target id') ||
+        message.includes('not found') ||
+        status === 400 ||
+        status === 404;
       if (!isNotFound) {
-        // Re-throw unexpected errors
         throw error;
       }
-      // Target doesn't exist, will create new below
     }
 
     // Create new target
@@ -183,7 +180,6 @@ class DataService {
 
   async initialize(): Promise<void> {
     // Không cần làm gì — database do Go backend quản lý
-    console.log('[DataService] Backend API ready');
   }
 
   isInitialized(): boolean {

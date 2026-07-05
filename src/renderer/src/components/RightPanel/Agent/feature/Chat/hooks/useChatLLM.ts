@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Message } from '../types/message';
-import { ToolAction, parseAIResponse } from '../blocks';
 import { getDefaultPrompt, combinePrompts } from '../prompts/code';
-import { getDefaultPrompt as getDefaultPromptEmulate, combinePrompts as combinePromptsEmulate } from '../prompts/emulate';
+import {
+  getDefaultPrompt as getDefaultPromptEmulate,
+  combinePrompts as combinePromptsEmulate,
+} from '../prompts/emulate';
 import {
   PERSISTENT_RULES,
   buildPermissionModeTag,
@@ -19,6 +21,7 @@ import { useProject } from '../../../context/ProjectContext';
 import { useFileUpload } from './useFileUpload';
 import { ChatSession } from '../types/chat';
 import { extensionService } from '../../../services/ExtensionService';
+import { ToolAction } from '../services/ResponseParser';
 
 /** Returns only top-level entries from a formatted tree string. */
 const getShallowTree = (tree: string): string => {
@@ -329,7 +332,6 @@ export const useChatLLM = ({
 
         const effectiveLang = aiLanguage || preferredLanguage;
         const isEmulate = feature === 'emulate';
-        console.log('[DEBUG-useChatLLM] 🟣 feature =', feature, '| isEmulate =', isEmulate);
         systemPrompt = isEmulate
           ? getDefaultPromptEmulate(effectiveLang)
           : getDefaultPrompt(effectiveLang);
@@ -469,13 +471,6 @@ export const useChatLLM = ({
               const parsed = JSON.parse(existingData.value);
               if (parsed.questionAnswers && Object.keys(parsed.questionAnswers).length > 0) {
                 preservedQuestionAnswers = parsed.questionAnswers;
-                console.log(
-                  '[useChatLLM] sendMessage - Preserved questionAnswers for auto-triggered request:',
-                  {
-                    convId: effectiveChatUuid,
-                    questionAnswersKeys: Object.keys(preservedQuestionAnswers ?? {}),
-                  },
-                );
               }
             }
           }
@@ -1034,13 +1029,6 @@ export const useChatLLM = ({
         setIncompletePartialToolType(null);
         abortControllerRef.current = null;
 
-        // Parse for metadata logging only.
-        // NOTE: Do NOT call onToolRequest here. Auto-triggering is handled exclusively
-        // by useToolActions.ts via parsedMessages useEffect to avoid duplicate triggers.
-        // (RES1 may still be streaming when useToolActions triggers tools mid-stream;
-        //  calling onToolRequest here after stream-done would cause a double-trigger.)
-        const parsed = parseAIResponse(assistantMessage.content);
-
         // Save final conversation state
         saveConversation(
           sessionId,
@@ -1191,14 +1179,6 @@ export const useChatLLM = ({
         const answersToSave = parsedPayload?.answers
           ? { [messageId]: parsedPayload.answers }
           : undefined;
-
-        // ✅ DEBUG: Log questionAnswers before save
-        console.log('[useChatLLM] handleSelectOption - Saving questionAnswers:', {
-          messageId,
-          parsedPayload,
-          answersToSave,
-          convId,
-        });
 
         // Log the message state after update
         const sessionId = selectedTab?.sessionId || -1;

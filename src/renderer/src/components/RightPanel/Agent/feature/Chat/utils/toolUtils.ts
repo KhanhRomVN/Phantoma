@@ -1,4 +1,4 @@
-import { ACTION_NAMES, TOOL_LABELS } from "../blocks";
+import { ACTION_NAMES, TOOL_LABELS } from '../constants/constants';
 
 /** Returns the human-readable action name for a tool type. */
 export const getActionName = (type: string): string => {
@@ -12,7 +12,7 @@ export const getToolLabel = (type: string): string => {
 
 /** Returns the color token for a tool type. */
 export const getToolColor = (type: string): string => {
-  return "var(--primary, #3b82f6)";
+  return 'var(--primary, #3b82f6)';
 };
 
 /**
@@ -20,18 +20,13 @@ export const getToolColor = (type: string): string => {
  * or a truncated command string for run_command.
  */
 export const getFilename = (action: any): string => {
-  if (action.type === "run_command") {
-    const id = action.params.terminal_id || "";
-    const cmd = action.params.command || action.params.text || "";
-    if (id && cmd)
-      return `${id}: ${cmd.substring(0, 30)}${cmd.length > 30 ? "..." : ""}`;
+  if (action.type === 'run_command') {
+    const id = action.params.terminal_id || '';
+    const cmd = action.params.command || action.params.text || '';
+    if (id && cmd) return `${id}: ${cmd.substring(0, 30)}${cmd.length > 30 ? '...' : ''}`;
     if (id) return id;
-    return cmd.length > 50 ? cmd.substring(0, 50) + "..." : cmd;
+    return cmd.length > 50 ? cmd.substring(0, 50) + '...' : cmd;
   }
-  const path =
-    action.params.file_path ||
-    action.params.folder_path ||
-    action.params.path ||
-    "";
-  return path.split("/").pop() || path || "";
+  const path = action.params.file_path || action.params.folder_path || action.params.path || '';
+  return path.split('/').pop() || path || '';
 };

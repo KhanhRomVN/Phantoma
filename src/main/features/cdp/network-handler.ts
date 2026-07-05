@@ -3,7 +3,6 @@ import { CdpManager } from './cdp-manager';
 
 export function handleNetworkEvent(this: CdpManager, method: string, params: any) {
   if (!this.mainWindow) {
-    console.warn('[CDP] No mainWindow set, dropping event:', method);
     return;
   }
 
@@ -26,13 +25,11 @@ export function handleNetworkEvent(this: CdpManager, method: string, params: any
 }
 
 export function handleRequestWillBeSent(this: CdpManager, params: any) {
-  const { requestId, request, initiator, type, loaderId } = params;
+  const { requestId, request, initiator, type } = params;
 
   // Log source-type requests
   const isSource = type === 'Script' || type === 'Stylesheet' || type === 'Document';
   if (isSource) {
-    const shortUrl = request.url.length > 120 ? request.url.substring(0, 117) + '...' : request.url;
-    // console.log(`[CDP:Source] 📄 REQUEST [${type}] ${shortUrl}`);
   }
 
   // Store URL to scriptId mapping if this is a script
@@ -102,13 +99,6 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
   // Try to get body early for script and stylesheet resources
   const resourceType = response.resourceType || response.type || '';
   if (resourceType === 'Script' || resourceType === 'Stylesheet' || resourceType === 'Document') {
-    // const shortUrl = (response.url || '').length > 120
-    //   ? (response.url || '').substring(0, 117) + '...'
-    //   : (response.url || '');
-    // console.log(
-    //   `[CDP:Source] ⬇ RESPONSE [${resourceType}] status=${response.status} size=${response.encodedDataLength || '?'} ${shortUrl}`,
-    // );
-
     if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
       // console.warn(`[CDP:Source] ⚠️ Cannot early-fetch body: WS not connected`);
       return;
@@ -119,9 +109,6 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
         const result = await this.send('Network.getResponseBody', { requestId });
         const { body, base64Encoded } = result;
         if (body && body.length > 0) {
-          // console.log(
-          //   `[CDP:Source] ✅ EARLY-BODY [${resourceType}] ${body.length} bytes (base64=${base64Encoded})`,
-          // );
           this.sendToRenderer('cdp:response-body', {
             id: requestId,
             body: body,
@@ -130,22 +117,14 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
             timestamp: Date.now(),
             loadingTimestamp: timestamp,
           });
-        } else {
-          // console.log(`[CDP:Source] ⚠️ EARLY-BODY [${resourceType}] body empty, will retry in loadingFinished`);
         }
-      } catch (e: any) {
-        // console.log(
-        //   `[CDP:Source] ⚠️ EARLY-BODY [${resourceType}] failed: ${e?.message || e}, will retry in loadingFinished`,
-        // );
-      }
+      } catch (e: any) {}
     }, 50);
   }
 }
 
 export async function handleLoadingFinished(this: CdpManager, params: any) {
   const { requestId, encodedDataLength, timestamp } = params;
-
-  // console.log(`[CDP:Source] 🏁 LOADING-FINISHED requestId=${requestId} encodedSize=${encodedDataLength}`);
 
   // Check if WebSocket is still connected before trying to fetch body
   if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -176,10 +155,6 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
       const { body, base64Encoded } = result;
 
       staticSource = body; // Store static source for comparison
-
-      // console.log(
-      //   `[CDP:Source] ✅ BODY attempt=${attempt + 1} requestId=${requestId} size=${body?.length || 0} base64=${base64Encoded}`,
-      // );
       this.sendToRenderer('cdp:response-body', {
         id: requestId,
         body: body,
@@ -192,11 +167,7 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
       break; // Success, exit retry loop
     } catch (e: any) {
       lastError = e;
-      // console.log(
-      //   `[CDP:Source] ⚠️ BODY attempt=${attempt + 1} failed: ${e?.message || e}`,
-      // );
       if (e.code === -32000 && e.message?.includes('No resource')) {
-        // console.log(`[CDP:Source] ⚠️ No resource available, stopping retries`);
         break;
       }
     }
@@ -222,22 +193,12 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
       const result = await this.send('Debugger.getScriptSource', { scriptId });
       if (result && result.scriptSource) {
         const unpackedSource = result.scriptSource;
-        
-        // console.log(
-        //   `[CDP:Source] ✅ DEBUGGER-SOURCE success: ${unpackedSource.length} bytes`,
-        // );
 
         // Compare static vs unpacked
         const isDifferent = staticSource && staticSource !== unpackedSource;
-        const compressionRatio = staticSource 
+        const compressionRatio = staticSource
           ? ((staticSource.length / unpackedSource.length) * 100).toFixed(1) + '%'
           : 'N/A';
-
-        if (isDifferent) {
-          // console.log(
-          //   `[CDP:Source] 🔍 UNPACKED differs from static! Static: ${staticSource?.length || 0}b, Unpacked: ${unpackedSource.length}b (${compressionRatio})`
-          // );
-        }
 
         // Send unpacked source with metadata
         this.sendToRenderer('cdp:script-unpacked', {
@@ -253,7 +214,6 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
 
         // If static body was not fetched, use unpacked as fallback
         if (!bodyFetched) {
-          // console.log(`[CDP:Source] 🔄 Using unpacked source as fallback body`);
           this.sendToRenderer('cdp:response-body', {
             id: requestId,
             body: unpackedSource,
@@ -266,22 +226,11 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
           bodyFetched = true;
         }
       }
-    } catch (e: any) {
-      // console.log(
-      //   `[CDP:Source] ⚠️ DEBUGGER-SOURCE failed: ${e?.message || e}`,
-      // );
-    }
-  } else {
-    if (requestUrl) {
-      // console.log(
-      //   `[CDP:Source] ⚠️ No scriptId mapping for url=${requestUrl}, cannot get unpacked source`,
-      // );
-    }
+    } catch (e: any) {}
   }
 
   // If still no body fetched, send empty
   if (!bodyFetched) {
-    // console.log(`[CDP:Source] ❌ BODY-FAILED requestId=${requestId} — sending empty`);
     this.sendToRenderer('cdp:response-body', {
       id: requestId,
       body: '',
@@ -294,10 +243,6 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
 }
 
 export function handleLoadingFailed(this: CdpManager, params: any) {
-  const { requestId, errorText, type } = params;
-  const resourceType = type || '?';
-  console.log(
-    `[CDP:Source] ❌ LOADING-FAILED [${resourceType}] requestId=${requestId} error=${errorText}`,
-  );
+  const { requestId, errorText } = params;
   this.sendToRenderer('cdp:error', { id: requestId, error: errorText });
 }

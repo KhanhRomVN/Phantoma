@@ -146,7 +146,6 @@ export function PayloadTable({ payloads, onChange, targetId }: PayloadTableProps
       values: [],
       enabled: true,
     };
-    console.log('➕ Adding new payload:', newPayload);
     onChange([...payloads, newPayload]);
   };
 
@@ -159,11 +158,6 @@ export function PayloadTable({ payloads, onChange, targetId }: PayloadTableProps
       values,
       enabled: true,
     };
-    console.log('📋 Adding from template:', {
-      template: template.name,
-      valuesCount: values.length,
-      newPayload,
-    });
     onChange([...payloads, newPayload]);
     setShowTemplateMenu(false);
   };

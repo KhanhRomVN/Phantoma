@@ -87,13 +87,6 @@ export const Tooltip: React.FC<TooltipProps> = ({
         if (tooltipRef.current) {
           const styles = getComputedStyle(tooltipRef.current);
           const bgColor = styles.getPropertyValue('--color-tooltip-background');
-          console.log('[Tooltip] --color-tooltip-background:', bgColor);
-          console.log('[Tooltip] Background color:', styles.backgroundColor);
-          console.log('[Tooltip] All CSS variables:', {
-            '--color-tooltip-background': styles.getPropertyValue('--color-tooltip-background'),
-            '--tooltip-background': styles.getPropertyValue('--tooltip-background'),
-            'bg-tooltip-background': styles.backgroundColor,
-          });
         }
       });
     }

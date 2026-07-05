@@ -1,16 +1,16 @@
 import React from 'react';
 import { Message } from '../../types/message';
-import { ParsedResponse } from '../../blocks';
-import ToolRouter from '../../blocks/components/ToolRouter';
-import QuestionAnswerBlock from '../../blocks/components/QuestionAnswerBlock';
-import HtmlBlock from '../../blocks/components/HtmlBlock';
-import { ToolHeader } from '../../blocks/components/ToolHeader';
-import MarkdownBlock from '../../blocks/components/MarkdownBlock';
-import ErrorBlock from '../../blocks/components/ErrorBlock';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { isDiff, parseDiff } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
 import { $ } from '@renderer/utils/color';
 import '../../styles/timeline.css';
+import { ParsedResponse } from '../../services/ResponseParser';
+import { ToolHeader } from '../tools/ToolHeader';
+import HtmlBlock from '../blocks/HtmlBlock';
+import MarkdownBlock from '../blocks/MarkdownBlock';
+import QuestionAnswerBlock from '../blocks/QuestionAnswerBlock';
+import ErrorBlock from '../blocks/ErrorBlock';
+import ToolRouter from '../tools/ToolRouter';
 
 interface AIMessageBoxProps {
   message: Message;
@@ -390,12 +390,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                   language: block.language || 'text',
                   key: `code-${groups.length}`,
                 });
-              } else if (block.type === 'html') {
-                groups.push({
-                  type: 'html',
-                  content: block.content,
-                  key: `html-${groups.length}`,
-                });
               }
             }
           });
@@ -507,100 +501,8 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
               </div>
             );
           } else if (group.type === 'thinking') {
-            content = (
-              <div style={{ paddingBottom: '8px' }}>
-                <div
-                  className="timeline-dot"
-                  style={{
-                    backgroundColor: 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: 'none',
-                    boxShadow: 'none',
-                  }}
-                >
-                  {/* Animated circle-dot — purple */}
-                  <span
-                    style={{
-                      position: 'relative',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '12px',
-                      height: '12px',
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: 'absolute',
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        background: $('--purple, #a855f7'),
-                        opacity: 0.25,
-                      }}
-                    />
-                    <span
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        background: $('--purple, #a855f7'),
-                        flexShrink: 0,
-                      }}
-                    />
-                  </span>
-                </div>
-                <div style={{ paddingLeft: '29px', paddingTop: '4px' }}>
-                  {/* THINKING label */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                        color: $('--purple, #a855f7'),
-                        opacity: 0.85,
-                      }}
-                    >
-                      Thinking
-                    </span>
-                  </div>
-                  {/* Plain content block */}
-                  <div
-                    style={{
-                      padding: '6px 10px',
-                      background: $('--background') || $('--textCodeBlock-background') || '#1e1e1e',
-                      borderRadius: '4px',
-                      border:
-                        `1px solid color-mix(in srgb, ${$('--purple, #a855f7')} 20%, ${$('--border, rgba(255,255,255,0.08)')})`,
-                      fontFamily: $('--font-family, monospace'),
-                      fontSize: '11px',
-                      lineHeight: '1.5',
-                      color: $('--secondary-text') || $('--primary-text') || 'currentColor',
-                      opacity: 0.85,
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      maxHeight: '240px',
-                      overflowY: 'auto',
-                      scrollbarWidth: 'thin',
-                      scrollbarColor: 'rgba(128,128,128,0.4) transparent',
-                    }}
-                  >
-                    {group.content}
-                  </div>
-                </div>
-              </div>
-            );
+            // Thinking is hidden — do not render anything
+            content = null;
           } else if (group.type === 'code') {
             const isDiffBlock = isDiff(group.content, group.language);
             let displayCode = group.content;
@@ -723,10 +625,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
               </div>
             );
           } else if (group.type === 'question') {
-            const isAnswered =
-              !!message.selectedOption ||
-              (message.questionAnswers && Object.keys(message.questionAnswers).length > 0);
-            // Check if this is the new paginated format (has questions array)
             const hasQuestions = group.questions && group.questions.length > 0;
 
             // Render QuestionAnswerBlock - it now manages its own summary mode internally
@@ -866,7 +764,10 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
           }
 
           return (
-            <div key={group.key} className={`timeline-item relative ml-0 ${isLast ? 'last pb-0' : ''}`}>
+            <div
+              key={group.key}
+              className={`timeline-item relative ml-0 ${isLast ? 'last pb-0' : ''}`}
+            >
               {content}
             </div>
           );

@@ -1,10 +1,8 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { parseAIResponse, ParsedResponse, ToolAction } from '../blocks';
 import { useSettings } from '../../../context/SettingsContext';
 import { useCollapseSections } from '../hooks/useCollapseSections';
 import { useToolActions } from '../hooks/useToolActions';
 import { useScrollBehavior } from '../hooks/useScrollBehavior';
-import { getPermissionDecision } from '../blocks';
 import { Message } from '../types/message';
 import ProcessingIndicator from './messages/ProcessingIndicator';
 import MessageBox from './messages/MessageBox';
@@ -13,6 +11,8 @@ import { ChatErrorBoundary } from './ChatErrorBoundary';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/lib/utils';
 import '../styles/timeline.css';
+import { parseAIResponse, ParsedResponse, ToolAction } from '../services/ResponseParser';
+import { getPermissionDecision } from '../utils/permissionUtils';
 
 interface ChatBodyProps {
   messages: Message[];
@@ -95,7 +95,6 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   toolOutputs,
   terminalStatus,
   firstRequestMessageId,
-  onLoadConversation,
   activeTerminalIds,
   attachedTerminalIds,
   conversationId,
@@ -219,7 +218,6 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
           case 'mixed_content':
             return b.segments.length > 0;
           case 'code':
-          case 'html':
           case 'file':
           case 'markdown':
             return b.content.trim().length > 0;

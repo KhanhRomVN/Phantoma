@@ -11,15 +11,11 @@ function writeTestFile() {
     var f = new File('/tmp/frida-script-executed.txt', 'w');
     f.write('Script executed at ' + Date.now());
     f.close();
-    console.log('[Frida] Test file written to /tmp/frida-script-executed.txt');
-  } catch(e) {
-    console.log('[Frida] Failed to write test file: ' + e.message);
-  }
+  } catch(e) {}
 }
 
 // Use send() for guaranteed output to parent process
 function log(msg) {
-  console.log('[Frida] ' + msg);
   try {
     send('[Frida] ' + msg);
   } catch(e) {}

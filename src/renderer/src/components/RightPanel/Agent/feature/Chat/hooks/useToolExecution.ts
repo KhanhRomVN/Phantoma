@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
 import { Message } from '../types/message';
 
-import { parseAIResponse, getPermissionDecision } from '../blocks';
 import { useSettings, PermissionMode } from '../../../context/SettingsContext';
 import { formatGrepResultCompact } from '../utils/grepFormatter';
 import { extensionService, messageDispatcher } from '../../../services/ExtensionService';
+import { getPermissionDecision } from '../utils/permissionUtils';
+import { parseAIResponse } from '../services/ResponseParser';
 
 // ── Timeout constants ──────────────────────────────────────────────────────
 /** Standard timeout for file/git/search operations (ms) */
@@ -795,7 +796,6 @@ export const useToolExecution = ({
         const allActionIds = parsed.actions.map(
           (_: any, idx: number) => `${message.id}-action-${idx}`,
         );
-        const currentBatchIds = actions.map((a) => `${message.id}-action-${a._index}`);
 
         const isAllComplete =
           allActionIds.every((id: string) => clickedActionsRef.current.has(id)) &&

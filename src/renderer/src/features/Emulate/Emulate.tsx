@@ -78,7 +78,6 @@ export default function Emulate({
 
   // Update Agent context with Emulate state
   useEffect(() => {
-    console.log('[Agent] Update state:', JSON.stringify({ activeTargetId, targetStates }, null, 2));
     setEmulateState({
       activeTargetId,
       targetStates,
@@ -103,8 +102,6 @@ export default function Emulate({
 
   // Wrapper for AddTargetModal onAdd
   const handleAddApp = async (appData: any) => {
-    console.log('[Emulate] Add app:', appData);
-
     // Tạo target từ appData
     const newTab: TargetTab = {
       id: appData.id || crypto.randomUUID(),
@@ -117,9 +114,30 @@ export default function Emulate({
       environment: appData.environment || undefined,
     };
 
-    await saveTarget(newTab);
-    setState((prev) => ({ ...prev, targetTabs: [...prev.targetTabs, newTab] }));
-    await refreshTargets();
+    try {
+      // Sử dụng createTarget thay vì saveTarget để tránh nhầm lẫn với PUT
+      const created = await createTarget({
+        title: newTab.title,
+        url: newTab.url,
+        platform: newTab.platform || 'web',
+        executablePath: newTab.executablePath,
+        startupArgs: newTab.startupArgs,
+        environment: newTab.environment,
+      });
+
+      // Cập nhật state với target đã được tạo từ server
+      setState((prev) => ({ ...prev, targetTabs: [...prev.targetTabs, created] }));
+      await refreshTargets();
+
+      // Đóng modal sau khi thành công
+      setIsAddModalOpen(false);
+      setEditingApp(null);
+    } catch (error) {
+      console.error('[Emulate] Add target failed:', error);
+      // Không đóng modal, để user sửa lại
+      // TODO: Show error toast
+      alert(`Failed to add target: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   // Sử dụng SQLite để lưu targets
@@ -129,6 +147,7 @@ export default function Emulate({
     saveTarget,
     deleteTarget,
     refresh: refreshTargets,
+    createTarget,
   } = useTargetData({ autoLoad: true });
 
   // State cho timer display
@@ -137,10 +156,8 @@ export default function Emulate({
   // Real-time timer for active targets
   useEffect(() => {
     // Find any active target
-    const activeTargetId = Object.keys(targetStates).find(
-      (id) => targetStates[id]?.isActive
-    );
-    
+    const activeTargetId = Object.keys(targetStates).find((id) => targetStates[id]?.isActive);
+
     if (!activeTargetId) {
       // Clear timer when no active target
       return;
@@ -156,7 +173,7 @@ export default function Emulate({
       const minutes = Math.floor(elapsed / 60);
       const seconds = elapsed % 60;
       const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-      
+
       setTimerDisplay((prev) => ({
         ...prev,
         [activeTargetId]: formatted,
@@ -185,10 +202,8 @@ export default function Emulate({
   };
 
   const removeTargetTab = async (id: string) => {
-    console.log('[Emulate] removeTargetTab called with id:', id);
     try {
       const deleted = await deleteTarget(id);
-      console.log('[Emulate] deleteTarget result:', deleted);
       setState((prev) => {
         const newTabs = prev.targetTabs.filter((t) => t.id !== id);
         const newActiveId =
@@ -200,7 +215,6 @@ export default function Emulate({
         return { ...prev, targetTabs: newTabs, activeTargetId: newActiveId };
       });
       await refreshTargets();
-      console.log('[Emulate] removeTargetTab completed successfully');
     } catch (error) {
       console.error('[Emulate] removeTargetTab error:', error);
     }
@@ -217,8 +231,6 @@ export default function Emulate({
   };
 
   const startTarget = (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
-    console.log('[Agent] startTarget called:', { targetId, mode });
-    console.log('[Agent] Current targetStates before update:', JSON.stringify(targetStates, null, 2));
     setState((prev) => {
       const newState = {
         ...prev,
@@ -232,7 +244,6 @@ export default function Emulate({
           },
         },
       };
-      console.log('[Agent] New targetStates after update:', JSON.stringify(newState.targetStates, null, 2));
       return newState;
     });
   };
@@ -362,10 +373,6 @@ export default function Emulate({
     mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
     useEnvInject?: boolean,
   ) => {
-    console.log(
-      `[Emulate] Launching target: appId=${appId}, mode=${mode}, proxyUrl=${proxyUrl}, useEnvInject=${useEnvInject}`,
-    );
-
     // Check if window.api is available
     if (!window.api || typeof window.api.invoke !== 'function') {
       console.error('[Emulate] window.api is not available. Preload may not be loaded.');
@@ -378,7 +385,6 @@ export default function Emulate({
       // Lấy executable path từ targetTabs nếu có
       const target = targetTabs.find((t) => t.id === appId);
       const launchTarget = target?.executablePath || appId;
-      console.log(`[Emulate] Using launch target: ${launchTarget}`);
 
       const result = await window.api.invoke(
         'app:launch',
@@ -388,7 +394,6 @@ export default function Emulate({
         mode,
         useEnvInject,
       );
-      console.log(`[Emulate] Launch result: ${result}`);
 
       if (result) {
         // Tạo target tab từ appId và customUrl

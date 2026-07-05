@@ -87,7 +87,7 @@ export const AndroidModal: React.FC<BaseModalProps> = ({
     }
 
     const existing = existingApps.find(
-      (app) => app.emulatorSerial?.toLowerCase() === selectedDevice.serial.toLowerCase(),
+      (app) => app.emulatorSerial?.toLowerCase() === selectedDevice.serial?.toLowerCase(),
     );
     if (existing) {
       setDuplicateError(`Device "${existing.name}" (${existing.emulatorSerial}) đã tồn tại`);
@@ -96,17 +96,21 @@ export const AndroidModal: React.FC<BaseModalProps> = ({
     }
   }, [selectedDevice, existingApps]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedDevice) return;
     if (duplicateError) return;
 
-    onAdd({
-      name: selectedDevice.name,
-      platform: 'android',
-      mode: 'intercept',
-      emulatorSerial: selectedDevice.serial,
-    });
-    onClose();
+    try {
+      await onAdd({
+        name: selectedDevice.name,
+        platform: 'android',
+        mode: 'intercept',
+        emulatorSerial: selectedDevice.serial,
+      });
+      onClose();
+    } catch (error) {
+      console.error('[AndroidModal] Add target failed:', error);
+    }
   };
 
   const canSubmit = !!selectedDevice && !duplicateError;

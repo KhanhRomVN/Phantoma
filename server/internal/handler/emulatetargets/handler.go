@@ -32,7 +32,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 // GetByID handles GET /api/v1/targets/{id}
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	id := extractID(r.URL.Path, "/api/v1/targets/")
+	id := extractID(r.URL.Path, "/api/v1/emulate-targets/")
 	if id == "" {
 		response.Error(w, http.StatusBadRequest, "missing target id")
 		return
@@ -75,7 +75,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PUT /api/v1/targets/{id}
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	id := extractID(r.URL.Path, "/api/v1/targets/")
+	id := extractID(r.URL.Path, "/api/v1/emulate-targets/")
 	if id == "" {
 		response.Error(w, http.StatusBadRequest, "missing target id")
 		return
@@ -102,7 +102,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /api/v1/targets/{id}
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	id := extractID(r.URL.Path, "/api/v1/targets/")
+	id := extractID(r.URL.Path, "/api/v1/emulate-targets/")
 	if id == "" {
 		response.Error(w, http.StatusBadRequest, "missing target id")
 		return

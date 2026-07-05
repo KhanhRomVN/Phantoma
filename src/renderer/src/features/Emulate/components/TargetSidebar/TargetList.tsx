@@ -119,7 +119,12 @@ export function TargetList({
     }
   };
 
-  const handleStartMITM = (targetId: string, targetUrl?: string, useEnvInject: boolean = false, deviceSerial?: string) => {
+  const handleStartMITM = (
+    targetId: string,
+    targetUrl?: string,
+    useEnvInject: boolean = false,
+    deviceSerial?: string,
+  ) => {
     // Update last_used_at immediately when starting MITM
     onSelectTarget(targetId);
     onStartTarget('mitm');
@@ -127,7 +132,14 @@ export function TargetList({
       .invoke('proxy:create-session', 'default')
       .then(async () => {
         if (onLaunchTarget) {
-          await onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'browser', useEnvInject, deviceSerial);
+          await onLaunchTarget(
+            targetId,
+            'http://127.0.0.1:8081',
+            targetUrl,
+            'browser',
+            useEnvInject,
+            deviceSerial,
+          );
         }
       })
       .catch(() => {
@@ -136,19 +148,15 @@ export function TargetList({
   };
 
   const handleStartFrida = (targetId: string, targetUrl?: string) => {
-    console.log(`[TargetList] Starting Frida for target: ${targetId}, url: ${targetUrl}`);
     // Update last_used_at immediately when starting Frida
     onSelectTarget(targetId);
     onStartTarget('frida');
-    console.log('[TargetList] Creating proxy session...');
     window.api
       .invoke('proxy:create-session', 'default')
       .then(async () => {
-        console.log('[TargetList] Proxy session created, launching target...');
         if (onLaunchTarget) {
           await onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'frida');
         }
-        console.log('[TargetList] Launch completed.');
       })
       .catch((err) => {
         console.error('[TargetList] Failed to create proxy session:', err);
@@ -178,7 +186,12 @@ export function TargetList({
               {[
                 { id: 'web' as AppPlatform, label: 'Website', icon: Globe, color: '#3b82f6' },
                 { id: 'pc' as AppPlatform, label: 'App', icon: Monitor, color: '#8b5cf6' },
-                { id: 'android' as AppPlatform, label: 'Mobile', icon: Smartphone, color: '#f59e0b' },
+                {
+                  id: 'android' as AppPlatform,
+                  label: 'Mobile',
+                  icon: Smartphone,
+                  color: '#f59e0b',
+                },
                 { id: 'cli' as AppPlatform, label: 'CLI', icon: Terminal, color: '#6b7280' },
               ].map((platform) => {
                 const Icon = platform.icon;
@@ -207,14 +220,14 @@ export function TargetList({
               const platform = getTargetPlatform(tab);
               const faviconSrc = getTargetFavicon(tab);
               const isActive = tab.id === activeAppId;
-              
+
               // Check if mobile device is running
               const isMobileDeviceRunning = (() => {
                 if (platform !== 'android') return true;
                 if (!tab.emulatorSerial) return false;
-                return deviceList.some(d => d.serial === tab.emulatorSerial);
+                return deviceList.some((d) => d.serial === tab.emulatorSerial);
               })();
-              
+
               // Card is disabled if it's a mobile target and device is not running
               const isCardDisabled = platform === 'android' && !isMobileDeviceRunning;
 
@@ -281,16 +294,6 @@ export function TargetList({
                               : getPlatformLabel(platform)}
                         </div>
                       </div>
-                      {/* Timer - luôn hiển thị ở góc phải trên cùng khi running */}
-                      {(() => {
-                        console.log(`[TargetList] Timer check for ${tab.id}:`, {
-                          isRunning,
-                          elapsed,
-                          mode: targetStates[tab.id]?.mode,
-                          timerDisplayValue: timerDisplay[tab.id]
-                        });
-                        return null;
-                      })()}
                       {isRunning && (
                         <span className="absolute top-1.5 right-2 text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                           {elapsed}
@@ -314,8 +317,6 @@ export function TargetList({
                         disabled={isCardDisabled}
                         onClick={() => {
                           if (isCardDisabled) return;
-                          console.log('[TargetList] Start target clicked for:', tab.id);
-                          console.log('[TargetList] showRunningModal currently:', showRunningModal);
                           // Only open modal if not already open
                           if (!showRunningModal) {
                             // Close the dropdown first
@@ -323,9 +324,6 @@ export function TargetList({
                             // Then open the modal
                             setSelectedTargetForModal(tab);
                             setShowRunningModal(true);
-                            console.log('[TargetList] showRunningModal set to true');
-                          } else {
-                            console.log('[TargetList] Modal already open, skipping');
                           }
                         }}
                       >
@@ -372,13 +370,16 @@ export function TargetList({
       <RunningOptionTargetModal
         isOpen={showRunningModal}
         onClose={() => {
-          console.log('[TargetList] Modal onClose called');
           setShowRunningModal(false);
           setSelectedTargetForModal(null);
         }}
         target={selectedTargetForModal}
         platform={selectedTargetForModal ? getTargetPlatform(selectedTargetForModal) : null}
-        isRunning={selectedTargetForModal ? targetStates[selectedTargetForModal.id]?.isActive || false : false}
+        isRunning={
+          selectedTargetForModal
+            ? targetStates[selectedTargetForModal.id]?.isActive || false
+            : false
+        }
         deviceList={deviceList}
         onStartCDP={handleStartCDP}
         onStartMITM={handleStartMITM}

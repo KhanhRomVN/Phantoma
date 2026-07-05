@@ -7,6 +7,7 @@ import (
 
 	"github.com/phantoma/server/internal/database"
 	domainemulatetargets "github.com/phantoma/server/internal/domain/emulatetargets"
+	"github.com/phantoma/server/pkg/logger"
 )
 
 // EmulateTargetRepository defines the interface for emulate target data access.
@@ -89,7 +90,44 @@ func (r *SQLiteEmulateTargetRepository) Create(input domainemulatetargets.Create
 		id = &uid
 	}
 
-	_, err := database.DB.Exec(
+	logger.Info("[Repository] Creating target",
+		logger.F("id", *id),
+		logger.F("title", input.Title),
+		logger.F("url", input.URL),
+		logger.F("platform", input.Platform),
+		logger.F("executable_path", input.ExecutablePath),
+	)
+
+	// Check if table exists
+	var tableExists int
+	err := database.DB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='emulate_targets'").Scan(&tableExists)
+	if err != nil {
+		logger.Error("[Repository] Failed to check table existence",
+			logger.F("error", err),
+		)
+	} else {
+		logger.Info("[Repository] Table check",
+			logger.F("exists", tableExists > 0),
+		)
+		if tableExists == 0 {
+			// Log all tables
+			rows, err := database.DB.Query("SELECT name FROM sqlite_master WHERE type='table'")
+			if err == nil {
+				defer rows.Close()
+				var tables []string
+				for rows.Next() {
+					var name string
+					rows.Scan(&name)
+					tables = append(tables, name)
+				}
+				logger.Info("[Repository] Existing tables",
+					logger.F("tables", tables),
+				)
+			}
+		}
+	}
+
+	_, err = database.DB.Exec(
 		`INSERT INTO emulate_targets (id, title, url, icon, platform,
 		                      executable_path, startup_args, environment,
 		                      created_at, updated_at)
@@ -99,9 +137,14 @@ func (r *SQLiteEmulateTargetRepository) Create(input domainemulatetargets.Create
 		now, now,
 	)
 	if err != nil {
+		logger.Error("[Repository] Insert failed",
+			logger.F("error", err),
+			logger.F("sql", err.Error()),
+		)
 		return nil, fmt.Errorf("insert target: %w", err)
 	}
 
+	logger.Info("[Repository] Insert successful, retrieving target")
 	return r.GetByID(*id)
 }
 

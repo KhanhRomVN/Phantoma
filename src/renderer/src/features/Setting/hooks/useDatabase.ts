@@ -18,9 +18,7 @@ export function useDatabase() {
       setError(null);
 
       // Server-managed database — expose available endpoints as "tables"
-      setTables([
-        { name: 'emulate_targets', sql: 'REST API: GET /api/v1/emulate-targets' },
-      ]);
+      setTables([{ name: 'emulate_targets', sql: 'REST API: GET /api/v1/emulate-targets' }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tables');
       console.error('Load tables error:', err);
@@ -39,15 +37,13 @@ export function useDatabase() {
 
       if (tableName === 'emulate_targets') {
         const targets = await targetService.getTargets();
-        console.log('[useDatabase] targets data:', targets);
-
         if (targets.length > 0) {
-          const columns = Object.keys(targets[0]).filter(col => col !== 'rowid');
+          const columns = Object.keys(targets[0]).filter((col) => col !== 'rowid');
           const columnTypes: Record<string, string> = {};
 
           // Infer types from values
           columns.forEach((col) => {
-            const sampleVal = targets[0][col as keyof typeof targets[0]];
+            const sampleVal = targets[0][col as keyof (typeof targets)[0]];
             if (sampleVal === null || sampleVal === undefined) {
               columnTypes[col] = 'TEXT';
             } else if (typeof sampleVal === 'number') {
@@ -104,11 +100,11 @@ export function useDatabase() {
       operator,
       value: value || '',
     };
-    setFilters(prev => [...prev, newFilter]);
+    setFilters((prev) => [...prev, newFilter]);
   }, []);
 
   const removeFilter = useCallback((id: string) => {
-    setFilters(prev => prev.filter(f => f.id !== id));
+    setFilters((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -149,30 +145,33 @@ export function useDatabase() {
     });
   }, [tableData, filters]);
 
-  const deleteRecords = useCallback(async (rowIds: number[]) => {
-    if (!selectedTable || rowIds.length === 0) return;
+  const deleteRecords = useCallback(
+    async (rowIds: number[]) => {
+      if (!selectedTable || rowIds.length === 0) return;
 
-    try {
-      setLoading(true);
-      setError(null);
+      try {
+        setLoading(true);
+        setError(null);
 
-      if (selectedTable === 'emulate_targets') {
-        // Delete each target via API
-        for (const id of rowIds) {
-          await targetService.deleteTarget(String(id));
+        if (selectedTable === 'emulate_targets') {
+          // Delete each target via API
+          for (const id of rowIds) {
+            await targetService.deleteTarget(String(id));
+          }
         }
-      }
 
-      // Refresh data after deletion
-      await loadTableData(selectedTable);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete records');
-      console.error('Delete records error:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedTable, loadTableData]);
+        // Refresh data after deletion
+        await loadTableData(selectedTable);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to delete records');
+        console.error('Delete records error:', err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [selectedTable, loadTableData],
+  );
 
   const refresh = useCallback(async () => {
     await loadTables();

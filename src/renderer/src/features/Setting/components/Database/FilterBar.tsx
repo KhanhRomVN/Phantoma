@@ -106,16 +106,21 @@ const FilterRow: React.FC<FilterRowProps> = ({ filter, availableColumns, onRemov
                 not_equal: 'So sánh giá trị khác với giá trị tìm kiếm. Ví dụ: column != "value"',
                 greater: 'Lọc các bản ghi có giá trị lớn hơn giá trị tìm kiếm. Ví dụ: column > 100',
                 less: 'Lọc các bản ghi có giá trị nhỏ hơn giá trị tìm kiếm. Ví dụ: column < 100',
-                contains: 'Tìm các bản ghi chứa chuỗi tìm kiếm trong giá trị cột. Ví dụ: column LIKE "%value%"',
-                starts_with: 'Tìm các bản ghi bắt đầu bằng chuỗi tìm kiếm. Ví dụ: column LIKE "value%"',
-                ends_with: 'Tìm các bản ghi kết thúc bằng chuỗi tìm kiếm. Ví dụ: column LIKE "%value"',
+                contains:
+                  'Tìm các bản ghi chứa chuỗi tìm kiếm trong giá trị cột. Ví dụ: column LIKE "%value%"',
+                starts_with:
+                  'Tìm các bản ghi bắt đầu bằng chuỗi tìm kiếm. Ví dụ: column LIKE "value%"',
+                ends_with:
+                  'Tìm các bản ghi kết thúc bằng chuỗi tìm kiếm. Ví dụ: column LIKE "%value"',
               };
               return (
-                <Tooltip key={op.value} content={descriptions[op.value] || op.label} side="right" align="center">
-                  <DropdownItem
-                    onClick={() => setEditOperator(op.value)}
-                    className="text-xs"
-                  >
+                <Tooltip
+                  key={op.value}
+                  content={descriptions[op.value] || op.label}
+                  side="right"
+                  align="center"
+                >
+                  <DropdownItem onClick={() => setEditOperator(op.value)} className="text-xs">
                     {op.label}
                   </DropdownItem>
                 </Tooltip>
@@ -139,7 +144,6 @@ const FilterRow: React.FC<FilterRowProps> = ({ filter, availableColumns, onRemov
             Apply
           </Button>
         )}
-        
       </div>
     </div>
   );
@@ -152,7 +156,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onRemoveFilter,
   onClearFilters,
 }) => {
-  console.log('[FilterBar] Rendered with filters:', filters.length);
   // Tự động chọn column đầu tiên nếu có
   const defaultColumn = availableColumns.length > 0 ? availableColumns[0] : '';
   const [newFilterColumn, setNewFilterColumn] = useState<string>(defaultColumn);
@@ -181,23 +184,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   };
 
   const handleAddFilter = () => {
-    console.log('[FilterBar] handleAddFilter called', {
-      newFilterColumn,
-      newFilterOperator,
-      newFilterValue,
-    });
     // Cho phép thêm filter với giá trị trống, user có thể edit sau
-    console.log('[FilterBar] Calling onAddFilter with:', {
-      column: newFilterColumn || '',
-      operator: newFilterOperator,
-      value: newFilterValue || '',
-    });
     onAddFilter(newFilterColumn || '', newFilterOperator, newFilterValue || '');
-    console.log('[FilterBar] onAddFilter called, current filters count:', filters.length);
     setNewFilterColumn('');
     setNewFilterValue('');
     setNewFilterOperator('equals');
-    console.log('[FilterBar] State reset');
   };
 
   return (
@@ -265,14 +256,23 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 const descriptions: Record<string, string> = {
                   equals: 'So sánh giá trị bằng với giá trị tìm kiếm. Ví dụ: column = "value"',
                   not_equal: 'So sánh giá trị khác với giá trị tìm kiếm. Ví dụ: column != "value"',
-                  greater: 'Lọc các bản ghi có giá trị lớn hơn giá trị tìm kiếm. Ví dụ: column > 100',
+                  greater:
+                    'Lọc các bản ghi có giá trị lớn hơn giá trị tìm kiếm. Ví dụ: column > 100',
                   less: 'Lọc các bản ghi có giá trị nhỏ hơn giá trị tìm kiếm. Ví dụ: column < 100',
-                  contains: 'Tìm các bản ghi chứa chuỗi tìm kiếm trong giá trị cột. Ví dụ: column LIKE "%value%"',
-                  starts_with: 'Tìm các bản ghi bắt đầu bằng chuỗi tìm kiếm. Ví dụ: column LIKE "value%"',
-                  ends_with: 'Tìm các bản ghi kết thúc bằng chuỗi tìm kiếm. Ví dụ: column LIKE "%value"',
+                  contains:
+                    'Tìm các bản ghi chứa chuỗi tìm kiếm trong giá trị cột. Ví dụ: column LIKE "%value%"',
+                  starts_with:
+                    'Tìm các bản ghi bắt đầu bằng chuỗi tìm kiếm. Ví dụ: column LIKE "value%"',
+                  ends_with:
+                    'Tìm các bản ghi kết thúc bằng chuỗi tìm kiếm. Ví dụ: column LIKE "%value"',
                 };
                 return (
-                  <Tooltip key={op.value} content={descriptions[op.value] || op.label} side="right" align="center">
+                  <Tooltip
+                    key={op.value}
+                    content={descriptions[op.value] || op.label}
+                    side="right"
+                    align="center"
+                  >
                     <DropdownItem
                       onClick={() => setNewFilterOperator(op.value)}
                       className="text-xs"
@@ -330,7 +330,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           ))}
         </div>
       )}
-      
     </div>
   );
 };

@@ -21,7 +21,7 @@ export function useTargetSidebar(targetTabs: TargetTab[]): UseTargetSidebarRetur
   const searchedTargets = useMemo(
     () =>
       allTargets.filter((tab) =>
-        tab.title.toLowerCase().includes(targetSearchQuery.toLowerCase()),
+        (tab.title || '').toLowerCase().includes(targetSearchQuery.toLowerCase()),
       ),
     [allTargets, targetSearchQuery],
   );

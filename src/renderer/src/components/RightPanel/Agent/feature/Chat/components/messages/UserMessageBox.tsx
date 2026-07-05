@@ -60,7 +60,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
         pointerEvents: message.isCancelled ? 'none' : 'auto',
       }}
     >
-      <div className="flex flex-col gap-1 rounded-lg bg-card-background border border-border py-2 px-3 m-3 relative">
+      <div className="flex flex-col gap-1 rounded-lg bg-card-background border border-border py-2 px-3 m-1 relative">
         <div className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
           {truncatedContent}
         </div>

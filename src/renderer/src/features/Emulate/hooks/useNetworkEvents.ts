@@ -72,39 +72,54 @@ interface UseNetworkEventsOptions {
 }
 
 export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
-  const { initialRequests = [], onRequest, onResponse, onResponseBody, onScriptUnpacked, onScriptSource, onError, onRequestsChange } = options;
+  const {
+    initialRequests = [],
+    onRequest,
+    onResponse,
+    onResponseBody,
+    onScriptUnpacked,
+    onScriptSource,
+    onError,
+    onRequestsChange,
+  } = options;
 
   const [requests, setRequests] = useState<NetworkRequest[]>(initialRequests);
   const requestMapRef = useRef<Map<string, NetworkRequest>>(new Map());
   const timestampMapRef = useRef<Map<string, number>>(new Map());
   const unpackedScriptsRef = useRef<Map<string, CdpScriptUnpackedData>>(new Map());
 
-  const addRequest = useCallback((req: NetworkRequest) => {
-    setRequests((prev) => {
-      const exists = prev.some((r) => r.id === req.id);
-      if (exists) return prev;
-      const newRequests = [...prev, req];
-      onRequestsChange?.(newRequests);
-      return newRequests;
-    });
-    requestMapRef.current.set(req.id, req);
-    onRequest?.(req);
-  }, [onRequest, onRequestsChange]);
-
-  const updateRequest = useCallback((id: string, updates: Partial<NetworkRequest>) => {
-    setRequests((prev) => {
-      const newRequests = prev.map((r) => {
-        if (r.id === id) {
-          const updated = { ...r, ...updates };
-          requestMapRef.current.set(id, updated);
-          return updated;
-        }
-        return r;
+  const addRequest = useCallback(
+    (req: NetworkRequest) => {
+      setRequests((prev) => {
+        const exists = prev.some((r) => r.id === req.id);
+        if (exists) return prev;
+        const newRequests = [...prev, req];
+        onRequestsChange?.(newRequests);
+        return newRequests;
       });
-      onRequestsChange?.(newRequests);
-      return newRequests;
-    });
-  }, [onRequestsChange]);
+      requestMapRef.current.set(req.id, req);
+      onRequest?.(req);
+    },
+    [onRequest, onRequestsChange],
+  );
+
+  const updateRequest = useCallback(
+    (id: string, updates: Partial<NetworkRequest>) => {
+      setRequests((prev) => {
+        const newRequests = prev.map((r) => {
+          if (r.id === id) {
+            const updated = { ...r, ...updates };
+            requestMapRef.current.set(id, updated);
+            return updated;
+          }
+          return r;
+        });
+        onRequestsChange?.(newRequests);
+        return newRequests;
+      });
+    },
+    [onRequestsChange],
+  );
 
   const handleCdpRequest = useCallback(
     (data: CdpRequestData) => {
@@ -212,12 +227,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleScriptUnpacked = useCallback(
     (data: CdpScriptUnpackedData) => {
       unpackedScriptsRef.current.set(data.requestId, data);
-      
-      // Log comparison result
-      // if (data.isDifferent) {
-      //   console.log(`[CDP:Unpacked] Script differs! ${data.url} - Compression: ${data.compressionRatio}`);
-      // }
-
       onScriptUnpacked?.(data);
     },
     [onScriptUnpacked],
@@ -225,7 +234,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
   const handleScriptSource = useCallback(
     (data: CdpScriptSourceData) => {
-      // console.log(`[CDP:ScriptSource] Received unpacked source for ${data.url} (${data.size} bytes)`);
       onScriptSource?.(data);
     },
     [onScriptSource],
@@ -249,18 +257,34 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           // Ignore invalid URL
         }
 
-        
-
         // Try to guess type from URL or content-type
         let type = 'other';
         const pathLower = path.toLowerCase();
         if (pathLower.endsWith('.js')) type = 'js';
         else if (pathLower.endsWith('.css')) type = 'css';
         else if (pathLower.endsWith('.html') || pathLower.endsWith('.htm')) type = 'doc';
-        else if (pathLower.endsWith('.png') || pathLower.endsWith('.jpg') || pathLower.endsWith('.jpeg') || pathLower.endsWith('.gif') || pathLower.endsWith('.svg') || pathLower.endsWith('.webp')) type = 'img';
+        else if (
+          pathLower.endsWith('.png') ||
+          pathLower.endsWith('.jpg') ||
+          pathLower.endsWith('.jpeg') ||
+          pathLower.endsWith('.gif') ||
+          pathLower.endsWith('.svg') ||
+          pathLower.endsWith('.webp')
+        )
+          type = 'img';
         else if (pathLower.endsWith('.json')) type = 'xhr';
-        else if (data.method === 'POST' || data.method === 'PUT' || data.method === 'DELETE' || data.method === 'PATCH') type = 'xhr';
-        else if (data.method === 'GET' && (data.url?.includes('api') || data.url?.includes('graphql'))) type = 'xhr';
+        else if (
+          data.method === 'POST' ||
+          data.method === 'PUT' ||
+          data.method === 'DELETE' ||
+          data.method === 'PATCH'
+        )
+          type = 'xhr';
+        else if (
+          data.method === 'GET' &&
+          (data.url?.includes('api') || data.url?.includes('graphql'))
+        )
+          type = 'xhr';
 
         const id = data.id || `proxy-${Date.now()}-${Math.random()}`;
         timestampMapRef.current.set(id, data.timestamp || Date.now());

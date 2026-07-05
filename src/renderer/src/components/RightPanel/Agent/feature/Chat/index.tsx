@@ -18,11 +18,11 @@ import ChatHeader from './components/ChatHeader';
 import ChatBody from './components/ChatBody';
 import ChatFooter from './components/ChatFooter';
 import { ChatErrorBoundary } from './components/ChatErrorBoundary';
-import { parseAIResponse } from './blocks';
 import { useTerminalPolling } from './hooks/useTerminalPolling';
 import { useBrowserSession } from './hooks/useBrowserSession';
 import { useDraftManagement } from './hooks/useDraftManagement';
 import { $ } from '@renderer/utils/color';
+import { parseAIResponse } from './services/ResponseParser';
 
 interface ChatPanelProps {
   currentChat: ChatSession | null;
@@ -50,7 +50,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   initialMessageData,
   onClearInitialData,
 }) => {
-  console.log('[DEBUG-ChatPanel] 🟢 feature prop =', feature);
   // --- States ---
   const [apiUrl, setApiUrl] = useState('http://localhost:8888');
   const [isApiUrlReady, setIsApiUrlReady] = useState(false);
@@ -97,16 +96,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [autoScrollPaused, setAutoScrollPaused] = useState(false);
+  const [, setAutoScrollPaused] = useState(false);
   const scrollToBottomRef = useRef<(() => void) | null>(null);
 
   // --- ChatFooter local state ---
-  const [showProjectStructureDrawer, setShowProjectStructureDrawer] = useState(false);
+  const [, setShowProjectStructureDrawer] = useState(false);
   const [showChangesDropdown, setShowChangesDropdown] = useState(false);
-  const [showProjectContextModal, setShowProjectContextModal] = useState(false);
+  const [, setShowProjectContextModal] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const mentionDropdownRef = useRef<HTMLDivElement>(null);
   const { apiUrl: backendApiUrl } = useSettings();
 
   const [revertInput, setRevertInput] = useState<{ value: string; nonce: number } | null>(null);
@@ -131,7 +129,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     resetSession,
     setBackendConversationId,
     conversationToolOverrides,
-    setConversationToolOverrides,
     handleToolAction,
     handleSelectOption,
   } = useChatLLM({
@@ -148,12 +145,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       ),
   });
 
-  const { availableFiles, availableFolders, availableRules } = useWorkspaceData();
+  const { availableFiles, availableFolders } = useWorkspaceData();
 
   const {
     message,
     setMessage,
-    storage,
     clearDraft,
     handleKeyDown: handleDraftKeyDown,
     undoStackRef,
@@ -165,13 +161,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setShowAtMenu,
     showMentionDropdown,
     setShowMentionDropdown,
-    mentionType,
     setMentionType,
     attachedItems,
     checkMentions,
-    handleMentionOptionSelect,
-    handleWorkspaceItemSelect,
-    handleRuleSelect,
     removeAttachedItem,
     clearAttachedItems,
     addAttachedItem,
@@ -197,7 +189,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const {
     uploadedFiles,
-    externalFiles,
     invalidExternalFiles,
     fileInputRef,
     externalFileInputRef,
@@ -205,7 +196,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     handleFileSelect,
     handleFileInputChange,
     removeFile,
-    handleExternalFileSelect,
     handleExternalFileInputChange,
     handleDragOver,
     handleDrop,
@@ -219,12 +209,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     },
   });
 
-  const { isBrowserSessionReady, showBrowserWarning, isLaunchingBrowser, launchBrowserSession } =
-    useBrowserSession(currentModel, currentAccount, backendApiUrl);
+  const { showBrowserWarning, isLaunchingBrowser, launchBrowserSession } = useBrowserSession(
+    currentModel,
+    currentAccount,
+    backendApiUrl,
+  );
 
   // --- Refs ---
   const hasProcessedInitial = useRef(false);
-  const wasPaused = useRef(false);
   const isStoppedRef = useRef(false);
 
   const wrappedSendMessage = useCallback(
@@ -282,20 +274,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const {
     gitStatus,
     gitLoading,
-    gitError,
     showGitStatusBlock,
-    gitCommitMessage,
     gitCommitLoading,
-    gitCommitInput,
-    setGitCommitInput,
-    setShowGitStatusBlock,
-    setGitError,
-    setGitCommitMessage,
     enrichedModel,
     handleGitPullRequest,
     handleGitCancel,
-    handleGitRetry,
-    handleGitCommit,
     handleGitCommitMessageDetected,
   } = useGitOperations({
     currentModel,
@@ -309,15 +292,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   });
 
   // Conversation restore
-  const {
-    isLoadingConversation,
-    isRestored,
-    setIsRestored,
-    setIsLoadingConversation,
-    handleRevertConversation,
-    handleClearConfirmed,
-    hasAppendedHistoryContext,
-  } = useConversationRestore({
+  const { isRestored, setIsRestored, handleRevertConversation } = useConversationRestore({
     currentChat,
     currentConversationId,
     currentConversationIdRef,
@@ -612,13 +587,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const handleClearChat = useCallback(() => {
-    extensionService.postMessage({
-      command: 'confirmClearChat',
-      conversationId: currentConversationId,
-    });
-  }, [currentConversationId]);
-
   const handleStopGeneration = useCallback(() => {
     isStoppedRef.current = true;
     stopGeneration();
@@ -656,7 +624,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const displayedModel = enrichedModel ?? currentModel;
 
-  const totalTokens = contextUsage?.total ?? 0;
   const footerPaddingBottom =
     showBrowserWarning && currentModel?.providerId === 'zai-browser' ? '20px' : '8px';
 

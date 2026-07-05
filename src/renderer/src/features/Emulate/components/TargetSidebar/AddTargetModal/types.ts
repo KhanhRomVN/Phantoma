@@ -14,7 +14,7 @@ export interface BaseModalProps {
     icon?: string;
     emulatorSerial?: string;
     packageName?: string;
-  }) => void;
+  }) => void | Promise<void>;
   existingApps?: {
     id?: string;
     name?: string;

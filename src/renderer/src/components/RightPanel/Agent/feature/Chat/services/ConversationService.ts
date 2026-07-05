@@ -1,9 +1,9 @@
-import { extensionService } from "../../../services/ExtensionService";
-import { Message } from "../types/message";
-import { ConversationCache } from "./ConversationCache";
-import { ChatSession } from "../types/chat";
+import { extensionService } from '../../../services/ExtensionService';
+import { Message } from '../types/message';
+import { ConversationCache } from './ConversationCache';
+import { ChatSession } from '../types/chat';
 
-const STORAGE_PREFIX = "zen-chat";
+const STORAGE_PREFIX = 'zen-chat';
 
 export interface ChatMetadata {
   id: string;
@@ -30,7 +30,7 @@ export const logChatToWorkspace = (chatUuid: string, message: any) => {
     logEntry.conversationId = message.conversationId;
 
     extensionService.postMessage({
-      command: "logChat",
+      command: 'logChat',
       chatUuid,
       logEntry,
     });
@@ -51,7 +51,7 @@ export const getConversationKey = (
     return conversationId;
   }
 
-  const safeFolderPath = folderPath || "global";
+  const safeFolderPath = folderPath || 'global';
   const convId = conversationId || Date.now().toString();
   const fullKey = `${STORAGE_PREFIX}:${sessionId}:${safeFolderPath}:${convId}`;
   return fullKey;
@@ -66,28 +66,19 @@ export const saveConversation = async (
   skipTimestampUpdate?: boolean,
   title?: string,
   backendConversationId?: string,
-  toolOutputs?: Record<
-    string,
-    { output: string; isError: boolean; terminalId?: string }
-  >,
-  singleLineReviewActions?: Record<
-    string,
-    { action: any; actionId: string; messageId: string }
-  >,
+  toolOutputs?: Record<string, { output: string; isError: boolean; terminalId?: string }>,
+  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>,
   questionAnswers?: Record<string, Record<string, any>>,
 ): Promise<string> => {
-  
   try {
     const storage = (window as any).storage;
-    if (!storage) return "";
+    if (!storage) return '';
 
     const convId = conversationId || Date.now().toString();
     const key = getConversationKey(sessionId, folderPath, convId);
 
     const activeMessages = messages.filter((m) => !m.isCancelled);
-    const totalRequests = activeMessages.filter(
-      (m: Message) => m.role === "user",
-    ).length;
+    const totalRequests = activeMessages.filter((m: Message) => m.role === 'user').length;
     const totalTokenUsage = activeMessages.reduce(
       (sum: number, m: Message) => sum + (m.token_usage || 0),
       0,
@@ -98,17 +89,12 @@ export const saveConversation = async (
     let existingTitle: string | undefined;
     let existingBackendConversationId: string | undefined;
     let existingToolOutputs:
-      | Record<
-          string,
-          { output: string; isError: boolean; terminalId?: string }
-        >
+      | Record<string, { output: string; isError: boolean; terminalId?: string }>
       | undefined;
     let existingSingleLineReviewActions:
       | Record<string, { action: any; actionId: string; messageId: string }>
       | undefined;
-    let existingQuestionAnswers:
-      | Record<string, Record<string, any>>
-      | undefined;
+    let existingQuestionAnswers: Record<string, Record<string, any>> | undefined;
 
     const cached = ConversationCache.get(convId);
     if (cached) {
@@ -116,7 +102,11 @@ export const saveConversation = async (
       existingSingleLineReviewActions = cached.singleLineReviewActions;
       existingBackendConversationId = cached.backendConversationId;
       // Also get questionAnswers from cache
-      if (!existingQuestionAnswers && cached.questionAnswers && Object.keys(cached.questionAnswers).length > 0) {
+      if (
+        !existingQuestionAnswers &&
+        cached.questionAnswers &&
+        Object.keys(cached.questionAnswers).length > 0
+      ) {
         existingQuestionAnswers = cached.questionAnswers;
       }
     }
@@ -168,9 +158,7 @@ export const saveConversation = async (
         : existingSingleLineReviewActions || undefined;
 
     // Extract questionAnswers from messages to root level
-    let extractedQuestionAnswers:
-      | Record<string, Record<string, any>>
-      | undefined;
+    let extractedQuestionAnswers: Record<string, Record<string, any>> | undefined;
     const messagesWithoutQA = messagesToSave.map((m) => {
       const { questionAnswers: qa, ...rest } = m;
       if (qa && Object.keys(qa).length > 0) {
@@ -193,27 +181,27 @@ export const saveConversation = async (
       bestExisting = storeQuestionAnswers;
     }
     existingQuestionAnswers = bestExisting;
-    
+
     try {
       const existingData = await storage.get(key, false);
       if (existingData && existingData.value) {
         const parsed = JSON.parse(existingData.value);
-        if (
-          parsed.questionAnswers &&
-          Object.keys(parsed.questionAnswers).length > 0
-        ) {
+        if (parsed.questionAnswers && Object.keys(parsed.questionAnswers).length > 0) {
           existingQuestionAnswers = parsed.questionAnswers;
         }
       }
     } catch (error) {}
 
-// Merge: parameter > extracted from messages > existing
+    // Merge: parameter > extracted from messages > existing
     // ALWAYS preserve existingQuestionAnswers if no new data is provided
     const paramHasData = questionAnswers && Object.keys(questionAnswers).length > 0;
-    const extractedHasData = extractedQuestionAnswers && Object.keys(extractedQuestionAnswers).length > 0;
-    const existingHasData = existingQuestionAnswers && Object.keys(existingQuestionAnswers).length > 0;
+    const extractedHasData =
+      extractedQuestionAnswers && Object.keys(extractedQuestionAnswers).length > 0;
+    const existingHasData =
+      existingQuestionAnswers && Object.keys(existingQuestionAnswers).length > 0;
 
-    let mergedQuestionAnswers: Record<string, Record<string, any>> | undefined = existingQuestionAnswers || {};
+    let mergedQuestionAnswers: Record<string, Record<string, any>> | undefined =
+      existingQuestionAnswers || {};
     if (paramHasData) {
       mergedQuestionAnswers = { ...mergedQuestionAnswers, ...questionAnswers };
     }
@@ -227,12 +215,11 @@ export const saveConversation = async (
     // Use mergedQuestionAnswers or existingQuestionAnswers for storage write
     // This ensures questionAnswers are not lost when mergedQuestionAnswers is undefined
     const finalQAForStorage = mergedQuestionAnswers || existingQuestionAnswers;
-    
+
     const data = {
       messages: messagesWithoutQA,
       conversationId: convId,
-      backendConversationId:
-        backendConversationId || existingBackendConversationId,
+      backendConversationId: backendConversationId || existingBackendConversationId,
       toolOutputs: mergedToolOutputs,
       singleLineReviewActions: mergedSingleLineReviewActions,
       questionAnswers: finalQAForStorage,
@@ -241,13 +228,8 @@ export const saveConversation = async (
         sessionId,
         folderPath,
         title:
-          title ||
-          existingTitle ||
-          messages[0]?.content.substring(0, 100) ||
-          "New Conversation",
-        lastModified: skipTimestampUpdate
-          ? existingLastModified || Date.now()
-          : Date.now(),
+          title || existingTitle || messages[0]?.content.substring(0, 100) || 'New Conversation',
+        lastModified: skipTimestampUpdate ? existingLastModified || Date.now() : Date.now(),
         messageCount: messages.length,
         createdAt: existingCreatedAt || Date.now(),
         totalRequests,
@@ -255,39 +237,27 @@ export const saveConversation = async (
       } as ChatMetadata,
     };
 
-    // ✅ DEBUG: Log before saving to storage
-    console.log("[ConversationService] saveConversation - data to save:", {
-      convId,
-      hasQuestionAnswers: !!finalQAForStorage,
-      questionAnswersKeys: finalQAForStorage ? Object.keys(finalQAForStorage) : [],
-      questionAnswersData: finalQAForStorage,
-      paramQuestionAnswers: questionAnswers,
-      extractedQuestionAnswers,
-      existingQuestionAnswers,
-      mergedQuestionAnswers,
-    });
-
     await storage.set(key, JSON.stringify(data), false);
 
     // Always store mergedQuestionAnswers in global store if it has data
     if (mergedQuestionAnswers && Object.keys(mergedQuestionAnswers).length > 0) {
       (ConversationCache as any).setQuestionAnswers?.(convId, mergedQuestionAnswers);
     }
-    
+
     // Only update cache if mergedQuestionAnswers has data, or if we're explicitly clearing it
     // This prevents overwriting existing questionAnswers with undefined
     const existingCache = ConversationCache.get(convId);
-    
+
     // Always preserve questionAnswers from global store if available
     const globalStoreQA = (ConversationCache as any).getQuestionAnswers?.(convId);
-    const finalQuestionAnswers = mergedQuestionAnswers || globalStoreQA || existingCache?.questionAnswers;
-    
+    const finalQuestionAnswers =
+      mergedQuestionAnswers || globalStoreQA || existingCache?.questionAnswers;
+
     // Update cache with finalQuestionAnswers (preserved from global store if needed)
     const cacheData = {
       messages: messagesWithoutQA,
       conversationId: convId,
-      backendConversationId:
-        backendConversationId || existingBackendConversationId,
+      backendConversationId: backendConversationId || existingBackendConversationId,
       toolOutputs: mergedToolOutputs,
       singleLineReviewActions: mergedSingleLineReviewActions,
       questionAnswers: finalQuestionAnswers,
@@ -295,20 +265,18 @@ export const saveConversation = async (
     ConversationCache.set(convId, cacheData);
     return convId;
   } catch (error) {
-    return "";
+    return '';
   }
 };
 
-export const deleteConversation = async (
-  conversationId?: string,
-): Promise<boolean> => {
+export const deleteConversation = async (conversationId?: string): Promise<boolean> => {
   if (!conversationId) return false;
 
   ConversationCache.delete(conversationId);
 
   return new Promise((resolve) => {
     extensionService.postMessage({
-      command: "deleteConversation",
+      command: 'deleteConversation',
       conversationId: conversationId,
     });
     resolve(true);

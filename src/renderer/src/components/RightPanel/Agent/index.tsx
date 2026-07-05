@@ -6,7 +6,7 @@ import { ChatSession } from './feature/Chat/types/chat';
 import { ProjectProvider } from './context/ProjectContext';
 import { useAgentFeature } from './context/FeatureContext';
 import AgentOverlay from './components/AgentOverlay';
-import { AgentFooterBar } from './components/AgentFooterBar';
+// import { AgentFooterBar } from './components/AgentFooterBar';
 import { MousePointer } from 'lucide-react';
 
 // ─── AgentPanel ────────────────────────────────────────────────────────────
@@ -24,12 +24,9 @@ interface AgentState {
 
 export function AgentPanel() {
   const { activeFeature, emulateState } = useAgentFeature();
-  console.log('[Agent] emulateState received:', emulateState);
-
   const { activeTargetId, targetStates } = emulateState;
   const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
   const isTargetActive = currentTargetState?.isActive || false;
-  console.log('[Agent] isTargetActive:', isTargetActive, 'activeTargetId:', activeTargetId);
 
   // Lưu state theo targetId để restore khi quay lại
   const targetStatesMap = useRef<Map<string, AgentState>>(new Map());
@@ -172,7 +169,7 @@ export function AgentPanel() {
       <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
         {activeFeature !== 'emulate' && <AgentOverlay featureName={activeFeature || undefined} />}
         {activeFeature === 'emulate' && shouldShowOverlay() && renderEmulateOverlay()}
-        
+
         {/* Main content - chỉ hiển thị khi không có overlay */}
         {!shouldShowOverlay() && (
           <>
@@ -194,7 +191,7 @@ export function AgentPanel() {
                 />
               )}
             </div>
-            <AgentFooterBar />
+            {/* <AgentFooterBar /> */}
           </>
         )}
       </div>

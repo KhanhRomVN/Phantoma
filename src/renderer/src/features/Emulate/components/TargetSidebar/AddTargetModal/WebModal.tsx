@@ -86,13 +86,13 @@ export const WebModal: React.FC<BaseModalProps> = ({
     const error: { name?: string; value?: string } = {};
     if (name) {
       const existingByName = appsToCheck.find(
-        (app) => app.name?.toLowerCase() === name.toLowerCase(),
+        (app) => app.name?.toLowerCase() === name?.toLowerCase(),
       );
       if (existingByName) error.name = `Name "${existingByName.name}" already exists`;
     }
     if (url) {
       const existingByUrl = appsToCheck.find(
-        (app) => app.url?.toLowerCase() === url.toLowerCase(),
+        (app) => app.url?.toLowerCase() === url?.toLowerCase(),
       );
       if (existingByUrl) error.value = `URL "${existingByUrl.url}" already exists`;
     }
@@ -194,15 +194,21 @@ export const WebModal: React.FC<BaseModalProps> = ({
     setFaviconUrl(null);
   }, [isOpen, editApp]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isEdit && editApp && onEdit) {
       onEdit(editApp.id, { name, url });
       onClose();
       return;
     }
     if (!name || !url) return;
-    onAdd({ name, url, mode: 'intercept', platform: 'web' });
-    onClose();
+    
+    try {
+      await onAdd({ name, url, mode: 'intercept', platform: 'web' });
+      onClose();
+    } catch (error) {
+      // Lỗi đã được xử lý ở component cha, không đóng modal
+      console.error('[WebModal] Add target failed:', error);
+    }
   };
 
   const canSubmit = !!(name && url) && !duplicateError.name && !duplicateError.value;

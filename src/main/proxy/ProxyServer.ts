@@ -239,7 +239,6 @@ export class ProxyServer extends EventEmitter {
 
     this.proxy.onConnect((req: any, socket: any, _head: any, callback: any) => {
       const hostUrl = req.url || '';
-      console.log('[Proxy Debug] onConnect called, hostUrl:', hostUrl);
       if (!hostUrl) {
         return callback();
       }
@@ -249,8 +248,6 @@ export class ProxyServer extends EventEmitter {
 
       // Check if this is a WebSocket upgrade request
       const isWebSocket = req.headers?.upgrade?.toLowerCase() === 'websocket';
-      console.log('[Proxy Debug] onConnect - host:', host, 'port:', port, 'isWebSocket:', isWebSocket);
-
       if (isWebSocket) {
         const wsId = `ws-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
         const wsUrl = `wss://${host}${req.url || ''}`;
@@ -474,7 +471,6 @@ export class ProxyServer extends EventEmitter {
       const url = (ctx.isSSL ? 'https://' : 'http://') + req.headers.host + req.url;
       const requestId = Date.now().toString() + Math.random();
       ctx.requestId = requestId;
-      console.log('[Proxy Debug] onRequest called:', method, url, 'SSL:', ctx.isSSL, 'requestId:', requestId);
 
       // Phantoma intercept status endpoint
       if (!ctx.isSSL && req.url === '/phantoma-intercept-status') {
@@ -1119,11 +1115,8 @@ export class ProxyServer extends EventEmitter {
 
   private sendToRenderer(channel: string, data: any) {
     const windowExists = this.window && !this.window.isDestroyed();
-    console.log('[Proxy Debug] sendToRenderer:', channel, 'Window exists:', windowExists);
     if (windowExists) {
       this.window?.webContents.send(channel, data);
-    } else {
-      console.log('[Proxy Debug] sendToRenderer - Window not available, channel:', channel);
     }
   }
 

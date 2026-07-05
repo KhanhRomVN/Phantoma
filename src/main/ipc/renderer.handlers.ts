@@ -123,13 +123,17 @@ async function execCommand(
   cwd: string,
 ): Promise<{ success: boolean; stdout?: string; stderr?: string; error?: string }> {
   return new Promise((resolve) => {
-    execCallback(command, { cwd, timeout: 30000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
-      if (error) {
-        resolve({ success: false, error: error.message, stdout, stderr });
-      } else {
-        resolve({ success: true, stdout, stderr });
-      }
-    });
+    execCallback(
+      command,
+      { cwd, timeout: 30000, maxBuffer: 10 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        if (error) {
+          resolve({ success: false, error: error.message, stdout, stderr });
+        } else {
+          resolve({ success: true, stdout, stderr });
+        }
+      },
+    );
   });
 }
 
@@ -238,7 +242,6 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           })();
         `);
 
-        console.log(`[getHistory] Found ${result?.length || 0} conversations`);
         sendToRenderer('historyResult', {
           requestId,
           history: result || [],
@@ -637,7 +640,6 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
     }
 
     case 'showInformation': {
-      console.log('[RendererHandler] showInformation:', payload?.message);
       return { success: true };
     }
 
@@ -679,7 +681,10 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
         const cwd = payload?.cwd || process.cwd();
         const message = payload?.message || 'Auto commit';
         await execCommand('git add -A', cwd);
-        const commitResult = await execCommand(`git commit -m "${message.replace(/"/g, '\\"')}"`, cwd);
+        const commitResult = await execCommand(
+          `git commit -m "${message.replace(/"/g, '\\"')}"`,
+          cwd,
+        );
         const pushResult = await execCommand('git push', cwd);
         sendToRenderer('messageResponse', {
           requestId,
@@ -921,6 +926,4 @@ export function setupRendererHandlers() {
       }
     });
   }
-
-  console.log('[RendererHandler] Registered', commands.length, 'IPC handlers');
 }

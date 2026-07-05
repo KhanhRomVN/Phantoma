@@ -48,18 +48,16 @@ class ApiClient {
     });
 
     const text = await res.text();
-    console.log('[ApiClient] Raw response:', text);
-    
+
     // Remove BOM if present (U+FEFF at start)
     let cleanedText = text;
-    if (cleanedText.charCodeAt(0) === 0xFEFF) {
+    if (cleanedText.charCodeAt(0) === 0xfeff) {
       cleanedText = cleanedText.slice(1);
-      console.log('[ApiClient] Removed BOM from response');
     }
-    
+
     // Trim whitespace
     cleanedText = cleanedText.trim();
-    
+
     let json: ApiResponse<T>;
     try {
       json = JSON.parse(cleanedText);

@@ -43,8 +43,7 @@ export function setupAppHandlers() {
       forceMode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
       useEnvInject?: boolean,
     ) => {
-      console.log(`[IPC] app:launch called: appName=${appName}, useEnvInject=${useEnvInject}`);
       return await launchApp(appName, proxyUrl, customUrl, forceMode, useEnvInject);
-    }
+    },
   );
 }

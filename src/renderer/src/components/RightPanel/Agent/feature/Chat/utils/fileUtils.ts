@@ -1,8 +1,8 @@
-import { ALLOWED_FILE_EXTENSIONS } from "../blocks";
+import { ALLOWED_FILE_EXTENSIONS } from '../constants/constants';
 
 /** Returns true if the file extension is in the allowed list. */
 export const isFileAllowed = (filename: string): boolean => {
-  const ext = filename.substring(filename.lastIndexOf(".")).toLowerCase();
+  const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
   return ALLOWED_FILE_EXTENSIONS.includes(ext);
 };
 
@@ -21,10 +21,8 @@ export const readFileAsText = (file: File): Promise<string> => {
  * Falls back to returning the raw diff if the pattern is not found.
  */
 export const parseNewCodeFromDiff = (diff: string): string => {
-  if (!diff) return "";
-  const replaceMatch = diff.match(
-    /=======\s*\n([\s\S]*?)(?:>>>>>>>|>)\s*REPLACE/,
-  );
+  if (!diff) return '';
+  const replaceMatch = diff.match(/=======\s*\n([\s\S]*?)(?:>>>>>>>|>)\s*REPLACE/);
   if (replaceMatch) return replaceMatch[1].trim();
   return diff;
 };
@@ -34,14 +32,14 @@ export const handleDiffClick = (e: React.MouseEvent, action: any) => {
   e.stopPropagation();
   const vscodeApi = (window as any).vscodeApi;
   if (vscodeApi) {
-    let newCode = "";
-    if (action.type === "replace_in_file" && action.params.diff) {
+    let newCode = '';
+    if (action.type === 'replace_in_file' && action.params.diff) {
       newCode = parseNewCodeFromDiff(action.params.diff);
-    } else if (action.type === "write_to_file" && action.params.content) {
+    } else if (action.type === 'write_to_file' && action.params.content) {
       newCode = action.params.content;
     }
     vscodeApi.postMessage({
-      command: "openDiffView",
+      command: 'openDiffView',
       filePath: action.params.path,
       newCode,
     });
@@ -59,7 +57,7 @@ export const copyToClipboard = (text: string) => {
 export const getSearchQuery = (message: string): string => {
   const fileMatch = message.match(/@file:\s*([^\s]*)$/);
   const folderMatch = message.match(/@folder:\s*([^\s]*)$/);
-  if (fileMatch) return fileMatch[1] || "";
-  if (folderMatch) return folderMatch[1] || "";
-  return "";
+  if (fileMatch) return fileMatch[1] || '';
+  if (folderMatch) return folderMatch[1] || '';
+  return '';
 };

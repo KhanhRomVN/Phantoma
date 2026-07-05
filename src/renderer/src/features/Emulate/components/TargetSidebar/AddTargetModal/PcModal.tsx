@@ -18,38 +18,28 @@ export const PcModal: React.FC<BaseModalProps> = ({
   const [duplicateError, setDuplicateError] = useState<{ name?: string; value?: string }>({});
 
   const loadPcApps = async () => {
-    console.log('[PcModal] loadPcApps called');
     setPcLoading(true);
     try {
-      const startTime = performance.now();
       const apps = await window.api.invoke('apps:scan-pc');
-      const duration = (performance.now() - startTime).toFixed(2);
-      console.log(`[PcModal] apps:scan-pc completed in ${duration}ms, found ${apps.length} apps`);
       setDiscoveredApps(apps);
     } catch (e) {
       console.error('[PcModal] Error loading apps:', e);
       setDiscoveredApps([]);
     } finally {
-      console.log('[PcModal] Setting pcLoading to false');
       setPcLoading(false);
     }
   };
 
   // Duplicate error detection
   useEffect(() => {
-    console.log('[PcModal] existingApps:', existingApps);
     if (selectedPcApp) {
       const error: { name?: string; value?: string } = {};
       const existingByName = existingApps.find(
-        (app) => app.name?.toLowerCase() === selectedPcApp.name.toLowerCase(),
+        (app) => app.name?.toLowerCase() === selectedPcApp.name?.toLowerCase(),
       );
       const existingByPath = existingApps.find(
-        (app) =>
-          app.executablePath?.toLowerCase() === (selectedPcApp as any).exec.toLowerCase(),
+        (app) => app.executablePath?.toLowerCase() === (selectedPcApp as any).exec?.toLowerCase(),
       );
-      console.log('[PcModal] selectedPcApp:', selectedPcApp.name);
-      console.log('[PcModal] existingByName:', existingByName);
-      console.log('[PcModal] existingByPath:', existingByPath);
       if (existingByName) error.name = `Name "${existingByName.name}" already exists`;
       if (existingByPath) error.value = `Path "${existingByPath.executablePath}" already exists`;
       setDuplicateError(error);
@@ -81,27 +71,27 @@ export const PcModal: React.FC<BaseModalProps> = ({
     );
   }, [discoveredApps, pcSearch]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedPcApp) return;
-    onAdd({
-      name: selectedPcApp.name,
-      executablePath: (selectedPcApp as any).exec,
-      platform: 'pc',
-      mode: 'intercept',
-      icon: selectedPcApp.icon,
-    });
-    onClose();
+    try {
+      await onAdd({
+        name: selectedPcApp.name,
+        executablePath: (selectedPcApp as any).exec,
+        platform: 'pc',
+        mode: 'intercept',
+        icon: selectedPcApp.icon,
+      });
+      onClose();
+    } catch (error) {
+      console.error('[PcModal] Add target failed:', error);
+    }
   };
 
   const canSubmit = !!selectedPcApp && !duplicateError.name && !duplicateError.value;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-2xl">
-      <ModalHeader
-        title="Add App"
-        description="Configure your app target"
-        onClose={onClose}
-      />
+      <ModalHeader title="Add App" description="Configure your app target" onClose={onClose} />
       <ModalBody>
         <div className="flex flex-row" style={{ height: '50vh' }}>
           {/* Left Panel - App List */}
@@ -140,8 +130,9 @@ export const PcModal: React.FC<BaseModalProps> = ({
                       (selectedPcApp as any)?.name === app.name;
                     const isExisting = existingApps.some(
                       (existing) =>
-                        existing.executablePath?.toLowerCase() === (app as any).exec.toLowerCase() ||
-                        existing.name?.toLowerCase() === app.name.toLowerCase()
+                        existing.executablePath?.toLowerCase() ===
+                          (app as any).exec?.toLowerCase() ||
+                        existing.name?.toLowerCase() === app.name?.toLowerCase(),
                     );
                     return (
                       <button
@@ -153,8 +144,8 @@ export const PcModal: React.FC<BaseModalProps> = ({
                           isSelected && !isExisting
                             ? 'bg-primary/10 border-primary/40'
                             : isExisting
-                            ? 'opacity-50 cursor-not-allowed bg-input-background/50 border-border/30'
-                            : 'bg-input-background border-border/40 hover:bg-dropdown-item-hover/60',
+                              ? 'opacity-50 cursor-not-allowed bg-input-background/50 border-border/30'
+                              : 'bg-input-background border-border/40 hover:bg-dropdown-item-hover/60',
                         )}
                       >
                         <div className="w-9 h-9 rounded-lg bg-dropdown-item-hover flex items-center justify-center shrink-0 overflow-hidden">
@@ -255,9 +246,7 @@ export const PcModal: React.FC<BaseModalProps> = ({
                   <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">
                     Source
                   </p>
-                  <p className="text-xs text-text-primary capitalize">
-                    {selectedPcApp.source}
-                  </p>
+                  <p className="text-xs text-text-primary capitalize">{selectedPcApp.source}</p>
                 </div>
 
                 {/* Confidence */}
