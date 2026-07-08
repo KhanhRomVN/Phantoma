@@ -8,6 +8,9 @@ interface HexViewerProps {
 }
 
 export function HexViewer({ data, className, maxLines }: HexViewerProps) {
+  // [DEBUG] HexViewer render
+  console.log('[DEBUG] HexViewer rendered', { dataLength: data?.length || 0, maxLines });
+  
   const { hexLines, asciiLines, totalBytes, truncated } = useMemo(() => {
     let buffer: Uint8Array;
     try {
@@ -49,7 +52,12 @@ export function HexViewer({ data, className, maxLines }: HexViewerProps) {
   }, [data, maxLines]);
 
   return (
-    <div className={cn('font-mono text-xs overflow-auto h-full bg-background p-4 select-text', className)}>
+    <div
+      className={cn(
+        'font-mono text-xs overflow-auto h-full bg-background p-4 select-text',
+        className,
+      )}
+    >
       <div className="flex">
         {/* Offset Column */}
         <div className="flex flex-col text-text-secondary select-none mr-4 border-r border-border pr-2 text-right shrink-0">
@@ -57,9 +65,7 @@ export function HexViewer({ data, className, maxLines }: HexViewerProps) {
             <div key={i}>{(i * 16).toString(16).padStart(8, '0').toUpperCase()}</div>
           ))}
           {truncated && (
-            <div className="text-text-secondary text-[10px] mt-2 italic">
-              ... truncated
-            </div>
+            <div className="text-text-secondary text-[10px] mt-2 italic">... truncated</div>
           )}
         </div>
 

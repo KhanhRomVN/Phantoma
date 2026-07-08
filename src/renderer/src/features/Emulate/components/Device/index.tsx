@@ -15,6 +15,9 @@ interface DeviceStatus {
 }
 
 export function DevicePanel() {
+  // [DEBUG] DevicePanel render
+  console.log('[DEBUG] DevicePanel rendered');
+  
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusMap, setStatusMap] = useState<Record<string, DeviceStatus>>({});

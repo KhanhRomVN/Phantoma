@@ -21,6 +21,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   setIsSearchOpen,
   setSearchQuery,
 }) => {
+  console.log('[DEBUG][ReRender] ChatHeader rendered', { modelId: displayedModel?.id, taskName: currentTaskName, isSearchOpen });
   const formatTokens = (num: number) => {
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();

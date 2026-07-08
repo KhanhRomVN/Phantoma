@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAccentColors } from '../../shared/hooks/useAccentColors';
 import { cn } from '../../shared/lib/utils';
 import { targetService } from '../../services/TargetService';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 
+
 // Components
-import { RequestList, RequestDetails, initialFilterState } from './components/Home';
+import { RequestTable, RequestDetails, initialFilterState } from './components/Home';
 import { ResourcesPanel } from './components/Resources';
 import { PayloadPanel } from './components/Repeater';
 import { SourcesPanel } from './components/Source';
 import { LogViewer } from './components/Log';
 import { DevicePanel } from './components/Device';
-import { TargetSidebar } from './components/TargetSidebar';
 import {
   WebModal,
   PcModal,
@@ -25,16 +25,16 @@ import useTargetData from '../../hooks/useTargetData';
 import { useRequestFilter } from './hooks/useRequestFilter';
 
 // Types
-import { NetworkRequest, WebSocketConnection } from './types/inspector';
+import { NetworkRequest } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 import { ToolType, TOOLS, DEFAULT_TOOL } from './constants/tools';
 import { useTheme } from '@renderer/theme';
 import useNetworkEvents from './hooks/useNetworkEvents';
+import TargetSidebar from './components/TargetSidebar';
 
 // Constants
-const mockWsConnections: WebSocketConnection[] = [];
 
-export default function Emulate({
+export default React.memo(function Emulate({
   activeAppId = '',
   onStopSession = async () => {},
 }: EmulateProps) {
@@ -67,6 +67,15 @@ export default function Emulate({
     filter: initialFilterState,
   });
 
+  // [DEBUG] Emulate render
+  console.log('[DEBUG] Emulate rendered', {
+    activeAppId,
+    selectedTool: state?.selectedTool || 'home',
+    targetTabsCount: state?.targetTabs?.length || 0,
+    activeTargetId: state?.activeTargetId || null,
+    requestsCount: state?.requests?.length || 0,
+  });
+
   const {
     selectedTool,
     selectedId,
@@ -88,7 +97,6 @@ export default function Emulate({
   const [, setLoadedFromIPC] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [fuzzerTargetId, setFuzzerTargetId] = useState<string | null>(null);
-  const [selectedWsId, setSelectedWsId] = useState<string | null>(null);
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -100,46 +108,6 @@ export default function Emulate({
     executablePath?: string;
   } | null>(null);
 
-  // Wrapper for AddTargetModal onAdd
-  const handleAddApp = async (appData: any) => {
-    // Tạo target từ appData
-    const newTab: TargetTab = {
-      id: appData.id || crypto.randomUUID(),
-      title: appData.name || 'New Target',
-      url: appData.url || undefined,
-      icon: appData.icon || undefined,
-      platform: appData.platform || undefined,
-      executablePath: appData.executablePath || undefined,
-      startupArgs: appData.startupArgs || undefined,
-      environment: appData.environment || undefined,
-    };
-
-    try {
-      // Sử dụng createTarget thay vì saveTarget để tránh nhầm lẫn với PUT
-      const created = await createTarget({
-        title: newTab.title,
-        url: newTab.url,
-        platform: newTab.platform || 'web',
-        executablePath: newTab.executablePath,
-        startupArgs: newTab.startupArgs,
-        environment: newTab.environment,
-      });
-
-      // Cập nhật state với target đã được tạo từ server
-      setState((prev) => ({ ...prev, targetTabs: [...prev.targetTabs, created] }));
-      await refreshTargets();
-
-      // Đóng modal sau khi thành công
-      setIsAddModalOpen(false);
-      setEditingApp(null);
-    } catch (error) {
-      console.error('[Emulate] Add target failed:', error);
-      // Không đóng modal, để user sửa lại
-      // TODO: Show error toast
-      alert(`Failed to add target: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
   // Sử dụng SQLite để lưu targets
   const {
     targets,
@@ -150,39 +118,6 @@ export default function Emulate({
     createTarget,
   } = useTargetData({ autoLoad: true });
 
-  // State cho timer display
-  const [timerDisplay, setTimerDisplay] = useState<Record<string, string>>({});
-
-  // Real-time timer for active targets
-  useEffect(() => {
-    // Find any active target
-    const activeTargetId = Object.keys(targetStates).find((id) => targetStates[id]?.isActive);
-
-    if (!activeTargetId) {
-      // Clear timer when no active target
-      return;
-    }
-
-    const interval = setInterval(() => {
-      const state = targetStates[activeTargetId];
-      if (!state?.isActive || !state?.startTime) {
-        return;
-      }
-
-      const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
-      const minutes = Math.floor(elapsed / 60);
-      const seconds = elapsed % 60;
-      const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-      setTimerDisplay((prev) => ({
-        ...prev,
-        [activeTargetId]: formatted,
-      }));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [targetStates]);
-
   // Sync targets từ SQLite vào module state
   useEffect(() => {
     if (targets.length > 0 && targetTabs.length === 0) {
@@ -191,113 +126,160 @@ export default function Emulate({
     }
   }, [targets]);
 
+  // Wrapper for AddTargetModal onAdd
+  const handleAddApp = useCallback(
+    async (appData: any) => {
+      // Tạo target từ appData
+      const newTab: TargetTab = {
+        id: appData.id || crypto.randomUUID(),
+        title: appData.name || 'New Target',
+        url: appData.url || undefined,
+        icon: appData.icon || undefined,
+        platform: appData.platform || undefined,
+        executablePath: appData.executablePath || undefined,
+        startupArgs: appData.startupArgs || undefined,
+        environment: appData.environment || undefined,
+      };
+
+      try {
+        // Sử dụng createTarget thay vì saveTarget để tránh nhầm lẫn với PUT
+        const created = await createTarget({
+          title: newTab.title,
+          url: newTab.url,
+          platform: newTab.platform || 'web',
+          executablePath: newTab.executablePath,
+          startupArgs: newTab.startupArgs,
+          environment: newTab.environment,
+        });
+
+        // Cập nhật state với target đã được tạo từ server
+        setState((prev) => ({ ...prev, targetTabs: [...prev.targetTabs, created] }));
+        await refreshTargets();
+
+        // Đóng modal sau khi thành công
+        setIsAddModalOpen(false);
+        setEditingApp(null);
+      } catch (error) {
+        console.error('[Emulate] Add target failed:', error);
+        // Không đóng modal, để user sửa lại
+        // TODO: Show error toast
+        alert(`Failed to add target: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    },
+    [createTarget, refreshTargets, setState],
+  );
+
   // Wrapper methods để tương thích với interface cũ
-  const addTargetTab = async (tab: TargetTab) => {
-    const exists = targetTabs.some((t) => t.id === tab.id);
-    if (exists) return;
+  const addTargetTab = useCallback(
+    async (tab: TargetTab) => {
+      const exists = targetTabs.some((t) => t.id === tab.id);
+      if (exists) return;
 
-    await saveTarget(tab);
-    setState((prev) => ({ ...prev, targetTabs: [...prev.targetTabs, tab] }));
-    await refreshTargets();
-  };
-
-  const removeTargetTab = async (id: string) => {
-    try {
-      const deleted = await deleteTarget(id);
-      setState((prev) => {
-        const newTabs = prev.targetTabs.filter((t) => t.id !== id);
-        const newActiveId =
-          prev.activeTargetId === id
-            ? newTabs.length > 0
-              ? newTabs[0].id
-              : null
-            : prev.activeTargetId;
-        return { ...prev, targetTabs: newTabs, activeTargetId: newActiveId };
-      });
+      await saveTarget(tab);
+      setState((prev) => ({ ...prev, targetTabs: [...prev.targetTabs, tab] }));
       await refreshTargets();
-    } catch (error) {
-      console.error('[Emulate] removeTargetTab error:', error);
-    }
-  };
+    },
+    [targetTabs, saveTarget, setState, refreshTargets],
+  );
 
-  const setActiveTarget = (id: string | null) => {
-    if (id) {
-      // Update last_used_at in backend
-      targetService.updateLastUsed(id).catch((err) => {
-        console.error('[Emulate] Failed to update last_used_at:', err);
+  const removeTargetTab = useCallback(
+    async (id: string) => {
+      try {
+        await deleteTarget(id);
+        setState((prev) => {
+          const newTabs = prev.targetTabs.filter((t) => t.id !== id);
+          const newActiveId =
+            prev.activeTargetId === id
+              ? newTabs.length > 0
+                ? newTabs[0].id
+                : null
+              : prev.activeTargetId;
+          return { ...prev, targetTabs: newTabs, activeTargetId: newActiveId };
+        });
+        await refreshTargets();
+      } catch (error) {
+        console.error('[Emulate] removeTargetTab error:', error);
+      }
+    },
+    [deleteTarget, setState, refreshTargets],
+  );
+
+  const setActiveTarget = useCallback(
+    (id: string | null) => {
+      if (id) {
+        // Update last_used_at in backend
+        targetService.updateLastUsed(id).catch((err) => {
+          console.error('[Emulate] Failed to update last_used_at:', err);
+        });
+      }
+      setState((prev) => ({ ...prev, activeTargetId: id }));
+    },
+    [setState],
+  );
+
+  const startTarget = useCallback(
+    (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
+      setState((prev) => {
+        const newState = {
+          ...prev,
+          targetStates: {
+            ...prev.targetStates,
+            [targetId]: {
+              isActive: true,
+              mode,
+              isIntercepting: false,
+              startTime: Date.now(),
+            },
+          },
+        };
+        return newState;
       });
-    }
-    setState((prev) => ({ ...prev, activeTargetId: id }));
-  };
+    },
+    [setState],
+  );
 
-  const startTarget = (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
-    setState((prev) => {
-      const newState = {
+  const stopTarget = useCallback(
+    (targetId: string) => {
+      setState((prev) => ({
         ...prev,
         targetStates: {
           ...prev.targetStates,
           [targetId]: {
-            isActive: true,
-            mode,
+            isActive: false,
+            mode: undefined,
             isIntercepting: false,
-            startTime: Date.now(),
           },
         },
-      };
-      return newState;
-    });
-  };
+      }));
+    },
+    [setState],
+  );
 
-  const stopTarget = (targetId: string) => {
-    setState((prev) => ({
-      ...prev,
-      targetStates: {
-        ...prev.targetStates,
-        [targetId]: {
-          isActive: false,
-          mode: undefined,
-          isIntercepting: false,
+  const toggleIntercept = useCallback(
+    (targetId: string) => {
+      setState((prev) => ({
+        ...prev,
+        targetStates: {
+          ...prev.targetStates,
+          [targetId]: {
+            ...prev.targetStates[targetId],
+            isIntercepting: !prev.targetStates[targetId]?.isIntercepting,
+          },
         },
-      },
-    }));
-  };
+      }));
+    },
+    [setState],
+  );
 
-  const toggleIntercept = (targetId: string) => {
-    setState((prev) => ({
-      ...prev,
-      targetStates: {
-        ...prev.targetStates,
-        [targetId]: {
-          ...prev.targetStates[targetId],
-          isIntercepting: !prev.targetStates[targetId]?.isIntercepting,
-        },
-      },
-    }));
-  };
-
-  const isTargetActive = (targetId: string): boolean => {
-    return targetStates[targetId]?.isActive || false;
-  };
-
-  // Timer effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newTimers: Record<string, string> = {};
-      Object.entries(targetStates).forEach(([id, state]) => {
-        if (state.isActive && state.startTime) {
-          const diff = Date.now() - state.startTime;
-          const minutes = Math.floor(diff / 60000);
-          const seconds = Math.floor((diff % 60000) / 1000);
-          newTimers[id] = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }
-      });
-      setTimerDisplay(newTimers);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [targetStates]);
+  const isTargetActive = useCallback(
+    (targetId: string): boolean => {
+      return targetStates[targetId]?.isActive || false;
+    },
+    [targetStates],
+  );
 
   const { requests, clearRequests, unpackedScripts } = useNetworkEvents({
+    targetId: activeTargetId || undefined,
     initialRequests: savedRequests,
     onRequestsChange: (newRequests) => {
       setState((prev) => ({ ...prev, requests: newRequests }));
@@ -318,31 +300,52 @@ export default function Emulate({
   }, []);
 
   // Handlers
-  const handleSetSelectedId = (id: string | null) => {
-    setState((prev) => ({ ...prev, selectedId: id }));
-  };
+  const handleSetSelectedId = useCallback(
+    (id: string | null) => {
+      setState((prev) => ({ ...prev, selectedId: id }));
+    },
+    [setState],
+  );
 
-  const handleSetSelectedTool = (tool: ToolType) => {
-    setState((prev) => ({ ...prev, selectedTool: tool }));
-    if (tool !== 'repeater') {
-      setFuzzerTargetId(null);
-    }
-  };
+  const handleSetSelectedTool = useCallback(
+    (tool: ToolType) => {
+      setState((prev) => ({ ...prev, selectedTool: tool }));
+      if (tool !== 'repeater') {
+        setFuzzerTargetId(null);
+      }
+    },
+    [setState],
+  );
 
-  const handleSetFilter = (value: any) => {
-    updateFilter(value);
-  };
+  const handleSetFilter = useCallback(
+    (value: any) => {
+      updateFilter(value);
+    },
+    [updateFilter],
+  );
 
-  const handleClearRequests = () => {
+  const handleClearRequests = useCallback(() => {
     clearRequests();
     setState((prev) => ({ ...prev, selectedId: null }));
-  };
+  }, [clearRequests, setState]);
 
-  const handleStopTarget = async () => {
-    const targetId = activeTargetId;
+  // Refs để lưu giá trị mới nhất mà không gây re-render
+  const activeTargetIdRef = useRef(activeTargetId);
+  const targetStatesRef = useRef(targetStates);
+
+  useEffect(() => {
+    activeTargetIdRef.current = activeTargetId;
+  }, [activeTargetId]);
+
+  useEffect(() => {
+    targetStatesRef.current = targetStates;
+  }, [targetStates]);
+
+  const handleStopTarget = useCallback(async () => {
+    const targetId = activeTargetIdRef.current;
     if (!targetId) return;
 
-    const mode = targetStates[targetId]?.mode;
+    const mode = targetStatesRef.current[targetId]?.mode;
     if (mode === 'cdp') {
       await window.api.invoke('cdp:disconnect');
       await window.api.invoke('app:terminate');
@@ -354,88 +357,137 @@ export default function Emulate({
     stopTarget(targetId);
     handleClearRequests();
     await onStopSession();
-  };
+  }, [stopTarget, handleClearRequests, onStopSession]);
 
-  const handleStartTarget = (mode: 'mitm' | 'cdp' | 'frida') => {
-    if (!activeTargetId) return;
-    startTarget(activeTargetId, mode);
-  };
+  const handleStartTarget = useCallback(
+    (mode: 'mitm' | 'cdp' | 'frida') => {
+      if (!activeTargetId) return;
+      startTarget(activeTargetId, mode);
+    },
+    [activeTargetId, startTarget],
+  );
 
-  const handleToggleIntercept = () => {
+  const handleToggleIntercept = useCallback(() => {
     if (!activeTargetId) return;
     toggleIntercept(activeTargetId);
-  };
+  }, [activeTargetId, toggleIntercept]);
 
-  const handleLaunchTarget = async (
-    appId: string,
-    proxyUrl: string,
-    customUrl?: string,
-    mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
-    useEnvInject?: boolean,
-  ) => {
-    // Check if window.api is available
-    if (!window.api || typeof window.api.invoke !== 'function') {
-      console.error('[Emulate] window.api is not available. Preload may not be loaded.');
-      return;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    try {
-      // Lấy executable path từ targetTabs nếu có
-      const target = targetTabs.find((t) => t.id === appId);
-      const launchTarget = target?.executablePath || appId;
-
-      const result = await window.api.invoke(
-        'app:launch',
-        launchTarget,
-        proxyUrl,
-        customUrl,
-        mode,
-        useEnvInject,
-      );
-
-      if (result) {
-        // Tạo target tab từ appId và customUrl
-        const newTab: TargetTab = {
-          id: appId,
-          title: customUrl ? new URL(customUrl).hostname : appId,
-          url: customUrl || proxyUrl,
-        };
-        await addTargetTab(newTab);
-        setActiveTarget(appId);
+  const handleLaunchTarget = useCallback(
+    async (
+      appId: string,
+      proxyUrl: string,
+      customUrl?: string,
+      mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
+      useEnvInject?: boolean,
+    ) => {
+      // Check if window.api is available
+      if (!window.api || typeof window.api.invoke !== 'function') {
+        console.error('[Emulate] window.api is not available. Preload may not be loaded.');
+        return;
       }
-    } catch (e) {
-      console.error('[Emulate] Launch failed:', e);
-    }
-  };
 
-  const handleSendToRepeater = (req: NetworkRequest) => {
-    import('./components/Repeater').then(({ addToRepeater }) => {
-      addToRepeater(req.id);
-    });
-    setFuzzerTargetId(req.id);
-    handleSetSelectedTool('repeater');
-  };
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-  const handleStopSession = async (e: React.MouseEvent, _appId: string) => {
-    e.stopPropagation();
-    if (confirm('Stop the current tracking session?')) {
-      await onStopSession();
-    }
-  };
+      try {
+        // Lấy executable path từ targetTabs nếu có
+        const target = targetTabs.find((t) => t.id === appId);
+        const launchTarget = target?.executablePath || appId;
 
-  // Tools configuration
-  const tools = TOOLS;
+        const result = await window.api.invoke(
+          'app:launch',
+          launchTarget,
+          proxyUrl,
+          customUrl,
+          mode,
+          useEnvInject,
+        );
+
+        if (result) {
+          // Tạo target tab từ appId và customUrl
+          const newTab: TargetTab = {
+            id: appId,
+            title: customUrl ? new URL(customUrl).hostname : appId,
+            url: customUrl || proxyUrl,
+          };
+          await addTargetTab(newTab);
+          setActiveTarget(appId);
+        }
+      } catch (e) {
+        console.error('[Emulate] Launch failed:', e);
+      }
+    },
+    [targetTabs, addTargetTab, setActiveTarget],
+  );
+
+  const handleSendToRepeater = useCallback(
+    (req: NetworkRequest) => {
+      import('./components/Repeater').then(({ addToRepeater }) => {
+        addToRepeater(req.id);
+      });
+      setFuzzerTargetId(req.id);
+      handleSetSelectedTool('repeater');
+    },
+    [handleSetSelectedTool],
+  );
+
+  const handleStopSession = useCallback(
+    async (e: React.MouseEvent, _appId: string) => {
+      e.stopPropagation();
+      if (confirm('Stop the current tracking session?')) {
+        await onStopSession();
+      }
+    },
+    [onStopSession],
+  );
+
+  const handleOpenAddModal = useCallback((platform: 'web' | 'pc' | 'android' | 'cli') => {
+    setAddModalPlatform(platform);
+    setIsAddModalOpen(true);
+  }, []);
+
+  // Memoize props for TargetSidebar
+  const memoizedTargetTabs = useMemo(() => targetTabs, [targetTabs]);
+  const memoizedTargetStates = useMemo(() => targetStates, [targetStates]);
+
+  // Extract tabbar into a memoized component
+  const TabBar = useMemo(() => {
+    return (
+      <div className="flex h-10 border-b border-border shrink-0 overflow-x-auto gap-0.5 px-2">
+        {Object.values(TOOLS).map((tool) => {
+          const tabColor = getColorByIndex(tool.accentIndex);
+          const isActive = selectedTool === tool.id;
+          return (
+            <button
+              key={tool.id}
+              onClick={() => handleSetSelectedTool(tool.id)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 h-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all border-b-2',
+                isActive
+                  ? 'text-text-primary'
+                  : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-dropdown-item-hover',
+              )}
+              style={{
+                borderBottomColor: isActive ? tabColor : 'transparent',
+              }}
+            >
+              <span style={{ color: isActive ? tabColor : undefined }}>
+                {React.createElement(tool.icon, { size: 14, strokeWidth: 1.5 })}
+              </span>
+              <span>{tool.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }, [selectedTool, getColorByIndex, handleSetSelectedTool]);
 
   return (
     <div className="flex h-full bg-background">
       {/* Target Sidebar */}
       <TargetSidebar
-        targetTabs={targetTabs}
+        targetTabs={memoizedTargetTabs}
         activeTargetId={activeTargetId}
-        timerDisplay={timerDisplay}
-        targetStates={targetStates}
+        targetStates={memoizedTargetStates}
         activeAppId={activeAppId}
         accentColor={accentColor}
         onSelectTarget={setActiveTarget}
@@ -444,41 +496,13 @@ export default function Emulate({
         onStopTarget={handleStopTarget}
         onLaunchTarget={handleLaunchTarget}
         onStopSession={handleStopSession}
-        onOpenAddModal={(platform) => {
-          setAddModalPlatform(platform);
-          setIsAddModalOpen(true);
-        }}
+        onOpenAddModal={handleOpenAddModal}
       />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar - Feature Tabs */}
-        <div className="flex h-10 border-b border-border shrink-0 overflow-x-auto gap-0.5 px-2">
-          {Object.values(tools).map((tool) => {
-            const tabColor = getColorByIndex(tool.accentIndex);
-            const isActive = selectedTool === tool.id;
-            return (
-              <button
-                key={tool.id}
-                onClick={() => handleSetSelectedTool(tool.id)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 h-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all border-b-2',
-                  isActive
-                    ? 'text-text-primary'
-                    : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-dropdown-item-hover',
-                )}
-                style={{
-                  borderBottomColor: isActive ? tabColor : 'transparent',
-                }}
-              >
-                <span style={{ color: isActive ? tabColor : undefined }}>
-                  {React.createElement(tool.icon, { size: 14, strokeWidth: 1.5 })}
-                </span>
-                <span>{tool.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        {TabBar}
 
         {/* Content based on selected tool */}
         {selectedTool === 'device' ? (
@@ -497,29 +521,25 @@ export default function Emulate({
             {selectedTool === 'home' && (
               <>
                 <div className="flex-1 min-h-0 border-b border-border">
-                  <RequestList
-                    filteredRequests={filteredRequests}
-                    requests={requests}
+<RequestTable
+                    requests={filteredRequests}
                     selectedId={selectedId}
-                    onSelectRequest={handleSetSelectedId}
+                    onSelect={handleSetSelectedId}
                     searchTerm={searchTerm}
-                    onSearchTermChange={setSearchTerm}
+                    onSearchChange={setSearchTerm}
                     interceptedIds={new Set()}
                     pendingActionIds={new Set()}
                     onForward={() => {}}
                     onDrop={() => {}}
-                    onDeleteRequest={() => {}}
+                    onDelete={() => {}}
                     appId="emulate-app"
                     onSetCompare1={() => {}}
                     onSetCompare2={() => {}}
-                    setFilter={handleSetFilter}
+                    
                     onAnalyzeRequest={() => {}}
                     onSendToRepeater={handleSendToRepeater}
-                    wsConnections={mockWsConnections}
-                    selectedWsId={selectedWsId}
-                    onSelectWsConnection={setSelectedWsId}
-                    onDeleteWsConnection={() => {}}
-                    browserViewUrl={null}
+                    
+                    
                     onLaunchTarget={handleLaunchTarget}
                     onClearRequests={handleClearRequests}
                     currentTargetAppId={activeTargetId || undefined}
@@ -635,4 +655,4 @@ export default function Emulate({
       )}
     </div>
   );
-}
+});

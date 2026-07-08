@@ -11,12 +11,14 @@ interface ProjectContextType {
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('[DEBUG][ReRender] ProjectProvider rendered');
   const [rootPath, setRootPath] = useState("");
   const [homedir, setHomedir] = useState("");
   const [workspace, setWorkspace] = useState("");
   const [treeView, setTreeView] = useState("");
 
   useEffect(() => {
+    console.log('[DEBUG][ReRender] ProjectProvider useEffect triggered');
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
       if (message.command === "projectContextResult" && message.data) {

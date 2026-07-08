@@ -10,6 +10,7 @@ const CHART_W = 600;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
+  console.log('[DEBUG][ReRender] DailyUsageChart rendered', { usageCount: usage.length, title });
   const [tooltip, setTooltip] = useState<{ hour: number; svgX: number; svgY: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

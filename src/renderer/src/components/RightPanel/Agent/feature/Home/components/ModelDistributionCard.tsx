@@ -38,6 +38,7 @@ interface TooltipState {
 const ModelDistributionCard: React.FC<Props> = ({
   modelDistribution, providerFavicons, title, emptyText,
 }) => {
+  console.log('[DEBUG][ReRender] ModelDistributionCard rendered', { modelCount: modelDistribution.length, title });
   const [expanded, setExpanded] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 

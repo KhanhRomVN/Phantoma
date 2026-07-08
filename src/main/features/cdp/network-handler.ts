@@ -26,10 +26,11 @@ export function handleNetworkEvent(this: CdpManager, method: string, params: any
 
 export function handleRequestWillBeSent(this: CdpManager, params: any) {
   const { requestId, request, initiator, type } = params;
+  console.log(`[CDP] RequestWillBeSent: ${request.method} ${request.url}`);
 
-  // Log source-type requests
-  const isSource = type === 'Script' || type === 'Stylesheet' || type === 'Document';
-  if (isSource) {
+  if (!this.mainWindow) {
+    console.warn('[CDP] mainWindow not set, cannot send request event');
+    return;
   }
 
   // Store URL to scriptId mapping if this is a script
@@ -65,6 +66,7 @@ export function handleRequestWillBeSent(this: CdpManager, params: any) {
   }
 
   // Normalize to Phantoma format
+  console.log(`[CDP] Sending request to renderer: ${requestId} - ${request.url}`);
   this.sendToRenderer('cdp:request', {
     id: requestId,
     method: request.method,
@@ -79,6 +81,12 @@ export function handleRequestWillBeSent(this: CdpManager, params: any) {
 
 export async function handleResponseReceived(this: CdpManager, params: any) {
   const { requestId, response, timestamp } = params;
+  console.log(`[CDP] ResponseReceived: ${requestId} - status ${response.status}`);
+
+  if (!this.mainWindow) {
+    console.warn('[CDP] mainWindow not set, cannot send response event');
+    return;
+  }
 
   // Store mapping: if requestId is hash, try to find numeric version
   if (typeof requestId === 'string' && !requestId.includes('.')) {
@@ -100,7 +108,6 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
   const resourceType = response.resourceType || response.type || '';
   if (resourceType === 'Script' || resourceType === 'Stylesheet' || resourceType === 'Document') {
     if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      // console.warn(`[CDP:Source] ⚠️ Cannot early-fetch body: WS not connected`);
       return;
     }
 
@@ -109,6 +116,7 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
         const result = await this.send('Network.getResponseBody', { requestId });
         const { body, base64Encoded } = result;
         if (body && body.length > 0) {
+          console.log(`[CDP] Early body fetched for ${requestId} - ${body.length} bytes`);
           this.sendToRenderer('cdp:response-body', {
             id: requestId,
             body: body,
@@ -118,7 +126,9 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
             loadingTimestamp: timestamp,
           });
         }
-      } catch (e: any) {}
+      } catch (e: any) {
+        // Ignore
+      }
     }, 50);
   }
 }
@@ -128,7 +138,6 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
 
   // Check if WebSocket is still connected before trying to fetch body
   if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
-    // console.warn(`[CDP:Source] ⚠️ WS not connected, sending empty body`);
     this.sendToRenderer('cdp:response-body', {
       id: requestId,
       body: '',
@@ -142,7 +151,6 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
 
   // Try multiple times to get body with delay
   const maxRetries = 3;
-  let lastError: any = null;
   let bodyFetched = false;
   let staticSource: string | null = null;
 
@@ -154,7 +162,7 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
       const result = await this.send('Network.getResponseBody', { requestId });
       const { body, base64Encoded } = result;
 
-      staticSource = body; // Store static source for comparison
+      staticSource = body;
       this.sendToRenderer('cdp:response-body', {
         id: requestId,
         body: body,
@@ -164,9 +172,8 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
         loadingTimestamp: timestamp,
       });
       bodyFetched = true;
-      break; // Success, exit retry loop
+      break;
     } catch (e: any) {
-      lastError = e;
       if (e.code === -32000 && e.message?.includes('No resource')) {
         break;
       }
@@ -226,7 +233,9 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
           bodyFetched = true;
         }
       }
-    } catch (e: any) {}
+    } catch (e: any) {
+      // Ignore
+    }
   }
 
   // If still no body fetched, send empty

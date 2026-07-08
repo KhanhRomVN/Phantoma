@@ -5,7 +5,7 @@ export interface SearchBarProps {
   searchQuery: string;
   onSearchQueryChange?: (q: string) => void;
   onCloseSearch?: () => void;
-  bodyRef: React.RefObject<HTMLDivElement>;
+  bodyRef: React.RefObject<HTMLDivElement | null>;
 }
 
 type SearchFlag = 'matchCase' | 'wholeWord' | 'regex';

@@ -12,6 +12,14 @@ export const WebModal: React.FC<BaseModalProps> = ({
   editApp,
   onEdit,
 }) => {
+  // [DEBUG] WebModal render
+  console.log('[DEBUG] WebModal rendered', {
+    isOpen,
+    isEdit: !!editApp,
+    editAppId: editApp?.id || null,
+    existingAppsCount: existingApps.length,
+  });
+
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [duplicateError, setDuplicateError] = useState<{ name?: string; value?: string }>({});
@@ -20,7 +28,6 @@ export const WebModal: React.FC<BaseModalProps> = ({
   >([]);
   const [faviconStatus, setFaviconStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
-
   const isEdit = !!editApp;
 
   const normalizeUrl = (urlString?: string): string => {

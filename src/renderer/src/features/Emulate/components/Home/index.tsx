@@ -17,13 +17,15 @@ import {
 
 import { HeadersDetails } from './Headers';
 import { BodyDetails, BodyDetailsRef } from './Body';
-import { InspectorFilter, NetworkFilter, NetworkRequest } from './Filter';
+import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } from './Filter';
 import { CodeBlock } from '../../../../components/common/CodeBlock';
 import { CookieDetails } from './Cookie';
 import { InitiatorDetails } from './Initiator';
+import { RequestTable } from './RequestTable';
 
 import { ResizableSplit } from '../../../../components/ui/ResizableSplit/ResizableSplit';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
+import { $ } from '@renderer/utils/color';
 
 function Badge({ count, className }: { count: number; className?: string }) {
   if (count === 0) return null;
@@ -38,7 +40,6 @@ function Badge({ count, className }: { count: number; className?: string }) {
     </span>
   );
 }
-
 interface NetworkDetailsProps {
   request: NetworkRequest | null;
   searchTerm: string;
@@ -123,7 +124,8 @@ function TextSelectionMenu({
   );
 }
 
-export function RequestDetails({
+export { RequestTable, initialFilterState };
+export const RequestDetails = React.memo(function RequestDetails({
   request,
   searchTerm,
   activeTab: propsActiveTab,
@@ -141,6 +143,15 @@ export function RequestDetails({
 }: NetworkDetailsProps) {
   const [internalActiveTab, setInternalActiveTab] = useState('headers');
   const [isRawMode, setIsRawMode] = useState(false);
+
+  // [DEBUG] RequestDetails render
+  console.log('[DEBUG] RequestDetails rendered', {
+    hasRequest: !!request,
+    requestId: request?.id || null,
+    searchTerm,
+    activeTab: propsActiveTab || internalActiveTab,
+    isFilterOpen,
+  });
 
   const { getColorByIndex, toRgba } = useAccentColors();
 
@@ -637,145 +648,4 @@ export function RequestDetails({
       )}
     </div>
   );
-}
-
-// Export all components
-export { BodyDetails } from './Body';
-export { HeadersDetails } from './Headers';
-export { CookieDetails } from './Cookie';
-export { InitiatorDetails } from './Initiator';
-export { NetworkFilter, initialFilterState } from './Filter';
-export type { InspectorFilter, NetworkRequest as FilterNetworkRequest } from './Filter';
-export { RequestTable } from './RequestTable';
-import { RequestTable } from './RequestTable';
-import { initialFilterState as filterInitialState } from './Filter';
-import { WebSocketConnection } from '../../types/inspector';
-import { $ } from '@renderer/utils/color';
-
-interface RequestListProps {
-  filteredRequests: NetworkRequest[];
-  requests: NetworkRequest[];
-  selectedId: string | null;
-  onSelectRequest: (id: string | null) => void;
-  searchTerm: string;
-  onSearchTermChange: (term: string) => void;
-  interceptedIds: Set<string>;
-  pendingActionIds: Set<string>;
-  onForward: (id: string) => void;
-  onDrop: (id: string) => void;
-  onDeleteRequest: (id: string) => void;
-  appId: string;
-  onSetCompare1: (req: NetworkRequest | null) => void;
-  onSetCompare2: (req: NetworkRequest | null) => void;
-  setFilter: (filter: InspectorFilter) => void;
-  onAnalyzeRequest?: (req: NetworkRequest) => void;
-  onSendToRepeater?: (req: NetworkRequest) => void;
-  onSelectionChange?: (selectedIds: string[]) => void;
-  wsConnections: WebSocketConnection[];
-  selectedWsId: string | null;
-  onSelectWsConnection: (id: string | null) => void;
-  onDeleteWsConnection: (id: string) => void;
-  browserViewUrl: string | null;
-  onLaunchTarget?: (
-    appId: string,
-    proxyUrl: string,
-    customUrl?: string,
-    mode?: 'browser' | 'electron' | 'native' | 'cdp',
-  ) => Promise<void>;
-  onClearRequests?: () => void;
-  currentTargetAppId?: string;
-  currentTargetUrl?: string;
-  // Target state from parent
-  isTargetActive: boolean;
-  activeTargetMode: 'mitm' | 'cdp' | 'frida' | null;
-  isInterceptActive: boolean;
-  onToggleIntercept: () => void;
-  onStopTarget: () => void;
-  onStartTarget: (mode: 'mitm' | 'cdp') => void;
-}
-
-export function RequestList({
-  filteredRequests,
-  requests,
-  selectedId,
-  onSelectRequest,
-  searchTerm,
-  onSearchTermChange,
-  interceptedIds,
-  pendingActionIds,
-  onForward,
-  onDrop,
-  onDeleteRequest,
-  appId,
-  onSetCompare1,
-  onSetCompare2,
-  setFilter,
-  onAnalyzeRequest,
-  onSendToRepeater,
-  onSelectionChange,
-  browserViewUrl,
-  onLaunchTarget,
-  onClearRequests,
-  currentTargetAppId,
-  currentTargetUrl,
-  isTargetActive,
-  activeTargetMode,
-  isInterceptActive,
-  onToggleIntercept,
-  onStopTarget,
-  onStartTarget,
-}: RequestListProps) {
-  const [view, setView] = useState<'table' | 'timeline' | 'websocket' | 'browser'>('table');
-
-  useEffect(() => {
-    if (browserViewUrl) {
-      setView('browser');
-    }
-  }, [browserViewUrl]);
-
-  return (
-    <div className="h-full flex">
-      <div className="flex-1 flex flex-col min-w-0">
-        {view === 'table' && filteredRequests.length === 0 && requests.length > 0 && (
-          <div className="p-4 bg-warning/10 text-warning text-xs text-center border-b border-warning/20 shrink-0">
-            {String(requests.length)} request(s) hidden by filters
-            <button
-              onClick={() => setFilter({ ...filterInitialState })}
-              className="ml-2 underline hover:text-warning"
-            >
-              Reset filters
-            </button>
-          </div>
-        )}
-        <RequestTable
-          requests={filteredRequests}
-          selectedId={selectedId}
-          onSelect={(id) => onSelectRequest(id)}
-          searchTerm={searchTerm}
-          onSearchChange={onSearchTermChange}
-          interceptedIds={interceptedIds}
-          pendingActionIds={pendingActionIds}
-          onForward={onForward}
-          onDrop={onDrop}
-          onDelete={onDeleteRequest}
-          appId={appId || 'unknown'}
-          onSetCompare1={onSetCompare1}
-          onSetCompare2={onSetCompare2}
-          onAnalyzeRequest={onAnalyzeRequest}
-          onSendToRepeater={onSendToRepeater}
-          onSelectionChange={onSelectionChange}
-          onLaunchTarget={onLaunchTarget}
-          onClearRequests={onClearRequests}
-          currentTargetAppId={currentTargetAppId}
-          currentTargetUrl={currentTargetUrl}
-          isTargetActive={isTargetActive || false}
-          activeTargetMode={activeTargetMode || null}
-          isInterceptActive={isInterceptActive || false}
-          onToggleIntercept={onToggleIntercept}
-          onStopTarget={onStopTarget}
-          onStartTarget={onStartTarget}
-        />
-      </div>
-    </div>
-  );
-}
+});

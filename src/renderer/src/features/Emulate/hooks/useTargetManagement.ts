@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { TargetTab, TargetState } from '../types/target.types';
 import { DEFAULT_TARGET_TAB, DEFAULT_TARGET_STATE } from '../constants/defaults';
+import { useTimerStore } from '../../../stores/timerStore';
 
 interface UseTargetManagementOptions {
   initialTabs?: TargetTab[];
@@ -59,9 +60,11 @@ export function useTargetManagement(options: UseTargetManagementOptions = {}) {
     }
   }, [initialTabs, initialActiveId, targetTabs, activeTargetId, isInitialized, onTabChange]);
   const [targetStates, setTargetStates] = useState<Record<string, TargetState>>({});
-  const [timerDisplay, setTimerDisplay] = useState<Record<string, string>>({});
 
-  // Update timers every second for running targets
+  // Zustand store for timer display
+  const { setTimers } = useTimerStore();
+
+  // Update timers every second for running targets via Zustand store
   useEffect(() => {
     const interval = setInterval(() => {
       const newTimers: Record<string, string> = {};
@@ -73,11 +76,11 @@ export function useTargetManagement(options: UseTargetManagementOptions = {}) {
           newTimers[id] = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
       });
-      setTimerDisplay(newTimers);
+      setTimers(newTimers);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [targetStates]);
+  }, [targetStates, setTimers]);
 
   const addTargetTab = useCallback(
     (tab: TargetTab) => {
@@ -191,7 +194,6 @@ export function useTargetManagement(options: UseTargetManagementOptions = {}) {
     targetTabs,
     activeTargetId,
     targetStates,
-    timerDisplay,
     addTargetTab,
     removeTargetTab,
     setActiveTarget,

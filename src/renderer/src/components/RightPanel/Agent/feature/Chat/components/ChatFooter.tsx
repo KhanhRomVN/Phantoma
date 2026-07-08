@@ -9,7 +9,7 @@ interface ChatFooterProps {
   isHistoryMode: boolean;
   uploadedFiles: any[];
   attachedItems: any[];
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   handleTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   handlePaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
@@ -17,7 +17,7 @@ interface ChatFooterProps {
   handleDrop: (e: React.DragEvent) => void;
   setShowAtMenu: (value: boolean) => void;
   handleFileSelect: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   onOpenProjectStructure: () => void;
   showChangesDropdown: boolean;
   setShowChangesDropdown: (value: boolean) => void;
@@ -43,7 +43,7 @@ interface ChatFooterProps {
   removeAttachedItem: (id: string) => void;
   onOpenImage: (file: any) => void;
   removeFile: (id: string) => void;
-  externalFileInputRef: React.RefObject<HTMLInputElement>;
+  externalFileInputRef: React.RefObject<HTMLInputElement | null>;
   handleExternalFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   footerPaddingBottom: string;
@@ -94,6 +94,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   handleFileInputChange,
   footerPaddingBottom,
 }) => {
+  console.log('[DEBUG][ReRender] ChatFooter rendered', { messageLength: message.length, isProcessing, isStreaming });
   return (
     <div
       id="chat-footer-container"

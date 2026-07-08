@@ -337,7 +337,7 @@ interface MessageInputProps {
   setMessage: React.Dispatch<React.SetStateAction<string>>;
   isHistoryMode?: boolean;
   uploadedFiles: UploadedFile[];
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   handleTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   handlePaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
@@ -345,7 +345,7 @@ interface MessageInputProps {
   handleDrop: (e: React.DragEvent) => void;
   setShowAtMenu: (show: boolean) => void;
   handleFileSelect: () => void;
-  fileInputRef?: React.RefObject<HTMLInputElement>;
+  fileInputRef?: React.RefObject<HTMLInputElement | null>;
   onOpenProjectStructure: () => void;
   showChangesDropdown: boolean;
   setShowChangesDropdown: (show: boolean) => void;

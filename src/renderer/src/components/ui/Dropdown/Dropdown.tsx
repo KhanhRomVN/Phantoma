@@ -20,7 +20,7 @@ export function useDropdownContext() {
   return context;
 }
 
-export function Dropdown({
+export const Dropdown = React.memo(function Dropdown({
   children,
   open: controlledOpen,
   onOpenChange,
@@ -197,8 +197,14 @@ export function Dropdown({
   useEffect(() => {
     if (!open || strategy !== 'fixed') return;
 
+    let rafId: number | null = null;
+
     const handleUpdate = () => {
-      requestAnimationFrame(updatePosition);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      rafId = requestAnimationFrame(updatePosition);
     };
 
     const getScrollableParents = (element: HTMLElement | null): HTMLElement[] => {
@@ -233,6 +239,10 @@ export function Dropdown({
     });
 
     return () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
       window.removeEventListener('resize', handleUpdate);
       window.removeEventListener('scroll', handleUpdate, true);
       scrollableParents.forEach((parent) => {
@@ -349,7 +359,7 @@ export function Dropdown({
       </div>
     </DropdownContext.Provider>
   );
-}
+});
 
 Dropdown.displayName = 'Dropdown';
 

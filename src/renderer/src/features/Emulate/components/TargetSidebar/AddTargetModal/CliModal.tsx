@@ -11,6 +11,9 @@ export const CliModal: React.FC<BaseModalProps> = ({
   editApp,
   onEdit,
 }) => {
+  // [DEBUG] CliModal render
+  console.log('[DEBUG] CliModal rendered', { isOpen, existingAppsCount: existingApps.length, isEdit: !!editApp });
+  
   const [name, setName] = useState('');
   const [command, setCommand] = useState('');
   const [duplicateError, setDuplicateError] = useState<{ name?: string; value?: string }>({});

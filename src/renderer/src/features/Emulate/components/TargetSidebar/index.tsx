@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { TargetTab } from '../../types/target.types';
 import { useTargetSidebar } from './useTargetSidebar';
-import { TargetList } from './TargetList';
+import TargetList from './TargetList';
 import { AppPlatform } from './utils';
 
 // Re-export for external consumers
-export { TargetList } from './TargetList';
 export { useTargetSidebar } from './useTargetSidebar';
 export type { AppPlatform } from './utils';
 
 interface TargetSidebarProps {
   targetTabs: TargetTab[];
   activeTargetId: string | null;
-  timerDisplay: Record<string, string>;
   targetStates: Record<string, { isActive: boolean; mode?: 'mitm' | 'cdp' | 'frida' }>;
   accentColor: string;
   onSelectTarget: (id: string) => void;
@@ -33,10 +31,9 @@ interface TargetSidebarProps {
   activeAppId?: string;
 }
 
-export function TargetSidebar({
+const TargetSidebar: React.FC<TargetSidebarProps> = ({
   targetTabs,
   activeTargetId,
-  timerDisplay,
   targetStates,
   accentColor,
   onSelectTarget,
@@ -48,22 +45,20 @@ export function TargetSidebar({
   onEditTarget,
   onStopSession,
   activeAppId,
-}: TargetSidebarProps) {
-  const {
-    targetSearchQuery,
-    setTargetSearchQuery,
-    openMenuId,
-    setOpenMenuId,
-    searchedTargets,
-  } = useTargetSidebar(targetTabs);
+}) => {
+  // [DEBUG] TargetSidebar render
+  console.log('[DEBUG] TargetSidebar rendered', { targetTabsCount: targetTabs.length, activeTargetId });
+  
+  const { targetSearchQuery, setTargetSearchQuery, openMenuId, setOpenMenuId, searchedTargets } =
+    useTargetSidebar(targetTabs);
 
   // Device list state
-  const [deviceList, setDeviceList] = useState<
-    { name: string; serial: string; type: string }[]
-  >([]);
+  const [deviceList, setDeviceList] = useState<{ name: string; serial: string; type: string }[]>(
+    [],
+  );
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
-  const loadDevices = async () => {
+  const loadDevices = useCallback(async () => {
     if (isLoadingDevices) return;
     setIsLoadingDevices(true);
     try {
@@ -90,7 +85,7 @@ export function TargetSidebar({
     } finally {
       setIsLoadingDevices(false);
     }
-  };
+  }, [isLoadingDevices]);
 
   return (
     <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background relative">
@@ -102,7 +97,6 @@ export function TargetSidebar({
       <TargetList
         targetTabs={targetTabs}
         activeTargetId={activeTargetId}
-        timerDisplay={timerDisplay}
         targetStates={targetStates}
         accentColor={accentColor}
         activeAppId={activeAppId}
@@ -124,6 +118,6 @@ export function TargetSidebar({
       />
     </div>
   );
-}
+};
 
-export default TargetSidebar;
+export default React.memo(TargetSidebar);

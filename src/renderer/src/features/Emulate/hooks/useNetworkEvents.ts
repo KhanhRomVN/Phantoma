@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { NetworkRequest } from '../types/inspector';
+import { usePaginatedRequests } from './usePaginatedRequests';
 
 export interface CdpRequestData {
   id: string;
@@ -61,6 +62,7 @@ export interface CdpScriptSourceData {
 }
 
 interface UseNetworkEventsOptions {
+  targetId?: string;
   initialRequests?: NetworkRequest[];
   onRequest?: (request: NetworkRequest) => void;
   onResponse?: (requestId: string, status: number, headers: Record<string, string>) => void;
@@ -73,6 +75,7 @@ interface UseNetworkEventsOptions {
 
 export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const {
+    targetId = '',
     initialRequests = [],
     onRequest,
     onResponse,
@@ -83,115 +86,117 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     onRequestsChange,
   } = options;
 
-  const [requests, setRequests] = useState<NetworkRequest[]>(initialRequests);
+  // Use paginated requests hook
+  const {
+    requests,
+    addRequest,
+    updateRequest,
+    clearRequests,
+    loadMore,
+    hasMore,
+    loading,
+    totalCount,
+  } = usePaginatedRequests({
+    targetId,
+    limit: 100,
+    maxMemory: 1000,
+    onRequestsChange,
+  });
+
   const requestMapRef = useRef<Map<string, NetworkRequest>>(new Map());
   const timestampMapRef = useRef<Map<string, number>>(new Map());
   const unpackedScriptsRef = useRef<Map<string, CdpScriptUnpackedData>>(new Map());
 
-  const addRequest = useCallback(
-    (req: NetworkRequest) => {
-      setRequests((prev) => {
-        const exists = prev.some((r) => r.id === req.id);
-        if (exists) return prev;
-        const newRequests = [...prev, req];
-        onRequestsChange?.(newRequests);
-        return newRequests;
-      });
-      requestMapRef.current.set(req.id, req);
-      onRequest?.(req);
-    },
-    [onRequest, onRequestsChange],
-  );
+  // Build request object from CDP data
+  const buildRequest = useCallback((data: CdpRequestData): Partial<NetworkRequest> => {
+    let host = '';
+    let path = '';
+    let protocol = 'http';
+    try {
+      if (data.url) {
+        const url = new URL(data.url);
+        host = url.host;
+        path = url.pathname;
+        protocol = url.protocol.replace(':', '');
+      }
+    } catch {
+      // Ignore invalid URL
+    }
 
-  const updateRequest = useCallback(
-    (id: string, updates: Partial<NetworkRequest>) => {
-      setRequests((prev) => {
-        const newRequests = prev.map((r) => {
-          if (r.id === id) {
-            const updated = { ...r, ...updates };
-            requestMapRef.current.set(id, updated);
-            return updated;
-          }
-          return r;
-        });
-        onRequestsChange?.(newRequests);
-        return newRequests;
-      });
-    },
-    [onRequestsChange],
-  );
+    const resourceTypeMap: Record<string, string> = {
+      Document: 'doc',
+      XHR: 'xhr',
+      Fetch: 'fetch',
+      Script: 'js',
+      Stylesheet: 'css',
+      Image: 'img',
+      Media: 'media',
+      Font: 'font',
+      WebSocket: 'ws',
+      Manifest: 'manifest',
+      Other: 'other',
+    };
+    const type = resourceTypeMap[data.resourceType] || 'other';
+    const id = data.id || `cdp-${Date.now()}-${Math.random()}`;
+    timestampMapRef.current.set(id, data.timestamp || Date.now());
 
+    return {
+      id,
+      method: data.method || 'GET',
+      protocol,
+      host,
+      path,
+      url: data.url || '',
+      status: 0,
+      type,
+      size: '0 B',
+      time: '0ms',
+      timestamp: data.timestamp || Date.now(),
+      requestHeaders: data.headers || {},
+      responseHeaders: {},
+      requestBody: data.requestBody || '',
+      responseBody: '',
+      initiator: data.initiator ? JSON.stringify(data.initiator) : undefined,
+    };
+  }, []);
+
+  // Handle CDP request event
   const handleCdpRequest = useCallback(
     (data: CdpRequestData) => {
-      let host = '';
-      let path = '';
-      let protocol = 'http';
-      try {
-        if (data.url) {
-          const url = new URL(data.url);
-          host = url.host;
-          path = url.pathname;
-          protocol = url.protocol.replace(':', '');
-        }
-      } catch {
-        // Ignore invalid URL
-      }
-
-      const resourceTypeMap: Record<string, string> = {
-        Document: 'doc',
-        XHR: 'xhr',
-        Fetch: 'fetch',
-        Script: 'js',
-        Stylesheet: 'css',
-        Image: 'img',
-        Media: 'media',
-        Font: 'font',
-        WebSocket: 'ws',
-        Manifest: 'manifest',
-        Other: 'other',
-      };
-      const type = resourceTypeMap[data.resourceType] || 'other';
-      const id = data.id || `cdp-${Date.now()}-${Math.random()}`;
-      timestampMapRef.current.set(id, data.timestamp || Date.now());
-
-      const req: NetworkRequest = {
-        id,
-        method: data.method || 'GET',
-        protocol,
-        host,
-        path,
-        url: data.url || '',
-        status: 0,
-        type,
-        size: '0 B',
-        time: '0ms',
-        timestamp: data.timestamp || Date.now(),
-        requestHeaders: data.headers || {},
-        responseHeaders: {},
-        requestBody: data.requestBody || '',
-        responseBody: '',
-        initiator: data.initiator ? JSON.stringify(data.initiator) : undefined,
-      };
-
-      addRequest(req);
+      console.log('[useNetworkEvents] handleCdpRequest called:', data.url, data.method);
+      const req = buildRequest(data);
+      const fullReq = req as NetworkRequest;
+      console.log('[useNetworkEvents] Built request:', fullReq.id, fullReq.url);
+      requestMapRef.current.set(fullReq.id, fullReq);
+      addRequest(fullReq);
+      console.log('[useNetworkEvents] addRequest called, total requests in map:', requestMapRef.current.size);
+      onRequest?.(fullReq);
     },
-    [addRequest],
+    [buildRequest, addRequest, onRequest],
   );
 
+  // Handle CDP response event
   const handleCdpResponse = useCallback(
     (data: CdpResponseData) => {
+      console.log('[useNetworkEvents] handleCdpResponse called:', data.id, data.statusCode);
       const existing = requestMapRef.current.get(data.id);
       if (existing) {
-        updateRequest(data.id, {
+        const updates: Partial<NetworkRequest> = {
           status: data.statusCode || 200,
           responseHeaders: data.headers || {},
-        });
+        };
+        const updated = { ...existing, ...updates };
+        requestMapRef.current.set(data.id, updated);
+        updateRequest(data.id, updates);
+        onResponse?.(data.id, data.statusCode, data.headers);
+      } else {
+        console.warn('[useNetworkEvents] No existing request for response:', data.id);
       }
-      onResponse?.(data.id, data.statusCode, data.headers);
     },
     [updateRequest, onResponse],
   );
 
+  // Handle CDP response body event
   const handleCdpResponseBody = useCallback(
     (data: CdpResponseBodyData) => {
       const requestTimestamp = timestampMapRef.current.get(data.id);
@@ -212,18 +217,17 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         time: timeStr,
       };
 
-      // Mark as unpacked if it came from Debugger API
       if (data.isUnpacked) {
         updates.responseBody = `/* UNPACKED SOURCE FROM DEBUGGER API */\n${data.body || ''}`;
       }
 
       updateRequest(data.id, updates);
-
       onResponseBody?.(data.id, data.body || '', data.size);
     },
     [updateRequest, onResponseBody],
   );
 
+  // Handle script unpacked event
   const handleScriptUnpacked = useCallback(
     (data: CdpScriptUnpackedData) => {
       unpackedScriptsRef.current.set(data.requestId, data);
@@ -232,6 +236,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     [onScriptUnpacked],
   );
 
+  // Handle script source event
   const handleScriptSource = useCallback(
     (data: CdpScriptSourceData) => {
       onScriptSource?.(data);
@@ -241,7 +246,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
   // Proxy event handlers
   const handleProxyRequest = useCallback(
-    (_event: any, data: any) => {
+    (data: any) => {
       try {
         let host = '';
         let path = '';
@@ -257,7 +262,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           // Ignore invalid URL
         }
 
-        // Try to guess type from URL or content-type
         let type = 'other';
         const pathLower = path.toLowerCase();
         if (pathLower.endsWith('.js')) type = 'js';
@@ -270,21 +274,18 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           pathLower.endsWith('.gif') ||
           pathLower.endsWith('.svg') ||
           pathLower.endsWith('.webp')
-        )
-          type = 'img';
+        ) type = 'img';
         else if (pathLower.endsWith('.json')) type = 'xhr';
         else if (
           data.method === 'POST' ||
           data.method === 'PUT' ||
           data.method === 'DELETE' ||
           data.method === 'PATCH'
-        )
-          type = 'xhr';
+        ) type = 'xhr';
         else if (
           data.method === 'GET' &&
           (data.url?.includes('api') || data.url?.includes('graphql'))
-        )
-          type = 'xhr';
+        ) type = 'xhr';
 
         const id = data.id || `proxy-${Date.now()}-${Math.random()}`;
         timestampMapRef.current.set(id, data.timestamp || Date.now());
@@ -308,25 +309,30 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           initiator: data.initiator || undefined,
         };
 
+        requestMapRef.current.set(id, req);
         addRequest(req);
+        onRequest?.(req);
       } catch (error) {
         onError?.(error);
       }
     },
-    [addRequest, onError],
+    [addRequest, onRequest, onError],
   );
 
   const handleProxyResponse = useCallback(
-    (_event: any, data: any) => {
+    (data: any) => {
       try {
         const existing = requestMapRef.current.get(data.id);
         if (existing) {
-          updateRequest(data.id, {
+          const updates = {
             status: data.statusCode || 200,
             responseHeaders: data.headers || {},
-          });
+          };
+          const updated = { ...existing, ...updates };
+          requestMapRef.current.set(data.id, updated);
+          updateRequest(data.id, updates);
+          onResponse?.(data.id, data.statusCode, data.headers);
         }
-        onResponse?.(data.id, data.statusCode, data.headers);
       } catch (error) {
         onError?.(error);
       }
@@ -335,7 +341,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   );
 
   const handleProxyResponseBody = useCallback(
-    (_event: any, data: any) => {
+    (data: any) => {
       try {
         const requestTimestamp = timestampMapRef.current.get(data.id);
         let timeMs = 0;
@@ -348,7 +354,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
         const timeStr = timeMs >= 1000 ? `${(timeMs / 1000).toFixed(2)}s` : `${timeMs}ms`;
 
-        // Convert size string to bytes for proper display
         let sizeBytes = 0;
         if (typeof data.size === 'string') {
           const match = data.size.match(/([\d.]+)\s*(KB|B)/);
@@ -363,18 +368,13 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
         const finalSize = sizeBytes > 0 ? `${(sizeBytes / 1024).toFixed(1)} KB` : '0 B';
 
-        // Handle binary response body (base64 encoded)
         let body = data.body || '';
         if (data.isBinary && body) {
           try {
-            // Try to decode base64
             const decoded = atob(body);
-            // Check if it's valid UTF-8 text
             try {
               const utf8Decoded = decodeURIComponent(escape(decoded));
-              // If decoded looks like text, use it
               if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(utf8Decoded)) {
-                // Contains control chars, keep as base64
                 body = `[Binary Data - Base64 encoded]\n${body.substring(0, 1000)}...`;
               } else {
                 body = utf8Decoded;
@@ -402,12 +402,11 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   );
 
   const handleProxyRequestBody = useCallback(
-    (_event: any, data: any) => {
+    (data: any) => {
       try {
         const existing = requestMapRef.current.get(data.id);
         if (existing) {
           let body = data.body || '';
-          // Handle binary request body
           if (data.isBinary && body) {
             try {
               const decoded = atob(body);
@@ -434,27 +433,26 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     [updateRequest, onError],
   );
 
-  const clearRequests = useCallback(() => {
-    setRequests([]);
-    requestMapRef.current.clear();
-    timestampMapRef.current.clear();
-    unpackedScriptsRef.current.clear();
-    onRequestsChange?.([]);
-  }, [onRequestsChange]);
-
   // Setup IPC listeners
   useEffect(() => {
-    const listeners: Array<{ event: string; handler: (event: any, data: any) => void }> = [];
+    console.log('[useNetworkEvents] Setting up IPC listeners, window.api:', !!window.api, 'window.api.on:', !!window.api?.on);
+    if (!window.api?.on) {
+      console.warn('[useNetworkEvents] window.api.on not available');
+      return;
+    }
 
     const handleRequest = (_event: any, data: any) => {
+      console.log('[useNetworkEvents] Received cdp:request event:', data);
       try {
         handleCdpRequest(data);
       } catch (error) {
+        console.error('[useNetworkEvents] Error handling cdp:request:', error);
         onError?.(error);
       }
     };
 
     const handleResponse = (_event: any, data: any) => {
+      console.log('[useNetworkEvents] Received cdp:response event:', data);
       try {
         handleCdpResponse(data);
       } catch (error) {
@@ -463,6 +461,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     };
 
     const handleResponseBody = (_event: any, data: any) => {
+      console.log('[useNetworkEvents] Received cdp:response-body event:', data);
       try {
         handleCdpResponseBody(data);
       } catch (error) {
@@ -490,10 +489,9 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       }
     };
 
-    // Proxy event handlers (wrapped to catch errors)
     const handleProxyRequestWrapped = (_event: any, data: any) => {
       try {
-        handleProxyRequest(_event, data);
+        handleProxyRequest(data);
       } catch (error) {
         onError?.(error);
       }
@@ -501,7 +499,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
     const handleProxyResponseWrapped = (_event: any, data: any) => {
       try {
-        handleProxyResponse(_event, data);
+        handleProxyResponse(data);
       } catch (error) {
         onError?.(error);
       }
@@ -509,7 +507,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
     const handleProxyResponseBodyWrapped = (_event: any, data: any) => {
       try {
-        handleProxyResponseBody(_event, data);
+        handleProxyResponseBody(data);
       } catch (error) {
         onError?.(error);
       }
@@ -517,43 +515,26 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
     const handleProxyRequestBodyWrapped = (_event: any, data: any) => {
       try {
-        handleProxyRequestBody(_event, data);
+        handleProxyRequestBody(data);
       } catch (error) {
         onError?.(error);
       }
     };
 
-    if (window.api?.on) {
-      // CDP events
-      window.api.on('cdp:request', handleRequest);
-      window.api.on('cdp:response', handleResponse);
-      window.api.on('cdp:response-body', handleResponseBody);
-      window.api.on('cdp:script-unpacked', handleScriptUnpackedEvent);
-      window.api.on('cdp:script-source', handleScriptSourceEvent);
-      window.api.on('cdp:error', handleError);
+    window.api.on('cdp:request', handleRequest);
+    window.api.on('cdp:response', handleResponse);
+    window.api.on('cdp:response-body', handleResponseBody);
+    window.api.on('cdp:script-unpacked', handleScriptUnpackedEvent);
+    window.api.on('cdp:script-source', handleScriptSourceEvent);
+    window.api.on('cdp:error', handleError);
+    window.api.on('proxy:request', handleProxyRequestWrapped);
+    window.api.on('proxy:response', handleProxyResponseWrapped);
+    window.api.on('proxy:response-body', handleProxyResponseBodyWrapped);
+    window.api.on('proxy:request-body', handleProxyRequestBodyWrapped);
 
-      // Proxy events
-      window.api.on('proxy:request', handleProxyRequestWrapped);
-      window.api.on('proxy:response', handleProxyResponseWrapped);
-      window.api.on('proxy:response-body', handleProxyResponseBodyWrapped);
-      window.api.on('proxy:request-body', handleProxyRequestBodyWrapped);
-
-      listeners.push(
-        { event: 'cdp:request', handler: handleRequest },
-        { event: 'cdp:response', handler: handleResponse },
-        { event: 'cdp:response-body', handler: handleResponseBody },
-        { event: 'cdp:script-unpacked', handler: handleScriptUnpackedEvent },
-        { event: 'cdp:script-source', handler: handleScriptSourceEvent },
-        { event: 'cdp:error', handler: handleError },
-        { event: 'proxy:request', handler: handleProxyRequestWrapped },
-        { event: 'proxy:response', handler: handleProxyResponseWrapped },
-        { event: 'proxy:response-body', handler: handleProxyResponseBodyWrapped },
-        { event: 'proxy:request-body', handler: handleProxyRequestBodyWrapped },
-      );
-    }
+    console.log('[useNetworkEvents] All IPC listeners registered');
 
     return () => {
-      // Clean up all registered listeners using off()
       if (window.api?.off) {
         window.api.off('cdp:request', handleRequest);
         window.api.off('cdp:response', handleResponse);
@@ -566,6 +547,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         window.api.off('proxy:response-body', handleProxyResponseBodyWrapped);
         window.api.off('proxy:request-body', handleProxyRequestBodyWrapped);
       }
+      console.log('[useNetworkEvents] IPC listeners cleaned up');
     };
   }, [
     handleCdpRequest,
@@ -580,11 +562,16 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     handleProxyRequestBody,
   ]);
 
+  console.log('[useNetworkEvents] Returning requests count:', requests.length);
   return {
     requests,
     addRequest,
     updateRequest,
     clearRequests,
+    loadMore,
+    hasMore,
+    loading,
+    totalCount,
     requestMap: requestMapRef.current,
     unpackedScripts: unpackedScriptsRef.current,
   };

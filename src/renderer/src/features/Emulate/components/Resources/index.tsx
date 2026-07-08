@@ -12,6 +12,9 @@ interface ResourcesPanelProps {
 }
 
 export function ResourcesPanel({ requests = [], onCountChange }: ResourcesPanelProps) {
+  // [DEBUG] ResourcesPanel render
+  console.log('[DEBUG] ResourcesPanel rendered', { requestsCount: requests.length });
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<ResourceType>>(

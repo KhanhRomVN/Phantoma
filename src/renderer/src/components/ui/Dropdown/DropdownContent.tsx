@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../../shared/lib/utils';
 import { DropdownContentProps } from './type';
 
-export function DropdownContent({ children, className }: DropdownContentProps) {
+export const DropdownContent = React.memo(function DropdownContent({ children, className }: DropdownContentProps) {
   return (
     <div
       className={cn(
@@ -14,7 +14,7 @@ export function DropdownContent({ children, className }: DropdownContentProps) {
       {children}
     </div>
   );
-}
+});
 
 DropdownContent.displayName = 'DropdownContent';
 

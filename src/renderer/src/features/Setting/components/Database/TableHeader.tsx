@@ -112,7 +112,9 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
             onClick={onDelete}
             className="gap-1 px-2 py-1 text-xs h-7"
           >
-            <span>Delete {selectedCount} record{selectedCount > 1 ? 's' : ''}</span>
+            <span>
+              Delete {selectedCount} record{selectedCount > 1 ? 's' : ''}
+            </span>
           </Button>
         )}
 
@@ -123,7 +125,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
           onClick={onToggleFilterBar}
           className={cn(
             'gap-1 px-2 py-1 text-xs h-7',
-            showFilterBar && 'bg-primary/20 text-primary border-primary/50'
+            showFilterBar && 'bg-primary/20 text-primary border-primary/50',
           )}
         >
           <ListFilter className="w-3.5 h-3.5" />
@@ -262,25 +264,25 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 <span className="text-xs font-medium text-text-primary">Manage columns</span>
                 <button
                   onClick={() => {
-                    const allVisible = availableColumns.every(col => columnVisibility[col] !== false);
+                    const allVisible = availableColumns.every(
+                      (col) => columnVisibility[col] !== false,
+                    );
                     const newVisibility: Record<string, boolean> = {};
-                    availableColumns.forEach(col => {
+                    availableColumns.forEach((col) => {
                       newVisibility[col] = !allVisible;
                     });
                     onColumnVisibilityChange(newVisibility);
                   }}
                   className={cn(
                     'flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors',
-                    availableColumns.every(col => columnVisibility[col] !== false)
+                    availableColumns.every((col) => columnVisibility[col] !== false)
                       ? 'bg-primary/20 text-primary'
-                      : 'bg-card-background text-text-secondary border border-border'
+                      : 'bg-card-background text-text-secondary border border-border',
                   )}
                 >
-                  {availableColumns.every(col => columnVisibility[col] !== false) ? (
-                    'Hide all'
-                  ) : (
-                    'Show all'
-                  )}
+                  {availableColumns.every((col) => columnVisibility[col] !== false)
+                    ? 'Hide all'
+                    : 'Show all'}
                 </button>
               </div>
               <div className="px-2 py-1 border-b border-border">
@@ -397,10 +399,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
               </Button>
             </DropdownTrigger>
             <DropdownContent className="right-0 left-auto min-w-[180px]">
-              <DropdownItem
-                onClick={onExportJson}
-                icon={<FileJson className="w-3.5 h-3.5" />}
-              >
+              <DropdownItem onClick={onExportJson} icon={<FileJson className="w-3.5 h-3.5" />}>
                 Export all to .json
               </DropdownItem>
               <DropdownItem onClick={onExportCsv} icon={<File className="w-3.5 h-3.5" />}>

@@ -1,8 +1,9 @@
+import React from 'react';
 import { cn } from '../../../shared/lib/utils';
 import { DropdownItemProps, DropdownSeparatorProps } from './type';
 import { useDropdownContext } from './Dropdown';
 
-export function DropdownItem({
+export const DropdownItem = React.memo(function DropdownItem({
   children,
   onClick,
   className,
@@ -42,13 +43,13 @@ export function DropdownItem({
       {children}
     </div>
   );
-}
+});
 
 DropdownItem.displayName = 'DropdownItem';
 
-export function DropdownSeparator({ className }: DropdownSeparatorProps) {
+export const DropdownSeparator = React.memo(function DropdownSeparator({ className }: DropdownSeparatorProps) {
   return <div className={cn('h-px bg-border/60 my-1 mx-2', className)} />;
-}
+});
 
 DropdownSeparator.displayName = 'DropdownSeparator';
 

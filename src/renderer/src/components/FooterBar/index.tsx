@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '../../shared/lib/utils';
 
 interface FooterBarProps {
@@ -6,14 +6,31 @@ interface FooterBarProps {
 }
 
 export function FooterBar({ className }: FooterBarProps) {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const timeRef = useRef<HTMLSpanElement>(null);
   const [memoryUsage, setMemoryUsage] = useState<{ used: number; total: number } | null>(null);
   const [requestCount, setRequestCount] = useState(0);
 
+  // Cập nhật đồng hồ mỗi giây mà không gây re-render
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
+    const updateClock = () => {
+      if (timeRef.current) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('vi-VN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
+        const timeStr = now.toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+        timeRef.current.textContent = `${dateStr} ${timeStr}`;
+      }
+    };
+
+    updateClock(); // Cập nhật ngay lần đầu
+    const timer = setInterval(updateClock, 1000);
 
     return () => clearInterval(timer);
   }, []);
@@ -54,22 +71,6 @@ export function FooterBar({ className }: FooterBarProps) {
     };
   }, []);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
-
   return (
     <div
       className={cn(
@@ -78,8 +79,8 @@ export function FooterBar({ className }: FooterBarProps) {
       )}
     >
       <div className="flex items-center gap-4">
-        <span className="font-mono">
-          {formatDate(currentTime)} {formatTime(currentTime)}
+        <span ref={timeRef} className="font-mono">
+          {/* Nội dung sẽ được cập nhật trực tiếp bởi useRef */}
         </span>
         <span className="text-border">|</span>
         <span>Requests: <span className="text-text-primary font-medium">{requestCount}</span></span>

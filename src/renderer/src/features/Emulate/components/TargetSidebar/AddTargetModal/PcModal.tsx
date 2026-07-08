@@ -11,6 +11,9 @@ export const PcModal: React.FC<BaseModalProps> = ({
   onAdd,
   existingApps = [],
 }) => {
+  // [DEBUG] PcModal render
+  console.log('[DEBUG] PcModal rendered', { isOpen, existingAppsCount: existingApps.length });
+  
   const [discoveredApps, setDiscoveredApps] = useState<DiscoveredApp[]>([]);
   const [selectedPcApp, setSelectedPcApp] = useState<DiscoveredApp | null>(null);
   const [pcLoading, setPcLoading] = useState(false);

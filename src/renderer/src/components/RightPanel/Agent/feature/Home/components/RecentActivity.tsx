@@ -14,6 +14,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
   isLoading,
   onLoadConversation,
 }) => {
+  console.log('[DEBUG][ReRender] RecentActivity rendered', { conversationsCount: conversations.length, isLoading });
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const vscodeApi = (window as any).vscodeApi;

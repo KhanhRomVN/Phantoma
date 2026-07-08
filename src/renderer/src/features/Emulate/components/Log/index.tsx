@@ -33,6 +33,9 @@ interface LogViewerProps {
 const MAX_LOGS = 10000;
 
 export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
+  // [DEBUG] LogViewer render
+  console.log('[DEBUG] LogViewer rendered', { emulatorSerial });
+  
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);

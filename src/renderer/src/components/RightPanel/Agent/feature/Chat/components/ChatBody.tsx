@@ -1,8 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { useSettings } from '../../../context/SettingsContext';
-import { useCollapseSections } from '../hooks/useCollapseSections';
-import { useToolActions } from '../hooks/useToolActions';
-import { useScrollBehavior } from '../hooks/useScrollBehavior';
 import { Message } from '../types/message';
 import ProcessingIndicator from './messages/ProcessingIndicator';
 import MessageBox from './messages/MessageBox';
@@ -13,6 +10,9 @@ import { cn } from '@renderer/shared/lib/utils';
 import '../styles/timeline.css';
 import { parseAIResponse, ParsedResponse, ToolAction } from '../services/ResponseParser';
 import { getPermissionDecision } from '../utils/permissionUtils';
+import { useCollapseSections } from '../hooks/ui/useCollapseSections';
+import { useToolActions } from '../hooks/tools/useToolActions';
+import { useScrollBehavior } from '../hooks/ui/useScrollBehavior';
 
 interface ChatBodyProps {
   messages: Message[];
@@ -124,6 +124,11 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   isGitProcessing,
   isGitStatusVisible = true,
 }: ExtendedChatBodyProps) => {
+  console.log('[DEBUG][ReRender] ChatBody rendered', {
+    messagesCount: messages.length,
+    isProcessing,
+    conversationId,
+  });
   const { permissionMode } = useSettings();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);

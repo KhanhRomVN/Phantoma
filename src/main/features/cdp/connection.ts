@@ -7,11 +7,12 @@ export async function connectToTarget(
   retries = 5,
   delay = 1000
 ): Promise<boolean> {
+  console.log(`[CDP DEBUG] connectToTarget() called with wsUrl: ${wsUrl.substring(0, 60)}..., retries ${retries}`);
+  
   // Clean up existing WebSocket before creating a new one
   if (this.ws) {
-    // Remove all listeners to prevent memory leaks
+    console.log('[CDP DEBUG] Cleaning up existing WebSocket');
     this.ws.removeAllListeners();
-    // Close the connection if it's still open
     if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
       this.ws.close();
     }
@@ -20,10 +21,66 @@ export async function connectToTarget(
   }
 
   return new Promise((resolve) => {
+    let resolved = false;
+
     this.ws = new WebSocket(wsUrl);
+    let pingInterval: NodeJS.Timeout | null = null;
+    let pongTimeout: NodeJS.Timeout | null = null;
+
+    const cleanup = () => {
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
+      if (pongTimeout) {
+        clearTimeout(pongTimeout);
+        pongTimeout = null;
+      }
+    };
+
+    const startHeartbeat = () => {
+      cleanup();
+
+      pingInterval = setInterval(() => {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          try {
+            this.ws.ping();
+          } catch {
+            // Ignore
+          }
+
+          if (pongTimeout) clearTimeout(pongTimeout);
+          pongTimeout = setTimeout(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+              console.warn('[CDP] No pong received, closing connection');
+              try {
+                this.ws.terminate();
+              } catch {
+                // Ignore
+              }
+              this.isConnected = false;
+              this.ws = null;
+              cleanup();
+            }
+          }, 5000);
+        } else {
+          cleanup();
+        }
+      }, 30000);
+    };
 
     this.ws.on('open', async () => {
       this.isConnected = true;
+      resolved = true;
+      startHeartbeat();
+      // Wait for WebSocket to be fully ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+      // Double-check WebSocket is still open
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        console.error('[CDP] WebSocket not open after delay');
+        resolve(false);
+        return;
+      }
       try {
         await this.initializeNetwork();
         resolve(true);
@@ -34,22 +91,52 @@ export async function connectToTarget(
     });
 
     this.ws.on('message', (data) => {
+      if (pongTimeout) {
+        clearTimeout(pongTimeout);
+        pongTimeout = null;
+      }
       this.handleMessage(data.toString());
     });
 
-    this.ws.on('error', (err) => {
-      console.error('[CDP] WebSocket error:', err);
-      if (!this.isConnected) resolve(false);
+    this.ws.on('pong', () => {
+      if (pongTimeout) {
+        clearTimeout(pongTimeout);
+        pongTimeout = null;
+      }
     });
 
     this.ws.on('close', () => {
       this.isConnected = false;
       this.ws = null;
+      cleanup();
+
+      if (retries > 0 && !resolved) {
+        console.warn('[CDP] Connection closed, reconnecting...');
+        setTimeout(() => {
+          this.connectToTarget(wsUrl, retries - 1, delay * 2);
+        }, delay);
+      }
+    });
+
+    this.ws.on('error', (err) => {
+      console.error('[CDP] WebSocket error:', err);
+      if (!resolved) {
+        resolved = true;
+        if (retries > 0) {
+          console.warn(`[CDP] Connection error, retrying... (${retries} attempts left)`);
+          setTimeout(() => {
+            this.connectToTarget(wsUrl, retries - 1, delay * 2);
+          }, delay);
+        } else {
+          resolve(false);
+        }
+      }
     });
 
     setTimeout(() => {
-      if (!this.isConnected) {
+      if (!resolved) {
         console.warn('[CDP] Connection timeout');
+        resolved = true;
         resolve(false);
       }
     }, 10000);
@@ -57,6 +144,9 @@ export async function connectToTarget(
 }
 
 export async function initializeNetwork(this: CdpManager) {
+  // Wait a bit more to ensure WebSocket is ready
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
   try {
     await this.send('Page.enable', {});
   } catch (e) {

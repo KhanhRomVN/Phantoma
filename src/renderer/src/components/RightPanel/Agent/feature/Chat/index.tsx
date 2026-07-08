@@ -4,13 +4,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { extensionService } from '../../services/ExtensionService';
 import { saveConversation } from './services/ConversationService';
 
-import { useChatLLM } from './hooks/useChatLLM';
-import { useToolExecution } from './hooks/useToolExecution';
-import { useWorkspaceData } from './hooks/useWorkspaceData';
-import { useGitOperations } from './hooks/useGitOperations';
-import { useConversationRestore } from './hooks/useConversationRestore';
 import { useFileHandling } from '../../hooks/useFileHandling';
-import { useMentionSystem } from './hooks/useMentionSystem';
 import { ChatSession } from './types/chat';
 import { Message } from './types/message';
 import { ConversationCache } from './services/ConversationCache';
@@ -18,11 +12,17 @@ import ChatHeader from './components/ChatHeader';
 import ChatBody from './components/ChatBody';
 import ChatFooter from './components/ChatFooter';
 import { ChatErrorBoundary } from './components/ChatErrorBoundary';
-import { useTerminalPolling } from './hooks/useTerminalPolling';
-import { useBrowserSession } from './hooks/useBrowserSession';
-import { useDraftManagement } from './hooks/useDraftManagement';
 import { $ } from '@renderer/utils/color';
 import { parseAIResponse } from './services/ResponseParser';
+import { useTerminalPolling } from './hooks/tools/useTerminalPolling';
+import { useDraftManagement } from './hooks/conversation/useDraftManagement';
+import { useWorkspaceData } from './hooks/workspace/useWorkspaceData';
+import { useMentionSystem } from './hooks/ui/useMentionSystem';
+import { useBrowserSession } from './hooks/llm/useBrowserSession';
+import { useToolExecution } from './hooks/tools/useToolExecution';
+import { useGitOperations } from './hooks/workspace/useGitOperations';
+import { useConversationRestore } from './hooks/conversation/useConversationRestore';
+import { useChatLLM } from './hooks/llm/useChatLLM';
 
 interface ChatPanelProps {
   currentChat: ChatSession | null;
@@ -50,6 +50,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   initialMessageData,
   onClearInitialData,
 }) => {
+  console.log('[DEBUG][ReRender] ChatPanel rendered', { currentChat: currentChat?.sessionId, feature, hasInitialData: !!initialMessageData });
   // --- States ---
   const [apiUrl, setApiUrl] = useState('http://localhost:8888');
   const [isApiUrlReady, setIsApiUrlReady] = useState(false);
@@ -405,6 +406,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   }, [initialMessageData]);
 
   useEffect(() => {
+    console.log('[DEBUG][ReRender] ChatPanel initialMessageData useEffect triggered', { hasInitialData: !!initialMessageData, isApiUrlReady, hasProcessed: hasProcessedInitial.current });
     if (initialMessageData && !hasProcessedInitial.current && isApiUrlReady) {
       hasProcessedInitial.current = true;
       const modelToSend = initialMessageData.model ?? null;

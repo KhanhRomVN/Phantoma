@@ -16,6 +16,9 @@ export function HighlightText({
   highlightClassName,
   caseSensitive = false,
 }: HighlightTextProps) {
+  // [DEBUG] HighlightText render
+  console.log('[DEBUG] HighlightText rendered', { textLength: text?.length || 0, searchTerm });
+  
   const parts = useMemo(() => {
     if (!searchTerm || !text) return [{ text, highlight: false }];
 

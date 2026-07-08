@@ -16,6 +16,7 @@ const AgentOverlay: React.FC<AgentOverlayProps> = ({
   icon,
   showEmulateHint = true,
 }) => {
+  console.log('[DEBUG][ReRender] AgentOverlay rendered', { featureName, title, showEmulateHint });
   const defaultTitle = featureName
     ? `Module "${featureName}" does not support the Agent feature.`
     : 'Agent Not Available';

@@ -48,12 +48,24 @@ export class CdpManager extends EventEmitter {
   }
 
   public async connect(port: number, retries = 5, delay = 1000): Promise<boolean> {
+    console.log(`[CDP DEBUG] connect() called with port ${port}, retries ${retries}`);
+    
+    // Clean up before connecting
+    this.cleanup();
+    console.log('[CDP DEBUG] cleanup() completed');
+
     try {
+      console.log(`[CDP DEBUG] Fetching http://127.0.0.1:${port}/json/list...`);
       const targetsResponse = await fetch(`http://127.0.0.1:${port}/json/list`);
+      console.log(`[CDP DEBUG] fetch responded with status ${targetsResponse.status}`);
+      
       if (!targetsResponse.ok) throw new Error(`HTTP ${targetsResponse.status} from /json/list`);
 
       const targets = (await targetsResponse.json()) as any[];
+      console.log(`[CDP DEBUG] Got ${targets.length} targets from /json/list`);
+      
       const allPageTargets = targets.filter((t) => t.type === 'page');
+      console.log(`[CDP DEBUG] Found ${allPageTargets.length} page targets`);
 
       let pageTarget = allPageTargets.find(
         (t) =>
@@ -65,24 +77,58 @@ export class CdpManager extends EventEmitter {
 
       if (!pageTarget && allPageTargets.length > 0) {
         pageTarget = allPageTargets[0];
+        console.log('[CDP DEBUG] Using first page target as fallback');
       }
 
       if (!pageTarget) {
         const browserTarget = targets.find((t) => t.type === 'browser');
         if (!browserTarget) {
+          console.log('[CDP DEBUG] No browser target found');
           return false;
         }
+        console.log(`[CDP DEBUG] Connecting to browser target: ${browserTarget.webSocketDebuggerUrl}`);
         return this.connectToTarget(browserTarget.webSocketDebuggerUrl, retries, delay);
       }
 
+      console.log(`[CDP DEBUG] Connecting to page target: ${pageTarget.webSocketDebuggerUrl}`);
       return this.connectToTarget(pageTarget.webSocketDebuggerUrl, retries, delay);
-    } catch {
+    } catch (error) {
+      console.error('[CDP DEBUG] Error in connect():', error);
       if (retries > 0) {
+        console.log(`[CDP DEBUG] Retrying... (${retries} attempts left)`);
         await new Promise((r) => setTimeout(r, delay));
         return this.connect(port, retries - 1, delay);
       }
       return false;
     }
+  }
+
+  public cleanup(): void {
+    // Clear all pending requests
+    for (const [id, { reject }] of this.pendingRequests) {
+      reject(new Error('Connection closed'));
+      this.pendingRequests.delete(id);
+    }
+
+    // Clear script caches
+    this.scriptIdMap.clear();
+    this.requestIdMap.clear();
+    this.scriptSourceCache.clear();
+
+    // Close WebSocket if open
+    if (this.ws) {
+      try {
+        this.ws.removeAllListeners();
+        if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+          this.ws.close();
+        }
+      } catch {
+        // Ignore
+      }
+      this.ws = null;
+    }
+
+    this.isConnected = false;
   }
 
   public connectToTarget: (wsUrl: string, retries?: number, delay?: number) => Promise<boolean>;

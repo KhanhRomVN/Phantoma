@@ -32,6 +32,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
   onLoadConversation,
   initialValue,
 }) => {
+  console.log('[DEBUG][ReRender] HomePanel rendered', { initialValue });
   const { apiUrl } = useSettings();
 
   const folderPath = (window as any).__zenWorkspaceFolderPath as string | null | undefined;
@@ -116,6 +117,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
   }, []);
 
   useEffect(() => {
+    console.log('[DEBUG][ReRender] HomePanel fetchStats useEffect triggered', { apiUrl });
     const fetchStats = async () => {
       try {
         const [statsRes, accountsRes, providersRes] = await Promise.all([
@@ -170,6 +172,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
   }, []);
 
   useEffect(() => {
+    console.log('[DEBUG][ReRender] HomePanel history useEffect triggered');
     // Subscribe to historyResult events from main process via IPC
     const unsubscribe = extensionService.onMessage('historyResult', (msg: any) => {
       if (msg?.history) {

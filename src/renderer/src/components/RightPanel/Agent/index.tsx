@@ -24,6 +24,7 @@ interface AgentState {
 
 export function AgentPanel() {
   const { activeFeature, emulateState } = useAgentFeature();
+  console.log('[DEBUG][ReRender] AgentPanel rendered', { activeFeature, emulateState });
   const { activeTargetId, targetStates } = emulateState;
   const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
   const isTargetActive = currentTargetState?.isActive || false;
@@ -83,6 +84,7 @@ export function AgentPanel() {
 
   // Khi activeTargetId thay đổi
   useEffect(() => {
+    console.log('[DEBUG][ReRender] AgentPanel useEffect activeFeature/activeTargetId changed', { activeFeature, activeTargetId, isTargetActive });
     if (activeFeature === 'emulate') {
       // Lưu state cũ trước khi chuyển
       saveCurrentState();

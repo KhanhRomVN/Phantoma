@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface ChatErrorBoundaryState {
@@ -31,7 +31,7 @@ export class ChatErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("[ChatErrorBoundary] Render error caught:", error, info);
+    console.error('[ChatErrorBoundary] Render error caught:', error, info);
   }
 
   handleReset = () => {
@@ -48,10 +48,8 @@ export class ChatErrorBoundary extends React.Component<
         <div
           className="flex flex-col gap-2 px-5 py-4 m-3 rounded-lg"
           style={{
-            border:
-              "1px solid color-mix(in srgb, var(--error, #f44336) 30%, transparent)",
-            background:
-              "color-mix(in srgb, var(--error, #f44336) 5%, transparent)",
+            border: '1px solid color-mix(in srgb, var(--error, #f44336) 30%, transparent)',
+            background: 'color-mix(in srgb, var(--error, #f44336) 5%, transparent)',
           }}
         >
           <div className="flex items-center gap-2 font-semibold text-[13px] text-error">
@@ -59,9 +57,7 @@ export class ChatErrorBoundary extends React.Component<
             Something went wrong rendering this message
           </div>
           {this.state.error && (
-            <pre
-              className="text-[11px] m-0 whitespace-pre-wrap break-words max-h-[120px] overflow-y-auto text-secondary"
-            >
+            <pre className="text-[11px] m-0 whitespace-pre-wrap break-words max-h-[120px] overflow-y-auto text-secondary">
               {this.state.error.message}
             </pre>
           )}
