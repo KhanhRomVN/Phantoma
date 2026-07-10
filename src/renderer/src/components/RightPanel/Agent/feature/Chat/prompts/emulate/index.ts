@@ -18,7 +18,7 @@ export {
   PERSISTENT_RULES,
   buildPermissionModeTag,
   buildPermissionModeTagCompact,
-} from './persistent-rules';
+} from './reminder';
 
 interface PromptConfig {
   language: string;

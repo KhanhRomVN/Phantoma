@@ -5,7 +5,6 @@ import { targetService } from '../../services/TargetService';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 
-
 // Components
 import { RequestTable, RequestDetails, initialFilterState } from './components/Home';
 import { ResourcesPanel } from './components/Resources';
@@ -219,6 +218,7 @@ export default React.memo(function Emulate({
 
   const startTarget = useCallback(
     (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
+      console.log('[DEBUG][Emulate] startTarget called:', { targetId, mode });
       setState((prev) => {
         const newState = {
           ...prev,
@@ -232,6 +232,9 @@ export default React.memo(function Emulate({
             },
           },
         };
+        console.log('[DEBUG][Emulate] startTarget new state:', {
+          targetStates: newState.targetStates,
+        });
         return newState;
       });
     },
@@ -360,11 +363,11 @@ export default React.memo(function Emulate({
   }, [stopTarget, handleClearRequests, onStopSession]);
 
   const handleStartTarget = useCallback(
-    (mode: 'mitm' | 'cdp' | 'frida') => {
-      if (!activeTargetId) return;
-      startTarget(activeTargetId, mode);
+    (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
+      console.log('[DEBUG][Emulate] handleStartTarget called:', { targetId, mode });
+      startTarget(targetId, mode);
     },
-    [activeTargetId, startTarget],
+    [startTarget],
   );
 
   const handleToggleIntercept = useCallback(() => {
@@ -521,7 +524,7 @@ export default React.memo(function Emulate({
             {selectedTool === 'home' && (
               <>
                 <div className="flex-1 min-h-0 border-b border-border">
-<RequestTable
+                  <RequestTable
                     requests={filteredRequests}
                     selectedId={selectedId}
                     onSelect={handleSetSelectedId}
@@ -535,11 +538,8 @@ export default React.memo(function Emulate({
                     appId="emulate-app"
                     onSetCompare1={() => {}}
                     onSetCompare2={() => {}}
-                    
                     onAnalyzeRequest={() => {}}
                     onSendToRepeater={handleSendToRepeater}
-                    
-                    
                     onLaunchTarget={handleLaunchTarget}
                     onClearRequests={handleClearRequests}
                     currentTargetAppId={activeTargetId || undefined}

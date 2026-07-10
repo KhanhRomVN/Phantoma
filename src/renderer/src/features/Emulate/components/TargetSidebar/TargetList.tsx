@@ -43,7 +43,7 @@ interface TargetListProps {
   searchedTargets: TargetTab[];
   onSelectTarget: (id: string) => void;
   onRemoveTarget: (id: string) => void;
-  onStartTarget: (mode: 'mitm' | 'cdp' | 'frida') => void;
+  onStartTarget: (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => void;
   onStopTarget: () => void;
   onLaunchTarget: (
     appId: string,
@@ -92,7 +92,7 @@ const TargetItem = memo(
     onOpenMenuChange: (id: string | null) => void;
     onSelectTarget: (id: string) => void;
     onRemoveTarget: (id: string) => void;
-    onStartTarget: (mode: 'mitm' | 'cdp' | 'frida') => void;
+    onStartTarget: (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => void;
     onStopTarget: () => void;
     onLaunchTarget: (
       appId: string,
@@ -303,9 +303,10 @@ const TargetList: React.FC<TargetListProps> = ({
 
   const handleStartCDP = useCallback(
     (targetId: string, targetUrl?: string) => {
+      console.log('[DEBUG][TargetList] handleStartCDP called:', { targetId, targetUrl });
       // Update last_used_at immediately when starting CDP
       onSelectTarget(targetId);
-      onStartTarget('cdp');
+      onStartTarget(targetId, 'cdp');
       if (onLaunchTarget) {
         onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'cdp').then(async () => {
           await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -340,9 +341,10 @@ const TargetList: React.FC<TargetListProps> = ({
       useEnvInject: boolean = false,
       deviceSerial?: string,
     ) => {
+      console.log('[DEBUG][TargetList] handleStartMITM called:', { targetId, targetUrl, useEnvInject, deviceSerial });
       // Update last_used_at immediately when starting MITM
       onSelectTarget(targetId);
-      onStartTarget('mitm');
+      onStartTarget(targetId, 'mitm');
       window.api
         .invoke('proxy:create-session', 'default')
         .then(async () => {
@@ -366,9 +368,10 @@ const TargetList: React.FC<TargetListProps> = ({
 
   const handleStartFrida = useCallback(
     (targetId: string, targetUrl?: string) => {
+      console.log('[DEBUG][TargetList] handleStartFrida called:', { targetId, targetUrl });
       // Update last_used_at immediately when starting Frida
       onSelectTarget(targetId);
-      onStartTarget('frida');
+      onStartTarget(targetId, 'frida');
       window.api
         .invoke('proxy:create-session', 'default')
         .then(async () => {

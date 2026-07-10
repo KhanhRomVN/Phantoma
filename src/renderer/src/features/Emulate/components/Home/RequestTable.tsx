@@ -83,7 +83,7 @@ interface RequestTableProps {
   isInterceptActive: boolean;
   onToggleIntercept: () => void;
   onStopTarget: () => void;
-  onStartTarget: (mode: 'mitm' | 'cdp') => void;
+  onStartTarget: (targetId: string, mode: 'mitm' | 'cdp') => void;
 }
 
 export function RequestTable({

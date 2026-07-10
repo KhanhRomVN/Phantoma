@@ -4,7 +4,7 @@ export const buildAccessModePrompt = (mode: string): string => {
 
   return `# PERMISSION MODE: ${mode} (${category})
 
-Cả hai mode (readOnly và fullAccess/approval) đều cho phép sử dụng list_https và get_https_detail, vì đây là 2 tool chỉ đọc dữ liệu traffic đã capture sẵn, không có thao tác ghi/thay đổi nào.
+Both modes (readOnly and fullAccess/approval) allow the use of \`list_https\` and \`get_https_detail\`, as these are the only 2 tools — they are read-only operations on already-captured traffic data, with no write or modification capabilities.
 
-Permission mode ở đây chỉ mang tính hiển thị trạng thái, không giới hạn thêm chức năng nào so với 2 tool hiện có.`;
+Permission mode here only reflects the current status and does not impose additional restrictions beyond the 2 available tools.`;
 };

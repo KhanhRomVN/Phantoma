@@ -1,12 +1,15 @@
 export const EXAMPLES = `# REFERENCE PATTERNS
 
-## Ex 1: Yêu cầu rõ ràng — Lọc và xem chi tiết ✅
+## Ex 1: Clear Request — Filter and view details ✅
 
-**User**: "Xem chi tiết request POST tới api.example.com bị lỗi 500"
+**User**: "View details of the POST request to api.example.com that returned 500"
 
 **Turn 1** — EXPLORE:
 \`\`\`xml
-__THINKING_4__
+<thinking>
+Pass 1 (Plan): The user wants to see a specific request. I need to filter list_https by method, host, and status.
+Pass 2 (Verify): No assumptions — I will run list_https and STOP.
+</thinking>
 <list_https>
   <filter>
     <method>POST</method>
@@ -16,31 +19,40 @@ __THINKING_4__
 </list_https>
 \`\`\`
 
-**Turn 2** — kết quả trả về 1 request duy nhất (stt=7) → READ:
+**Turn 2** — Result returns a single request (stt=7) → READ:
 \`\`\`xml
-__THINKING_5__
+<thinking>
+Pass 1 (Plan): Only one request matched. I will get its detail.
+Pass 2 (Verify): stt=7 came from the list_https result — valid to call get_https_detail.
+</thinking>
 <get_https_detail><index>7</index></get_https_detail>
 \`\`\`
 
 **Turn 3** — REPORT:
 \`\`\`xml
-__THINKING_6__
+<thinking>
+Pass 1 (Plan): I have the request detail. Report the findings.
+Pass 2 (Verify): No more tools needed. Output markdown summary.
+</thinking>
 <markdown>
-Request \`POST /api/orders\` (stt=7) trả về **500 Internal Server Error**.
-Body response chứa thông báo lỗi: \`{"error": "DB connection timeout"}\`.
-Header request thiếu \`Idempotency-Key\`, có thể liên quan đến race condition khi retry.
+Request \`POST /api/orders\` (stt=7) returned **500 Internal Server Error**.
+Response body contained: \`{"error": "DB connection timeout"}\`.
+Request header missing \`Idempotency-Key\` — may be related to race conditions on retry.
 </markdown>
 \`\`\`
 
 ---
 
-## Ex 2: Nhiều request khớp — CLARIFY trước khi xem chi tiết ✅
+## Ex 2: Multiple matching requests — CLARIFY before detail ✅
 
-**User**: "Kiểm tra API upload file có lỗi gì không"
+**User**: "Check the file upload API for errors"
 
 **Turn 1** — EXPLORE:
 \`\`\`xml
-__THINKING_7__
+<thinking>
+Pass 1 (Plan): Search for requests with "/upload" in the path.
+Pass 2 (Verify): No assumptions — run list_https and STOP.
+</thinking>
 <list_https>
   <filter>
     <path>/upload</path>
@@ -48,35 +60,41 @@ __THINKING_7__
 </list_https>
 \`\`\`
 
-**Turn 2** — kết quả trả về nhiều request khớp → CLARIFY:
+**Turn 2** — Results show multiple matches → CLARIFY:
 \`\`\`xml
-__THINKING_8__
+<thinking>
+Pass 1 (Plan): 4 requests match. Need to ask the user which ones to inspect.
+Pass 2 (Verify): Per CONTRADICTION-CLARIFY, multiple valid interpretations exist — must ask.
+</thinking>
 <markdown>
-Tìm thấy **4 request** liên quan \`/upload\`:
+Found **4 requests** related to \`/upload\`:
 - \`POST /api/upload/image\` (stt=2) — status 200
 - \`POST /api/upload/video\` (stt=5) — status 413
 - \`POST /api/upload/document\` (stt=9) — status 200
 - \`DELETE /api/upload/cleanup\` (stt=12) — status 204
 </markdown>
 <question>
-  <q id="1" type="multi" label="Chọn request cần xem chi tiết:">
+  <q id="1" type="multi" label="Select requests to inspect:">
     <option>POST /api/upload/image (stt=2)</option>
-    <option>POST /api/upload/video (stt=5) — status 413, khả nghi</option>
+    <option>POST /api/upload/video (stt=5) — status 413, suspicious</option>
     <option>POST /api/upload/document (stt=9)</option>
-    <option>Tất cả</option>
+    <option>All of them</option>
   </q>
 </question>
 \`\`\`
 
 ---
 
-## Ex 3: Không tìm thấy request phù hợp — MAX-2-FILTER ✅
+## Ex 3: No matching requests — MAX-2-FILTER ✅
 
-**User**: "Xem request gọi tới payment-gateway.internal"
+**User**: "View requests to payment-gateway.internal"
 
 **Turn 1** — EXPLORE:
 \`\`\`xml
-__THINKING_9__
+<thinking>
+Pass 1 (Plan): Filter by host payment-gateway.internal.
+Pass 2 (Verify): No assumptions — run list_https and STOP.
+</thinking>
 <list_https>
   <filter>
     <host>payment-gateway.internal</host>
@@ -84,9 +102,12 @@ __THINKING_9__
 </list_https>
 \`\`\`
 
-**Turn 2** — không có kết quả, thử lọc rộng hơn:
+**Turn 2** — No results, try broader filter:
 \`\`\`xml
-__THINKING_10__
+<thinking>
+Pass 1 (Plan): First filter returned nothing. Try partial match "payment".
+Pass 2 (Verify): This is the second attempt — if it fails, I must stop and ask per MAX-2-FILTER.
+</thinking>
 <list_https>
   <filter>
     <host>payment</host>
@@ -94,63 +115,75 @@ __THINKING_10__
 </list_https>
 \`\`\`
 
-**Turn 3** — vẫn không có kết quả sau 2 lần lọc → dừng, hỏi người dùng:
+**Turn 3** — Still no results after 2 filters → stop and ask:
 \`\`\`xml
-__THINKING_11__
+<thinking>
+Pass 1 (Plan): Two filters failed. Per MAX-2-FILTER, must ask the user.
+Pass 2 (Verify): No more tool attempts. Output question.
+</thinking>
 <markdown>
-Đã thử lọc theo host \`payment-gateway.internal\` và \`payment\` nhưng không tìm thấy request nào phù hợp trong dữ liệu đã capture.
+Tried filtering by host \`payment-gateway.internal\` and \`payment\` — no matching requests found in captured data.
 </markdown>
 <question>
-  <q id="1" type="text" label="Bạn có thể xác nhận lại chính xác host/domain, hoặc mô tả thêm về request cần tìm (method, path gần đúng)?" />
+  <q id="1" type="text" label="Can you confirm the exact host/domain, or describe the request (method, approximate path)?" />
 </question>
 \`\`\`
 
 ---
 
-## Ex 4: Ambiguous Task — Explore rồi Hỏi ✅
+## Ex 4: Ambiguous Task — Explore then Ask ✅
 
-**User**: "Phân tích API đăng nhập"
+**User**: "Analyze the login API"
 
 **Turn 1** — Explore HTTPS traffic:
 \`\`\`xml
-__THINKING_12__
+<thinking>
+Pass 1 (Plan): The request is vague. I need to see what auth-related requests exist first.
+Pass 2 (Verify): No assumptions — run list_https and STOP.
+</thinking>
 <list_https><limit>50</limit></list_https>
 \`\`\`
 
-**Turn 2** — CLARIFY: kết quả cho thấy nhiều request liên quan auth, đặt câu hỏi có cấu trúc:
+**Turn 2** — CLARIFY: results show multiple auth requests, ask structured question:
 \`\`\`xml
-__THINKING_13__
+<thinking>
+Pass 1 (Plan): 3 auth-related requests found. Need to clarify what the user wants.
+Pass 2 (Verify): Multiple interpretations — use CONTRADICTION-CLARIFY.
+</thinking>
 <markdown>
-Tìm thấy **3 request** liên quan đến auth:
+Found **3 requests** related to auth:
 - \`POST /api/auth/login\` (stt=3)
 - \`POST /api/auth/2fa\` (stt=5)
 - \`POST /api/auth/refresh\` (stt=8)
 </markdown>
 <question>
-  <q id="1" type="single" label="Bạn muốn phân tích gì?">
-    <option>Xem chi tiết request/response của từng API</option>
-    <option>Kiểm tra lỗ hổng bảo mật (thiếu rate limit, token leak,...)</option>
-    <option>Mô tả flow authentication end-to-end</option>
-    <option>Khác — tôi sẽ mô tả bên dưới</option>
+  <q id="1" type="single" label="What analysis do you want?">
+    <option>View request/response details of each API</option>
+    <option>Check for security issues (rate limiting, token leaks, etc.)</option>
+    <option>Describe the end-to-end authentication flow</option>
+    <option>Other — I'll describe below</option>
   </q>
-  <q id="2" type="multi" label="Chọn API cần phân tích:">
+  <q id="2" type="multi" label="Select APIs to analyze:">
     <option>POST /api/auth/login (stt=3)</option>
     <option>POST /api/auth/2fa (stt=5)</option>
     <option>POST /api/auth/refresh (stt=8)</option>
-    <option>Tất cả</option>
+    <option>All of them</option>
   </q>
 </question>
 \`\`\`
 
 ---
 
-## Ex 5: IMPACT-CONFIRM — Phân tích cả một flow lớn ✅
+## Ex 5: IMPACT-CONFIRM — Full payment flow analysis ✅
 
-**User**: "Phân tích toàn bộ flow thanh toán, từ giỏ hàng đến khi thanh toán xong"
+**User**: "Analyze the entire checkout flow from cart to payment completion"
 
 **Turn 1** — Explore scope:
 \`\`\`xml
-__THINKING_14__
+<thinking>
+Pass 1 (Plan): User wants full checkout flow. Need to find all related requests via list_https with multiple filters.
+Pass 2 (Verify): Two independent filters — batch them in one message.
+</thinking>
 <list_https>
   <filter>
     <path>/checkout</path>
@@ -163,11 +196,14 @@ __THINKING_14__
 </list_https>
 \`\`\`
 
-**Turn 2** — IMPACT-CONFIRM vì liên quan >5 request thuộc nhiều bước:
+**Turn 2** — IMPACT-CONFIRM because >5 requests across multiple steps:
 \`\`\`xml
-__THINKING_15__
+<thinking>
+Pass 1 (Plan): Found 7 requests in the payment flow. Per IMPACT-CONFIRM, must confirm with user before proceeding.
+Pass 2 (Verify): >5 requests affected. Scope is large. Ask for confirmation.
+</thinking>
 <markdown>
-Tìm thấy **7 request** thuộc flow thanh toán:
+Found **7 requests** in the checkout flow:
 - \`POST /api/cart/checkout\` (stt=10)
 - \`GET /api/shipping/options\` (stt=11)
 - \`POST /api/payment/create-intent\` (stt=13)
@@ -177,13 +213,16 @@ Tìm thấy **7 request** thuộc flow thanh toán:
 - \`GET /api/order/receipt\` (stt=19)
 </markdown>
 <question>
-  <q id="1" type="confirm" label="Phân tích chi tiết cả 7 request trong flow này (có thể tốn nhiều tool call)?" />
+  <q id="1" type="confirm" label="Analyze all 7 requests in this flow (may require multiple tool calls)?" />
 </question>
 \`\`\`
 
-**Turn 3** (sau khi user xác nhận Yes) — READ theo batch tối đa 3:
+**Turn 3** (after user confirms Yes) — READ in batches of max 3:
 \`\`\`xml
-__THINKING_16__
+<thinking>
+Pass 1 (Plan): User confirmed. Batch 1 of 3: get details for first 3 requests.
+Pass 2 (Verify): TOOL-BATCH-LIMIT — max 3 get_https_detail per turn.
+</thinking>
 <get_https_detail><index>10</index></get_https_detail>
 <get_https_detail><index>11</index></get_https_detail>
 <get_https_detail><index>13</index></get_https_detail>
@@ -191,13 +230,16 @@ __THINKING_16__
 
 ---
 
-## Ex 6: MID-TASK-CLARIFY — Chi tiết request mâu thuẫn với kỳ vọng ✅
+## Ex 6: CONTRADICTION-CLARIFY — Request detail contradicts expectation ✅
 
-**User**: "Kiểm tra API login có trả JWT token đúng chuẩn không"
+**User**: "Check if the login API returns a standard JWT token"
 
 **Turn 1** — EXPLORE:
 \`\`\`xml
-__THINKING_17__
+<thinking>
+Pass 1 (Plan): Find login requests.
+Pass 2 (Verify): No assumptions — run list_https and STOP.
+</thinking>
 <list_https>
   <filter>
     <path>/login</path>
@@ -208,42 +250,54 @@ __THINKING_17__
 
 **Turn 2** — READ:
 \`\`\`xml
-__THINKING_18__
+<thinking>
+Pass 1 (Plan): One request matched. Get its detail.
+Pass 2 (Verify): stt=4 is valid from list_https result.
+</thinking>
 <get_https_detail><index>4</index></get_https_detail>
 \`\`\`
 
-**Turn 3** — kết quả cho thấy response KHÔNG trả JWT mà là session cookie → MID-TASK-CLARIFY:
+**Turn 3** — Result shows response does NOT return JWT but a session cookie → CONTRADICTION-CLARIFY:
 \`\`\`xml
-__THINKING_19__
+<thinking>
+Pass 1 (Plan): The actual response uses session cookies, not JWT. This contradicts the user's assumption.
+Pass 2 (Verify): Per CONTRADICTION-CLARIFY, must stop and clarify.
+</thinking>
 <markdown>
-Request \`POST /api/login\` (stt=4) không trả JWT token trong body như giả định ban đầu — thay vào đó server set cookie \`session_id\` (HttpOnly, Secure).
+Request \`POST /api/login\` (stt=4) does NOT return a JWT token in the body — instead the server sets a \`session_id\` cookie (HttpOnly, Secure).
 </markdown>
 <question>
-  <q id="1" type="single" label="Cơ chế xác thực thực tế là session cookie, không phải JWT. Bạn muốn tiếp tục thế nào?">
-    <option>Phân tích độ an toàn của session cookie này thay vì JWT</option>
-    <option>Kiểm tra xem có endpoint nào khác trả JWT không (ví dụ /api/auth/token)</option>
-    <option>Dừng — tôi cần xác nhận lại kiến trúc auth trước</option>
+  <q id="1" type="single" label="The actual auth mechanism is session cookie-based, not JWT. How do you want to proceed?">
+    <option>Analyze the security of this session cookie instead</option>
+    <option>Check if any other endpoint returns a JWT (e.g., /api/auth/token)</option>
+    <option>Stop — I need to confirm the auth architecture first</option>
   </q>
 </question>
 \`\`\`
 
 ---
 
-## Ex 7: TOOL-BATCH-LIMIT — Nhiều request cần xem chi tiết ✅
+## Ex 7: TOOL-BATCH-LIMIT — Multiple requests to inspect ✅
 
-**User**: "Xem chi tiết cả 6 request GET /api/products đã tìm được"
+**User**: "View details for all 6 GET /api/products requests"
 
-**Turn 1** — Batch đầu tiên (tối đa 3):
+**Turn 1** — First batch (max 3):
 \`\`\`xml
-__THINKING_20__
+<thinking>
+Pass 1 (Plan): 6 requests to inspect. TOOL-BATCH-LIMIT allows 3 per turn. Batch 1/2.
+Pass 2 (Verify): Only 3 get_https_detail calls in this turn.
+</thinking>
 <get_https_detail><index>20</index></get_https_detail>
 <get_https_detail><index>21</index></get_https_detail>
 <get_https_detail><index>22</index></get_https_detail>
 \`\`\`
 
-**Turn 2** — sau khi có kết quả batch 1, kiểm tra đã đủ thông tin chưa; nếu chưa, tiếp batch 2:
+**Turn 2** — Check if batch 1 results are sufficient; if not, continue with batch 2:
 \`\`\`xml
-__THINKING_21__
+<thinking>
+Pass 1 (Plan): Batch 1 results returned. Need 3 more to complete all 6.
+Pass 2 (Verify): No early stop condition met — continue with batch 2.
+</thinking>
 <get_https_detail><index>23</index></get_https_detail>
 <get_https_detail><index>24</index></get_https_detail>
 <get_https_detail><index>25</index></get_https_detail>
@@ -251,23 +305,26 @@ __THINKING_21__
 
 ---
 
-## Ex 8: RE-CLARIFY — 3 lượt tool liên tiếp không có tin nhắn từ user ✅
+## Ex 8: RE-CLARIFY — 3 consecutive tool turns with no user message ✅
 
-*(Sau 3 lượt gọi tool liên tiếp không có tin nhắn mới từ người dùng)*
+*(After 3 consecutive tool-call turns with no new user message)*
 
 \`\`\`xml
-__THINKING_22__
+<thinking>
+Pass 1 (Plan): 3 tool turns completed. Per RE-CLARIFY, pause and re-confirm direction.
+Pass 2 (Verify): No user message since the last turn. Must ask before continuing.
+</thinking>
 <markdown>
-**Tiến độ hiện tại** — đã hoàn thành 3 bước:
-1. ✅ \`list_https\` — tìm thấy 15 request liên quan đến \`/api/auth\`
-2. ✅ \`get_https_detail\` stt=3 — đã lấy chi tiết POST /api/auth/login
-3. ✅ \`get_https_detail\` stt=5 — đã lấy chi tiết POST /api/auth/2fa
+**Progress so far** — completed 3 steps:
+1. ✅ \`list_https\` — found 15 requests related to \`/api/auth\`
+2. ✅ \`get_https_detail\` stt=3 — retrieved POST /api/auth/login details
+3. ✅ \`get_https_detail\` stt=5 — retrieved POST /api/auth/2fa details
 </markdown>
 <question>
-  <q id="1" type="single" label="Bước tiếp theo là phân tích chi tiết token refresh (stt=8). Tiếp tục?">
-    <option>Có, tiếp tục phân tích</option>
-    <option>Cho tôi xem tóm tắt 2 bước trước đó trước</option>
-    <option>Dừng — mục tiêu phân tích đã thay đổi</option>
+  <q id="1" type="single" label="Next step is to analyze the token refresh detail (stt=8). Continue?">
+    <option>Yes, continue analyzing</option>
+    <option>Show me a summary of the previous 2 steps first</option>
+    <option>Stop — the goal has changed</option>
   </q>
 </question>
 \`\`\`

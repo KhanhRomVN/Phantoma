@@ -32,7 +32,15 @@ const HomePanel: React.FC<HomePanelProps> = ({
   onLoadConversation,
   initialValue,
 }) => {
-  console.log('[DEBUG][ReRender] HomePanel rendered', { initialValue });
+  // Instance ID để phân biệt các instance khác nhau
+  const instanceId = React.useRef(`home-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
+  const renderCount = React.useRef(0);
+  renderCount.current += 1;
+  console.log(`[DEBUG][ReRender] HomePanel rendered #${renderCount.current}`, {
+    instanceId: instanceId.current,
+    initialValue,
+    timestamp: new Date().toISOString(),
+  });
   const { apiUrl } = useSettings();
 
   const folderPath = (window as any).__zenWorkspaceFolderPath as string | null | undefined;
@@ -165,10 +173,16 @@ const HomePanel: React.FC<HomePanelProps> = ({
   }, [apiUrl]);
 
   useEffect(() => {
+    console.log(`[DEBUG][Interval] HomePanel ${instanceId.current} - setting up slogan interval (3s)`);
     const timer = setInterval(() => {
+      const prev = sloganIndex;
       setSloganIndex((prev) => (prev + 1) % SLOGANS.length);
+      console.log(`[DEBUG][Interval] HomePanel ${instanceId.current} - slogan changed from ${prev} to ${(prev + 1) % SLOGANS.length}`);
     }, 3000);
-    return () => clearInterval(timer);
+    return () => {
+      console.log(`[DEBUG][Interval] HomePanel ${instanceId.current} - clearing slogan interval`);
+      clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {

@@ -9,7 +9,7 @@ import {
   PERSISTENT_RULES,
   buildPermissionModeTag,
   buildPermissionModeTagCompact,
-} from '../../prompts/code/persistent-rules';
+} from '../../prompts/emulate';
 import {
   logChatToWorkspace,
   saveConversation,
@@ -534,12 +534,7 @@ export const useChatLLM = ({
       };
 
       // Log token count for every request (user-initiated and auto/tool)
-      const reqTokens = calculateTokens(promptPayload);
-      const reqType = skipFirstRequestLogic
-        ? 'autoReq (tool flush)'
-        : isReq1
-          ? 'req1 (first turn)'
-          : 'user req';
+      // Token count logged via calculateTokens above; no separate variable needed
 
       const updatedMessages = [...filteredMessages, userMessage];
       setMessages(updatedMessages);
@@ -660,11 +655,8 @@ export const useChatLLM = ({
           ref_file_ids.push(...uploadedIds);
         }
 
-        const effPromptPayload = isReq1
-          ? `${systemPrompt}${projectContextStr}\n\n${fullContent}`
-          : fullContent;
-
-        const errorMsgCount = updatedMessages.filter((m) => m.isError).length;
+        // effPromptPayload not needed - using promptPayload directly
+        // errorMsgCount not used
         let payloadMessages = updatedMessages
           .filter((m) => !m.isError) // exclude error messages — they are UI-only, not part of conversation history
           .map((m) => ({
@@ -1123,7 +1115,7 @@ export const useChatLLM = ({
     conversationToolOverrides,
     setConversationToolOverrides,
     handleToolAction: (
-      actionId: string,
+      _actionId: string,
       actionType: 'accept_all' | 'accept_once' | 'reject',
       toolName?: string,
     ) => {
