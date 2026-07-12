@@ -7,7 +7,7 @@ import SearchBar from './SearchBar';
 import { ChatErrorBoundary } from './ChatErrorBoundary';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/lib/utils';
-import '../styles/timeline.css';
+// timeline.css removed - using simpler UI pattern
 import { parseAIResponse, ParsedResponse, ToolAction } from '../services/ResponseParser';
 import { getPermissionDecision } from '../utils/permissionUtils';
 import { useCollapseSections } from '../hooks/ui/useCollapseSections';
@@ -268,7 +268,7 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
           </button>
         </div>
       )}
-      <div className="chat-timeline-wrapper relative flex flex-col">
+      <div className="relative flex flex-col gap-2">
         {visibleMessages.map((message, index) => {
           const parsedMessage = parsedMessages.find((pm) => pm.id === message.id);
           if (!parsedMessage) return null;

@@ -131,11 +131,24 @@ export const extractThinkingBlocks = (content: string): ThinkingExtractResult =>
       content.substring(i, i + thinkingOpenTag.length).toLowerCase() ===
       thinkingOpenTag.toLowerCase()
     ) {
-      const thinkingEndIndex = findClosingTagPosition(
+      let thinkingEndIndex = findClosingTagPosition(
         content,
         i + thinkingOpenTag.length,
         '</thinking>',
       );
+
+      // Fallback: if backtick-aware search failed but </thinking> exists, use simple search
+      if (thinkingEndIndex === -1) {
+        const simpleEndIndex = content
+          .toLowerCase()
+          .indexOf('</thinking>', i + thinkingOpenTag.length);
+        if (simpleEndIndex !== -1) {
+          if (DEBUG_THINKING) {
+            console.warn('[Zen][ThinkingParser] Fallback to simple indexOf for </thinking>');
+          }
+          thinkingEndIndex = simpleEndIndex;
+        }
+      }
 
       if (thinkingEndIndex !== -1) {
         // Found complete thinking block
@@ -144,6 +157,7 @@ export const extractThinkingBlocks = (content: string): ThinkingExtractResult =>
         thinkingBlocks.push(thinkingContent);
         processed += `__THINKING_${idx}__`;
         i = thinkingEndIndex + '</thinking>'.length;
+
         continue;
       } else {
         // Unclosed thinking at the end (streaming case)

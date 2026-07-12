@@ -1,10 +1,12 @@
-import type { Question } from "../../types/message";
+import type { Question } from '../../types/message';
 
 /**
  * Parse question tag content into structured question data.
  * Supports both legacy (options array) and new (questions array with <q> elements) formats.
  */
-export const parseQuestion = (innerContent: string): {
+export const parseQuestion = (
+  innerContent: string,
+): {
   options: string[];
   title?: string;
   optional?: boolean;
@@ -22,25 +24,25 @@ export const parseQuestion = (innerContent: string): {
 
   // Try to parse new schema with <q> elements
   let hasNewSchema = false;
-  const content = innerContent || "";
+  const content = innerContent || '';
 
   // Find all <q> tags
   let searchIndex = 0;
   while (searchIndex < content.length) {
-    const qStart = content.indexOf("<q ", searchIndex);
+    const qStart = content.indexOf('<q ', searchIndex);
     if (qStart === -1) break;
 
     let tagEnd = -1;
     let isSelfClosing = false;
     let i = qStart + 2;
     while (i < content.length) {
-      if (content[i] === "<" && content[i + 1] === "/") break;
-      if (content[i] === ">" && content[i - 1] === "/") {
+      if (content[i] === '<' && content[i + 1] === '/') break;
+      if (content[i] === '>' && content[i - 1] === '/') {
         isSelfClosing = true;
         tagEnd = i;
         break;
       }
-      if (content[i] === ">") {
+      if (content[i] === '>') {
         tagEnd = i;
         break;
       }
@@ -65,14 +67,25 @@ export const parseQuestion = (innerContent: string): {
 
     hasNewSchema = true;
     const qId = idMatch[1].trim();
-    const qType = typeMatch[1].trim() as "single" | "multi" | "text" | "confirm";
-    const qLabel = doubleQuoteMatch ? doubleQuoteMatch[1].trim() : singleQuoteMatch ? singleQuoteMatch[1].trim() : `Question ${questions.length + 1}`;
+    const qType = typeMatch[1].trim() as 'single' | 'multi' | 'text' | 'confirm';
 
-    let qInner = "";
+    // Extract and decode HTML entities in label
+    let qLabel = doubleQuoteMatch
+      ? doubleQuoteMatch[1].trim()
+      : singleQuoteMatch
+        ? singleQuoteMatch[1].trim()
+        : `Question ${questions.length + 1}`;
+    if (qLabel && qLabel !== `Question ${questions.length + 1}`) {
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = qLabel;
+      qLabel = textarea.value;
+    }
+
+    let qInner = '';
     let closeTagEnd = tagEnd;
 
     if (!isSelfClosing) {
-      const closeIndex = content.indexOf("</q>", tagEnd + 1);
+      const closeIndex = content.indexOf('</q>', tagEnd + 1);
       if (closeIndex !== -1) {
         qInner = content.substring(tagEnd + 1, closeIndex);
         closeTagEnd = closeIndex + 4;
@@ -93,7 +106,7 @@ export const parseQuestion = (innerContent: string): {
     }
 
     // For single/multi, ensure at least 2 options
-    if (qType === "single" || qType === "multi") {
+    if (qType === 'single' || qType === 'multi') {
       if (qOptions.length < 2) {
         searchIndex = closeTagEnd;
         continue;
@@ -121,7 +134,7 @@ export const parseQuestion = (innerContent: string): {
     }
   }
 
-  const openTag = innerContent.match(/<question[^>]*>/)?.[0] || "";
+  const openTag = innerContent.match(/<question[^>]*>/)?.[0] || '';
   const optional = /optional=["']true["']/i.test(openTag);
 
   return {

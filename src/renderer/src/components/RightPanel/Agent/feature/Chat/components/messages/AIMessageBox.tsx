@@ -3,7 +3,7 @@ import { Message } from '../../types/message';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { isDiff, parseDiff } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
 import { $ } from '@renderer/utils/color';
-import '../../styles/timeline.css';
+// timeline.css removed - using simpler UI pattern
 import { ParsedResponse } from '../../services/ResponseParser';
 import { ToolHeader } from '../tools/ToolHeader';
 import HtmlBlock from '../blocks/HtmlBlock';
@@ -442,14 +442,12 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div style={{ paddingBottom: '8px' }}>
                 <div
-                  className="timeline-dot"
                   style={{
-                    backgroundColor: 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: 'none',
-                    boxShadow: 'none',
+                    width: '20px',
+                    height: '20px',
                   }}
                 >
                   {group.faviconUrl ? (
@@ -564,11 +562,24 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div>
                 <div
-                  className="timeline-dot"
                   style={{
-                    backgroundColor: dotColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '20px',
+                    height: '20px',
                   }}
-                />
+                >
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: dotColor,
+                    }}
+                  />
+                </div>
                 <div
                   style={{
                     paddingLeft: '29px',
@@ -586,11 +597,24 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             content = (
               <div>
                 <div
-                  className="timeline-dot"
                   style={{
-                    backgroundColor: dotColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '20px',
+                    height: '20px',
                   }}
-                />
+                >
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: dotColor,
+                    }}
+                  />
+                </div>
                 <div style={{ paddingLeft: '29px', paddingTop: '4px' }}>
                   {group.segments.map((seg: any, i: number) => {
                     if (seg.type === 'code') {
@@ -726,37 +750,27 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
               />
             );
 
-            // Check if THIS group has any pending or busy action that should block subsequent ones
-            const hasUnclickedOrBusyAction = group.items.some((item) => {
-              const actionId = `${message.id}-action-${item.index}`;
-              const hasOutput = toolOutputs && toolOutputs[actionId];
-              const isClicked = clickedActions.has(actionId);
-
-              // Check if there is a subsequent message in history containing the output
-              const hasHistoryOutput =
-                !!nextUserMessage || !!allMessages?.some((m) => m.actionIds?.includes(actionId));
-
-              if (!isClicked && !hasOutput && !hasHistoryOutput) {
-                // If it is a write/edit tool, on restore it shouldn't block subsequent tools
-                const isWriteTool =
-                  item.action.type === 'write_to_file' || item.action.type === 'replace_in_file';
-                if (isWriteTool) {
-                  return false;
-                }
-                return true;
-              }
-
-              // Also block if a run_command is still busy
-              if (item.action.type === 'run_command' && !hasHistoryOutput) {
-                const outputData = toolOutputs?.[actionId];
-                const terminalId =
-                  (outputData as any)?.terminalId || item.action.params.terminal_id;
-                if (terminalId && terminalStatus?.[terminalId] === 'busy') {
-                  return true;
-                }
-              }
-              return false;
-            });
+            // Check for pending/busy actions (logic removed - kept for reference only)
+            // const hasUnclickedOrBusyAction = group.items.some((item) => {
+            //   const actionId = `${message.id}-action-${item.index}`;
+            //   const hasOutput = toolOutputs && toolOutputs[actionId];
+            //   const isClicked = clickedActions.has(actionId);
+            //   const hasHistoryOutput =
+            //     !!nextUserMessage || !!allMessages?.some((m) => m.actionIds?.includes(actionId));
+            //   if (!isClicked && !hasOutput && !hasHistoryOutput) {
+            //     const isWriteTool =
+            //       item.action.type === 'write_to_file' || item.action.type === 'replace_in_file';
+            //     if (isWriteTool) return false;
+            //     return true;
+            //   }
+            //   if (item.action.type === 'run_command' && !hasHistoryOutput) {
+            //     const outputData = toolOutputs?.[actionId];
+            //     const terminalId =
+            //       (outputData as any)?.terminalId || item.action.params.terminal_id;
+            //     if (terminalId && terminalStatus?.[terminalId] === 'busy') return true;
+            //   }
+            //   return false;
+            // });
           }
 
           if (group.type === 'tools') {
@@ -764,10 +778,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
           }
 
           return (
-            <div
-              key={group.key}
-              className={`timeline-item relative ml-0 ${isLast ? 'last pb-0' : ''}`}
-            >
+            <div key={group.key} className="relative ml-0 pb-2">
               {content}
             </div>
           );

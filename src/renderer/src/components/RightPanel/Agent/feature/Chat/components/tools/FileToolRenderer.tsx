@@ -263,7 +263,6 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
 
   return (
     <div
-      className="timeline-item"
       style={{
         display: 'flex',
         flexDirection: 'column',

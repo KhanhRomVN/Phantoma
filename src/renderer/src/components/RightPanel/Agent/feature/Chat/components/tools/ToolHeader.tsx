@@ -125,15 +125,26 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
           <div className="terminal-header-top flex items-center gap-2.5">
             {statusColor && (
               <div
-                className={`terminal-status-dot timeline-dot ${isPartial ? 'streaming-pulse' : ''}`}
+                className={`terminal-status-dot ${isPartial ? 'streaming-pulse' : ''}`}
                 style={{
-                  backgroundColor: statusColor,
-                  top: '10px',
-                  left: '15px',
-                  transform: 'translateX(-50%)',
-                  boxShadow: `0 0 0 2px ${$('--background') || ''}, 0 0 0 3px color-mix(in srgb, ${statusColor} 50%, transparent)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '20px',
+                  height: '20px',
                 }}
-              />
+              >
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: statusColor,
+                    boxShadow: `0 0 0 2px ${$('--background') || ''}, 0 0 0 3px color-mix(in srgb, ${statusColor} 50%, transparent)`,
+                  }}
+                />
+              </div>
             )}
             {isPartial && (
               <style>{`

@@ -83,10 +83,8 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
   // Parse and simplify error message
   displayMessage = parseErrorMessage(displayMessage);
 
-  const timelineClass = isLast ? 'timeline-item last' : 'timeline-item';
-
   return (
-    <div className={`${timelineClass} relative flex flex-col gap-1.5 pb-0`}>
+    <div className="relative flex flex-col gap-1.5 pb-0">
       <div className="terminal-block border-none bg-transparent overflow-visible rounded-none [&_.terminal-block-header]:border-b-0">
         {showHeader && (
           <ToolHeader

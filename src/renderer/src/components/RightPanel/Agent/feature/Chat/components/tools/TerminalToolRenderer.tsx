@@ -104,15 +104,27 @@ const TerminalToolRenderer: React.FC<TerminalToolRendererProps> = ({
           : $('--secondary-text') || '';
 
   return (
-    <div className="timeline-item" style={{ marginTop: '4px', paddingLeft: '29px' }}>
+    <div style={{ marginTop: '4px', paddingLeft: '29px' }}>
       <div
-        className="timeline-dot"
         style={{
-          backgroundColor: dotColor,
-          boxShadow: `0 0 0 2px ${$('--background') || ''}, 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
-          top: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '20px',
+          height: '20px',
         }}
-      />
+      >
+        <span
+          style={{
+            display: 'inline-block',
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: dotColor,
+            boxShadow: `0 0 0 2px ${$('--background') || ''}, 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
+          }}
+        />
+      </div>
 
       <div
         style={{

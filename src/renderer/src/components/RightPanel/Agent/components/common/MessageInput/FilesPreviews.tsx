@@ -1,8 +1,8 @@
 import React from 'react';
 import { FileIcon as FileIconLucide, Terminal, Loader2 } from 'lucide-react';
-import FileIcon from '@renderer/components/common/FileIcon';
 import { cn } from '@renderer/shared/lib/utils';
 import { $ } from '@renderer/utils/color';
+import FileIcon from '@renderer/components/common/FileIcon';
 
 interface UploadedFile {
   id: string;
@@ -69,11 +69,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                   />
                   {file.isUploading && (
                     <div className="absolute inset-0 flex items-center justify-center rounded pointer-events-none bg-black/40">
-                      <Loader2
-                        size={16}
-                        color={$('--primary-text')}
-                        className="spin-animation"
-                      />
+                      <Loader2 size={16} color={$('--primary-text')} className="spin-animation" />
                     </div>
                   )}
                   {file.error && (
@@ -113,9 +109,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                 key={file.id}
                 className={cn(
                   'flex items-center gap-1 px-2 py-1 rounded text-xs bg-transparent',
-                  file.error
-                    ? 'border border-error text-error'
-                    : 'border-none text-text-primary',
+                  file.error ? 'border border-error text-error' : 'border-none text-text-primary',
                   file.isUploading && 'opacity-60',
                 )}
               >
@@ -170,7 +164,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                   .map((item) => (
                     <div
                       key={item.id}
-className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
                       onClick={() => onAttachedItemClick(item)}
                       title={`Click to open: ${item.path}`}
                     >
@@ -213,7 +207,7 @@ className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-t
                   .map((item) => (
                     <div
                       key={item.id}
-className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
                       onClick={() => onAttachedItemClick(item)}
                       title={item.path}
                     >
@@ -260,7 +254,7 @@ className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-t
                   .map((item) => (
                     <div
                       key={item.id}
-className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
                       onClick={() => onAttachedItemClick(item)}
                       title={`External file: ${item.path}`}
                     >
@@ -303,7 +297,7 @@ className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-t
                   .map((item) => (
                     <div
                       key={item.id}
-className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer bg-transparent border-none text-text-secondary"
                       onClick={() => onAttachedItemClick(item)}
                       title={`Terminal ID: ${item.path}`}
                     >

@@ -209,7 +209,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     }
   };
 
-  const wrapperClassName = 'timeline-item flex flex-col gap-1.5 pb-3 w-full';
+  const wrapperClassName = 'flex flex-col gap-1.5 pb-3 w-full';
 
   // --- Legacy rendering ---
   if (isLegacyMode) {

@@ -357,7 +357,6 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
 
     return (
       <div
-        className="timeline-item"
         style={{
           position: 'relative',
           display: 'flex',

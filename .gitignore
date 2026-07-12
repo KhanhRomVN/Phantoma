@@ -17,4 +17,6 @@ out
 # Http-mitm-proxy
 .http-mitm-proxy
 
-# temp
+temp
+
+phân tích toàn bộ file trong phạm vi src/renderer/src. tìm ra các đoạn code trong các file mà bạn cho là sẽ gây lag, re-render, spam, frozenUI... thì đểu thêm log để 

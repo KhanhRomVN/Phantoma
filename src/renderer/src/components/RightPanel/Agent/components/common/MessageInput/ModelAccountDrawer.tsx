@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
-import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
-import { Tooltip } from '@renderer/components/ui/Tooltip';
-import { Input } from '@renderer/components/ui/Input';
-import { Button } from '@renderer/components/ui/Button';
-import { cn } from '@renderer/shared/lib/utils';
+import React, { useState, useMemo, useEffect } from "react";
+import { Search, ChevronRight, ChevronLeft } from "lucide-react";
+import { Drawer, DrawerHeader, DrawerBody } from "@renderer/components/ui/Drawer";
+import { Tooltip } from "@renderer/components/ui/Tooltip";
+import { Input } from "@renderer/components/ui/Input";
+import { Button } from "@renderer/components/ui/Button";
+import { cn } from "@renderer/shared/lib/utils";
 
 interface Provider {
   provider_id: string;
@@ -157,6 +157,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
         isMounted = false;
       };
     }
+    return undefined;
   }, [step, selectedModel, apiUrl]);
 
   const getFavicon = (url?: string) => {
