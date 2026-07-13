@@ -10,7 +10,6 @@ interface UseFileHandlingProps {
 }
 
 export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlingProps) => {
-  console.log('[DEBUG][ReRender] useFileHandling hook called', { accountId });
   const { apiUrl } = useSettings();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [externalFiles, setExternalFiles] = useState<ExternalFile[]>([]);

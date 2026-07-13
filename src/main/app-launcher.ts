@@ -44,8 +44,6 @@ function launchBrowser(
   proxyUrl: string,
   cdpPort?: number,
 ): boolean {
-  console.log(`[AppLauncher] launchBrowser() called: url=${url}, profile=${profileName}, cdpPort=${cdpPort}`);
-  
   // For CDP mode, we don't want to use the proxy because CDP captures requests directly
   const useProxy = !cdpPort;
   if (useProxy) {
@@ -56,17 +54,21 @@ function launchBrowser(
   fs.mkdirSync(userDataDir, { recursive: true });
 
   // Find browser (Linux)
-  const browsers = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'brave-browser', 'microsoft-edge-stable'];
+  const browsers = [
+    'google-chrome',
+    'google-chrome-stable',
+    'chromium',
+    'chromium-browser',
+    'brave-browser',
+    'microsoft-edge-stable',
+  ];
   let executable = '';
-  console.log('[AppLauncher] Searching for browser executable...');
   for (const b of browsers) {
     try {
       const result = execSyncChild(`which ${b}`, { encoding: 'utf8' });
       executable = result.trim();
-      console.log(`[AppLauncher] Found browser: ${executable}`);
       break;
     } catch {
-      console.log(`[AppLauncher] Browser ${b} not found`);
       continue;
     }
   }
@@ -97,18 +99,14 @@ function launchBrowser(
     args.push(`--remote-debugging-port=${cdpPort}`);
   }
 
-  console.log(`[AppLauncher] Launching browser: ${executable} with args:`, args.join(' '));
-
   const child = spawn(executable, args, {
     detached: true,
     stdio: 'ignore',
   });
-  
-  console.log(`[AppLauncher] Browser process spawned with PID: ${child.pid}`);
+
   appState.activeChildProcess = child;
 
   child.on('exit', (code, signal) => {
-    console.log(`[AppLauncher] Browser process exited: code=${code}, signal=${signal}`);
     if (appState.activeChildProcess === child) {
       appState.activeChildProcess = null;
       if (useProxy) {
@@ -136,8 +134,6 @@ export async function launchApp(
   forceMode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
   useEnvInject?: boolean,
 ): Promise<boolean> {
-  console.log(`[AppLauncher] launchApp() called: appName=${appName}, forceMode=${forceMode}, customUrl=${customUrl}`);
-
   if (appName === 'vscode') {
     appState.activeProxyUrl = proxyUrl;
     const debugPort = await findAvailablePort(9222);
@@ -249,8 +245,14 @@ export async function launchApp(
         setTimeout(() => {
           try {
             const { execSync } = require('child_process');
-            const output = execSync(`pgrep -P ${child.pid}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-            const childPids = output.trim().split('\n').filter((pid: string) => pid.length > 0);
+            const output = execSync(`pgrep -P ${child.pid}`, {
+              encoding: 'utf8',
+              stdio: ['pipe', 'pipe', 'ignore'],
+            });
+            const childPids = output
+              .trim()
+              .split('\n')
+              .filter((pid: string) => pid.length > 0);
             if (childPids.length > 0) {
               childPids.forEach((pidStr: string) => {
                 const pid = parseInt(pidStr, 10);
@@ -290,33 +292,27 @@ export async function launchApp(
     const cdpPort = forceMode === 'cdp' ? await findAvailablePort(9222) : undefined;
     if (cdpPort) {
       launchCdpPort = cdpPort;
-      console.log(`[AppLauncher] CDP port assigned: ${launchCdpPort}`);
     }
-    console.log(`[AppLauncher] Launching all websites with forceMode=${forceMode}, cdpPort=${cdpPort}`);
     const result = launchBrowser('https://google.com', appName, proxyUrl, cdpPort);
-    console.log(`[AppLauncher] launchBrowser result: ${result}`);
-    
+
     if (forceMode === 'cdp' && result && cdpPort) {
-      console.log(`[AppLauncher] Will connect to CDP on port ${cdpPort} after 2s`);
       setTimeout(async () => {
         try {
           const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
           if (win) cdpManager.setMainWindow(win);
-          console.log(`[AppLauncher] Connecting to CDP on port ${cdpPort}...`);
           await cdpManager.connect(cdpPort);
-          console.log(`[AppLauncher] CDP connection successful`);
         } catch (err) {
           console.error('[AppLauncher] CDP connection failed:', err);
         }
       }, 2000);
     }
-    
+
     if (forceMode === 'frida' && result && appState.activeChildProcess?.pid) {
       setTimeout(() => {
         injectLocalSSLBypass(appState.activeChildProcess!.pid!, () => {});
       }, 2000);
     }
-    
+
     return result;
   }
 
@@ -326,33 +322,27 @@ export async function launchApp(
     const cdpPort = forceMode === 'cdp' ? await findAvailablePort(9222) : undefined;
     if (cdpPort) {
       launchCdpPort = cdpPort;
-      console.log(`[AppLauncher] CDP port assigned: ${launchCdpPort}`);
     }
-    console.log(`[AppLauncher] Launching app ${appName} with forceMode=${forceMode}, cdpPort=${cdpPort}, url=${url}`);
     const result = launchBrowser(url, appName, proxyUrl, cdpPort);
-    console.log(`[AppLauncher] launchBrowser result: ${result}`);
-    
+
     if (forceMode === 'cdp' && result && cdpPort) {
-      console.log(`[AppLauncher] Will connect to CDP on port ${cdpPort} after 2s`);
       setTimeout(async () => {
         try {
           const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
           if (win) cdpManager.setMainWindow(win);
-          console.log(`[AppLauncher] Connecting to CDP on port ${cdpPort}...`);
           await cdpManager.connect(cdpPort);
-          console.log(`[AppLauncher] CDP connection successful`);
         } catch (err) {
           console.error('[AppLauncher] CDP connection failed:', err);
         }
       }, 2000);
     }
-    
+
     if (forceMode === 'frida' && result && appState.activeChildProcess?.pid) {
       setTimeout(() => {
         injectLocalSSLBypass(appState.activeChildProcess!.pid!, () => {});
       }, 2000);
     }
-    
+
     return result;
   }
 
@@ -380,18 +370,16 @@ export async function launchApp(
       console.error(`[AppLauncher] Executable not found: ${normalizedPath}`);
       return false;
     }
-    
-    console.log(`[AppLauncher] Launching native app: ${normalizedPath}`);
+
     const child = spawn(normalizedPath, [], {
       detached: true,
       stdio: 'ignore',
       env,
       shell: false,
     });
-    
+
     appState.activeChildProcess = child;
-    console.log(`[AppLauncher] Native app spawned with PID: ${child.pid}`);
-    
+
     child.on('exit', () => {
       if (appState.activeChildProcess === child) {
         appState.activeChildProcess = null;
@@ -402,21 +390,27 @@ export async function launchApp(
         }
       }
     });
-    
+
     child.on('error', (err) => {
       console.error('[AppLauncher] Native app error:', err);
     });
-    
+
     child.unref();
-    
+
     if (forceMode === 'frida' && child.pid) {
       setTimeout(() => {
         injectLocalSSLBypass(child.pid!, () => {});
         setTimeout(() => {
           try {
             const { execSync } = require('child_process');
-            const output = execSync(`pgrep -P ${child.pid}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-            const childPids = output.trim().split('\n').filter((pid: string) => pid.length > 0);
+            const output = execSync(`pgrep -P ${child.pid}`, {
+              encoding: 'utf8',
+              stdio: ['pipe', 'pipe', 'ignore'],
+            });
+            const childPids = output
+              .trim()
+              .split('\n')
+              .filter((pid: string) => pid.length > 0);
             if (childPids.length > 0) {
               childPids.forEach((pidStr: string) => {
                 const pid = parseInt(pidStr, 10);
@@ -433,10 +427,12 @@ export async function launchApp(
         }, 3000);
       }, 2000);
     }
-    
+
     return true;
   }
 
-  console.error(`[AppLauncher] Cannot launch app: ${appName} - not found in webApps and not a valid path`);
+  console.error(
+    `[AppLauncher] Cannot launch app: ${appName} - not found in webApps and not a valid path`,
+  );
   return false;
 }

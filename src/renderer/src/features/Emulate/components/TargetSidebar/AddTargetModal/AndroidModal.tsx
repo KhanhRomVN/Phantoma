@@ -16,9 +16,6 @@ export const AndroidModal: React.FC<BaseModalProps> = ({
   onAdd,
   existingApps = [],
 }) => {
-  // [DEBUG] AndroidModal render
-  console.log('[DEBUG] AndroidModal rendered', { isOpen, existingAppsCount: existingApps.length });
-  
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

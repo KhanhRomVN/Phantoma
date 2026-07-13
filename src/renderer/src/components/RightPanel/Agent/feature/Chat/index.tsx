@@ -40,6 +40,7 @@ import { ChatErrorBoundary } from './components/ChatErrorBoundary';
 interface ChatPanelProps {
   currentChat: ChatSession | null;
   onBack: (contentToReturn?: string) => void;
+  feature?: string | null;
   onLoadConversation?: (
     conversationId: string,
     sessionId: number,
@@ -57,6 +58,7 @@ interface ChatPanelProps {
 const ChatPanel: React.FC<ChatPanelProps> = ({
   currentChat,
   onBack,
+  feature,
   onLoadConversation,
   initialMessageData,
   onClearInitialData,
@@ -210,6 +212,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   } = useChatLLM({
     apiUrl,
     selectedTab: currentChat,
+    feature,
     onToolRequest: (actions, assistantMessage, isAutoTrigger, actionType) =>
       handleToolRequest(
         actions,

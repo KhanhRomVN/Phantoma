@@ -66,15 +66,6 @@ export default React.memo(function Emulate({
     filter: initialFilterState,
   });
 
-  // [DEBUG] Emulate render
-  console.log('[DEBUG] Emulate rendered', {
-    activeAppId,
-    selectedTool: state?.selectedTool || 'home',
-    targetTabsCount: state?.targetTabs?.length || 0,
-    activeTargetId: state?.activeTargetId || null,
-    requestsCount: state?.requests?.length || 0,
-  });
-
   const {
     selectedTool,
     selectedId,
@@ -218,7 +209,6 @@ export default React.memo(function Emulate({
 
   const startTarget = useCallback(
     (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
-      console.log('[DEBUG][Emulate] startTarget called:', { targetId, mode });
       setState((prev) => {
         const newState = {
           ...prev,
@@ -232,9 +222,6 @@ export default React.memo(function Emulate({
             },
           },
         };
-        console.log('[DEBUG][Emulate] startTarget new state:', {
-          targetStates: newState.targetStates,
-        });
         return newState;
       });
     },
@@ -364,7 +351,6 @@ export default React.memo(function Emulate({
 
   const handleStartTarget = useCallback(
     (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
-      console.log('[DEBUG][Emulate] handleStartTarget called:', { targetId, mode });
       startTarget(targetId, mode);
     },
     [startTarget],

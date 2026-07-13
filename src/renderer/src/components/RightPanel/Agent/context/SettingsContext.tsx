@@ -36,7 +36,6 @@ export const defaultToolPermissions: Record<string, 'full_access' | 'review'> = 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('[DEBUG][ReRender] SettingsProvider rendered');
   const [apiUrl, setApiUrlState] = useState('http://localhost:8888');
   const [permissionModeState, setPermissionModeState] = useState<PermissionMode>('fullAccess');
   const [toolPermissionsState, setToolPermissionsState] =

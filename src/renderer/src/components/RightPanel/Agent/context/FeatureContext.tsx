@@ -24,7 +24,6 @@ const FeatureContext = createContext<FeatureContextValue>({
 export const useAgentFeature = () => useContext(FeatureContext);
 
 export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('[DEBUG][ReRender] FeatureProvider rendered');
   const [activeFeature, setActiveFeature] = useState<AgentFeature>(null);
   const [emulateState, setEmulateState] = useState<EmulateState>({
     activeTargetId: null,
@@ -32,7 +31,9 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   return (
-    <FeatureContext.Provider value={{ activeFeature, setActiveFeature, emulateState, setEmulateState }}>
+    <FeatureContext.Provider
+      value={{ activeFeature, setActiveFeature, emulateState, setEmulateState }}
+    >
       {children}
     </FeatureContext.Provider>
   );

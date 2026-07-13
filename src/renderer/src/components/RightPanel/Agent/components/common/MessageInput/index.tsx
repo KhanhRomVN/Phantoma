@@ -4,7 +4,6 @@ import { GitPullRequestArrow } from "lucide-react";
 import { useServerHealth } from "@renderer/providers/ServerHealthProvider";
 import { LANGUAGES } from "@renderer/components/RightPanel/Agent/feature/Setting/components/LanguageSelector";
 import { useSettings } from "@renderer/components/RightPanel/Agent/context/SettingsContext";
-import ModelAccountDrawer from "./ModelAccountDrawer";
 import DiffSummaryBar from "./DiffSummaryBar";
 
 export interface UploadedFile {
@@ -596,6 +595,8 @@ interface MessageInputProps {
       newContent?: string;
     }>;
   }>;
+  // 🆕 Model Drawer
+  onOpenModelDrawer?: () => void;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -642,6 +643,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onReviewClick,
   responseRange,
   responseRanges = [],
+  onOpenModelDrawer,
 }) => {
   const { isValid: isConnected, error: isElaraMismatch } = useServerHealth();
   const { apiUrl } = useSettings();
@@ -649,7 +651,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [isLoadingCache, setIsLoadingCache] = React.useState(true);
   const { aiLanguage: preferredLanguage } = useSettings();
   const pendingAccountIdRef = React.useRef<string | null>(null);
-  const [showModelDrawer, setShowModelDrawer] = React.useState(false);
 
   // Refs that always hold the latest model/account values.
   // Required because applyCache runs inside a useEffect closure and would
@@ -1043,8 +1044,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
         {!isConversationStarted && (
           <div
             onClick={() => {
-              if (providers.length === 0) fetchProviders();
-              setShowModelDrawer((v) => !v);
+              if (onOpenModelDrawer) {
+                onOpenModelDrawer();
+              }
             }}
             style={{
               position: "absolute",
@@ -1148,66 +1150,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
               responseRanges={responseRanges}
             />
           </div>
-        )}
-        {showModelDrawer && (
-          <ModelAccountDrawer
-            isOpen={showModelDrawer}
-            onClose={() => setShowModelDrawer(false)}
-            providers={providers}
-            apiUrl={apiUrl}
-            onSelect={(selected) => {
-              const prov = providers.find(
-                (p: any) => p.provider_id === selected.providerId,
-              );
-              const modelObj = prov?.models?.find(
-                (m: any) => m.id === selected.modelId,
-              );
-              let faviconUrl = "";
-              if (prov?.website) {
-                try {
-                  faviconUrl = `${new URL(prov.website).origin}/favicon.ico`;
-                } catch {}
-              }
-
-              const newModel = {
-                ...selected,
-                id: selected.modelId,
-                name: modelObj?.name || selected.modelId,
-                favicon: faviconUrl,
-                is_thinking: modelObj?.is_thinking ?? false,
-                is_search: modelObj?.is_search ?? false,
-                is_upload: modelObj?.is_upload ?? false,
-                is_memory: modelObj?.is_memory ?? prov?.is_memory ?? false,
-              };
-              setCurrentModel(newModel);
-              setCurrentAccount({
-                id: selected.accountId,
-                email: selected.email,
-              });
-
-              // Fetch memory state from server
-              const fetchMemoryState = async () => {
-                try {
-                  const response = await fetch(
-                    `${apiUrl}/v1/accounts/${selected.accountId}/memory`,
-                  );
-                  const result = await response.json();
-                  if (result.success && result.data) {
-                    setIsMemory(result.data.is_memory_enabled);
-                    // Sync to localStorage
-                    localStorage.setItem(
-                      "zen-memory-enabled",
-                      String(result.data.is_memory_enabled),
-                    );
-                  }
-                } catch (error) {
-                  console.error("Failed to fetch memory state:", error);
-                }
-              };
-              fetchMemoryState();
-              setShowModelDrawer(false);
-            }}
-          />
         )}
         {/* Browser session warning - bottom right inside MessageInput */}
         {showBrowserWarning && currentModel?.providerId === "zai-browser" && (
@@ -1576,7 +1518,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 {isStreaming || isProcessing ? (
                   <X size={16} strokeWidth={2.5} />
                 ) : (
-                  <SendIcon />
+                  <SendIcon size={16} />
                 )}
               </div>
             )}

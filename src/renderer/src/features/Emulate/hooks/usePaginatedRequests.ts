@@ -71,7 +71,6 @@ export function usePaginatedRequests({
       setHasMore(stored.length < count && stored.length === limit);
       offsetRef.current = stored.length;
       onRequestsChangeRef.current?.(mapped);
-      console.log('[usePaginatedRequests] loadInitial: loaded', mapped.length, 'requests');
     } catch (error) {
       console.error('[usePaginatedRequests] Failed to load initial:', error);
     } finally {
@@ -127,7 +126,6 @@ export function usePaginatedRequests({
 
   const addRequest = useCallback(
     async (request: Partial<NetworkRequest>) => {
-      console.log('[usePaginatedRequests] addRequest called:', request.url, request.method);
       if (!targetId) {
         console.warn('[usePaginatedRequests] No targetId, skipping');
         return;
@@ -163,21 +161,16 @@ export function usePaginatedRequests({
         responseCookies: request.responseCookies,
       };
 
-      console.log('[usePaginatedRequests] Stored request:', stored.id, stored.url);
       requestStorage.saveRequest(targetId, stored).catch(console.error);
 
       setRequests((prev) => {
-        console.log('[usePaginatedRequests] setRequests callback, current length:', prev.length);
         if (prev.some((r) => r.id === stored.id)) {
-          console.log('[usePaginatedRequests] Request already exists, skipping');
           return prev;
         }
         const networkReq = toNetworkRequest(stored);
         const newRequests = [networkReq, ...prev];
-        console.log('[usePaginatedRequests] New requests length:', newRequests.length);
         if (newRequests.length > maxMemory) {
           const sliced = newRequests.slice(0, maxMemory);
-          console.log('[usePaginatedRequests] Sliced to maxMemory:', sliced.length);
           onRequestsChangeRef.current?.(sliced);
           return sliced;
         }
@@ -186,7 +179,6 @@ export function usePaginatedRequests({
       });
 
       setTotalCount((prev) => prev + 1);
-      console.log('[usePaginatedRequests] Total count updated');
     },
     [targetId, maxMemory],
   );
@@ -272,7 +264,6 @@ export function usePaginatedRequests({
     };
   }, [targetId, loadInitial]);
 
-  console.log('[usePaginatedRequests] Returning requests count:', requests.length);
   return {
     requests,
     loading,

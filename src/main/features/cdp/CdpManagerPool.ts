@@ -33,10 +33,7 @@ export class CdpManagerPool extends EventEmitter {
   }
 
   public getOrCreateManager(targetId: string, port: number): CdpManager {
-    console.log(`[CDP DEBUG] getOrCreateManager() called for target ${targetId}, port ${port}`);
-    
     if (this.managers.has(targetId)) {
-      console.log(`[CDP DEBUG] Manager already exists for ${targetId}`);
       const manager = this.managers.get(targetId)!;
       // Update port if changed
       const info = this.targetInfo.get(targetId);
@@ -50,7 +47,7 @@ export class CdpManagerPool extends EventEmitter {
     }
 
     // Create new manager
-    console.log(`[CDP DEBUG] Creating new manager for ${targetId}`);
+    
     const manager = new CdpManager();
     if (this.mainWindow) {
       manager.setMainWindow(this.mainWindow);
@@ -66,7 +63,7 @@ export class CdpManagerPool extends EventEmitter {
     });
 
     // Auto-connect
-    console.log(`[CDP DEBUG] Auto-connecting manager for ${targetId}`);
+    
     this.connectManager(targetId, port).catch(console.error);
 
     this.emit('manager-created', { targetId, port });

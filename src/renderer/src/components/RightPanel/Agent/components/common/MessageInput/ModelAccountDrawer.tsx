@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Search, ChevronRight, ChevronLeft } from "lucide-react";
-import { Drawer, DrawerHeader, DrawerBody } from "@renderer/components/ui/Drawer";
+import { Drawer, DrawerHeader } from "@renderer/components/ui/Drawer";
 import { Tooltip } from "@renderer/components/ui/Tooltip";
 import { Input } from "@renderer/components/ui/Input";
 import { Button } from "@renderer/components/ui/Button";
@@ -201,7 +201,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
   }, [providers, searchQuery, accountCountMap]);
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} height="50%" strategy="absolute">
+    <Drawer isOpen={isOpen} onClose={onClose} height="85%" strategy="absolute">
       <DrawerHeader
         title={step === 'model' ? 'Quick Switch' : 'Select Account'}
         description={
@@ -230,7 +230,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
       </DrawerHeader>
 
       {step === 'model' ? (
-        <DrawerBody className="p-3">
+        <div className="flex-1 flex flex-col overflow-hidden p-3">
           {/* Search */}
           <div className="mb-3 shrink-0">
             <Input
@@ -242,7 +242,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
             />
           </div>
 
-          <div className="custom-scrollbar flex-1 overflow-y-auto">
+          <div className="custom-scrollbar flex-1 overflow-y-auto min-h-0">
             {filteredProviders.map((provider) => {
               const accountCount = accountCountMap[provider.provider_id] ?? 0;
               const hasModels = provider.models.length > 0;
@@ -353,10 +353,10 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
               </div>
             )}
           </div>
-        </DrawerBody>
+        </div>
       ) : (
         /* Account step */
-        <DrawerBody className="p-3">
+        <div className="flex-1 flex flex-col overflow-hidden p-3">
           <div className="mb-3 shrink-0">
             <Input
               leftIcon={<Search size={14} />}
@@ -367,7 +367,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
             />
           </div>
 
-          <div className="custom-scrollbar flex-1 overflow-y-auto">
+          <div className="custom-scrollbar flex-1 overflow-y-auto min-h-0">
             {isLoadingAccounts ? (
               <div className="text-center p-5 text-xs text-text-secondary">
                 Loading accounts...
@@ -424,7 +424,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
               </div>
             )}
           </div>
-        </DrawerBody>
+        </div>
       )}
     </Drawer>
   );

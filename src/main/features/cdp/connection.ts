@@ -7,11 +7,8 @@ export async function connectToTarget(
   retries = 5,
   delay = 1000
 ): Promise<boolean> {
-  console.log(`[CDP DEBUG] connectToTarget() called with wsUrl: ${wsUrl.substring(0, 60)}..., retries ${retries}`);
-  
   // Clean up existing WebSocket before creating a new one
   if (this.ws) {
-    console.log('[CDP DEBUG] Cleaning up existing WebSocket');
     this.ws.removeAllListeners();
     if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
       this.ws.close();

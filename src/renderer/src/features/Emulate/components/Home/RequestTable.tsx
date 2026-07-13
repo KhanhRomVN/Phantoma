@@ -114,16 +114,6 @@ export function RequestTable({
   onStopTarget,
   onStartTarget,
 }: RequestTableProps) {
-  // [DEBUG] RequestTable render
-  console.log('[DEBUG] RequestTable rendered', {
-    requestsCount: requests.length,
-    selectedId,
-    searchTerm,
-    interceptedIdsSize: interceptedIds?.size || 0,
-    pendingActionIdsSize: pendingActionIds?.size || 0,
-    isTargetActive: propsIsTargetActive,
-  });
-
   // Use props as source of truth for UI state (more reliable than store)
   // Store is only used for persistence, not for real-time UI updates
   const isTargetActive = propsIsTargetActive;

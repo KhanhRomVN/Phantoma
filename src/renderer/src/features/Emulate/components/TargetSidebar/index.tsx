@@ -15,7 +15,7 @@ interface TargetSidebarProps {
   accentColor: string;
   onSelectTarget: (id: string) => void;
   onRemoveTarget: (id: string) => void;
-  onStartTarget: (mode: 'mitm' | 'cdp' | 'frida') => void;
+  onStartTarget: (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => void;
   onStopTarget: () => void;
   onLaunchTarget: (
     appId: string,
@@ -46,9 +46,6 @@ const TargetSidebar: React.FC<TargetSidebarProps> = ({
   onStopSession,
   activeAppId,
 }) => {
-  // [DEBUG] TargetSidebar render
-  console.log('[DEBUG] TargetSidebar rendered', { targetTabsCount: targetTabs.length, activeTargetId });
-  
   const { targetSearchQuery, setTargetSearchQuery, openMenuId, setOpenMenuId, searchedTargets } =
     useTargetSidebar(targetTabs);
 

@@ -20,14 +20,6 @@ export function ResponseViewer({
   className,
   onHeightChange,
 }: ResponseViewerProps) {
-  // [DEBUG] ResponseViewer render
-  console.log('[DEBUG] ResponseViewer rendered', {
-    hasHeaders: !!headers && Object.keys(headers).length > 0,
-    hasBody: !!body,
-    status,
-    contentType,
-  });
-
   const [activeTab, setActiveTab] = useState<'headers' | 'body'>('headers');
   const [isHovering, setIsHovering] = useState(false);
   const [isDragging, setIsDragging] = useState(false);

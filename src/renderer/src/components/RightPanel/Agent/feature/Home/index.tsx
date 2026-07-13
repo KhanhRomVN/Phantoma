@@ -10,7 +10,6 @@ import MessageInput from '../../components/common/MessageInput';
 import FilesPreviews from '../../components/common/MessageInput/FilesPreviews';
 import { extensionService } from '../../services/ExtensionService';
 import { useFileHandling } from '../../hooks/useFileHandling';
-import { $ } from '@renderer/utils/color';
 
 const SLOGANS = [
   'Your AI-powered coding assistant',
@@ -32,15 +31,10 @@ const HomePanel: React.FC<HomePanelProps> = ({
   onLoadConversation,
   initialValue,
 }) => {
-  // Instance ID để phân biệt các instance khác nhau
+  // Instance ID
   const instanceId = React.useRef(`home-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
   const renderCount = React.useRef(0);
   renderCount.current += 1;
-  console.log(`[DEBUG][ReRender] HomePanel rendered #${renderCount.current}`, {
-    instanceId: instanceId.current,
-    initialValue,
-    timestamp: new Date().toISOString(),
-  });
   const { apiUrl } = useSettings();
 
   const folderPath = (window as any).__zenWorkspaceFolderPath as string | null | undefined;
@@ -125,7 +119,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
   }, []);
 
   useEffect(() => {
-    console.log('[DEBUG][ReRender] HomePanel fetchStats useEffect triggered', { apiUrl });
     const fetchStats = async () => {
       try {
         const [statsRes, accountsRes, providersRes] = await Promise.all([
@@ -173,38 +166,29 @@ const HomePanel: React.FC<HomePanelProps> = ({
   }, [apiUrl]);
 
   useEffect(() => {
-    console.log(`[DEBUG][Interval] HomePanel ${instanceId.current} - setting up slogan interval (3s)`);
     const timer = setInterval(() => {
-      const prev = sloganIndex;
       setSloganIndex((prev) => (prev + 1) % SLOGANS.length);
-      console.log(`[DEBUG][Interval] HomePanel ${instanceId.current} - slogan changed from ${prev} to ${(prev + 1) % SLOGANS.length}`);
     }, 3000);
     return () => {
-      console.log(`[DEBUG][Interval] HomePanel ${instanceId.current} - clearing slogan interval`);
       clearInterval(timer);
     };
   }, []);
 
   useEffect(() => {
-    console.log('[DEBUG][ReRender] HomePanel history useEffect triggered');
-    // Subscribe to historyResult events from main process via IPC
     const unsubscribe = extensionService.onMessage('historyResult', (msg: any) => {
       if (msg?.history) {
-        // Ensure each conversation has required fields
         const validHistory = msg.history.filter((c: any) => c && c.id);
         setConversations(validHistory);
       }
       setIsLoading(false);
     });
 
-    // Also listen for deleteConversationResult events
     const unsubscribeDelete = extensionService.onMessage('deleteConversationResult', (msg: any) => {
       if (msg?.success) {
         setConversations((prev) => prev.filter((c) => c.id !== msg.conversationId));
       }
     });
 
-    // Listen for deleteConfirmed events (triggered by HistoryCard)
     const unsubscribeConfirm = extensionService.onMessage('deleteConfirmed', (msg: any) => {
       if (msg?.conversationId) {
         extensionService.postMessage({
@@ -214,13 +198,11 @@ const HomePanel: React.FC<HomePanelProps> = ({
       }
     });
 
-    // Send getHistory request
     extensionService.postMessage({
       command: 'getHistory',
       requestId: `welcome-hist-${Date.now()}`,
     });
 
-    // Cleanup subscriptions
     return () => {
       unsubscribe();
       unsubscribeDelete();
@@ -265,30 +247,118 @@ const HomePanel: React.FC<HomePanelProps> = ({
     onAddAttachedItem: () => {},
   });
 
+  const messageInputProps = {
+    message,
+    setMessage,
+    isHistoryMode: false as const,
+    uploadedFiles,
+    textareaRef: textareaRef as React.RefObject<HTMLTextAreaElement>,
+    handleTextareaChange,
+    handleKeyDown,
+    handlePaste,
+    handleDragOver,
+    handleDrop,
+    setShowAtMenu: () => {},
+    handleFileSelect,
+    onOpenProjectStructure: () => {},
+    showChangesDropdown: false,
+    setShowChangesDropdown: () => {},
+    messages: [] as any[],
+    handleSend,
+    hasProjectContext: false,
+    onOpenProjectContext: () => {},
+    folderPath: folderPath || null,
+    isConversationStarted: false,
+    currentModel,
+    setCurrentModel,
+    currentAccount,
+    setCurrentAccount,
+    isProcessing: false,
+    isStreaming: false,
+    onOpenModelDrawer: handleOpenModelDrawer,
+  };
+
   return (
     <div
-      className="home-panel flex flex-col h-full relative"
-      style={{ backgroundColor: $('--primary-bg') || 'transparent' }}
+      className="home-panel"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        backgroundColor: 'var(--primary-bg)',
+        position: 'relative',
+      }}
     >
-      {/* Dashboard scroll area */}
+      {/* ─── Dashboard scroll area ─── */}
       <div
-        className="flex-1 overflow-auto flex flex-col"
-        style={{ backgroundColor: $('--secondary-bg') || 'transparent' }}
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          backgroundColor: 'var(--secondary-bg)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
         <div
-          className="flex-1 flex flex-col items-center justify-start px-4 pt-8 pb-5 max-w-[680px] mx-auto w-full box-border animate-[fadeIn_0.5s_ease-out]"
-          style={{ color: $('--text-primary') }}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            padding: '32px 16px 20px 16px',
+            color: 'var(--text-primary)',
+            animation: 'fadeIn 0.5s ease-out',
+            maxWidth: '680px',
+            margin: '0 auto',
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
         >
           {/* Header */}
-          <div className="flex flex-col items-center gap-0.5 text-center w-full">
-            <h1 className="text-[30px] font-extrabold m-0 tracking-[-0.02em] leading-tight py-1 text-text-primary">
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '2px',
+              textAlign: 'center',
+              width: '100%',
+            }}
+          >
+            <h1
+              style={{
+                fontSize: '30px',
+                fontWeight: 800,
+                margin: 0,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.2,
+                padding: '4px 0',
+                color: 'var(--text-primary)',
+              }}
+            >
               Phantoma
             </h1>
 
-            <div className="h-7 flex items-center justify-center overflow-hidden m-0 mb-4">
+            <div
+              style={{
+                height: '28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                margin: '0 0 16px 0',
+              }}
+            >
               <div
                 key={sloganIndex}
-                className="text-sm font-medium whitespace-nowrap animate-[slideUp_0.4s_ease-out] text-secondary"
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  animation: 'slideUp 0.4s ease-out',
+                  color: 'var(--text-secondary)',
+                }}
               >
                 {SLOGANS[sloganIndex]}
               </div>
@@ -296,7 +366,14 @@ const HomePanel: React.FC<HomePanelProps> = ({
           </div>
 
           {/* Dashboard content */}
-          <div className="w-full flex flex-col gap-4">
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
             <StatsGrid
               todayTokens={todayTokens}
               todayRequests={todayRequests}
@@ -359,69 +436,48 @@ const HomePanel: React.FC<HomePanelProps> = ({
         />
       )}
 
-      {/* MessageInput */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={handleFileInputChange}
-        accept="image/*,text/*"
-      />
-      <input
-        ref={externalFileInputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={handleExternalFileInputChange}
-      />
-      <FilesPreviews
-        uploadedFiles={uploadedFiles}
-        attachedItems={[]}
-        onRemoveFile={removeFile}
-        onRemoveAttachedItem={() => {}}
-        onOpenImage={(file) => {
-          const vscodeApi = (window as any).vscodeApi;
-          if (vscodeApi) {
-            vscodeApi.postMessage({
-              command: 'openTempImage',
-              content: file.content,
-              filename: file.name,
-            });
-          }
+      {/* ─── Bottom Input Area ─── */}
+      <div
+        style={{
+          flexShrink: 0,
+          padding: '0 8px 8px 8px',
+          backgroundColor: 'var(--primary-bg)',
         }}
-        onAttachedItemClick={() => {}}
-      />
-      <MessageInput
-        message={message}
-        setMessage={setMessage}
-        isHistoryMode={false}
-        uploadedFiles={uploadedFiles}
-        textareaRef={textareaRef}
-        handleTextareaChange={handleTextareaChange}
-        handleKeyDown={handleKeyDown}
-        handlePaste={handlePaste}
-        handleDragOver={handleDragOver}
-        handleDrop={handleDrop}
-        setShowAtMenu={() => {}}
-        handleFileSelect={handleFileSelect}
-        onOpenProjectStructure={() => {}}
-        showChangesDropdown={false}
-        setShowChangesDropdown={() => {}}
-        messages={[]}
-        handleSend={handleSend}
-        hasProjectContext={false}
-        onOpenProjectContext={() => {}}
-        folderPath={folderPath || null}
-        isConversationStarted={false}
-        currentModel={currentModel}
-        setCurrentModel={setCurrentModel}
-        currentAccount={currentAccount}
-        setCurrentAccount={setCurrentAccount}
-        isProcessing={false}
-        isStreaming={false}
-        onOpenModelDrawer={handleOpenModelDrawer}
-      />
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          style={{ display: 'none' }}
+          onChange={handleFileInputChange}
+          accept="image/*,text/*"
+        />
+        <input
+          ref={externalFileInputRef}
+          type="file"
+          multiple
+          style={{ display: 'none' }}
+          onChange={handleExternalFileInputChange}
+        />
+        <FilesPreviews
+          uploadedFiles={uploadedFiles}
+          attachedItems={[]}
+          onRemoveFile={removeFile}
+          onRemoveAttachedItem={() => {}}
+          onOpenImage={(file) => {
+            const vscodeApi = (window as any).vscodeApi;
+            if (vscodeApi) {
+              vscodeApi.postMessage({
+                command: 'openTempImage',
+                content: file.content,
+                filename: file.name,
+              });
+            }
+          }}
+          onAttachedItemClick={() => {}}
+        />
+        <MessageInput {...(messageInputProps as any)} />
+      </div>
     </div>
   );
 };

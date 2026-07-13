@@ -1,5 +1,4 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
 
 interface ChatHeaderProps {
   displayedModel: any;
@@ -19,9 +18,9 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   contextUsage,
   isSearchOpen,
   setIsSearchOpen,
+  searchQuery,
   setSearchQuery,
 }) => {
-  console.log('[DEBUG][ReRender] ChatHeader rendered', { modelId: displayedModel?.id, taskName: currentTaskName, isSearchOpen });
   const formatTokens = (num: number) => {
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
@@ -47,9 +46,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     : 'https://www.google.com/s2/favicons?domain=deepseek.com&sz=64';
 
   return (
-    <div className="flex flex-col border border-b border-border">
-      <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-2">
-        <div className="flex items-center gap-1.5 text-xs font-semibold overflow-hidden text-primary">
+    <div
+      className="flex flex-col"
+      style={{
+        borderBottom: '1px solid var(--border-color)',
+        backgroundColor: 'var(--primary-bg)',
+      }}
+    >
+      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
+        <div className="flex items-center gap-1.5 text-xs font-semibold overflow-hidden text-[var(--primary-text)]">
           <img src={faviconUrl} alt="provider" className="w-3.5 h-3.5 rounded-[2px]" />
           <span className="whitespace-nowrap">
             {displayedModel?.providerId || '?'}/{displayedModel?.id || 'chat'}
@@ -65,7 +70,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           {currentTaskName && (
             <>
               <span className="opacity-30">|</span>
-              <div className="flex items-center gap-1 text-[11px] font-medium overflow-hidden text-primary">
+              <div
+                className="flex items-center gap-1 text-[11px] font-medium overflow-hidden"
+                style={{ color: 'var(--vscode-textLink-foreground)' }}
+              >
                 <div
                   className="w-[5px] h-[5px] rounded-full shrink-0"
                   style={{ backgroundColor: 'currentColor' }}
@@ -79,7 +87,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[11px] opacity-80 text-secondary">
+          <span className="text-[11px] opacity-80 text-[var(--secondary-text)]">
             {contextUsage ? formatTokens(contextUsage.total) : '0'}
           </span>
           <button
@@ -91,14 +99,14 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             className="cursor-pointer p-[3px_4px] flex items-center justify-center rounded transition-all duration-150"
             style={{
               background: isSearchOpen
-                ? 'color-mix(in srgb, var(--primary, #0a84ff) 15%, transparent)'
+                ? 'color-mix(in srgb, var(--vscode-button-background) 15%, transparent)'
                 : 'transparent',
               border: isSearchOpen
-                ? '1px solid color-mix(in srgb, var(--primary, #0a84ff) 40%, transparent)'
+                ? '1px solid color-mix(in srgb, var(--vscode-button-background) 40%, transparent)'
                 : '1px solid transparent',
               color: isSearchOpen
-                ? $('--primary') || '#0a84ff'
-                : $('--secondary-text') || 'currentColor',
+                ? 'var(--vscode-button-background, var(--vscode-textLink-foreground))'
+                : 'var(--vscode-icon-foreground, var(--secondary-text))',
               opacity: isSearchOpen ? 1 : 0.65,
             }}
             onMouseEnter={(e) => {

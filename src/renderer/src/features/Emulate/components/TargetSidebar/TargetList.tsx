@@ -117,13 +117,6 @@ const TargetItem = memo(
     ) => void;
     handleStartFrida: (targetId: string, targetUrl?: string) => void;
   }) => {
-    // [DEBUG] TargetItem render
-    console.log('[DEBUG] TargetItem rendered:', {
-      id: tab.id,
-      isRunning: targetStates[tab.id]?.isActive || false,
-      isActive: tab.id === activeAppId,
-      platform: getTargetPlatform(tab),
-    });
     const isRunning = targetStates[tab.id]?.isActive || false;
     const elapsed = useTimerStore((state) => state.timerDisplay[tab.id] || '00:00');
     const platform = getTargetPlatform(tab);
@@ -288,22 +281,11 @@ const TargetList: React.FC<TargetListProps> = ({
   deviceList = [],
   onRefreshDevices,
 }) => {
-  // [DEBUG] TargetList render
-  console.log('[DEBUG] TargetList rendered', {
-    onStopTarget: typeof onStopTarget,
-    onStopSession: typeof onStopSession,
-    onSelectTarget: typeof onSelectTarget,
-    onOpenMenuChange: typeof onOpenMenuChange,
-    targetStates: Object.keys(targetStates).length,
-    searchedTargets: searchedTargets.length,
-    activeTargetId,
-  });
   const [showRunningModal, setShowRunningModal] = useState(false);
   const [selectedTargetForModal, setSelectedTargetForModal] = useState<TargetTab | null>(null);
 
   const handleStartCDP = useCallback(
     (targetId: string, targetUrl?: string) => {
-      console.log('[DEBUG][TargetList] handleStartCDP called:', { targetId, targetUrl });
       // Update last_used_at immediately when starting CDP
       onSelectTarget(targetId);
       onStartTarget(targetId, 'cdp');
@@ -341,7 +323,6 @@ const TargetList: React.FC<TargetListProps> = ({
       useEnvInject: boolean = false,
       deviceSerial?: string,
     ) => {
-      console.log('[DEBUG][TargetList] handleStartMITM called:', { targetId, targetUrl, useEnvInject, deviceSerial });
       // Update last_used_at immediately when starting MITM
       onSelectTarget(targetId);
       onStartTarget(targetId, 'mitm');
@@ -368,7 +349,6 @@ const TargetList: React.FC<TargetListProps> = ({
 
   const handleStartFrida = useCallback(
     (targetId: string, targetUrl?: string) => {
-      console.log('[DEBUG][TargetList] handleStartFrida called:', { targetId, targetUrl });
       // Update last_used_at immediately when starting Frida
       onSelectTarget(targetId);
       onStartTarget(targetId, 'frida');

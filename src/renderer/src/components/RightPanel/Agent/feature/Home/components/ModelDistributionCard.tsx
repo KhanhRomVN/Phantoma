@@ -40,10 +40,6 @@ const ModelDistributionCard: React.FC<Props> = ({
   title,
   emptyText,
 }) => {
-  console.log('[DEBUG][ReRender] ModelDistributionCard rendered', {
-    modelCount: modelDistribution.length,
-    title,
-  });
   const [expanded, setExpanded] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
@@ -219,13 +215,13 @@ const ModelDistributionCard: React.FC<Props> = ({
               );
             })}
 
-{hasMore && (
+            {hasMore && (
               <button
                 onClick={() => setExpanded((v) => !v)}
                 className="col-span-full bg-transparent border-none cursor-pointer text-[11px] text-left py-0.5 mt-0.5 text-primary"
               >
                 {expanded
-                  ? "▲ Show less"
+                  ? '▲ Show less'
                   : `▼ +${modelDistribution.length - COLLAPSE_THRESHOLD} more`}
               </button>
             )}

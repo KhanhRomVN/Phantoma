@@ -9,8 +9,6 @@ interface HexViewerProps {
 
 export function HexViewer({ data, className, maxLines }: HexViewerProps) {
   // [DEBUG] HexViewer render
-  console.log('[DEBUG] HexViewer rendered', { dataLength: data?.length || 0, maxLines });
-  
   const { hexLines, asciiLines, totalBytes, truncated } = useMemo(() => {
     let buffer: Uint8Array;
     try {

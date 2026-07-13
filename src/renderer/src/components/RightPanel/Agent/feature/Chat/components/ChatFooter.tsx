@@ -1,7 +1,6 @@
 import React from 'react';
 import FilesPreviews from '../../../components/common/MessageInput/FilesPreviews';
 import MessageInput from '../../../components/common/MessageInput';
-import { $ } from '@renderer/utils/color';
 
 interface ChatFooterProps {
   message: string;
@@ -46,16 +45,6 @@ interface ChatFooterProps {
   externalFileInputRef: React.RefObject<HTMLInputElement | null>;
   handleExternalFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  footerPaddingBottom: string;
-  shouldShowCompressionButton?: boolean;
-  gitStatus?: any;
-  onOpenGitStatus?: () => void;
-  loadedConversationFileStats?: {
-    totalFiles: number;
-    totalAdditions: number;
-    totalDeletions: number;
-  } | null;
-  onModelSwitch?: (newModel: any, newAccount: any, contextData: { content: string; files: any[]; model: any; account: any }) => void;
 }
 
 const ChatFooter: React.FC<ChatFooterProps> = ({
@@ -101,21 +90,14 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   externalFileInputRef,
   handleExternalFileInputChange,
   handleFileInputChange,
-  footerPaddingBottom,
-  shouldShowCompressionButton,
-  gitStatus,
-  onOpenGitStatus,
-  loadedConversationFileStats,
-  onModelSwitch,
 }) => {
-  console.log('[DEBUG][ReRender] ChatFooter rendered', { messageLength: message.length, isProcessing, isStreaming });
   return (
     <div
       id="chat-footer-container"
       className="flex flex-col w-full overflow-hidden transition-[bottom] duration-200 flex-shrink-0"
       style={{
-        backgroundColor: $('--secondary-bg'),
-        paddingBottom: 0,
+        backgroundColor: 'var(--secondary-bg)',
+        padding: '0 8px 8px 8px',
       }}
     >
       <input

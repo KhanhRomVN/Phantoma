@@ -1,21 +1,50 @@
-import React, { useState, useEffect } from 'react';
-import { $ } from '@renderer/utils/color';
+import React, { useEffect, useRef } from 'react';
 
 interface ProcessingIndicatorProps {
   isResponding?: boolean;
 }
 
-const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({ isResponding }) => {
-  const [seconds, setSeconds] = useState(0);
+const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({
+  isResponding,
+}) => {
+  const startTimeRef = useRef<number | null>(null);
+  const timerDisplayRef = useRef<HTMLSpanElement>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSeconds((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    if (isResponding) {
+      // Record start time
+      startTimeRef.current = Date.now();
 
-  if (isResponding) {
+      // Update display using requestAnimationFrame (smoother, no re-renders!)
+      const updateDisplay = () => {
+        if (timerDisplayRef.current && startTimeRef.current) {
+          const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+          timerDisplayRef.current.textContent = `Processing (${elapsed}s)`;
+        }
+        animationFrameRef.current = requestAnimationFrame(updateDisplay);
+      };
+
+      animationFrameRef.current = requestAnimationFrame(updateDisplay);
+    } else {
+      // Cleanup when not responding
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      startTimeRef.current = null;
+    }
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isResponding]);
+
+  // isResponding = true means waiting (should show)
+  // isResponding = false means has content (should hide)
+  if (!isResponding) {
     return null;
   }
 
@@ -24,16 +53,16 @@ const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({ isResponding 
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: $('--spacing-xs') || '4px',
-        padding: `0 ${$('--spacing-sm') || '8px'}`,
-        marginTop: `-${$('--spacing-sm') || '8px'}`,
-        color: $('--secondary-text') || 'currentColor',
-        fontSize: $('--font-size-md') || '13px',
-        marginBottom: $('--spacing-md') || '16px',
+        gap: 'var(--spacing-xs)',
+        padding: '0 var(--spacing-sm)',
+        marginTop: '-var(--spacing-sm)',
+        color: 'var(--secondary-text)',
+        fontSize: 'var(--font-size-md)',
+        marginBottom: 'var(--spacing-md)',
       }}
     >
-      <span className="processing-text">
-        Processing ({seconds}s)
+      <span ref={timerDisplayRef} className="processing-text">
+        Processing (0s)
       </span>
       <style>
         {`
@@ -42,7 +71,7 @@ const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({ isResponding 
             to right,
             var(--secondary-text) 0%,
             var(--secondary-text) 40%,
-            var(--primary-text, #ffffff) 50%,
+            var(--vscode-editor-foreground, #ffffff) 50%,
             var(--secondary-text) 60%,
             var(--secondary-text) 100%
           );

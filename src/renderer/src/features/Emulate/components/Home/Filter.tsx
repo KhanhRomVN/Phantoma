@@ -278,9 +278,6 @@ function ListFilterSection({
 }
 
 export function NetworkFilter({ filter, onChange, requests = [], targetId }: NetworkFilterProps) {
-  // [DEBUG] NetworkFilter render
-  console.log('[DEBUG] NetworkFilter rendered', { requestsCount: requests.length, targetId });
-  
   const { getColorByIndex } = useAccentColors();
 
   // Storage key for filter data

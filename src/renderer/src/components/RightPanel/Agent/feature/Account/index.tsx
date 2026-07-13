@@ -28,7 +28,6 @@ interface AccountPanelProps {
 }
 
 const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
-  console.log('[DEBUG][ReRender] AccountPanel rendered', { isOpen });
   const [showDropdown, setShowDropdown] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 

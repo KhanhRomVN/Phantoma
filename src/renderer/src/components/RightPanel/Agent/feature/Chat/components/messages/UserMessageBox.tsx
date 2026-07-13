@@ -1,7 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Message } from '../../types/message';
-import { $ } from '@renderer/utils/color';
 
 interface UserMessageBoxProps {
   message: Message;
@@ -9,8 +8,8 @@ interface UserMessageBoxProps {
 }
 
 const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConversation }) => {
-  const [isMessageCollapsed, setIsMessageCollapsed] = React.useState(false);
   const [showRevertModal, setShowRevertModal] = React.useState(false);
+  const [isCopied, setIsCopied] = React.useState(false);
 
   // 🆕 FLEXIBLE FILTER: Regex to find the user message block even if not at the start
   const userMsgRegex = /## User Message\n<zen-user-content>\n([\s\S]*?)\n<\/zen-user-content>/;
@@ -34,66 +33,147 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
       .replace(/\n?<\/zen-user-content>[\s\S]*$/, '');
   }
 
-  // 🆕 Collapsible long messages
-  const lineCount = displayContent.split('\n').length;
-  const charCount = displayContent.length;
-  const isLongMessage = lineCount > 10 || charCount > 500;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(displayContent);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 1000);
+  };
 
-  // Auto-collapse on mount if message is long
-  React.useEffect(() => {
-    if (isLongMessage && !isMessageCollapsed) {
-      setIsMessageCollapsed(true);
-    }
-  }, [isLongMessage]);
-
-  const truncatedContent =
-    isLongMessage && isMessageCollapsed
-      ? '...' + displayContent.split('\n').slice(-5).join('\n')
-      : displayContent;
+  const handleRegenerate = () => {
+    // TODO: Implement regenerate logic - resend this message
+  };
 
   return (
     <div
-      className="group flex flex-col gap-4 mb-4 transition-all duration-300 ease relative z-[1]"
+      className="user-message-container"
       style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0px',
+        marginBottom: 'var(--spacing-md)',
         opacity: message.isCancelled ? 0.4 : 1,
         filter: message.isCancelled ? 'grayscale(1) blur(0.5px)' : 'none',
         pointerEvents: message.isCancelled ? 'none' : 'auto',
+        transition: 'all 0.3s ease',
+        position: 'relative',
+        zIndex: 1,
       }}
     >
-      <div className="flex flex-col gap-1 rounded-lg bg-card-background border border-border py-2 px-3 m-1 relative">
-        <div className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
-          {truncatedContent}
-        </div>
-        {isLongMessage && (
-          <div
-            onClick={() => setIsMessageCollapsed(!isMessageCollapsed)}
-            className="text-xs text-blue cursor-pointer mt-1 font-semibold select-none underline"
-          >
-            {isMessageCollapsed ? 'Show more' : 'Show less'}
-          </div>
-        )}
-      </div>
-      {onRevertConversation && (
-        <button
-          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded cursor-pointer z-10 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-[0.15s]"
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-xs)',
+          borderRadius: 'var(--border-radius)',
+          backgroundColor: 'var(--input-bg)',
+          border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+          padding: 'var(--spacing-md)',
+          marginLeft: '0px',
+          position: 'relative',
+        }}
+      >
+        <div
           style={{
-            background: `color-mix(in srgb, ${$('--input-bg') || 'transparent'} 60%, ${$('--background') || 'transparent'})`,
-            border: `1px solid color-mix(in srgb, ${$('--input-bg') || 'transparent'} 40%, ${$('--background') || 'transparent'})`,
-            color: `color-mix(in srgb, ${$('--primary-text') || 'currentColor'} 90%, ${$('--primary-text') || 'currentColor'})`,
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--primary-text)',
+            lineHeight: 1.6,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+            maxWidth: '100%',
+            maxHeight: '400px',
+            overflow: 'auto',
           }}
-          onClick={() => setShowRevertModal(true)}
-          title="Revert conversation to this state"
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background =
-              `color-mix(in srgb, ${$('--input-bg') || 'transparent'} 40%, ${$('--background') || 'transparent'})`;
-            e.currentTarget.style.color = $('--text-primary') || 'currentColor';
+        >
+          {displayContent}
+        </div>
+      </div>
+
+      {/* Bottom toolbar - always visible, transparent background */}
+      <div
+        style={{
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          gap: '8px',
+          backgroundColor: 'transparent',
+          padding: '4px 8px',
+        }}
+      >
+        {/* Copy button */}
+        <button
+          onClick={handleCopy}
+          title="Copy content"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: isCopied
+              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
+              : 'var(--vscode-descriptionForeground)',
+            borderRadius: '4px',
+            opacity: 0.7,
+            transition: 'opacity 0.2s, color 0.2s',
           }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background =
-              `color-mix(in srgb, ${$('--input-bg') || 'transparent'} 60%, ${$('--background') || 'transparent'})`;
-            e.currentTarget.style.color =
-              `color-mix(in srgb, ${$('--primary-text') || 'currentColor'} 90%, ${$('--primary-text') || 'currentColor'})`;
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+        >
+          {isCopied ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+            </svg>
+          )}
+        </button>
+
+        {/* Regenerate button */}
+        <button
+          onClick={handleRegenerate}
+          title="Regenerate response"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--vscode-descriptionForeground)',
+            borderRadius: '4px',
+            opacity: 0.7,
+            transition: 'opacity 0.2s',
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -106,30 +186,112 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M9 14 4 9l5-5" />
-            <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
           </svg>
         </button>
-      )}
+
+        {/* Revert button - only if onRevertConversation is provided */}
+        {onRevertConversation && (
+          <button
+            onClick={() => setShowRevertModal(true)}
+            title="Revert conversation to this state"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--vscode-descriptionForeground)',
+              borderRadius: '4px',
+              opacity: 0.7,
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
+            </svg>
+          </button>
+        )}
+      </div>
+
       {showRevertModal &&
         createPortal(
           <div
-            className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
             onClick={() => setShowRevertModal(false)}
           >
             <div
-              className="bg-background border border-border rounded-lg py-5 px-6 min-w-80 max-w-96"
+              style={{
+                backgroundColor: 'var(--vscode-editor-background)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '20px 24px',
+                minWidth: '300px',
+                maxWidth: '400px',
+              }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="font-semibold text-sm mb-2">Revert conversation?</div>
-              <div className="text-xs text-text-secondary mb-4">
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  marginBottom: '8px',
+                }}
+              >
+                Revert conversation?
+              </div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--secondary-text)',
+                  marginBottom: '16px',
+                }}
+              >
                 This will restore all modified files to their state before this message. Messages
                 after this point will be removed.
               </div>
-              <div className="flex gap-2 justify-end">
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '8px',
+                  justifyContent: 'flex-end',
+                }}
+              >
                 <button
                   onClick={() => setShowRevertModal(false)}
-                  className="py-1.5 px-3.5 rounded text-xs cursor-pointer bg-transparent border border-border text-text-primary"
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    background: 'transparent',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--primary-text)',
+                  }}
                 >
                   Cancel
                 </button>
@@ -138,7 +300,16 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
                     setShowRevertModal(false);
                     onRevertConversation!(message.id, message.timestamp);
                   }}
-                  className="py-1.5 px-3.5 rounded text-xs cursor-pointer bg-button-solid-background border-none text-button-solid-text font-semibold"
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    background: 'var(--vscode-button-background)',
+                    border: 'none',
+                    color: 'var(--vscode-button-foreground)',
+                    fontWeight: 600,
+                  }}
                 >
                   Revert
                 </button>

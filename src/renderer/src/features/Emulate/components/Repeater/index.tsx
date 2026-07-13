@@ -80,9 +80,6 @@ export function PayloadPanel({
   selectedRequestId,
   targetId,
 }: PayloadPanelProps) {
-  // [DEBUG] PayloadPanel render
-  console.log('[DEBUG] PayloadPanel rendered', { requestsCount: requests.length, selectedRequestId, targetId });
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds(targetId));

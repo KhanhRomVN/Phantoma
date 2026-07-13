@@ -12,14 +12,6 @@ export const WebModal: React.FC<BaseModalProps> = ({
   editApp,
   onEdit,
 }) => {
-  // [DEBUG] WebModal render
-  console.log('[DEBUG] WebModal rendered', {
-    isOpen,
-    isEdit: !!editApp,
-    editAppId: editApp?.id || null,
-    existingAppsCount: existingApps.length,
-  });
-
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [duplicateError, setDuplicateError] = useState<{ name?: string; value?: string }>({});

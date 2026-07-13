@@ -15,7 +15,6 @@ const StatsGrid: React.FC<StatsGridProps> = ({
   favoriteModel,
   totalAccounts,
 }) => {
-  console.log('[DEBUG][ReRender] StatsGrid rendered', { todayTokens, todayRequests, favoriteModel });
   const cards = [
     {
       icon: <MessageSquare size={16} />,

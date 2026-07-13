@@ -163,13 +163,10 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   // Handle CDP request event
   const handleCdpRequest = useCallback(
     (data: CdpRequestData) => {
-      console.log('[useNetworkEvents] handleCdpRequest called:', data.url, data.method);
       const req = buildRequest(data);
       const fullReq = req as NetworkRequest;
-      console.log('[useNetworkEvents] Built request:', fullReq.id, fullReq.url);
       requestMapRef.current.set(fullReq.id, fullReq);
       addRequest(fullReq);
-      console.log('[useNetworkEvents] addRequest called, total requests in map:', requestMapRef.current.size);
       onRequest?.(fullReq);
     },
     [buildRequest, addRequest, onRequest],
@@ -178,7 +175,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   // Handle CDP response event
   const handleCdpResponse = useCallback(
     (data: CdpResponseData) => {
-      console.log('[useNetworkEvents] handleCdpResponse called:', data.id, data.statusCode);
       const existing = requestMapRef.current.get(data.id);
       if (existing) {
         const updates: Partial<NetworkRequest> = {
@@ -435,14 +431,12 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
   // Setup IPC listeners
   useEffect(() => {
-    console.log('[useNetworkEvents] Setting up IPC listeners, window.api:', !!window.api, 'window.api.on:', !!window.api?.on);
     if (!window.api?.on) {
       console.warn('[useNetworkEvents] window.api.on not available');
       return;
     }
 
     const handleRequest = (_event: any, data: any) => {
-      console.log('[useNetworkEvents] Received cdp:request event:', data);
       try {
         handleCdpRequest(data);
       } catch (error) {
@@ -452,7 +446,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     };
 
     const handleResponse = (_event: any, data: any) => {
-      console.log('[useNetworkEvents] Received cdp:response event:', data);
       try {
         handleCdpResponse(data);
       } catch (error) {
@@ -461,7 +454,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     };
 
     const handleResponseBody = (_event: any, data: any) => {
-      console.log('[useNetworkEvents] Received cdp:response-body event:', data);
       try {
         handleCdpResponseBody(data);
       } catch (error) {
@@ -532,8 +524,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     window.api.on('proxy:response-body', handleProxyResponseBodyWrapped);
     window.api.on('proxy:request-body', handleProxyRequestBodyWrapped);
 
-    console.log('[useNetworkEvents] All IPC listeners registered');
-
     return () => {
       if (window.api?.off) {
         window.api.off('cdp:request', handleRequest);
@@ -547,8 +537,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         window.api.off('proxy:response-body', handleProxyResponseBodyWrapped);
         window.api.off('proxy:request-body', handleProxyRequestBodyWrapped);
       }
-      console.log('[useNetworkEvents] IPC listeners cleaned up');
-    };
+      };
   }, [
     handleCdpRequest,
     handleCdpResponse,
@@ -562,7 +551,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     handleProxyRequestBody,
   ]);
 
-  console.log('[useNetworkEvents] Returning requests count:', requests.length);
   return {
     requests,
     addRequest,

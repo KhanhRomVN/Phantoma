@@ -22,6 +22,7 @@ import { parseQuestionAnswerTag } from '../../utils/messageParser';
 interface UseChatLLMProps {
   apiUrl: string;
   selectedTab: ChatSession | null;
+  feature?: string | null;
   onConversationIdChange?: (id: string) => void;
   onToolRequest?: (
     actions: ToolAction[],
@@ -34,6 +35,7 @@ interface UseChatLLMProps {
 export const useChatLLM = ({
   apiUrl,
   selectedTab,
+  feature,
   onConversationIdChange,
   onToolRequest,
 }: UseChatLLMProps) => {
@@ -226,6 +228,7 @@ export const useChatLLM = ({
         workspace,
         files,
         userRequestCount: userRequestCountRef.current,
+        feature,
       });
 
       const userMessage: Message = {
@@ -507,8 +510,6 @@ export const useChatLLM = ({
         setIsProcessingSync(false);
         dispatchStreaming({ type: 'RESET_STREAMING' });
         abortControllerRef.current = null;
-
-        console.log('[Stream Complete] Full raw content:', assistantMessage.content);
 
         // Save final conversation
         saveConversation(

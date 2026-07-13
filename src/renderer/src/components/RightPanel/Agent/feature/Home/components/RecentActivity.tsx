@@ -14,7 +14,6 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
   isLoading,
   onLoadConversation,
 }) => {
-  console.log('[DEBUG][ReRender] RecentActivity rendered', { conversationsCount: conversations.length, isLoading });
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const vscodeApi = (window as any).vscodeApi;
@@ -31,9 +30,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
   };
 
   return (
-    <div
-      className="rounded-lg p-3.5 box-border border border-border hover:border-primary transition-all duration-200 ease-in-out"
-    >
+    <div className="rounded-lg p-3.5 box-border border border-border hover:border-primary transition-all duration-200 ease-in-out">
       <div className="flex justify-between items-center mb-2.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.05em] opacity-80 text-primary">
           Recent Activities
@@ -59,9 +56,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
               />
             ))
         ) : (
-          <div className="py-2.5 text-[11px] italic text-secondary opacity-60">
-            No recent chats
-          </div>
+          <div className="py-2.5 text-[11px] italic text-secondary opacity-60">No recent chats</div>
         )}
       </div>
     </div>

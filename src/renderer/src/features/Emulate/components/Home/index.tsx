@@ -144,15 +144,6 @@ export const RequestDetails = React.memo(function RequestDetails({
   const [internalActiveTab, setInternalActiveTab] = useState('headers');
   const [isRawMode, setIsRawMode] = useState(false);
 
-  // [DEBUG] RequestDetails render
-  console.log('[DEBUG] RequestDetails rendered', {
-    hasRequest: !!request,
-    requestId: request?.id || null,
-    searchTerm,
-    activeTab: propsActiveTab || internalActiveTab,
-    isFilterOpen,
-  });
-
   const { getColorByIndex, toRgba } = useAccentColors();
 
   const [contextMenu, setContextMenu] = useState<{

@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Monitor, Loader2, Shield, Syringe, Play, Square, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  Smartphone,
+  Monitor,
+  Loader2,
+  Shield,
+  Syringe,
+  Play,
+  Square,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 
 interface Device {
@@ -15,9 +27,6 @@ interface DeviceStatus {
 }
 
 export function DevicePanel() {
-  // [DEBUG] DevicePanel render
-  console.log('[DEBUG] DevicePanel rendered');
-  
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusMap, setStatusMap] = useState<Record<string, DeviceStatus>>({});
@@ -32,7 +41,7 @@ export function DevicePanel() {
         window.api.invoke('mobile:list-genymotion-vms'),
         window.api.invoke('mobile:detect-emulators'),
       ]);
-      
+
       const list: Device[] = [];
       connected.forEach((dev: any) => {
         list.push({
@@ -47,7 +56,7 @@ export function DevicePanel() {
         }
       });
       setDevices(list);
-      
+
       // Check status for each device
       for (const device of list) {
         await checkDeviceStatus(device.serial);
@@ -80,7 +89,7 @@ export function DevicePanel() {
       ...prev,
       [serial]: { ...prev[serial], deployFrida: true },
     }));
-    
+
     try {
       const installed = await window.api.invoke('mobile:install-frida', serial);
       if (installed) {
@@ -107,7 +116,7 @@ export function DevicePanel() {
       ...prev,
       [serial]: { ...prev[serial], toggleProxy: true },
     }));
-    
+
     try {
       if (isRunning) {
         await window.api.invoke('proxy:destroy-session', 'default');
@@ -140,7 +149,7 @@ export function DevicePanel() {
       ...prev,
       [serial]: { ...prev[serial], sslUnpin: true },
     }));
-    
+
     try {
       // Get package name from user or use default
       const packageName = prompt('Enter package name to unpin (e.g., com.facebook.katana):');
@@ -184,13 +193,29 @@ export function DevicePanel() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'running':
-        return <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Running</span>;
+        return (
+          <span className="text-xs text-green-400 flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" /> Running
+          </span>
+        );
       case 'installed':
-        return <span className="text-xs text-blue-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Installed</span>;
+        return (
+          <span className="text-xs text-blue-400 flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" /> Installed
+          </span>
+        );
       case 'not_installed':
-        return <span className="text-xs text-text-secondary flex items-center gap-1"><XCircle className="w-3 h-3" /> Not installed</span>;
+        return (
+          <span className="text-xs text-text-secondary flex items-center gap-1">
+            <XCircle className="w-3 h-3" /> Not installed
+          </span>
+        );
       case 'error':
-        return <span className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Error</span>;
+        return (
+          <span className="text-xs text-red-400 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" /> Error
+          </span>
+        );
       default:
         return <span className="text-xs text-text-secondary">Unknown</span>;
     }
@@ -201,7 +226,9 @@ export function DevicePanel() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-semibold text-text-primary">Device Management</h2>
-          <p className="text-xs text-text-secondary">Manage Android devices, Frida, and SSL unpinning</p>
+          <p className="text-xs text-text-secondary">
+            Manage Android devices, Frida, and SSL unpinning
+          </p>
         </div>
         <button
           onClick={loadDevices}
@@ -221,12 +248,18 @@ export function DevicePanel() {
         <div className="flex flex-col items-center justify-center h-64">
           <Smartphone className="w-12 h-12 text-text-secondary/30" />
           <p className="text-sm text-text-secondary mt-2">No devices found</p>
-          <p className="text-xs text-text-secondary/60">Start a Genymotion VM or connect an Android device</p>
+          <p className="text-xs text-text-secondary/60">
+            Start a Genymotion VM or connect an Android device
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
           {devices.map((device) => {
-            const status = statusMap[device.serial] || { frida: 'not_installed', proxy: 'stopped', ssl_unpinned: false };
+            const status = statusMap[device.serial] || {
+              frida: 'not_installed',
+              proxy: 'stopped',
+              ssl_unpinned: false,
+            };
             const isLoading = actionLoading[device.serial] || {};
             const deviceLogs = logs[device.serial] || [];
             const isSelected = selectedDevice === device.serial;
@@ -236,7 +269,7 @@ export function DevicePanel() {
                 key={device.serial}
                 className={cn(
                   'bg-input-background border border-border rounded-xl overflow-hidden transition-all',
-                  isSelected && 'border-primary/40'
+                  isSelected && 'border-primary/40',
                 )}
               >
                 {/* Device header */}
@@ -244,10 +277,12 @@ export function DevicePanel() {
                   className="flex items-center gap-3 p-3 cursor-pointer hover:bg-dropdown-item-hover/30"
                   onClick={() => setSelectedDevice(isSelected ? null : device.serial)}
                 >
-                  <div className={cn(
-                    'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
-                    device.type === 'physical' ? 'bg-green/10' : 'bg-blue/10'
-                  )}>
+                  <div
+                    className={cn(
+                      'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
+                      device.type === 'physical' ? 'bg-green/10' : 'bg-blue/10',
+                    )}
+                  >
                     {device.type === 'physical' ? (
                       <Smartphone className="w-5 h-5 text-green-400" />
                     ) : (
@@ -255,16 +290,22 @@ export function DevicePanel() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-text-primary truncate">{device.name}</div>
-                    <div className="text-xs text-text-secondary truncate font-mono">{device.serial}</div>
+                    <div className="text-sm font-semibold text-text-primary truncate">
+                      {device.name}
+                    </div>
+                    <div className="text-xs text-text-secondary truncate font-mono">
+                      {device.serial}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="flex items-center gap-2">
                       {getStatusBadge(status.frida)}
-                      <span className={cn(
-                        'text-xs',
-                        status.proxy === 'running' ? 'text-green-400' : 'text-text-secondary'
-                      )}>
+                      <span
+                        className={cn(
+                          'text-xs',
+                          status.proxy === 'running' ? 'text-green-400' : 'text-text-secondary',
+                        )}
+                      >
                         {status.proxy === 'running' ? '🟢 Proxy' : '⚪ Proxy'}
                       </span>
                     </div>
@@ -282,7 +323,7 @@ export function DevicePanel() {
                           'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all',
                           status.frida === 'running'
                             ? 'bg-green/10 text-green border border-green/20'
-                            : 'bg-blue/10 text-blue border border-blue/20 hover:bg-blue/20'
+                            : 'bg-blue/10 text-blue border border-blue/20 hover:bg-blue/20',
                         )}
                       >
                         {isLoading.deployFrida ? (
@@ -300,7 +341,7 @@ export function DevicePanel() {
                           'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all',
                           status.proxy === 'running'
                             ? 'bg-red/10 text-red border border-red/20 hover:bg-red/20'
-                            : 'bg-amber/10 text-amber border border-amber/20 hover:bg-amber/20'
+                            : 'bg-amber/10 text-amber border border-amber/20 hover:bg-amber/20',
                         )}
                       >
                         {isLoading.toggleProxy ? (
@@ -320,7 +361,7 @@ export function DevicePanel() {
                           'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all',
                           status.ssl_unpinned
                             ? 'bg-green/10 text-green border border-green/20'
-                            : 'bg-purple/10 text-purple border border-purple/20 hover:bg-purple/20'
+                            : 'bg-purple/10 text-purple border border-purple/20 hover:bg-purple/20',
                         )}
                       >
                         {isLoading.sslUnpin ? (

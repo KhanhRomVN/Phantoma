@@ -406,9 +406,6 @@ function SourceView({
 const STORAGE_KEY = 'phantoma-source-state';
 
 export function SourcesPanel({ requests = [], unpackedScripts }: SourcesPanelProps) {
-  // [DEBUG] SourcesPanel render
-  console.log('[DEBUG] SourcesPanel rendered', { requestsCount: requests.length, unpackedScriptsCount: unpackedScripts?.size || 0 });
-  
   const [selectedContent, setSelectedContent] = useLocalStorage<{
     content: string;
     fileName: string;

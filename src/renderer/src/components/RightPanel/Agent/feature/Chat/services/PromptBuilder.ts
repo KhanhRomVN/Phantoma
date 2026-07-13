@@ -1,11 +1,15 @@
 import { extensionService } from '../../../services/ExtensionService';
 import {
-  buildPermissionModeTag,
+  buildPermissionModeTag as buildCodePermissionModeTag,
   CHECKPOINT_INTERVAL,
   CHECKPOINT_REMINDER,
-  combinePrompts,
-  getDefaultPrompt,
+  combinePrompts as combineCodePrompts,
+  getDefaultPrompt as getCodeDefaultPrompt,
 } from '../prompts/code';
+import {
+  combinePrompts as combineEmulatePrompts,
+  getDefaultPrompt as getEmulateDefaultPrompt,
+} from '../prompts/emulate';
 import { getShallowTree } from '../utils/messageParser';
 
 export interface PromptBuilderOptions {
@@ -18,6 +22,7 @@ export interface PromptBuilderOptions {
   workspace: string;
   files?: any[];
   userRequestCount: number;
+  feature?: string | null;
 }
 
 export class PromptBuilder {
@@ -32,6 +37,7 @@ export class PromptBuilder {
       workspace,
       files,
       userRequestCount,
+      feature,
     } = options;
 
     let systemPrompt = '';
@@ -40,7 +46,7 @@ export class PromptBuilder {
 
     // Build system prompt for first request
     if (isReq1) {
-      systemPrompt = await this.buildSystemPrompt(aiLanguage, permissionMode, treeView, workspace);
+      systemPrompt = await this.buildSystemPrompt(aiLanguage, permissionMode, treeView, workspace, feature);
       projectContextStr = this.buildProjectContext(treeView, workspace);
     }
 
@@ -55,7 +61,7 @@ export class PromptBuilder {
       : `## User Message\n<zen-user-content>\n${content}\n</zen-user-content>`;
 
     // Permission mode tag
-    const permissionModeTag = buildPermissionModeTag(permissionMode);
+    const permissionModeTag = buildCodePermissionModeTag(permissionMode);
 
     // Checkpoint reminder
     let checkpointReminder = '';
@@ -74,8 +80,9 @@ export class PromptBuilder {
   private static async buildSystemPrompt(
     aiLanguage: string,
     permissionMode: string,
-    treeView: string,
-    workspace: string,
+    _treeView: string,
+    _workspace: string,
+    feature?: string | null,
   ): Promise<string> {
     let systemInfo = {
       os: 'Unknown OS',
@@ -99,12 +106,16 @@ export class PromptBuilder {
       console.warn('[PromptBuilder] Failed to fetch system info:', e);
     }
 
+    const isEmulate = feature === 'emulate';
+    const getDefaultPromptFn = isEmulate ? getEmulateDefaultPrompt : getCodeDefaultPrompt;
+    const combinePromptsFn = isEmulate ? combineEmulatePrompts : combineCodePrompts;
+
     const effectiveLang = aiLanguage;
-    let systemPrompt = getDefaultPrompt(effectiveLang);
+    let systemPrompt = getDefaultPromptFn(effectiveLang);
 
     // Use real system info if we managed to fetch it
     if (systemInfo.os !== 'Unknown OS') {
-      systemPrompt = combinePrompts({
+      systemPrompt = combinePromptsFn({
         language: effectiveLang,
         systemInfo,
         permissionMode,

@@ -1,16 +1,22 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from 'react';
 import { $ } from '@renderer/utils/color';
 
-interface HourEntry { date: string; requests: number; tokens: number; }
-interface Props { usage: HourEntry[]; title: string; }
+interface HourEntry {
+  date: string;
+  requests: number;
+  tokens: number;
+}
+interface Props {
+  usage: HourEntry[];
+  title: string;
+}
 
-const LINE_COLOR = "var(--primary, #3b82f6)";
+const LINE_COLOR = 'var(--primary, #3b82f6)';
 const CHART_H = 60;
 const CHART_W = 600;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
-  console.log('[DEBUG][ReRender] DailyUsageChart rendered', { usageCount: usage.length, title });
   const [tooltip, setTooltip] = useState<{ hour: number; svgX: number; svgY: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,7 +32,7 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
 
   const dataMap = new Map<number, HourEntry>();
   usage.forEach((u) => {
-    const h = parseInt(u.date.split(":")[0], 10);
+    const h = parseInt(u.date.split(':')[0], 10);
     if (!isNaN(h)) dataMap.set(h, u);
   });
 
@@ -40,16 +46,18 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
   };
 
   const pastPoints = HOURS.filter((h) => h <= currentHour)
-    .map((h) => `${xOf(h)},${yOf(h)}`).join(" ");
+    .map((h) => `${xOf(h)},${yOf(h)}`)
+    .join(' ');
 
   const futurePoints = HOURS.filter((h) => h >= currentHour)
-    .map((h) => `${xOf(h)},${CHART_H}`).join(" ");
+    .map((h) => `${xOf(h)},${CHART_H}`)
+    .join(' ');
 
   const areaPoints = [
     `${xOf(0)},${CHART_H}`,
     ...HOURS.filter((h) => h <= currentHour).map((h) => `${xOf(h)},${yOf(h)}`),
     `${xOf(currentHour)},${CHART_H}`,
-  ].join(" ");
+  ].join(' ');
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const svg = svgRef.current;
@@ -64,12 +72,8 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
   };
 
   return (
-    <div
-      className="rounded-lg p-3.5 box-border border border-border hover:border-primary transition-all duration-200 ease-in-out"
-    >
-      <div
-        className="text-[11px] font-semibold uppercase tracking-[0.05em] mb-2.5 opacity-80 text-primary"
-      >
+    <div className="rounded-lg p-3.5 box-border border border-border hover:border-primary transition-all duration-200 ease-in-out">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.05em] mb-2.5 opacity-80 text-primary">
         {title}
       </div>
 
@@ -89,12 +93,17 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
             </linearGradient>
           </defs>
 
-          {pastPoints && (
-            <polygon points={areaPoints} fill="url(#lineAreaGrad)" />
-          )}
+          {pastPoints && <polygon points={areaPoints} fill="url(#lineAreaGrad)" />}
 
           {pastPoints && (
-            <polyline points={pastPoints} fill="none" stroke={LINE_COLOR} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+            <polyline
+              points={pastPoints}
+              fill="none"
+              stroke={LINE_COLOR}
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
           )}
 
           <rect
@@ -110,7 +119,7 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
               cx={xOf(tooltip.hour)}
               cy={yOf(tooltip.hour)}
               r={3}
-              fill={tooltip.hour <= currentHour ? LINE_COLOR : "rgba(128,128,128,0.5)"}
+              fill={tooltip.hour <= currentHour ? LINE_COLOR : 'rgba(128,128,128,0.5)'}
               stroke="var(--background, #1e1e1e)"
               strokeWidth="1.5"
             />
@@ -133,7 +142,7 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
                   color: $('--secondary-text') || 'currentColor',
                 }}
               >
-                {String(h).padStart(2, "0")}h
+                {String(h).padStart(2, '0')}h
               </span>
             ));
           })()}
@@ -141,26 +150,28 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
       </div>
 
       {/* Tooltip */}
-      {tooltip !== null && (() => {
-        const entry = dataMap.get(tooltip.hour);
-        return (
-          <div
-            className="fixed -translate-x-1/2 -translate-y-full rounded-md px-2.5 py-1.5 text-[11px] pointer-events-none z-[9999] whitespace-nowrap bg-dropdown-background border text-primary shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
-            style={{
-              left: tooltip.svgX,
-              top: tooltip.svgY - 8,
-            }}
-          >
-            <div className="font-semibold mb-[3px]">
-              {String(tooltip.hour).padStart(2, "0")}:00 – {String(tooltip.hour + 1).padStart(2, "0")}:00
+      {tooltip !== null &&
+        (() => {
+          const entry = dataMap.get(tooltip.hour);
+          return (
+            <div
+              className="fixed -translate-x-1/2 -translate-y-full rounded-md px-2.5 py-1.5 text-[11px] pointer-events-none z-[9999] whitespace-nowrap bg-dropdown-background border text-primary shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+              style={{
+                left: tooltip.svgX,
+                top: tooltip.svgY - 8,
+              }}
+            >
+              <div className="font-semibold mb-[3px]">
+                {String(tooltip.hour).padStart(2, '0')}:00 –{' '}
+                {String(tooltip.hour + 1).padStart(2, '0')}:00
+              </div>
+              <div className="opacity-75 leading-relaxed">
+                <div>{entry?.requests ?? 0} requests</div>
+                <div>{(entry?.tokens ?? 0).toLocaleString()} tokens</div>
+              </div>
             </div>
-            <div className="opacity-75 leading-relaxed">
-              <div>{entry?.requests ?? 0} requests</div>
-              <div>{(entry?.tokens ?? 0).toLocaleString()} tokens</div>
-            </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
     </div>
   );
 };
