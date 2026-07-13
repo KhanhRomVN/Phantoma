@@ -47,6 +47,15 @@ interface ChatFooterProps {
   handleExternalFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   footerPaddingBottom: string;
+  shouldShowCompressionButton?: boolean;
+  gitStatus?: any;
+  onOpenGitStatus?: () => void;
+  loadedConversationFileStats?: {
+    totalFiles: number;
+    totalAdditions: number;
+    totalDeletions: number;
+  } | null;
+  onModelSwitch?: (newModel: any, newAccount: any, contextData: { content: string; files: any[]; model: any; account: any }) => void;
 }
 
 const ChatFooter: React.FC<ChatFooterProps> = ({
@@ -93,6 +102,11 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   handleExternalFileInputChange,
   handleFileInputChange,
   footerPaddingBottom,
+  shouldShowCompressionButton,
+  gitStatus,
+  onOpenGitStatus,
+  loadedConversationFileStats,
+  onModelSwitch,
 }) => {
   console.log('[DEBUG][ReRender] ChatFooter rendered', { messageLength: message.length, isProcessing, isStreaming });
   return (
@@ -154,7 +168,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
           setMessage={setMessage}
           isHistoryMode={isHistoryMode}
           uploadedFiles={uploadedFiles}
-          textareaRef={textareaRef}
+          textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
           handleTextareaChange={handleTextareaChange}
           handleKeyDown={handleKeyDown}
           handlePaste={handlePaste}
@@ -162,7 +176,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
           handleDrop={handleDrop}
           setShowAtMenu={setShowAtMenu}
           handleFileSelect={handleFileSelect}
-          fileInputRef={fileInputRef}
+          fileInputRef={fileInputRef as React.RefObject<HTMLInputElement>}
           onOpenProjectStructure={onOpenProjectStructure}
           showChangesDropdown={showChangesDropdown}
           setShowChangesDropdown={setShowChangesDropdown}

@@ -3,7 +3,7 @@ import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
 import { ConversationCache } from '../../services/ConversationCache';
 import { deleteConversation } from '../../services/ConversationService';
-import { extensionService } from '../../../../services/ExtensionService';
+import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 interface UseConversationRestoreProps {
   currentChat: ChatSession | null;
@@ -22,6 +22,13 @@ interface UseConversationRestoreProps {
   onBack: (contentToReturn?: string) => void;
   revertParentMessageIdRef: React.MutableRefObject<string | null>;
   setRevertInput: React.Dispatch<React.SetStateAction<{ value: string; nonce: number } | null>>;
+  setLoadedConversationFileStats: React.Dispatch<
+    React.SetStateAction<{
+      totalFiles: number;
+      totalAdditions: number;
+      totalDeletions: number;
+    } | null>
+  >;
 }
 
 export const useConversationRestore = ({
@@ -39,11 +46,11 @@ export const useConversationRestore = ({
   onBack,
   revertParentMessageIdRef,
   setRevertInput,
+  setLoadedConversationFileStats,
 }: UseConversationRestoreProps) => {
   const [isLoadingConversation, setIsLoadingConversation] = useState<boolean>(true);
   const [isRestored, setIsRestored] = useState<boolean>(false);
   const revertMessageIdRef = useRef<string | null>(null);
-  const hasAppendedHistoryContext = useRef(false);
 
   // Load conversation
   useEffect(() => {
@@ -60,20 +67,12 @@ export const useConversationRestore = ({
       }
       setIsLoadingConversation(true);
       setIsRestored(false);
-      hasAppendedHistoryContext.current = false;
       const convId = (currentChat as any).conversationId;
       if (convId) {
         const cached = ConversationCache.get(convId);
         if (cached) {
-          // ✅ Restore questionAnswers vào message từ cache (giống toolOutputs)
-          let messagesToRestore = cached.messages;
-          if (cached.questionAnswers && Object.keys(cached.questionAnswers).length > 0) {
-            messagesToRestore = cached.messages.map((msg) => ({
-              ...msg,
-              questionAnswers: cached.questionAnswers![msg.id] || msg.questionAnswers,
-            }));
-          }
-
+          // Restore messages from cache
+          const messagesToRestore = cached.messages;
           setMessages(messagesToRestore);
           if (cached.toolOutputs && Object.keys(cached.toolOutputs).length > 0) {
             setToolOutputs(cached.toolOutputs);
@@ -129,19 +128,10 @@ export const useConversationRestore = ({
       const data = event.data;
       if (data.command === 'conversationResult') {
         if (data.data?.messages) {
-          let restoredMessages = data.data.messages.map((msg: Message, i: number) => ({
+          const restoredMessages = data.data.messages.map((msg: Message, i: number) => ({
             ...msg,
             id: msg.id || `restored-${Date.now()}-${i}`,
           }));
-
-          if (data.data.questionAnswers && Object.keys(data.data.questionAnswers).length > 0) {
-            restoredMessages = restoredMessages.map(
-              (msg: { id: string | number; questionAnswers: any }) => ({
-                ...msg,
-                questionAnswers: data.data.questionAnswers[msg.id] || msg.questionAnswers,
-              }),
-            );
-          }
 
           setMessages(restoredMessages);
 
@@ -218,8 +208,13 @@ export const useConversationRestore = ({
               currentAccount: accountToCache,
               toolOutputs: data.data.toolOutputs,
               singleLineReviewActions: data.data.singleLineReviewActions,
-              questionAnswers: data.data.questionAnswers,
+              conversationFileStats: data.data.conversationFileStats,
             });
+
+            // Set loaded conversation file stats
+            if (data.data.conversationFileStats) {
+              setLoadedConversationFileStats(data.data.conversationFileStats);
+            }
           }
         }
         setIsLoadingConversation(false);
@@ -341,7 +336,6 @@ export const useConversationRestore = ({
     >,
     handleRevertConversation,
     handleClearConfirmed,
-    hasAppendedHistoryContext,
     setRevertInput,
   };
 };

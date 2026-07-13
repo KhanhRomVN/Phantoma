@@ -1,20 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSettings } from '../../../../context/SettingsContext';
-import { Message } from '../../types/message';
-import { ToolAction } from '../../services/ResponseParser';
-import { CLICKABLE_TOOLS } from '../../constants/constants';
-import { getPermissionDecision } from '../../utils/permissionUtils';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { ToolAction } from "../../services/ResponseParser";
+import { Message } from "../../types/message";
+import { CLICKABLE_TOOLS } from "../../constants/constants";
+import { useSettings } from "../../../../context/SettingsContext";
+import { getPermissionDecision } from "./useToolExecution";
 
 interface UseToolActionsProps {
   onSendToolRequest?: (
     action: ToolAction | ToolAction[],
     message: Message,
     isAutoTrigger?: boolean,
-    actionType?: 'accept_all' | 'accept_once' | 'reject',
+    actionType?: "accept_all" | "accept_once" | "reject",
   ) => void;
   onToolAction?: (
     actionId: string,
-    actionType: 'accept_all' | 'accept_once' | 'reject',
+    actionType: "accept_all" | "accept_once" | "reject",
     toolName?: string,
   ) => void;
   parsedMessages: any[];
@@ -32,7 +32,9 @@ export const useToolActions = ({
   const { permissionMode } = useSettings();
   const [clickedActions, setClickedActions] = useState<Set<string>>(new Set());
   const [failedActions, setFailedActions] = useState<Set<string>>(new Set());
-  const [rejectedActions, setRejectedActions] = useState<Set<string>>(new Set());
+  const [rejectedActions, setRejectedActions] = useState<Set<string>>(
+    new Set(),
+  );
   const triggeredIdsRef = useRef<Set<string>>(new Set());
 
   // Sync ref with state to catch updates from anywhere
@@ -56,9 +58,12 @@ export const useToolActions = ({
         });
       }
     });
+
     if (historicalClicked.size > 0) {
       setClickedActions((prev) => {
-        const hasNew = Array.from(historicalClicked).some((id) => !prev.has(id));
+        const hasNew = Array.from(historicalClicked).some(
+          (id) => !prev.has(id),
+        );
         if (hasNew) {
           const next = new Set(prev);
           historicalClicked.forEach((id) => next.add(id));
@@ -69,7 +74,9 @@ export const useToolActions = ({
     }
     if (historicalRejected.size > 0) {
       setRejectedActions((prev) => {
-        const hasNew = Array.from(historicalRejected).some((id) => !prev.has(id));
+        const hasNew = Array.from(historicalRejected).some(
+          (id) => !prev.has(id),
+        );
         if (hasNew) {
           const next = new Set(prev);
           historicalRejected.forEach((id) => next.add(id));
@@ -84,7 +91,7 @@ export const useToolActions = ({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const { command, actionId } = event.data;
-      if (command === 'removeClickedAction' && actionId) {
+      if (command === "removeClickedAction" && actionId) {
         setClickedActions((prev: Set<string>) => {
           const newSet = new Set(prev);
           newSet.delete(actionId);
@@ -93,7 +100,7 @@ export const useToolActions = ({
         });
       }
 
-      if (command === 'markActionClicked' && actionId) {
+      if (command === "markActionClicked" && actionId) {
         setClickedActions((prev: Set<string>) => {
           const newSet = new Set(prev);
           newSet.add(actionId);
@@ -102,7 +109,7 @@ export const useToolActions = ({
         });
       }
 
-      if (command === 'markActionFailed' && actionId) {
+      if (command === "markActionFailed" && actionId) {
         // Mark as clicked AND failed
         setClickedActions((prev: Set<string>) => {
           const newSet = new Set(prev);
@@ -113,13 +120,13 @@ export const useToolActions = ({
         setFailedActions((prev: Set<string>) => new Set(prev).add(actionId));
       }
 
-      if (command === 'markActionRejected' && actionId) {
+      if (command === "markActionRejected" && actionId) {
         setRejectedActions((prev: Set<string>) => new Set(prev).add(actionId));
       }
     };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   const handleToolClick = useCallback(
@@ -127,27 +134,28 @@ export const useToolActions = ({
       actionOrActions: ToolAction | ToolAction[],
       message: Message,
       actionIndex: number,
-      type: 'accept_all' | 'accept_once' | 'reject' = 'accept_once',
+      type: "accept_all" | "accept_once" | "reject" = "accept_once",
     ) => {
       if (!onSendToolRequest) {
-        console.warn('[useToolActions] onSendToolRequest is undefined, cannot handle click');
         return;
       }
 
       const actionIdBase = `${message.id}-action-`;
 
-      if (type === 'reject') {
+      if (type === "reject") {
         // 🐛 FIX: Truyền đúng _index cho action để không bị nhầm actionId
         const actions = Array.isArray(actionOrActions)
           ? actionOrActions.map((a) => ({ ...a, _index: actionIndex }))
           : [{ ...actionOrActions, _index: actionIndex }];
-        onSendToolRequest(actions as any, message, false, 'reject');
+        onSendToolRequest(actions as any, message, false, "reject");
         return;
       }
 
-      if (type === 'accept_all') {
-        const actions = Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions];
-        actions.forEach((a) => onToolAction?.('', 'accept_all', a.type));
+      if (type === "accept_all") {
+        const actions = Array.isArray(actionOrActions)
+          ? actionOrActions
+          : [actionOrActions];
+        actions.forEach((a) => onToolAction?.("", "accept_all", a.type));
       }
 
       if (Array.isArray(actionOrActions)) {
@@ -185,16 +193,22 @@ export const useToolActions = ({
 
   // Auto-execute tools logic
   useEffect(() => {
-    if (isRestored) return;
-    if (!onSendToolRequest || parsedMessages.length === 0) return;
+    const startTime = performance.now();
+
+    // Early returns to prevent unnecessary processing
+    if (isRestored || !onSendToolRequest || parsedMessages.length === 0) {
+      return;
+    }
 
     // CRITICAL: Do NOT auto-trigger while the LLM is still streaming.
     // Triggering mid-stream causes the flush logic to parseAIResponse on
     // incomplete content, flushing early and skipping later actions (e.g. SEARCH).
-    if (isProcessing) return;
+    if (isProcessing) {
+      return;
+    }
 
     const lastMessage = parsedMessages[parsedMessages.length - 1];
-    if (lastMessage.role !== 'assistant') return;
+    if (lastMessage.role !== "assistant") return;
     if (lastMessage.isCancelled) return;
     if (lastMessage.parsed && lastMessage.parsed.actions) {
       const actionsToRun: ToolAction[] = [];
@@ -205,7 +219,7 @@ export const useToolActions = ({
         const actionId = `${lastMessage.id}-action-${idx}`;
 
         // Skip display-only tools - they should not be auto-executed
-        if (action.type === 'git_status' || action.type === 'commit_message') {
+        if (action.type === "git_status" || action.type === "commit_message") {
           return;
         }
 
@@ -226,19 +240,20 @@ export const useToolActions = ({
         // SEQUENTIAL BLOCK CHECK:
         // Find this action's position in contentBlocks to check for preceding unanswered questions or tools
         const actionBlockIdx = contentBlocks.findIndex(
-          (b: any) => b.type === 'tool' && b.actionIndex === idx,
+          (b: any) => b.type === "tool" && b.actionIndex === idx,
         );
 
         const isBlocked =
           actionBlockIdx !== -1 &&
           contentBlocks.slice(0, actionBlockIdx).some((prevBlock: any) => {
-            if (prevBlock.type === 'question' && !prevBlock.optional) {
+            if (prevBlock.type === "question" && !prevBlock.optional) {
               return !selectedOption;
             }
-            if (prevBlock.type === 'tool') {
+            if (prevBlock.type === "tool") {
               const prevActionId = `${lastMessage.id}-action-${prevBlock.actionIndex}`;
               return (
-                !clickedActions.has(prevActionId) && !triggeredIdsRef.current.has(prevActionId)
+                !clickedActions.has(prevActionId) &&
+                !triggeredIdsRef.current.has(prevActionId)
               );
             }
             return false;
@@ -250,7 +265,7 @@ export const useToolActions = ({
 
         // Check if settings specify this tool runs auto or deny
         const decision = getPermissionDecision(permissionMode, action.type);
-        if (decision === 'allow' || decision === 'deny') {
+        if (decision === "allow" || decision === "deny") {
           // Optimistic Synchronous Update
           triggeredIdsRef.current.add(actionId);
           setClickedActions((prev: Set<string>) => new Set(prev).add(actionId));
@@ -260,7 +275,6 @@ export const useToolActions = ({
 
       if (actionsToRun.length > 0) {
         onSendToolRequest(actionsToRun as any, lastMessage, true);
-      } else {
       }
     }
   }, [

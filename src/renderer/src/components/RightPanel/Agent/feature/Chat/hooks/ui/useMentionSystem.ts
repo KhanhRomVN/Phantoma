@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { WorkspaceItem, Rule } from '../../types/workspace';
+import { useState } from "react";
+import { Rule, WorkspaceItem } from "../../types/workspace";
 
 interface AttachedItem {
   id: string;
   path: string;
-  type: 'file' | 'folder' | 'external';
+  type: "file" | "folder" | "external";
 }
 
 interface UseMentionSystemProps {
@@ -29,17 +29,17 @@ export const useMentionSystem = ({
   const [showAtMenu, setShowAtMenu] = useState(false);
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [mentionType, setMentionType] = useState<
-    'files' | 'folders' | 'rules' | 'conver' | 'terminal' | null
+    "files" | "folders" | "rules" | "conver" | "terminal" | null
   >(null);
   const [attachedItems, setAttachedItems] = useState<AttachedItem[]>([]);
 
   const checkMentions = (value: string) => {
     // Check if user typed "@" at the end
-    if (value.endsWith('@')) {
+    if (value.endsWith("@")) {
       setShowAtMenu(true);
       // 🆕 Unfocus temporarily
       textareaRef.current?.blur();
-    } else if (showAtMenu && !value.includes('@')) {
+    } else if (showAtMenu && !value.includes("@")) {
       setShowAtMenu(false);
     }
 
@@ -48,14 +48,14 @@ export const useMentionSystem = ({
     const folderMatch = value.match(/@folder:\s*([^\s]*)$/);
 
     if (fileMatch) {
-      setMentionType('files');
+      setMentionType("files");
       setShowMentionDropdown(true);
       // Request files if not already loaded
       if (availableFiles.length === 0) {
         onRequestWorkspaceFiles();
       }
     } else if (folderMatch) {
-      setMentionType('folders');
+      setMentionType("folders");
       setShowMentionDropdown(true);
       // Request folders if not already loaded
       if (availableFolders.length === 0) {
@@ -68,24 +68,24 @@ export const useMentionSystem = ({
   };
 
   const handleMentionOptionSelect = (option: string) => {
-    if (option === 'files') {
+    if (option === "files") {
       // Replace @ with @file:
-      setMessage((prev) => prev.slice(0, -1) + '@file: ');
-      setMentionType('files');
+      setMessage((prev) => prev.slice(0, -1) + "@file: ");
+      setMentionType("files");
       setShowMentionDropdown(true);
       onRequestWorkspaceFiles();
-    } else if (option === 'folders') {
+    } else if (option === "folders") {
       // Replace @ with @folder:
-      setMessage((prev) => prev.slice(0, -1) + '@folder: ');
-      setMentionType('folders');
+      setMessage((prev) => prev.slice(0, -1) + "@folder: ");
+      setMentionType("folders");
       setShowMentionDropdown(true);
       onRequestWorkspaceFolders();
-    } else if (option === 'rules') {
+    } else if (option === "rules") {
       // Show rules dropdown
       setMessage((prev) => prev.slice(0, -1)); // Remove @
-      setMentionType('rules');
+      setMentionType("rules");
       setShowMentionDropdown(true);
-    } else if (option === 'conver') {
+    } else if (option === "conver") {
       // Placeholder for future implementation
     }
     setShowAtMenu(false);
@@ -95,10 +95,10 @@ export const useMentionSystem = ({
   const handleWorkspaceItemSelect = (item: WorkspaceItem) => {
     // Remove the @file: or @folder: pattern from message
     setMessage((prev) => {
-      if (mentionType === 'files') {
-        return prev.replace(/@file:\s*[^\s]*$/, '');
-      } else if (mentionType === 'folders') {
-        return prev.replace(/@folder:\s*[^\s]*$/, '');
+      if (mentionType === "files") {
+        return prev.replace(/@file:\s*[^\s]*$/, "");
+      } else if (mentionType === "folders") {
+        return prev.replace(/@folder:\s*[^\s]*$/, "");
       }
       return prev;
     });
@@ -120,7 +120,7 @@ export const useMentionSystem = ({
     const newItem: AttachedItem = {
       id: `rule-${rule.id}`,
       path: rule.name, // Use rule name as path
-      type: 'file', // Use file type for rules (will be distinguished by id prefix)
+      type: "file", // Use file type for rules (will be distinguished by id prefix)
     };
     setAttachedItems((prev) => [...prev, newItem]);
     setShowMentionDropdown(false);

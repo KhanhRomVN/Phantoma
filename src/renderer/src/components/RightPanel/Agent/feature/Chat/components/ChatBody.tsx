@@ -84,6 +84,8 @@ export interface ExtendedChatBodyProps extends ChatBodyProps {
   searchQuery?: string;
   onSearchQueryChange?: (q: string) => void;
   onCloseSearch?: () => void;
+  onBackToHome?: (summary: string) => void;
+  isLoadingConversation?: boolean;
 }
 
 const ChatBody: React.FC<ExtendedChatBodyProps> = ({
@@ -123,6 +125,8 @@ const ChatBody: React.FC<ExtendedChatBodyProps> = ({
   gitStatusBranch,
   isGitProcessing,
   isGitStatusVisible = true,
+  onBackToHome,
+  isLoadingConversation,
 }: ExtendedChatBodyProps) => {
   console.log('[DEBUG][ReRender] ChatBody rendered', {
     messagesCount: messages.length,

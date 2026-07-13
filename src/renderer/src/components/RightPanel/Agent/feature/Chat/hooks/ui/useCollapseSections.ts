@@ -1,18 +1,28 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 export const useCollapseSections = () => {
+  const renderCountRef = useRef(0);
+  const toggleCountRef = useRef(0);
+
+  renderCountRef.current += 1;
+
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   const toggleCollapse = useCallback((sectionId: string) => {
+    toggleCountRef.current += 1;
+
     setCollapsedSections((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(sectionId)) {
+      const wasCollapsed = newSet.has(sectionId);
+
+      if (wasCollapsed) {
         newSet.delete(sectionId);
       } else {
         newSet.add(sectionId);
       }
+
       return newSet;
     });
   }, []);

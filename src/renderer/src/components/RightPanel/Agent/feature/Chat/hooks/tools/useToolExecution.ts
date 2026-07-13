@@ -1,11 +1,15 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
 import { Message } from '../../types/message';
 
+import { parseAIResponse } from '../../services/ResponseParser';
 import { useSettings, PermissionMode } from '../../../../context/SettingsContext';
 import { formatGrepResultCompact } from '../../utils/grepFormatter';
-import { extensionService, messageDispatcher } from '../../../../services/ExtensionService';
+export { getPermissionDecision } from '../../utils/permissionUtils';
 import { getPermissionDecision } from '../../utils/permissionUtils';
-import { parseAIResponse } from '../../services/ResponseParser';
+import {
+  extensionService,
+  messageDispatcher,
+} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 // ── Timeout constants ──────────────────────────────────────────────────────
 /** Standard timeout for file/git/search operations (ms) */
@@ -51,7 +55,22 @@ export const useToolExecution = ({
   }>({ total: 0, completed: 0, status: 'idle' });
 
   const [toolOutputs, setToolOutputs] = useState<
-    Record<string, { output: string; isError: boolean; terminalId?: string }>
+    Record<
+      string,
+      {
+        output: string;
+        isError: boolean;
+        terminalId?: string;
+        diagnostics?: Array<{
+          severity: string;
+          message: string;
+          line: number;
+          column: number;
+          source?: string;
+          code?: string | number;
+        }>;
+      }
+    >
   >({});
 
   const [terminalStatus, setTerminalStatus] = useState<Record<string, 'busy' | 'free'>>({});
@@ -204,37 +223,100 @@ export const useToolExecution = ({
         case 'read_file': {
           const requestId = `read-${Date.now()}-${Math.random()}`;
           const filePath = action.params.path || action.params.file_path;
+          const actionId = (action as any).actionId;
+
           extensionService.postMessage({
             command: 'readFile',
             path: filePath,
-            startLine: action.params.start_line ? parseInt(action.params.start_line) : undefined,
-            endLine: action.params.end_line ? parseInt(action.params.end_line) : undefined,
+            start_line: action.params.start_line,
+            end_line: action.params.end_line,
             requestId,
             bypassIgnore,
           });
           messageDispatcher.register(
             requestId,
-            (msg: { error: any; content: any; diagnostics: any[] }) => {
+            (msg) => {
               if (msg.error) {
-                let readableError = msg.error;
-                if (readableError.includes('tồn tại') || readableError.includes('no such file'))
-                  readableError = 'File not found in project';
-                resolve(`[read_file for '${filePath}'] Result: Error - ${readableError}`);
+                // Store error in toolOutputs without diagnostics
+                setToolOutputs((prev) => ({
+                  ...prev,
+                  [actionId]: {
+                    output: `Error - ${msg.error}`,
+                    isError: true,
+                  },
+                }));
+                resolve(`[read_file for '${filePath}'] Result: Error - ${msg.error}`);
               } else {
-                let result = `[read_file for '${filePath}'] Result:\n\`\`\`\n${msg.content}\n\`\`\``;
-                if (msg.diagnostics?.length > 0)
-                  result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join('\n')}`;
-                resolve(result);
+                const content = msg.content || '';
+                let output = `[read_file for '${filePath}'] Result:\n\`\`\`\n${content}\n\`\`\``;
+
+                // Add diagnostics section if there are any warnings or errors
+                if (msg.diagnostics && msg.diagnostics.length > 0) {
+                  const errorCount = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Error' || d.severity === 'error',
+                  ).length;
+                  const warningCount = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Warning' || d.severity === 'warning',
+                  ).length;
+
+                  // Add diagnostics OUTSIDE the code block
+                  output += `\n\n**Summary:** ${errorCount} error(s), ${warningCount} warning(s)`;
+
+                  // Get file content lines for context
+                  const contentLines = content.split('\n');
+
+                  // Group by severity
+                  const errors = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'error' || d.severity === 'Error',
+                  );
+                  const warnings = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'warning' || d.severity === 'Warning',
+                  );
+
+                  if (errors.length > 0) {
+                    output += `\n\n### Errors (${errors.length})\n`;
+                    errors.forEach((d: any, index: number) => {
+                      const lineContent = contentLines[d.line - 1] || '';
+                      const trimmedLine = lineContent.trim();
+                      output += `${index + 1}.  \`${trimmedLine}\` **Line ${d.line}**${d.source ? ` [${d.source}${d.code ? `:${d.code}` : ''}]` : ''}: ${d.message}\n`;
+                    });
+                  }
+
+                  if (warnings.length > 0) {
+                    output += `\n### Warnings (${warnings.length})\n`;
+                    warnings.forEach((d: any, index: number) => {
+                      const lineContent = contentLines[d.line - 1] || '';
+                      const trimmedLine = lineContent.trim();
+                      output += `${index + 1}.  \`${trimmedLine}\` **Line ${d.line}**${d.source ? ` [${d.source}${d.code ? `:${d.code}` : ''}]` : ''}: ${d.message}\n`;
+                    });
+                  }
+                }
+
+                // Store output AND diagnostics in toolOutputs
+                setToolOutputs((prev) => ({
+                  ...prev,
+                  [actionId]: {
+                    output: content,
+                    isError: false,
+                    diagnostics: msg.diagnostics || undefined,
+                  },
+                }));
+
+                resolve(output);
               }
             },
             TOOL_TIMEOUT_STANDARD,
-            () => resolve(null),
+            () => {
+              console.warn(`[read_file] Timeout`, { requestId, filePath });
+              resolve(null);
+            },
           );
           break;
         }
         case 'write_to_file': {
           const requestId = `write-${Date.now()}-${Math.random()}`;
           const filePath = action.params.path || action.params.file_path;
+          const actionId = action.actionId;
           extensionService.postMessage({
             command: 'writeFile',
             path: filePath,
@@ -243,7 +325,7 @@ export const useToolExecution = ({
             skipDiagnostics,
             bypassIgnore,
             conversationId: conversationIdRef?.current,
-            actionId: action.actionId,
+            actionId: actionId,
           });
           messageDispatcher.register(
             requestId,
@@ -254,11 +336,69 @@ export const useToolExecution = ({
                   filePath,
                   error: msg.error,
                 });
+                // Store error in toolOutputs
+                setToolOutputs((prev) => ({
+                  ...prev,
+                  [actionId]: {
+                    output: `Error - ${msg.error}`,
+                    isError: true,
+                  },
+                }));
                 resolve(`[write_to_file for '${filePath}'] Result: Error - ${msg.error}`);
               } else {
                 let result = `[write_to_file for '${filePath}'] Result: File written successfully`;
-                if (msg.diagnostics?.length > 0)
-                  result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join('\n')}`;
+
+                // Add diagnostics if any
+                if (msg.diagnostics && msg.diagnostics.length > 0) {
+                  const errorCount = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Error' || d.severity === 'error',
+                  ).length;
+                  const warningCount = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Warning' || d.severity === 'warning',
+                  ).length;
+
+                  // Change format: move summary inline with success message
+                  result = `[write_to_file for '${filePath}'] Result: File written successfully with ${errorCount} error(s), ${warningCount} warning(s)`;
+
+                  const errors = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Error' || d.severity === 'error',
+                  );
+                  const warnings = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Warning' || d.severity === 'warning',
+                  );
+
+                  // Get file content lines to show line content
+                  const contentLines = action.params.content.split('\n');
+
+                  if (errors.length > 0) {
+                    result += `\n\n### Errors (${errors.length})\n`;
+                    errors.forEach((d: any, index: number) => {
+                      const lineContent = contentLines[d.line - 1] || '';
+                      const trimmedLine = lineContent.trim();
+                      result += `${index + 1}.  \`${trimmedLine}\` **Line ${d.line}**${d.source ? ` [${d.source}${d.code ? `:${d.code}` : ''}]` : ''}: ${d.message}\n`;
+                    });
+                  }
+
+                  if (warnings.length > 0) {
+                    result += `\n### Warnings (${warnings.length})\n`;
+                    warnings.forEach((d: any, index: number) => {
+                      const lineContent = contentLines[d.line - 1] || '';
+                      const trimmedLine = lineContent.trim();
+                      result += `${index + 1}.  \`${trimmedLine}\` **Line ${d.line}**${d.source ? ` [${d.source}${d.code ? `:${d.code}` : ''}]` : ''}: ${d.message}\n`;
+                    });
+                  }
+                }
+
+                // Store output AND diagnostics in toolOutputs (same as read_file)
+                setToolOutputs((prev) => ({
+                  ...prev,
+                  [actionId]: {
+                    output: action.params.content,
+                    isError: false,
+                    diagnostics: msg.diagnostics || undefined,
+                  },
+                }));
+
                 resolve(result);
               }
             },
@@ -273,15 +413,18 @@ export const useToolExecution = ({
         case 'replace_in_file': {
           const requestId = `replace-${Date.now()}-${Math.random()}`;
           const filePath = action.params.path || action.params.file_path;
+          const actionId = action.actionId;
           extensionService.postMessage({
             command: 'replaceInFile',
             path: filePath,
-            diff: action.params.diff,
+            old_str: action.params.old_str,
+            new_str: action.params.new_str,
+            diff: action.params.diff, // Legacy support
             requestId,
             skipDiagnostics,
             bypassIgnore,
             conversationId: conversationIdRef?.current,
-            actionId: action.actionId,
+            actionId: actionId,
           });
           messageDispatcher.register(
             requestId,
@@ -292,14 +435,73 @@ export const useToolExecution = ({
                   filePath,
                   error: msg.error,
                 });
+                // Store error in toolOutputs
+                setToolOutputs((prev) => ({
+                  ...prev,
+                  [actionId]: {
+                    output: `Error - ${msg.error}`,
+                    isError: true,
+                  },
+                }));
                 resolve(`[replace_in_file for '${filePath}'] Result: Error - ${msg.error}`);
               } else {
-                let result = `[replace_in_file for '${filePath}'] Result: Diff applied successfully`;
-                if (msg.diagnostics?.length > 0) {
-                  result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join('\n')}`;
-                  if (msg.content)
-                    result += `\n\n<current_file_content_post_edit>\n(The following is the full content of '${filePath}' AFTER the edit. Please review it to fix the diagnostics.)\n\`\`\`\n${msg.content}\n\`\`\`\n</current_file_content_post_edit>`;
+                let result = `[replace_in_file for '${filePath}'] Result: File updated successfully`;
+
+                // Add diagnostics if any
+                if (msg.diagnostics && msg.diagnostics.length > 0) {
+                  const errorCount = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Error' || d.severity === 'error',
+                  ).length;
+                  const warningCount = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Warning' || d.severity === 'warning',
+                  ).length;
+
+                  // Change format: move summary inline with success message
+                  result = `[replace_in_file for '${filePath}'] Result: File updated successfully with ${errorCount} error(s), ${warningCount} warning(s)`;
+
+                  const errors = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Error' || d.severity === 'error',
+                  );
+                  const warnings = msg.diagnostics.filter(
+                    (d: any) => d.severity === 'Warning' || d.severity === 'warning',
+                  );
+
+                  // Get file content lines to show line content (use msg.content if available, otherwise use new_str)
+                  const contentLines = (msg.content || action.params.new_str || '').split('\n');
+
+                  if (errors.length > 0) {
+                    result += `\n\n### Errors (${errors.length})\n`;
+                    errors.forEach((d: any, index: number) => {
+                      const lineContent = contentLines[d.line - 1] || '';
+                      const trimmedLine = lineContent.trim();
+                      result += `${index + 1}.  \`${trimmedLine}\` **Line ${d.line}**${d.source ? ` [${d.source}${d.code ? `:${d.code}` : ''}]` : ''}: ${d.message}\n`;
+                    });
+                  }
+
+                  if (warnings.length > 0) {
+                    result += `\n### Warnings (${warnings.length})\n`;
+                    warnings.forEach((d: any, index: number) => {
+                      const lineContent = contentLines[d.line - 1] || '';
+                      const trimmedLine = lineContent.trim();
+                      result += `${index + 1}.  \`${trimmedLine}\` **Line ${d.line}**${d.source ? ` [${d.source}${d.code ? `:${d.code}` : ''}]` : ''}: ${d.message}\n`;
+                    });
+                  }
                 }
+
+                // Store output AND diagnostics in toolOutputs (same as read_file)
+                setToolOutputs((prev) => {
+                  const newOutput = {
+                    output: msg.content || action.params.new_str || '',
+                    isError: false,
+                    diagnostics: msg.diagnostics || undefined,
+                  };
+
+                  return {
+                    ...prev,
+                    [actionId]: newOutput,
+                  };
+                });
+
                 resolve(result);
               }
             },
@@ -314,9 +516,74 @@ export const useToolExecution = ({
           );
           break;
         }
+        case 'revert_file': {
+          const requestId = `revert-${Date.now()}-${Math.random()}`;
+          const filePath = action.params.path || action.params.file_path;
+          const actionId = action.actionId;
+
+          extensionService.postMessage({
+            command: 'revertFile',
+            path: filePath,
+            requestId,
+            bypassIgnore,
+            conversationId: conversationIdRef?.current,
+            actionId: actionId,
+          });
+
+          messageDispatcher.register(
+            requestId,
+            (msg) => {
+              if (msg.error) {
+                console.error(`[revert_file] Error response`, {
+                  requestId,
+                  filePath,
+                  error: msg.error,
+                });
+                // Store error in toolOutputs
+                setToolOutputs((prev) => ({
+                  ...prev,
+                  [actionId]: {
+                    output: `Error - ${msg.error}`,
+                    isError: true,
+                  },
+                }));
+                resolve(`[revert_file for '${filePath}'] Result: Error - ${msg.error}`);
+              } else {
+                const result = `[revert_file for '${filePath}'] Result: File reverted successfully (undo applied)`;
+
+                // Store old/new content in action params for diff view
+                if (msg.oldContent !== undefined && msg.newContent !== undefined) {
+                  action.params.old_content = msg.oldContent;
+                  action.params.new_content = msg.newContent;
+                  action.params.old_str = msg.oldContent;
+                  action.params.new_str = msg.newContent;
+                }
+
+                // Store output in toolOutputs
+                setToolOutputs((prev) => ({
+                  ...prev,
+                  [actionId]: {
+                    output: 'Reverted',
+                    isError: false,
+                  },
+                }));
+
+                resolve(result);
+              }
+            },
+            TOOL_TIMEOUT_STANDARD,
+            () => {
+              console.warn(`[revert_file] Timeout`, { requestId, filePath });
+              resolve(null);
+            },
+          );
+          break;
+        }
         case 'list_files': {
           const requestId = `list-${Date.now()}-${Math.random()}`;
           const folderPath = action.params.path || action.params.folder_path;
+          const actionId = (action as any).actionId;
+
           extensionService.postMessage({
             command: 'listFiles',
             path: folderPath,
@@ -334,12 +601,130 @@ export const useToolExecution = ({
                 return;
               }
               const listResults = msg.files || msg.results;
-              resolve(
-                `[list_files for '${folderPath}'] Result:\n\`\`\`\n${Array.isArray(listResults) ? JSON.stringify(listResults, null, 2) : String(listResults)}\n\`\`\``,
-              );
+
+              // Check if folder is empty
+              if (
+                !listResults ||
+                (typeof listResults === 'string' && listResults.trim() === '') ||
+                (Array.isArray(listResults) && listResults.length === 0)
+              ) {
+                resolve(
+                  `[list_files for '${folderPath}'] Result: The folder '${folderPath}' is empty (no files or folders inside).`,
+                );
+                return;
+              }
+
+              // Store the raw JSON tree data in toolOutputs for TreeBlock to consume
+              if (Array.isArray(listResults) && actionId) {
+                setToolOutputs((prev) => ({
+                  ...prev,
+                  [actionId]: {
+                    output: listResults, // Store raw JSON array for UI
+                    isError: false,
+                  },
+                }));
+
+                // Format as readable tree for agent (no emojis, no tree lines)
+                const formatTree = (nodes: any[], indent: string = ''): string => {
+                  let result = '';
+                  nodes.forEach((node) => {
+                    // Node line (no tree characters, just indentation)
+                    if (node.type === 'folder') {
+                      result += `${indent}${node.name}/`;
+                      if (node.children && node.children.length > 0) {
+                        result += ` (${node.children.length} files)`;
+                      }
+                      result += '\n';
+                      if (node.children && node.children.length > 0) {
+                        result += formatTree(node.children, indent + '  ');
+                      }
+                    } else {
+                      result += `${indent}${node.name}`;
+                      if (node.lines !== undefined) {
+                        result += ` (${node.lines} lines)`;
+                      }
+                      result += '\n';
+                    }
+                  });
+                  return result;
+                };
+
+                const formattedOutput = formatTree(listResults);
+                resolve(`[list_files for '${folderPath}'] Result:\n${formattedOutput}`);
+              } else {
+                // Fallback
+                const outputStr =
+                  typeof listResults === 'string' ? listResults : String(listResults);
+                resolve(`[list_files for '${folderPath}'] Result:\n${outputStr}`);
+              }
             },
             TOOL_TIMEOUT_STANDARD,
             () => resolve(null),
+          );
+          break;
+        }
+        case 'find_files': {
+          const requestId = `find-${Date.now()}-${Math.random()}`;
+          const fileNames = action.params.file_names || [];
+          extensionService.postMessage({
+            command: 'findFiles',
+            fileNames,
+            requestId,
+          });
+
+          messageDispatcher.register(
+            requestId,
+            (msg) => {
+              if (msg.error) {
+                resolve(`[find_files] Result: Error - ${msg.error}`);
+                return;
+              }
+
+              const results = msg.results || [];
+              const totalMatches = msg.totalMatches || 0;
+
+              let output = `[find_files] Found ${totalMatches} file(s)\n\n`;
+
+              if (totalMatches === 0) {
+                output += 'No files found matching the search criteria.';
+              } else {
+                results.forEach((result: any) => {
+                  if (result.matches.length > 0) {
+                    output += `### ${result.fileName} (${result.matches.length} match${result.matches.length === 1 ? '' : 'es'})\n`;
+                    result.matches.forEach((match: any) => {
+                      const matchPath = typeof match === 'string' ? match : match.path;
+                      let diagnosticInfo = '';
+
+                      if (typeof match === 'object' && (match.errorCount || match.warningCount)) {
+                        const errorCount = match.errorCount || 0;
+                        const warningCount = match.warningCount || 0;
+
+                        if (errorCount > 0 || warningCount > 0) {
+                          const parts: string[] = [];
+                          if (errorCount > 0) {
+                            parts.push(`${errorCount} error${errorCount > 1 ? 's' : ''}`);
+                          }
+                          if (warningCount > 0) {
+                            parts.push(`${warningCount} warning${warningCount > 1 ? 's' : ''}`);
+                          }
+                          diagnosticInfo = ` (${parts.join(', ')})`;
+                        }
+                      }
+
+                      output += `- ${matchPath}${diagnosticInfo}\n`;
+                    });
+                    output += '\n';
+                  }
+                });
+              }
+
+              resolve(output);
+            },
+            TOOL_TIMEOUT_STANDARD,
+            () => {
+              console.warn(`[find_files] Timeout`, { requestId, fileNames });
+              resolve(null);
+            },
           );
           break;
         }
@@ -442,29 +827,6 @@ export const useToolExecution = ({
               );
             },
             TOOL_TIMEOUT_STANDARD,
-            () => resolve(null),
-          );
-          break;
-        }
-
-        case 'execute_agent_action': {
-          const requestId = `agent-${Date.now()}-${Math.random()}`;
-          extensionService.postMessage({
-            command: 'executeAgentAction',
-            action: { ...action.params, requestId },
-          });
-          messageDispatcher.register(
-            requestId,
-            (msg) => {
-              if (msg.result.success) {
-                resolve(
-                  `[execute_agent_action] Success:\n\`\`\`\n${JSON.stringify(msg.result.data, null, 2)}\n\`\`\``,
-                );
-              } else {
-                resolve(`[execute_agent_action] Result: Error - ${msg.result.error}`);
-              }
-            },
-            TOOL_TIMEOUT_EXTENDED,
             () => resolve(null),
           );
           break;
@@ -609,18 +971,9 @@ export const useToolExecution = ({
         clickedActionsRef.current.add(actionId);
         setClickedActions(new Set(clickedActionsRef.current));
 
-        // Skip diagnostics logic optimization
-        const isEditAction = action.type === 'replace_in_file' || action.type === 'write_to_file';
-        let skipDiagnostics = false;
-        if (isEditAction) {
-          const currentPath = action.params.path;
-          const subsequentActions = actions.slice(index + 1);
-          skipDiagnostics = subsequentActions.some(
-            (a) =>
-              (a.type === 'replace_in_file' || a.type === 'write_to_file') &&
-              a.params.path === currentPath,
-          );
-        }
+        // Always collect diagnostics for each file operation (no optimization)
+        // User preference: prioritize synchronization over performance
+        const skipDiagnostics = false;
 
         // SINGLE-LINE REVIEW CHECK: Detect write_to_file with content on a single line > 200 chars
         if (action.type === 'write_to_file') {
@@ -706,15 +1059,21 @@ export const useToolExecution = ({
           // CRITICAL: For run_command, we do NOT overwrite toolOutputs with the formatted 'result'
           // because the Raw Terminal Logs are already being updated in real-time by terminalOutput/commandExecuted events.
           // Overwriting here would inject the "Output: [run_command...]" header and backticks into the TerminalBlock UI.
-          if (action.type !== 'run_command') {
-            setToolOutputs((prev) => ({
-              ...prev,
-              [actionId]: {
-                output: cleanOutput,
-                isError,
-                terminalId: (action as any).params?.terminal_id,
-              },
-            }));
+          // ALSO: For list_files, preserve raw JSON array that was already set
+          if (action.type !== 'run_command' && action.type !== 'list_files') {
+            setToolOutputs((prev) => {
+              const existing = prev[actionId];
+              return {
+                ...prev,
+                [actionId]: {
+                  output: cleanOutput,
+                  isError,
+                  terminalId: (action as any).params?.terminal_id,
+                  // CRITICAL: Preserve diagnostics if they were set earlier
+                  diagnostics: existing?.diagnostics,
+                },
+              };
+            });
           } else {
           }
 
@@ -769,10 +1128,9 @@ export const useToolExecution = ({
         if (validResults.length < actions.length) {
           const textActionIds = actions.map((a) => `${message.id}-action-${a._index}`);
           if (handleSendMessageRef.current && !isStoppedRef?.current) {
-            const rawContent = newBuffer.join('\n\n');
-            const guardedContent = rawContent;
+            const finalContent = newBuffer.join('\n\n');
             handleSendMessageRef.current(
-              guardedContent,
+              finalContent,
               undefined,
               undefined,
               undefined,
@@ -785,17 +1143,15 @@ export const useToolExecution = ({
 
         const currentMessage = messagesRef?.current.find((m) => m.id === message.id);
         const selectedOption = currentMessage?.selectedOption;
-        const questionAnswers = currentMessage?.questionAnswers;
         const parsed = parseAIResponse(message.content);
         const hasQuestion = !!parsed.question;
-        // Check if question is answered: either legacy selectedOption or new questionAnswers
-        const isQuestionAnswered = hasQuestion
-          ? !!(selectedOption || (questionAnswers && Object.keys(questionAnswers).length > 0))
-          : true;
+        // Check if question is answered: legacy selectedOption only
+        const isQuestionAnswered = hasQuestion ? !!selectedOption : true;
 
         const allActionIds = parsed.actions.map(
           (_: any, idx: number) => `${message.id}-action-${idx}`,
         );
+        const currentBatchIds = actions.map((a) => `${message.id}-action-${a._index}`);
 
         const isAllComplete =
           allActionIds.every((id: string) => clickedActionsRef.current.has(id)) &&
@@ -805,24 +1161,8 @@ export const useToolExecution = ({
           if (handleSendMessageRef.current && !isStoppedRef?.current) {
             flushedMessageIdsRef.current.add(message.id);
             let finalContent = newBuffer.join('\n\n');
-            // Handle question answers - both legacy and new
-            if (questionAnswers && Object.keys(questionAnswers).length > 0) {
-              // New paginated format: send all answers
-              const answerLines = Object.entries(questionAnswers).map(([qId, answer]) => {
-                const q = (parsed.question as any)?.questions?.find((q: any) => q.id === qId);
-                const label = q?.label || qId;
-                let valueStr = answer.value;
-                if (Array.isArray(valueStr)) {
-                  valueStr = valueStr.join(', ');
-                } else if (typeof valueStr === 'boolean') {
-                  valueStr = valueStr ? 'Yes' : 'No';
-                }
-                return `[question: "${label}"] Answer: ${valueStr}`;
-              });
-              if (answerLines.length > 0) {
-                finalContent = answerLines.join('\n\n') + '\n\n' + finalContent;
-              }
-            } else if (selectedOption) {
+            // Handle question answer - legacy format only
+            if (selectedOption) {
               const questionTitle =
                 parsed.question?.type === 'question' ? (parsed.question as any).title : 'Question';
               finalContent = `[question: "${questionTitle || 'Question'}"] Answer: ${selectedOption}\n\n${finalContent}`;
@@ -879,22 +1219,9 @@ export const useToolExecution = ({
       clickedActionsRef.current.add(actionId);
       setClickedActions(new Set(clickedActionsRef.current));
 
-      // Determine skipDiagnostics
-      const parsed = parseAIResponse(messageObj.content);
-      const allActions = parsed.actions;
-      const actionIdx = allActions.findIndex(
-        (_a: any, i: number) => `${messageObj.id}-action-${i}` === actionId,
-      );
-      let skipDiagnostics = false;
-      if (actionIdx !== -1) {
-        const currentPath = action.params.path || action.params.file_path;
-        const subsequentActions = allActions.slice(actionIdx + 1);
-        skipDiagnostics = subsequentActions.some(
-          (a: any) =>
-            (a.type === 'replace_in_file' || a.type === 'write_to_file') &&
-            (a.params.path || a.params.file_path) === currentPath,
-        );
-      }
+      // Always collect diagnostics for each file operation (no optimization)
+      // User preference: prioritize synchronization over performance
+      const skipDiagnostics = false;
 
       // Execute the action
       const result = await executeSingleAction(
@@ -945,11 +1272,8 @@ export const useToolExecution = ({
           );
           const currentMessage = messagesRef?.current.find((m) => m.id === messageObj.id);
           const selectedOption = currentMessage?.selectedOption;
-          const questionAnswers = currentMessage?.questionAnswers;
           const hasQuestion = !!parsed.question;
-          const isQuestionAnswered = hasQuestion
-            ? !!(selectedOption || (questionAnswers && Object.keys(questionAnswers).length > 0))
-            : true;
+          const isQuestionAnswered = hasQuestion ? !!selectedOption : true;
 
           const isAllComplete =
             allActionIds.every((id: string) => clickedActionsRef.current.has(id)) &&
@@ -959,23 +1283,8 @@ export const useToolExecution = ({
             if (handleSendMessageRef.current && !isStoppedRef?.current) {
               flushedMessageIdsRef.current.add(messageObj.id);
               let finalContent = newBuffer.join('\n\n');
-              // Handle question answers - both legacy and new
-              if (questionAnswers && Object.keys(questionAnswers).length > 0) {
-                const answerLines = Object.entries(questionAnswers).map(([qId, answer]) => {
-                  const q = (parsed.question as any)?.questions?.find((q: any) => q.id === qId);
-                  const label = q?.label || qId;
-                  let valueStr = answer.value;
-                  if (Array.isArray(valueStr)) {
-                    valueStr = valueStr.join(', ');
-                  } else if (typeof valueStr === 'boolean') {
-                    valueStr = valueStr ? 'Yes' : 'No';
-                  }
-                  return `[question: "${label}"] Answer: ${valueStr}`;
-                });
-                if (answerLines.length > 0) {
-                  finalContent = answerLines.join('\n\n') + '\n\n' + finalContent;
-                }
-              } else if (selectedOption) {
+              // Handle question answer - legacy format only
+              if (selectedOption) {
                 const questionTitle =
                   parsed.question?.type === 'question'
                     ? (parsed.question as any).title
@@ -1040,11 +1349,8 @@ export const useToolExecution = ({
         );
         const currentMessage = messagesRef?.current.find((m) => m.id === messageObj.id);
         const selectedOption = currentMessage?.selectedOption;
-        const questionAnswers = currentMessage?.questionAnswers;
         const hasQuestion = !!parsed.question;
-        const isQuestionAnswered = hasQuestion
-          ? !!(selectedOption || (questionAnswers && Object.keys(questionAnswers).length > 0))
-          : true;
+        const isQuestionAnswered = hasQuestion ? !!selectedOption : true;
 
         const isAllComplete =
           allActionIds.every(
@@ -1055,23 +1361,8 @@ export const useToolExecution = ({
           if (handleSendMessageRef.current && !isStoppedRef?.current) {
             flushedMessageIdsRef.current.add(messageObj.id);
             let finalContent = newBuffer.join('\n\n');
-            // Handle question answers - both legacy and new
-            if (questionAnswers && Object.keys(questionAnswers).length > 0) {
-              const answerLines = Object.entries(questionAnswers).map(([qId, answer]) => {
-                const q = (parsed.question as any)?.questions?.find((q: any) => q.id === qId);
-                const label = q?.label || qId;
-                let valueStr = answer.value;
-                if (Array.isArray(valueStr)) {
-                  valueStr = valueStr.join(', ');
-                } else if (typeof valueStr === 'boolean') {
-                  valueStr = valueStr ? 'Yes' : 'No';
-                }
-                return `[question: "${label}"] Answer: ${valueStr}`;
-              });
-              if (answerLines.length > 0) {
-                finalContent = answerLines.join('\n\n') + '\n\n' + finalContent;
-              }
-            } else if (selectedOption) {
+            // Handle question answer - legacy format only
+            if (selectedOption) {
               const questionTitle =
                 parsed.question?.type === 'question' ? (parsed.question as any).title : 'Question';
               finalContent = `[question: "${questionTitle || 'Question'}"] Answer: ${selectedOption}\n\n${finalContent}`;
@@ -1109,12 +1400,7 @@ export const useToolExecution = ({
 
       const parsed = parseAIResponse(msg.content);
       const hasQuestion = !!parsed.question;
-      const isQuestionAnswered = hasQuestion
-        ? !!(
-            msg.selectedOption ||
-            (msg.questionAnswers && Object.keys(msg.questionAnswers).length > 0)
-          )
-        : true;
+      const isQuestionAnswered = hasQuestion ? !!msg.selectedOption : true;
 
       const allActionIds = parsed.actions.map((_, idx: number) => `${msg.id}-action-${idx}`);
       const allToolsDone = allActionIds.every((id) => clickedActionsRef.current.has(id));
@@ -1124,33 +1410,15 @@ export const useToolExecution = ({
         if (handleSendMessageRef.current && !isStoppedRef?.current) {
           flushedMessageIdsRef.current.add(messageId);
           let finalContent = buffer.join('\n\n');
-          // Handle question answers - both legacy and new
-          if (msg.questionAnswers && Object.keys(msg.questionAnswers).length > 0) {
-            const answerLines = Object.entries(msg.questionAnswers).map(([qId, answer]) => {
-              const q = (parsed.question as any)?.questions?.find((q: any) => q.id === qId);
-              const label = q?.label || qId;
-              let valueStr = answer.value;
-              if (Array.isArray(valueStr)) {
-                valueStr = valueStr.join(', ');
-              } else if (typeof valueStr === 'boolean') {
-                valueStr = valueStr ? 'Yes' : 'No';
-              }
-              return `[question: "${label}"] Answer: ${valueStr}`;
-            });
-            if (answerLines.length > 0) {
-              finalContent = answerLines.join('\n\n') + '\n\n' + finalContent;
-            }
-          } else if (msg.selectedOption) {
+          // Handle question answer - legacy format only
+          if (msg.selectedOption) {
             const questionTitle =
               parsed.question?.type === 'question' ? (parsed.question as any).title : 'Question';
             finalContent = `[question: "${questionTitle || 'Question'}"] Answer: ${msg.selectedOption}\n\n${finalContent}`;
           }
 
-          // Build actions list from the message for token guard
-          const guardedContent = finalContent;
-
           handleSendMessageRef.current(
-            guardedContent,
+            finalContent,
             undefined,
             undefined,
             undefined,

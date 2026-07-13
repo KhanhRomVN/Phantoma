@@ -1,4 +1,4 @@
-import { Message } from '../types/message';
+import { Message } from "../types/message";
 
 export interface CachedConversation {
   messages: Message[];
@@ -6,9 +6,20 @@ export interface CachedConversation {
   backendConversationId?: string;
   currentModel?: any;
   currentAccount?: any;
-  toolOutputs?: Record<string, { output: string; isError: boolean; terminalId?: string }>;
-  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>;
+  toolOutputs?: Record<
+    string,
+    { output: string; isError: boolean; terminalId?: string }
+  >;
+  singleLineReviewActions?: Record<
+    string,
+    { action: any; actionId: string; messageId: string }
+  >;
   questionAnswers?: Record<string, Record<string, any>>;
+  conversationFileStats?: {
+    totalFiles: number;
+    totalAdditions: number;
+    totalDeletions: number;
+  };
 }
 
 const MAX_CACHE = 20;
@@ -16,7 +27,10 @@ const cacheKeys: string[] = [];
 const cache: Record<string, CachedConversation> = {};
 
 // Global persistent store for questionAnswers (bypasses cache overwrite issues)
-const questionAnswersStore: Record<string, Record<string, Record<string, any>>> = {};
+const questionAnswersStore: Record<
+  string,
+  Record<string, Record<string, any>>
+> = {};
 
 export const ConversationCache = {
   get: (conversationId: string): CachedConversation | undefined => {
@@ -43,7 +57,9 @@ export const ConversationCache = {
     }
     cache[conversationId] = data;
   },
-  getQuestionAnswers: (conversationId: string): Record<string, Record<string, any>> | undefined => {
+  getQuestionAnswers: (
+    conversationId: string,
+  ): Record<string, Record<string, any>> | undefined => {
     return questionAnswersStore[conversationId];
   },
   delete: (conversationId: string) => {

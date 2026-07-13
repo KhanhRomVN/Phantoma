@@ -1,6 +1,6 @@
 // ============= TYPES =============
-export type ToolCategory = "read" | "write" | "git" | "system" | "ui";
-export type PermissionLevel = "allow" | "prompt" | "deny";
+export type ToolCategory = 'read' | 'write' | 'git' | 'system' | 'ui';
+export type PermissionLevel = 'allow' | 'prompt' | 'deny';
 
 export interface ToolDefinition<TParams = any> {
   // Core identity
@@ -28,329 +28,431 @@ export interface ToolDefinition<TParams = any> {
     showFileStats?: boolean; // Show line count for file operations
     validateFuzzyMatch?: boolean; // Validate diff before apply
   };
+
+  // Attribute normalization (NEW)
+  attributeAliases?: Record<string, string[]>; // Map canonical name -> variants
 }
 
 // ============= TOOL REGISTRY =============
 export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
   read_file: {
-    type: "read_file",
+    type: 'read_file',
     variants: [
-      "readFile",
-      "ReadFile",
-      "read_File",
-      "readfile",
-      "READFILE",
-      "Read_File",
-      "Readfile",
-      "READ_FILE",
+      'readFile',
+      'ReadFile',
+      'read_File',
+      'readfile',
+      'READFILE',
+      'Read_File',
+      'Readfile',
+      'READ_FILE',
     ],
-    label: "Read",
-    color: "var(--vscode-textLink-foreground, #3b82f6)",
-    category: "read",
+    label: 'Read',
+    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    category: 'read',
     requiresConfirmation: false,
     isClickable: true,
-    defaultPermission: "prompt",
+    defaultPermission: 'prompt',
     timeout: 10000,
-    tags: ["file", "io"],
+    tags: ['file', 'io'],
     features: {
       showFileStats: true, // Show line count in UI
+    },
+    attributeAliases: {
+      path: ['filePath', 'file_path', 'FilePath', 'File_Path', 'FILE_PATH', 'filepath'],
     },
   },
 
   write_to_file: {
-    type: "write_to_file",
+    type: 'write_to_file',
     variants: [
-      "writeToFile",
-      "WriteToFile",
-      "write_to_File",
-      "WritetoFile",
-      "writetofile",
-      "WRITETOFILE",
-      "Write_To_File",
-      "writefile",
-      "WriteFile",
-      "WRITE_TO_FILE",
-      "write_toFile",
-      "writeTofile",
-      "WriteTo_File",
+      'writeToFile',
+      'WriteToFile',
+      'write_to_File',
+      'WritetoFile',
+      'writetofile',
+      'WRITETOFILE',
+      'Write_To_File',
+      'writefile',
+      'WriteFile',
+      'WRITE_TO_FILE',
+      'write_toFile',
+      'writeTofile',
+      'WriteTo_File',
     ],
-    label: "Write",
-    color: "var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)",
-    category: "write",
+    label: 'Write',
+    color: 'var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)',
+    category: 'write',
     requiresConfirmation: false,
     isClickable: true,
-    defaultPermission: "prompt",
+    defaultPermission: 'prompt',
     timeout: 10000,
-    tags: ["file", "io"],
+    tags: ['file', 'io'],
     features: {
       showFileStats: true, // Show line count in UI
+    },
+    attributeAliases: {
+      path: ['filePath', 'file_path', 'FilePath', 'File_Path', 'FILE_PATH', 'filepath'],
     },
   },
 
   replace_in_file: {
-    type: "replace_in_file",
+    type: 'replace_in_file',
     variants: [
-      "replaceInFile",
-      "ReplaceInFile",
-      "replace_in_File",
-      "ReplaceInfile",
-      "replaceinfile",
-      "REPLACEINFILE",
-      "Replace_In_File",
-      "replaceFile",
-      "ReplaceFile",
-      "REPLACE_IN_FILE",
-      "replace_InFile",
-      "replaceInfile",
-      "Replace_in_file",
+      'replaceInFile',
+      'ReplaceInFile',
+      'replace_in_File',
+      'ReplaceInfile',
+      'replaceinfile',
+      'REPLACEINFILE',
+      'Replace_In_File',
+      'replaceFile',
+      'ReplaceFile',
+      'REPLACE_IN_FILE',
+      'replace_InFile',
+      'replaceInfile',
+      'Replace_in_file',
     ],
-    label: "Replace",
-    color: "var(--vscode-editorWarning-foreground, #d4a72c)",
-    category: "write",
+    label: 'Replace',
+    color: 'var(--vscode-editorWarning-foreground, #d4a72c)',
+    category: 'write',
     requiresConfirmation: false,
     isClickable: true,
-    defaultPermission: "prompt",
+    defaultPermission: 'prompt',
     timeout: 10000,
-    tags: ["file", "io", "diff"],
+    tags: ['file', 'io', 'diff'],
     features: {
       validateFuzzyMatch: true, // Validate diff before apply
+    },
+    attributeAliases: {
+      path: ['filePath', 'file_path', 'FilePath', 'File_Path', 'FILE_PATH', 'filepath'],
+    },
+  },
+
+  revert_file: {
+    type: 'revert_file',
+    variants: [
+      'revertFile',
+      'RevertFile',
+      'revert_File',
+      'RevertInfile',
+      'revertfile',
+      'REVERTFILE',
+      'Revert_File',
+      'REVERT_FILE',
+    ],
+    label: 'Revert',
+    color: 'var(--vscode-gitDecoration-conflictingResourceForeground, #c74e39)',
+    category: 'write',
+    requiresConfirmation: false,
+    isClickable: true,
+    defaultPermission: 'prompt',
+    timeout: 10000,
+    tags: ['file', 'undo'],
+    attributeAliases: {
+      path: ['filePath', 'file_path', 'FilePath', 'File_Path', 'FILE_PATH', 'filepath'],
     },
   },
 
   list_files: {
-    type: "list_files",
+    type: 'list_files',
     variants: [
-      "listFiles",
-      "ListFiles",
-      "list_Files",
-      "ListFile",
-      "listfiles",
-      "LISTFILES",
-      "List_Files",
-      "list_file",
-      "listFile",
-      "LIST_FILES",
+      'listFiles',
+      'ListFiles',
+      'list_Files',
+      'ListFile',
+      'listfiles',
+      'LISTFILES',
+      'List_Files',
+      'list_file',
+      'listFile',
+      'LIST_FILES',
     ],
-    label: "List",
-    color: "var(--vscode-textLink-foreground, #3b82f6)",
-    category: "read",
+    label: 'List',
+    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    category: 'read',
     requiresConfirmation: false,
     isClickable: true,
-    defaultPermission: "prompt",
+    defaultPermission: 'prompt',
     timeout: 10000,
-    tags: ["file", "directory"],
+    tags: ['file', 'directory'],
+    attributeAliases: {
+      path: [
+        'dirPath',
+        'dir_path',
+        'DirPath',
+        'Dir_Path',
+        'DIR_PATH',
+        'directoryPath',
+        'directory_path',
+      ],
+    },
+  },
+
+  find_files: {
+    type: 'find_files',
+    variants: [
+      'findFiles',
+      'FindFiles',
+      'find_Files',
+      'findfiles',
+      'FINDFILES',
+      'Find_Files',
+      'Findfiles',
+      'FIND_FILES',
+    ],
+    label: 'Find',
+    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    category: 'read',
+    requiresConfirmation: false,
+    isClickable: true,
+    defaultPermission: 'prompt',
+    timeout: 30000,
+    tags: ['file', 'search'],
   },
 
   grep: {
-    type: "grep",
-    variants: ["Grep", "GREP"],
-    label: "Grep",
-    color: "var(--vscode-textLink-foreground, #3b82f6)",
-    category: "read",
+    type: 'grep',
+    variants: ['Grep', 'GREP'],
+    label: 'Grep',
+    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    category: 'read',
     requiresConfirmation: false,
     isClickable: true,
-    defaultPermission: "prompt",
+    defaultPermission: 'prompt',
     timeout: 30000,
-    tags: ["search", "file"],
+    tags: ['search', 'file'],
   },
 
   delete_file: {
-    type: "delete_file",
+    type: 'delete_file',
     variants: [
-      "deleteFile",
-      "DeleteFile",
-      "delete_File",
-      "deletefile",
-      "DELETEFILE",
-      "Delete_File",
-      "Deletefile",
-      "DELETE_FILE",
+      'deleteFile',
+      'DeleteFile',
+      'delete_File',
+      'deletefile',
+      'DELETEFILE',
+      'Delete_File',
+      'Deletefile',
+      'DELETE_FILE',
     ],
-    label: "Delete",
-    color: "var(--vscode-errorForeground, #ef4444)",
-    category: "write",
+    label: 'Delete',
+    color: 'var(--vscode-errorForeground, #ef4444)',
+    category: 'write',
     requiresConfirmation: false,
     isClickable: true,
-    defaultPermission: "prompt",
+    defaultPermission: 'prompt',
     timeout: 10000,
-    tags: ["file", "destructive"],
+    tags: ['file', 'destructive'],
+    attributeAliases: {
+      path: ['filePath', 'file_path', 'FilePath', 'File_Path', 'FILE_PATH', 'filepath'],
+    },
   },
 
   delete_folder: {
-    type: "delete_folder",
+    type: 'delete_folder',
     variants: [
-      "deleteFolder",
-      "DeleteFolder",
-      "delete_Folder",
-      "deletefolder",
-      "DELETEFOLDER",
-      "Delete_Folder",
-      "Deletefolder",
-      "DELETE_FOLDER",
+      'deleteFolder',
+      'DeleteFolder',
+      'delete_Folder',
+      'deletefolder',
+      'DELETEFOLDER',
+      'Delete_Folder',
+      'Deletefolder',
+      'DELETE_FOLDER',
     ],
-    label: "Delete",
-    color: "var(--vscode-errorForeground, #ef4444)",
-    category: "write",
+    label: 'Delete',
+    color: 'var(--vscode-errorForeground, #ef4444)',
+    category: 'write',
     requiresConfirmation: false,
     isClickable: true,
-    defaultPermission: "prompt",
+    defaultPermission: 'prompt',
     timeout: 10000,
-    tags: ["directory", "destructive"],
+    tags: ['directory', 'destructive'],
+    attributeAliases: {
+      path: [
+        'folderPath',
+        'folder_path',
+        'FolderPath',
+        'Folder_Path',
+        'FOLDER_PATH',
+        'directoryPath',
+        'directory_path',
+      ],
+    },
   },
 
   move_file: {
-    type: "move_file",
+    type: 'move_file',
     variants: [
-      "moveFile",
-      "MoveFile",
-      "move_File",
-      "movefile",
-      "MOVEFILE",
-      "Move_File",
-      "Movefile",
-      "MOVE_FILE",
+      'moveFile',
+      'MoveFile',
+      'move_File',
+      'movefile',
+      'MOVEFILE',
+      'Move_File',
+      'Movefile',
+      'MOVE_FILE',
     ],
-    label: "Move",
-    color: "var(--vscode-textLink-foreground, #3b82f6)",
-    category: "write",
+    label: 'Move',
+    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    category: 'write',
     requiresConfirmation: false,
     isClickable: true,
-    defaultPermission: "prompt",
+    defaultPermission: 'prompt',
     timeout: 10000,
-    tags: ["file", "io"],
+    tags: ['file', 'io'],
+    attributeAliases: {
+      source: [
+        'sourcePath',
+        'source_path',
+        'SourcePath',
+        'Source_Path',
+        'SOURCE_PATH',
+        'from',
+        'oldPath',
+        'old_path',
+      ],
+      destination: [
+        'destPath',
+        'dest_path',
+        'DestPath',
+        'Dest_Path',
+        'DEST_PATH',
+        'to',
+        'newPath',
+        'new_path',
+      ],
+    },
   },
 
   run_command: {
-    type: "run_command",
+    type: 'run_command',
     variants: [
-      "runCommand",
-      "RunCommand",
-      "run_Command",
-      "runcommand",
-      "RUNCOMMAND",
-      "Run_Command",
-      "Runcommand",
-      "RUN_COMMAND",
+      'runCommand',
+      'RunCommand',
+      'run_Command',
+      'runcommand',
+      'RUNCOMMAND',
+      'Run_Command',
+      'Runcommand',
+      'RUN_COMMAND',
     ],
-    label: "Execute",
-    color: "var(--vscode-editorWarning-foreground, #f59e0b)",
-    category: "system",
+    label: 'Execute',
+    color: 'var(--vscode-editorWarning-foreground, #f59e0b)',
+    category: 'system',
     requiresConfirmation: true,
     isClickable: true,
-    defaultPermission: "prompt",
+    defaultPermission: 'prompt',
     timeout: 30000,
-    tags: ["command", "shell"],
+    tags: ['command', 'shell'],
+    attributeAliases: {
+      command: ['cmd', 'Command', 'CMD', 'commandText', 'command_text'],
+    },
   },
 
   git_status: {
-    type: "git_status",
+    type: 'git_status',
     variants: [],
-    label: "Git Status",
-    color: "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)",
-    category: "git",
+    label: 'Git Status',
+    color: 'var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)',
+    category: 'git',
     requiresConfirmation: false,
     isClickable: false,
-    defaultPermission: "allow",
+    defaultPermission: 'allow',
     timeout: 10000,
-    tags: ["git", "vcs"],
+    tags: ['git', 'vcs'],
   },
 
   commit_message: {
-    type: "commit_message",
+    type: 'commit_message',
     variants: [],
-    label: "Commit Message",
-    color: "var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)",
-    category: "git",
+    label: 'Commit Message',
+    color: 'var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)',
+    category: 'git',
     requiresConfirmation: false,
     isClickable: false,
-    defaultPermission: "allow",
+    defaultPermission: 'allow',
     timeout: 10000,
-    tags: ["git", "vcs"],
+    tags: ['git', 'vcs'],
   },
 
   git_diff: {
-    type: "git_diff",
-    variants: [
-      "gitDiff",
-      "GitDiff",
-      "git-diff",
-      "Git_Diff",
-      "gitdiff",
-      "GIT_DIFF",
-    ],
-    label: "Git Diff",
-    color: "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)",
-    category: "git",
+    type: 'git_diff',
+    variants: ['gitDiff', 'GitDiff', 'git-diff', 'Git_Diff', 'gitdiff', 'GIT_DIFF'],
+    label: 'Git Diff',
+    color: 'var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)',
+    category: 'git',
     requiresConfirmation: false,
     isClickable: true,
-    defaultPermission: "allow",
+    defaultPermission: 'allow',
     timeout: 30000,
-    tags: ["git", "vcs", "diff"],
+    tags: ['git', 'vcs', 'diff'],
   },
 
   code: {
-    type: "code",
+    type: 'code',
     variants: [],
-    label: "Code",
-    color: "var(--vscode-textLink-foreground, #3b82f6)",
-    category: "ui",
+    label: 'Code',
+    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
-    defaultPermission: "allow",
+    defaultPermission: 'allow',
     timeout: 0,
-    tags: ["ui", "display"],
+    tags: ['ui', 'display'],
   },
 
   markdown: {
-    type: "markdown",
+    type: 'markdown',
     variants: [],
-    label: "Markdown",
-    color: "var(--vscode-foreground)",
-    category: "ui",
+    label: 'Markdown',
+    color: 'var(--vscode-foreground)',
+    category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
-    defaultPermission: "allow",
+    defaultPermission: 'allow',
     timeout: 0,
-    tags: ["ui", "display"],
+    tags: ['ui', 'display'],
   },
 
   thinking: {
-    type: "thinking",
+    type: 'thinking',
     variants: [],
-    label: "Thinking",
-    color: "var(--vscode-editorBracketHighlight-foreground2, #a855f7)",
-    category: "ui",
+    label: 'Thinking',
+    color: 'var(--vscode-editorBracketHighlight-foreground2, #a855f7)',
+    category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
-    defaultPermission: "allow",
+    defaultPermission: 'allow',
     timeout: 0,
-    tags: ["ui", "ai"],
+    tags: ['ui', 'ai'],
   },
 
   question: {
-    type: "question",
+    type: 'question',
     variants: [],
-    label: "Question",
-    color: "var(--vscode-button-background, #007acc)",
-    category: "ui",
+    label: 'Question',
+    color: 'var(--vscode-button-background, #007acc)',
+    category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
-    defaultPermission: "allow",
+    defaultPermission: 'allow',
     timeout: 0,
-    tags: ["ui", "interaction"],
+    tags: ['ui', 'interaction'],
   },
 
   context_compression: {
-    type: "context_compression",
-    variants: ["contextCompression", "ContextCompression", "context_Compression"],
-    label: "Context Summary",
-    color: "var(--vscode-editorBracketHighlight-foreground2, #10b981)",
-    category: "ui",
+    type: 'context_compression',
+    variants: ['contextCompression', 'ContextCompression', 'context_Compression'],
+    label: 'Context Summary',
+    color: 'var(--vscode-editorBracketHighlight-foreground2, #10b981)',
+    category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
-    defaultPermission: "allow",
+    defaultPermission: 'allow',
     timeout: 0,
-    tags: ["ui", "system", "compression"],
+    tags: ['ui', 'system', 'compression'],
   },
 };
 
@@ -360,9 +462,7 @@ export const getToolDef = (type: string): ToolDefinition | undefined => {
   return TOOL_REGISTRY[type];
 };
 
-export const getToolDefByVariant = (
-  variant: string,
-): ToolDefinition | undefined => {
+export const getToolDefByVariant = (variant: string): ToolDefinition | undefined => {
   return Object.values(TOOL_REGISTRY).find(
     (def) => def.type === variant || def.variants.includes(variant),
   );
@@ -373,13 +473,11 @@ export const getAllToolTypes = (): string[] => {
 };
 
 export const getToolColor = (type: string): string => {
-  return (
-    getToolDef(type)?.color ?? "var(--vscode-descriptionForeground, #6b7280)"
-  );
+  return getToolDef(type)?.color ?? 'var(--vscode-descriptionForeground, #6b7280)';
 };
 
 export const getToolLabel = (type: string): string => {
-  return getToolDef(type)?.label ?? "Unknown";
+  return getToolDef(type)?.label ?? 'Unknown';
 };
 
 export const requiresConfirmation = (type: string): boolean => {
@@ -408,7 +506,7 @@ export const getToolsByCategory = (category: ToolCategory): string[] => {
  */
 export const getConfigurableTools = (): string[] => {
   return Object.values(TOOL_REGISTRY)
-    .filter((def) => def.category !== "git" && def.category !== "ui")
+    .filter((def) => def.category !== 'git' && def.category !== 'ui')
     .map((def) => def.type);
 };
 
@@ -421,10 +519,7 @@ export const isFileTool = (toolType: string): boolean => {
 
   // File tools are: read category or write category
   // Explicitly exclude run_command (system category) as it's handled by TerminalToolRenderer
-  return (
-    (def.category === "read" || def.category === "write") &&
-    toolType !== "run_command"
-  );
+  return (def.category === 'read' || def.category === 'write') && toolType !== 'run_command';
 };
 
 /**
@@ -432,7 +527,7 @@ export const isFileTool = (toolType: string): boolean => {
  */
 export const getExecutableToolTypes = (): string[] => {
   return Object.values(TOOL_REGISTRY)
-    .filter((def) => def.category !== "ui")
+    .filter((def) => def.category !== 'ui')
     .map((def) => def.type);
 };
 
@@ -440,14 +535,14 @@ export const getExecutableToolTypes = (): string[] => {
  * Get all read tools (used for permission decisions)
  */
 export const getReadTools = (): string[] => {
-  return getToolsByCategory("read");
+  return getToolsByCategory('read');
 };
 
 /**
  * Check if a tool is in the read category
  */
 export const isReadTool = (toolType: string): boolean => {
-  return getToolDef(toolType)?.category === "read";
+  return getToolDef(toolType)?.category === 'read';
 };
 
 /**
@@ -473,15 +568,17 @@ export type ToolType = keyof typeof TOOL_REGISTRY;
  * Executable tool type union (excludes UI tools)
  */
 export type ExecutableToolType =
-  | "read_file"
-  | "write_to_file"
-  | "replace_in_file"
-  | "list_files"
-  | "run_command"
-  | "delete_file"
-  | "delete_folder"
-  | "move_file"
-  | "grep"
-  | "git_status"
-  | "commit_message"
-  | "git_diff";
+  | 'read_file'
+  | 'write_to_file'
+  | 'replace_in_file'
+  | 'revert_file'
+  | 'list_files'
+  | 'find_files'
+  | 'run_command'
+  | 'delete_file'
+  | 'delete_folder'
+  | 'move_file'
+  | 'grep'
+  | 'git_status'
+  | 'commit_message'
+  | 'git_diff';
