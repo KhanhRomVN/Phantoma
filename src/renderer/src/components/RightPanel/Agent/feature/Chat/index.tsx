@@ -213,7 +213,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   } = useChatLLM({
     apiUrl,
     selectedTab: currentChat,
-    feature,
     onToolRequest: (actions, assistantMessage, isAutoTrigger, actionType) =>
       handleToolRequest(
         actions,
@@ -641,8 +640,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const firstRequestMessage = messages.find((m) => m.role === 'user');
   const displayedModel = enrichedModel ?? currentModel;
-  const footerPaddingBottom =
-    showBrowserWarning && currentModel?.providerId === 'zai-browser' ? '20px' : '8px';
 
   // --- Render ---
   return (
@@ -684,8 +681,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           onLoadConversation={onLoadConversation}
           activeTerminalIds={activeTerminalIds}
           attachedTerminalIds={attachedTerminalIds}
-          conversationId={currentConversationId}
-          onToolAction={handleToolAction}
+conversationId={currentConversationId}
+          onToolAction={(_actionId: string, actionType: 'accept_all' | 'accept_once' | 'reject', toolName?: string) =>
+            handleToolAction(actionType, toolName)
+          }
           onSelectOption={handleSelectOption}
           isRestored={isRestored}
           onContinue={() => setIsRestored(false)}
@@ -758,12 +757,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         externalFileInputRef={externalFileInputRef}
         handleExternalFileInputChange={handleExternalFileInputChange}
         handleFileInputChange={handleFileInputChange}
-        footerPaddingBottom={footerPaddingBottom}
-        shouldShowCompressionButton={shouldShowCompressionButton}
-        gitStatus={gitStatus}
-        onOpenGitStatus={() => setShowGitStatusBlock(true)}
-        loadedConversationFileStats={loadedConversationFileStats}
-        onModelSwitch={handleModelSwitch as any}
       />
     </div>
   );

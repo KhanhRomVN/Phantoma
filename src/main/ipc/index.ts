@@ -6,3 +6,4 @@ export * from './fs.handlers';
 export * from './tls.handlers';
 export * from './renderer.handlers';
 export { setupMobileHandlers } from './mobile.handlers';
+export { setupConversationHandlers } from './conversation.handlers';
