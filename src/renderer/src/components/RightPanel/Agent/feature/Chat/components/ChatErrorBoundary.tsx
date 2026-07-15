@@ -42,74 +42,26 @@ export class ChatErrorBoundary extends React.Component<
       const errorColor = 'var(--vscode-errorForeground, #f44336)';
 
       return (
-        <div
-          style={{
-            padding: '12px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-        >
+        <div className="p-3 flex flex-col gap-2">
           {/* Header matching ToolHeader style */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              width: '100%',
-            }}
-          >
+          <div className="flex items-start justify-between w-full">
             {/* Left panel: CircleDot */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
+            <div className="flex items-start gap-2 flex-1 min-w-0">
               <div
-                style={{
-                  position: 'relative',
-                  width: '16px',
-                  height: '16px',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginTop: '2px',
-                }}
+                className="relative w-4 h-4 shrink-0 flex items-center justify-center mt-0.5"
                 title="Error - Render failed"
               >
                 {/* CircleDot */}
                 <div
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: errorColor,
-                  }}
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: errorColor }}
                 />
               </div>
             </div>
 
             {/* Right panel: ERROR label */}
-            <div
-              style={{
-                flexShrink: 0,
-                marginLeft: '8px',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: errorColor,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
+            <div className="shrink-0 ml-2">
+              <span className="text-[11px] font-semibold text-error uppercase tracking-wider">
                 ERROR
               </span>
             </div>
@@ -118,25 +70,13 @@ export class ChatErrorBoundary extends React.Component<
           {/* Error Block */}
           {this.state.error && (
             <div
+              className="p-3 rounded-md"
               style={{
-                padding: '12px 16px',
-                borderRadius: '6px',
                 border: `1px solid color-mix(in srgb, ${errorColor} 30%, transparent)`,
                 background: `color-mix(in srgb, ${errorColor} 5%, transparent)`,
               }}
             >
-              <pre
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--vscode-descriptionForeground)',
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  maxHeight: '120px',
-                  overflowY: 'auto',
-                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                }}
-              >
+              <pre className="text-[11px] text-text-secondary m-0 whitespace-pre-wrap break-words max-h-[120px] overflow-y-auto font-mono">
                 {this.state.error.message}
               </pre>
             </div>

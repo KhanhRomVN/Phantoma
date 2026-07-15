@@ -1,6 +1,7 @@
-import { targetService } from '@renderer/services/TargetService';
+import { requestStorage } from '@renderer/services/IndexedDBStorage';
 
 export interface ListHttpsParams {
+  targetId?: string;
   filter?: {
     method?: string;
     host?: string;
@@ -12,54 +13,58 @@ export interface ListHttpsParams {
 
 /**
  * Execute list_https tool
- * Lists captured HTTPS requests from the current emulate target
+ * Lists captured HTTPS requests from the current emulate target via IndexedDB
  */
 export async function executeListHttps(
   params: ListHttpsParams,
 ): Promise<string | null> {
+  const { targetId, filter, limit } = params;
+
+  console.log('[list_https] executeListHttps called:', { targetId, filter, limit });
+
+  if (!targetId) {
+    console.warn('[list_https] No targetId provided — no active emulate target');
+    return `[list_https] Result: No active target. Please select or start an emulate target first.`;
+  }
+
   try {
-    // Get the list of requests from the target service
-    // The requests are stored in the network events state
-    // For now, we fetch from the API or use the global state
-    
-    // Use the global request list from the emulate store
-    // In the actual implementation, we need to access the requests from the Emulate state
-    // For now, we'll try to get them from window.__emulate_requests__ or similar
-    
-    const requests = (window as any).__emulate_requests__ || [];
-    
-    let filtered = requests;
-    
+    console.log('[list_https] Fetching requests from IndexedDB for target:', targetId);
+    const storedRequests = await requestStorage.getRequests(targetId, limit || 100, 0);
+    console.log('[list_https] Fetched requests count:', storedRequests.length);
+
+    let filtered = storedRequests;
+
     // Apply filters
-    if (params.filter) {
-      const { method, host, path, status } = params.filter;
+    if (filter) {
+      const { method, host, path, status } = filter;
       if (method) {
-        filtered = filtered.filter((r: any) => 
-          r.method?.toLowerCase() === method.toLowerCase()
+        filtered = filtered.filter((r) =>
+          r.method?.toLowerCase() === method.toLowerCase(),
         );
       }
       if (host) {
-        filtered = filtered.filter((r: any) => 
-          r.host?.toLowerCase().includes(host.toLowerCase())
+        filtered = filtered.filter((r) =>
+          r.host?.toLowerCase().includes(host.toLowerCase()),
         );
       }
       if (path) {
-        filtered = filtered.filter((r: any) => 
-          r.path?.toLowerCase().includes(path.toLowerCase())
+        filtered = filtered.filter((r) =>
+          r.path?.toLowerCase().includes(path.toLowerCase()),
         );
       }
       if (status !== undefined) {
-        filtered = filtered.filter((r: any) => r.status === status);
+        filtered = filtered.filter((r) => r.status === status);
       }
+      console.log('[list_https] After filter:', filtered.length, 'requests');
     }
-    
-    // Apply limit
-    if (params.limit && params.limit > 0) {
-      filtered = filtered.slice(0, params.limit);
+
+    // Apply limit again after filter
+    if (limit && limit > 0 && filtered.length > limit) {
+      filtered = filtered.slice(0, limit);
     }
-    
+
     // Format results with stt (index)
-    const formatted = filtered.map((req: any, index: number) => ({
+    const formatted = filtered.map((req, index) => ({
       stt: index,
       method: req.method || 'GET',
       host: req.host || '',
@@ -71,14 +76,17 @@ export async function executeListHttps(
       time: req.time || '0ms',
       timestamp: req.timestamp || Date.now(),
     }));
-    
+
     if (formatted.length === 0) {
-      return `[list_https] Result: No HTTPS requests found.`;
+      console.log('[list_https] No requests found for target:', targetId);
+      return `[list_https] Result: No HTTPS requests found for target "${targetId}".`;
     }
-    
+
+    console.log('[list_https] Returning', formatted.length, 'requests');
     return `[list_https] Result: Found ${formatted.length} HTTPS request(s):\n\`\`\`json\n${JSON.stringify(formatted, null, 2)}\n\`\`\``;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('[list_https] Error:', errorMsg);
     return `[list_https] Error: ${errorMsg}`;
   }
 }

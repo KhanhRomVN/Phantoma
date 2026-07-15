@@ -72,14 +72,7 @@ const MessageBoxCodeBlock: React.FC<{
   const [isCollapsed, setIsCollapsed] = React.useState(isDiffBlock);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-        marginBottom: '8px',
-      }}
-    >
+    <div className="flex flex-col gap-1 mb-2">
       <ToolHeader
         title={prefix || language || 'code'}
         statusColor={statusColor}
@@ -95,12 +88,12 @@ const MessageBoxCodeBlock: React.FC<{
             className="bg-transparent border-none text-primary cursor-pointer opacity-70 flex items-center p-0.5"
             title="Copy Code"
           >
-            <div className="codicon codicon-copy" style={{ fontSize: '14px' }} />
+            <div className="codicon codicon-copy text-sm" />
           </button>
         }
       />
       {!isCollapsed && (
-        <div style={{ paddingLeft: '29px' }}>
+        <div className="pl-[29px]">
           <pre className="m-0 p-2 overflow-auto font-mono text-xs bg-background rounded">
             <code className="!bg-transparent p-0">{code}</code>
           </pre>
@@ -209,16 +202,11 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
 
   return (
     <div
-      className="assistant-message-container flex flex-col gap-0 relative transition-all duration-300 ease"
+      className="assistant-message-container flex flex-col gap-0 relative transition-all duration-300 ease mb-3 bg-transparent rounded-md border-none p-0"
       style={{
-        marginBottom: $('--spacing-md'),
         opacity: message.isCancelled ? 0.4 : 1,
         filter: message.isCancelled ? 'grayscale(1) blur(0.5px)' : 'none',
         pointerEvents: message.isCancelled ? 'none' : 'auto',
-        backgroundColor: 'transparent',
-        borderRadius: $('--border-radius'),
-        border: 'none',
-        padding: '0px',
       }}
     >
       {/* 3. Interleaved Content (Text + Tools) */}
@@ -440,25 +428,13 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
 
           if (group.type === 'metadata') {
             content = (
-              <div style={{ paddingBottom: '8px' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '20px',
-                    height: '20px',
-                  }}
-                >
+              <div className="pb-2">
+                <div className="flex items-center justify-center w-5 h-5">
                   {group.faviconUrl ? (
                     <img
                       src={group.faviconUrl}
                       alt="favicon"
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '2px',
-                      }}
+                      className="w-4 h-4 rounded-sm"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                         const parent = (e.target as HTMLImageElement).parentElement;
@@ -473,27 +449,12 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                     />
                   ) : (
                     <span
-                      className="codicon codicon-server-process"
-                      style={{
-                        color: $('--secondary-text') || 'currentColor',
-                        fontSize: '14px',
-                      }}
+                      className="codicon codicon-server-process text-text-secondary"
+                      style={{ fontSize: '14px' }}
                     />
                   )}
                 </div>
-                <div
-                  style={{
-                    paddingLeft: '29px',
-                    paddingTop: '4px',
-                    fontSize: $('--font-size-sm'),
-                    color: $('--secondary-text'),
-                    lineHeight: 1.6,
-                    fontStyle: 'italic',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
+                <div className="pl-[29px] pt-1 text-sm text-text-secondary leading-relaxed italic flex items-center gap-1.5">
                   {group.content}
                 </div>
               </div>
@@ -531,17 +492,10 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
           } else if (group.type === 'file') {
             content = (
               <div
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer ml-[29px] text-xs"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
                   backgroundColor: $('--primary, #4d4d4d'),
                   color: $('--text-foreground, #ffffff'),
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  marginLeft: '29px',
                 }}
                 onClick={() => {
                   const vscodeApi = (window as any).vscodeApi;
@@ -553,7 +507,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                   }
                 }}
               >
-                <FileIcon path={group.content} style={{ width: '14px', height: '14px' }} />
+                <FileIcon path={group.content} className="w-[14px] h-[14px]" />
                 <span>{group.content}</span>
               </div>
             );
@@ -561,33 +515,13 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             const dotColor = message.isError ? $('--error, #ff4d4f') : $('--success, #3fb950');
             content = (
               <div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '20px',
-                    height: '20px',
-                  }}
-                >
+                <div className="flex items-center justify-center w-5 h-5">
                   <span
-                    style={{
-                      display: 'inline-block',
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: dotColor,
-                    }}
+                    className="inline-block w-2 h-2 rounded-full"
+                    style={{ backgroundColor: dotColor }}
                   />
                 </div>
-                <div
-                  style={{
-                    paddingLeft: '29px',
-                    paddingTop: '4px',
-                    fontSize: $('--font-size-sm'),
-                    color: $('--text-primary'),
-                  }}
-                >
+                <div className="pl-[29px] pt-1 text-sm text-text-primary">
                   <MarkdownBlock content={group.content} knownFilePaths={knownFilePaths} />
                 </div>
               </div>
@@ -596,30 +530,17 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             const dotColor = message.isError ? $('--error, #ff4d4f') : $('--success, #3fb950');
             content = (
               <div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '20px',
-                    height: '20px',
-                  }}
-                >
+                <div className="flex items-center justify-center w-5 h-5">
                   <span
-                    style={{
-                      display: 'inline-block',
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: dotColor,
-                    }}
+                    className="inline-block w-2 h-2 rounded-full"
+                    style={{ backgroundColor: dotColor }}
                   />
                 </div>
-                <div style={{ paddingLeft: '29px', paddingTop: '4px' }}>
+                <div className="pl-[29px] pt-1">
                   {group.segments.map((seg: any, i: number) => {
                     if (seg.type === 'code') {
                       return (
-                        <div key={i} style={{ marginBottom: '8px', marginTop: '4px' }}>
+                        <div key={i} className="mb-2 mt-1">
                           <pre className="m-0 p-2 overflow-auto font-mono text-xs bg-background rounded">
                             <code className="!bg-transparent p-0">{seg.content}</code>
                           </pre>

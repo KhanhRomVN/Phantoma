@@ -4,6 +4,7 @@ import { FolderOpen, Loader2, Search } from 'lucide-react';
 import { useConversationHistory } from './hooks/useConversationHistory';
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
+import { cn } from '@renderer/shared/lib/utils';
 import { $ } from '@renderer/utils/color';
 
 interface HistoryPanelProps {
@@ -88,12 +89,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
           onClick={() => setShowConfirm(true)}
           onMouseEnter={() => setTrashHover(true)}
           onMouseLeave={() => setTrashHover(false)}
-          className="p-[5px] rounded-md shrink-0 cursor-pointer transition-all duration-150"
-          style={{
-            backgroundColor: trashHover ? 'rgba(234,179,8,0.12)' : 'rgba(128,128,128,0.12)',
-            border: trashHover ? '1px solid rgba(234,179,8,0.4)' : '1px solid transparent',
-            color: trashHover ? $('--warn') || '#fbbf24' : $('--secondary-text') || 'currentColor',
-          }}
+          className={cn(
+            'p-[5px] rounded-md shrink-0 cursor-pointer transition-all duration-150',
+            trashHover
+              ? 'bg-[rgba(234,179,8,0.12)] border border-[rgba(234,179,8,0.4)] text-warn'
+              : 'bg-[rgba(128,128,128,0.12)] border border-transparent text-text-secondary',
+          )}
           title="Clear all history"
         >
           <svg

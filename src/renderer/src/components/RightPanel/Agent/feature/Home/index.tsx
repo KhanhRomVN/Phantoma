@@ -440,7 +440,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
       <div
         style={{
           flexShrink: 0,
-          padding: '0 8px 8px 8px',
+          padding: '0 16px 8px 16px',
           backgroundColor: 'var(--primary-bg)',
         }}
       >

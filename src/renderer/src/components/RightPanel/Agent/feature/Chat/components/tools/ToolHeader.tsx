@@ -114,32 +114,21 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
     <>
       <div
         ref={containerRef}
-        className="terminal-block-header flex items-center justify-between px-3 pt-0.5 pb-0 bg-transparent border-b-0 select-none cursor-pointer relative"
+        className="terminal-block-header flex items-center justify-between px-3 pt-0.5 pb-0 bg-transparent border-b-0 select-none relative w-full"
         onClick={onClick || onToggleCollapse}
         style={{
           cursor: onClick || onToggleCollapse ? 'pointer' : 'default',
-          width: '100%',
         }}
       >
-        <div className="terminal-info flex flex-col gap-0.5" style={{ flex: 1, minWidth: 0 }}>
+        <div className="terminal-info flex flex-col gap-0.5 flex-1 min-w-0">
           <div className="terminal-header-top flex items-center gap-2.5">
             {statusColor && (
               <div
-                className={`terminal-status-dot ${isPartial ? 'streaming-pulse' : ''}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '20px',
-                  height: '20px',
-                }}
+                className={`terminal-status-dot flex items-center justify-center w-5 h-5 ${isPartial ? 'streaming-pulse' : ''}`}
               >
                 <span
+                  className="inline-block w-2 h-2 rounded-full"
                   style={{
-                    display: 'inline-block',
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
                     backgroundColor: statusColor,
                     boxShadow: `0 0 0 2px ${$('--background') || ''}, 0 0 0 3px color-mix(in srgb, ${statusColor} 50%, transparent)`,
                   }}
@@ -159,34 +148,14 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
               }
             `}</style>
             )}
-            <div
-              style={{
-                marginTop: '1px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '2px',
-                flex: 1,
-                minWidth: 0,
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  flexWrap: 'wrap',
-                }}
-              >
+            <div className="mt-0.5 flex flex-col gap-0.5 flex-1 min-w-0 w-full max-w-full overflow-hidden">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {onToggleCollapse && (
                   <span
-                    className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'}`}
-                    style={{ fontSize: '12px', marginRight: '4px' }}
+                    className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'} text-xs mr-1`}
                   />
                 )}
-                {icon && <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>}
+                {icon && <span className="flex items-center">{icon}</span>}
                 {typeof title === 'string' ? (
                   <span className="terminal-name text-[13px] font-semibold text-text-primary font-mono whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]">
                     {title}
@@ -200,47 +169,18 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
               {displayPath && path && path.includes('/') && (
                 <div
                   ref={pathContainerRef}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    paddingRight: '4px',
-                    paddingTop: '4px',
-                    marginTop: '2px',
-                    position: 'relative',
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                  }}
+                  className="flex justify-end items-center pr-1 pt-1 mt-0.5 relative w-full max-w-full overflow-hidden"
                 >
                   {/* Corner line: vertical + horizontal L-shape */}
                   <div
+                    className="absolute left-0 top-0 w-4 h-3"
                     style={{
-                      position: 'absolute',
-                      left: '0',
-                      top: '0',
-                      width: '16px',
-                      height: '12px',
                       borderLeft: `1px solid color-mix(in srgb, ${$('--secondary-text')} 20%, transparent)`,
                       borderBottom: `1px solid color-mix(in srgb, ${$('--secondary-text')} 20%, transparent)`,
                     }}
                   />
                   <span
-                    style={{
-                      fontSize: '10px',
-                      opacity: 0.6,
-                      color: $('--secondary-text'),
-                      fontFamily: $('--font-family, monospace'),
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      width: '100%',
-                      padding: '0 4px 0 20px',
-                      borderRadius: '2px',
-                      transition: 'text-decoration 0.15s ease',
-                      cursor: 'default',
-                      textDecoration: 'none',
-                    }}
+                    className="text-[10px] opacity-60 text-text-secondary font-mono whitespace-nowrap overflow-hidden text-ellipsis w-full px-0 pr-1 pl-5 rounded transition-colors cursor-default no-underline"
                     title={path}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -272,27 +212,9 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
               className={`terminal-sub-info text-[11px] opacity-50 font-mono whitespace-nowrap overflow-hidden text-ellipsis pl-[29px] relative flex items-center h-[18px] -mt-0.5${subTitleClassName ? ` ${subTitleClassName}` : ''}`}
             >
               {diffStats ? (
-                <span
-                  style={{
-                    display: 'flex',
-                    gap: '6px',
-                    alignItems: 'center',
-                  }}
-                >
-                  <span
-                    style={{
-                      color: $('--success'),
-                    }}
-                  >
-                    +{diffStats.added}
-                  </span>
-                  <span
-                    style={{
-                      color: $('--error'),
-                    }}
-                  >
-                    -{diffStats.removed}
-                  </span>
+                <span className="flex gap-1.5 items-center">
+                  <span className="text-success">+{diffStats.added}</span>
+                  <span className="text-error">-{diffStats.removed}</span>
                   <span>lines</span>
                 </span>
               ) : (
@@ -302,9 +224,8 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
           )}
         </div>
         <div
-          className="header-actions flex items-center gap-2"
+          className="header-actions flex items-center gap-2 shrink-0 ml-2"
           onClick={(e) => e.stopPropagation()}
-          style={{ flexShrink: 0, marginLeft: '8px' }}
         >
           {headerActions}
         </div>

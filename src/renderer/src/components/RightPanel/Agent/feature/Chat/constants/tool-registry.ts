@@ -2,7 +2,7 @@
 export type ToolCategory = 'read' | 'write' | 'git' | 'system' | 'ui';
 export type PermissionLevel = 'allow' | 'prompt' | 'deny';
 
-export interface ToolDefinition<TParams = any> {
+export interface ToolDefinition {
   // Core identity
   type: string;
   variants: string[];
@@ -48,7 +48,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'READ_FILE',
     ],
     label: 'Read',
-    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    color: 'text-blue-500',
     category: 'read',
     requiresConfirmation: false,
     isClickable: true,
@@ -81,7 +81,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'WriteTo_File',
     ],
     label: 'Write',
-    color: 'var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)',
+    color: 'text-teal-400',
     category: 'write',
     requiresConfirmation: false,
     isClickable: true,
@@ -114,7 +114,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'Replace_in_file',
     ],
     label: 'Replace',
-    color: 'var(--vscode-editorWarning-foreground, #d4a72c)',
+    color: 'text-yellow-600',
     category: 'write',
     requiresConfirmation: false,
     isClickable: true,
@@ -142,7 +142,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'REVERT_FILE',
     ],
     label: 'Revert',
-    color: 'var(--vscode-gitDecoration-conflictingResourceForeground, #c74e39)',
+    color: 'text-red-600',
     category: 'write',
     requiresConfirmation: false,
     isClickable: true,
@@ -169,7 +169,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'LIST_FILES',
     ],
     label: 'List',
-    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    color: 'text-blue-500',
     category: 'read',
     requiresConfirmation: false,
     isClickable: true,
@@ -202,7 +202,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'FIND_FILES',
     ],
     label: 'Find',
-    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    color: 'text-blue-500',
     category: 'read',
     requiresConfirmation: false,
     isClickable: true,
@@ -215,7 +215,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     type: 'grep',
     variants: ['Grep', 'GREP'],
     label: 'Grep',
-    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    color: 'text-blue-500',
     category: 'read',
     requiresConfirmation: false,
     isClickable: true,
@@ -237,7 +237,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'DELETE_FILE',
     ],
     label: 'Delete',
-    color: 'var(--vscode-errorForeground, #ef4444)',
+    color: 'text-red-500',
     category: 'write',
     requiresConfirmation: false,
     isClickable: true,
@@ -262,7 +262,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'DELETE_FOLDER',
     ],
     label: 'Delete',
-    color: 'var(--vscode-errorForeground, #ef4444)',
+    color: 'text-red-500',
     category: 'write',
     requiresConfirmation: false,
     isClickable: true,
@@ -295,7 +295,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'MOVE_FILE',
     ],
     label: 'Move',
-    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    color: 'text-blue-500',
     category: 'write',
     requiresConfirmation: false,
     isClickable: true,
@@ -339,7 +339,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
       'RUN_COMMAND',
     ],
     label: 'Execute',
-    color: 'var(--vscode-editorWarning-foreground, #f59e0b)',
+    color: 'text-amber-500',
     category: 'system',
     requiresConfirmation: true,
     isClickable: true,
@@ -351,11 +351,35 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     },
   },
 
+  list_https: {
+    type: 'list_https',
+    variants: [
+      'listHttps',
+      'ListHttps',
+      'list_Https',
+      'listhttps',
+      'LISTHTTPS',
+      'List_Https',
+      'LIST_HTTPS',
+    ],
+    label: 'List HTTPS',
+    color: 'text-blue-500',
+    category: 'read',
+    requiresConfirmation: false,
+    isClickable: true,
+    defaultPermission: 'prompt',
+    timeout: 10000,
+    tags: ['network', 'https', 'list'],
+    attributeAliases: {
+      limit: ['maxResults', 'max_results', 'count', 'maxCount', 'max_count'],
+    },
+  },
+
   git_status: {
     type: 'git_status',
     variants: [],
     label: 'Git Status',
-    color: 'var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)',
+    color: 'text-amber-200',
     category: 'git',
     requiresConfirmation: false,
     isClickable: false,
@@ -368,7 +392,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     type: 'commit_message',
     variants: [],
     label: 'Commit Message',
-    color: 'var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)',
+    color: 'text-teal-400',
     category: 'git',
     requiresConfirmation: false,
     isClickable: false,
@@ -381,7 +405,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     type: 'git_diff',
     variants: ['gitDiff', 'GitDiff', 'git-diff', 'Git_Diff', 'gitdiff', 'GIT_DIFF'],
     label: 'Git Diff',
-    color: 'var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)',
+    color: 'text-amber-200',
     category: 'git',
     requiresConfirmation: false,
     isClickable: true,
@@ -394,7 +418,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     type: 'code',
     variants: [],
     label: 'Code',
-    color: 'var(--vscode-textLink-foreground, #3b82f6)',
+    color: 'text-blue-500',
     category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
@@ -407,7 +431,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     type: 'markdown',
     variants: [],
     label: 'Markdown',
-    color: 'var(--vscode-foreground)',
+    color: 'text-text-primary',
     category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
@@ -420,7 +444,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     type: 'thinking',
     variants: [],
     label: 'Thinking',
-    color: 'var(--vscode-editorBracketHighlight-foreground2, #a855f7)',
+    color: 'text-purple-500',
     category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
@@ -433,7 +457,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     type: 'question',
     variants: [],
     label: 'Question',
-    color: 'var(--vscode-button-background, #007acc)',
+    color: 'text-blue-700',
     category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
@@ -446,7 +470,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     type: 'context_compression',
     variants: ['contextCompression', 'ContextCompression', 'context_Compression'],
     label: 'Context Summary',
-    color: 'var(--vscode-editorBracketHighlight-foreground2, #10b981)',
+    color: 'text-emerald-500',
     category: 'ui',
     requiresConfirmation: false,
     isClickable: false,
@@ -473,7 +497,7 @@ export const getAllToolTypes = (): string[] => {
 };
 
 export const getToolColor = (type: string): string => {
-  return getToolDef(type)?.color ?? 'var(--vscode-descriptionForeground, #6b7280)';
+  return getToolDef(type)?.color ?? 'text-gray-500';
 };
 
 export const getToolLabel = (type: string): string => {
@@ -579,6 +603,7 @@ export type ExecutableToolType =
   | 'delete_folder'
   | 'move_file'
   | 'grep'
+  | 'list_https'
   | 'git_status'
   | 'commit_message'
   | 'git_diff';

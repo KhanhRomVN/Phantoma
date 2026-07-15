@@ -1,4 +1,5 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface ChatHeaderProps {
   displayedModel: any;
@@ -49,12 +50,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     <div
       className="flex flex-col"
       style={{
-        borderBottom: '1px solid var(--border-color)',
-        backgroundColor: 'var(--primary-bg)',
+        borderBottom: '1px solid ' + $('--border-color'),
+        backgroundColor: $('--primary-bg'),
       }}
     >
       <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
-        <div className="flex items-center gap-1.5 text-xs font-semibold overflow-hidden text-[var(--primary-text)]">
+        <div className="flex items-center gap-1.5 text-xs font-semibold overflow-hidden text-text-primary">
           <img src={faviconUrl} alt="provider" className="w-3.5 h-3.5 rounded-[2px]" />
           <span className="whitespace-nowrap">
             {displayedModel?.providerId || '?'}/{displayedModel?.id || 'chat'}
@@ -72,7 +73,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               <span className="opacity-30">|</span>
               <div
                 className="flex items-center gap-1 text-[11px] font-medium overflow-hidden"
-                style={{ color: 'var(--vscode-textLink-foreground)' }}
+                style={{ color: $('--vscode-textLink-foreground') }}
               >
                 <div
                   className="w-[5px] h-[5px] rounded-full shrink-0"
@@ -87,7 +88,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[11px] opacity-80 text-[var(--secondary-text)]">
+          <span className="text-[11px] opacity-80 text-text-secondary">
             {contextUsage ? formatTokens(contextUsage.total) : '0'}
           </span>
           <button
@@ -99,14 +100,14 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             className="cursor-pointer p-[3px_4px] flex items-center justify-center rounded transition-all duration-150"
             style={{
               background: isSearchOpen
-                ? 'color-mix(in srgb, var(--vscode-button-background) 15%, transparent)'
+                ? 'color-mix(in srgb, ' + $('--vscode-button-background') + ' 15%, transparent)'
                 : 'transparent',
               border: isSearchOpen
-                ? '1px solid color-mix(in srgb, var(--vscode-button-background) 40%, transparent)'
+                ? '1px solid color-mix(in srgb, ' + $('--vscode-button-background') + ' 40%, transparent)'
                 : '1px solid transparent',
               color: isSearchOpen
-                ? 'var(--vscode-button-background, var(--vscode-textLink-foreground))'
-                : 'var(--vscode-icon-foreground, var(--secondary-text))',
+                ? $('--vscode-button-background') || $('--vscode-textLink-foreground')
+                : $('--vscode-icon-foreground') || $('--secondary-text'),
               opacity: isSearchOpen ? 1 : 0.65,
             }}
             onMouseEnter={(e) => {

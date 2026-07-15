@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '@renderer/shared/lib/utils';
 import { getToolColor } from '../../utils/toolUtils';
 import { extensionService } from '../../../../services/ExtensionService';
 import { Message } from '../../types/message';
@@ -109,7 +110,6 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
     setCollapsedActions(initialCollapsed);
   }, [group, messageId]);
 
-  // Fetch terminal output from history
   const runCommandAction = group.find((g) => g.action.type === 'run_command');
   useEffect(() => {
     if (!nextUserMessage?.content || !runCommandAction) return;
@@ -145,7 +145,6 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
     }
   }, [nextUserMessage?.id, runCommandAction?.action.params.command, messageId, storedOutput]);
 
-  // Validate fuzzy match & fetch file stats
   React.useEffect(() => {
     const cleanups: (() => void)[] = [];
 
@@ -308,7 +307,6 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
   }
 
   if (toolType === 'git_status') {
-    // Use props gitStatusItems if available, otherwise parse from action params
     let finalGitStatusItems = gitStatusItems;
     if (!finalGitStatusItems || finalGitStatusItems.length === 0) {
       let itemsFromParams = firstAction.params?.items || [];
@@ -349,50 +347,29 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
     const commitColor = getToolColor('commit_message');
     const isRejected = rejectedActions?.has(actionId) || false;
     const [isCommitted, setIsCommitted] = React.useState(false);
-    const statusColor = isRejected
-      ? $('--error, #ff4d4d')
-      : isCommitted
-        ? $('--success, #3fb950')
-        : commitColor;
+    const statusColor = isRejected ? $('--error') : isCommitted ? $('--success') : commitColor;
 
     return (
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-        }}
-      >
+      <div className="relative flex flex-col gap-1.5">
         <div
-          className="terminal-block commit-message-tool"
-          style={{ marginBottom: isLastItemInList ? '0' : '8px' }}
+          className={cn(
+            'terminal-block commit-message-tool',
+            isLastItemInList ? 'mb-0' : 'mb-2',
+          )}
         >
           <ToolHeader
             title={
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '12px',
-                  color: $('--primary-text'),
-                }}
-              >
-                <span style={{ fontWeight: 600, opacity: 0.8 }}>
+              <div className="flex items-center gap-2 text-xs text-text-primary">
+                <span className="font-semibold opacity-80">
                   COMMIT MESSAGE{gitStatusBranch ? `(${gitStatusBranch})` : ''}
                 </span>
-                <span className="codicon codicon-git-commit" style={{ fontSize: '14px' }} />
+                <span className="codicon codicon-git-commit text-sm" />
                 {isRejected && (
                   <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded ml-1"
                     style={{
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      color: $('--error, #ff4d4d'),
-                      background: `color-mix(in srgb, ${$('--error, #ff4d4d')} 15%, transparent)`,
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      marginLeft: '4px',
+                      color: $('--error'),
+                      background: `color-mix(in srgb, ${$('--error')} 15%, transparent)`,
                     }}
                   >
                     REJECTED
@@ -400,14 +377,10 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                 )}
                 {isCommitted && (
                   <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded ml-1"
                     style={{
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      color: $('--success, #3fb950'),
-                      background: `color-mix(in srgb, ${$('--success, #3fb950')} 15%, transparent)`,
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      marginLeft: '4px',
+                      color: $('--success'),
+                      background: `color-mix(in srgb, ${$('--success')} 15%, transparent)`,
                     }}
                   >
                     ✓ COMMITTED
@@ -418,53 +391,32 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
             statusColor={statusColor}
             isPartial={false}
           />
-          <div style={{ padding: '4px 12px 12px 29px' }}>
+          <div className="px-3 pb-3 pl-[29px]">
             <div
+              className="p-3 rounded-md text-[13px] whitespace-pre-wrap break-word max-h-auto overflow-y-visible"
               style={{
-                padding: '12px 14px',
-                background: $('--background, #1e1e1e'),
-                borderRadius: '6px',
-                border: `1px solid ${$('--border, #454545')}`,
-                fontFamily: $('--font-family, monospace'),
-                fontSize: '13px',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                color: $('--primary-text, #cccccc'),
-                maxHeight: 'auto',
-                overflowY: 'visible',
+                background: $('--background'),
+                border: `1px solid ${$('--border')}`,
+                color: $('--text-primary'),
               }}
             >
               {messageContent}
               {isCommitted && (
                 <div
+                  className="mt-3 p-2.5 rounded-md text-xs"
                   style={{
-                    marginTop: '12px',
-                    padding: '10px 14px',
-                    background: `color-mix(in srgb, ${$('--success, #3fb950')} 10%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${$('--success, #3fb950')} 30%, transparent)`,
-                    color: $('--primary-text'),
-                    borderRadius: '6px',
-                    fontSize: '12px',
+                    background: `color-mix(in srgb, ${$('--success')} 10%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${$('--success')} 30%, transparent)`,
+                    color: $('--text-primary'),
                   }}
                 >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      color: $('--success, #3fb950'),
-                      marginBottom: '4px',
-                    }}
-                  >
-                    Commit thành công!
-                  </div>
-                  <div style={{ opacity: 0.8, fontSize: '11px' }}>
+                  <div className="font-semibold text-success mb-1">Commit thành công!</div>
+                  <div className="opacity-80 text-[11px]">
                     Hãy chạy{' '}
                     <code
+                      className="px-1.5 py-0.5 rounded text-[11px]"
                       style={{
                         background: $('--background'),
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontFamily: $('--font-family, monospace'),
-                        fontSize: '11px',
                       }}
                     >
                       git push
@@ -475,14 +427,7 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
               )}
             </div>
             {!isCommitted && !isRejected && (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '6px',
-                  padding: '8px 0 4px 0',
-                  justifyContent: 'flex-end',
-                }}
-              >
+              <div className="flex gap-1.5 py-2 pb-1 justify-end">
                 <button
                   onClick={() => {
                     const vscodeApi = (window as any).vscodeApi;
@@ -494,25 +439,17 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                       });
                     }
                   }}
+                  className="px-2.5 py-1 text-[11px] font-semibold rounded flex items-center gap-1.5 h-6 cursor-pointer"
                   style={{
-                    background: `color-mix(in srgb, ${$('--teal, #4ec9b0')} 15%, transparent)`,
-                    color: $('--teal, #4ec9b0'),
-                    border: `1px solid color-mix(in srgb, ${$('--teal, #4ec9b0')} 30%, transparent)`,
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    height: '24px',
+                    background: `color-mix(in srgb, ${$('--teal')} 15%, transparent)`,
+                    color: $('--teal'),
+                    border: `1px solid color-mix(in srgb, ${$('--teal')} 30%, transparent)`,
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal, #4ec9b0')} 25%, transparent)`;
+                    e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal')} 25%, transparent)`;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal, #4ec9b0')} 15%, transparent)`;
+                    e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal')} 15%, transparent)`;
                   }}
                 >
                   <svg
@@ -532,9 +469,7 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    // Mark action as rejected locally
                     onToolClick(firstAction, messageId, actionIndex, 'reject');
-                    // Also notify extension
                     const vscodeApi = (window as any).vscodeApi;
                     if (vscodeApi) {
                       vscodeApi.postMessage({
@@ -542,30 +477,25 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
                       });
                     }
                   }}
+                  className={cn(
+                    'px-2.5 py-1 text-[11px] font-semibold rounded flex items-center gap-1.5 h-6',
+                    isRejected ? 'cursor-default' : 'cursor-pointer',
+                  )}
                   style={{
-                    background: `color-mix(in srgb, ${$('--error, #ff4d4d')} 15%, transparent)`,
-                    color: $('--error, #ff4d4d'),
-                    border: `1px solid color-mix(in srgb, ${$('--error, #ff4d4d')} 30%, transparent)`,
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: isRejected ? 'default' : 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    height: '24px',
+                    background: `color-mix(in srgb, ${$('--error')} 15%, transparent)`,
+                    color: $('--error'),
+                    border: `1px solid color-mix(in srgb, ${$('--error')} 30%, transparent)`,
                     opacity: isRejected ? 0.5 : 1,
                   }}
                   disabled={isRejected}
                   onMouseEnter={(e) => {
                     if (!isRejected) {
-                      e.currentTarget.style.background = `color-mix(in srgb, ${$('--error, #ff4d4d')} 25%, transparent)`;
+                      e.currentTarget.style.background = `color-mix(in srgb, ${$('--error')} 25%, transparent)`;
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isRejected) {
-                      e.currentTarget.style.background = `color-mix(in srgb, ${$('--error, #ff4d4d')} 15%, transparent)`;
+                      e.currentTarget.style.background = `color-mix(in srgb, ${$('--error')} 15%, transparent)`;
                     }
                   }}
                 >
@@ -593,23 +523,21 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
     );
   }
 
-  // Fallback for non-styled tools
   return (
     <>
       {group.map(({ action, index }) => (
-        <div key={index} style={{ marginBottom: '8px' }}>
+        <div key={index} className="mb-2">
           <div
+            className={cn(
+              'flex items-center gap-[var(--spacing-sm)] w-fit',
+              'py-[var(--spacing-sm)] px-[var(--spacing-md)]',
+              'border-2 rounded-[var(--border-radius-lg)]',
+              'transition-all duration-200',
+              clickableTools.includes(action.type) ? 'cursor-pointer' : 'cursor-default',
+            )}
             style={{
-              padding: `${$('--spacing-sm')} ${$('--spacing-md')}`,
               backgroundColor: $('--secondary-bg'),
-              border: `2px solid ${toolColor}`,
-              borderRadius: $('--border-radius-lg'),
-              cursor: clickableTools.includes(action.type) ? 'pointer' : 'default',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: $('--spacing-sm'),
-              width: 'fit-content',
+              borderColor: toolColor,
             }}
             onClick={() => {
               if (clickableTools.includes(action.type))
@@ -617,12 +545,8 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
             }}
           >
             <span
-              style={{
-                fontSize: $('--font-size-sm'),
-                color: $('--primary-text'),
-                fontWeight: 600,
-                flex: 1,
-              }}
+              className="text-[var(--font-size-sm)] font-semibold flex-1"
+              style={{ color: $('--text-primary') }}
             >
               {formatActionForDisplay(action)}
             </span>

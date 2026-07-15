@@ -104,77 +104,36 @@ const TerminalToolRenderer: React.FC<TerminalToolRendererProps> = ({
           : $('--secondary-text') || '';
 
   return (
-    <div style={{ marginTop: '4px', paddingLeft: '29px' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '20px',
-          height: '20px',
-        }}
-      >
+    <div className="mt-1 pl-[29px]">
+      <div className="flex items-center justify-center w-5 h-5">
         <span
+          className="inline-block w-2 h-2 rounded-full"
           style={{
-            display: 'inline-block',
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
             backgroundColor: dotColor,
             boxShadow: `0 0 0 2px ${$('--background') || ''}, 0 0 0 3px color-mix(in srgb, ${dotColor} 50%, transparent)`,
           }}
         />
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '4px 0 6px 0',
-        }}
-      >
+      <div className="flex items-center justify-between py-1 pb-1.5">
         <div
           onClick={() => {
             if (isCompleted || hasOutput) setIsCollapsed((v) => !v);
           }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            minWidth: 0,
-            flex: 1,
-            cursor: isCompleted || hasOutput ? 'pointer' : 'default',
-          }}
+          className="flex items-center gap-1.5 min-w-0 flex-1"
+          style={{ cursor: isCompleted || hasOutput ? 'pointer' : 'default' }}
         >
           {(isCompleted || hasOutput) && (
             <span
-              className={`codicon codicon-chevron-${isCollapsed ? 'right' : 'down'}`}
-              style={{ fontSize: '12px', opacity: 0.8, flexShrink: 0 }}
+              className={`codicon codicon-chevron-${isCollapsed ? 'right' : 'down'} text-xs opacity-80 shrink-0`}
             />
           )}
-          <span
-            style={{
-              fontSize: '12px',
-              fontWeight: 700,
-              color: $('--text-primary'),
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              flexShrink: 0,
-            }}
-          >
+          <span className="text-xs font-bold text-text-primary uppercase tracking-[0.5px] shrink-0">
             Execute
           </span>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex items-center gap-1 shrink-0">
           {isTerminalBusy && (
             <button
               className="stop-terminal-btn"

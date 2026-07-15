@@ -101,7 +101,7 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
     <SettingsProvider>
       <div className="w-[450px] shrink-0 border-l border-divider flex flex-col overflow-hidden relative">
         {/* Header Bar */}
-        <div className="h-[37px] border-b border-divider flex items-center px-3 shrink-0">
+        <div className="h-10 border-b border-divider flex items-center px-3 shrink-0">
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}

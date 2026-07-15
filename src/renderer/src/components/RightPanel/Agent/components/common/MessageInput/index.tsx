@@ -1,17 +1,19 @@
-import React from "react";
-import { X, Zap, ShieldCheck, Eye, PlusIcon, SendIcon } from "lucide-react";
-import { GitPullRequestArrow } from "lucide-react";
-import { useServerHealth } from "@renderer/providers/ServerHealthProvider";
-import { LANGUAGES } from "@renderer/components/RightPanel/Agent/feature/Setting/components/LanguageSelector";
-import { useSettings } from "@renderer/components/RightPanel/Agent/context/SettingsContext";
-import DiffSummaryBar from "./DiffSummaryBar";
+import React from 'react';
+import { cn } from '@renderer/shared/lib/utils';
+import { $ } from '@renderer/utils/color';
+import { X, Zap, ShieldCheck, Eye, PlusIcon, SendIcon } from 'lucide-react';
+import { GitPullRequestArrow } from 'lucide-react';
+import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
+import { LANGUAGES } from '@renderer/components/RightPanel/Agent/feature/Setting/components/LanguageSelector';
+import { useSettings } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
+import DiffSummaryBar from './DiffSummaryBar';
 
 export interface UploadedFile {
   id: string;
   name: string;
   size: number;
   type: string;
-  content: string; // Base64 or text content
+  content: string;
   file_id?: string;
   isUploading?: boolean;
   error?: string;
@@ -113,11 +115,7 @@ interface ToggleButtonProps {
   title: string;
 }
 
-const ThinkingButton: React.FC<ToggleButtonProps> = ({
-  isOn,
-  onClick,
-  title,
-}) => {
+const ThinkingButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
   return (
@@ -125,51 +123,30 @@ const ThinkingButton: React.FC<ToggleButtonProps> = ({
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "4px",
-        padding: "0 8px",
-        height: "22px",
-        boxSizing: "border-box",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontSize: "11px",
-        fontWeight: 600,
-        letterSpacing: "0.3px",
-        transition: "all 0.2s ease-in-out",
-        border: "none", // Removed border
-        background: isOn
-          ? isHovered
-            ? "color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #a855f7) 20%, transparent)"
-            : "color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #a855f7) 12%, transparent)"
+      className={cn(
+        'flex items-center gap-1 px-2 h-[22px] box-border rounded cursor-pointer text-[11px] font-semibold tracking-[0.3px] transition-all duration-200 border-none leading-none align-middle',
+        isOn
+          ? 'text-purple opacity-100'
           : isHovered
-            ? "rgba(128, 128, 128, 0.2)"
-            : "rgba(128, 128, 128, 0.12)",
-        color: isOn
-          ? "var(--vscode-editorBracketHighlight-foreground2, #a855f7)"
-          : "var(--vscode-foreground)",
-        opacity: isOn ? 1 : isHovered ? 0.9 : 0.7,
-        lineHeight: 1,
-        verticalAlign: "middle",
-      }}
+            ? 'text-text-primary opacity-90'
+            : 'text-text-primary opacity-70',
+        isOn
+          ? isHovered
+            ? 'bg-purple/20'
+            : 'bg-purple/12'
+          : isHovered
+            ? 'bg-[rgba(128,128,128,0.2)]'
+            : 'bg-[rgba(128,128,128,0.12)]',
+      )}
       title={title}
     >
       <BrainCogIcon />
-      <span
-        style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.3px" }}
-      >
-        Thinking
-      </span>
+      <span className="text-[11px] font-semibold tracking-[0.3px]">Thinking</span>
     </button>
   );
 };
 
-const SearchButton: React.FC<ToggleButtonProps> = ({
-  isOn,
-  onClick,
-  title,
-}) => {
+const SearchButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
   return (
@@ -177,51 +154,30 @@ const SearchButton: React.FC<ToggleButtonProps> = ({
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "4px",
-        padding: "0 8px",
-        height: "22px",
-        boxSizing: "border-box",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontSize: "11px",
-        fontWeight: 600,
-        letterSpacing: "0.3px",
-        transition: "all 0.2s ease-in-out",
-        border: "none", // Removed border
-        background: isOn
-          ? isHovered
-            ? "color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground1, #0ea5e9) 20%, transparent)"
-            : "color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground1, #0ea5e9) 12%, transparent)"
+      className={cn(
+        'flex items-center gap-1 px-2 h-[22px] box-border rounded cursor-pointer text-[11px] font-semibold tracking-[0.3px] transition-all duration-200 border-none leading-none align-middle',
+        isOn
+          ? 'text-info opacity-100'
           : isHovered
-            ? "rgba(128, 128, 128, 0.2)"
-            : "rgba(128, 128, 128, 0.12)",
-        color: isOn
-          ? "var(--vscode-editorBracketHighlight-foreground1, #0ea5e9)"
-          : "var(--vscode-foreground)",
-        opacity: isOn ? 1 : isHovered ? 0.9 : 0.7,
-        lineHeight: 1,
-        verticalAlign: "middle",
-      }}
+            ? 'text-text-primary opacity-90'
+            : 'text-text-primary opacity-70',
+        isOn
+          ? isHovered
+            ? 'bg-info/20'
+            : 'bg-info/12'
+          : isHovered
+            ? 'bg-[rgba(128,128,128,0.2)]'
+            : 'bg-[rgba(128,128,128,0.12)]',
+      )}
       title={title}
     >
       <GlobeIcon />
-      <span
-        style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.3px" }}
-      >
-        Search
-      </span>
+      <span className="text-[11px] font-semibold tracking-[0.3px]">Search</span>
     </button>
   );
 };
 
-const MemoryButton: React.FC<ToggleButtonProps> = ({
-  isOn,
-  onClick,
-  title,
-}) => {
+const MemoryButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
   return (
@@ -229,44 +185,25 @@ const MemoryButton: React.FC<ToggleButtonProps> = ({
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "4px",
-        padding: "0 8px",
-        height: "22px",
-        boxSizing: "border-box",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontSize: "11px",
-        fontWeight: 600,
-        letterSpacing: "0.3px",
-        transition: "all 0.2s ease-in-out",
-        border: isOn
-          ? "1px solid var(--vscode-editorBracketHighlight-foreground3, rgba(139, 92, 246, 0.4))"
-          : "1px solid rgba(128, 128, 128, 0.2)",
-        background: isOn
-          ? isHovered
-            ? "color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground3, #8b5cf6) 20%, transparent)"
-            : "color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground3, #8b5cf6) 12%, transparent)"
+      className={cn(
+        'flex items-center gap-1 px-2 h-[22px] box-border rounded cursor-pointer text-[11px] font-semibold tracking-[0.3px] transition-all duration-200 leading-none align-middle',
+        isOn
+          ? 'text-violet opacity-100 border border-violet'
           : isHovered
-            ? "rgba(128, 128, 128, 0.2)"
-            : "rgba(128, 128, 128, 0.12)",
-        color: isOn
-          ? "var(--vscode-editorBracketHighlight-foreground3, #8b5cf6)"
-          : "var(--vscode-foreground)",
-        opacity: isOn ? 1 : isHovered ? 0.9 : 0.7,
-        lineHeight: 1,
-        verticalAlign: "middle",
-      }}
+            ? 'text-text-primary opacity-90 border border-[rgba(128,128,128,0.2)]'
+            : 'text-text-primary opacity-70 border border-[rgba(128,128,128,0.2)]',
+        isOn
+          ? isHovered
+            ? 'bg-violet/20'
+            : 'bg-violet/12'
+          : isHovered
+            ? 'bg-[rgba(128,128,128,0.2)]'
+            : 'bg-[rgba(128,128,128,0.12)]',
+      )}
       title={title}
     >
       <MemoryIcon />
-      <span
-        style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.3px" }}
-      >
-        Memory
-      </span>
+      <span className="text-[11px] font-semibold tracking-[0.3px]">Memory</span>
     </button>
   );
 };
@@ -276,10 +213,7 @@ interface CompressButtonProps {
   title: string;
 }
 
-const CompressButton: React.FC<CompressButtonProps> = ({
-  onClick,
-  title,
-}) => {
+const CompressButton: React.FC<CompressButtonProps> = ({ onClick, title }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
   return (
@@ -287,23 +221,12 @@ const CompressButton: React.FC<CompressButtonProps> = ({
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "22px",
-        width: "22px",
-        boxSizing: "border-box",
-        borderRadius: "4px",
-        cursor: "pointer",
-        transition: "all 0.2s ease-in-out",
-        border: "1px solid rgba(128, 128, 128, 0.2)",
-        background: isHovered
-          ? "rgba(128, 128, 128, 0.2)"
-          : "rgba(128, 128, 128, 0.12)",
-        color: "var(--vscode-foreground)",
-        opacity: isHovered ? 0.9 : 0.7,
-      }}
+      className={cn(
+        'flex items-center justify-center h-[22px] w-[22px] box-border rounded cursor-pointer transition-all duration-200 border border-solid border-border text-text-primary',
+        isHovered
+          ? 'opacity-90 bg-[rgba(128,128,128,0.2)]'
+          : 'opacity-70 bg-[rgba(128,128,128,0.12)]',
+      )}
       title={title}
     >
       <SummaryIcon />
@@ -326,11 +249,10 @@ const GlobalPermissionButton: React.FC = () => {
   React.useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
   React.useEffect(() => {
@@ -345,36 +267,33 @@ const GlobalPermissionButton: React.FC = () => {
     { label: string; desc: string; icon: React.ReactNode; color: string }
   > = {
     fullAccess: {
-      label: "Full Access",
-      desc: "AI has unrestricted access to all project files and tools",
+      label: 'Full Access',
+      desc: 'AI has unrestricted access to all project files and tools',
       icon: <Zap size={11} />,
-      color: "var(--vscode-editorBracketHighlight-foreground3, #f59e0b)",
+      color: $('--warn') || '#f59e0b',
     },
     approval: {
-      label: "Approval Required",
-      desc: "AI must request explicit approval before accessing files or running commands",
+      label: 'Approval Required',
+      desc: 'AI must request explicit approval before accessing files or running commands',
       icon: <ShieldCheck size={11} />,
-      color: "var(--vscode-symbolIcon-interfaceForeground, #3b82f6)",
+      color: $('--info') || '#3b82f6',
     },
     readOnly: {
-      label: "Read Only",
-      desc: "AI can only read project files, cannot modify them or run commands",
+      label: 'Read Only',
+      desc: 'AI can only read project files, cannot modify them or run commands',
       icon: <Eye size={11} />,
-      color: "var(--vscode-symbolIcon-classForeground, #8b5cf6)",
+      color: $('--purple') || '#8b5cf6',
     },
   };
 
-  const handleItemMouseEnter = (
-    id: string,
-    e: React.MouseEvent<HTMLButtonElement>,
-  ) => {
+  const handleItemMouseEnter = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
     if (!e.currentTarget.parentElement) return;
     if (
       !e.currentTarget.style.backgroundColor ||
-      e.currentTarget.style.backgroundColor === "transparent"
+      e.currentTarget.style.backgroundColor === 'transparent'
     ) {
       e.currentTarget.style.backgroundColor =
-        "var(--vscode-list-hoverBackground)";
+        $('--dropdown-item-hover') || 'rgba(128,128,128,0.08)';
     }
     const rect = e.currentTarget.getBoundingClientRect();
     tooltipTimer.current = setTimeout(() => {
@@ -382,11 +301,8 @@ const GlobalPermissionButton: React.FC = () => {
     }, 500);
   };
 
-  const handleItemMouseLeave = (
-    isSelected: boolean,
-    e: React.MouseEvent<HTMLButtonElement>,
-  ) => {
-    if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
+  const handleItemMouseLeave = (isSelected: boolean, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
     if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
     setTooltip(null);
   };
@@ -394,56 +310,37 @@ const GlobalPermissionButton: React.FC = () => {
   const metadata = MODE_METADATA[permissionMode] || MODE_METADATA.fullAccess;
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        className={cn(
+          'flex items-center gap-1 px-2 h-[22px] box-border rounded cursor-pointer text-[11px] font-semibold tracking-[0.3px] transition-all duration-200 leading-none align-middle',
+          isHovered ? 'opacity-100' : 'opacity-90',
+          permissionMode === 'fullAccess'
+            ? 'text-warn'
+            : permissionMode === 'approval'
+              ? 'text-info'
+              : 'text-purple',
+        )}
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          padding: "0 8px",
-          height: "22px",
-          boxSizing: "border-box",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.3px",
-          transition: "all 0.2s ease-in-out",
           border: `1px solid ${metadata.color}40`,
           background: isHovered
             ? `color-mix(in srgb, ${metadata.color} 20%, transparent)`
             : `color-mix(in srgb, ${metadata.color} 12%, transparent)`,
-          color: metadata.color,
-          opacity: 1,
-          lineHeight: 1,
-          verticalAlign: "middle",
         }}
         title="Tool permission mode"
       >
         {metadata.icon}
-        <span
-          style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.3px" }}
-        >
-          {metadata.label}
-        </span>
+        <span className="text-[11px] font-semibold tracking-[0.3px]">{metadata.label}</span>
       </button>
       {open && (
         <div
+          className="absolute bottom-[calc(100%+4px)] left-0 z-[1000] rounded-md overflow-hidden shadow-[0_-4px_12px_rgba(0,0,0,0.2)] min-w-[180px]"
           style={{
-            position: "absolute",
-            bottom: "calc(100% + 4px)",
-            left: 0,
-            zIndex: 1000,
-            backgroundColor:
-              "color-mix(in srgb, var(--input-bg) 100%, black 15%)",
-            border: "1px solid var(--vscode-widget-border)",
-            borderRadius: "6px",
-            overflow: "hidden",
-            boxShadow: "0 -4px 12px rgba(0,0,0,0.2)",
-            minWidth: "180px",
+            backgroundColor: `color-mix(in srgb, ${$('--input-background')} 100%, black 15%)`,
+            border: `1px solid ${$('--border')}`,
           }}
         >
           {Object.entries(MODE_METADATA).map(([modeId, meta]) => {
@@ -457,36 +354,15 @@ const GlobalPermissionButton: React.FC = () => {
                   setTooltip(null);
                   if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
                 }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  width: "100%",
-                  padding: "7px 12px",
-                  fontSize: "11.5px",
-                  fontWeight: 500,
-                  textAlign: "left",
-                  border: "none",
-                  cursor: "pointer",
-                  background: isSelected
-                    ? "var(--vscode-button-background)"
-                    : "transparent",
-                  color: isSelected
-                    ? "var(--vscode-button-foreground)"
-                    : "var(--vscode-foreground)",
-                }}
+                className={cn(
+                  'flex items-center gap-1.5 w-full px-3 py-1.5 text-[11.5px] font-medium text-left border-none cursor-pointer',
+                  isSelected
+                    ? 'bg-primary text-button-solid-text'
+                    : 'bg-transparent text-text-primary',
+                )}
                 onMouseEnter={(e) => handleItemMouseEnter(modeId, e)}
                 onMouseLeave={(e) => handleItemMouseLeave(isSelected, e)}
               >
-                <span
-                  style={{
-                    color: isSelected ? "inherit" : meta.color,
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  {meta.icon}
-                </span>
                 {meta.label}
               </button>
             );
@@ -495,31 +371,16 @@ const GlobalPermissionButton: React.FC = () => {
       )}
       {tooltip && MODE_METADATA[tooltip.id] && (
         <div
+          className="fixed z-[9999] rounded-md p-2 max-w-[220px] text-[11px] leading-relaxed pointer-events-none shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
           style={{
-            position: "fixed",
             left: tooltip.x,
             top: tooltip.y,
-            zIndex: 9999,
-            backgroundColor:
-              "var(--vscode-editorHoverWidget-background, #1e1e1e)",
-            border: "1px solid var(--vscode-editorHoverWidget-border, #454545)",
-            borderRadius: "6px",
-            padding: "8px 10px",
-            maxWidth: "220px",
-            fontSize: "11px",
-            color: "var(--vscode-foreground)",
-            lineHeight: 1.5,
-            pointerEvents: "none",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            backgroundColor: $('--card-background'),
+            border: `1px solid ${$('--border')}`,
+            color: $('--text-primary'),
           }}
         >
-          <div
-            style={{
-              fontWeight: 600,
-              marginBottom: "3px",
-              color: MODE_METADATA[tooltip.id].color,
-            }}
-          >
+          <div className="font-semibold mb-0.5" style={{ color: MODE_METADATA[tooltip.id].color }}>
             {MODE_METADATA[tooltip.id].label}
           </div>
           {MODE_METADATA[tooltip.id].desc}
@@ -557,20 +418,16 @@ interface MessageInputProps {
   currentAccount: any;
   setCurrentAccount: (account: any) => void;
   isProcessing?: boolean;
-  // 🆕 Stop Generation Props
   isStreaming?: boolean;
   onStopGeneration?: () => void;
   showBrowserWarning?: boolean;
   isLaunchingBrowser?: boolean;
   onLaunchBrowserSession?: () => void;
-  // 🆕 Git Status Button
   onGitPullRequest?: () => void;
   isGitLoading?: boolean;
   isGitStatusVisible?: boolean;
-  // 🆕 Context Compression Button
   showCompressButton?: boolean;
   onCompress?: () => void;
-  // 🆕 Git Status for DiffSummaryBar
   gitStatus?: { items?: any[]; branch?: string } | null;
   onOpenGitStatus?: () => void;
   conversationFileStats?: {
@@ -579,23 +436,24 @@ interface MessageInputProps {
     totalDeletions: number;
     responseNumber?: number;
   };
-  // 🆕 Review Drawer
   onReviewClick?: () => void;
   responseRange?: { start: number; end: number } | null;
   responseRanges?: Array<{
     start: number;
     end: number;
     isCurrent: boolean;
-    fileChanges: Map<string, { 
-      additions: number; 
-      deletions: number;
-      toolType?: "write_to_file" | "replace_in_file";
-      content?: string;
-      oldContent?: string;
-      newContent?: string;
-    }>;
+    fileChanges: Map<
+      string,
+      {
+        additions: number;
+        deletions: number;
+        toolType?: 'write_to_file' | 'replace_in_file';
+        content?: string;
+        oldContent?: string;
+        newContent?: string;
+      }
+    >;
   }>;
-  // 🆕 Model Drawer
   onOpenModelDrawer?: () => void;
 }
 
@@ -652,9 +510,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const { aiLanguage: preferredLanguage } = useSettings();
   const pendingAccountIdRef = React.useRef<string | null>(null);
 
-  // Refs that always hold the latest model/account values.
-  // Required because applyCache runs inside a useEffect closure and would
-  // otherwise capture stale values of currentModel/currentAccount from mount.
   const currentModelRef = React.useRef<any>(null);
   const currentAccountRef = React.useRef<any>(null);
   currentModelRef.current = currentModel;
@@ -666,7 +521,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const [isThinking, setIsThinking] = React.useState(() => {
     try {
-      return localStorage.getItem("zen-thinking-enabled") === "true";
+      return localStorage.getItem('zen-thinking-enabled') === 'true';
     } catch {
       return false;
     }
@@ -674,7 +529,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const [isSearch, setIsSearch] = React.useState(() => {
     try {
-      return localStorage.getItem("zen-search-enabled") === "true";
+      return localStorage.getItem('zen-search-enabled') === 'true';
     } catch {
       return false;
     }
@@ -682,7 +537,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const [isMemory, setIsMemory] = React.useState(() => {
     try {
-      return localStorage.getItem("zen-memory-enabled") === "true";
+      return localStorage.getItem('zen-memory-enabled') === 'true';
     } catch {
       return false;
     }
@@ -695,7 +550,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     setIsThinking((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem("zen-thinking-enabled", String(next));
+        localStorage.setItem('zen-thinking-enabled', String(next));
       } catch {}
       return next;
     });
@@ -705,7 +560,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     setIsSearch((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem("zen-search-enabled", String(next));
+        localStorage.setItem('zen-search-enabled', String(next));
       } catch {}
       return next;
     });
@@ -713,40 +568,30 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const toggleMemory = async () => {
     if (!currentAccount?.id) {
-      console.warn("No account selected, cannot toggle memory");
+      console.warn('No account selected, cannot toggle memory');
       return;
     }
 
     const newState = !isMemory;
-    // Optimistic update
     setIsMemory(newState);
-    localStorage.setItem("zen-memory-enabled", String(newState));
+    localStorage.setItem('zen-memory-enabled', String(newState));
 
-    // Sync to server
     try {
-      const response = await fetch(
-        `${apiUrl}/v1/accounts/${currentAccount.id}/memory`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ is_memory_enabled: newState }),
-        },
-      );
+      const response = await fetch(`${apiUrl}/v1/accounts/${currentAccount.id}/memory`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_memory_enabled: newState }),
+      });
       const result = await response.json();
       if (!result.success) {
-        // Rollback on error
         setIsMemory(!newState);
-        localStorage.setItem("zen-memory-enabled", String(!newState));
-        console.error(
-          "Failed to update memory state on server:",
-          result.message,
-        );
+        localStorage.setItem('zen-memory-enabled', String(!newState));
+        console.error('Failed to update memory state on server:', result.message);
       }
     } catch (error) {
-      // Rollback on network error
       setIsMemory(!newState);
-      localStorage.setItem("zen-memory-enabled", String(!newState));
-      console.error("Failed to sync memory state with server:", error);
+      localStorage.setItem('zen-memory-enabled', String(!newState));
+      console.error('Failed to sync memory state with server:', error);
     }
   };
 
@@ -754,25 +599,21 @@ const MessageInput: React.FC<MessageInputProps> = ({
     return currentAccount || null;
   }, [currentAccount]);
 
-  // Auto-resize textarea: expand up to maxHeight, shrink when content is deleted
   React.useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    // Reset to auto so scrollHeight reflects actual content height
-    el.style.height = "auto";
-    const maxHeight = 240; // px, must match the style below
+    el.style.height = 'auto';
+    const maxHeight = 240;
     el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
-    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, [message, textareaRef]);
 
-  // 🆕 Tool Settings Drawer Logic removed - now per-tool dropdown in ToolItem
   const currentProviderConfig = React.useMemo(() => {
     if (!currentModel?.providerId) {
       return null;
     }
     const found = providers.find(
-      (p) =>
-        p.provider_id?.toLowerCase() === currentModel.providerId?.toLowerCase(),
+      (p) => p.provider_id?.toLowerCase() === currentModel.providerId?.toLowerCase(),
     );
     return found ?? null;
   }, [currentModel, providers]);
@@ -788,7 +629,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   }, [currentProviderConfig, currentModel]);
 
   const showThinkingButton = React.useMemo(() => {
-    // Prefer fields on currentModel directly (already enriched), fallback to config lookup
     const result =
       currentModel?.is_thinking !== undefined
         ? !!currentModel.is_thinking
@@ -797,30 +637,22 @@ const MessageInput: React.FC<MessageInputProps> = ({
   }, [currentModel, currentModelConfig]);
 
   const showSearchButton = React.useMemo(() => {
-    // Priority: model-level > provider-level
-    // Only fall through to the next level if the current level is undefined (not set),
-    // never let provider-level override an explicit model-level false.
     let result: boolean;
     if (currentModel?.is_search !== undefined) {
-      // Model object already enriched with capability flags — trust it exclusively
       result = !!currentModel.is_search;
     } else if (currentModelConfig?.is_search !== undefined) {
-      // Model config from providers list has the flag
       result = !!currentModelConfig.is_search;
     } else {
-      // Neither model nor modelConfig has the flag — fall back to provider-level
       result = !!currentProviderConfig?.is_search;
     }
     return result;
   }, [currentModel, currentModelConfig, currentProviderConfig]);
 
   const showMemoryButton = React.useMemo(() => {
-    // Check if model supports memory (is_memory flag)
     const result = currentModel?.is_memory === true;
     return result;
   }, [currentModel]);
 
-  // Sync thinking and search toggles when model changes
   React.useEffect(() => {
     if (providers.length === 0 || !currentModel) return;
     const hasThinking =
@@ -835,26 +667,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
     if (!hasThinking && isThinking) {
       setIsThinking(false);
       try {
-        localStorage.setItem("zen-thinking-enabled", "false");
+        localStorage.setItem('zen-thinking-enabled', 'false');
       } catch {}
     }
     if (!hasSearch && isSearch) {
       setIsSearch(false);
       try {
-        localStorage.setItem("zen-search-enabled", "false");
+        localStorage.setItem('zen-search-enabled', 'false');
       } catch {}
     }
-  }, [
-    currentModel,
-    currentModelConfig,
-    currentProviderConfig,
-    providers,
-    isThinking,
-    isSearch,
-  ]);
+  }, [currentModel, currentModelConfig, currentProviderConfig, providers, isThinking, isSearch]);
 
   const supportsUpload = React.useMemo(() => {
-    // Priority: model-level > modelConfig-level > provider-level (strict cascade, no OR merging)
     let result: boolean;
     if (currentModel?.is_upload !== undefined) {
       result = !!currentModel.is_upload;
@@ -867,20 +691,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
   }, [currentModel, currentProviderConfig, currentModelConfig]);
 
   const formatWorkspacePath = (path: string) => {
-    if (!path) return "";
+    if (!path) return '';
     const parts = path.split(/[/\\]/).filter(Boolean);
     if (parts.length <= 5) return path;
-    const lastFive = parts.slice(-5).join("/");
+    const lastFive = parts.slice(-5).join('/');
     return `../${lastFive}`;
   };
 
-  // ... (rest of the file until rendering)
-
-  // NOTE: Logic to hide dropdowns is applied in the render method below
-  // We need to look further down for the return statement to modify the render.
-  // Since replace_file_content handles contiguous blocks, I will target the props definition first.
-
-  // Fetch providers function
   const fetchProviders = React.useCallback(async () => {
     try {
       const response = await fetch(`${apiUrl}/v1/providers`);
@@ -888,29 +705,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
       if (result.success) {
         setProviders(result.data.filter((p: any) => p.is_enabled));
       }
-    } catch (error) {
-      // console.error("Failed to fetch providers:", error);
-    }
+    } catch (error) {}
   }, [apiUrl]);
 
-  // Initial fetch
   React.useEffect(() => {
     fetchProviders();
   }, [fetchProviders]);
 
-  // Load saved selection and language
   React.useEffect(() => {
     let cancelled = false;
     setIsLoadingCache(true);
-    const key = `zen-model-selection:${folderPath || "global"}`;
+    const key = `zen-model-selection:${folderPath || 'global'}`;
 
     const applyCache = (saved: any) => {
       if (cancelled) return;
-      // Only restore from cache if the parent hasn't already provided a model/account.
-      // When ChatPanel passes initialMessageData.model (user just selected a new model),
-      // that value takes priority over the stale local cache. Overwriting it here was the
-      // root cause of "first message after model switch uses old model" bug.
-      // Use refs (not closure values) to get the latest currentModel/currentAccount.
       if (saved.model && !currentModelRef.current) setCurrentModel(saved.model);
       if (saved.accountId && !currentAccountRef.current) {
         pendingAccountIdRef.current = saved.accountId;
@@ -958,10 +766,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
     };
   }, [folderPath]);
 
-  // Save selection
   React.useEffect(() => {
     if (currentModel) {
-      const key = `zen-model-selection:${folderPath || "global"}`;
+      const key = `zen-model-selection:${folderPath || 'global'}`;
       const data = {
         model: currentModel,
         accountId: currentAccount?.id,
@@ -977,15 +784,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
         storage.set(key, dataStr);
       }
     }
-  }, [
-    currentModel,
-    currentAccount,
-    folderPath,
-    setCurrentModel,
-    setCurrentAccount,
-  ]);
+  }, [currentModel, currentAccount, folderPath, setCurrentModel, setCurrentAccount]);
 
-  // Handle auto-selection of account from cache once providers are loaded
   React.useEffect(() => {
     if (
       pendingAccountIdRef.current &&
@@ -1000,47 +800,29 @@ const MessageInput: React.FC<MessageInputProps> = ({
           );
           const result = await response.json();
           if (result.success && result.data?.accounts) {
-            const acc = result.data.accounts.find(
-              (a: any) => a.id === pendingAccountIdRef.current,
-            );
+            const acc = result.data.accounts.find((a: any) => a.id === pendingAccountIdRef.current);
             if (acc) {
               setCurrentAccount({ id: acc.id, email: acc.email });
-              pendingAccountIdRef.current = null; // Mark as resolved
+              pendingAccountIdRef.current = null;
             }
           }
-        } catch (error) {
-          // ignore
-        }
+        } catch (error) {}
       };
       fetchAccountsForProvider();
     }
   }, [providers, currentModel, currentAccount, apiUrl, setCurrentAccount]);
 
   return (
-    <div
-      style={{
-        padding: "var(--spacing-md) var(--spacing-lg)",
-        backgroundColor: "var(--secondary-bg)",
-        position: "relative",
-      }}
-    >
+    <div className="relative bg-secondary-bg rounded-md">
       <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          position: "relative",
-          borderRadius: "var(--border-radius)",
-          border: !isConnected
-            ? "1px solid var(--vscode-errorForeground, #f44336)"
-            : "1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))",
-          transition: "border 0.3s ease",
-          marginTop:
-            !isConversationStarted || (isConnected && isElaraMismatch) || isConversationStarted
-              ? "24px"
-              : "0px", // Space for badges/DiffSummaryBar sticking up
-        }}
+        className={cn(
+          'flex flex-col relative rounded-[var(--border-radius)] transition-[border] duration-300',
+          !isConversationStarted || (isConnected && isElaraMismatch) || isConversationStarted
+            ? 'mt-6'
+            : 'mt-0',
+          !isConnected ? 'border border-error' : 'border border-border',
+        )}
       >
-        {/* 🆕 HOME PANEL BADGE (Stuck to Border) - Only when !isConversationStarted */}
         {!isConversationStarted && (
           <div
             onClick={() => {
@@ -1048,37 +830,23 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 onOpenModelDrawer();
               }
             }}
+            className={cn(
+              'absolute left-2 z-20 flex items-center gap-2 cursor-pointer transition-all duration-200',
+              'px-2.5 py-1 text-[11px] font-semibold',
+              'border border-border rounded-t-[8px] rounded-b-none',
+              'shadow-[0_-2px_6px_rgba(0,0,0,0.1)]',
+              'bg-input-background text-text-primary',
+              isConnected ? 'mb-[-1px]' : 'mb-0',
+            )}
             style={{
-              position: "absolute",
-              bottom: !isConnected ? "calc(100% + 2px)" : "100%",
-              left: "8px",
-              backgroundColor: "var(--input-bg)",
-              color: "var(--primary-text)",
-              padding: "5px 10px",
-              fontSize: "11px",
-              fontWeight: 600,
-              borderTopLeftRadius: "8px",
-              borderTopRightRadius: "8px",
-              borderBottomLeftRadius: "0",
-              borderBottomRightRadius: "0",
-              border: "1px solid var(--border-color)",
-              borderBottom: !isConnected
-                ? "1px solid var(--border-color)"
-                : "none",
-              zIndex: 20,
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              cursor: "pointer",
-              boxShadow: "0 -2px 6px rgba(0,0,0,0.1)",
-              transition: "all 0.2s ease",
-              marginBottom: isConnected ? "-1px" : "0", // avoid inheriting red border when disconnected
+              bottom: !isConnected ? 'calc(100% + 2px)' : '100%',
+              borderBottom: !isConnected ? `1px solid ${$('--border')}` : 'none',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--hover-bg)";
+              e.currentTarget.style.backgroundColor = $('--hover-bg');
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--input-bg)";
+              e.currentTarget.style.backgroundColor = $('--input-background');
             }}
             title="Click to select Model and Account"
           >
@@ -1088,58 +856,30 @@ const MessageInput: React.FC<MessageInputProps> = ({
                   <img
                     src={displayModel.favicon}
                     alt="favicon"
-                    style={{
-                      width: "12px",
-                      height: "12px",
-                      borderRadius: "2px",
-                    }}
+                    className="w-3 h-3 rounded-[2px]"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
+                      (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                 ) : (
-                  <span
-                    className="codicon codicon-server-process"
-                    style={{ fontSize: "12px" }}
-                  />
+                  <span className="codicon codicon-server-process text-xs" />
                 )}
                 {displayModel.providerId}/{displayModel.id}
                 {displayAccount?.email && (
-                  <span
-                    style={{
-                      opacity: 0.8,
-                      fontStyle: "italic",
-                      marginLeft: "2px",
-                    }}
-                  >
-                    {displayAccount.email}
-                  </span>
+                  <span className="opacity-80 italic ml-0.5">{displayAccount.email}</span>
                 )}
               </>
             ) : (
               <>
-                <span
-                  className="codicon codicon-server-process"
-                  style={{ fontSize: "12px" }}
-                />
+                <span className="codicon codicon-server-process text-xs" />
                 Select Model
               </>
             )}
           </div>
         )}
-        
-        {/* 🆕 CHAT PANEL DIFF SUMMARY BAR (Stuck to Border) - Only when isConversationStarted */}
+
         {isConversationStarted && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: "100%",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "98%",
-              zIndex: 20,
-            }}
-          >
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-[98%] z-20">
             <DiffSummaryBar
               totalChanges={conversationFileStats?.totalFiles || 0}
               addedLines={conversationFileStats?.totalAdditions || 0}
@@ -1151,57 +891,31 @@ const MessageInput: React.FC<MessageInputProps> = ({
             />
           </div>
         )}
-        {/* Browser session warning - bottom right inside MessageInput */}
-        {showBrowserWarning && currentModel?.providerId === "zai-browser" && (
+        {showBrowserWarning && currentModel?.providerId === 'zai-browser' && (
           <div
             onClick={isLaunchingBrowser ? undefined : onLaunchBrowserSession}
-            style={{
-              position: "absolute",
-              top: "100%",
-              right: "8px",
-              backgroundColor: "rgba(251, 146, 60, 0.15)",
-              padding: "4px 10px",
-              fontSize: "11px",
-              fontWeight: 500,
-              borderBottomLeftRadius: "8px",
-              borderBottomRightRadius: "8px",
-              border: "1px solid rgba(251, 146, 60, 0.3)",
-              borderTop: "none",
-              zIndex: 20,
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              cursor: isLaunchingBrowser ? "not-allowed" : "pointer",
-              marginTop: "-1px",
-              opacity: isLaunchingBrowser ? 0.6 : 1,
-            }}
+            className={cn(
+              'absolute top-full right-2 z-20 flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-b-lg border-t-0',
+              'bg-[rgba(251,146,60,0.15)] border border-[rgba(251,146,60,0.3)] -mt-[1px]',
+              isLaunchingBrowser ? 'opacity-60 cursor-not-allowed' : 'opacity-100 cursor-pointer',
+            )}
             onMouseEnter={(e) => {
               if (!isLaunchingBrowser) {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(251, 146, 60, 0.25)";
+                e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.25)';
               }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor =
-                "rgba(251, 146, 60, 0.15)";
+              e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.15)';
             }}
           >
-            <span style={{ fontSize: "11px", fontWeight: 500 }}>
+            <span className="text-[11px] font-medium">
               {isLaunchingBrowser
-                ? "Launching browser session..."
-                : "Browser session not ready. Click here"}
+                ? 'Launching browser session...'
+                : 'Browser session not ready. Click here'}
             </span>
           </div>
         )}
-        <div
-          style={{
-            position: "relative",
-            backgroundColor: "var(--input-bg)",
-            borderTopLeftRadius: "var(--border-radius)",
-            borderTopRightRadius: "var(--border-radius)",
-            padding: "12px",
-          }}
-        >
+        <div className="relative p-3 bg-input-background rounded-t-md">
           <style>{`
           .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
@@ -1223,15 +937,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
             value={message}
             onChange={handleTextareaChange}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                // Only send if not history mode, connected, not loading, not processing
-                if (
-                  !isHistoryMode &&
-                  isConnected &&
-                  !isLoadingCache &&
-                  !isProcessing
-                ) {
+                if (!isHistoryMode && isConnected && !isLoadingCache && !isProcessing) {
                   handleSend(currentModel, currentAccount);
                 }
               } else {
@@ -1240,11 +948,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             }}
             onPaste={(e) => {
               if (!supportsUpload && e.clipboardData.files.length > 0) {
-                console.warn(
-                  "[Zen Log] MessageInput onPaste: Upload is not supported, preventing paste.",
-                );
                 e.preventDefault();
-                // Optional: Show toast "Upload not supported by this provider"
                 return;
               }
               handlePaste(e);
@@ -1258,101 +962,50 @@ const MessageInput: React.FC<MessageInputProps> = ({
               handleDrop(e);
             }}
             onFocus={(e) => {
-              e.target.style.border = "none";
-              e.target.style.boxShadow = "none";
+              e.target.style.border = 'none';
+              e.target.style.boxShadow = 'none';
             }}
             placeholder={
               isHistoryMode
-                ? "History mode - enter a search query"
+                ? 'History mode - enter a search query'
                 : !isConnected
-                  ? "Connecting to backend..."
+                  ? 'Connecting to backend...'
                   : isLoadingCache
-                    ? "Loading cache..."
+                    ? 'Loading cache...'
                     : isProcessing
-                      ? "Processing..."
-                      : "Message @agent (Alt+@)"
+                      ? 'Processing...'
+                      : 'Message @agent (Alt+@)'
             }
             disabled={false}
             rows={1}
-            style={{
-              width: "100%",
-              minHeight: "24px",
-              maxHeight: "240px",
-              border: "none",
-              outline: "none",
-              resize: "none",
-              fontFamily: "inherit",
-              fontSize: "var(--font-size-sm)",
-              backgroundColor: "transparent",
-              color: "var(--primary-text)",
-              overflow: "hidden",
-              whiteSpace: "pre-wrap",
-              wordWrap: "break-word",
-              opacity: 1,
-              cursor: "text",
-              boxSizing: "border-box",
-            }}
+            className="w-full min-h-[24px] max-h-[240px] border-none outline-none resize-none font-inherit text-[var(--font-size-sm)] bg-transparent text-text-primary overflow-hidden whitespace-pre-wrap break-word opacity-100 cursor-text box-border"
           />
         </div>
 
-        {/* Bottom Part: Toolbar */}
-        <div
-          style={{
-            backgroundColor: "var(--input-bg)",
-            borderBottomLeftRadius: "var(--border-radius)",
-            borderBottomRightRadius: "var(--border-radius)",
-            padding: "8px 12px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          {/* Left Icons */}
-          <div
-            style={{
-              display: "flex",
-              gap: "var(--spacing-xs)",
-              alignItems: "center",
-            }}
-          >
+        <div className="px-3 py-2 flex justify-between items-center bg-input-background rounded-b-md">
+          <div className="flex gap-[var(--spacing-xs)] items-center">
             <div
               onClick={() => {
-                // Use the file input ref from parent
                 if (fileInputRef?.current) {
-                  // Store textOnly flag on the input element for the change handler to use
-                  (fileInputRef.current as any).dataset.textOnly =
-                    String(!supportsUpload);
+                  (fileInputRef.current as any).dataset.textOnly = String(!supportsUpload);
                   fileInputRef.current.click();
                 } else {
-                  // Fallback: use handleFileSelect
                   handleFileSelect();
                 }
               }}
               onMouseEnter={() => setIsPlusHovered(true)}
               onMouseLeave={() => setIsPlusHovered(false)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "22px",
-                width: "22px",
-                boxSizing: "border-box",
-                borderRadius: "4px",
-                cursor: "pointer",
-                transition: "all 0.2s ease-in-out",
-                border: "1px solid rgba(128, 128, 128, 0.2)",
-                background: isPlusHovered
-                  ? "rgba(128, 128, 128, 0.2)"
-                  : "rgba(128, 128, 128, 0.12)",
-                color: "var(--vscode-foreground)",
-                opacity: isPlusHovered ? 0.9 : 0.7,
-              }}
-              title={supportsUpload ? "Attach files" : "Attach text files only"}
+              className={cn(
+                'flex items-center justify-center h-[22px] w-[22px] box-border rounded cursor-pointer transition-all duration-200 border border-solid border-border text-text-primary',
+                isPlusHovered
+                  ? 'opacity-90 bg-[rgba(128,128,128,0.2)]'
+                  : 'opacity-70 bg-[rgba(128,128,128,0.12)]',
+              )}
+              title={supportsUpload ? 'Attach files' : 'Attach text files only'}
             >
               <PlusIcon />
             </div>
 
-            {/* Git Status Button */}
             {onGitPullRequest && (
               <div
                 onClick={() => {
@@ -1362,56 +1015,28 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 }}
                 onMouseEnter={() => setIsGitHovered(true)}
                 onMouseLeave={() => setIsGitHovered(false)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "22px",
-                  width: "22px",
-                  boxSizing: "border-box",
-                  borderRadius: "4px",
-                  cursor:
-                    isGitLoading || isProcessing || isGitStatusVisible
-                      ? "default"
-                      : "pointer",
-                  transition: "all 0.2s ease-in-out",
-                  border: "1px solid rgba(128, 128, 128, 0.2)",
-                  background:
-                    isGitHovered &&
-                    !isGitLoading &&
-                    !isProcessing &&
-                    !isGitStatusVisible
-                      ? "rgba(128, 128, 128, 0.2)"
-                      : "rgba(128, 128, 128, 0.12)",
-                  color:
-                    isGitLoading || isProcessing || isGitStatusVisible
-                      ? "var(--vscode-descriptionForeground, #8c8c8c)"
-                      : "var(--vscode-foreground)",
-                  opacity:
-                    isGitHovered &&
-                    !isGitLoading &&
-                    !isProcessing &&
-                    !isGitStatusVisible
-                      ? 0.9
-                      : isGitLoading || isProcessing || isGitStatusVisible
-                        ? 0.5
-                        : 0.7,
-                }}
+                className={cn(
+                  'flex items-center justify-center h-[22px] w-[22px] box-border rounded transition-all duration-200 border border-solid border-border',
+                  isGitLoading || isProcessing || isGitStatusVisible
+                    ? 'cursor-default text-text-secondary opacity-50 bg-[rgba(128,128,128,0.12)]'
+                    : isGitHovered
+                      ? 'cursor-pointer text-text-primary opacity-90 bg-[rgba(128,128,128,0.2)]'
+                      : 'cursor-pointer text-text-primary opacity-70 bg-[rgba(128,128,128,0.12)]',
+                )}
                 title={
                   isGitStatusVisible
-                    ? "Git Status đang hiển thị"
+                    ? 'Git Status đang hiển thị'
                     : isGitLoading
-                      ? "Đang kiểm tra git status..."
+                      ? 'Đang kiểm tra git status...'
                       : isProcessing
-                        ? "Đang xử lý task, vui lòng đợi..."
-                        : "Git Status - Kiểm tra thay đổi đã staged"
+                        ? 'Đang xử lý task, vui lòng đợi...'
+                        : 'Git Status - Kiểm tra thay đổi đã staged'
                 }
               >
                 <GitPullRequestArrow size={16} />
               </div>
             )}
 
-            {/* Context Compression Button */}
             {showCompressButton && (
               <CompressButton
                 onClick={onCompress || (() => {})}
@@ -1419,10 +1044,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
               />
             )}
 
-            {/* Global Tool Permission */}
             <GlobalPermissionButton />
 
-            {/* Thinking Toggle */}
             {showThinkingButton && (
               <ThinkingButton
                 isOn={isThinking}
@@ -1431,7 +1054,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
               />
             )}
 
-            {/* Search Toggle */}
             {showSearchButton && (
               <SearchButton
                 isOn={isSearch}
@@ -1440,7 +1062,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
               />
             )}
 
-            {/* Memory Toggle */}
             {showMemoryButton && (
               <MemoryButton
                 isOn={isMemory}
@@ -1450,70 +1071,50 @@ const MessageInput: React.FC<MessageInputProps> = ({
             )}
           </div>
 
-          {/* Right Icons */}
-          <div style={{ display: "flex", gap: "var(--spacing-xs)" }}>
-            {/* Send / Stop Button */}
+          <div className="flex gap-[var(--spacing-xs)]">
             {isConnected && (
               <div
-                style={{
-                  cursor:
-                    isHistoryMode || isLoadingCache
-                      ? "not-allowed"
-                      : isStreaming || isProcessing
-                        ? "pointer"
-                        : message.trim() || uploadedFiles.length > 0
-                          ? "pointer"
-                          : "default",
-                  padding: "var(--spacing-xs)",
-                  borderRadius: "var(--border-radius)",
-                  transition: "background-color 0.2s",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color:
-                    isHistoryMode || isLoadingCache
-                      ? "var(--secondary-text)"
-                      : isStreaming || isProcessing
-                        ? "var(--vscode-errorForeground, #f44336)" // Red color for stop
-                        : message.trim() || uploadedFiles.length > 0
-                          ? "var(--accent-text)"
-                          : "var(--secondary-text)",
-                  pointerEvents:
-                    isHistoryMode || isLoadingCache ? "none" : "auto",
-                }}
+                className={cn(
+                  'p-[var(--spacing-xs)] rounded-[var(--border-radius)] transition-colors duration-200 flex items-center justify-center',
+                  isHistoryMode || isLoadingCache
+                    ? 'cursor-not-allowed text-text-secondary pointer-events-none'
+                    : isStreaming || isProcessing
+                      ? 'cursor-pointer text-error'
+                      : message.trim() || uploadedFiles.length > 0
+                        ? 'cursor-pointer'
+                        : 'cursor-default text-text-secondary',
+                )}
+                style={
+                  !isHistoryMode &&
+                  !isLoadingCache &&
+                  !isStreaming &&
+                  !isProcessing &&
+                  message.trim() &&
+                  uploadedFiles.length === 0
+                    ? { color: $('--accent-text') }
+                    : undefined
+                }
                 onClick={() => {
                   if ((isStreaming || isProcessing) && onStopGeneration) {
-                    // Stop generation
                     onStopGeneration();
                     return;
                   }
 
                   if (!currentModel) {
-                    console.warn(
-                      "[Zen] MessageInput send: no model selected, aborting",
-                    );
+                    console.warn('[Zen] MessageInput send: no model selected, aborting');
                     return;
                   }
                   handleSend(currentModel, currentAccount);
                 }}
                 onMouseEnter={(e) => {
-                  if (
-                    isStreaming ||
-                    isProcessing ||
-                    message.trim() ||
-                    uploadedFiles.length > 0
-                  ) {
-                    e.currentTarget.style.backgroundColor = "var(--hover-bg)";
+                  if (isStreaming || isProcessing || message.trim() || uploadedFiles.length > 0) {
+                    e.currentTarget.style.backgroundColor = $('--hover-bg');
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.backgroundColor = 'transparent';
                 }}
-                title={
-                  isStreaming || isProcessing
-                    ? "Stop Generation"
-                    : "Send Message"
-                }
+                title={isStreaming || isProcessing ? 'Stop Generation' : 'Send Message'}
               >
                 {isStreaming || isProcessing ? (
                   <X size={16} strokeWidth={2.5} />
@@ -1525,72 +1126,30 @@ const MessageInput: React.FC<MessageInputProps> = ({
           </div>
         </div>
 
-        {/* Language Badge - HomePanel only */}
         {!isConversationStarted &&
           isConnected &&
           !isElaraMismatch &&
-          LANGUAGES.some(
-            (l: { code: string }) => l.code === preferredLanguage,
-          ) && (
+          LANGUAGES.some((l: { code: string }) => l.code === preferredLanguage) && (
             <div
-              style={{
-                position: "absolute",
-                top: "8px",
-                right: "8px",
-                backgroundColor: "var(--vscode-badge-background)",
-                color: "var(--vscode-badge-foreground)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                fontSize: "10px",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                zIndex: 5,
-                opacity: 0.8,
-                pointerEvents: "none",
-              }}
+              className="absolute top-2 right-2 z-5 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold opacity-80 pointer-events-none bg-card-background text-text-primary"
             >
               <span>
-                {LANGUAGES.find((l: any) => l.code === preferredLanguage)
-                  ?.flag || "🇺🇸"}{" "}
+                {LANGUAGES.find((l: any) => l.code === preferredLanguage)?.flag || '🇺🇸'}{' '}
                 {preferredLanguage.toUpperCase()}
               </span>
             </div>
           )}
 
-        {/* Health / Elara Badges (Stuck to Border) */}
         {isConnected && isElaraMismatch && (
           <div
-            style={{
-              position: "absolute",
-              bottom: "100%",
-              right: "8px",
-              backgroundColor: "rgba(255, 152, 0, 0.1)",
-              color: "var(--vscode-editorWarning-foreground, #ff9800)",
-              padding: "4px 12px",
-              fontSize: "11px",
-              fontWeight: 600,
-              borderTopLeftRadius: "var(--border-radius)",
-              borderTopRightRadius: "var(--border-radius)",
-              borderBottomLeftRadius: "0",
-              borderBottomRightRadius: "0",
-              border: "1px solid rgba(255, 152, 0, 0.2)",
-              borderBottom: "none",
-              cursor: "pointer",
-              zIndex: 20,
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              boxShadow: "0 -2px 4px rgba(0,0,0,0.1)",
-              marginBottom: "-1px",
-            }}
+            className="absolute bottom-full right-2 z-20 flex items-center gap-1 px-3 py-1 text-[11px] font-semibold cursor-pointer bg-[rgba(255,152,0,0.1)] text-warn border border-[rgba(255,152,0,0.2)] border-b-0 rounded-t-[var(--border-radius)] rounded-b-none shadow-[0_-2px_4px_rgba(0,0,0,0.1)]"
+            style={{ marginBottom: '-1px' }}
             onClick={() => {
               const vscodeApi = (window as any).vscodeApi;
               if (vscodeApi) {
                 vscodeApi.postMessage({
-                  command: "openExternal",
-                  url: "https://github.com/KhanhRomVN/Elara",
+                  command: 'openExternal',
+                  url: 'https://github.com/KhanhRomVN/Elara',
                 });
               }
             }}

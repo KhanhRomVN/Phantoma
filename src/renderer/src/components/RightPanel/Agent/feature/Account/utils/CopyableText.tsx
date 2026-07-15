@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
+import { cn } from '@renderer/shared/lib/utils';
 import { useTruncatedText } from './truncateText';
-import { $ } from '@renderer/utils/color';
 
 interface CopyableTextProps {
   value: string;
@@ -30,19 +30,14 @@ export const CopyableText: React.FC<CopyableTextProps> = ({ value, monospace }) 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       title={copied ? 'Copied!' : value ? `Click to copy: ${value}` : 'N/A'}
+      className={cn(
+        'overflow-hidden whitespace-nowrap w-full transition-colors duration-150',
+        copied ? 'text-success' : hovered ? 'text-primary' : 'text-text-primary',
+        value ? 'cursor-pointer' : 'cursor-default',
+      )}
       style={{
         fontSize,
         fontFamily,
-        color: copied
-          ? $('--success, #22c55e')
-          : hovered
-            ? $('--primary')
-            : $('--text-primary'),
-        cursor: value ? 'pointer' : 'default',
-        transition: 'color 0.15s ease',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        width: '100%',
       }}
     >
       {copied ? '✓ copied' : displayText || 'N/A'}

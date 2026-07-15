@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface ThinkingRendererProps {
   content: string;
@@ -32,10 +33,10 @@ export const ThinkingRenderer: React.FC<ThinkingRendererProps> = ({
       <div
         ref={containerRef}
         style={{
-          fontFamily: 'var(--vscode-editor-font-family, monospace)',
+          fontFamily: $('--vscode-editor-font-family') || 'monospace',
           fontSize: '12px',
           lineHeight: '1.5',
-          color: 'var(--vscode-descriptionForeground, var(--vscode-editor-foreground))',
+          color: $('--vscode-descriptionForeground') || $('--vscode-editor-foreground'),
           opacity: 0.75,
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
@@ -55,7 +56,7 @@ export const ThinkingRenderer: React.FC<ThinkingRendererProps> = ({
               display: 'inline-block',
               width: '6px',
               height: '12px',
-              background: 'var(--vscode-editor-foreground)',
+              background: $('--vscode-editor-foreground'),
               marginLeft: '2px',
               verticalAlign: 'middle',
               animation: 'thinking-cursor-blink 0.6s step-end infinite',

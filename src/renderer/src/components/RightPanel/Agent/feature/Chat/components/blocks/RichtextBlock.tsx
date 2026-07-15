@@ -103,7 +103,7 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
               <FileIcon
                 path={name}
                 isFolder={isFolder}
-                style={{ width: '16px', height: '16px', opacity: 0.9 }}
+                className="w-4 h-4 opacity-90"
               />
               <span className="text-primary opacity-90 whitespace-nowrap overflow-hidden text-ellipsis">
                 {name}
@@ -152,8 +152,7 @@ export const RichtextBlock: React.FC<RichtextBlockProps> = ({
   const ExpandedView = () => (
     <div className="bg-background border">
       <div
-        className="flex justify-between items-center py-1.5 px-0 border-b text-primary text-[13px] select-none cursor-pointer"
-        style={{ backgroundColor: $('--sidebar-background') || 'rgba(0,0,0,0.1)' }}
+        className="flex justify-between items-center py-1.5 px-0 border-b text-primary text-[13px] select-none cursor-pointer bg-sidebar-background"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">

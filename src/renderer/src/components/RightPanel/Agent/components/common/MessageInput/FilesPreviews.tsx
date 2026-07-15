@@ -86,7 +86,6 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       onRemoveFile(file.id);
                     }}
                     className="absolute -top-1 -right-1 w-[14px] h-[14px] rounded-full flex items-center justify-center cursor-pointer z-10 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
-                    style={{ backgroundColor: $('--secondary-bg') }}
                   >
                     <svg
                       width="8"
@@ -168,7 +167,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       onClick={() => onAttachedItemClick(item)}
                       title={`Click to open: ${item.path}`}
                     >
-                      <FileIconLucide path={item.path} style={{ width: '14px', height: '14px' }} />
+                      <FileIconLucide path={item.path} className="w-[14px] h-[14px]" />
                       <span className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {item.path.split('/').pop()}
                       </span>
@@ -211,11 +210,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       onClick={() => onAttachedItemClick(item)}
                       title={item.path}
                     >
-                      <FileIcon
-                        path={item.path}
-                        isFolder={true}
-                        style={{ width: '14px', height: '14px' }}
-                      />
+                      <FileIcon path={item.path} isFolder={true} className="w-[14px] h-[14px]" />
                       <span className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {item.path.split('/').pop() || item.path}
                       </span>
@@ -258,7 +253,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       onClick={() => onAttachedItemClick(item)}
                       title={`External file: ${item.path}`}
                     >
-                      <FileIcon path={item.path} style={{ width: '14px', height: '14px' }} />
+                      <FileIcon path={item.path} className="w-[14px] h-[14px]" />
                       <span className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {item.path.split('/').pop() || item.path.split('\\').pop() || item.path}
                       </span>

@@ -11,18 +11,17 @@ import { useSettings } from '../../../../context/SettingsContext';
 import { useProject } from '../../../../context/ProjectContext';
 import { useFileUpload } from '../workspace/useFileUpload';
 import { ChatSession } from '../../types/chat';
+import { parseQuestionAnswerTag } from '../../utils/messageParser';
 import { useStreamingState } from './useStreamingState';
 import { useConversationRefs } from './useConversationRefs';
 import { useMessageHandlers } from './useMessageHandlers';
 import { PromptBuilder } from '../../services/PromptBuilder';
 import { StreamingService } from '../../services/StreamingService';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { parseQuestionAnswerTag } from '../../utils/messageParser';
 
 interface UseChatLLMProps {
   apiUrl: string;
   selectedTab: ChatSession | null;
-  feature?: string | null;
   onConversationIdChange?: (id: string) => void;
   onToolRequest?: (
     actions: ToolAction[],
@@ -32,19 +31,12 @@ interface UseChatLLMProps {
   ) => void;
 }
 
-export const useChatLLM = ({
-  apiUrl,
-  selectedTab,
-  feature,
-  onConversationIdChange,
-  onToolRequest,
-}: UseChatLLMProps) => {
+export const useChatLLM = ({ apiUrl, selectedTab, onConversationIdChange }: UseChatLLMProps) => {
   // Use extracted hooks
   const {
     streamingState,
     dispatchStreaming,
     isProcessingRef,
-    isContinuingRef,
     setIsProcessingSync,
     setIsContinuingSync,
   } = useStreamingState();
@@ -59,11 +51,9 @@ export const useChatLLM = ({
     qwenParentIdRef,
     userRequestCountRef,
     renderCountRef,
-    prevDepsRef,
   } = useConversationRefs();
 
   // Track render performance
-  const renderStartTime = performance.now();
   renderCountRef.current++;
 
   // Get context values
@@ -93,16 +83,6 @@ export const useChatLLM = ({
     }
     onConversationIdChange?.(currentConversationId);
   }, [currentConversationId, onConversationIdChange]);
-
-  // Track render duration
-  useEffect(() => {
-    const renderDuration = performance.now() - renderStartTime;
-    if (renderDuration > 16) {
-      console.warn(
-        `[Zen][useChatLLM Render #${renderCountRef.current}] SLOW RENDER: ${renderDuration.toFixed(2)}ms`,
-      );
-    }
-  });
 
   // Use message handlers hook
   useMessageHandlers({
@@ -228,7 +208,6 @@ export const useChatLLM = ({
         workspace,
         files,
         userRequestCount: userRequestCountRef.current,
-        feature,
       });
 
       const userMessage: Message = {
@@ -511,6 +490,8 @@ export const useChatLLM = ({
         dispatchStreaming({ type: 'RESET_STREAMING' });
         abortControllerRef.current = null;
 
+        console.log('[Stream Complete] Full raw content:', assistantMessage.content);
+
         // Save final conversation
         saveConversation(
           sessionId,
@@ -583,7 +564,7 @@ export const useChatLLM = ({
    * Handle tool action
    */
   const handleToolAction = useCallback(
-    (actionId: string, actionType: 'accept_all' | 'accept_once' | 'reject', toolName?: string) => {
+    (actionType: 'accept_all' | 'accept_once' | 'reject', toolName?: string) => {
       if (actionType === 'accept_all' && toolName) {
         setConversationToolOverrides((prev) => ({
           ...prev,

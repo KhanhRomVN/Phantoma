@@ -1,6 +1,7 @@
-import React from "react";
+import React from 'react';
+import { cn } from '@renderer/shared/lib/utils';
 import { getFileIconPath } from '@renderer/utils/fileIconMapper';
-import { RotateCcw } from "lucide-react";
+import { RotateCcw } from 'lucide-react';
 
 interface ResponseRange {
   start: number;
@@ -11,7 +12,7 @@ interface ResponseRange {
     {
       additions: number;
       deletions: number;
-      toolType?: "write_to_file" | "replace_in_file";
+      toolType?: 'write_to_file' | 'replace_in_file';
       content?: string;
       oldContent?: string;
       newContent?: string;
@@ -39,16 +40,13 @@ const DiffSummaryBar: React.FC<DiffSummaryBarProps> = ({
   responseRanges = [],
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const [isReviewHovered, setIsReviewHovered] = React.useState(false);
 
   const rangeText = React.useMemo(() => {
-    // Find current range and use it for summary
     const currentRange = responseRanges.find((r) => r.isCurrent);
     if (currentRange) {
       return `(${currentRange.start}-${currentRange.end})`;
     }
-    // Fallback to responseRange if no current found
-    return responseRange ? `(${responseRange.start}-${responseRange.end})` : "";
+    return responseRange ? `(${responseRange.start}-${responseRange.end})` : '';
   }, [responseRange, responseRanges]);
 
   const handleReviewClick = (e: React.MouseEvent) => {
@@ -62,7 +60,7 @@ const DiffSummaryBar: React.FC<DiffSummaryBarProps> = ({
   const handleFileClick = (
     filePath: string,
     fileData?: {
-      toolType?: "write_to_file" | "replace_in_file";
+      toolType?: 'write_to_file' | 'replace_in_file';
       content?: string;
       oldContent?: string;
       newContent?: string;
@@ -71,28 +69,26 @@ const DiffSummaryBar: React.FC<DiffSummaryBarProps> = ({
     const vscodeApi = (window as any).vscodeApi;
     if (!vscodeApi) return;
 
-    // Use tool type from fileData if available
-    if (fileData?.toolType === "write_to_file" && fileData.content) {
+    if (fileData?.toolType === 'write_to_file' && fileData.content) {
       vscodeApi.postMessage({
-        command: "openWriteToFile",
+        command: 'openWriteToFile',
         filePath: filePath,
         content: fileData.content,
       });
     } else if (
-      fileData?.toolType === "replace_in_file" &&
+      fileData?.toolType === 'replace_in_file' &&
       fileData.oldContent &&
       fileData.newContent
     ) {
       vscodeApi.postMessage({
-        command: "openReplaceInFileDiff",
+        command: 'openReplaceInFileDiff',
         filePath: filePath,
         oldContent: fileData.oldContent,
         newContent: fileData.newContent,
       });
     } else {
-      // Fallback to openFileDiff for backward compatibility
       vscodeApi.postMessage({
-        command: "openFileDiff",
+        command: 'openFileDiff',
         path: filePath,
       });
     }
@@ -108,7 +104,7 @@ const DiffSummaryBar: React.FC<DiffSummaryBarProps> = ({
     availableWidth: number = 300,
   ): { display: string; isTruncated: boolean } => {
     const parts = fullPath.split(/[/\\]/);
-    
+
     if (parts.length <= 2) {
       return { display: fullPath, isTruncated: false };
     }
@@ -116,323 +112,143 @@ const DiffSummaryBar: React.FC<DiffSummaryBarProps> = ({
     const fileName = parts[parts.length - 1];
     const folders = parts.slice(0, -1);
 
-    // Estimate character width (monospace font ~6px per char at 10px font size)
     const charWidth = 6;
     const maxChars = Math.floor(availableWidth / charWidth);
 
-    // Try showing progressively more folders from the start
-    // folder1/.../file
-    // folder1/folder2/.../file
-    // folder1/folder2/folder3/.../file
-    // etc.
-
     for (let numFolders = 1; numFolders <= folders.length; numFolders++) {
       let pathCandidate: string;
-      
+
       if (numFolders === folders.length) {
-        // Show full path without ellipsis
         pathCandidate = fullPath;
       } else {
-        // Show first N folders + ... + filename
-        const visibleFolders = folders.slice(0, numFolders).join("/");
+        const visibleFolders = folders.slice(0, numFolders).join('/');
         pathCandidate = `${visibleFolders}/.../${fileName}`;
       }
 
       if (pathCandidate.length <= maxChars) {
-        // This fits, but let's check if we can show one more folder
         if (numFolders < folders.length) {
           const nextCandidate =
             numFolders + 1 === folders.length
               ? fullPath
-              : `${folders.slice(0, numFolders + 1).join("/")}/.../${fileName}`;
-          
+              : `${folders.slice(0, numFolders + 1).join('/')}/.../${fileName}`;
+
           if (nextCandidate.length <= maxChars) {
-            // Next one also fits, continue to try more
             continue;
           }
         }
-        
-        // This is the best fit
         return {
           display: pathCandidate,
           isTruncated: numFolders < folders.length,
         };
       }
 
-      // This doesn't fit, use previous (if any)
       if (numFolders === 1) {
-        // Even folder1/.../file doesn't fit, just show filename
         return { display: fileName, isTruncated: true };
       }
 
-      // Use previous iteration
-      const prevFolders = folders.slice(0, numFolders - 1).join("/");
+      const prevFolders = folders.slice(0, numFolders - 1).join('/');
       return {
         display: `${prevFolders}/.../${fileName}`,
         isTruncated: true,
       };
     }
 
-    // Fallback: show full path
     return { display: fullPath, isTruncated: false };
   };
 
-  const handleOpenOriginalFile = (
-    e: React.MouseEvent,
-    filePath: string,
-  ) => {
+  const handleOpenOriginalFile = (e: React.MouseEvent, filePath: string) => {
     e.stopPropagation();
     const vscodeApi = (window as any).vscodeApi;
     if (vscodeApi) {
       vscodeApi.postMessage({
-        command: "openFile",
+        command: 'openFile',
         path: filePath,
       });
     }
   };
 
   return (
-    <div
-      style={{
-        width: "98%",
-        margin: "0 auto",
-        background: "var(--input-bg)",
-        border: "1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))",
-        borderTopLeftRadius: "6px",
-        borderTopRightRadius: "6px",
-        borderBottomLeftRadius: "0",
-        borderBottomRightRadius: "0",
-        overflow: "hidden",
-      }}
-    >
-      {/* Summary Bar */}
+    <div className="w-[98%] mx-auto overflow-hidden rounded-t-md border border-border bg-input-background">
       <div
         onClick={onClick}
-        style={{
-          padding: "6px 12px",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          cursor: onClick ? "pointer" : "default",
-        }}
-      >
-        {/* Total Changes */}
-        <span
-          style={{
-            fontSize: "13px",
-            fontFamily: "var(--vscode-font-family)",
-            color: "var(--vscode-foreground)",
-          }}
-        >
-          {totalChanges} {totalChanges === 1 ? "file changed" : "files changed"}
-        </span>
-
-        {/* Diff Stats */}
-        <span
-          style={{
-            fontSize: "13px",
-            fontFamily: "var(--vscode-editor-font-family, monospace)",
-            color: "var(--vscode-descriptionForeground)",
-          }}
-        >
-          <span
-            style={{
-              color: "var(--vscode-gitDecoration-addedResourceForeground)",
-            }}
-          >
-            +{addedLines}
-          </span>{" "}
-          <span
-            style={{
-              color: "var(--vscode-gitDecoration-deletedResourceForeground)",
-            }}
-          >
-            -{removedLines}
-          </span>
-        </span>
-
-        {/* Response Range */}
-        {rangeText && (
-          <span
-            style={{
-              fontSize: "13px",
-              fontFamily: "var(--vscode-font-family)",
-              color: "var(--vscode-descriptionForeground)",
-            }}
-          >
-            {rangeText}
-          </span>
+        className={cn(
+          'px-3 py-1.5 flex items-center gap-3',
+          onClick ? 'cursor-pointer' : 'cursor-default',
         )}
+      >
+        <span className="text-[13px] text-text-primary">
+          {totalChanges} {totalChanges === 1 ? 'file changed' : 'files changed'}
+        </span>
 
-        {/* Review Button */}
+        <span className="text-[13px] text-text-secondary">
+          <span className="text-success">+{addedLines}</span>{' '}
+          <span className="text-error">-{removedLines}</span>
+        </span>
+
+        {rangeText && <span className="text-[13px] text-text-secondary">{rangeText}</span>}
+
         <span
           onClick={handleReviewClick}
-          onMouseEnter={() => setIsReviewHovered(true)}
-          onMouseLeave={() => setIsReviewHovered(false)}
-          style={{
-            fontSize: "13px",
-            fontFamily: "var(--vscode-font-family)",
-            color: "var(--vscode-textLink-foreground, #3b82f6)",
-            cursor: "pointer",
-            textDecoration: isReviewHovered ? "underline" : "none",
-            marginLeft: "auto",
-          }}
+          className="text-[13px] ml-auto cursor-pointer text-primary hover:underline"
         >
-          {isExpanded ? "Close" : "Review all"}
+          {isExpanded ? 'Close' : 'Review all'}
         </span>
       </div>
 
-      {/* Expanded File List by Ranges */}
       {isExpanded && (
-        <div
-          style={{
-            borderTop: "1px solid var(--vscode-widget-border)",
-            padding: "12px",
-            maxHeight: "300px",
-            overflowY: "auto",
-          }}
-        >
+        <div className="border-t border-border p-3 max-h-[300px] overflow-y-auto">
           {responseRanges.length === 0 ? (
-            <div
-              style={{
-                fontSize: "13px",
-                color: "var(--vscode-descriptionForeground)",
-                textAlign: "center",
-                padding: "20px",
-              }}
-            >
-              No file changes
-            </div>
+            <div className="text-[13px] text-center py-5 text-text-secondary">No file changes</div>
           ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-            >
+            <div className="flex flex-col gap-4">
               {responseRanges.map((range, rangeIdx) => {
-                const fileChangesArray = Array.from(
-                  range.fileChanges.entries(),
-                ).map(([path, stats]) => ({
-                  path,
-                  additions: stats.additions,
-                  deletions: stats.deletions,
-                  toolType: stats.toolType,
-                  content: stats.content,
-                  oldContent: stats.oldContent,
-                  newContent: stats.newContent,
-                }));
+                const fileChangesArray = Array.from(range.fileChanges.entries()).map(
+                  ([path, stats]) => ({
+                    path,
+                    additions: stats.additions,
+                    deletions: stats.deletions,
+                    toolType: stats.toolType,
+                    content: stats.content,
+                    oldContent: stats.oldContent,
+                    newContent: stats.newContent,
+                  }),
+                );
 
                 return (
                   <div key={rangeIdx}>
-                    {/* Range Header */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginBottom: "8px",
-                        paddingBottom: "6px",
-                        borderBottom: "1px solid var(--vscode-widget-border)",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "13px",
-                          fontWeight: 500,
-                          color: "var(--vscode-foreground)",
-                          fontFamily: "var(--vscode-font-family)",
-                        }}
-                      >
+                    <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-border">
+                      <span className="text-[13px] font-medium text-text-primary">
                         Responses ({range.start}-{range.end})
                       </span>
                       {range.isCurrent && (
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            fontWeight: 600,
-                            padding: "2px 6px",
-                            borderRadius: "3px",
-                            background: "var(--vscode-badge-background)",
-                            color: "var(--vscode-badge-foreground)",
-                          }}
-                        >
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-card-background text-text-primary">
                           CURRENT
                         </span>
                       )}
                       <button
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          padding: "2px 6px",
-                          fontSize: "10px",
-                          fontWeight: 600,
-                          borderRadius: "3px",
-                          border: "1px solid var(--vscode-widget-border)",
-                          background: "transparent",
-                          color: "var(--vscode-foreground)",
-                          cursor: "pointer",
-                          transition: "background 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background =
-                            "var(--vscode-list-hoverBackground)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent";
-                        }}
-                        title={
-                          range.isCurrent
-                            ? "Revert changes"
-                            : "Revert to this range"
-                        }
+                        className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded border border-border bg-transparent cursor-pointer transition-colors duration-200 text-text-primary hover:bg-dropdown-item-hover"
+                        title={range.isCurrent ? 'Revert changes' : 'Revert to this range'}
                       >
                         <RotateCcw size={10} />
                         REVERT
                       </button>
                     </div>
 
-                    {/* Files in this range */}
                     {fileChangesArray.length === 0 ? (
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--vscode-descriptionForeground)",
-                          padding: "12px 8px",
-                          fontStyle: "italic",
-                        }}
-                      >
+                      <div className="text-[12px] px-2 py-3 italic text-text-secondary">
                         No file changes in this range
                       </div>
                     ) : (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "6px",
-                        }}
-                      >
+                      <div className="flex flex-col gap-1.5">
                         {fileChangesArray.map((file, fileIdx) => {
                           const smartPath = getSmartPath(file.path, 280);
-                          const toolLabel =
-                            file.toolType === "write_to_file"
-                              ? "WRITE"
-                              : "REPLACE";
+                          const toolLabel = file.toolType === 'write_to_file' ? 'WRITE' : 'REPLACE';
 
                           return (
                             <div
                               key={fileIdx}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                padding: "4px 6px",
-                                borderRadius: "4px",
-                                fontSize: "11px",
-                                fontFamily:
-                                  "var(--vscode-editor-font-family, monospace)",
-                                color: "var(--vscode-foreground)",
-                              }}
+                              className="flex items-center gap-1.5 px-1.5 py-1 rounded text-[11px] text-text-primary"
                             >
-                              {/* Tool Label (clickable) */}
                               <span
                                 onClick={() =>
                                   handleFileClick(file.path, {
@@ -442,41 +258,20 @@ const DiffSummaryBar: React.FC<DiffSummaryBarProps> = ({
                                     newContent: file.newContent,
                                   })
                                 }
-                                style={{
-                                  fontWeight: 700,
-                                  fontSize: "9px",
-                                  color:
-                                    file.toolType === "write_to_file"
-                                      ? "var(--vscode-gitDecoration-addedResourceForeground)"
-                                      : "var(--vscode-editorWarning-foreground)",
-                                  flexShrink: 0,
-                                  cursor: "pointer",
-                                  textDecoration: "none",
-                                  transition: "text-decoration 0.15s ease",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.textDecoration =
-                                    "underline";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.textDecoration = "none";
-                                }}
+                                className={cn(
+                                  'text-[9px] font-bold flex-shrink-0 cursor-pointer hover:underline',
+                                  file.toolType === 'write_to_file' ? 'text-success' : 'text-warn',
+                                )}
                               >
                                 {toolLabel}
                               </span>
 
-                              {/* File Icon */}
                               <img
                                 src={getFileIconPath(file.path)}
                                 alt=""
-                                style={{
-                                  width: "14px",
-                                  height: "14px",
-                                  flexShrink: 0,
-                                }}
+                                className="w-3.5 h-3.5 flex-shrink-0"
                               />
 
-                              {/* Filename (clickable) */}
                               <span
                                 onClick={() =>
                                   handleFileClick(file.path, {
@@ -486,71 +281,23 @@ const DiffSummaryBar: React.FC<DiffSummaryBarProps> = ({
                                     newContent: file.newContent,
                                   })
                                 }
-                                style={{
-                                  fontWeight: 600,
-                                  flexShrink: 0,
-                                  cursor: "pointer",
-                                  textDecoration: "none",
-                                  transition: "text-decoration 0.15s ease",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.textDecoration =
-                                    "underline";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.textDecoration = "none";
-                                }}
+                                className="font-semibold flex-shrink-0 cursor-pointer hover:underline"
                               >
                                 {getFileName(file.path)}
                               </span>
 
-                              {/* Smart Path (clickable - opens original file) */}
                               <span
-                                onClick={(e) =>
-                                  handleOpenOriginalFile(e, file.path)
-                                }
+                                onClick={(e) => handleOpenOriginalFile(e, file.path)}
                                 title={file.path}
-                                style={{
-                                  color: "var(--vscode-descriptionForeground)",
-                                  flexGrow: 1,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  fontSize: "10px",
-                                  cursor: "pointer",
-                                  textDecoration: "none",
-                                  transition: "text-decoration 0.15s ease",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.textDecoration =
-                                    "underline";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.textDecoration = "none";
-                                }}
+                                className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-[10px] cursor-pointer hover:underline text-text-secondary"
                               >
                                 {smartPath.display}
                               </span>
 
-                              {/* Diff Stats */}
-                              <span
-                                style={{
-                                  color:
-                                    "var(--vscode-gitDecoration-addedResourceForeground)",
-                                  flexShrink: 0,
-                                  fontSize: "10px",
-                                }}
-                              >
+                              <span className="flex-shrink-0 text-[10px] text-success">
                                 +{file.additions}
                               </span>
-                              <span
-                                style={{
-                                  color:
-                                    "var(--vscode-gitDecoration-deletedResourceForeground)",
-                                  flexShrink: 0,
-                                  fontSize: "10px",
-                                }}
-                              >
+                              <span className="flex-shrink-0 text-[10px] text-error">
                                 -{file.deletions}
                               </span>
                             </div>

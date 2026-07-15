@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '@renderer/shared/lib/utils';
 import { ToolHeader } from './ToolHeader';
 import { getFilename, getToolColor } from '../../utils/toolUtils';
 import { getDisplayPath, collectConvFilePaths } from '../../utils/pathUtils';
@@ -78,15 +79,12 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
     action.params.path ||
     getFilename(action);
   const allPaths = React.useMemo(() => collectConvFilePaths(allMessages || []), [allMessages]);
-  // Extract only the filename (not the directory path) since full path is shown in line 2
   const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
 
-  // write_to_file on a new file (CREATE) has no before-snapshot, so treat it as a plain open
   const isCreateNew = toolType === 'write_to_file' && !fileStatsMap[rawPath];
   const isSnapshotTool =
     (toolType === 'write_to_file' || toolType === 'replace_in_file') && !isCreateNew;
 
-  // Fetch snapshot then open diff tab in VSCode editor
   const openSnapshotInEditor = React.useCallback(() => {
     if (!conversationId || !actionId || isSnapshotLoading) return;
     setIsSnapshotLoading(true);
@@ -117,7 +115,6 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
             actionId,
           });
         } else {
-          // Fallback: just open the file
           if (rawPath)
             extensionService.postMessage({
               command: 'openFile',
@@ -168,22 +165,15 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
   const isError = !!toolOutputs?.[actionId]?.isError;
   const errorMessage = isError ? toolOutputs?.[actionId]?.output || '' : '';
 
-  // ─── Thinking content ───────────────────────────────────────────────────────
-  // Extract <thinking>...</thinking> or unclosed <thinking>... from the current
-  // streaming message content. Only shown while the tag is open (streaming).
-  // Once </thinking> is closed, the parser replaces it with __THINKING_N__ and
-  // the raw content no longer contains the open tag → we show nothing.
   const thinkingContent = React.useMemo(() => {
-    if (!isPartial) return null; // only relevant while streaming
+    if (!isPartial) return null;
     const currentMsg = allMessages?.find((m) => m.id === messageId);
     if (!currentMsg?.content) return null;
-    // Match unclosed <thinking> tag (streaming, no closing tag yet)
     const unclosedMatch = /<thinking>([\s\S]*)$/i.exec(currentMsg.content);
     if (unclosedMatch) return unclosedMatch[1];
     return null;
   }, [isPartial, allMessages, messageId]);
 
-  // Debug: log khi render với toolOutputs (chỉ log 1 lần per actionId)
   const debugLoggedRef = React.useRef(false);
   React.useEffect(() => {
     if (!debugLoggedRef.current) {
@@ -191,7 +181,6 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
     }
   }, [toolOutputs, actionId]);
 
-  // Count diagnostics from read_file output
   const diagnosticCount = React.useMemo(() => {
     if (toolType !== 'read_file') return 0;
     const output = toolOutputs?.[actionId]?.output || '';
@@ -224,9 +213,6 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
         : (codeContent && codeContent.trim().length > 0) || !!nextUserMessage)),
   );
 
-  // ── Auto-hide completed write/edit tools in approval mode ──
-  // After user clicks "Accept" or "Reject", the tool is considered done.
-  // Hide the content (buttons, code block) but keep the header visible.
   const isWriteOrEditOnly = toolType === 'write_to_file' || toolType === 'replace_in_file';
   const shouldHideContent =
     isWriteOrEditOnly && isCompleted && isActionClicked && !isPartial && !isError;
@@ -250,7 +236,6 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                   ? 'MOVE'
                   : 'Read';
 
-  // For grep tool, we'll render in the main flow with ToolHeader
   const grepCompleted =
     isGrepTool &&
     !isPartial &&
@@ -262,43 +247,26 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
       : false;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        paddingBottom: '4px',
-        marginBottom: '2px',
-      }}
-    >
+    <div className="flex flex-col gap-1.5 pb-1 mb-0.5">
       <ToolHeader
         title={
           isGrepTool ? (
-            // Grep-specific header
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '12px',
-                color: $('--text-primary'),
-                cursor: isCompleted ? 'pointer' : 'default',
-                width: '100%',
-              }}
+              className={cn(
+                'flex items-center gap-2 text-xs w-full',
+                isCompleted ? 'cursor-pointer' : 'cursor-default',
+                'text-text-primary',
+              )}
               onMouseEnter={() => setIsHeaderHovered(true)}
               onMouseLeave={() => setIsHeaderHovered(false)}
               onClick={isCompleted ? () => setIsGrepCollapsed((v) => !v) : undefined}
             >
-              <span style={{ fontWeight: 600, opacity: 0.8 }}>GREP</span>
+              <span className="font-semibold opacity-80">GREP</span>
               <span
+                className="text-[11px] font-semibold px-1 py-0 rounded"
                 style={{
-                  fontFamily: $('--font-family') || 'monospace',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: $('--primary'),
-                  padding: '0 5px',
                   backgroundColor: `color-mix(in srgb, ${$('--primary')} 12%, transparent)`,
-                  borderRadius: '3px',
+                  color: $('--primary'),
                 }}
               >
                 {action.params.search_term || action.params.searchTerm || ''}
@@ -309,44 +277,21 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 const targetPath = folderPath || filePath || '';
                 const isFolder = !!folderPath;
                 if (!targetPath) return null;
-                // Show path for grep even if only 1 segment
                 const segments = targetPath.split('/').filter(Boolean);
                 if (segments.length === 0) return null;
                 return (
                   <>
-                    <span style={{ opacity: 0.4, fontSize: '11px' }}>in</span>
-                    <FileIcon
-                      path={targetPath}
-                      isFolder={isFolder}
-                      style={{ width: '14px', height: '14px' }}
-                    />
-                    <span
-                      style={{
-                        fontWeight: 500,
-                        opacity: 0.8,
-                        fontFamily: $('--font-family') || 'monospace',
-                        fontSize: '11px',
-                      }}
-                    >
+                    <span className="opacity-40 text-[11px]">in</span>
+                    <FileIcon path={targetPath} isFolder={isFolder} className="w-3.5 h-3.5" />
+                    <span className="font-medium opacity-80 text-[11px]">
                       {getDisplayPath(targetPath, allPaths) || '...'}
                     </span>
                   </>
                 );
               })()}
               {isPartial && !isCompleted && (
-                <span
-                  style={{
-                    fontSize: '10px',
-                    opacity: 0.55,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <span
-                    className="codicon codicon-loading codicon-modifier-spin"
-                    style={{ fontSize: '10px' }}
-                  />
+                <span className="text-[10px] opacity-55 flex items-center gap-1">
+                  <span className="codicon codicon-loading codicon-modifier-spin text-[10px]" />
                   Searching...
                 </span>
               )}
@@ -363,26 +308,13 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                   } catch {}
                   if (totalMatches === 0 && fileCount === 0) {
                     return (
-                      <span
-                        style={{
-                          opacity: 0.5,
-                          fontSize: '10px',
-                          color: $('--secondary-text'),
-                          fontStyle: 'italic',
-                        }}
-                      >
+                      <span className="opacity-50 text-[10px] italic text-text-secondary">
                         no matches
                       </span>
                     );
                   }
                   return (
-                    <span
-                      style={{
-                        opacity: 0.5,
-                        fontSize: '10px',
-                        color: $('--secondary-text'),
-                      }}
-                    >
+                    <span className="opacity-50 text-[10px] text-text-secondary">
                       {totalMatches} {totalMatches === 1 ? 'match' : 'matches'} in {fileCount}{' '}
                       {fileCount === 1 ? 'file' : 'files'}
                     </span>
@@ -390,8 +322,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                 })()}
               {isCompleted && (
                 <span
-                  className={`codicon codicon-chevron-${isGrepCollapsed ? 'right' : 'down'}`}
-                  style={{ fontSize: '10px', opacity: 0.5, marginLeft: '2px' }}
+                  className={`codicon codicon-chevron-${isGrepCollapsed ? 'right' : 'down'} text-[10px] opacity-50 ml-0.5`}
                 />
               )}
               {isHeaderHovered && (
@@ -400,16 +331,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                     e.stopPropagation();
                     setShowRawView(!showRawView);
                   }}
-                  style={{
-                    marginLeft: '8px',
-                    fontSize: '10px',
-                    opacity: 0.6,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    fontWeight: 500,
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '2px',
-                  }}
+                  className="ml-2 text-[10px] opacity-60 cursor-pointer transition-all duration-150 font-medium underline underline-offset-2"
                   onMouseEnter={(e) => {
                     e.currentTarget.style.opacity = '1';
                   }}
@@ -422,59 +344,20 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
               )}
             </div>
           ) : (
-            // Original header for non-grep tools
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '12px',
-                color: $('--text-primary'),
-                position: 'relative',
-                width: '100%',
-              }}
+              className="flex items-center gap-2 text-xs w-full relative text-text-primary"
               onMouseEnter={() => setIsHeaderHovered(true)}
               onMouseLeave={() => setIsHeaderHovered(false)}
             >
-              <span
-                style={{
-                  fontWeight: 600,
-                  opacity: 0.8,
-                  cursor: 'pointer',
-                  transition: 'text-decoration 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.textDecoration = 'underline';
-                  e.currentTarget.style.textUnderlineOffset = '2px';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.textDecoration = 'none';
-                }}
-              >
+              <span className="font-semibold opacity-80 cursor-pointer transition-[text-decoration] duration-150 hover:underline">
                 {prefix}
               </span>
               <FileIcon
                 path={rawPath}
                 isFolder={toolType === 'list_files' || !!action.params.folder_path}
-                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                className="w-4 h-4 cursor-pointer"
               />
-              <span
-                style={{
-                  fontWeight: 500,
-                  opacity: 0.9,
-                  fontFamily: $('--font-family') || 'monospace',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  transition: 'text-decoration 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.textDecoration = 'underline';
-                  e.currentTarget.style.textUnderlineOffset = '2px';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.textDecoration = 'none';
-                }}
-              >
+              <span className="font-medium opacity-90 text-[11px] cursor-pointer transition-[text-decoration] duration-150 hover:underline">
                 {displayName}
                 {toolType === 'read_file' &&
                   (() => {
@@ -482,133 +365,55 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                     const el = action.params.end_line;
                     const totalLines = fileStatsMap[rawPath]?.lines;
                     if (sl !== undefined && sl !== null && sl !== '') {
-                      const start = parseInt(String(sl), 10) + 1; // convert 0-based to 1-based
+                      const start = parseInt(String(sl), 10) + 1;
                       const end =
                         el !== undefined && el !== null && el !== ''
                           ? parseInt(String(el), 10) + 1
                           : totalLines;
                       return (
-                        <span
-                          style={{
-                            opacity: 0.55,
-                            fontSize: '10px',
-                            marginLeft: '2px',
-                          }}
-                        >
+                        <span className="opacity-55 text-[10px] ml-0.5">
                           ({start}-{end ?? '?'})
                         </span>
                       );
                     }
                     if (totalLines) {
                       return (
-                        <span
-                          style={{
-                            opacity: 0.55,
-                            fontSize: '10px',
-                            marginLeft: '2px',
-                          }}
-                        >
-                          (1-{totalLines})
-                        </span>
+                        <span className="opacity-55 text-[10px] ml-0.5">(1-{totalLines})</span>
                       );
                     }
                     return null;
                   })()}
                 {toolType === 'read_file' && diagnosticCount > 0 && (
                   <span
+                    className="inline-flex items-center gap-0.5 ml-1 px-1 py-0 rounded text-[10px] font-semibold leading-4"
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '2px',
-                      marginLeft: '5px',
-                      padding: '0 4px',
-                      backgroundColor:
-                        'color-mix(in srgb, ' + ($('--error') || '#f14c4c') + ' 15%, transparent)',
+                      backgroundColor: `color-mix(in srgb, ${$('--error') || '#f14c4c'} 15%, transparent)`,
                       color: $('--error') || '#f14c4c',
-                      borderRadius: '3px',
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      lineHeight: '16px',
                     }}
                   >
-                    <span className="codicon codicon-error" style={{ fontSize: '9px' }} />
+                    <span className="codicon codicon-error text-[9px]" />
                     {diagnosticCount}
                   </span>
                 )}
               </span>
               {isPartial && (
-                <span
-                  style={{
-                    fontSize: '10px',
-                    opacity: 0.6,
-                    fontStyle: 'italic',
-                    marginLeft: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <span
-                    className="codicon codicon-loading codicon-modifier-spin"
-                    style={{ fontSize: '10px' }}
-                  />
+                <span className="text-[10px] opacity-60 italic ml-1 flex items-center gap-1">
+                  <span className="codicon codicon-loading codicon-modifier-spin text-[10px]" />
                 </span>
               )}
               {isSnapshotLoading && !isPartial && (
-                <span
-                  style={{
-                    fontSize: '10px',
-                    opacity: 0.5,
-                    marginLeft: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                  }}
-                >
-                  <span
-                    className="codicon codicon-loading codicon-modifier-spin"
-                    style={{ fontSize: '10px' }}
-                  />
+                <span className="text-[10px] opacity-50 ml-1 flex items-center gap-0.5">
+                  <span className="codicon codicon-loading codicon-modifier-spin text-[10px]" />
                 </span>
               )}
               {diffStats && (
-                <span
-                  style={{
-                    display: 'flex',
-                    gap: '4px',
-                    opacity: 0.7,
-                    fontSize: '11px',
-                    marginLeft: '4px',
-                    fontWeight: 500,
-                  }}
-                >
-                  <span
-                    style={{
-                      color: $('--success'),
-                    }}
-                  >
-                    +{diffStats.added}
-                  </span>
-                  <span
-                    style={{
-                      color: $('--error'),
-                    }}
-                  >
-                    -{diffStats.removed}
-                  </span>
+                <span className="flex gap-1 opacity-70 text-[11px] ml-1 font-medium">
+                  <span className="text-success">+{diffStats.added}</span>
+                  <span className="text-error">-{diffStats.removed}</span>
                 </span>
               )}
               {linesCount > 0 && (
-                <span
-                  style={{
-                    opacity: 0.7,
-                    fontSize: '11px',
-                    marginLeft: '4px',
-                    fontWeight: 500,
-                  }}
-                >
-                  +{linesCount} lines
-                </span>
+                <span className="opacity-70 text-[11px] ml-1 font-medium">+{linesCount} lines</span>
               )}
               {isHeaderHovered && (
                 <span
@@ -616,16 +421,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                     e.stopPropagation();
                     setShowRawView(!showRawView);
                   }}
-                  style={{
-                    marginLeft: '8px',
-                    fontSize: '10px',
-                    opacity: 0.6,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    fontWeight: 500,
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '2px',
-                  }}
+                  className="ml-2 text-[10px] opacity-60 cursor-pointer transition-all duration-150 font-medium underline underline-offset-2"
                   onMouseEnter={(e) => {
                     e.currentTarget.style.opacity = '1';
                   }}
@@ -643,15 +439,14 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
           isError
             ? $('--error')
             : (isCompleted as boolean)
-              ? $('--success, #3fb950')
+              ? $('--success')
               : !!isActiveGroup
-                ? $('--secondary-text') // chờ approve → xám, giống chưa tới lượt
-                : $('--secondary-text')
+                ? $('--text-secondary')
+                : $('--text-secondary')
         }
         diffStats={undefined}
         isPartial={isPartial}
         onClick={() => {
-          // For replace_in_file: try to open diff if completed, otherwise open file
           if (toolType === 'replace_in_file') {
             if (isCompleted && !isPartial) {
               openSnapshotInEditor();
@@ -681,7 +476,6 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
         }}
         path={rawPath}
         onPathClick={(clickedPath) => {
-          // Always open file when clicking on the path itself
           extensionService.postMessage({
             command: 'openFile',
             path: clickedPath,
@@ -689,106 +483,54 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
         }}
       />
 
-      {/* Raw tool data viewer - showing raw XML without header */}
       {!isGrepTool && showRawView && (
         <div
+          className="mt-1 ml-[29px] p-2 border border-border font-mono text-[11px] leading-relaxed text-text-primary whitespace-pre-wrap break-all overflow-x-auto"
           style={{
-            marginTop: '4px',
-            marginLeft: '29px',
-            padding: '8px 12px',
             backgroundColor: $('--background'),
-            border: '1px solid ' + ($('--border') || 'rgba(255,255,255,0.08)'),
-            fontFamily: $('--font-family') || 'monospace',
-            fontSize: '11px',
-            lineHeight: '1.5',
-            color: $('--text-primary'),
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            overflowX: 'auto',
           }}
         >
           {action.rawXml || JSON.stringify(action, null, 2)}
         </div>
       )}
 
-      {/* Single-line review UI for write_to_file with content crammed into 1 line */}
       {!shouldHideContent &&
         toolType === 'write_to_file' &&
         singleLineReviewActions?.[actionId] &&
         (() => {
           const reviewContent = action.params.content || '';
           return (
-            <div
-              style={{
-                marginTop: '8px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-              }}
-            >
+            <div className="mt-2 flex flex-col gap-1.5">
               <textarea
                 readOnly
                 value={reviewContent}
+                className="w-full min-h-[200px] max-h-[400px] p-2 text-[11px] leading-relaxed resize-y outline-none whitespace-pre-wrap break-all"
                 style={{
-                  width: '100%',
-                  minHeight: '200px',
-                  maxHeight: '400px',
-                  padding: '8px 10px',
-                  fontFamily: $('--font-family, monospace'),
-                  fontSize: '11px',
-                  lineHeight: '1.5',
                   color: $('--text-primary'),
                   backgroundColor: $('--background'),
                   border: '1.5px dashed #e5a100',
                   borderRadius: '4px',
-                  resize: 'vertical',
-                  outline: 'none',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-all',
                 }}
               />
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: '#e5a100',
-                    fontWeight: 500,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <span className="codicon codicon-warning" style={{ fontSize: '11px' }} />
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] text-[#e5a100] font-medium flex items-center gap-1">
+                  <span className="codicon codicon-warning text-[11px]" />
                   Nội dung file bị dồn vào 1 dòng ({reviewContent.length} ký tự)
                 </span>
-                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onRejectSingleLineAction?.(actionId);
                     }}
+                    className="px-3 py-1 text-[11px] font-semibold rounded flex items-center gap-1 cursor-pointer"
                     style={{
-                      padding: '4px 12px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      borderRadius: '4px',
-                      border: `1px solid color-mix(in srgb, ${$('--error, #f44336')} 40%, transparent)`,
-                      backgroundColor: `color-mix(in srgb, ${$('--error, #f44336')} 10%, transparent)`,
-                      color: $('--error, #f44336'),
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
+                      border: `1px solid color-mix(in srgb, ${$('--error')} 40%, transparent)`,
+                      backgroundColor: `color-mix(in srgb, ${$('--error')} 10%, transparent)`,
+                      color: $('--error'),
                     }}
                   >
-                    <span className="codicon codicon-close" style={{ fontSize: '11px' }} />
+                    <span className="codicon codicon-close text-[11px]" />
                     Từ chối
                   </button>
                   <button
@@ -796,21 +538,14 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
                       e.stopPropagation();
                       onConfirmSingleLineAction?.(actionId);
                     }}
+                    className="px-3 py-1 text-[11px] font-semibold rounded flex items-center gap-1 cursor-pointer"
                     style={{
-                      padding: '4px 12px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      borderRadius: '4px',
-                      border: `1px solid color-mix(in srgb, ${$('--success, #3fb950')} 40%, transparent)`,
-                      backgroundColor: `color-mix(in srgb, ${$('--success, #3fb950')} 10%, transparent)`,
-                      color: $('--success, #3fb950'),
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
+                      border: `1px solid color-mix(in srgb, ${$('--success')} 40%, transparent)`,
+                      backgroundColor: `color-mix(in srgb, ${$('--success')} 10%, transparent)`,
+                      color: $('--success'),
                     }}
                   >
-                    <span className="codicon codicon-check" style={{ fontSize: '11px' }} />
+                    <span className="codicon codicon-check text-[11px]" />
                     Xác nhận
                   </button>
                 </div>
@@ -824,7 +559,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
         !isPartial &&
         (isActiveGroup || !isLastMessage) &&
         getPermissionDecision(permissionMode, toolType) === 'prompt' && (
-          <div style={{ marginTop: '8px', marginBottom: '8px', order: 1 }}>
+          <div className="mt-2 mb-2 order-1">
             <ExecuteButton
               isActive={!!isActiveGroup}
               isCompleted={!!isCompleted}
@@ -833,7 +568,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
               toolColor={toolColor}
               title="Approve action"
               labelText="Approve"
-              onExecute={(e, type) => {
+              onExecute={(_e, type) => {
                 onToolClick(action, messageId, actionIndex, type);
               }}
             />
@@ -844,8 +579,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
         isError &&
         errorMessage &&
         (toolType === 'replace_in_file' ? (
-          // Use ErrorBlock for replace_in_file errors (without header)
-          <div style={{ marginTop: '4px' }}>
+          <div className="mt-1">
             <ErrorBlock
               content={errorMessage}
               errorCode="REPLACE_IN_FILE"
@@ -857,36 +591,21 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
             />
           </div>
         ) : (
-          // Inline error display for other tools
           <div
+            className="flex items-start gap-1.5 px-2 py-1 rounded mt-0.5"
             style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '6px',
-              padding: '5px 8px',
-              backgroundColor: `color-mix(in srgb, ${$('--error, #f44336')} 4%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${$('--error, #f44336')} 20%, transparent)`,
-              borderRadius: '4px',
-              marginTop: '2px',
+              backgroundColor: `color-mix(in srgb, ${$('--error')} 4%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${$('--error')} 20%, transparent)`,
             }}
           >
             <span
-              className="codicon codicon-error"
-              style={{
-                fontSize: '11px',
-                color: $('--error, #f44336'),
-                opacity: 0.7,
-                marginTop: '1px',
-                flexShrink: 0,
-              }}
+              className="codicon codicon-error text-[11px] opacity-70 mt-0.5 flex-shrink-0"
+              style={{ color: $('--error') }}
             />
             <span
+              className="text-[11px] opacity-85 break-word"
               style={{
-                fontSize: '11px',
-                color: $('--error, #f44336'),
-                opacity: 0.85,
-                fontFamily: $('--font-family, monospace'),
-                wordBreak: 'break-word',
+                color: $('--error'),
               }}
             >
               {errorMessage}
@@ -914,7 +633,7 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
           )}
         </>
       )}
-      {/* Streaming preview — visible while AI is still writing the file OR waiting for approval */}
+
       {!shouldHideContent &&
         (isPartial ||
           ((toolType === 'write_to_file' || toolType === 'replace_in_file') &&
@@ -928,10 +647,8 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
           return <FileStreamingBlock content={streamContent} maxHeight={200} />;
         })()}
 
-      {/* Grep tool results — rendered inside the main flow with ToolHeader */}
       {isGrepTool && (
         <>
-          {/* GrepBlock renders the content; header is handled above */}
           <GrepBlock
             action={action}
             actionId={actionId}
@@ -945,22 +662,11 @@ const FileToolRenderer: React.FC<FileToolRendererProps> = ({
             isCollapsed={isGrepCollapsed}
             onToggleCollapse={() => setIsGrepCollapsed((v) => !v)}
           />
-          {/* Raw viewer for Grep tool */}
           {showRawView && (
             <div
+              className="mt-1 ml-[29px] p-2 border border-border font-mono text-[11px] leading-relaxed text-text-primary whitespace-pre-wrap break-all overflow-x-auto"
               style={{
-                marginTop: '4px',
-                marginLeft: '29px',
-                padding: '8px 12px',
                 backgroundColor: $('--background'),
-                border: '1px solid ' + ($('--border') || 'rgba(255,255,255,0.08)'),
-                fontFamily: $('--font-family') || 'monospace',
-                fontSize: '11px',
-                lineHeight: '1.5',
-                color: $('--text-primary'),
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-all',
-                overflowX: 'auto',
               }}
             >
               {action.rawXml || JSON.stringify(action, null, 2)}

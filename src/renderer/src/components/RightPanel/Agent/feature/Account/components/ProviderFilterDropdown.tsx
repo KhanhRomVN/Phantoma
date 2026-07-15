@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
-import { ChevronDown, Search, X } from "lucide-react";
+import React, { useState, useRef, useEffect } from 'react';
+import { ChevronDown, Search, X } from 'lucide-react';
+import { cn } from '@renderer/shared/lib/utils';
 import { $ } from '@renderer/utils/color';
 
 interface ProviderFilterDropdownProps {
@@ -16,7 +17,7 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
   getFaviconUrl,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,8 +26,8 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const selectedProviderObj = providerConfigs.find((p) => p.provider_id === selectedProvider);
@@ -40,11 +41,11 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
   const handleSelect = (providerId: string) => {
     onSelectProvider(providerId);
     setIsOpen(false);
-    setSearchQuery("");
+    setSearchQuery('');
   };
 
   const handleClear = () => {
-    onSelectProvider("");
+    onSelectProvider('');
     setIsOpen(false);
   };
 
@@ -62,7 +63,7 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
               src={getFaviconUrl(selectedProviderObj.website)}
               alt={selectedProviderObj.provider_name}
               className="w-4 h-4 rounded-[3px]"
-              onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+              onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
             />
             <span>{selectedProviderObj.provider_name}</span>
           </>
@@ -73,9 +74,7 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div
-          className="absolute top-full right-0 mt-1.5 w-[240px] max-h-[300px] rounded-[10px] z-[1000] overflow-hidden flex flex-col bg-card-background border border-border shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
-        >
+        <div className="absolute top-full right-0 mt-1.5 w-[240px] max-h-[300px] rounded-[10px] z-[1000] overflow-hidden flex flex-col bg-card-background border border-border shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
           {/* Search */}
           <div className="p-2 border-b border-border">
             <div className="relative">
@@ -92,7 +91,7 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
               />
               {searchQuery && (
                 <button
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => setSearchQuery('')}
                   className="absolute right-[7px] top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0 flex items-center text-text-secondary"
                 >
                   <X size={11} />
@@ -106,28 +105,22 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
             {/* All Providers option */}
             <button
               onClick={handleClear}
-              className="w-full flex items-center gap-2.5 px-3 py-[9px] border-none text-xs cursor-pointer text-left text-text-primary"
-              style={{
-                backgroundColor: isActive("")
-                  ? $('--sidebar-item-hover')
-                  : "transparent",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = $('--hover-bg'))
-              }
+              className={cn(
+                'w-full flex items-center gap-2.5 px-3 py-[9px] border-none text-xs cursor-pointer text-left text-text-primary',
+                isActive('') ? 'bg-sidebar-item-hover' : 'bg-transparent',
+              )}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
               onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = isActive("")
+                (e.currentTarget.style.backgroundColor = isActive('')
                   ? $('--sidebar-item-hover')
-                  : "transparent")
+                  : 'transparent')
               }
             >
               <div
                 className="w-5 h-5 rounded flex items-center justify-center shrink-0"
-                style={{ backgroundColor: "rgba(128,128,128,0.15)" }}
+                style={{ backgroundColor: 'rgba(128,128,128,0.15)' }}
               >
-                <span className="text-[9px] font-bold text-text-secondary">
-                  All
-                </span>
+                <span className="text-[9px] font-bold text-text-secondary">All</span>
               </div>
               <span>All Providers</span>
             </button>
@@ -140,31 +133,29 @@ const ProviderFilterDropdown: React.FC<ProviderFilterDropdownProps> = ({
                 style={{
                   backgroundColor: isActive(provider.provider_id)
                     ? $('--sidebar-item-hover')
-                    : "transparent",
+                    : 'transparent',
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = $('--hover-bg'))
-                }
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.backgroundColor = isActive(provider.provider_id)
                     ? $('--sidebar-item-hover')
-                    : "transparent")
+                    : 'transparent')
                 }
               >
                 <div
                   className="w-5 h-5 rounded flex items-center justify-center shrink-0 overflow-hidden"
-                  style={{ backgroundColor: "rgba(128,128,128,0.1)" }}
+                  style={{ backgroundColor: 'rgba(128,128,128,0.1)' }}
                 >
                   <img
                     src={getFaviconUrl(provider.website)}
                     alt={provider.provider_name}
                     className="w-4 h-4 object-contain"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
+                      (e.target as HTMLImageElement).style.display = 'none';
                       const parent = (e.target as HTMLImageElement).parentElement;
                       if (parent) {
-                        const fb = document.createElement("span");
-                        fb.style.cssText = "font-size:9px;font-weight:bold;";
+                        const fb = document.createElement('span');
+                        fb.style.cssText = 'font-size:9px;font-weight:bold;';
                         fb.textContent = provider.provider_name.slice(0, 2).toUpperCase();
                         (e.target as HTMLImageElement).replaceWith(fb);
                       }

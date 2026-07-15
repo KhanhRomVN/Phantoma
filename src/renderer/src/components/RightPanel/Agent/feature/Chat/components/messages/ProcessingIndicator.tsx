@@ -1,12 +1,11 @@
 import React, { useEffect, useRef } from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface ProcessingIndicatorProps {
   isResponding?: boolean;
 }
 
-const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({
-  isResponding,
-}) => {
+const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({ isResponding }) => {
   const startTimeRef = useRef<number | null>(null);
   const timerDisplayRef = useRef<HTMLSpanElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -53,12 +52,12 @@ const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 'var(--spacing-xs)',
-        padding: '0 var(--spacing-sm)',
-        marginTop: '-var(--spacing-sm)',
-        color: 'var(--secondary-text)',
-        fontSize: 'var(--font-size-md)',
-        marginBottom: 'var(--spacing-md)',
+        gap: $('--spacing-xs'),
+        padding: '0 ' + $('--spacing-sm'),
+        marginTop: '-' + $('--spacing-sm'),
+        color: $('--secondary-text'),
+        fontSize: $('--font-size-md'),
+        marginBottom: $('--spacing-md'),
       }}
     >
       <span ref={timerDisplayRef} className="processing-text">

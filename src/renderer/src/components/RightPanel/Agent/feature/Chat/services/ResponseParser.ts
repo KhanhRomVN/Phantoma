@@ -19,6 +19,7 @@ import { parseMarkdown } from './parsers/MarkdownParser';
 import { parseCode } from './parsers/CodeParser';
 import { extractThinkingBlocks } from './parsers/ThinkingParser';
 import { parseContextCompression } from './parsers/ContextCompressionParser';
+import { parseListHttps } from './parsers/ListHttpsParser';
 import { findClosingTagPosition } from '../utils/TagClosingFinder';
 
 export interface ParsedResponse {
@@ -530,6 +531,11 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'grep': {
               const params = parseGrep(innerContent || '');
               action = { type: 'grep' as const, params, rawXml };
+              break;
+            }
+            case 'list_https': {
+              const params = parseListHttps(innerContent || '');
+              action = { type: 'list_https' as const, params, rawXml };
               break;
             }
             case 'delete_file': {

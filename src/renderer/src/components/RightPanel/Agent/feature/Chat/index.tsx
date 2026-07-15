@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { $ } from '@renderer/utils/color';
 import { useSettings } from '../../context/SettingsContext';
 
 // Core chat hooks
@@ -313,8 +314,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   });
 
   // --- Browser Session ---
-  const { showBrowserWarning, isLaunchingBrowser, launchBrowserSession } =
-    useBrowserSession(currentModel, currentAccount, apiUrl);
+  const { showBrowserWarning, isLaunchingBrowser, launchBrowserSession } = useBrowserSession(
+    currentModel,
+    currentAccount,
+    apiUrl,
+  );
 
   // --- Wrapped Send Message ---
   const wrappedSendMessage = useCallback(
@@ -399,28 +403,24 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   });
 
   // --- Conversation Restore ---
-  const {
-    isLoadingConversation,
-    isRestored,
-    setIsRestored,
-    handleRevertConversation,
-  } = useConversationRestore({
-    currentChat,
-    currentConversationId,
-    currentConversationIdRef,
-    messagesRef,
-    setMessages,
-    setIsProcessing,
-    setToolOutputs,
-    setBackendConversationId,
-    setCurrentConversationId,
-    setCurrentModel,
-    setCurrentAccount,
-    onBack,
-    revertParentMessageIdRef,
-    setRevertInput,
-    setLoadedConversationFileStats,
-  });
+  const { isLoadingConversation, isRestored, setIsRestored, handleRevertConversation } =
+    useConversationRestore({
+      currentChat,
+      currentConversationId,
+      currentConversationIdRef,
+      messagesRef,
+      setMessages,
+      setIsProcessing,
+      setToolOutputs,
+      setBackendConversationId,
+      setCurrentConversationId,
+      setCurrentModel,
+      setCurrentAccount,
+      onBack,
+      revertParentMessageIdRef,
+      setRevertInput,
+      setLoadedConversationFileStats,
+    });
 
   // --- Message Parsing (with caching) ---
   const parsedMessages = useMessageParsing(messages, isStreaming);
@@ -647,13 +647,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   // --- Render ---
   return (
     <div
-      className="chat-panel"
+      className="chat-panel text-text-primary"
       style={{
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        backgroundColor: 'var(--secondary-bg)',
-        color: 'var(--vscode-editor-foreground)',
+        backgroundColor: `${$('--secondary-bg')}`,
       }}
     >
       {/* ─── ChatHeader ─── */}

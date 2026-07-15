@@ -45,81 +45,29 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
 
   return (
     <div
-      className="user-message-container"
+      className="user-message-container flex flex-col gap-0 mb-3 relative z-[1] transition-all duration-300"
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0px',
-        marginBottom: 'var(--spacing-md)',
         opacity: message.isCancelled ? 0.4 : 1,
         filter: message.isCancelled ? 'grayscale(1) blur(0.5px)' : 'none',
         pointerEvents: message.isCancelled ? 'none' : 'auto',
-        transition: 'all 0.3s ease',
-        position: 'relative',
-        zIndex: 1,
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--spacing-xs)',
-          borderRadius: 'var(--border-radius)',
-          backgroundColor: 'var(--input-bg)',
-          border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
-          padding: 'var(--spacing-md)',
-          marginLeft: '0px',
-          position: 'relative',
-        }}
-      >
-        <div
-          style={{
-            fontSize: 'var(--font-size-sm)',
-            color: 'var(--primary-text)',
-            lineHeight: 1.6,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            overflowWrap: 'break-word',
-            maxWidth: '100%',
-            maxHeight: '400px',
-            overflow: 'auto',
-          }}
-        >
+      <div className="flex flex-col gap-1 rounded-md bg-input-background border border-border p-3 relative">
+        <div className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap break-words max-w-full max-h-[400px] overflow-auto">
           {displayContent}
         </div>
       </div>
 
       {/* Bottom toolbar - always visible, transparent background */}
-      <div
-        style={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          gap: '8px',
-          backgroundColor: 'transparent',
-          padding: '4px 8px',
-        }}
-      >
+      <div className="w-full flex justify-start items-center gap-2 bg-transparent px-2 py-1">
         {/* Copy button */}
         <button
           onClick={handleCopy}
           title="Copy content"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: isCopied
-              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
-              : 'var(--vscode-descriptionForeground)',
-            borderRadius: '4px',
-            opacity: 0.7,
-            transition: 'opacity 0.2s, color 0.2s',
-          }}
+          className={`bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded transition-opacity ${
+            isCopied ? 'text-success' : 'text-text-secondary'
+          }`}
+          style={{ opacity: 0.7 }}
           onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
         >
@@ -159,19 +107,8 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
         <button
           onClick={handleRegenerate}
           title="Regenerate response"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--vscode-descriptionForeground)',
-            borderRadius: '4px',
-            opacity: 0.7,
-            transition: 'opacity 0.2s',
-          }}
+          className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded transition-opacity text-text-secondary"
+          style={{ opacity: 0.7 }}
           onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
         >
@@ -196,19 +133,8 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
           <button
             onClick={() => setShowRevertModal(true)}
             title="Revert conversation to this state"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--vscode-descriptionForeground)',
-              borderRadius: '4px',
-              opacity: 0.7,
-              transition: 'opacity 0.2s',
-            }}
+            className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded transition-opacity text-text-secondary"
+            style={{ opacity: 0.7 }}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
           >
@@ -233,65 +159,22 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
       {showRevertModal &&
         createPortal(
           <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center"
             onClick={() => setShowRevertModal(false)}
           >
             <div
-              style={{
-                backgroundColor: 'var(--vscode-editor-background)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '20px 24px',
-                minWidth: '300px',
-                maxWidth: '400px',
-              }}
+              className="bg-card-background border border-border rounded-lg p-5 min-w-[300px] max-w-[400px]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div
-                style={{
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  marginBottom: '8px',
-                }}
-              >
-                Revert conversation?
-              </div>
-              <div
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--secondary-text)',
-                  marginBottom: '16px',
-                }}
-              >
+              <div className="font-semibold text-sm mb-2">Revert conversation?</div>
+              <div className="text-xs text-text-secondary mb-4">
                 This will restore all modified files to their state before this message. Messages
                 after this point will be removed.
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  justifyContent: 'flex-end',
-                }}
-              >
+              <div className="flex gap-2 justify-end">
                 <button
                   onClick={() => setShowRevertModal(false)}
-                  style={{
-                    padding: '5px 14px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    background: 'transparent',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--primary-text)',
-                  }}
+                  className="px-3.5 py-1.5 rounded text-xs cursor-pointer bg-transparent border border-border text-text-primary"
                 >
                   Cancel
                 </button>
@@ -300,16 +183,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
                     setShowRevertModal(false);
                     onRevertConversation!(message.id, message.timestamp);
                   }}
-                  style={{
-                    padding: '5px 14px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    background: 'var(--vscode-button-background)',
-                    border: 'none',
-                    color: 'var(--vscode-button-foreground)',
-                    fontWeight: 600,
-                  }}
+                  className="px-3.5 py-1.5 rounded text-xs cursor-pointer bg-primary border-none text-white font-semibold"
                 >
                   Revert
                 </button>

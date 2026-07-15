@@ -7,8 +7,7 @@ interface AgentFooterBarProps {
 export const AgentFooterBar: React.FC<AgentFooterBarProps> = ({ className = '' }) => {
   return (
     <div 
-      className={`w-full h-8 shrink-0 ${className}`}
-      style={{ minHeight: '32px' }}
+      className={`w-full h-8 shrink-0 min-h-8 ${className}`}
     />
   );
 };

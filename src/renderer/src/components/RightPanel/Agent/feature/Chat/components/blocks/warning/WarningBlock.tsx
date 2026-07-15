@@ -1,4 +1,5 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface WarningBlockProps {
   /** Main title/label for the warning (e.g., "CONTINUING RESPONSE") */
@@ -18,26 +19,22 @@ interface WarningBlockProps {
 export const WarningBlock: React.FC<WarningBlockProps> = ({
   label,
   message,
-  warningColor = 'var(--vscode-editorWarning-foreground, #cca700)',
+  warningColor = $('--vscode-editorWarning-foreground') || '#cca700',
   isPulsing = true,
 }) => {
   return (
     <div className="warning-block-container">
       {/* Header matching ToolHeader style */}
-      <div className="warning-block-header" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+      <div className="warning-block-header flex items-center gap-1.5 mb-1.5">
         {/* Left panel: CircleDot with optional pulsing animation */}
         <div className="warning-block-left">
           <div
-            className="warning-circle-dot-container"
+            className="warning-circle-dot-container flex items-center justify-center w-6 h-6"
             title={label}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px' }}
           >
             <div
-              className={`warning-circle-dot${isPulsing ? ' pulsing' : ''}`}
+              className={`warning-circle-dot w-2 h-2 rounded-full${isPulsing ? ' pulsing' : ''}`}
               style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
                 backgroundColor: warningColor,
                 ...(isPulsing && {
                   animation: 'warning-pulse 1.5s ease-in-out infinite',
@@ -50,15 +47,8 @@ export const WarningBlock: React.FC<WarningBlockProps> = ({
         {/* Right panel: Label */}
         <div className="warning-block-right">
           <span
-            className="warning-label"
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: warningColor,
-              opacity: 0.85,
-            }}
+            className="warning-label text-[10px] font-bold tracking-[0.08em] uppercase opacity-85"
+            style={{ color: warningColor }}
           >
             {label}
           </span>
@@ -68,23 +58,13 @@ export const WarningBlock: React.FC<WarningBlockProps> = ({
       {/* Warning Message Block */}
       {message && (
         <div
-          className="warning-message-block"
+          className="warning-message-block ml-[30px] p-2 rounded-sm"
           style={{
-            marginLeft: '30px',
-            padding: '8px 12px',
-            borderRadius: '4px',
             border: `1px solid color-mix(in srgb, ${warningColor} 30%, transparent)`,
             background: `color-mix(in srgb, ${warningColor} 5%, transparent)`,
           }}
         >
-          <span
-            style={{
-              fontSize: '12px',
-              color: 'var(--vscode-editor-foreground)',
-              opacity: 0.85,
-              lineHeight: 1.5,
-            }}
-          >
+          <span className="text-xs text-text-secondary opacity-85 leading-relaxed">
             {message}
           </span>
         </div>

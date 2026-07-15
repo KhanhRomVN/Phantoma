@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { cn } from '@renderer/shared/lib/utils';
 import { ToolHeader } from './ToolHeader';
 import { getToolColor } from '../../utils/toolUtils';
 import { parseGitStatusOutput } from '../../utils/parseGitStatus';
@@ -122,64 +123,33 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
 
   return (
     <div
-      className={`terminal-block git-tool ${isActiveGroup ? 'active' : ''}`}
-      style={{
-        marginBottom: isLastItemInList ? '0' : '8px',
-        backgroundColor: 'transparent',
-        borderRadius: '0px',
-        overflow: 'visible',
-      }}
+      className={cn(
+        'terminal-block git-tool bg-transparent rounded-none overflow-visible',
+        isActiveGroup ? 'active' : '',
+        isLastItemInList ? 'mb-0' : 'mb-2',
+      )}
     >
       <ToolHeader
         title={
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12px',
-              color: $('--text-primary'),
-            }}
-          >
-            <span style={{ fontWeight: 600, opacity: 0.8 }}>{getTitleParts().label}</span>
+          <div className="flex items-center gap-1.5 text-xs text-text-primary">
+            <span className="font-semibold opacity-80">{getTitleParts().label}</span>
             {getTitleParts().stats && (
               <>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    opacity: 0.5,
-                    marginLeft: '2px',
-                  }}
-                >
+                <span className="text-[11px] opacity-50 ml-0.5">
                   {getTitleParts()
                     .stats.replace(/\+[0-9]+/, '')
                     .replace(/ -[0-9]+/, '')
                     .trim()}
                 </span>
-                <span
-                  style={{
-                    color: $('--success') || '#3fb950',
-                    fontWeight: 600,
-                    fontSize: '11px',
-                  }}
-                >
+                <span className="text-success font-semibold text-[11px]">
                   +{getTitleParts().totalAdded}
                 </span>
-                <span
-                  style={{
-                    color: $('--error') || '#f14c4c',
-                    fontWeight: 600,
-                    fontSize: '11px',
-                  }}
-                >
+                <span className="text-error font-semibold text-[11px]">
                   -{getTitleParts().totalDeleted}
                 </span>
               </>
             )}
-            <span
-              className="codicon codicon-git-pull-request"
-              style={{ fontSize: '14px', marginLeft: '2px' }}
-            />
+            <span className="codicon codicon-git-pull-request text-sm ml-0.5" />
           </div>
         }
         statusColor={getStatusColor()}
@@ -187,7 +157,7 @@ const GitToolRenderer: React.FC<GitToolRendererProps> = ({
       />
 
       {hasOutput && (
-        <div style={{ padding: '0px 12px 12px 29px' }}>
+        <div className="px-3 pb-3 pl-[29px]">
           <GitStatusBlock
             statusItems={effectiveItems}
             onConfirm={handleConfirm}

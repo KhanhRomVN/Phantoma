@@ -4,6 +4,8 @@ import { Message } from '../../types/message';
 import { parseAIResponse } from '../../services/ResponseParser';
 import { useSettings, PermissionMode } from '../../../../context/SettingsContext';
 import { formatGrepResultCompact } from '../../utils/grepFormatter';
+import { executeListHttps } from '../../services/tool-executors/ListHttpsExecutor';
+import { useAgentFeature } from '../../../../context/FeatureContext';
 export { getPermissionDecision } from '../../utils/permissionUtils';
 import { getPermissionDecision } from '../../utils/permissionUtils';
 import {
@@ -40,6 +42,7 @@ export const useToolExecution = ({
   isStoppedRef,
 }: UseToolExecutionProps) => {
   const { permissionMode } = useSettings();
+  const { emulateState } = useAgentFeature();
   // Use a ref so handleToolRequest (memoised with []) always reads the latest mode,
   // avoiding a stale-closure bug when the user switches modes mid-session.
   const permissionModeRef = useRef<PermissionMode>(permissionMode);
@@ -872,6 +875,15 @@ export const useToolExecution = ({
               resolve(null);
             },
           );
+          break;
+        }
+
+        case 'list_https': {
+          const targetId = emulateState.activeTargetId;
+          executeListHttps({
+            ...action.params,
+            targetId: targetId || undefined,
+          }).then(resolve);
           break;
         }
 

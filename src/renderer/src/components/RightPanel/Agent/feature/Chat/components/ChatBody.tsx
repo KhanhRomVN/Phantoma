@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
+import { cn } from '@renderer/shared/lib/utils';
 import { useSettings } from '../../../context/SettingsContext';
 import { Message } from '../types/message';
 import ProcessingIndicator from './messages/ProcessingIndicator';
@@ -13,6 +14,7 @@ import { parseAIResponse, ParsedResponse, ToolAction } from '../services/Respons
 import { useCollapseSections } from '../hooks/ui/useCollapseSections';
 import { useToolActions } from '../hooks/tools/useToolActions';
 import { useScrollBehavior } from '../hooks/ui/useScrollBehavior';
+import { $ } from '@renderer/utils/color';
 
 interface ChatBodyProps {
   messages: Message[];
@@ -95,6 +97,8 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   executionState,
   toolOutputs,
   terminalStatus,
+  firstRequestMessageId,
+  onLoadConversation,
   activeTerminalIds,
   attachedTerminalIds,
   conversationId,
@@ -105,6 +109,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   incompleteHasPartialTool = false,
   incompletePartialToolType = null,
   onContinue,
+  hasInitialMessage = false,
   onRevertConversation,
   onAutoScrollPausedChange,
   scrollToBottomRef,
@@ -122,21 +127,49 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   isGitProcessing,
   isGitStatusVisible = true,
   onBackToHome,
-  isLoadingConversation,
+  isLoadingConversation = false,
 }) => {
   const { permissionMode } = useSettings();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const parseCacheRef = useRef<Map<string, ParsedResponse>>(new Map());
+  const lastParsedMessagesRef = useRef<any[]>([]);
 
   const parsedMessages = useMemo(() => {
+    const startTime = performance.now();
+    // Check if messages are already parsed (from ChatPanel)
+    if (messages.length > 0 && messages[0].parsed !== undefined) {
+      const messagesUnchanged =
+        lastParsedMessagesRef.current.length === messages.length &&
+        messages.every(
+          (msg, i) =>
+            msg.id === lastParsedMessagesRef.current[i]?.id &&
+            msg.content === lastParsedMessagesRef.current[i]?.content,
+        );
+
+      if (messagesUnchanged) {
+        return lastParsedMessagesRef.current;
+      }
+
+      lastParsedMessagesRef.current = messages;
+      return messages;
+    }
+
+    // Fallback: parse messages if not already parsed
     const cache = parseCacheRef.current;
-    return messages.map((msg) => {
-      if (!cache.has(msg.content)) {
-        cache.set(msg.content, parseAIResponse(msg.content));
+
+    const result = messages.map((msg) => {
+      const cached = cache.get(msg.content);
+      if (!cached || cached === undefined) {
+        const parsed = parseAIResponse(msg.content);
+        cache.set(msg.content, parsed);
       }
       return { ...msg, parsed: cache.get(msg.content)! };
     });
+
+    lastParsedMessagesRef.current = result;
+    return result;
   }, [messages]);
 
   const { collapsedSections, toggleCollapse } = useCollapseSections();
@@ -147,7 +180,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     isProcessing,
     isRestored,
   });
-  const { autoScrollPaused, scrollToBottom } = useScrollBehavior(bodyRef as React.RefObject<HTMLDivElement>, [
+  const { autoScrollPaused, scrollToBottom } = useScrollBehavior(messagesEndRef, [
     messages,
     isProcessing,
   ]);
@@ -178,13 +211,14 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
       return !hasOutput && !isClicked;
     });
     if (!firstPendingAction) return false;
-    const decision = getPermissionDecision(permissionMode, firstPendingAction.type);
-    return decision === 'allow';
+    // Complex mode: always show all tools, never auto-approve
+    return false;
   }, [messages, isRestored, toolOutputs, permissionMode, clickedActions]);
 
   const visibleMessages = useMemo(() => {
-    return messages.filter((msg) => !msg.uiHidden && !msg.isCancelled);
-  }, [messages]);
+    const filtered = messages.filter((msg) => !msg.uiHidden && !msg.isCancelled);
+    return filtered;
+  }, [messages, firstRequestMessageId]);
 
   const lastAssistantIndex = useMemo(() => {
     for (let i = visibleMessages.length - 1; i >= 0; i--) {
@@ -207,8 +241,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     }
 
     const hasThinkingBlock =
-      parsed.contentBlocks &&
-      parsed.contentBlocks.some((b: any) => b.type === 'thinking');
+      parsed.contentBlocks && parsed.contentBlocks.some((b: any) => b.type === 'thinking');
     if (hasThinkingBlock) {
       return false;
     }
@@ -244,22 +277,12 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
 
   return (
     <div
-      ref={bodyRef as React.RefObject<HTMLDivElement>}
-      className="chat-body-scroll"
-      style={{
-        flex: 1,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        padding: 'var(--spacing-lg)',
-        paddingLeft: '24px',
-        backgroundColor: 'var(--secondary-bg)',
-        paddingBottom: visibleMessages.length > 0 ? '200px' : 'var(--spacing-lg)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--spacing-md)',
-        fontSize: '14px',
-        position: 'relative',
-      }}
+      ref={bodyRef}
+      className={cn(
+        'chat-body-scroll flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col p-6 pl-6 text-sm',
+        visibleMessages.length > 0 ? 'pb-[200px]' : 'pb-6',
+        'gap-4',
+      )}
     >
       {/* Show skeleton when loading conversation */}
       {isLoadingConversation ? (
@@ -271,42 +294,35 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
               searchQuery={searchQuery}
               onSearchQueryChange={onSearchQueryChange}
               onCloseSearch={onCloseSearch}
-              bodyRef={bodyRef as React.RefObject<HTMLDivElement>}
+              bodyRef={bodyRef}
             />
           )}
 
           {/* New messages indicator */}
           {autoScrollPaused && isProcessing && (
-            <div
-              style={{
-                position: 'sticky',
-                bottom: '12px',
-                zIndex: 20,
-                display: 'flex',
-                justifyContent: 'center',
-                pointerEvents: 'none',
-              }}
-            >
+            <div className="sticky bottom-3 z-20 flex justify-center pointer-events-none">
               <button
                 onClick={scrollToBottom}
+                className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full cursor-pointer"
                 style={{
-                  pointerEvents: 'auto',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '5px 14px',
-                  borderRadius: '20px',
-                  border: '1px solid color-mix(in srgb, var(--vscode-button-background, #007acc) 40%, transparent)',
-                  background: 'color-mix(in srgb, var(--vscode-editor-background) 85%, var(--vscode-button-background, #007acc))',
-                  color: 'var(--vscode-button-background, #007acc)',
+                  border:
+                    '1px solid color-mix(in srgb, ' +
+                    $('--vscode-button-background') +
+                    ' 40%, transparent)',
+                  background:
+                    'color-mix(in srgb, ' +
+                    $('--vscode-editor-background') +
+                    ' 85%, ' +
+                    $('--vscode-button-background') +
+                    ')',
+                  color: $('--vscode-button-background'),
                   fontSize: '11px',
                   fontWeight: 600,
-                  cursor: 'pointer',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                   transition: 'opacity 0.2s',
                 }}
               >
-                <span className="codicon codicon-arrow-down" style={{ fontSize: '11px' }} />
+                <span className="codicon codicon-arrow-down text-[11px]" />
                 New messages
               </button>
             </div>
@@ -329,13 +345,15 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                 .slice(messages.findIndex((m) => m.id === message.id) + 1)
                 .find((m) => m.role === 'user');
               const previousAssistantMessage = messages
-                .slice(0, messages.findIndex((m) => m.id === message.id))
+                .slice(
+                  0,
+                  messages.findIndex((m) => m.id === message.id),
+                )
                 .reverse()
                 .find((m) => m.role === 'assistant');
 
               const nextVisibleMessage = visibleMessages[index + 1];
-              const hasNextAssistantMessage =
-                nextVisibleMessage?.role === 'assistant';
+              const hasNextAssistantMessage = nextVisibleMessage?.role === 'assistant';
 
               return (
                 <ChatErrorBoundary key={message.id}>
@@ -359,8 +377,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                     executionState={executionState}
                     isLastMessage={
                       message.role === 'assistant' &&
-                      (index === visibleMessages.length - 1 ||
-                        index === lastAssistantIndex) &&
+                      (index === visibleMessages.length - 1 || index === lastAssistantIndex) &&
                       hasNextAssistantMessage === false
                     }
                     hasNextAssistantMessage={hasNextAssistantMessage}
@@ -398,8 +415,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
 
             if (!isRenderingThinking) return null;
 
-            const hasSSEThinking =
-              lastMessage.thinking && lastMessage.thinking.trim();
+            const hasSSEThinking = lastMessage.thinking && lastMessage.thinking.trim();
 
             if (hasSSEThinking) {
               return (
@@ -411,75 +427,111 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
               );
             }
 
-            const parsedMessage = parsedMessages.find(
-              (pm) => pm.id === lastMessage.id,
-            );
+            const parsedMessage = parsedMessages.find((pm) => pm.id === lastMessage.id);
             if (!parsedMessage || !parsedMessage.parsed) return null;
 
             const contentBlocks = parsedMessage.parsed.contentBlocks || [];
             const lastBlock = contentBlocks[contentBlocks.length - 1];
             const isLastBlockUnclosedThinking =
-              lastBlock &&
-              lastBlock.type === 'thinking' &&
-              lastBlock.content?.trim();
+              lastBlock && lastBlock.type === 'thinking' && lastBlock.content?.trim();
 
             if (isLastBlockUnclosedThinking) {
               return (
-                <ThinkingRenderer
-                  content={lastBlock.content!}
-                  maxHeight={240}
-                  isStreaming={true}
-                />
+                <ThinkingRenderer content={lastBlock.content!} maxHeight={240} isStreaming={true} />
               );
             }
 
             return null;
           })()}
 
-          {/* Processing Indicator */}
-          <ProcessingIndicator isResponding={isResponding && isProcessing} />
-
-          {/* Continuing / Partial tool warning */}
-          {isContinuing && incompleteHasPartialTool && incompletePartialToolType && (
-            <WarningBlock
-              label="CONTINUING RESPONSE"
-              message={`Assembling partial ${incompletePartialToolType} output from previous response...`}
-            />
-          )}
-
           {/* Unexecuted auto actions */}
           {hasUnexecutedAutoActions && onContinue && (
-            <div
-              style={{
-                marginTop: '12px',
-                marginBottom: '12px',
-                display: 'flex',
-              }}
-            >
+            <div className="mt-3 mb-3 flex">
               <button
                 onClick={onContinue}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-md cursor-pointer uppercase tracking-wide"
                 style={{
-                  backgroundColor: 'color-mix(in srgb, var(--vscode-button-background, #007acc) 15%, transparent)',
-                  color: 'var(--vscode-button-background, #007acc)',
-                  border: '1px solid color-mix(in srgb, var(--vscode-button-background, #007acc) 30%, transparent)',
-                  padding: '6px 16px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
+                  backgroundColor:
+                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 15%, transparent)',
+                  color: $('--vscode-button-background'),
+                  border:
+                    '1px solid color-mix(in srgb, ' +
+                    $('--vscode-button-background') +
+                    ' 30%, transparent)',
                   fontSize: '11px',
                   fontWeight: 600,
+                  height: '28px',
+                  boxSizing: 'border-box',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 25%, transparent)';
+                  e.currentTarget.style.borderColor =
+                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 50%, transparent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 15%, transparent)';
+                  e.currentTarget.style.borderColor =
+                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 30%, transparent)';
                 }}
               >
-                Continue auto-executing actions
+                <span className="codicon codicon-play text-xs inline-flex items-center justify-center" />
+                <span>Continue Task</span>
               </button>
             </div>
           )}
+
+          {/* Continuing / Partial tool warning */}
+          {isContinuing && (
+            <WarningBlock
+              label="CONTINUING RESPONSE"
+              message={
+                incompleteHasPartialTool
+                  ? `AI response was interrupted. Assembling remaining parts of \`${incompletePartialToolType ?? 'tool'}\` before execution.`
+                  : 'AI response was interrupted. Fetching the remaining content…'
+              }
+              isPulsing={true}
+            />
+          )}
+
+          {/* Processing Indicator */}
+          {(isProcessing || hasInitialMessage) && (
+            <ProcessingIndicator isResponding={isResponding} />
+          )}
+
+          <div ref={messagesEndRef} />
         </>
       )}
     </div>
   );
 };
 
-// Wrap with React.memo to prevent unnecessary re-renders
-const ChatBody = React.memo(ChatBodyInternal);
+// Memoize ChatBody to prevent unnecessary re-renders
+const ChatBody = React.memo(ChatBodyInternal, (prevProps, nextProps) => {
+  // Quick reference comparison for arrays/objects
+  const sameMessages = prevProps.messages === nextProps.messages;
+  const sameProcessing = prevProps.isProcessing === nextProps.isProcessing;
+  const sameExecutionState = prevProps.executionState === nextProps.executionState;
+  const sameToolOutputs = prevProps.toolOutputs === nextProps.toolOutputs;
+  const sameTerminalStatus = prevProps.terminalStatus === nextProps.terminalStatus;
+  const sameSearchOpen = prevProps.isSearchOpen === nextProps.isSearchOpen;
+  const sameSearchQuery = prevProps.searchQuery === nextProps.searchQuery;
+  const sameLoadingConversation =
+    prevProps.isLoadingConversation === nextProps.isLoadingConversation;
+
+  // Skip re-render if nothing changed
+  return (
+    sameMessages &&
+    sameProcessing &&
+    sameExecutionState &&
+    sameToolOutputs &&
+    sameTerminalStatus &&
+    sameSearchOpen &&
+    sameSearchQuery &&
+    sameLoadingConversation
+  );
+});
 
 export default ChatBody;

@@ -235,9 +235,9 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
                     ? 'bg-primary text-text-foreground font-semibold opacity-100'
                     : 'bg-transparent text-text-primary font-normal',
                   legacyAnswered && legacySelected !== option && 'opacity-50',
+                  disabled || legacyAnswered ? 'cursor-default' : 'cursor-pointer',
                 )}
                 style={{
-                  cursor: disabled || legacyAnswered ? 'default' : 'pointer',
                   borderLeft: `3px solid ${legacySelected === option ? $('--primary') : $('--secondary-text')}`,
                 }}
               >
@@ -370,8 +370,10 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
             onFocus={(e) => e.target.select()}
             placeholder={placeholder}
             disabled={isDisabled}
-            className="flex-1 p-0 bg-transparent text-text-primary border-none outline-none text-[13px] font-[inherit] min-w-0"
-            style={{ fontWeight: isSelected ? 600 : 400 }}
+            className={cn(
+              'flex-1 p-0 bg-transparent text-text-primary border-none outline-none text-[13px] font-[inherit] min-w-0',
+              isSelected ? 'font-semibold' : 'font-normal',
+            )}
           />
         </div>
       );
@@ -397,9 +399,9 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
             isSelected
               ? 'bg-primary/20 text-primary font-semibold opacity-100'
               : 'bg-transparent text-text-primary font-normal',
+            isDisabled ? 'cursor-default' : 'cursor-pointer',
           )}
           style={{
-            cursor: isDisabled ? 'default' : 'pointer',
             borderLeft: `3px solid ${isSelected ? $('--primary') : $('--secondary-text')}`,
           }}
           onMouseEnter={(e) => {
@@ -600,12 +602,12 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           }}
           className={cn(
             'flex items-center px-4 py-2 rounded-none text-[13px] w-full transition-all duration-[0.15s] opacity-100',
+            isDisabled ? 'cursor-default' : 'cursor-pointer',
+            isSelected ? 'font-semibold' : 'font-normal',
           )}
           style={{
             borderLeft: `3px solid ${borderColor}`,
             backgroundColor: bgColor,
-            cursor: isDisabled ? 'default' : 'pointer',
-            fontWeight: isSelected ? 600 : 400,
             color: isSelected ? color : $('--text-primary'),
           }}
           onMouseEnter={(e) => {
@@ -664,8 +666,10 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
             onFocus={(e) => e.target.select()}
             placeholder="Ý kiến khác..."
             disabled={isDisabled}
-            className="flex-1 p-0 bg-transparent text-text-primary border-none outline-none text-[13px] font-[inherit] min-w-0"
-            style={{ fontWeight: customValue.trim() ? 600 : 400 }}
+            className={cn(
+              'flex-1 p-0 bg-transparent text-text-primary border-none outline-none text-[13px] font-[inherit] min-w-0',
+              customValue.trim() ? 'font-semibold' : 'font-normal',
+            )}
           />
         </div>
       </div>
