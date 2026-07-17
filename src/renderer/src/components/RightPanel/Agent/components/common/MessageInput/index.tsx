@@ -690,13 +690,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     return result;
   }, [currentModel, currentProviderConfig, currentModelConfig]);
 
-  const formatWorkspacePath = (path: string) => {
-    if (!path) return '';
-    const parts = path.split(/[/\\]/).filter(Boolean);
-    if (parts.length <= 5) return path;
-    const lastFive = parts.slice(-5).join('/');
-    return `../${lastFive}`;
-  };
+  
 
   const fetchProviders = React.useCallback(async () => {
     try {

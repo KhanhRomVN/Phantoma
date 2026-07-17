@@ -562,12 +562,13 @@ export const useToolExecution = ({
                   action.params.new_str = msg.newContent;
                 }
 
-                // Store output in toolOutputs
+                // Store output in toolOutputs with diagnostics
                 setToolOutputs((prev) => ({
                   ...prev,
                   [actionId]: {
                     output: 'Reverted',
                     isError: false,
+                    diagnostics: msg.diagnostics || undefined,
                   },
                 }));
 
@@ -836,11 +837,24 @@ export const useToolExecution = ({
         }
 
         case 'grep': {
-          const requestId = `grep-${Date.now()}-${Math.random()}`;
           const searchTerm = action.params.search_term;
           const filePath = action.params.file_path;
           const folderPath = action.params.folder_path;
           const targetDesc = filePath || folderPath || 'unknown';
+
+          // Check for validation error from parser
+          if (action.params._validationError) {
+            const errMsg = action.params._validationError;
+            console.warn(
+              `[Zen][grep] Validation error | pattern="${searchTerm}" | error="${errMsg}"`,
+            );
+            resolve(
+              `[grep for '${searchTerm}' in '${targetDesc}'] Result: Error - ${errMsg}`,
+            );
+            break;
+          }
+
+          const requestId = `grep-${Date.now()}-${Math.random()}`;
 
           extensionService.postMessage({
             command: 'executeAgentAction',

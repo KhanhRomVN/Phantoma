@@ -8,19 +8,20 @@ import { RightPanel } from '../components/RightPanel';
 import { FooterBar } from '../components/FooterBar';
 import { PhantomModule } from '../features/Tool/types/types';
 import { ServerHealthGuard } from '../components/ServerHealthGuard';
-import { FeatureProvider } from '../components/RightPanel/Agent/context/FeatureContext';
+import { FeatureProvider, useAgentFeature } from '../components/RightPanel/Agent/context/FeatureContext';
 
 /**
  * MainLayout — Shell of the application
  * Composes: ModuleBar | Outlet (route content) | IntelPanel
  * Mirrors the old ToolFeature layout from temp/Phantoma
  */
-const MainLayout = () => {
+const MainLayoutContent = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { activeModule, setActiveModule } = useActiveModule('recon');
   const { activeSubItem, setActiveSubItem } = useActiveSubItem(null);
   const { activeSubTarget } = useActiveTarget();
+  const { setActiveFeature } = useAgentFeature();
 
   // Sync activeModule with URL path
   useEffect(() => {
@@ -42,6 +43,17 @@ const MainLayout = () => {
     }
   }, [location.pathname, activeModule, setActiveModule]);
 
+  // Sync activeFeature with URL path
+  useEffect(() => {
+    const currentPath = location.pathname.slice(1) || 'recon';
+    // Map route to feature: only 'emulate' is currently supported
+    if (currentPath === 'emulate') {
+      setActiveFeature('emulate');
+    } else {
+      setActiveFeature(null);
+    }
+  }, [location.pathname, setActiveFeature]);
+
   // Navigate when activeModule changes
   const handleModuleSelect = (moduleId: string) => {
     setActiveModule(moduleId as PhantomModule);
@@ -58,7 +70,6 @@ const MainLayout = () => {
   };
 
   return (
-    <FeatureProvider>
     <div className="flex h-screen w-screen overflow-hidden bg-background font-mono text-xs text-text-primary">
       <ModuleBar
         active={activeModule}
@@ -78,6 +89,13 @@ const MainLayout = () => {
         <FooterBar />
       </div>
     </div>
+  );
+};
+
+const MainLayout = () => {
+  return (
+    <FeatureProvider>
+      <MainLayoutContent />
     </FeatureProvider>
   );
 };

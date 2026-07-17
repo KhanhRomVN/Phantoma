@@ -4,6 +4,7 @@ import HomePanel from './feature/Home';
 import ChatPanel from './feature/Chat';
 import { ChatSession } from './feature/Chat/types/chat';
 import { ProjectProvider } from './context/ProjectContext';
+import { BackendConnectionProvider } from './context/BackendConnectionContext';
 import { useAgentFeature } from './context/FeatureContext';
 import AgentOverlay from './components/AgentOverlay';
 // import { AgentFooterBar } from './components/AgentFooterBar';
@@ -156,45 +157,46 @@ export function AgentPanel() {
   const renderEmulateOverlay = () => {
     return (
       <AgentOverlay
-        title="Chọn target để bắt đầu"
-        description="Vui lòng chọn target và bắt đầu session CDP hoặc MITM để sử dụng Agent"
+        title="Select a target to start"
+        description="Please select a target and start a CDP or MITM session to use the Agent"
         icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
-        showEmulateHint={false}
       />
     );
   };
 
   return (
-    <ProjectProvider>
-      <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
-        {activeFeature !== 'emulate' && <AgentOverlay featureName={activeFeature || undefined} />}
-        {activeFeature === 'emulate' && shouldShowOverlay() && renderEmulateOverlay()}
+    <BackendConnectionProvider>
+      <ProjectProvider>
+        <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
+          {activeFeature !== 'emulate' && <AgentOverlay featureName={activeFeature || undefined} />}
+          {activeFeature === 'emulate' && shouldShowOverlay() && renderEmulateOverlay()}
 
-        {/* Main content - chỉ hiển thị khi không có overlay */}
-        {!shouldShowOverlay() && (
-          <>
-            <div className="flex-1 overflow-hidden bg-background flex flex-col">
-              {currentChat ? (
-                <ChatPanel
-                  currentChat={currentChat}
-                  onBack={handleBack}
-                  feature={activeFeature}
-                  onLoadConversation={handleLoadConversation}
-                  initialMessageData={initialMessageData}
-                  onClearInitialData={() => setInitialMessageData(null)}
-                />
-              ) : (
-                <HomePanel
-                  onSendMessage={handleHomeSendMessage}
-                  onLoadConversation={handleLoadConversation}
-                  initialValue={homeInitialValue}
-                />
-              )}
-            </div>
-            {/* <AgentFooterBar /> */}
-          </>
-        )}
-      </div>
-    </ProjectProvider>
+          {/* Main content - chỉ hiển thị khi không có overlay */}
+          {!shouldShowOverlay() && (
+            <>
+              <div className="flex-1 overflow-hidden bg-background flex flex-col">
+                {currentChat ? (
+                  <ChatPanel
+                    currentChat={currentChat}
+                    onBack={handleBack}
+                    feature={activeFeature}
+                    onLoadConversation={handleLoadConversation}
+                    initialMessageData={initialMessageData}
+                    onClearInitialData={() => setInitialMessageData(null)}
+                  />
+                ) : (
+                  <HomePanel
+                    onSendMessage={handleHomeSendMessage}
+                    onLoadConversation={handleLoadConversation}
+                    initialValue={homeInitialValue}
+                  />
+                )}
+              </div>
+              {/* <AgentFooterBar /> */}
+            </>
+          )}
+        </div>
+      </ProjectProvider>
+    </BackendConnectionProvider>
   );
 }

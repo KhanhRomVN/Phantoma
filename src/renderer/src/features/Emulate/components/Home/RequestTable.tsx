@@ -980,6 +980,7 @@ export function RequestTable({
               <div
                 key={row.id}
                 ref={rowVirtualizer.measureElement}
+                data-index={virtualRow.index}
                 data-state={row.getValue('id') === selectedId ? 'selected' : undefined}
                 onDragStart={(e) => e.preventDefault()}
                 className={cn(

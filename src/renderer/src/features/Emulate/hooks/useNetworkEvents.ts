@@ -187,9 +187,40 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         onResponse?.(data.id, data.statusCode, data.headers);
       } else {
         console.warn('[useNetworkEvents] No existing request for response:', data.id);
+        console.debug('[DEBUG] Creating placeholder request for response ID:', data.id);
+        // Create placeholder request from response data
+        const placeholder: Partial<NetworkRequest> = {
+          id: data.id,
+          method: 'GET', // Fallback - method not available in response
+          url: '', // Will be filled from response headers if available
+          status: data.statusCode || 200,
+          responseHeaders: data.headers || {},
+          timestamp: data.timestamp || Date.now(),
+          type: 'other',
+          host: '',
+          path: '/',
+          protocol: 'http',
+          size: '0 B',
+          time: '0ms',
+          requestHeaders: {},
+          responseBody: '',
+          requestBody: '',
+        };
+        // Try to extract URL from response headers
+        if (data.headers && typeof data.headers === 'object') {
+          const urlHeader = data.headers[':path'] || data.headers['x-original-url'] || '';
+          if (urlHeader) {
+            placeholder.url = urlHeader;
+          }
+        }
+        const fullReq = placeholder as NetworkRequest;
+        requestMapRef.current.set(data.id, fullReq);
+        addRequest(fullReq);
+        onRequest?.(fullReq);
+        onResponse?.(data.id, data.statusCode, data.headers);
       }
     },
-    [updateRequest, onResponse],
+    [updateRequest, onResponse, addRequest, onRequest],
   );
 
   // Handle CDP response body event
@@ -431,6 +462,11 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
   // Setup IPC listeners
   useEffect(() => {
+    if (!targetId) {
+      console.debug('[useNetworkEvents] No targetId, skipping IPC listener registration');
+      return;
+    }
+
     if (!window.api?.on) {
       console.warn('[useNetworkEvents] window.api.on not available');
       return;
@@ -549,6 +585,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     handleProxyResponse,
     handleProxyResponseBody,
     handleProxyRequestBody,
+    targetId,
   ]);
 
   return {

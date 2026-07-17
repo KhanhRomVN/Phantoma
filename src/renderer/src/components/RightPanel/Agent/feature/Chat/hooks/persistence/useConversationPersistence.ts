@@ -36,9 +36,14 @@ export const useConversationPersistence = ({
 
   // Persist toolOutputs
   useEffect(() => {
-    const effectStartTime = performance.now();
+    console.log('[Persistence] toolOutputs effect triggered:', {
+      conversationId: currentConversationId,
+      toolOutputsCount: Object.keys(toolOutputs).length,
+      renderCount: renderCountRef.current,
+    });
 
     if (!currentConversationId || Object.keys(toolOutputs).length === 0) {
+      console.log('[Persistence] toolOutputs skipped: no conversationId or empty');
       return;
     }
 
@@ -46,6 +51,13 @@ export const useConversationPersistence = ({
 
     const sessionId = currentChat?.sessionId || -1;
     const folderPath = currentChat?.folderPath || null;
+    console.log('[Persistence] saving toolOutputs:', {
+      conversationId: currentConversationId,
+      sessionId,
+      folderPath,
+      toolOutputsCount: Object.keys(toolOutputs).length,
+      saveCount: toolOutputsSaveCountRef.current,
+    });
     saveConversation(
       sessionId,
       folderPath,
@@ -61,12 +73,17 @@ export const useConversationPersistence = ({
 
   // Persist singleLineReviewActions
   useEffect(() => {
-    const effectStartTime = performance.now();
+    console.log('[Persistence] singleLineReviewActions effect triggered:', {
+      conversationId: currentConversationId,
+      reviewActionsCount: Object.keys(singleLineReviewActions).length,
+      renderCount: renderCountRef.current,
+    });
 
     if (
       !currentConversationId ||
       Object.keys(singleLineReviewActions).length === 0
     ) {
+      console.log('[Persistence] singleLineReviewActions skipped: no conversationId or empty');
       return;
     }
 
@@ -74,6 +91,13 @@ export const useConversationPersistence = ({
 
     const sessionId = currentChat?.sessionId || -1;
     const folderPath = currentChat?.folderPath || null;
+    console.log('[Persistence] saving singleLineReviewActions:', {
+      conversationId: currentConversationId,
+      sessionId,
+      folderPath,
+      reviewActionsCount: Object.keys(singleLineReviewActions).length,
+      saveCount: reviewActionsSaveCountRef.current,
+    });
     saveConversation(
       sessionId,
       folderPath,
@@ -90,9 +114,14 @@ export const useConversationPersistence = ({
 
   // Persist conversationFileStats
   useEffect(() => {
-    const effectStartTime = performance.now();
+    console.log('[Persistence] conversationFileStats effect triggered:', {
+      conversationId: currentConversationId,
+      fileStats: conversationFileStats,
+      renderCount: renderCountRef.current,
+    });
 
     if (!currentConversationId || conversationFileStats.totalFiles === 0) {
+      console.log('[Persistence] conversationFileStats skipped: no conversationId or empty');
       return;
     }
 
@@ -100,6 +129,13 @@ export const useConversationPersistence = ({
 
     const sessionId = currentChat?.sessionId || -1;
     const folderPath = currentChat?.folderPath || null;
+    console.log('[Persistence] saving conversationFileStats:', {
+      conversationId: currentConversationId,
+      sessionId,
+      folderPath,
+      fileStats: conversationFileStats,
+      saveCount: fileStatsSaveCountRef.current,
+    });
     saveConversation(
       sessionId,
       folderPath,

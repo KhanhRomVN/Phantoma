@@ -38,6 +38,8 @@ interface AIMessageBoxProps {
   attachedTerminalIds?: Set<string>;
   conversationId?: string;
   previousAssistantMessage?: Message;
+  /** Số thứ tự của response này */
+  responseNumber?: number | null;
   isGenerating?: boolean;
   isSimpleMode?: boolean;
   onSendMessage?: (
@@ -93,7 +95,7 @@ const MessageBoxCodeBlock: React.FC<{
         }
       />
       {!isCollapsed && (
-        <div className="pl-[29px]">
+        <div>
           <pre className="m-0 p-2 overflow-auto font-mono text-xs bg-background rounded">
             <code className="!bg-transparent p-0">{code}</code>
           </pre>
@@ -120,6 +122,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
   attachedTerminalIds,
   conversationId,
   previousAssistantMessage,
+  responseNumber,
   isGenerating,
   onSendMessage,
   onSelectOption,
@@ -163,17 +166,35 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
     return raw;
   };
 
+  // State for toggling raw request/response display
+  const [requestChecked, setRequestChecked] = React.useState(false);
+  const [responseChecked, setResponseChecked] = React.useState(false);
+
+  // Find previous user message for token usage and raw request
+  const previousUserMessage = React.useMemo((): Message | null => {
+    if (!allMessages || !message) return null;
+    const msgIndex = allMessages.findIndex((m) => m.id === message.id);
+    if (msgIndex > 0) {
+      for (let i = msgIndex - 1; i >= 0; i--) {
+        if (allMessages[i].role === 'user') {
+          return allMessages[i];
+        }
+      }
+    }
+    return null;
+  }, [allMessages, message]);
+
   const knownFilePaths = React.useMemo((): Map<string, string> => {
     const map = new Map<string, string>();
     if (!allMessages) return map;
 
-    const filePathRegex = /<file_path>([^<]+)<\/file_path>/gi;
+    const filePathRegex = /<path>([^<]+)<\/file_path>/gi;
     const pathRegex = /<path>([^<]+)<\/path>/gi;
 
     for (const msg of allMessages) {
       if (!msg.content) continue;
 
-      // Extract all <file_path> occurrences
+      // Extract all <path> occurrences
       let m: RegExpExecArray | null;
       filePathRegex.lastIndex = 0;
       while ((m = filePathRegex.exec(msg.content)) !== null) {
@@ -199,7 +220,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
 
     return map;
   }, [allMessages]);
-
   return (
     <div
       className="assistant-message-container flex flex-col gap-0 relative transition-all duration-300 ease mb-3 bg-transparent rounded-md border-none p-0"
@@ -251,6 +271,11 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
               content: string;
               key: string;
             }
+          | {
+              type: 'response_number';
+              content: string;
+              key: string;
+            }
         > = [];
 
         // --- 🆕 METADATA DOT CHECK ---
@@ -296,6 +321,15 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
         }
 
         // ------------------------------
+        // Response number with token badges
+        if (responseNumber !== null && responseNumber !== undefined && !message.isError) {
+          groups.push({
+            type: 'response_number',
+            content: String(responseNumber),
+            key: 'response-number',
+          });
+        }
+
         if (message.thinking && message.thinking.trim()) {
           groups.push({
             type: 'thinking',
@@ -454,7 +488,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                     />
                   )}
                 </div>
-                <div className="pl-[29px] pt-1 text-sm text-text-secondary leading-relaxed italic flex items-center gap-1.5">
+                <div className="pt-1 text-sm text-text-secondary leading-relaxed italic flex items-center gap-1.5">
                   {group.content}
                 </div>
               </div>
@@ -492,7 +526,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
           } else if (group.type === 'file') {
             content = (
               <div
-                className="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer ml-[29px] text-xs"
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer text-xs"
                 style={{
                   backgroundColor: $('--primary, #4d4d4d'),
                   color: $('--text-foreground, #ffffff'),
@@ -521,7 +555,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                     style={{ backgroundColor: dotColor }}
                   />
                 </div>
-                <div className="pl-[29px] pt-1 text-sm text-text-primary">
+                <div className="pt-1 text-sm text-text-primary">
                   <MarkdownBlock content={group.content} knownFilePaths={knownFilePaths} />
                 </div>
               </div>
@@ -536,7 +570,7 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                     style={{ backgroundColor: dotColor }}
                   />
                 </div>
-                <div className="pl-[29px] pt-1">
+                <div className="pt-1">
                   {group.segments.map((seg: any, i: number) => {
                     if (seg.type === 'code') {
                       return (
@@ -640,6 +674,13 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
             );
             // Error renders its own timeline-item wrapper like tool groups
             return <React.Fragment key={group.key}>{content}</React.Fragment>;
+          } else if (group.type === 'response_number') {
+            content = (
+              <div className="pb-2 text-sm text-text-secondary">
+                <span className="codicon codicon-number" style={{ marginRight: 8 }} />
+                {group.content}
+              </div>
+            );
           } else {
             content = (
               <ToolRouter
@@ -670,28 +711,6 @@ const AIMessageBox: React.FC<AIMessageBoxProps> = ({
                 isGitStatusVisible={isGitStatusVisible}
               />
             );
-
-            // Check for pending/busy actions (logic removed - kept for reference only)
-            // const hasUnclickedOrBusyAction = group.items.some((item) => {
-            //   const actionId = `${message.id}-action-${item.index}`;
-            //   const hasOutput = toolOutputs && toolOutputs[actionId];
-            //   const isClicked = clickedActions.has(actionId);
-            //   const hasHistoryOutput =
-            //     !!nextUserMessage || !!allMessages?.some((m) => m.actionIds?.includes(actionId));
-            //   if (!isClicked && !hasOutput && !hasHistoryOutput) {
-            //     const isWriteTool =
-            //       item.action.type === 'write_to_file' || item.action.type === 'replace_in_file';
-            //     if (isWriteTool) return false;
-            //     return true;
-            //   }
-            //   if (item.action.type === 'run_command' && !hasHistoryOutput) {
-            //     const outputData = toolOutputs?.[actionId];
-            //     const terminalId =
-            //       (outputData as any)?.terminalId || item.action.params.terminal_id;
-            //     if (terminalId && terminalStatus?.[terminalId] === 'busy') return true;
-            //   }
-            //   return false;
-            // });
           }
 
           if (group.type === 'tools') {

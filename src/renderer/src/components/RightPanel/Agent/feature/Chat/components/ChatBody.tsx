@@ -130,8 +130,8 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   isLoadingConversation = false,
 }) => {
   const { permissionMode } = useSettings();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null!);
+  const bodyRef = useRef<HTMLDivElement>(null!);
 
   const parseCacheRef = useRef<Map<string, ParsedResponse>>(new Map());
   const lastParsedMessagesRef = useRef<any[]>([]);
@@ -279,7 +279,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     <div
       ref={bodyRef}
       className={cn(
-        'chat-body-scroll flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col p-6 pl-6 text-sm',
+        'chat-body-scroll flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col p-4 pl-4 text-sm',
         visibleMessages.length > 0 ? 'pb-[200px]' : 'pb-6',
         'gap-4',
       )}

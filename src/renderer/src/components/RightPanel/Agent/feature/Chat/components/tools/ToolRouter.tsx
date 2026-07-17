@@ -352,10 +352,7 @@ const ToolRouter: React.FC<ToolRouterProps> = ({
     return (
       <div className="relative flex flex-col gap-1.5">
         <div
-          className={cn(
-            'terminal-block commit-message-tool',
-            isLastItemInList ? 'mb-0' : 'mb-2',
-          )}
+          className={cn('terminal-block commit-message-tool', isLastItemInList ? 'mb-0' : 'mb-2')}
         >
           <ToolHeader
             title={

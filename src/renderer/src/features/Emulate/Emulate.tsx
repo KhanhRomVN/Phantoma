@@ -41,15 +41,10 @@ export default React.memo(function Emulate({
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
   const { getColorByIndex } = useAccentColors();
 
-  const { setActiveFeature, setEmulateState } = useAgentFeature();
+  const { setEmulateState } = useAgentFeature();
 
-  // Enable Agent for Emulate feature
-  useEffect(() => {
-    setActiveFeature('emulate');
-    return () => {
-      setActiveFeature(null);
-    };
-  }, [setActiveFeature]);
+  // activeFeature is now managed by MainLayout based on route
+  // No need to set/unset here
 
   // Module persistence - lưu toàn bộ EmulateState
   const [state, setState] = useModulePersistence<EmulateState>('emulate', {

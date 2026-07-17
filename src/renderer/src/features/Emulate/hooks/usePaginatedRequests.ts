@@ -23,6 +23,7 @@ export function usePaginatedRequests({
   const isInitialLoadRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const onRequestsChangeRef = useRef(onRequestsChange);
+  const pendingRequestsRef = useRef<StoredRequest[]>([]);
 
   useEffect(() => {
     onRequestsChangeRef.current = onRequestsChange;
@@ -126,14 +127,9 @@ export function usePaginatedRequests({
 
   const addRequest = useCallback(
     async (request: Partial<NetworkRequest>) => {
-      if (!targetId) {
-        console.warn('[usePaginatedRequests] No targetId, skipping');
-        return;
-      }
-
       const stored: StoredRequest = {
         id: request.id || `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        targetId,
+        targetId: targetId || '',
         method: request.method || 'GET',
         url: request.url || '',
         protocol: request.protocol || 'http',
@@ -161,6 +157,28 @@ export function usePaginatedRequests({
         responseCookies: request.responseCookies,
       };
 
+      if (!targetId) {
+        console.warn('[usePaginatedRequests] No targetId, buffering request:', stored.id);
+        console.debug('[DEBUG] Buffering request:', stored.id);
+        pendingRequestsRef.current.push(stored);
+        // Still display in memory
+        const networkReq = toNetworkRequest(stored);
+        setRequests((prev) => {
+          if (prev.some((r) => r.id === networkReq.id)) return prev;
+          const newRequests = [networkReq, ...prev];
+          if (newRequests.length > maxMemory) {
+            const sliced = newRequests.slice(0, maxMemory);
+            onRequestsChangeRef.current?.(sliced);
+            return sliced;
+          }
+          onRequestsChangeRef.current?.(newRequests);
+          return newRequests;
+        });
+        return;
+      }
+
+      // Normal flow with targetId
+      stored.targetId = targetId;
       requestStorage.saveRequest(targetId, stored).catch(console.error);
 
       setRequests((prev) => {
@@ -248,6 +266,17 @@ export function usePaginatedRequests({
 
   useEffect(() => {
     if (targetId) {
+      // Flush pending requests when targetId becomes available
+      if (pendingRequestsRef.current.length > 0) {
+        console.debug(`[DEBUG] Flushing ${pendingRequestsRef.current.length} pending requests to target ${targetId}`);
+        const pending = pendingRequestsRef.current;
+        pendingRequestsRef.current = [];
+        pending.forEach((stored) => {
+          const withTarget = { ...stored, targetId };
+          requestStorage.saveRequest(targetId, withTarget).catch(console.error);
+        });
+        setTotalCount((prev) => prev + pending.length);
+      }
       isInitialLoadRef.current = true;
       loadInitial();
     } else {

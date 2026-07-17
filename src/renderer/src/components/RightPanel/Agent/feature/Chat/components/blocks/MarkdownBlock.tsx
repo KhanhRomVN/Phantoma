@@ -204,7 +204,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
           .markdown-content-inline ul,
           .markdown-content-inline ol {
             margin-bottom: 8px;
-            padding-left: 24px !important;
+            padding-left: 0;
           }
           .markdown-content-inline ul { list-style-type: disc !important; }
           .markdown-content-inline ul ul {
