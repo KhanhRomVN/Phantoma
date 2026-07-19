@@ -195,7 +195,7 @@ export const DeepForest: ThemeConfig = {
     //
     tooltipBackground: 'rgb(22, 33, 27)',
     //
-    sidebarBackground: 'rgb(9, 15, 12)',
+    sidebarBackground: 'rgb(13, 20, 16)',
     sidebarItemHover: 'rgb(17, 26, 21)',
     //
     tableHeaderBackground: 'rgb(16, 24, 19)',

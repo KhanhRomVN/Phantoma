@@ -99,7 +99,7 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
 
   return (
     <SettingsProvider>
-      <div className="w-[450px] shrink-0 border-l border-divider flex flex-col overflow-hidden relative">
+      <div className="w-[450px] shrink-0 border-l border-divider flex flex-col overflow-hidden relative h-full">
         {/* Header Bar */}
         <div className="h-10 border-b border-divider flex items-center px-3 shrink-0">
           <div className="relative" ref={dropdownRef}>
@@ -198,8 +198,12 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden relative">
-          {view === 'agent' && agentSubView === null && <AgentPanel key={agentPanelKey} />}
+        <div className="flex-1 min-h-0 overflow-hidden relative">
+          {view === 'agent' && agentSubView === null && (
+            <div className="h-full">
+              <AgentPanel key={agentPanelKey} />
+            </div>
+          )}
           {view === 'agent' && (
             <div className={cn('absolute inset-0', agentSubView !== 'home' && 'hidden')}>
               <HomePanel onSendMessage={() => {}} onLoadConversation={() => {}} />

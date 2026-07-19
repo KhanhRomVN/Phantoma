@@ -15,6 +15,7 @@ export class WindowManager {
       minWidth: windowConfig.minWidth,
       minHeight: windowConfig.minHeight,
       show: false,
+      frame: false, // Remove default title bar completely
       autoHideMenuBar: true, // Use custom titlebar
       titleBarStyle: 'hidden', // Hide native titlebar
       trafficLightPosition: { x: 20, y: 20 }, // Adjust traffic light position for macOS
@@ -38,6 +39,14 @@ export class WindowManager {
       if (is.dev) {
         // keep window maximized in dev
       }
+    });
+
+    // Emit maximize/unmaximize events to renderer
+    this.mainWindow.on('maximize', () => {
+      this.mainWindow?.webContents.send('window:maximized');
+    });
+    this.mainWindow.on('unmaximize', () => {
+      this.mainWindow?.webContents.send('window:unmaximized');
     });
 
     this.mainWindow.webContents.setWindowOpenHandler((details) => {

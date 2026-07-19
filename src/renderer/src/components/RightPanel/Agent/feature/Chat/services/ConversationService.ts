@@ -94,15 +94,15 @@ export const saveConversation = async (
   });
 
   try {
-    const storage = (window as any).storage;
-    if (!storage) {
-      console.warn('[ConversationService] storage not available');
+    const moduleId = sessionId && sessionId !== -1 ? sessionId.toString() : 'chat';
+    const convId = conversationId || Date.now().toString();
+    console.log('[ConversationService] saving conversation:', { moduleId, convId, sessionId });
+
+    // Check if IPC is available (window.api exposed by preload)
+    if (!window.api || typeof window.api.invoke !== 'function') {
+      console.warn('[ConversationService] window.api not available');
       return "";
     }
-
-    const convId = conversationId || Date.now().toString();
-    const key = getConversationKey(sessionId, folderPath, convId);
-    console.log('[ConversationService] saving to key:', key, 'convId:', convId);
 
     const activeMessages = messages.filter((m) => !m.isCancelled);
     const totalRequests = activeMessages.filter(
@@ -134,29 +134,30 @@ export const saveConversation = async (
       existingBackendConversationId = cached.backendConversationId;
     }
 
+    const key = `${moduleId}:${convId}`;
+
     try {
-      const existingData = await storage.get(key, false);
-      if (existingData && existingData.value) {
-        const parsed = JSON.parse(existingData.value);
-        existingCreatedAt = parsed.metadata?.createdAt;
-        existingLastModified = parsed.metadata?.lastModified;
-        existingTitle = parsed.metadata?.title;
+      const existingData = await window.api.invoke('conversation:get', { moduleId, conversationId: convId });
+      if (existingData) {
+        existingCreatedAt = existingData.metadata?.createdAt || existingData.createdAt;
+        existingLastModified = existingData.metadata?.lastModified || existingData.lastModified;
+        existingTitle = existingData.metadata?.title;
         if (!existingBackendConversationId) {
-          existingBackendConversationId = parsed.backendConversationId;
+          existingBackendConversationId = existingData.backendConversationId;
         }
         if (
           !existingToolOutputs &&
-          parsed.toolOutputs &&
-          Object.keys(parsed.toolOutputs).length > 0
+          existingData.toolOutputs &&
+          Object.keys(existingData.toolOutputs).length > 0
         ) {
-          existingToolOutputs = parsed.toolOutputs;
+          existingToolOutputs = existingData.toolOutputs;
         }
         if (
           !existingSingleLineReviewActions &&
-          parsed.singleLineReviewActions &&
-          Object.keys(parsed.singleLineReviewActions).length > 0
+          existingData.singleLineReviewActions &&
+          Object.keys(existingData.singleLineReviewActions).length > 0
         ) {
-          existingSingleLineReviewActions = parsed.singleLineReviewActions;
+          existingSingleLineReviewActions = existingData.singleLineReviewActions;
         }
       }
     } catch (error) {
@@ -213,7 +214,7 @@ export const saveConversation = async (
       hasSingleLineReviewActions: !!data.singleLineReviewActions && Object.keys(data.singleLineReviewActions).length > 0,
     });
 
-    await storage.set(key, JSON.stringify(data), false);
+    await window.api.invoke('conversation:save', { moduleId, conversationId: convId, data });
 
     // Sync conversation state to file JSON (for backend restore)
     extensionService.postMessage({
@@ -402,8 +403,8 @@ export const getConversationById = async (
   conversationFileStats?: { totalFiles: number; totalAdditions: number; totalDeletions: number };
 } | null> => {
   try {
-    const storage = (window as any).storage;
-    if (!storage) {
+    // Check if IPC is available
+    if (!window.api || typeof window.api.invoke !== 'function') {
       // Try cache first
       const cached = ConversationCache.get(conversationId);
       if (cached) {
@@ -416,10 +417,9 @@ export const getConversationById = async (
       return null;
     }
 
-    const key = conversationId.startsWith(STORAGE_PREFIX) ? conversationId : `${STORAGE_PREFIX}:${conversationId}`;
-    const result = await storage.get(key, false);
+    const data = await window.api.invoke('conversation:get', { moduleId: 'chat', conversationId });
 
-    if (!result || !result.value) {
+    if (!data) {
       // Try cache
       const cached = ConversationCache.get(conversationId);
       if (cached) {
@@ -432,7 +432,6 @@ export const getConversationById = async (
       return null;
     }
 
-    const data = JSON.parse(result.value);
     return {
       messages: data.messages || [],
       metadata: data.metadata,

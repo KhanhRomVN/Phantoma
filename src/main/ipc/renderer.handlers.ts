@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { exec as execCallback } from 'child_process';
+import { ConversationStorage } from '../services/ConversationStorage';
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
@@ -178,73 +179,68 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
     // ─── History ────────────────────────────────────────────────────
     case 'getHistory': {
       try {
-        const win = getMainWindow();
-        if (!win || win.isDestroyed()) {
-          sendToRenderer('historyResult', {
-            requestId,
-            history: [],
-          });
-          return { success: true };
+        const storage = new ConversationStorage();
+        const conversationsDir = path.join(os.homedir(), '.phantoma', 'conversations');
+
+        let allConversations: any[] = [];
+
+        try {
+          // List all module directories
+          let moduleDirs: string[] = [];
+          try {
+            moduleDirs = await fs.promises.readdir(conversationsDir);
+          } catch {
+            // Directory doesn't exist yet — return empty
+            sendToRenderer('historyResult', { requestId, history: [] });
+            return { success: true };
+          }
+
+          for (const moduleId of moduleDirs) {
+            const modulePath = path.join(conversationsDir, moduleId);
+            try {
+              const stat = await fs.promises.stat(modulePath);
+              if (!stat.isDirectory()) continue;
+            } catch {
+              continue;
+            }
+
+            const convIds = await storage.listConversations(moduleId);
+            for (const convId of convIds) {
+              try {
+                const data = await storage.getConversation(moduleId, convId);
+                if (!data) continue;
+
+                const title =
+                  data.messages?.[0]?.content?.substring(0, 50) || 'New Conversation';
+
+                allConversations.push({
+                  id: convId,
+                  title,
+                  lastModified: data.lastModified || data.createdAt || Date.now(),
+                  createdAt: data.createdAt || Date.now(),
+                  messageCount: data.messages?.length || 0,
+                  totalRequests:
+                    data.messages?.filter((m: any) => m.role === 'user').length || 0,
+                  totalTokenUsage: 0,
+                  sessionId: parseInt(moduleId) || 0,
+                  folderPath: null,
+                  moduleId,
+                });
+              } catch (e) {
+                console.warn('[getHistory] Failed to read conversation:', moduleId, convId, e);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[getHistory] Failed to list conversations:', e);
         }
 
-        // Execute JavaScript in renderer to get conversations from localStorage
-        const result = await win.webContents.executeJavaScript(`
-          (function() {
-            try {
-              // Get all conversation IDs
-              const keys = Object.keys(localStorage);
-              const convKeys = keys.filter(k => k.startsWith('agent-conversation-'));
-              
-              const conversations = [];
-              for (const key of convKeys) {
-                try {
-                  const data = localStorage.getItem(key);
-                  if (!data) continue;
-                  const parsed = JSON.parse(data);
-                  const convId = key.replace('agent-conversation-', '');
-                  
-                  // Extract metadata from messages
-                  const messages = parsed || [];
-                  const title = messages.length > 0 
-                    ? (messages[0]?.content?.substring(0, 50) || 'New Conversation')
-                    : 'New Conversation';
-                  const lastModified = messages.length > 0 
-                    ? (messages[messages.length - 1]?.timestamp || Date.now())
-                    : Date.now();
-                  const createdAt = messages.length > 0 
-                    ? (messages[0]?.timestamp || Date.now())
-                    : Date.now();
-                  
-                  conversations.push({
-                    id: convId,
-                    title: title,
-                    lastModified: lastModified,
-                    createdAt: createdAt,
-                    messageCount: messages.length,
-                    totalRequests: messages.filter(m => m.role === 'user').length,
-                    totalTokenUsage: messages.reduce((sum, m) => sum + (m.token_usage || 0), 0),
-                    sessionId: 0,
-                    folderPath: null,
-                  });
-                } catch (e) {
-                  console.warn('[getHistory] Failed to parse conversation:', key, e);
-                }
-              }
-              
-              // Sort by lastModified descending
-              conversations.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
-              
-              return conversations;
-            } catch (e) {
-              console.warn('[getHistory] Failed to get conversations:', e);
-              return [];
-            }
-          })();
-        `);
+        // Sort by lastModified descending
+        allConversations.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
 
         sendToRenderer('historyResult', {
           requestId,
-          history: result || [],
+          history: allConversations,
         });
       } catch (error) {
         console.error('[getHistory] Error:', error);
@@ -597,12 +593,72 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
 
     // ─── Conversation ───────────────────────────────────────────────
     case 'getConversation': {
-      sendToRenderer('messageResponse', {
-        requestId,
-        command: 'getConversation',
-        conversation: null,
-        error: 'Conversation not found in Electron mode',
-      });
+      const { conversationId } = payload;
+      console.log('[Main] getConversation request:', { conversationId, requestId });
+
+      (async () => {
+        try {
+          const storage = new ConversationStorage();
+          // Search all module directories for the conversation
+          const conversationsDir = path.join(os.homedir(), '.phantoma', 'conversations');
+          let foundData: any = null;
+
+          try {
+            const moduleDirs = await fs.promises.readdir(conversationsDir);
+            for (const moduleId of moduleDirs) {
+              const modulePath = path.join(conversationsDir, moduleId);
+              try {
+                const stat = await fs.promises.stat(modulePath);
+                if (!stat.isDirectory()) continue;
+              } catch {
+                continue;
+              }
+
+              const data = await storage.getConversation(moduleId, conversationId);
+              if (data) {
+                console.log('[Main] getConversation found:', {
+                  moduleId,
+                  conversationId,
+                  messageCount: data.messages?.length || 0,
+                });
+                foundData = {
+                  messages: data.messages || [],
+                  toolOutputs: data.toolOutputs || {},
+                  singleLineReviewActions: data.singleLineReviewActions || {},
+                  conversationFileStats: data.conversationFileStats || {
+                    totalFiles: 0,
+                    totalAdditions: 0,
+                    totalDeletions: 0,
+                  },
+                  conversationId: data.conversationId || conversationId,
+                  backendConversationId: data.backendConversationId,
+                  createdAt: data.createdAt,
+                  lastModified: data.lastModified,
+                };
+                break;
+              }
+            }
+          } catch (e) {
+            console.warn('[Main] getConversation failed to list directories:', e);
+          }
+
+          sendToRenderer('messageResponse', {
+            requestId,
+            command: 'getConversation',
+            data: foundData,
+            error: foundData ? undefined : 'Conversation not found',
+          });
+        } catch (error) {
+          console.error('[Main] getConversation error:', error);
+          sendToRenderer('messageResponse', {
+            requestId,
+            command: 'getConversation',
+            data: null,
+            error: 'Failed to read conversation',
+          });
+        }
+      })();
+
       return { success: true };
     }
 

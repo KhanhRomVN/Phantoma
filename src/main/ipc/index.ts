@@ -7,3 +7,4 @@ export * from './tls.handlers';
 export * from './renderer.handlers';
 export { setupMobileHandlers } from './mobile.handlers';
 export { setupConversationHandlers } from './conversation.handlers';
+export { setupWindowHandlers } from './window.handlers';

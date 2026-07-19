@@ -45,14 +45,16 @@ export function AgentPanel() {
 
   // Kiểm tra xem có nên hiển thị overlay không
   const shouldShowOverlay = () => {
-    if (activeFeature !== 'emulate') {
-      return true; // Feature khác Emulate -> hiển thị overlay mặc định
-    }
-    // Feature là Emulate: kiểm tra target
-    if (!activeTargetId || !isTargetActive) {
-      return true; // Chưa chọn target hoặc session chưa chạy
-    }
+    // TEMPORARILY DISABLED FOR TESTING - comment out to re-enable
     return false;
+    // if (activeFeature !== 'emulate') {
+    //   return true; // Feature khác Emulate -> hiển thị overlay mặc định
+    // }
+    // // Feature là Emulate: kiểm tra target
+    // if (!activeTargetId || !isTargetActive) {
+    //   return true; // Chưa chọn target hoặc session chưa chạy
+    // }
+    // return false;
   };
 
   // Lưu state hiện tại vào Map khi target thay đổi

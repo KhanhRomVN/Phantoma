@@ -4,6 +4,7 @@ export type PhantomModule =
   | 'sniffer' | 'cracking' | 'phishing' | 'cloud' | 'report'
   | 'collab' | 'settings' | 'dashboard' | 'target' | 'osint'
   | 'c2' | 'emulate' | 'tools' | 'tool' | 'wireless'
+  | 'code' | 'test'
 
 export type BadgeColor = 'green' | 'red' | 'amber' | 'cyan' | 'purple' | 'gray'
 export type PortStatus = 'open' | 'filtered' | 'vuln'

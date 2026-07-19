@@ -690,8 +690,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     return result;
   }, [currentModel, currentProviderConfig, currentModelConfig]);
 
-  
-
   const fetchProviders = React.useCallback(async () => {
     try {
       const response = await fetch(`${apiUrl}/v1/providers`);
@@ -1124,9 +1122,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           isConnected &&
           !isElaraMismatch &&
           LANGUAGES.some((l: { code: string }) => l.code === preferredLanguage) && (
-            <div
-              className="absolute top-2 right-2 z-5 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold opacity-80 pointer-events-none bg-card-background text-text-primary"
-            >
+            <div className="absolute top-2 right-2 z-5 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold opacity-80 pointer-events-none bg-card-background text-text-primary">
               <span>
                 {LANGUAGES.find((l: any) => l.code === preferredLanguage)?.flag || '🇺🇸'}{' '}
                 {preferredLanguage.toUpperCase()}

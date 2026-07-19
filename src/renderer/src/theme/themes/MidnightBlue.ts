@@ -194,7 +194,7 @@ export const MidnightBlue: ThemeConfig = {
     //
     tooltipBackground: 'rgb(20, 25, 35)',
     //
-    sidebarBackground: 'rgb(8, 10, 14)',
+    sidebarBackground: 'rgb(15, 19, 25)',
     sidebarItemHover: 'rgb(13, 16, 23)',
     //
     tableHeaderBackground: 'rgb(12, 16, 22)',

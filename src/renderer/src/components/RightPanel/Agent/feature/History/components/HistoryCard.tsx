@@ -23,15 +23,16 @@ const HistoryCard: React.FC<HistoryCardProps> = ({ item, onClick, onDelete }) =>
 
   const handleCopyContent = () => {
     const requestId = `copy-${Date.now()}`;
+    console.log('[HistoryCard] requesting conversation for copy:', { conversationId: item.id, requestId });
     extensionService.postMessage({
       command: 'getConversation',
       conversationId: item.id,
       requestId,
     });
-    const handler = (event: MessageEvent) => {
-      const data = event.data;
-      if (data.command === 'conversationResult' && data.requestId === requestId) {
-        window.removeEventListener('message', handler);
+    const handler = (data: any) => {
+      console.log('[HistoryCard] messageResponse for copy:', { command: data.command, requestId: data.requestId });
+      if (data.command === 'getConversation' && data.requestId === requestId) {
+        unsubscribe();
         if (data.data?.messages) {
           const text = data.data.messages
             .map((msg: any) => {
@@ -45,8 +46,8 @@ const HistoryCard: React.FC<HistoryCardProps> = ({ item, onClick, onDelete }) =>
         }
       }
     };
-    window.addEventListener('message', handler);
-    setTimeout(() => window.removeEventListener('message', handler), 5000);
+    const unsubscribe = extensionService.onMessage('messageResponse', handler);
+    setTimeout(() => unsubscribe(), 5000);
   };
 
   const handleOpenFolder = () => {

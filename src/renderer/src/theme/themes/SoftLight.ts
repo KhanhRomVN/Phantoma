@@ -194,7 +194,7 @@ export const SoftLight: ThemeConfig = {
     //
     tooltipBackground: 'rgb(237, 232, 227)',
     //
-    sidebarBackground: 'rgb(235, 228, 220)',
+    sidebarBackground: 'rgb(245, 240, 235)',
     sidebarItemHover: 'rgb(245, 240, 235)',
     //
     tableHeaderBackground: 'rgb(240, 234, 228)',

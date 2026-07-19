@@ -36,6 +36,7 @@ import {
   setupRendererHandlers,
   setupMobileHandlers,
   setupConversationHandlers,
+  setupWindowHandlers,
 } from './ipc';
 
 // Import app launcher
@@ -96,6 +97,7 @@ app.whenReady().then(async () => {
   setupRendererHandlers();
   setupMobileHandlers();
   setupConversationHandlers();
+  setupWindowHandlers();
 
   // Auto-install certificate when proxy session is created
   const originalCreateSession = proxyManager.createSession.bind(proxyManager);

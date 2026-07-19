@@ -107,6 +107,7 @@ export const useConversationRestore = ({
           return;
         }
 
+        // No cache — request from main process via Electron IPC
         const requestId = `conv-${Date.now()}`;
         extensionService.postMessage({
           command: 'getConversation',
@@ -122,11 +123,17 @@ export const useConversationRestore = ({
     load();
   }, [currentChat?.sessionId, (currentChat as any)?.conversationId]);
 
-  // Handle incoming messages
+  // Handle incoming messages from main process via Electron IPC (messageResponse channel)
   useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      const data = event.data;
-      if (data.command === 'conversationResult') {
+    const handler = (data: any) => {
+      if (data.command === 'getConversation') {
+        if (data.error) {
+          console.warn('[Restore] getConversation error:', data.error);
+          setIsLoadingConversation(false);
+          setIsProcessing(false);
+          return;
+        }
+
         if (data.data?.messages) {
           const restoredMessages = data.data.messages.map((msg: Message, i: number) => ({
             ...msg,
@@ -216,11 +223,14 @@ export const useConversationRestore = ({
               setLoadedConversationFileStats(data.data.conversationFileStats);
             }
           }
+        } else {
+          console.warn('[Restore] getConversation returned no data (conversation may not exist)');
         }
         setIsLoadingConversation(false);
         setIsProcessing(false);
       } else if (data.command === 'commitError') {
         const errorMsg = data.error || 'Unknown git error';
+        console.warn('[Restore] commitError:', errorMsg);
         const errorMessage: Message = {
           id: `msg-error-${Date.now()}`,
           role: 'assistant',
@@ -294,8 +304,12 @@ export const useConversationRestore = ({
         }
       }
     };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+
+    const unsubscribe = extensionService.onMessage('messageResponse', handler);
+
+    return () => {
+      unsubscribe();
+    };
   }, [currentConversationId]);
 
   const handleClearConfirmed = async () => {

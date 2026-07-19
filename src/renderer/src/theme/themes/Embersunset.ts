@@ -195,7 +195,7 @@ export const EmberSunset: ThemeConfig = {
     //
     tooltipBackground: 'rgb(247, 238, 226)',
     //
-    sidebarBackground: 'rgb(248, 238, 224)',
+    sidebarBackground: 'rgb(255, 248, 240)',
     sidebarItemHover: 'rgb(255, 248, 240)',
     //
     tableHeaderBackground: 'rgb(250, 241, 230)',

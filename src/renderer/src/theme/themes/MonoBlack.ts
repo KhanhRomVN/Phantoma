@@ -194,7 +194,7 @@ export const MonoBlack: ThemeConfig = {
     //
     tooltipBackground: 'rgb(25, 25, 25)',
     //
-    sidebarBackground: 'rgb(5, 5, 5)',
+    sidebarBackground: 'rgb(0, 0, 0)',
     sidebarItemHover: 'rgb(20, 20, 20)',
     //
     tableHeaderBackground: 'rgb(15, 15, 15)',

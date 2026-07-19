@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Message } from '../../types/message';
 import { ToolAction, parseAIResponse } from '../../services/ResponseParser';
 import {
@@ -55,6 +55,9 @@ export const useChatLLM = ({ apiUrl, selectedTab, onConversationIdChange }: UseC
 
   // Track render performance
   renderCountRef.current++;
+
+  // Stream buffer for batching content updates (reduce re-renders during streaming)
+  const streamBufferRef = useRef<{ content: string; rafId: number | null }>({ content: '', rafId: null });
 
   // Get context values
   const { aiLanguage, permissionMode } = useSettings();
@@ -426,21 +429,30 @@ export const useChatLLM = ({ apiUrl, selectedTab, onConversationIdChange }: UseC
                 });
               },
               onContent: (content) => {
-                // Update UI with batched content - use the message ID we created
-                setMessages((prev) => {
-                  const targetIndex = prev.findIndex((m) => m.id === assistantMessageId);
-                  if (targetIndex === -1) return prev;
+                // Batch content updates using requestAnimationFrame to reduce re-renders
+                streamBufferRef.current.content += content;
+                if (streamBufferRef.current.rafId === null) {
+                  streamBufferRef.current.rafId = requestAnimationFrame(() => {
+                    const bufferedContent = streamBufferRef.current.content;
+                    streamBufferRef.current.content = '';
+                    streamBufferRef.current.rafId = null;
 
-                  const currentMessage = prev[targetIndex];
-                  const updatedMessage = {
-                    ...currentMessage,
-                    content: currentMessage.content + content,
-                  };
+                    setMessages((prev) => {
+                      const targetIndex = prev.findIndex((m) => m.id === assistantMessageId);
+                      if (targetIndex === -1) return prev;
 
-                  const newArray = prev.slice();
-                  newArray[targetIndex] = updatedMessage;
-                  return newArray;
-                });
+                      const currentMessage = prev[targetIndex];
+                      const updatedMessage = {
+                        ...currentMessage,
+                        content: currentMessage.content + bufferedContent,
+                      };
+
+                      const newArray = prev.slice();
+                      newArray[targetIndex] = updatedMessage;
+                      return newArray;
+                    });
+                  });
+                }
               },
             },
           );

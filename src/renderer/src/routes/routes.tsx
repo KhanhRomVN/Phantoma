@@ -8,7 +8,7 @@ import { Wireless } from '../features/Wireless';
 import Setting from '../features/Setting';
 import { Recon } from '../features/Intel';
 import TestPage from '../features/Test';
-
+import Code from '../features/Code/Code';
 export const routes: RouteObject[] = [
   {
     path: '/',
@@ -41,6 +41,10 @@ export const routes: RouteObject[] = [
       {
         path: 'emulate',
         element: <Emulate />,
+      },
+      {
+        path: 'code',
+        element: <Code />,
       },
       {
         path: 'wireless',

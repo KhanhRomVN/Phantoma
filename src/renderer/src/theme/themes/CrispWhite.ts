@@ -194,7 +194,7 @@ export const CrispWhite: ThemeConfig = {
     //
     tooltipBackground: 'rgb(240, 242, 244)',
     //
-    sidebarBackground: 'rgb(245, 246, 248)',
+    sidebarBackground: 'rgb(255, 255, 255)',
     sidebarItemHover: 'rgb(255, 255, 255)',
     //
     tableHeaderBackground: 'rgb(248, 249, 250)',
