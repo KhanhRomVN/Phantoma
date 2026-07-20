@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { ToolAction } from '..';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 import { getFileIconPath } from '@renderer/utils/fileIconMapper';
 import { $ } from '@renderer/utils/color';
+import ErrorBlock from './ErrorBlock';
 
 interface GrepBlockProps {
-  action: ToolAction;
+  action: any;
   actionId: string;
   toolOutputs?: Record<string, { output: string; isError: boolean }>;
   isPartial: boolean;
@@ -86,12 +86,6 @@ function parseCompactGrepOutput(output: string): GrepResultData | null {
   }
 }
 
-const getDisplayPath = (fullPath: string): string => {
-  if (!fullPath) return '';
-  const parts = fullPath.split('/');
-  return parts.length > 4 ? '.../' + parts.slice(-3).join('/') : fullPath;
-};
-
 // Track which actionIds have been logged to avoid spam
 const _loggedOutputs = new Set<string>();
 
@@ -138,9 +132,9 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
   const searchTerm = action.params.search_term || action.params.searchTerm || '';
-  const folderPath = action.params.folder_path || action.params.folderPath || '';
-  const filePath = action.params.file_path || action.params.filePath || '';
-  const targetPath = folderPath || filePath || '';
+
+  // Check for validation error from parser
+  const validationError = action.params._validationError;
 
   const parseGrepResult = (): GrepResultData | null => {
     const output = toolOutputs?.[actionId]?.output;
@@ -148,6 +142,15 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
 
     if (!_loggedOutputs.has(actionId)) {
       _loggedOutputs.add(actionId);
+    }
+
+    // Check for error messages first (before attempting JSON parse)
+    if (
+      output.startsWith('Error - ') ||
+      output.startsWith('Error:') ||
+      output.includes('not found')
+    ) {
+      return null;
     }
 
     if (output.includes('<grep_results')) {
@@ -190,6 +193,17 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
     }, 200);
   };
 
+  // Validation error state: show error message immediately
+  if (validationError && !toolOutputs?.[actionId]) {
+    return (
+      <ErrorBlock
+        content={`Invalid Search Pattern: ${validationError}\nPattern: ${searchTerm}`}
+        compact={true}
+        maxHeight="300px"
+      />
+    );
+  }
+
   // Loading state: show spinner placeholder
   if (isPartial && !isCompleted) {
     return (
@@ -202,14 +216,17 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
 
   // Error state: show error message
   if (isError && errorMessage) {
-    return (
-      <div className="flex items-start gap-1.5 px-2 py-[5px] bg-error/4 border border-error/20 rounded-[4px]">
-        <span className="codicon codicon-error text-[11px] text-error opacity-70 mt-px shrink-0" />
-        <span className="text-[11px] text-error opacity-85 font-mono break-words">
-          {errorMessage}
-        </span>
-      </div>
-    );
+    return <ErrorBlock content={errorMessage} compact={true} maxHeight="300px" />;
+  }
+
+  // Check if output is an error message (not grep results)
+  const output = toolOutputs?.[actionId]?.output;
+  const isOutputError =
+    output &&
+    (output.startsWith('Error - ') || output.startsWith('Error:') || output.includes('not found'));
+
+  if (isOutputError && !grepResult) {
+    return <ErrorBlock content={output || 'Search failed'} compact={true} maxHeight="300px" />;
   }
 
   if (!grepResult || !isCompleted) return null;
@@ -266,7 +283,9 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
                     const fallback = document.createElement('span');
                     fallback.className = 'codicon codicon-file';
                     fallback.style.cssText =
-                      'font-size: 12px; color: ' + $('--secondary-text') + '; opacity: 0.7; flex-shrink: 0;';
+                      'font-size: 12px; color: ' +
+                      $('--secondary-text') +
+                      '; opacity: 0.7; flex-shrink: 0;';
                     parent.insertBefore(fallback, e.currentTarget);
                   }
                 }}
@@ -289,7 +308,8 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
                     }}
                     className="flex items-start gap-2 px-1 py-0.5 rounded-[3px] cursor-pointer font-mono text-[11px] leading-[1.4] transition-colors duration-[0.1s]"
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = $('--sidebar-item-hover') || 'rgba(255,255,255,0.05)';
+                      e.currentTarget.style.backgroundColor =
+                        $('--sidebar-item-hover') || 'rgba(255,255,255,0.05)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';

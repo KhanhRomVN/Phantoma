@@ -39,7 +39,7 @@ export class ChatErrorBoundary extends React.Component<
         return <>{this.props.fallback}</>;
       }
 
-      const errorColor = 'var(--vscode-errorForeground, #f44336)';
+      const errorColor = '#f44336';
 
       return (
         <div className="p-3 flex flex-col gap-2">

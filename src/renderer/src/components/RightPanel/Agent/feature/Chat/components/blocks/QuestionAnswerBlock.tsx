@@ -26,9 +26,8 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   initialAnswers = {},
   disabled = false,
   title,
-  selectedOption: selectedOptionProp,
+selectedOption: selectedOptionProp,
   onOptionSelect: onOptionSelectProp,
-  optional,
 }) => {
   // Determine if this is paginated mode (has questions array) or legacy mode (has options)
   const isPaginated = questionsProp && questionsProp.length > 0;
@@ -50,7 +49,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   const isSummaryModeRef = useRef(false);
   // Ref to track if we've restored from initialAnswers (prevent re-initialization)
   const hasRestoredRef = useRef(false);
-  const logPrefix = useRef(`[Zen][QuestionAnswerBlock]`);
 
   // Wrapper to keep state and ref in sync
   const setIsSummaryMode = (value: boolean) => {
@@ -677,7 +675,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   };
   const renderQuestionContent = () => {
     if (!currentQuestion) return null;
-    const isReadOnly = isAllAnswered || disabled;
     switch (currentQuestion.type) {
       case 'single':
         return renderSingle(currentQuestion);

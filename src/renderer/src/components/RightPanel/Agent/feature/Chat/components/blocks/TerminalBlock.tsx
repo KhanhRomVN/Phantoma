@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
-import { useProject } from '../../../../context/ProjectContext';
 import { $ } from '@renderer/utils/color';
 
 interface TerminalBlockProps {
@@ -11,7 +10,6 @@ interface TerminalBlockProps {
   maxHeight?: number;
   rows?: number;
   initialCommand?: string;
-  cwd?: string;
   onInput?: (data: string) => void;
   rejectedOutline?: boolean;
 }
@@ -177,13 +175,11 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
   status,
   maxHeight = 400,
   initialCommand,
-  cwd,
   rows = 22,
   onInput,
   rejectedOutline,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
-  const { homedir } = useProject();
 
   const formatCommand = (cmd: string) => {
     if (!cmd) return '';
@@ -256,6 +252,9 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
         lastWrittenLogsRef.current = '';
       };
     }
+
+    // Return a cleanup function for the case where xtermRef.current already exists
+    return () => {};
   }, [isXtermVisible]);
 
   const lastWrittenLogsRef = useRef('');

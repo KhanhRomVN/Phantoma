@@ -1,5 +1,4 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
 
 interface WarningBlockProps {
   /** Main title/label for the warning (e.g., "CONTINUING RESPONSE") */
@@ -19,7 +18,7 @@ interface WarningBlockProps {
 export const WarningBlock: React.FC<WarningBlockProps> = ({
   label,
   message,
-  warningColor = $('--vscode-editorWarning-foreground') || '#cca700',
+  warningColor = '#cca700',
   isPulsing = true,
 }) => {
   return (

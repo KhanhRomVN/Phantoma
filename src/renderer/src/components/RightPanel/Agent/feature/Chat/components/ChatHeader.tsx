@@ -1,5 +1,4 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
 
 interface ChatHeaderProps {
   displayedModel: any;
@@ -48,11 +47,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <div
-      className="flex flex-col"
-      style={{
-        borderBottom: '1px solid ' + $('--border-color'),
-        backgroundColor: $('--primary-bg'),
-      }}
+      className="flex flex-col border-b border-border bg-background"
     >
       <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold overflow-hidden text-text-primary">
@@ -73,7 +68,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               <span className="opacity-30">|</span>
               <div
                 className="flex items-center gap-1 text-[11px] font-medium overflow-hidden"
-                style={{ color: $('--vscode-textLink-foreground') }}
+                style={{ color: '#3794ff' }}
               >
                 <div
                   className="w-[5px] h-[5px] rounded-full shrink-0"
@@ -100,14 +95,14 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             className="cursor-pointer p-[3px_4px] flex items-center justify-center rounded transition-all duration-150"
             style={{
               background: isSearchOpen
-                ? 'color-mix(in srgb, ' + $('--vscode-button-background') + ' 15%, transparent)'
+                ? 'color-mix(in srgb, #0e639c 15%, transparent)'
                 : 'transparent',
               border: isSearchOpen
-                ? '1px solid color-mix(in srgb, ' + $('--vscode-button-background') + ' 40%, transparent)'
+                ? '1px solid color-mix(in srgb, #0e639c 40%, transparent)'
                 : '1px solid transparent',
               color: isSearchOpen
-                ? $('--vscode-button-background') || $('--vscode-textLink-foreground')
-                : $('--vscode-icon-foreground') || $('--secondary-text'),
+                ? '#0e639c'
+                : '#cccccc',
               opacity: isSearchOpen ? 1 : 0.65,
             }}
             onMouseEnter={(e) => {

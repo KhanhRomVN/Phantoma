@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileIcon } from 'lucide-react';
-import { ToolHeader } from './ToolHeader';
+import { ToolHeader } from '../tools/ToolHeader';
 import { $ } from '@renderer/utils/color';
 
 export interface GitDiffBlockProps {

@@ -12,6 +12,10 @@ export interface ErrorBlockProps {
   showHeader?: boolean;
   /** Padding left for content when header is hidden */
   contentPaddingLeft?: string;
+  /** Use compact inline style (like GrepBlock error) instead of full header style */
+  compact?: boolean;
+  /** Maximum height for error content */
+  maxHeight?: string;
 }
 
 // Parse error message to extract meaningful information
@@ -64,10 +68,11 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
   content,
   errorCode,
   isPartial = false,
-  isLast = false,
-  isLastMessage = false,
+  // isLast and isLastMessage are unused but kept for compatibility
   showHeader = true,
   contentPaddingLeft = '36px',
+  compact = false,
+  maxHeight,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const errorColor = $('--error') || '#f44336';
@@ -82,6 +87,24 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
 
   // Parse and simplify error message
   displayMessage = parseErrorMessage(displayMessage);
+
+  // Compact inline style (like GrepBlock error)
+  if (compact) {
+    return (
+      <div
+        className="flex items-start gap-1.5 px-2 py-[5px] bg-error/4 border border-error/20 rounded-[4px]"
+        style={{
+          maxHeight: maxHeight || undefined,
+          overflowY: maxHeight ? 'auto' : 'visible',
+        }}
+      >
+        <span className="codicon codicon-error text-[11px] text-error opacity-70 mt-px shrink-0" />
+        <span className="text-[11px] text-error opacity-85 font-mono break-words">
+          {displayMessage}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex flex-col gap-1.5 pb-0">
@@ -120,6 +143,8 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
               display: 'flex',
               alignItems: 'center',
               minHeight: '32px',
+              maxHeight: maxHeight || undefined,
+              overflowY: maxHeight ? 'auto' : 'visible',
             }}
           >
             <div className="whitespace-pre-wrap break-words text-error">{displayMessage}</div>

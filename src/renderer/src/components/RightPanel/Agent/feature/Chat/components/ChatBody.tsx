@@ -3,18 +3,18 @@ import { cn } from '@renderer/shared/lib/utils';
 import { useSettings } from '../../../context/SettingsContext';
 import { Message } from '../types/message';
 import ProcessingIndicator from './messages/ProcessingIndicator';
-import { ThinkingRenderer } from './blocks/thinking/ThinkingBlock';
+import { ThinkingRenderer } from './blocks/ThinkingBlock';
 import MessageBox from './messages/MessageBox';
 import SearchBar from './SearchBar';
 import { ChatErrorBoundary } from './ChatErrorBoundary';
 import { getPermissionDecision } from '../utils/permissionUtils';
 import ChatBodySkeleton from './ChatBodySkeleton';
-import { WarningBlock } from './blocks/warning/WarningBlock';
+import { WarningBlock } from './blocks/WarningBlock';
 import { parseAIResponse, ParsedResponse, ToolAction } from '../services/ResponseParser';
 import { useCollapseSections } from '../hooks/ui/useCollapseSections';
 import { useToolActions } from '../hooks/tools/useToolActions';
 import { useScrollBehavior } from '../hooks/ui/useScrollBehavior';
-import { $ } from '@renderer/utils/color';
+
 
 interface ChatBodyProps {
   messages: Message[];
@@ -305,17 +305,10 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                 onClick={scrollToBottom}
                 className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full cursor-pointer"
                 style={{
-                  border:
-                    '1px solid color-mix(in srgb, ' +
-                    $('--vscode-button-background') +
-                    ' 40%, transparent)',
+                  border: '1px solid color-mix(in srgb, #0e639c 40%, transparent)',
                   background:
-                    'color-mix(in srgb, ' +
-                    $('--vscode-editor-background') +
-                    ' 85%, ' +
-                    $('--vscode-button-background') +
-                    ')',
-                  color: $('--vscode-button-background'),
+                    'color-mix(in srgb, #1e1e1e 85%, #0e639c)',
+                  color: '#0e639c',
                   fontSize: '11px',
                   fontWeight: 600,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
@@ -452,12 +445,10 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                 className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-md cursor-pointer uppercase tracking-wide"
                 style={{
                   backgroundColor:
-                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 15%, transparent)',
-                  color: $('--vscode-button-background'),
+                    'color-mix(in srgb, #0e639c 15%, transparent)',
+                  color: '#0e639c',
                   border:
-                    '1px solid color-mix(in srgb, ' +
-                    $('--vscode-button-background') +
-                    ' 30%, transparent)',
+                    '1px solid color-mix(in srgb, #0e639c 30%, transparent)',
                   fontSize: '11px',
                   fontWeight: 600,
                   height: '28px',
@@ -466,15 +457,15 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor =
-                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 25%, transparent)';
+                    'color-mix(in srgb, #0e639c 25%, transparent)';
                   e.currentTarget.style.borderColor =
-                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 50%, transparent)';
+                    'color-mix(in srgb, #0e639c 50%, transparent)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor =
-                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 15%, transparent)';
+                    'color-mix(in srgb, #0e639c 15%, transparent)';
                   e.currentTarget.style.borderColor =
-                    'color-mix(in srgb, ' + $('--vscode-button-background') + ' 30%, transparent)';
+                    'color-mix(in srgb, #0e639c 30%, transparent)';
                 }}
               >
                 <span className="codicon codicon-play text-xs inline-flex items-center justify-center" />

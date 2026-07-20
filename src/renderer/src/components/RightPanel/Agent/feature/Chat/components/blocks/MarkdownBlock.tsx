@@ -4,6 +4,12 @@ import DOMPurify from 'dompurify';
 import { extensionService } from '../../../../services/ExtensionService';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { $ } from '@renderer/utils/color';
+import CodeBlock from '@renderer/components/common/CodeBlock';import React from 'react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+import { extensionService } from '../../../../services/ExtensionService';
+import FileIcon from '@renderer/components/common/FileIcon';
+import { $ } from '@renderer/utils/color';
 
 const ABSOLUTE_PATH_REGEX = /^(\/[^\s<>"'`]+|[A-Za-z]:\\[^\s<>"'`]+)/;
 const RELATIVE_PATH_WITH_FOLDERS_REGEX = /^[^\s<>"'`|*?:]+[/\\][^\s<>"'`|*?:]+\.[a-zA-Z0-9]{1,10}$/;
