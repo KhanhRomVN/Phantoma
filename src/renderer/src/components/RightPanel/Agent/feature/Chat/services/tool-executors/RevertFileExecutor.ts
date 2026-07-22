@@ -1,11 +1,9 @@
 import {
   extensionService,
   messageDispatcher,
-} from "@/services/ExtensionService";
-import { TOOL_TIMEOUTS } from "../../constants/constants";
-import { RevertFileParams } from "../../types/tool-types";
-
-const REVERT_FILE_TIMEOUT_MS = TOOL_TIMEOUTS.revert_file || 10000;
+} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+import { getToolTimeout } from '../../constants/constants';
+import { RevertFileParams } from '../../types/tool-types';
 
 /**
  * Execute revert_file tool
@@ -19,10 +17,10 @@ export async function executeRevertFile(
 ): Promise<string | null> {
   return new Promise((resolve) => {
     const requestId = `revert-${Date.now()}-${Math.random()}`;
-    const filePath = params.path || params.file_path || "";
+    const filePath = params.path || params.file_path || '';
 
     extensionService.postMessage({
-      command: "revertFile",
+      command: 'revertFile',
       path: filePath,
       requestId,
       bypassIgnore,
@@ -39,16 +37,14 @@ export async function executeRevertFile(
             filePath,
             error: msg.error,
           });
-          resolve(
-            `[revert_file for '${filePath}'] Result: Error - ${msg.error}`,
-          );
+          resolve(`[revert_file for '${filePath}'] Result: Error - ${msg.error}`);
         } else {
           resolve(
             `[revert_file for '${filePath}'] Result: File reverted successfully (undo applied)`,
           );
         }
       },
-      REVERT_FILE_TIMEOUT_MS,
+      getToolTimeout('revert_file'),
       () => {
         console.warn(`[revert_file] Timeout`, { requestId, filePath });
         resolve(null);

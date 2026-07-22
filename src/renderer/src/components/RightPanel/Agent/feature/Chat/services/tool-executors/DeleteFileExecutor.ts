@@ -1,19 +1,21 @@
-import { extensionService, messageDispatcher } from "@/services/ExtensionService";
-import { DeleteFileParams } from "../../types/tool-types";
-
-const TOOL_TIMEOUT_STANDARD = 10_000;
+import {
+  extensionService,
+  messageDispatcher,
+} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+import { getToolTimeout } from '../../constants/constants';
+import { DeleteFileParams } from '../../types/tool-types';
 
 export const executeDeleteFile = (params: DeleteFileParams): Promise<string | null> => {
   return new Promise((resolve) => {
     const requestId = `delete-file-${Date.now()}-${Math.random()}`;
     const filePath = params.file_path;
-    
+
     extensionService.postMessage({
-      command: "deleteFile",
+      command: 'deleteFile',
       file_path: filePath,
       requestId,
     });
-    
+
     messageDispatcher.register(
       requestId,
       (msg) => {
@@ -23,7 +25,7 @@ export const executeDeleteFile = (params: DeleteFileParams): Promise<string | nu
         }
         resolve(`[delete_file for '${filePath}'] Result: File deleted successfully`);
       },
-      TOOL_TIMEOUT_STANDARD,
+      getToolTimeout('delete_file'),
       () => resolve(null),
     );
   });

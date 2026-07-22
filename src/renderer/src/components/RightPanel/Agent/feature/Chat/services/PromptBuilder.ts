@@ -1,16 +1,11 @@
-import { extensionService } from '../../../services/ExtensionService';
 import {
-  buildPermissionModeTag as buildCodePermissionModeTag,
-  CHECKPOINT_INTERVAL,
+  getDefaultPrompt,
+  combinePrompts,
+  buildPermissionModeTag,
   CHECKPOINT_REMINDER,
-  combinePrompts as combineCodePrompts,
-  getDefaultPrompt as getCodeDefaultPrompt,
+  CHECKPOINT_INTERVAL,
 } from '../prompts/code';
-import {
-  combinePrompts as combineEmulatePrompts,
-  getDefaultPrompt as getEmulateDefaultPrompt,
-} from '../prompts/emulate';
-import { getShallowTree } from '../utils/messageParser';
+import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 export interface PromptBuilderOptions {
   content: string;
@@ -22,8 +17,39 @@ export interface PromptBuilderOptions {
   workspace: string;
   files?: any[];
   userRequestCount: number;
-  feature?: string | null;
 }
+
+export const getShallowTree = (tree: string): string => {
+  const lines = tree.split('\n');
+  const result: string[] = [];
+  let currentFolder: string | null = null;
+  let fileCount = 0;
+
+  const flush = () => {
+    if (currentFolder !== null) {
+      result.push(`${currentFolder} (${fileCount} files)`);
+      currentFolder = null;
+      fileCount = 0;
+    }
+  };
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const isTopLevel = !/^ /.test(line);
+    if (isTopLevel) {
+      flush();
+      if (line.trimEnd().endsWith('/')) {
+        currentFolder = line.trimEnd();
+      } else {
+        result.push(line);
+      }
+    } else if (currentFolder !== null) {
+      if (!line.trimEnd().endsWith('/')) fileCount++;
+    }
+  }
+  flush();
+  return result.join('\n');
+};
 
 export class PromptBuilder {
   static async buildPrompt(options: PromptBuilderOptions): Promise<string> {
@@ -37,7 +63,6 @@ export class PromptBuilder {
       workspace,
       files,
       userRequestCount,
-      feature,
     } = options;
 
     let systemPrompt = '';
@@ -46,7 +71,7 @@ export class PromptBuilder {
 
     // Build system prompt for first request
     if (isReq1) {
-      systemPrompt = await this.buildSystemPrompt(aiLanguage, permissionMode, treeView, workspace, feature);
+      systemPrompt = await this.buildSystemPrompt(aiLanguage, permissionMode, treeView, workspace);
       projectContextStr = this.buildProjectContext(treeView, workspace);
     }
 
@@ -61,7 +86,7 @@ export class PromptBuilder {
       : `## User Message\n<zen-user-content>\n${content}\n</zen-user-content>`;
 
     // Permission mode tag
-    const permissionModeTag = buildCodePermissionModeTag(permissionMode);
+    const permissionModeTag = buildPermissionModeTag(permissionMode);
 
     // Checkpoint reminder
     let checkpointReminder = '';
@@ -80,9 +105,8 @@ export class PromptBuilder {
   private static async buildSystemPrompt(
     aiLanguage: string,
     permissionMode: string,
-    _treeView: string,
-    _workspace: string,
-    feature?: string | null,
+    treeView: string,
+    workspace: string,
   ): Promise<string> {
     let systemInfo = {
       os: 'Unknown OS',
@@ -106,16 +130,12 @@ export class PromptBuilder {
       console.warn('[PromptBuilder] Failed to fetch system info:', e);
     }
 
-    const isEmulate = feature === 'emulate';
-    const getDefaultPromptFn = isEmulate ? getEmulateDefaultPrompt : getCodeDefaultPrompt;
-    const combinePromptsFn = isEmulate ? combineEmulatePrompts : combineCodePrompts;
-
     const effectiveLang = aiLanguage;
-    let systemPrompt = getDefaultPromptFn(effectiveLang);
+    let systemPrompt = getDefaultPrompt(effectiveLang);
 
     // Use real system info if we managed to fetch it
     if (systemInfo.os !== 'Unknown OS') {
-      systemPrompt = combinePromptsFn({
+      systemPrompt = combinePrompts({
         language: effectiveLang,
         systemInfo,
         permissionMode,
@@ -141,7 +161,11 @@ export class PromptBuilder {
   private static async buildAttachedContext(files: any[]): Promise<string> {
     const attachedItems = files.filter(
       (f: any) =>
-        f.id?.startsWith('attached-') || f.id?.startsWith('rule-') || f.id?.startsWith('terminal-'),
+        f.id?.startsWith('attached-') ||
+        f.id?.startsWith('rule-') ||
+        f.id?.startsWith('terminal-') ||
+        f.id?.startsWith('snippet-') || // 🚀 NEW: Support text snippets
+        f.id?.startsWith('external-'), // 🚀 NEW: Support external files
     );
 
     if (attachedItems.length === 0) return '';
@@ -151,6 +175,8 @@ export class PromptBuilder {
     const fileItems = attachedItems.filter((f: any) => f.type === 'file');
     const folderItems = attachedItems.filter((f: any) => f.type === 'folder');
     const terminalItems = attachedItems.filter((f: any) => f.type === 'terminal');
+    const snippetItems = attachedItems.filter((f: any) => f.type === 'text-snippet'); // 🚀 NEW
+    const externalItems = attachedItems.filter((f: any) => f.type === 'external'); // 🚀 NEW
 
     if (fileItems.length > 0) {
       attachedContextStr += '\n### Files\n';
@@ -188,6 +214,22 @@ export class PromptBuilder {
       attachedContextStr += '\n### Terminals\n';
       terminalItems.forEach((f: any) => {
         attachedContextStr += `- terminal_id: ${f.path}\n`;
+      });
+    }
+
+    // 🚀 NEW: Handle text snippets
+    if (snippetItems.length > 0) {
+      attachedContextStr += '\n### Text Snippets\n';
+      snippetItems.forEach((f: any, index: number) => {
+        attachedContextStr += `#### Snippet[${index + 1}] (${f.lineCount || 0} lines)\n\`\`\`\n${f.content || ''}\n\`\`\`\n`;
+      });
+    }
+
+    // 🚀 NEW: Handle external files
+    if (externalItems.length > 0) {
+      attachedContextStr += '\n### External Files\n';
+      externalItems.forEach((f: any) => {
+        attachedContextStr += `#### ${f.path}\n\`\`\`\n${f.content || ''}\n\`\`\`\n`;
       });
     }
 

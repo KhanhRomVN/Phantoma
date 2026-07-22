@@ -1,19 +1,14 @@
-import { useMemo, useRef } from "react";
-import { Message } from "../../types/message";
-import { parseAIResponse } from "../../services/ResponseParser";
+import { useMemo, useRef } from 'react';
+import { Message } from '../../types/message';
+import { parseAIResponse } from '../../services/ResponseParser';
 
 /**
  * Hook to parse messages with advanced caching for performance optimization
  */
-export const useMessageParsing = (
-  messages: Message[],
-  isStreaming: boolean,
-) => {
+export const useMessageParsing = (messages: Message[], isStreaming: boolean) => {
   // Parse cache — reuse results across renders, avoiding redundant re-parses
   // when only unrelated state changes (same messages array, same content).
-  const parseCacheRef = useRef<Map<string, ReturnType<typeof parseAIResponse>>>(
-    new Map(),
-  );
+  const parseCacheRef = useRef<Map<string, ReturnType<typeof parseAIResponse>>>(new Map());
 
   // Cache parsed message objects to maintain reference stability
   // Map from cache key (id:contentLength:clicked:rejected) to the full parsed message object
@@ -30,7 +25,6 @@ export const useMessageParsing = (
   const lastMessagesRef = useRef<Message[]>([]); // Track previous messages array for comparison
 
   const parsedMessages = useMemo(() => {
-    const startTime = performance.now();
     const cache = parseCacheRef.current;
     const lastStreaming = lastStreamingParseRef.current;
 
@@ -39,8 +33,7 @@ export const useMessageParsing = (
     // We DON'T compare content because the last message might be streaming (content changes)
     // We only check if existing message IDs match → same messages, just potentially updated content
     const messagesOnlyGrew =
-      messages.length >= lastParsedLengthRef.current &&
-      lastParsedResultRef.current.length > 0;
+      messages.length >= lastParsedLengthRef.current && lastParsedResultRef.current.length > 0;
 
     // For non-streaming messages, check if they're identical to previous render
     const existingMessagesUnchanged =
@@ -53,25 +46,16 @@ export const useMessageParsing = (
 
     if (existingMessagesUnchanged) {
       //   Reuse ALL previous parsed message objects (stable references!)
-      const reusedMessages = lastParsedResultRef.current.slice(
-        0,
-        lastParsedLengthRef.current,
-      );
+      const reusedMessages = lastParsedResultRef.current.slice(0, lastParsedLengthRef.current);
 
       // Only parse new messages (or re-parse if last message is streaming)
       const newMessages = messages.slice(lastParsedLengthRef.current);
       const newParsed = newMessages.map((msg: Message, index: number) => {
         const globalIndex = lastParsedLengthRef.current + index;
         const isLastMessage = globalIndex === messages.length - 1;
-        const isAssistantStreaming =
-          isLastMessage && msg.role === "assistant" && isStreaming;
+        const isAssistantStreaming = isLastMessage && msg.role === 'assistant' && isStreaming;
 
-        return parseMessageWithCache(
-          msg,
-          isAssistantStreaming,
-          cache,
-          lastStreaming,
-        );
+        return parseMessageWithCache(msg, isAssistantStreaming, cache, lastStreaming);
       });
 
       result = [...reusedMessages, ...newParsed];
@@ -80,29 +64,16 @@ export const useMessageParsing = (
       // Re-parse ALL but try to use object cache for unchanged ones
       result = messages.map((msg: Message, index: number) => {
         const isLastMessage = index === messages.length - 1;
-        const isAssistantStreaming =
-          isLastMessage && msg.role === "assistant" && isStreaming;
+        const isAssistantStreaming = isLastMessage && msg.role === 'assistant' && isStreaming;
 
-        return parseMessageWithCache(
-          msg,
-          isAssistantStreaming,
-          cache,
-          lastStreaming,
-        );
+        return parseMessageWithCache(msg, isAssistantStreaming, cache, lastStreaming);
       });
     } else {
-      // Full re-parse (messages array shrank or completely different)
       result = messages.map((msg: Message, index: number) => {
         const isLastMessage = index === messages.length - 1;
-        const isAssistantStreaming =
-          isLastMessage && msg.role === "assistant" && isStreaming;
+        const isAssistantStreaming = isLastMessage && msg.role === 'assistant' && isStreaming;
 
-        return parseMessageWithCache(
-          msg,
-          isAssistantStreaming,
-          cache,
-          lastStreaming,
-        );
+        return parseMessageWithCache(msg, isAssistantStreaming, cache, lastStreaming);
       });
     }
 
@@ -126,76 +97,47 @@ export const useMessageParsing = (
     cache: Map<string, ReturnType<typeof parseAIResponse>>,
     lastStreaming: typeof lastStreamingParseRef.current,
   ) {
-    //   During streaming, if the last message is the same one and content
-    // only grew by a small amount (no new closing tags), reuse the cached
-    // parsed result to avoid re-running the full parser on every chunk.
-    if (
-      isAssistantStreaming &&
-      lastStreaming &&
-      lastStreaming.messageId === msg.id &&
-      msg.content.length > lastStreaming.contentLength
-    ) {
-      const growth = msg.content.length - lastStreaming.contentLength;
-      // Check if new content contains a closing tag (structural change)
-      const newContent = msg.content.slice(lastStreaming.contentLength);
-      const hasClosingTag = /<\/[a-zA-Z_][a-zA-Z0-9_]*>/i.test(newContent);
+    // STREAMING FIX: Always parse fresh for streaming messages to ensure
+    // letter-by-letter animation works. No cache optimization during streaming.
+    if (!isAssistantStreaming && cache.has(msg.content)) {
+      const parsed = cache.get(msg.content)!;
+      const clickedKey = (msg.clickedActions || []).join(',');
+      const rejectedKey = (msg.rejectedActions || []).join(',');
+      const cacheKey = `${msg.id}:${msg.content.length}:${clickedKey}:${rejectedKey}`;
 
-      if (!hasClosingTag && growth < 500) {
-        // Small text-only append — reuse previous parse result.
-        // The UI will still show new text because content comes from msg.content,
-        // not from parsed result.
-        lastStreaming.contentLength = msg.content.length;
-        return { ...msg, parsed: lastStreaming.parsed };
+      const objectCache = parsedMessageObjectCacheRef.current;
+      if (objectCache.has(cacheKey)) {
+        return objectCache.get(cacheKey)!;
       }
+
+      const parsedMsg = { ...msg, parsed };
+      if (objectCache.size > 100) {
+        const keys = Array.from(objectCache.keys());
+        keys.slice(0, 50).forEach((k) => objectCache.delete(k));
+      }
+      objectCache.set(cacheKey, parsedMsg);
+      return parsedMsg;
     }
 
-    // Normal path: use cache or parse fresh
-    if (!cache.has(msg.content)) {
-      const parseStart = performance.now();
-      const parsed = parseAIResponse(msg.content);
-      cache.set(msg.content, parsed);
+    // Parse fresh for streaming or cache miss
+    const parsed = parseAIResponse(msg.content);
 
-      // Update streaming parse ref for next render
-      if (isAssistantStreaming) {
-        lastStreamingParseRef.current = {
-          messageId: msg.id,
-          contentLength: msg.content.length,
-          parsed,
-        };
-      }
-    } else if (isAssistantStreaming) {
-      // Cache hit during streaming — still update the ref
+    // Cache the parse result (but always create new object for streaming)
+    if (!isAssistantStreaming) {
+      cache.set(msg.content, parsed);
+    }
+
+    // Update streaming parse ref for next render
+    if (isAssistantStreaming) {
       lastStreamingParseRef.current = {
         messageId: msg.id,
         contentLength: msg.content.length,
-        parsed: cache.get(msg.content)!,
+        parsed,
       };
     }
 
-    // PERF FIX: Create a cache key that identifies this message's state
-    // Key includes: id + content + clickedActions + rejectedActions to detect changes
-    const clickedKey = (msg.clickedActions || []).join(",");
-    const rejectedKey = (msg.rejectedActions || []).join(",");
-    const cacheKey = `${msg.id}:${msg.content.length}:${clickedKey}:${rejectedKey}`;
-
-    // Check object cache - if we've created this exact parsed message before, reuse it
-    const objectCache = parsedMessageObjectCacheRef.current;
-    if (objectCache.has(cacheKey)) {
-      return objectCache.get(cacheKey)!;
-    }
-
-    // Create new parsed message object
-    const parsedMsg = { ...msg, parsed: cache.get(msg.content)! };
-
-    // Store in object cache (limit size to prevent memory leak)
-    if (objectCache.size > 100) {
-      // Clear old entries when cache grows too large
-      const keys = Array.from(objectCache.keys());
-      keys.slice(0, 50).forEach((k) => objectCache.delete(k));
-    }
-    objectCache.set(cacheKey, parsedMsg);
-
-    return parsedMsg;
+    // Always create new object for streaming messages (never reuse from object cache)
+    return { ...msg, parsed };
   }
 
   return parsedMessages;

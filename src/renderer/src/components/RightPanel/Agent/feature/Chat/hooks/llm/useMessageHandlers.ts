@@ -1,7 +1,7 @@
-import { useEffect } from "react";
-import { Message } from "../../types/message";
-import { ChatSession } from "../../types/chat";
-import { saveConversation } from "../../services/ConversationService";
+import { useEffect } from 'react';
+import { Message } from '../../types/message';
+import { ChatSession } from '../../types/chat';
+import { saveConversation } from '../../services/ConversationService';
 
 interface UseMessageHandlersProps {
   selectedTab: ChatSession | null;
@@ -17,19 +17,14 @@ export const useMessageHandlers = ({
   backendConversationIdRef,
 }: UseMessageHandlersProps) => {
   useEffect(() => {
-    const handlerStart = performance.now();
     let handlerCallCount = 0;
 
     const handleMessage = (event: MessageEvent) => {
       handlerCallCount++;
-      const eventStart = performance.now();
       const { command, actionId } = event.data;
 
-      if (
-        (command === "markActionClicked" || command === "markActionFailed") &&
-        actionId
-      ) {
-        const messageId = actionId.split("-action-")[0];
+      if ((command === 'markActionClicked' || command === 'markActionFailed') && actionId) {
+        const messageId = actionId.split('-action-')[0];
         if (messageId) {
           setMessages((prev) => {
             const updated = prev.map((m) => {
@@ -64,8 +59,8 @@ export const useMessageHandlers = ({
         }
       }
 
-      if (command === "markActionRejected" && actionId) {
-        const messageId = actionId.split("-action-")[0];
+      if (command === 'markActionRejected' && actionId) {
+        const messageId = actionId.split('-action-')[0];
         if (messageId) {
           setMessages((prev) => {
             const updated = prev.map((m) => {
@@ -100,10 +95,10 @@ export const useMessageHandlers = ({
       }
     };
 
-    window.addEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
 
     return () => {
-      window.removeEventListener("message", handleMessage);
+      window.removeEventListener('message', handleMessage);
     };
   }, [selectedTab, setMessages, currentConversationIdRef, backendConversationIdRef]);
 };

@@ -1,20 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ToolAction } from "../../services/ResponseParser";
 import { Message } from "../../types/message";
-import { CLICKABLE_TOOLS } from "../../constants/constants";
 import { useSettings } from "../../../../context/SettingsContext";
 import { getPermissionDecision } from "./useToolExecution";
+import { isToolClickable, TOOL_ACTION_TYPES } from "../../constants/constants";
 
 interface UseToolActionsProps {
   onSendToolRequest?: (
     action: ToolAction | ToolAction[],
     message: Message,
     isAutoTrigger?: boolean,
-    actionType?: "accept_all" | "accept_once" | "reject",
+    actionType?: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
   ) => void;
   onToolAction?: (
     actionId: string,
-    actionType: "accept_all" | "accept_once" | "reject",
+    actionType: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
     toolName?: string,
   ) => void;
   parsedMessages: any[];
@@ -43,7 +43,15 @@ export const useToolActions = ({
   }, [clickedActions, failedActions]);
 
   // Load initially clicked actions from message history
+  const loadHistoryPrevLengthRef = useRef(0);
   useEffect(() => {
+    // Only run when parsedMessages length changes (new message added)
+    const currentLength = parsedMessages.length;
+    if (currentLength === loadHistoryPrevLengthRef.current) {
+      return;
+    }
+    loadHistoryPrevLengthRef.current = currentLength;
+
     const historicalClicked = new Set<string>();
     const historicalRejected = new Set<string>();
     parsedMessages.forEach((msg) => {
@@ -134,7 +142,7 @@ export const useToolActions = ({
       actionOrActions: ToolAction | ToolAction[],
       message: Message,
       actionIndex: number,
-      type: "accept_all" | "accept_once" | "reject" = "accept_once",
+      type: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES] = TOOL_ACTION_TYPES.ACCEPT,
     ) => {
       if (!onSendToolRequest) {
         return;
@@ -142,21 +150,21 @@ export const useToolActions = ({
 
       const actionIdBase = `${message.id}-action-`;
 
-      if (type === "reject") {
+      if (type === TOOL_ACTION_TYPES.REJECT) {
         // 🐛 FIX: Truyền đúng _index cho action để không bị nhầm actionId
         const actions = Array.isArray(actionOrActions)
           ? actionOrActions.map((a) => ({ ...a, _index: actionIndex }))
           : [{ ...actionOrActions, _index: actionIndex }];
-        onSendToolRequest(actions as any, message, false, "reject");
+        onSendToolRequest(
+          actions as any,
+          message,
+          false,
+          TOOL_ACTION_TYPES.REJECT,
+        );
         return;
       }
 
-      if (type === "accept_all") {
-        const actions = Array.isArray(actionOrActions)
-          ? actionOrActions
-          : [actionOrActions];
-        actions.forEach((a) => onToolAction?.("", "accept_all", a.type));
-      }
+      // accept_all logic removed — only accept (formerly accept_once) is kept
 
       if (Array.isArray(actionOrActions)) {
         // Handle Batch
@@ -172,12 +180,17 @@ export const useToolActions = ({
         });
 
         if (actionsToProcess.length > 0) {
-          onSendToolRequest(actionsToProcess as any, message, false, type);
+          onSendToolRequest(
+            actionsToProcess as any,
+            message,
+            false,
+            TOOL_ACTION_TYPES.ACCEPT,
+          );
         }
       } else {
         // Handle Single
         const action = actionOrActions;
-        if (CLICKABLE_TOOLS.includes(action.type)) {
+        if (isToolClickable(action.type)) {
           // Mark as clicked
           const actionId = `${actionIdBase}${actionIndex}`;
           setClickedActions((prev: Set<string>) => new Set(prev).add(actionId));
@@ -192,8 +205,15 @@ export const useToolActions = ({
   );
 
   // Auto-execute tools logic
+  const prevParsedLengthRef = useRef(0);
   useEffect(() => {
-    const startTime = performance.now();
+    // Only run when parsedMessages actually changes (new message or new actions)
+    const currentLength = parsedMessages.length;
+    if (currentLength === prevParsedLengthRef.current && !isProcessing) {
+      // No new messages, skip
+      return;
+    }
+    prevParsedLengthRef.current = currentLength;
 
     // Early returns to prevent unnecessary processing
     if (isRestored || !onSendToolRequest || parsedMessages.length === 0) {
@@ -210,72 +230,67 @@ export const useToolActions = ({
     const lastMessage = parsedMessages[parsedMessages.length - 1];
     if (lastMessage.role !== "assistant") return;
     if (lastMessage.isCancelled) return;
-    if (lastMessage.parsed && lastMessage.parsed.actions) {
-      const actionsToRun: ToolAction[] = [];
-      const contentBlocks = lastMessage.parsed.contentBlocks || [];
-      const selectedOption = lastMessage.selectedOption;
+    if (!lastMessage.parsed || !lastMessage.parsed.actions) return;
 
-      lastMessage.parsed.actions.forEach((action: ToolAction, idx: number) => {
-        const actionId = `${lastMessage.id}-action-${idx}`;
+    const actionsToRun: ToolAction[] = [];
+    const contentBlocks = lastMessage.parsed.contentBlocks || [];
+    const selectedOption = lastMessage.selectedOption;
 
-        // Skip display-only tools - they should not be auto-executed
-        if (action.type === "git_status" || action.type === "commit_message") {
-          return;
-        }
+    lastMessage.parsed.actions.forEach((action: ToolAction, idx: number) => {
+      const actionId = `${lastMessage.id}-action-${idx}`;
 
-        // Only run action if not streaming partial tool
-        if (action.isPartial) {
-          return;
-        }
-
-        // Has it completed running/cancelled?
-        if (
-          clickedActions.has(actionId) ||
-          failedActions.has(actionId) ||
-          triggeredIdsRef.current.has(actionId)
-        ) {
-          return;
-        }
-
-        // SEQUENTIAL BLOCK CHECK:
-        // Find this action's position in contentBlocks to check for preceding unanswered questions or tools
-        const actionBlockIdx = contentBlocks.findIndex(
-          (b: any) => b.type === "tool" && b.actionIndex === idx,
-        );
-
-        const isBlocked =
-          actionBlockIdx !== -1 &&
-          contentBlocks.slice(0, actionBlockIdx).some((prevBlock: any) => {
-            if (prevBlock.type === "question" && !prevBlock.optional) {
-              return !selectedOption;
-            }
-            if (prevBlock.type === "tool") {
-              const prevActionId = `${lastMessage.id}-action-${prevBlock.actionIndex}`;
-              return (
-                !clickedActions.has(prevActionId) &&
-                !triggeredIdsRef.current.has(prevActionId)
-              );
-            }
-            return false;
-          });
-
-        if (isBlocked) {
-          return;
-        }
-
-        // Check if settings specify this tool runs auto or deny
-        const decision = getPermissionDecision(permissionMode, action.type);
-        if (decision === "allow" || decision === "deny") {
-          // Optimistic Synchronous Update
-          triggeredIdsRef.current.add(actionId);
-          setClickedActions((prev: Set<string>) => new Set(prev).add(actionId));
-          actionsToRun.push({ ...action, actionId, _index: idx } as any);
-        }
-      });
-
-      if (actionsToRun.length > 0) {
-        onSendToolRequest(actionsToRun as any, lastMessage, true);
+      // Skip display-only tools - they should not be auto-executed
+      if (action.type === "git_status" || action.type === "commit_message") {
+        return;
       }
+
+      // Has it completed running/cancelled?
+      if (
+        clickedActions.has(actionId) ||
+        failedActions.has(actionId) ||
+        triggeredIdsRef.current.has(actionId)
+      ) {
+        return;
+      }
+
+      // SEQUENTIAL BLOCK CHECK:
+      // Find this action's position in contentBlocks to check for preceding unanswered questions or tools
+      const actionBlockIdx = contentBlocks.findIndex(
+        (b: any) => b.type === "tool" && b.actionIndex === idx,
+      );
+
+      const isBlocked =
+        actionBlockIdx !== -1 &&
+        contentBlocks.slice(0, actionBlockIdx).some((prevBlock: any) => {
+          if (prevBlock.type === "question" && !prevBlock.optional) {
+            return !selectedOption;
+          }
+          if (prevBlock.type === "tool") {
+            const prevActionId = `${lastMessage.id}-action-${prevBlock.actionIndex}`;
+            return (
+              !clickedActions.has(prevActionId) &&
+              !triggeredIdsRef.current.has(prevActionId)
+            );
+          }
+          return false;
+        });
+
+      if (isBlocked) {
+        return;
+      }
+
+      // Check if settings specify this tool runs auto or deny
+      const decision = getPermissionDecision(permissionMode, action.type);
+      if (decision === "allow" || decision === TOOL_ACTION_TYPES.REJECT) {
+        // Optimistic Synchronous Update
+        triggeredIdsRef.current.add(actionId);
+        setClickedActions((prev: Set<string>) => new Set(prev).add(actionId));
+        actionsToRun.push({ ...action, actionId, _index: idx } as any);
+      }
+    });
+
+    if (actionsToRun.length > 0) {
+      onSendToolRequest(actionsToRun as any, lastMessage, true);
     }
   }, [
     parsedMessages,

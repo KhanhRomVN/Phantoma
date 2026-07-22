@@ -1,11 +1,9 @@
 import {
   extensionService,
   messageDispatcher,
-} from "@/services/ExtensionService";
-import { TOOL_TIMEOUTS } from "../../constants/constants";
-import { FindFilesParams } from "../parsers/FindFilesParser";
-
-const FIND_FILES_TIMEOUT_MS = TOOL_TIMEOUTS.find_files || 30000;
+} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+import { getToolTimeout } from '../../constants/constants';
+import { FindFilesParams } from '../parsers/FindFilesParser';
 
 export interface FindFilesResult {
   fileName: string;
@@ -26,7 +24,7 @@ export async function executeFindFiles(params: FindFilesParams): Promise<{
     const fileNames = params.file_names || [];
 
     extensionService.postMessage({
-      command: "findFiles",
+      command: 'findFiles',
       fileNames,
       requestId,
     });
@@ -46,15 +44,15 @@ export async function executeFindFiles(params: FindFilesParams): Promise<{
           let output = `[find_files] Found ${totalMatches} file(s)\n\n`;
 
           if (totalMatches === 0) {
-            output += "No files found matching the search criteria.";
+            output += 'No files found matching the search criteria.';
           } else {
             results.forEach((result) => {
               if (result.matches.length > 0) {
-                output += `### ${result.fileName} (${result.matches.length} match${result.matches.length === 1 ? "" : "es"})\n`;
+                output += `### ${result.fileName} (${result.matches.length} match${result.matches.length === 1 ? '' : 'es'})\n`;
                 result.matches.forEach((match) => {
                   output += `- ${match}\n`;
                 });
-                output += "\n";
+                output += '\n';
               }
             });
           }
@@ -66,7 +64,7 @@ export async function executeFindFiles(params: FindFilesParams): Promise<{
           });
         }
       },
-      FIND_FILES_TIMEOUT_MS,
+      getToolTimeout('find_files'),
       () => {
         console.warn(`[find_files] Timeout`, { requestId, fileNames });
         resolve(null);

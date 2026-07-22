@@ -1,16 +1,11 @@
 import { useState } from "react";
 import { Rule, WorkspaceItem } from "../../types/workspace";
-
-interface AttachedItem {
-  id: string;
-  path: string;
-  type: "file" | "folder" | "external";
-}
+import { AttachedItem } from "../../../../types/file-uploader";
 
 interface UseMentionSystemProps {
   message: string;
   setMessage: React.Dispatch<React.SetStateAction<string>>;
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
   availableFiles: WorkspaceItem[];
   availableFolders: WorkspaceItem[];
   onRequestWorkspaceFiles: () => void;

@@ -1,8 +1,10 @@
-import { extensionService, messageDispatcher } from "@/services/ExtensionService";
-import { TOOL_TIMEOUTS } from "../../constants/constants";
-import { WriteToFileParams } from "../../types/tool-types";
+import {
+  extensionService,
+  messageDispatcher,
+} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+import { getToolTimeout } from '../../constants/constants';
+import { WriteToFileParams } from '../../types/tool-types';
 
-const WRITE_TO_FILE_TIMEOUT_MS = TOOL_TIMEOUTS.write_to_file || 10000;
 /**
  * Execute write_to_file tool
  * Writes content to a file via the extension
@@ -12,16 +14,16 @@ export async function executeWriteToFile(
   skipDiagnostics: boolean = false,
   bypassIgnore: boolean = false,
   conversationId?: string,
-  actionId?: string
+  actionId?: string,
 ): Promise<string | null> {
   return new Promise((resolve) => {
     const requestId = `write-${Date.now()}-${Math.random()}`;
-    const filePath = params.path || params.file_path || "";
+    const filePath = params.path || params.file_path || '';
 
     extensionService.postMessage({
-      command: "writeFile",
+      command: 'writeFile',
       path: filePath,
-      content: params.content || "",
+      content: params.content || '',
       requestId,
       skipDiagnostics,
       bypassIgnore,
@@ -38,17 +40,15 @@ export async function executeWriteToFile(
             filePath,
             error: msg.error,
           });
-          resolve(
-            `[write_to_file for '${filePath}'] Result: Error - ${msg.error}`,
-          );
+          resolve(`[write_to_file for '${filePath}'] Result: Error - ${msg.error}`);
         } else {
           let result = `[write_to_file for '${filePath}'] Result: File written successfully`;
           if (msg.diagnostics?.length > 0)
-            result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join("\n")}`;
+            result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join('\n')}`;
           resolve(result);
         }
       },
-      WRITE_TO_FILE_TIMEOUT_MS,
+      getToolTimeout('write_to_file'),
       () => {
         console.warn(`[write_to_file] Timeout`, { requestId, filePath });
         resolve(null);

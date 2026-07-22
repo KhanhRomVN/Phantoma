@@ -1,4 +1,4 @@
-import { decodeHtmlEntities } from "./TagNormalizer";
+import { decodeHtmlEntities } from "./HtmlEntitiesDecoder";
 
 /**
  * Params that carry multi-line file content — must NOT be trimmed so that
@@ -7,21 +7,6 @@ import { decodeHtmlEntities } from "./TagNormalizer";
  */
 export const CONTENT_PARAMS = new Set(["content", "diff"]);
 
-/**
- * Extract a param value trying multiple tag name aliases in order.
- * Useful when AI may use camelCase variants (e.g. filePath vs file_path).
- */
-export const extractParam = (
-  content: string,
-  ...aliases: string[]
-): string | null => {
-  for (const alias of aliases) {
-    const value = extractParamValue(content, alias);
-    if (value !== null && value !== "") return value;
-  }
-  return null;
-};
-
 export const extractParamValue = (
   content: string,
   paramName: string,
@@ -29,9 +14,9 @@ export const extractParamValue = (
   // Whether this param holds raw file content (no aggressive trimming allowed)
   const isContentParam = CONTENT_PARAMS.has(paramName);
 
-  // Try standard XML tag first
+  // Try standard XML tag (fully closed tag)
   const standardRegex = new RegExp(
-    `<${paramName}>([\\s\\S]*?)<\\/${paramName}>`,
+    `<${paramName}(?:\\s+[^>]*)?>([\\s\\S]*?)<\\/${paramName}>`,
     "i",
   );
   const standardMatch = content.match(standardRegex);
@@ -46,27 +31,6 @@ export const extractParamValue = (
     return isContentParam ? decoded.replace(/^\n|\n$/g, "") : decoded.trim();
   }
 
-  const selfClosingRegex = isContentParam
-    ? new RegExp(`<${paramName}\\s*>([\\s\\S]*)$`, "i")
-    : new RegExp(
-        `<${paramName}\\s*>([\\s\\S]*?)(?=<\\/?[\\w_]+\\s*>|$)`,
-        "i",
-      );
-  const selfClosingMatch = content.match(selfClosingRegex);
-  if (selfClosingMatch) {
-    let value = selfClosingMatch[1];
-    value = value.replace(/^```text\s*\n?|\n?```\s*$/g, "");
-    let decoded = decodeHtmlEntities(value);
-    if (!isContentParam) {
-      decoded = decoded.trim();
-      // Strip any residual malformed closing tag suffix like /paramName> or paramName>
-      const malformedCloseRegex = new RegExp(`/?${paramName}>?$`, "i");
-      decoded = decoded.replace(malformedCloseRegex, "").trim();
-    } else {
-      decoded = decoded.replace(/^\n|\n$/g, "");
-    }
-    return decoded;
-  }
   return null;
 };
 

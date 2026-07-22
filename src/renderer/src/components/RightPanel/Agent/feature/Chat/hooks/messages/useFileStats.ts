@@ -1,5 +1,5 @@
-import { useMemo, useRef } from "react";
-import { Message } from "../../types/message";
+import { useMemo, useRef } from 'react';
+import { Message } from '../../types/message';
 
 interface FileStats {
   totalFiles: number;
@@ -19,21 +19,17 @@ export const useFileStats = (
 
   //   Track last computed file stats for incremental updates
   const lastFileStatsLengthRef = useRef(0);
-  const lastFileStatsMapRef = useRef<
-    Map<string, { additions: number; deletions: number }>
-  >(new Map());
+  const lastFileStatsMapRef = useRef<Map<string, { additions: number; deletions: number }>>(
+    new Map(),
+  );
 
   const conversationFileStats = useMemo(() => {
-    const startTime = performance.now();
-
     // If we have loaded stats from history and no new messages, use loaded stats
     if (
       loadedConversationFileStats &&
       messages.length > 0 &&
       messages.every(
-        (m) =>
-          !m.content?.includes("<write_to_file>") &&
-          !m.content?.includes("<str_replace>"),
+        (m) => !m.content?.includes('<write_to_file>') && !m.content?.includes('<str_replace>'),
       )
     ) {
       return loadedConversationFileStats;
@@ -90,7 +86,7 @@ function scanMessagesForFileChanges(
   fileChanges: Map<string, { additions: number; deletions: number }>,
 ) {
   messagesToScan.forEach((msg) => {
-    if (msg.role === "assistant" && msg.content) {
+    if (msg.role === 'assistant' && msg.content) {
       // Match write_to_file
       const writeMatches = msg.content.matchAll(
         /<write_to_file>\s*<file_path>([^<]+)<\/file_path>\s*<content>([\s\S]*?)<\/content>\s*<\/write_to_file>/g,
@@ -106,7 +102,7 @@ function scanMessagesForFileChanges(
           }
 
           const stats = fileChanges.get(filePath)!;
-          const lines = content.split("\n").length;
+          const lines = content.split('\n').length;
           stats.additions += lines;
         }
       }
@@ -127,8 +123,8 @@ function scanMessagesForFileChanges(
           }
 
           const stats = fileChanges.get(filePath)!;
-          const oldLines = oldStr.split("\n").length;
-          const newLines = newStr.split("\n").length;
+          const oldLines = oldStr.split('\n').length;
+          const newLines = newStr.split('\n').length;
 
           stats.deletions += oldLines;
           stats.additions += newLines;

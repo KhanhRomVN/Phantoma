@@ -1,281 +1,452 @@
-// ===== TOOL TYPES =====
-export type ToolType =
-  | 'read_file'
-  | 'write_to_file'
-  | 'replace_in_file'
-  | 'revert_file'
-  | 'list_files'
-  | 'find_files'
-  | 'grep'
-  | 'delete_file'
-  | 'delete_folder'
-  | 'move_file'
-  | 'run_command'
-  | 'git_status'
-  | 'commit_message'
-  | 'git_diff'
-  | 'code'
-  | 'markdown'
-  | 'thinking'
-  | 'question'
-  | 'context_compression';
+import React from "react";
+import { Zap, ShieldCheck, Eye } from "lucide-react";
+import type {
+  PermissionMode,
+  PermissionValue,
+  TagCategory,
+  TagDefinition,
+  ToolType,
+  UITagType,
+  TagType,
+} from "../types/tag-types";
 
-// ===== TOOL VARIANTS =====
-export const TOOL_VARIANTS: Record<string, string[]> = {
-  read_file: [
-    'readFile',
-    'ReadFile',
-    'read_File',
-    'readfile',
-    'READFILE',
-    'Read_File',
-    'Readfile',
-    'READ_FILE',
-  ],
-  write_to_file: [
-    'writeToFile',
-    'WriteToFile',
-    'write_to_File',
-    'WritetoFile',
-    'writetofile',
-    'WRITETOFILE',
-    'Write_To_File',
-    'writefile',
-    'WriteFile',
-    'WRITE_TO_FILE',
-    'write_toFile',
-    'writeTofile',
-    'WriteTo_File',
-  ],
-  replace_in_file: [
-    'replaceInFile',
-    'ReplaceInFile',
-    'replace_in_File',
-    'ReplaceInfile',
-    'replaceinfile',
-    'REPLACEINFILE',
-    'Replace_In_File',
-    'replaceFile',
-    'ReplaceFile',
-    'REPLACE_IN_FILE',
-    'replace_InFile',
-    'replaceInfile',
-    'Replace_in_file',
-  ],
-  revert_file: [
-    'revertFile',
-    'RevertFile',
-    'revert_File',
-    'RevertInfile',
-    'revertfile',
-    'REVERTFILE',
-    'Revert_File',
-    'REVERT_FILE',
-  ],
-  list_files: [
-    'listFiles',
-    'ListFiles',
-    'list_Files',
-    'ListFile',
-    'listfiles',
-    'LISTFILES',
-    'List_Files',
-    'list_file',
-    'listFile',
-    'LIST_FILES',
-  ],
-  find_files: [
-    'findFiles',
-    'FindFiles',
-    'find_Files',
-    'findfiles',
-    'FINDFILES',
-    'Find_Files',
-    'Findfiles',
-    'FIND_FILES',
-  ],
-  grep: ['Grep', 'GREP'],
-  delete_file: [
-    'deleteFile',
-    'DeleteFile',
-    'delete_File',
-    'deletefile',
-    'DELETEFILE',
-    'Delete_File',
-    'Deletefile',
-    'DELETE_FILE',
-  ],
-  delete_folder: [
-    'deleteFolder',
-    'DeleteFolder',
-    'delete_Folder',
-    'deletefolder',
-    'DELETEFOLDER',
-    'Delete_Folder',
-    'Deletefolder',
-    'DELETE_FOLDER',
-  ],
-  move_file: [
-    'moveFile',
-    'MoveFile',
-    'move_File',
-    'movefile',
-    'MOVEFILE',
-    'Move_File',
-    'Movefile',
-    'MOVE_FILE',
-  ],
-  run_command: [
-    'runCommand',
-    'RunCommand',
-    'run_Command',
-    'runcommand',
-    'RUNCOMMAND',
-    'Run_Command',
-    'Runcommand',
-    'RUN_COMMAND',
-  ],
-  git_diff: ['gitDiff', 'GitDiff', 'git-diff', 'Git_Diff', 'gitdiff', 'GIT_DIFF'],
+// Re-export types for backward compatibility
+export type {
+  PermissionMode,
+  PermissionValue,
+  TagCategory,
+  TagDefinition,
+  ToolType,
+  UITagType,
+  TagType,
 };
 
-// ===== ACTION NAMES =====
-export const ACTION_NAMES: Record<string, string> = {
-  replace_in_file: 'replace_in_file',
-  write_to_file: 'write_to_file',
-  run_command: 'Run Command',
-};
-
-// ===== TOOL LABELS =====
-export const TOOL_LABELS: Record<string, string> = {
-  read_file: 'Read',
-  write_to_file: 'Write',
-  replace_in_file: 'Replace',
-  revert_file: 'Revert',
-  list_files: 'List',
-  find_files: 'Find',
-  grep: 'Grep',
-  delete_file: 'Delete',
-  delete_folder: 'Delete',
-  move_file: 'Move',
-  run_command: 'Execute',
-  git_status: 'Git Status',
-  commit_message: 'Commit Message',
-  git_diff: 'Git Diff',
-  code: 'Code',
-  markdown: 'Markdown',
-  thinking: 'Thinking',
-  question: 'Question',
-  context_compression: 'Context Summary',
-  default: 'Zen',
-};
-
-// ===== TOOL COLORS =====
-export const TOOL_COLORS: Record<string, string> = {
-  read_file: 'text-blue-500',
-  write_to_file: 'text-teal-400',
-  replace_in_file: 'text-yellow-600',
-  revert_file: 'text-red-600',
-  list_files: 'text-blue-500',
-  find_files: 'text-blue-500',
-  grep: 'text-blue-500',
-  delete_file: 'text-red-500',
-  delete_folder: 'text-red-500',
-  move_file: 'text-blue-500',
-  run_command: 'text-amber-500',
-  git_status: 'text-amber-200',
-  commit_message: 'text-teal-400',
-  git_diff: 'text-green-500',
-  code: 'text-blue-500',
-  markdown: 'text-text-primary',
-  thinking: 'text-purple-500',
-  question: 'text-blue-700',
-  context_compression: 'text-emerald-500',
-  default: 'text-gray-500',
-};
-
-// ===== CLICKABLE TOOLS =====
-export const CLICKABLE_TOOLS: string[] = [
-  'read_file',
-  'write_to_file',
-  'replace_in_file',
-  'revert_file',
-  'list_files',
-  'grep',
-  'delete_file',
-  'delete_folder',
-  'move_file',
-  'run_command',
-  'git_diff',
-];
-
-// ===== MANUAL CONFIRMATION TOOLS =====
-export const MANUAL_CONFIRMATION_TOOLS: string[] = ['run_command'];
-
-// ===== TOOL PERMISSIONS =====
-export const TOOL_PERMISSIONS: Record<string, string> = {
-  read_file: 'prompt',
-  write_to_file: 'prompt',
-  replace_in_file: 'prompt',
-  revert_file: 'prompt',
-  list_files: 'prompt',
-  grep: 'read',
-  delete_file: 'write',
-  delete_folder: 'write',
-  move_file: 'prompt',
-  run_command: 'write',
-  git_status: 'allow',
-  commit_message: 'allow',
-  git_diff: 'allow',
-};
-
-// ===== TOOL TIMEOUTS (MS) =====
-export const TOOL_TIMEOUTS: Record<string, number> = {
-  read_file: 10000,
-  write_to_file: 10000,
-  replace_in_file: 10000,
-  revert_file: 10000,
-  list_files: 10000,
-  find_files: 30000,
-  grep: 30000,
-  delete_file: 10000,
-  delete_folder: 10000,
-  move_file: 10000,
-  run_command: 30000,
-  git_diff: 30000,
-};
-
-// ===== CONTEXT COMPRESSION =====
-export const CONTEXT_COMPRESSION_THRESHOLD = 10000;
+export const STREAM_BOX_HEIGHT = 154;
 
 // Whitelist of allowed file extensions for external files
 export const ALLOWED_FILE_EXTENSIONS = [
-  '.txt',
-  '.md',
-  '.json',
-  '.ts',
-  '.tsx',
-  '.js',
-  '.jsx',
-  '.py',
-  '.java',
-  '.cpp',
-  '.c',
-  '.h',
-  '.hpp',
-  '.css',
-  '.html',
-  '.xml',
-  '.yaml',
-  '.yml',
-  '.toml',
-  '.ini',
-  '.cfg',
-  '.sh',
-  '.go',
-  '.rs',
-  '.rb',
-  '.php',
-  '.swift',
-  '.kt',
-  '.scala',
+  ".txt",
+  ".md",
+  ".json",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".py",
+  ".java",
+  ".cpp",
+  ".c",
+  ".h",
+  ".hpp",
+  ".css",
+  ".html",
+  ".xml",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".ini",
+  ".cfg",
+  ".sh",
+  ".go",
+  ".rs",
+  ".rb",
+  ".php",
+  ".swift",
+  ".kt",
+  ".scala",
 ];
+
+// ===== TOOL ACTION TYPES =====
+export const TOOL_ACTION_TYPES = {
+  ACCEPT: "accept",
+  REJECT: "reject",
+} as const;
+
+// ===== EXECUTION STATUS =====
+export const EXECUTION_STATUS = {
+  IDLE: "idle",
+  RUNNING: "running",
+  ERROR: "error",
+  DONE: "done",
+} as const;
+
+// ===== TERMINAL STATUS =====
+export const TERMINAL_STATUS = {
+  BUSY: "busy",
+  FREE: "free",
+} as const;
+
+export type TerminalStatus =
+  (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS];
+
+// ===== PERMISSION MODE METADATA =====
+export const PERMISSION_MODE: Record<
+  string,
+  { label: string; desc: string; icon: React.ReactNode; color: string }
+> = {
+  fullAccess: {
+    label: "Full Access",
+    desc: "AI has unrestricted access to all project files and tools",
+    icon: React.createElement(Zap, { size: 11 }),
+    color: "var(--vscode-editorBracketHighlight-foreground3, #f59e0b)",
+  },
+  approval: {
+    label: "Approval Required",
+    desc: "AI must request explicit approval before accessing files or running commands",
+    icon: React.createElement(ShieldCheck, { size: 11 }),
+    color: "var(--vscode-symbolIcon-interfaceForeground, #3b82f6)",
+  },
+  readOnly: {
+    label: "Read Only",
+    desc: "AI can only read project files, cannot modify them or run commands",
+    icon: React.createElement(Eye, { size: 11 }),
+    color: "var(--vscode-symbolIcon-classForeground, #8b5cf6)",
+  },
+};
+
+// ============= UNIFIED TAG REGISTRY =============
+export const TAG_REGISTRY: Record<string, TagDefinition> = {
+  // ===== TOOLS (category: "tool") =====
+  read_file: {
+    id: "read_file",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "allow",
+      approval: "allow",
+      fullAccess: "allow",
+    },
+    features: {
+      showFileStats: true,
+    },
+    params: {
+      required: ["file_path"],
+      optional: ["start_line", "end_line"],
+    },
+  },
+
+  write_to_file: {
+    id: "write_to_file",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "reject",
+      approval: "confirm",
+      fullAccess: "allow",
+    },
+    features: {
+      showFileStats: true,
+      isFileMutation: true,
+    },
+    params: {
+      required: ["file_path", "content"],
+    },
+  },
+
+  replace_in_file: {
+    id: "replace_in_file",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "reject",
+      approval: "confirm",
+      fullAccess: "allow",
+    },
+    features: {
+      validateFuzzyMatch: true,
+      isFileMutation: true,
+    },
+    params: {
+      required: ["file_path", "old_content", "new_content"],
+    },
+  },
+
+  revert_file: {
+    id: "revert_file",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "reject",
+      approval: "confirm",
+      fullAccess: "allow",
+    },
+    features: {
+      isFileMutation: true,
+    },
+  },
+
+  view_replace_history: {
+    id: "view_replace_history",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "allow",
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  list_files: {
+    id: "list_files",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "allow",
+      approval: "allow",
+      fullAccess: "allow",
+    },
+    params: {
+      required: ["folder_path"],
+      optional: ["type"],
+    },
+  },
+
+  find_files: {
+    id: "find_files",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "allow",
+      approval: "allow",
+      fullAccess: "allow",
+    },
+    params: {
+      required: ["file_name"],
+    },
+  },
+
+  grep: {
+    id: "grep",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "allow",
+      approval: "allow",
+      fullAccess: "allow",
+    },
+    params: {
+      required: ["search_term"],
+      optional: ["folder_path"],
+    },
+  },
+
+  delete_file: {
+    id: "delete_file",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "reject",
+      approval: "confirm",
+      fullAccess: "allow",
+    },
+    params: {
+      required: ["file_path"],
+    },
+  },
+
+  move_file: {
+    id: "move_file",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "reject",
+      approval: "confirm",
+      fullAccess: "allow",
+    },
+    params: {
+      required: ["file_path", "target_folder_path"],
+    },
+  },
+
+  run_command: {
+    id: "run_command",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "reject",
+      approval: "confirm",
+      fullAccess: "confirm",
+    },
+    params: {
+      required: ["command"],
+      optional: ["cwd"],
+    },
+  },
+
+  git_status: {
+    id: "git_status",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "allow",
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  commit_message: {
+    id: "commit_message",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "allow",
+      approval: "allow",
+      fullAccess: "allow",
+    },
+    params: {
+      required: ["message"],
+    },
+  },
+
+  git_diff: {
+    id: "git_diff",
+    category: "tool",
+    timeout: 60000,
+    permissions: {
+      readOnly: "allow",
+      approval: "allow",
+      fullAccess: "allow",
+    },
+
+    params: {
+      required: [],
+      optional: ["file_path"],
+    },
+  },
+
+  // ===== UI TAGS (category: "ui") =====
+  markdown: {
+    id: "markdown",
+    category: "ui",
+  },
+  thinking: {
+    id: "thinking",
+    category: "ui",
+  },
+  question: {
+    id: "question",
+    category: "ui",
+  },
+};
+
+// ============= HELPER FUNCTIONS =============
+
+/**
+ * Lấy tag definition (bao gồm cả tool và ui tag)
+ */
+export const getTagDef = (type: string): TagDefinition | undefined => {
+  return TAG_REGISTRY[type];
+};
+
+/**
+ * Lấy tất cả tool types (chỉ tools)
+ */
+export const getAllToolTypes = (): string[] => {
+  return Object.entries(TAG_REGISTRY)
+    .filter(([_, def]) => def.category === "tool")
+    .map(([key]) => key);
+};
+
+/**
+ * Lấy tất cả UI tag types (chỉ ui tags)
+ */
+export const getAllUITagTypes = (): string[] => {
+  return Object.entries(TAG_REGISTRY)
+    .filter(([_, def]) => def.category === "ui")
+    .map(([key]) => key);
+};
+
+/**
+ * Lấy tất cả tag types (bao gồm cả tool và ui)
+ */
+export const getAllTagTypes = (): string[] => {
+  return Object.keys(TAG_REGISTRY);
+};
+
+/**
+ * Kiểm tra xem tool có yêu cầu xác nhận hay không dựa trên permission mode hiện tại
+ */
+export const requiresConfirmation = (
+  type: string,
+  mode: "readOnly" | "approval" | "fullAccess" = "approval",
+): boolean => {
+  const tag = getTagDef(type);
+  if (!tag || tag.category !== "tool" || !tag.permissions) return false;
+
+  const permission = tag.permissions[mode];
+  return permission === "confirm";
+};
+
+/**
+ * Kiểm tra xem tool hoặc UI tag có nên hiển thị approval UI hay không
+ * Dựa trên permission của mode hiện tại
+ */
+export const shouldShowApprovalUI = (
+  type: string,
+  mode: "readOnly" | "approval" | "fullAccess" = "approval",
+): boolean => {
+  return requiresConfirmation(type, mode);
+};
+
+/**
+ * Get all tools that have user-configurable permissions (non-git, non-ui tools)
+ */
+export const getConfigurableTools = (): string[] => {
+  return Object.entries(TAG_REGISTRY)
+    .filter(([_, def]) => def.category === "tool")
+    .map(([_, def]) => def.id);
+};
+
+// ============= HELPER FUNCTIONS FOR FILE STATS =============
+
+export const shouldShowFileStats = (toolType: string): boolean => {
+  const tag = getTagDef(toolType);
+  return tag?.category === "tool"
+    ? (tag.features?.showFileStats ?? false)
+    : false;
+};
+
+/**
+ * Check if a tool should validate fuzzy match before execution
+ */
+export const shouldValidateFuzzyMatch = (toolType: string): boolean => {
+  const tag = getTagDef(toolType);
+  return tag?.category === "tool"
+    ? (tag.features?.validateFuzzyMatch ?? false)
+    : false;
+};
+
+/**
+ * Get all file mutation tools (tools that modify file content)
+ * These are tools like write_to_file, replace_in_file, revert_file
+ */
+export const FILE_MUTATION_TOOLS = Object.entries(TAG_REGISTRY)
+  .filter(([_, def]) => def.features?.isFileMutation === true)
+  .map(([key]) => key) as any as readonly [
+  "write_to_file",
+  "replace_in_file",
+  "revert_file",
+];
+
+export type FileMutationTool = (typeof FILE_MUTATION_TOOLS)[number];
+
+export const getFileMutationTools = (): readonly string[] => {
+  return FILE_MUTATION_TOOLS;
+};
+
+/**
+ * Get timeout (ms) for a tool. Default: 60000ms (60s)
+ */
+export const getToolTimeout = (toolType: string): number => {
+  const tag = getTagDef(toolType);
+  return tag?.category === "tool" ? (tag.timeout ?? 60000) : 60000;
+};
+
+/**
+ * Check if a tool type is clickable (i.e., it's a tool, not a UI tag)
+ * UI tags are not clickable because they're just display content
+ */
+export const isToolClickable = (type: string): boolean => {
+  const tag = getTagDef(type);
+  return tag?.category === "tool";
+};

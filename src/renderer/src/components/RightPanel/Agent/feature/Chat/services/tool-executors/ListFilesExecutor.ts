@@ -1,22 +1,24 @@
-import { extensionService, messageDispatcher } from "@/services/ExtensionService";
-import { TOOL_TIMEOUTS } from "../../constants/constants";
-import { ListFilesParams } from "../../types/tool-types";
+import {
+  extensionService,
+  messageDispatcher,
+} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+import { getToolTimeout } from '../../constants/constants';
+import { ListFilesParams } from '../../types/tool-types';
 
-const LIST_FILES_TIMEOUT_MS = TOOL_TIMEOUTS.list_files || 10000;
 /**
  * Execute list_files tool
  * Lists files in a directory
  */
 export async function executeListFiles(
   params: ListFilesParams,
-  bypassIgnore: boolean = false
+  bypassIgnore: boolean = false,
 ): Promise<string | null> {
   return new Promise((resolve) => {
     const requestId = `list-${Date.now()}-${Math.random()}`;
-    const folderPath = params.path || params.folder_path || "";
+    const folderPath = params.path || params.folder_path || '';
 
     extensionService.postMessage({
-      command: "listFiles",
+      command: 'listFiles',
       path: folderPath,
       recursive: params.recursive,
       depth: params.depth,
@@ -29,17 +31,15 @@ export async function executeListFiles(
       requestId,
       (msg) => {
         if (msg.error) {
-          resolve(
-            `[list_files for '${folderPath}'] Result: Error - ${msg.error}`,
-          );
+          resolve(`[list_files for '${folderPath}'] Result: Error - ${msg.error}`);
           return;
         }
         const listResults = msg.files || msg.results;
-        
+
         // Return raw JSON array - let the UI format it
         resolve(listResults);
       },
-      LIST_FILES_TIMEOUT_MS,
+      getToolTimeout('list_files'),
       () => resolve(null),
     );
   });

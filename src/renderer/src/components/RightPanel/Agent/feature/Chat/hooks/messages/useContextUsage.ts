@@ -1,5 +1,5 @@
-import { useMemo, useRef } from "react";
-import { Message } from "../../types/message";
+import { useMemo, useRef } from 'react';
+import { Message } from '../../types/message';
 
 interface ContextUsage {
   prompt: number;
@@ -22,10 +22,7 @@ export const useContextUsage = (messages: Message[]): ContextUsage => {
   });
 
   const contextUsage = useMemo(() => {
-    const startTime = performance.now();
-
-    const canUseIncremental =
-      messages.length >= lastContextUsageLengthRef.current;
+    const canUseIncremental = messages.length >= lastContextUsageLengthRef.current;
 
     let result: ContextUsage;
 
@@ -42,7 +39,7 @@ export const useContextUsage = (messages: Message[]): ContextUsage => {
           if (msg.usage) {
             result.prompt += msg.usage.prompt_tokens || 0;
             result.completion += msg.usage.completion_tokens || 0;
-          } else if (msg.role === "user") {
+          } else if (msg.role === 'user') {
             result.prompt += msg.token_usage;
           } else {
             result.completion += msg.token_usage;
@@ -62,7 +59,7 @@ export const useContextUsage = (messages: Message[]): ContextUsage => {
             if (msg.usage) {
               acc.prompt += msg.usage.prompt_tokens || 0;
               acc.completion += msg.usage.completion_tokens || 0;
-            } else if (msg.role === "user") {
+            } else if (msg.role === 'user') {
               acc.prompt += msg.token_usage;
             } else {
               acc.completion += msg.token_usage;

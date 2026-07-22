@@ -1,5 +1,5 @@
-import { Message } from "../types/message";
-import { calculateTokens, logChatToWorkspace } from "./ConversationService";
+import { Message } from '../types/message';
+import { calculateTokens } from './ConversationService';
 
 export interface StreamConfig {
   apiUrl: string;
@@ -18,7 +18,7 @@ export interface StreamCallbacks {
   onThinking?: (thinking: string) => void;
   onUsage?: (usage: any) => void;
   onContinuing?: (isContinuing: boolean) => void;
-  onIncompleteToolDetected?: (hasPartial: boolean, toolType: string | null) => void;
+  onRawContent?: (content: string) => void; // Raw content without parsing (for ThinkingBlock display)
 }
 
 export class StreamingService {
@@ -34,18 +34,18 @@ export class StreamingService {
       stream: true,
       ...(config.conversationId ? { conversationId: config.conversationId } : {}),
       ...(config.parentMessageId ? { parent_message_id: config.parentMessageId } : {}),
-      is_thinking: localStorage.getItem("zen-thinking-enabled") === "true",
-      is_search: localStorage.getItem("zen-search-enabled") === "true",
-      thinking: localStorage.getItem("zen-thinking-enabled") === "true",
-      search: localStorage.getItem("zen-search-enabled") === "true",
+      is_thinking: localStorage.getItem('zen-thinking-enabled') === 'true',
+      is_search: localStorage.getItem('zen-search-enabled') === 'true',
+      thinking: localStorage.getItem('zen-thinking-enabled') === 'true',
+      search: localStorage.getItem('zen-search-enabled') === 'true',
       ...(config.refFileIds && config.refFileIds.length > 0
         ? { ref_file_ids: config.refFileIds }
         : {}),
     };
 
     const response = await fetch(`${config.apiUrl}/v1/chat/accounts/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: config.abortSignal,
     });
@@ -55,40 +55,41 @@ export class StreamingService {
       try {
         const errBody = await response.json();
         const raw = errBody.error || errBody.message;
-        const msg = typeof raw === "string" ? raw : JSON.stringify(raw);
+        const msg = typeof raw === 'string' ? raw : JSON.stringify(raw);
         errorDetail = msg || errorDetail;
         if (errBody.error_code) errorDetail = `[${errBody.error_code}] ${errorDetail}`;
       } catch {}
       throw new Error(errorDetail);
     }
 
-    if (!response.body) throw new Error("No response body");
+    if (!response.body) throw new Error('No response body');
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
 
     let assistantMessage: Message = {
       id: `msg-${Date.now()}-assistant`,
-      role: "assistant",
-      content: "",
+      role: 'assistant',
+      content: '',
       timestamp: Date.now(),
     };
 
-    let backendConversationId = "";
+    let backendConversationId = '';
     let done = false;
-    let buffer = "";
+    let buffer = '';
     let firstChunkReceived = false;
 
-    // Batching
-    let updateBatch = { content: "", thinking: "" };
+    // Always use performance mode: stream content but don't parse until complete
+    // Batching - Optimized for smooth letter-by-letter streaming
+    let updateBatch = { content: '', thinking: '' };
     let lastFlushTime = Date.now();
-    const FLUSH_INTERVAL_MS = 100;
+    const FLUSH_INTERVAL_MS = 8; // ~120fps for smooth streaming without overwhelming React
 
     // First-chunk timeout
     const FIRST_CHUNK_TIMEOUT_MS = 305_000;
     const firstChunkTimer = setTimeout(() => {
       if (!firstChunkReceived) {
-        config.abortSignal.dispatchEvent(new Event("abort"));
+        config.abortSignal.dispatchEvent(new Event('abort'));
       }
     }, FIRST_CHUNK_TIMEOUT_MS);
 
@@ -104,20 +105,16 @@ export class StreamingService {
 
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
+          if (line.startsWith('data: ')) {
             const dataStr = line.slice(6).trim();
-            if (dataStr === "[DONE]") continue;
+            if (dataStr === '[DONE]') continue;
 
             // Handle UUID conversation_id
-            if (
-              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                dataStr,
-              )
-            ) {
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(dataStr)) {
               backendConversationId = dataStr;
               continue;
             }
@@ -127,7 +124,7 @@ export class StreamingService {
 
               // Handle stream error
               if (data.error) {
-                const code = data.error_code ? `[${data.error_code}] ` : "";
+                const code = data.error_code ? `[${data.error_code}] ` : '';
                 const err = new Error(`${code}${data.error}`);
                 (err as any).isServerError = true;
                 throw err;
@@ -156,17 +153,6 @@ export class StreamingService {
                 if (metaObj.continuing !== undefined) {
                   callbacks.onContinuing?.(metaObj.continuing);
                 }
-
-                if (metaObj.incomplete_has_partial_tool !== undefined) {
-                  callbacks.onIncompleteToolDetected?.(
-                    metaObj.incomplete_has_partial_tool,
-                    metaObj.incomplete_partial_tool_type ?? null,
-                  );
-                }
-
-                if (metaObj.continuation_complete === true) {
-                  callbacks.onIncompleteToolDetected?.(false, null);
-                }
               }
 
               // Usage
@@ -183,7 +169,7 @@ export class StreamingService {
               }
 
               if (data.thinking) {
-                assistantMessage.thinking = (assistantMessage.thinking || "") + data.thinking;
+                assistantMessage.thinking = (assistantMessage.thinking || '') + data.thinking;
                 updateBatch.thinking += data.thinking;
               }
 
@@ -192,10 +178,13 @@ export class StreamingService {
               const shouldFlush = now - lastFlushTime >= FLUSH_INTERVAL_MS || data.usage;
 
               if (shouldFlush && (updateBatch.content || updateBatch.thinking || data.usage)) {
-                if (updateBatch.content) callbacks.onContent?.(updateBatch.content);
-                if (updateBatch.thinking) callbacks.onThinking?.(updateBatch.thinking);
+                // Send raw content to onRawContent for ThinkingBlock display (no parsing)
+                if (updateBatch.content) {
+                  callbacks.onRawContent?.(updateBatch.content);
+                }
 
-                updateBatch = { content: "", thinking: "" };
+                if (updateBatch.thinking) callbacks.onThinking?.(updateBatch.thinking);
+                updateBatch = { content: '', thinking: '' };
                 lastFlushTime = now;
               }
             } catch (e) {
@@ -208,15 +197,19 @@ export class StreamingService {
 
     clearTimeout(firstChunkTimer);
 
-    // Flush remaining batch
-    if (updateBatch.content) callbacks.onContent?.(updateBatch.content);
+    // Flush remaining batch - parse everything once at the end
+    // Send all accumulated content for parsing NOW
+    if (assistantMessage.content) {
+      callbacks.onContent?.(assistantMessage.content);
+    }
+
     if (updateBatch.thinking) callbacks.onThinking?.(updateBatch.thinking);
 
     // Process remaining buffer
-    const remainingLines = buffer.split("\n").filter((l) => l.trim().startsWith("data: "));
+    const remainingLines = buffer.split('\n').filter((l) => l.trim().startsWith('data: '));
     for (const line of remainingLines) {
       const dataStr = line.slice(6).trim();
-      if (dataStr === "[DONE]") continue;
+      if (dataStr === '[DONE]') continue;
 
       try {
         const data = JSON.parse(dataStr);
@@ -241,7 +234,7 @@ export class StreamingService {
         }
 
         if (data.thinking) {
-          assistantMessage.thinking = (assistantMessage.thinking || "") + data.thinking;
+          assistantMessage.thinking = (assistantMessage.thinking || '') + data.thinking;
         }
       } catch (e) {}
     }
