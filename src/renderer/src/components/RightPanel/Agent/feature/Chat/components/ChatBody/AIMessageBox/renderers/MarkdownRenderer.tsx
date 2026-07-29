@@ -1,7 +1,7 @@
 import React from "react";
 
 // COMPONENTS
-import MarkdownBlock from "../blocks/markdown/MarkdownBlock";
+import MarkdownBlock from "../blocks/MarkdownBlock";
 
 interface MarkdownRendererProps {
   content: string;
@@ -20,11 +20,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 }) => {
   return (
     <div
-      style={{
-        paddingTop: "4px",
-        fontSize: "var(--font-size-sm)",
-        color: "var(--primary-text)",
-      }}
+      className="pt-1 text-xs text-text-primary"
     >
       <MarkdownBlock
         content={content}

@@ -1,7 +1,11 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
+
+// CONSTANTS
+import { getToolLabel } from '../../../../constants/constants';
 
 // TYPES
-import { BaseRendererProps, DiffStats } from '@/features/chat/types/renderer-types';
+import { BaseRendererProps, DiffStats } from '../../../../types/renderer-types';
 import {
   getDisplayPath,
   collectConvFilePaths,
@@ -9,15 +13,14 @@ import {
 } from '../../../../utils/renderer-utils';
 
 // UTILS
-import { calculateLineDiff } from '@/utils/diffUtils';
 
 // ICONS
-import FileIcon from '@/icons/FileIcon';
+import FileIcon from '@renderer/components/common/FileIcon';
 
 // COMPONENTS
 import { TagHeader } from '../TagHeader';
-import ExecuteButton from '../ExecuteButton';
-import ErrorBlock from '../blocks/error/ErrorBlock';
+import ActionBar from '../ActionBar';
+import ErrorBlock from '../blocks/ErrorBlock';
 
 // SERVICES
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
@@ -79,11 +82,27 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
   const isError = !!toolOutputs?.[actionId]?.isError;
   const errorMessage = isError ? toolOutputs?.[actionId]?.output || '' : '';
 
+  // Check if action has validation error
+  const hasValidationError = !!action.isError;
+
   const statusColor = isError
-    ? 'var(--vscode-errorForeground, #f14c4c)'
+    ? $('--error')
     : isCompleted
-      ? 'var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)'
-      : 'var(--vscode-textLink-foreground, #3794ff)';
+      ? $('--warn')
+      : $('--primary');
+
+  // Debug logging for validation errors
+  React.useEffect(() => {
+    if (hasValidationError) {
+      console.log('[RevertFileRenderer] Validation error detected:', {
+        actionId,
+        filePath: rawPath,
+        errorCode: action.errorCode,
+        errorMessage: action.errorMessage,
+        actionParams: action.params,
+      });
+    }
+  }, [hasValidationError, actionId, rawPath, action.errorCode, action.errorMessage]);
 
   return (
     <div
@@ -103,7 +122,7 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
               alignItems: 'center',
               gap: '8px',
               fontSize: '12px',
-              color: 'var(--vscode-editor-foreground)',
+              color: $('--text-primary'),
             }}
           >
             <span
@@ -119,7 +138,7 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
                   const oldContent = action.params.old_content || action.params.old_str || '';
                   const newContent = action.params.new_content || action.params.new_str || '';
                   extensionService.postMessage({
-                    command: 'openReplaceInFileDiff',
+                    command: 'openFileDiff',
                     filePath: rawPath,
                     oldContent,
                     newContent,
@@ -133,14 +152,14 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
                 (e.target as HTMLElement).style.textDecoration = 'none';
               }}
             >
-              REVERT
+              {getToolLabel('revert_file')}
             </span>
             <FileIcon path={rawPath} isFolder={false} style={{ width: '14px', height: '14px' }} />
             <span
               style={{
                 fontWeight: 500,
                 opacity: 0.8,
-                fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                 fontSize: '11px',
               }}
             >
@@ -150,7 +169,7 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
               <>
                 <span
                   style={{
-                    color: 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
+                    color: $('--success'),
                     fontWeight: 600,
                     fontSize: '11px',
                   }}
@@ -159,7 +178,7 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
                 </span>
                 <span
                   style={{
-                    color: 'var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c)',
+                    color: $('--error'),
                     fontWeight: 600,
                     fontSize: '11px',
                   }}
@@ -173,7 +192,7 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
                 style={{
                   fontSize: '10px',
                   opacity: 0.5,
-                  color: 'var(--vscode-descriptionForeground)',
+                  color: $('--text-secondary'),
                 }}
               >
                 reverted
@@ -191,18 +210,31 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
 
       {isError && <ErrorBlock content={errorMessage} showHeader={false} maxHeight="300px" />}
 
-      {!isCompleted && !isError && (
+      {!isCompleted && (
         <div style={{ padding: '0 12px 8px 0' }}>
-          <ExecuteButton
+          <ActionBar
+            action={action}
+            messageId={messageId}
+            actionIndex={actionIndex}
+            hasError={hasValidationError || isError}
             isCompleted={isCompleted}
-            isActive={isActionClicked}
-            isFailed={isError}
-            isLastMessage={isLastMessage}
-            onExecute={(e, type) => onToolClick(action, messageId, actionIndex, type)}
-            title="Revert File"
+            onAction={(e, type) =>
+              onToolClick(action, messageId, actionIndex, type)
+            }
           />
         </div>
+      )}
+      {hasValidationError && action.errorMessage && (
+        <ErrorBlock
+          content={`Validation Error: ${action.errorMessage}`}
+          compact={true}
+          maxHeight="300px"
+        />
       )}
     </div>
   );
 };
+
+function calculateLineDiff(arg0: any, arg1: any): { additions: any; deletions: any } {
+  throw new Error('Function not implemented.');
+}

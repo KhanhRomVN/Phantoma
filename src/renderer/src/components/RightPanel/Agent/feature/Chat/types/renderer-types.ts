@@ -15,12 +15,15 @@ export type GroupType =
       key: string;
     }
   | { type: 'markdown'; content: string; key: string }
+  | { type: 'code'; content: string; language?: string; key: string }
   | {
       type: 'question';
       options: string[];
       title?: string;
       optional?: boolean;
       questions?: Question[];
+      selectedOption?: string;
+      questionAnswers?: Record<string, string>;
       key: string;
     }
   | {
@@ -41,12 +44,15 @@ export type GroupType =
  */
 export type ContentBlock =
   | { type: 'markdown'; content: string }
+  | { type: 'code'; content: string; language: string }
   | {
       type: 'question';
       options: string[];
       title?: string;
       optional?: boolean;
       questions?: Question[];
+      selectedOption?: string;
+      questionAnswers?: Record<string, any>;
     }
   | { type: 'tool'; action: ToolAction; actionIndex?: number }
   | { type: 'thinking'; content: string }
@@ -71,6 +77,7 @@ export interface BaseRendererProps {
   isActiveGroup?: boolean;
   isLastMessage?: boolean;
   isLastItemInList?: boolean;
+  isRestored?: boolean;
   toolOutputs?: ToolOutputs;
   allMessages?: Message[];
   fileStatsMap: Record<string, { lines: number; loading: boolean }>;
@@ -91,6 +98,7 @@ export interface MergedRendererProps extends BaseRendererProps {
   singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>;
   onConfirmSingleLineAction?: (actionId: string) => void;
   onRejectSingleLineAction?: (actionId: string) => void;
+  rejectedActions?: Set<string>;
 }
 
 /**

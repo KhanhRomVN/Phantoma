@@ -1,4 +1,5 @@
-import React from "react";
+import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 /**
  * ContinuingIndicatorBox displays a pulsing indicator when the AI response
@@ -6,7 +7,7 @@ import React from "react";
  * used in ChatBody to show that content is being fetched.
  */
 export const ContinuingIndicatorBox: React.FC = () => {
-  const warningColor = "var(--vscode-editorWarning-foreground, #cca700)";
+  const warningColor = $('--warn');
 
   return (
     <div

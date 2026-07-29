@@ -2,6 +2,7 @@ import React from 'react';
 import { $ } from '@renderer/utils/color';
 import FilesPreviews from '../../../components/common/MessageInput/FilesPreviews';
 import MessageInput from '../../../components/common/MessageInput';
+import { FILE_MUTATION_TOOLS, type FileMutationTool } from '../../constants/constants';
 
 interface ChatFooterProps {
   message: string;
@@ -46,6 +47,15 @@ interface ChatFooterProps {
   externalFileInputRef: React.RefObject<HTMLInputElement | null>;
   handleExternalFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  gitStatus?: { items?: any[]; branch?: string } | null;
+  onOpenGitStatus?: () => void;
+  loadedConversationFileStats?: {
+    totalFiles: number;
+    totalAdditions: number;
+    totalDeletions: number;
+  } | null;
+  autoScrollPaused?: boolean;
+  scrollToBottom?: () => void;
 }
 
 const ChatFooter: React.FC<ChatFooterProps> = ({
@@ -91,7 +101,148 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   externalFileInputRef,
   handleExternalFileInputChange,
   handleFileInputChange,
+  gitStatus,
+  onOpenGitStatus,
+  loadedConversationFileStats,
+  autoScrollPaused = false,
+  scrollToBottom,
 }) => {
+  // Calculate response range - count all assistant responses in the conversation
+  const responseRange = React.useMemo(() => {
+    const assistantResponses = messages.filter((m: any) => m.role === 'assistant');
+    const totalResponses = assistantResponses.length;
+    if (totalResponses === 0) return null;
+    return { start: 1, end: totalResponses };
+  }, [messages]);
+
+  // Calculate response ranges per manual user message
+  const responseRanges = React.useMemo(() => {
+    const ranges: Array<{
+      start: number;
+      end: number;
+      isCurrent: boolean;
+      messageId?: string;
+      timestamp?: number;
+      fileChanges: Map<
+        string,
+        {
+          additions: number;
+          deletions: number;
+          toolType?: FileMutationTool;
+          content?: string;
+          oldContent?: string;
+          newContent?: string;
+        }
+      >;
+    }> = [];
+
+    let currentRangeStart = 1;
+    let assistantCount = 0;
+
+    messages.forEach((msg: any) => {
+      if (msg.role === 'assistant') {
+        assistantCount++;
+      }
+
+      if (msg.role === 'user') {
+        const isManual = !msg.actionIds || msg.actionIds.length === 0;
+        if (isManual) {
+          let rangeEnd = assistantCount;
+
+          ranges.push({
+            start: currentRangeStart,
+            end: rangeEnd,
+            isCurrent: false,
+            messageId: msg.id,
+            timestamp: msg.timestamp,
+            fileChanges: new Map(),
+          });
+
+          currentRangeStart = rangeEnd + 1;
+        }
+      }
+    });
+
+    // Mark the last range as current
+    if (ranges.length > 0) {
+      ranges[ranges.length - 1].isCurrent = true;
+    }
+
+    return [...ranges].reverse();
+  }, [messages]);
+
+  // Calculate file changes from conversation messages
+  const { conversationFileStats, fileChangesMap } = React.useMemo(() => {
+    const fileChanges = new Map<
+      string,
+      { additions: number; deletions: number; toolType?: FileMutationTool }
+    >();
+
+    messages.forEach((msg: any) => {
+      if (msg.role === 'assistant' && msg.content) {
+        // Match write_to_file
+        const writeMatches = msg.content.matchAll(
+          /<write_to_file[^>]*?>[\s\S]*?<file_path[^>]*?>(.*?)<\/file_path>[\s\S]*?<content[^>]*?>([\s\S]*?)<\/content>[\s\S]*?<\/write_to_file>/gi,
+        );
+        for (const match of writeMatches) {
+          const filePath = match[1]?.trim();
+          const content = match[2] || '';
+          if (filePath) {
+            if (!fileChanges.has(filePath)) {
+              fileChanges.set(filePath, { additions: 0, deletions: 0 });
+            }
+            const stats = fileChanges.get(filePath)!;
+            stats.additions += content.split('\n').length;
+          }
+        }
+
+        // Match replace_in_file
+        const replaceMatches = msg.content.matchAll(
+          /<replace_in_file[^>]*?>[\s\S]*?<file_path[^>]*?>(.*?)<\/file_path>[\s\S]*?<old_content[^>]*?>([\s\S]*?)<\/old_content>[\s\S]*?<new_content[^>]*?>([\s\S]*?)<\/new_content>[\s\S]*?<\/replace_in_file>/gi,
+        );
+        for (const match of replaceMatches) {
+          const filePath = match[1]?.trim();
+          const oldContent = match[2] || '';
+          const newContent = match[3] || '';
+          if (filePath) {
+            if (!fileChanges.has(filePath)) {
+              fileChanges.set(filePath, { additions: 0, deletions: 0 });
+            }
+            const stats = fileChanges.get(filePath)!;
+            stats.deletions += oldContent.split('\n').length;
+            stats.additions += newContent.split('\n').length;
+          }
+        }
+
+        // Match revert_file and SUBTRACT
+        const revertMatches = msg.content.matchAll(
+          /<revert_file[^>]*?>[\s\S]*?<file_path[^>]*?>(.*?)<\/file_path>[\s\S]*?<\/revert_file>/gi,
+        );
+        for (const match of revertMatches) {
+          const filePath = match[1]?.trim();
+          if (filePath && fileChanges.has(filePath)) {
+            const stats = fileChanges.get(filePath)!;
+            stats.additions = 0;
+            stats.deletions = 0;
+          }
+        }
+      }
+    });
+
+    const totalFiles = loadedConversationFileStats?.totalFiles ?? fileChanges.size;
+    const totalAdditions =
+      loadedConversationFileStats?.totalAdditions ??
+      Array.from(fileChanges.values()).reduce((sum, stat) => sum + stat.additions, 0);
+    const totalDeletions =
+      loadedConversationFileStats?.totalDeletions ??
+      Array.from(fileChanges.values()).reduce((sum, stat) => sum + stat.deletions, 0);
+
+    return {
+      conversationFileStats: { totalFiles, totalAdditions, totalDeletions },
+      fileChangesMap: fileChanges,
+    };
+  }, [messages, loadedConversationFileStats]);
+
   return (
     <div
       id="chat-footer-container"
@@ -182,6 +333,11 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
           onGitPullRequest={onGitPullRequest}
           isGitLoading={gitLoading}
           isGitStatusVisible={isGitStatusVisible}
+          gitStatus={gitStatus}
+          onOpenGitStatus={onOpenGitStatus}
+          conversationFileStats={conversationFileStats}
+          responseRange={responseRange}
+          responseRanges={responseRanges}
         />
       </div>
     </div>

@@ -1,12 +1,12 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 
-interface ThinkingRendererProps {
+interface ThinkingBlockProps {
   content: string;
   maxHeight?: number | string;
   isStreaming?: boolean;
 }
 
-export const ThinkingRenderer: React.FC<ThinkingRendererProps> = ({
+export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   content,
   maxHeight = 240,
   isStreaming = false,
@@ -138,4 +138,4 @@ export const ThinkingRenderer: React.FC<ThinkingRendererProps> = ({
   );
 };
 
-export default ThinkingRenderer;
+export default ThinkingBlock;

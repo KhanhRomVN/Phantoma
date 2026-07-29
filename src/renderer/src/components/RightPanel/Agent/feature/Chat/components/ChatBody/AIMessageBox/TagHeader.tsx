@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 
-// STYLES
-import "./blocks/run_command/TerminalBlock.css";
+import { $ } from '@renderer/utils/color';
 
 interface TagHeaderProps {
   title: React.ReactNode;
@@ -50,9 +49,57 @@ interface TagHeaderProps {
   onDotClick?: () => void;
 }
 
-// Display full path without truncation
+// Smart path truncation: dynamically truncate middle folders based on available width
 const truncatePath = (fullPath: string, maxLength: number = 35): string => {
-  return fullPath || "";
+  if (!fullPath) return "";
+
+  // If path is short enough, return as-is
+  if (fullPath.length <= maxLength) {
+    return fullPath;
+  }
+
+  const parts = fullPath.split("/");
+
+  // If only 1-2 parts, just return as-is
+  if (parts.length <= 2) {
+    return fullPath;
+  }
+
+  const fileName = parts[parts.length - 1];
+  const rootFolder = parts[0];
+
+  // Strategy: Keep first folder and last file, truncate middle progressively
+  // Try to fit as many folders as possible from both ends
+
+  // Start with minimum: root/.../filename
+  let result = `${rootFolder}/.../${fileName}`;
+  let currentLength = result.length;
+
+  // If this doesn't fit, return it anyway (minimum viable)
+  if (currentLength >= maxLength) {
+    return result;
+  }
+
+  // Try to add folders from right side (closest to filename)
+  let rightIndex = parts.length - 2; // Start before filename
+  const foldersToAdd = [];
+
+  while (rightIndex > 0) {
+    // rightIndex > 0 to skip root folder
+    const folderToTest = parts[rightIndex];
+    const testResult = `${rootFolder}/.../${[...foldersToAdd, folderToTest].reverse().join("/")}/${fileName}`;
+
+    if (testResult.length <= maxLength) {
+      foldersToAdd.push(folderToTest);
+      result = testResult;
+      currentLength = testResult.length;
+      rightIndex--;
+    } else {
+      break;
+    }
+  }
+
+  return result;
 };
 
 export const TagHeader: React.FC<TagHeaderProps> = ({
@@ -79,9 +126,10 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathContainerRef = useRef<HTMLDivElement>(null);
+  const pathSpanRef = useRef<HTMLSpanElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [pathContainerWidth, setPathContainerWidth] = useState<number>(0);
-
+  const [pathSpanWidth, setPathSpanWidth] = useState<number>(0);
   // Inject spin animation for loading circle ring
   useEffect(() => {
     const styleId = "circle-ring-spin-animation";
@@ -102,11 +150,13 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     if (!containerRef.current) return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
+        const newWidth = entry.contentRect.width;
+        setContainerWidth(newWidth);
       }
     });
     observer.observe(containerRef.current);
-    setContainerWidth(containerRef.current.offsetWidth || 0);
+    const initialWidth = containerRef.current.offsetWidth || 0;
+    setContainerWidth(initialWidth);
     return () => observer.disconnect();
   }, []);
 
@@ -114,16 +164,20 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     if (!pathContainerRef.current) return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setPathContainerWidth(entry.contentRect.width);
+        const newWidth = entry.contentRect.width;
+        setPathContainerWidth(newWidth);
       }
     });
     observer.observe(pathContainerRef.current);
-    setPathContainerWidth(pathContainerRef.current.offsetWidth || 0);
+    const initialWidth = pathContainerRef.current.offsetWidth || 0;
+    setPathContainerWidth(initialWidth);
     return () => observer.disconnect();
   }, []);
 
   const maxLength = useMemo(() => {
-    if (containerWidth === 0) return 35;
+    if (containerWidth === 0) {
+      return 999; // Default to very large to avoid premature truncation
+    }
 
     // Use actual path container width if available, otherwise estimate
     const availableWidth =
@@ -131,18 +185,34 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
         ? pathContainerWidth - 24 // subtract padding (20px left + 4px right)
         : Math.max(containerWidth - 80, 100); // less conservative estimate
 
-    // Font size is 10px, monospace ~6px per char
-    const chars = Math.floor(availableWidth / 6);
+    // Font size is 10px, monospace typically 6-6.5px per char (more accurate)
+    // Using 6.5px for better accuracy with VS Code's default monospace fonts
+    const chars = Math.floor(availableWidth / 6.5);
     const result = Math.max(chars, 30);
 
     return result;
-  }, [containerWidth, pathContainerWidth, path]);
+  }, [containerWidth, pathContainerWidth]);
 
   const displayPath = useMemo(() => {
     if (!path) return "";
     const truncated = truncatePath(path, maxLength);
     return truncated;
   }, [path, maxLength]);
+
+  // Track path span width to see actual content width
+  useEffect(() => {
+    if (!pathSpanRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newWidth = entry.contentRect.width;
+        setPathSpanWidth(newWidth);
+      }
+    });
+    observer.observe(pathSpanRef.current);
+    const initialWidth = pathSpanRef.current.offsetWidth || 0;
+    setPathSpanWidth(initialWidth);
+    return () => observer.disconnect();
+  }, [displayPath]); // Re-observe when displayPath changes
 
   // Track previous diagnostic counts to avoid redundant logs
   const prevDiagnosticCountsRef = useRef<{
@@ -182,15 +252,15 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     return { errors, warnings };
   }, [diagnostics, toolType, path]);
 
-  // Determine path color based on diagnostics
+  // Determine path color based on diagnostics (electron-specific enhancement)
   const pathColor = useMemo(() => {
     if (diagnosticCounts.errors > 0) {
-      return "var(--vscode-errorForeground, #ff4d4d)";
+      return $( '--error');
     }
     if (diagnosticCounts.warnings > 0) {
-      return "var(--vscode-editorWarning-foreground, #cca700)";
+      return $( '--warn');
     }
-    return "var(--vscode-descriptionForeground)";
+    return $( '--text-secondary');
   }, [diagnosticCounts]);
 
   // Generate tooltip text based on status
@@ -431,8 +501,9 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                     ref={pathContainerRef}
                     style={{
                       display: "flex",
-                      justifyContent: "flex-end",
+                      justifyContent: "flex-start",
                       alignItems: "center",
+                      paddingLeft: "20px",
                       paddingRight: "4px",
                       paddingTop: "4px",
                       marginTop: "2px",
@@ -451,30 +522,31 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                         width: "16px",
                         height: "12px",
                         borderLeft:
-                          "1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 20%, transparent)",
+                          "1px solid rgba(106, 122, 154, 0.20)",
                         borderBottom:
-                          "1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 20%, transparent)",
+                          "1px solid rgba(106, 122, 154, 0.20)",
                       }}
                     />
                     <span
+                      ref={pathSpanRef}
                       style={{
                         fontSize: "10px",
                         opacity: 0.6,
                         color: pathColor,
                         fontFamily:
-                          "var(--vscode-editor-font-family, monospace)",
+                          "monospace",
                         whiteSpace: "nowrap",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                        width: "100%",
-                        padding: "0 4px 0 20px",
                         borderRadius: "2px",
                         transition: "text-decoration 0.15s ease",
                         cursor: "default",
                         textDecoration: "none",
                         display: "flex",
                         alignItems: "center",
-                        gap: "6px",
+                        gap: "4px",
+                        flexShrink: 1,
+                        minWidth: 0,
                       }}
                       title={path}
                       onClick={(e) => {
@@ -486,7 +558,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                       onMouseEnter={(e) => {
                         e.currentTarget.style.textDecoration = "underline";
                         e.currentTarget.style.textDecorationColor =
-                          "var(--vscode-focusBorder, rgba(0, 122, 204, 0.6))";
+                          $( '--primary');
                         e.currentTarget.style.textUnderlineOffset = "2px";
                         e.currentTarget.style.cursor = "pointer";
                       }}
@@ -495,42 +567,91 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                         e.currentTarget.style.cursor = "default";
                       }}
                     >
+                      {displayPath}
+                    </span>
+                    {(diagnosticCounts.warnings > 0 ||
+                      diagnosticCounts.errors > 0) && (
                       <span
                         style={{
-                          flex: 1,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          flexShrink: 0,
+                          fontSize: "10px",
+                          fontWeight: 600,
+                          color: $('--text-secondary'),
+                          opacity: 0.6,
                         }}
                       >
-                        {displayPath}
-                      </span>
-                      {diagnosticCounts.errors > 0 && (
-                        <span
-                          style={{
-                            color: "var(--vscode-errorForeground, #ff4d4d)",
-                            fontWeight: 600,
-                            fontSize: "10px",
-                            flexShrink: 0,
-                          }}
-                        >
-                          [{diagnosticCounts.errors}]
-                        </span>
-                      )}
-                      {diagnosticCounts.errors === 0 &&
-                        diagnosticCounts.warnings > 0 && (
+                        [
+                        {diagnosticCounts.warnings > 0 && (
                           <span
                             style={{
-                              color:
-                                "var(--vscode-editorWarning-foreground, #cca700)",
-                              fontWeight: 600,
-                              fontSize: "10px",
-                              flexShrink: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "2px",
                             }}
                           >
-                            [{diagnosticCounts.warnings}]
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke={$('--warn')}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              style={{ opacity: 1.67 }}
+                            >
+                              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                              <path d="M12 9v4" />
+                              <path d="M12 17h.01" />
+                            </svg>
+                            {diagnosticCounts.warnings}
                           </span>
                         )}
-                    </span>
+                        {diagnosticCounts.warnings > 0 &&
+                          diagnosticCounts.errors > 0 &&
+                          " "}
+                        {diagnosticCounts.errors > 0 && (
+                          <span
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "2px",
+                            }}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke={$( '--error')}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              style={{ opacity: 1.67 }}
+                            >
+                              <path d="M12 20v-9" />
+                              <path d="M14 7a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4z" />
+                              <path d="M14.12 3.88 16 2" />
+                              <path d="M21 21a4 4 0 0 0-3.81-4" />
+                              <path d="M21 5a4 4 0 0 1-3.55 3.97" />
+                              <path d="M22 13h-4" />
+                              <path d="M3 21a4 4 0 0 1 3.81-4" />
+                              <path d="M3 5a4 4 0 0 0 3.55 3.97" />
+                              <path d="M6 13H2" />
+                              <path d="m8 2 1.88 1.88" />
+                              <path d="M9 7.13V6a3 3 0 1 1 6 0v1.13" />
+                            </svg>
+                            {diagnosticCounts.errors}
+                          </span>
+                        )}
+                        ]
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -552,16 +673,14 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                 >
                   <span
                     style={{
-                      color:
-                        "var(--vscode-gitDecoration-addedResourceForeground)",
+                      color: $( '--success'),
                     }}
                   >
                     +{diffStats.added}
                   </span>
                   <span
                     style={{
-                      color:
-                        "var(--vscode-gitDecoration-deletedResourceForeground)",
+                      color: $( '--error'),
                     }}
                   >
                     -{diffStats.removed}

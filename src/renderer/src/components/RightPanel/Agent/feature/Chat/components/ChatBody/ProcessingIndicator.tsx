@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface ProcessingIndicatorProps {
   isResponding?: boolean;
@@ -50,16 +51,7 @@ const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({
 
   return (
     <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--spacing-xs)",
-        padding: "0 var(--spacing-sm)",
-        marginTop: "-var(--spacing-sm)",
-        color: "var(--secondary-text)",
-        fontSize: "var(--font-size-md)", // 13px
-        marginBottom: "var(--spacing-md)",
-      }}
+      className="flex items-center gap-1 px-2 -mt-2 mb-4 text-text-secondary text-sm"
     >
       <span ref={timerDisplayRef} className="processing-text">
         Processing (0s)
@@ -69,11 +61,11 @@ const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({
         .processing-text {
           background: linear-gradient(
             to right,
-            var(--secondary-text) 0%,
-            var(--secondary-text) 40%,
-            var(--vscode-editor-foreground, #ffffff) 50%,
-            var(--secondary-text) 60%,
-            var(--secondary-text) 100%
+            ${$('--text-secondary')} 0%,
+            ${$('--text-secondary')} 40%,
+            ${$('--text-primary')} 50%,
+            ${$('--text-secondary')} 60%,
+            ${$('--text-secondary')} 100%
           );
           background-size: 200% auto;
           color: transparent;

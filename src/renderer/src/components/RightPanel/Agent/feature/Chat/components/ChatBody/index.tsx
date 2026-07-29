@@ -1,27 +1,19 @@
-import React, { useRef, useEffect, useMemo } from "react";
-import {
-  parseAIResponse,
-  ParsedResponse,
-  ToolAction,
-} from "../../services/ResponseParser";
-import { Message } from "../../types/message";
-import {
-  EXECUTION_STATUS,
-  TOOL_ACTION_TYPES,
-  TERMINAL_STATUS,
-} from "../../constants/constants";
-import { useSettings } from "@/context/SettingsContext";
-import { useCollapseSections } from "../../hooks/ui/useCollapseSections";
-import { useToolActions } from "../../hooks/tools/useToolActions";
-import { useScrollBehavior } from "../../hooks/ui/useScrollBehavior";
-import ChatBodySkeleton from "./ChatBodySkeleton";
-import SearchBar from "./SearchBar";
-import { ThinkingRenderer } from "./AIMessageBox/renderers/ThinkingRenderer";
-import ContinuingIndicator from "./ContinuingIndicatorBox";
-import ProcessingIndicator from "./ProcessingIndicator";
-import UserMessageBox from "./UserMessageBox";
-import AIMessageBox from "./AIMessageBox";
-import ModelInfoBar from "./ModelInfoBar";
+import React, { useRef, useEffect, useMemo } from 'react';
+import { $ } from '@renderer/utils/color';
+import { parseAIResponse, ParsedResponse, ToolAction } from '../../services/ResponseParser';
+import { Message } from '../../types/message';
+import { EXECUTION_STATUS, TOOL_ACTION_TYPES, TERMINAL_STATUS } from '../../constants/constants';
+import { useCollapseSections } from '../../hooks/ui/useCollapseSections';
+import { useToolActions } from '../../hooks/tools/useToolActions';
+import { useScrollBehavior } from '../../hooks/ui/useScrollBehavior';
+import ChatBodySkeleton from './ChatBodySkeleton';
+import SearchBar from './SearchBar';
+import { ThinkingRenderer } from './AIMessageBox/renderers/ThinkingRenderer';
+import ContinuingIndicator from './ContinuingIndicatorBox';
+import ProcessingIndicator from './ProcessingIndicator';
+import UserMessageBox from './UserMessageBox';
+import AIMessageBox from './AIMessageBox';
+import { useSettings } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
 
 interface ChatBodyProps {
   messages: Message[];
@@ -55,15 +47,8 @@ interface ChatBodyProps {
     status: (typeof EXECUTION_STATUS)[keyof typeof EXECUTION_STATUS];
   };
   toolOutputs?: Record<string, { output: string; isError: boolean }>;
-  terminalStatus?: Record<
-    string,
-    (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS]
-  >;
-  onLoadConversation?: (
-    conversationId: string,
-    tabId: number,
-    folderPath: string | null,
-  ) => void;
+  terminalStatus?: Record<string, (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS]>;
+  onLoadConversation?: (conversationId: string, tabId: number, folderPath: string | null) => void;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
   onAutoScrollPausedChange?: (paused: boolean) => void;
   scrollToBottomRef?: React.MutableRefObject<(() => void) | null>;
@@ -86,10 +71,7 @@ export interface ExtendedChatBodyProps extends ChatBodyProps {
     status: (typeof EXECUTION_STATUS)[keyof typeof EXECUTION_STATUS];
   };
   toolOutputs?: Record<string, { output: string; isError: boolean }>;
-  terminalStatus?: Record<
-    string,
-    (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS]
-  >;
+  terminalStatus?: Record<string, (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS]>;
   activeTerminalIds?: Set<string>;
   attachedTerminalIds?: Set<string>;
   conversationId?: string;
@@ -97,10 +79,7 @@ export interface ExtendedChatBodyProps extends ChatBodyProps {
   isRestored?: boolean;
   onContinue?: () => void;
   hasInitialMessage?: boolean;
-  singleLineReviewActions?: Record<
-    string,
-    { action: any; actionId: string; messageId: string }
-  >;
+  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>;
   onConfirmSingleLineAction?: (actionId: string) => void;
   onRejectSingleLineAction?: (actionId: string) => void;
   isSearchOpen?: boolean;
@@ -136,57 +115,57 @@ class MessageBoxErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("[MessageBox] Render error caught:", error, info);
+    console.error('[MessageBox] Render error caught:', error, info);
   }
 
   render() {
     if (this.state.hasError) {
-      const errorColor = "var(--vscode-errorForeground, #f44336)";
+      const errorColor = $('--error');
 
       return (
         <div
           style={{
-            padding: "12px 16px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
+            padding: '12px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
           }}
         >
           <div
             style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              width: "100%",
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              width: '100%',
             }}
           >
             <div
               style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "8px",
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
                 flex: 1,
                 minWidth: 0,
               }}
             >
               <div
                 style={{
-                  position: "relative",
-                  width: "16px",
-                  height: "16px",
+                  position: 'relative',
+                  width: '16px',
+                  height: '16px',
                   flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginTop: "2px",
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: '2px',
                 }}
                 title="Error - Render failed"
               >
                 <div
                   style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
                     backgroundColor: errorColor,
                   }}
                 />
@@ -196,16 +175,16 @@ class MessageBoxErrorBoundary extends React.Component<
             <div
               style={{
                 flexShrink: 0,
-                marginLeft: "8px",
+                marginLeft: '8px',
               }}
             >
               <span
                 style={{
-                  fontSize: "11px",
+                  fontSize: '11px',
                   fontWeight: 600,
                   color: errorColor,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
                 }}
               >
                 ERROR
@@ -216,22 +195,22 @@ class MessageBoxErrorBoundary extends React.Component<
           {this.state.error && (
             <div
               style={{
-                padding: "12px 16px",
-                borderRadius: "6px",
+                padding: '12px 16px',
+                borderRadius: '6px',
                 border: `1px solid color-mix(in srgb, ${errorColor} 30%, transparent)`,
                 background: `color-mix(in srgb, ${errorColor} 5%, transparent)`,
               }}
             >
               <pre
                 style={{
-                  fontSize: "11px",
-                  color: "var(--vscode-descriptionForeground)",
+                  fontSize: '11px',
+                  color: $('--text-secondary'),
                   margin: 0,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  maxHeight: "120px",
-                  overflowY: "auto",
-                  fontFamily: "var(--vscode-editor-font-family, monospace)",
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  maxHeight: '120px',
+                  overflowY: 'auto',
+                  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                 }}
               >
                 {this.state.error.message}
@@ -273,7 +252,7 @@ interface MessageBoxProps {
   isLastMessage?: boolean;
   hasNextAssistantMessage?: boolean;
   toolOutputs?: Record<string, { output: string; isError: boolean }>;
-  terminalStatus?: Record<string, "busy" | "free">;
+  terminalStatus?: Record<string, 'busy' | 'free'>;
   nextUserMessage?: Message;
   allMessages?: Message[];
   activeTerminalIds?: Set<string>;
@@ -292,10 +271,7 @@ interface MessageBoxProps {
   ) => void;
   onSelectOption?: (messageId: string, option: string) => void;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
-  singleLineReviewActions?: Record<
-    string,
-    { action: any; actionId: string; messageId: string }
-  >;
+  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>;
   onConfirmSingleLineAction?: (actionId: string) => void;
   onRejectSingleLineAction?: (actionId: string) => void;
   onGitConfirm?: (items: any[]) => void;
@@ -306,7 +282,11 @@ interface MessageBoxProps {
   isGitStatusVisible?: boolean;
   onBackToHome?: (summary: string) => void;
   responseNumber?: number | null;
+  onRetryRequest?: (messageId: string) => void;
+  isRestored?: boolean;
 }
+
+// Note: onRetryRequest đã có trong interface
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MessageBox Component (Inline - previously in MessageBox.tsx)
@@ -315,13 +295,8 @@ interface MessageBoxProps {
 const MessageBoxComponent: React.FC<MessageBoxProps> = (props) => {
   const { message, onRevertConversation } = props;
 
-  if (message.role === "user") {
-    return (
-      <UserMessageBox
-        message={message}
-        onRevertConversation={onRevertConversation}
-      />
-    );
+  if (message.role === 'user') {
+    return <UserMessageBox message={message} onRevertConversation={onRevertConversation} />;
   }
 
   return <AIMessageBox {...props} />;
@@ -329,8 +304,7 @@ const MessageBoxComponent: React.FC<MessageBoxProps> = (props) => {
 
 // Memoize to prevent unnecessary re-renders
 const MessageBox = React.memo(MessageBoxComponent, (prevProps, nextProps) => {
-  const isStreaming =
-    prevProps.isGenerating === true && nextProps.isGenerating === true;
+  const isStreaming = prevProps.isGenerating === true && nextProps.isGenerating === true;
 
   // During streaming, only check props that actually change per chunk
   if (isStreaming) {
@@ -394,7 +368,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   onConfirmSingleLineAction,
   onRejectSingleLineAction,
   isSearchOpen = false,
-  searchQuery = "",
+  searchQuery = '',
   onSearchQueryChange,
   onCloseSearch,
   onGitConfirm,
@@ -459,17 +433,16 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   }, [messages]);
 
   const { collapsedSections, toggleCollapse } = useCollapseSections();
-  const { clickedActions, handleToolClick, failedActions, rejectedActions } =
-    useToolActions({
-      onSendToolRequest,
-      onToolAction,
-      parsedMessages,
-      isProcessing,
-      isRestored,
-    });
+  const { clickedActions, handleToolClick, failedActions, rejectedActions } = useToolActions({
+    onSendToolRequest,
+    onToolAction,
+    parsedMessages,
+    isProcessing,
+    isRestored,
+  });
   const { autoScrollPaused, scrollToBottom } = useScrollBehavior(
-    messagesEndRef,
-    bodyRef,
+    messagesEndRef as any,
+    bodyRef as any,
     messages,
     isProcessing,
   );
@@ -489,32 +462,28 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   const hasUnexecutedAutoActions = useMemo(() => {
     if (!isRestored || messages.length === 0) return false;
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role !== "assistant") return false;
+    if (lastMessage.role !== 'assistant') return false;
     const parsed = parseAIResponse(lastMessage.content);
     if (!parsed.actions || parsed.actions.length === 0) return false;
-    const firstPendingAction = parsed.actions.find(
-      (_action: any, idx: number) => {
-        const actionId = `${lastMessage.id}-action-${idx}`;
-        const hasOutput = toolOutputs && toolOutputs[actionId];
-        const isClicked = clickedActions.has(actionId);
-        return !hasOutput && !isClicked;
-      },
-    );
+    const firstPendingAction = parsed.actions.find((_action: any, idx: number) => {
+      const actionId = `${lastMessage.id}-action-${idx}`;
+      const hasOutput = toolOutputs && toolOutputs[actionId];
+      const isClicked = clickedActions.has(actionId);
+      return !hasOutput && !isClicked;
+    });
     if (!firstPendingAction) return false;
     // Complex mode: always show all tools, never auto-approve
     return false;
   }, [messages, isRestored, toolOutputs, permissionMode, clickedActions]);
 
   const visibleMessages = useMemo(() => {
-    const filtered = messages.filter(
-      (msg) => !msg.uiHidden && !msg.isCancelled,
-    );
+    const filtered = messages.filter((msg) => !msg.uiHidden && !msg.isCancelled);
     return filtered;
   }, [messages, firstRequestMessageId]);
 
   const lastAssistantIndex = useMemo(() => {
     for (let i = visibleMessages.length - 1; i >= 0; i--) {
-      if (visibleMessages[i].role === "assistant") return i;
+      if (visibleMessages[i].role === 'assistant') return i;
     }
     return -1;
   }, [visibleMessages]);
@@ -522,7 +491,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   const isResponding = useMemo(() => {
     if (!isProcessing || visibleMessages.length === 0) return false;
     const lastMessage = visibleMessages[visibleMessages.length - 1];
-    if (lastMessage.role !== "assistant") return false;
+    if (lastMessage.role !== 'assistant') return false;
     const parsedMessage = parsedMessages.find((pm) => pm.id === lastMessage.id);
     if (!parsedMessage || !parsedMessage.parsed) return false;
     const parsed = parsedMessage.parsed;
@@ -534,8 +503,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
 
     // Check thinking blocks in contentBlocks
     const hasThinkingBlock =
-      parsed.contentBlocks &&
-      parsed.contentBlocks.some((b: any) => b.type === "thinking");
+      parsed.contentBlocks && parsed.contentBlocks.some((b: any) => b.type === 'thinking');
     if (hasThinkingBlock) {
       return false;
     }
@@ -557,15 +525,15 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
       parsed.contentBlocks &&
       parsed.contentBlocks.some((b: any) => {
         // Skip thinking blocks - they're rendered separately
-        if (b.type === "thinking") {
+        if (b.type === 'thinking') {
           return false;
         }
         switch (b.type) {
-          case "tool":
+          case 'tool':
             return true; // Tools count as content
-          case "code":
-          case "file":
-          case "markdown":
+          case 'code':
+          case 'file':
+          case 'markdown':
             return (b as any).content?.trim().length > 0;
           default:
             return false;
@@ -582,21 +550,19 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   return (
     <div
       ref={bodyRef}
-      className="chat-body-scroll"
+      className="chat-body-scroll bg-background"
       style={{
         flex: 1,
-        overflowY: "auto",
-        overflowX: "hidden",
-        padding: "var(--spacing-lg)",
-        paddingLeft: "24px",
-        backgroundColor: "var(--secondary-bg)",
-        paddingBottom:
-          visibleMessages.length > 0 ? "200px" : "var(--spacing-lg)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--spacing-md)",
-        fontSize: "14px",
-        position: "relative",
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        padding: '16px',
+        paddingLeft: '24px',
+        paddingBottom: visibleMessages.length > 0 ? '200px' : '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        fontSize: '14px',
+        position: 'relative',
       }}
     >
       {/* Show skeleton when loading conversation */}
@@ -609,40 +575,37 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
               searchQuery={searchQuery}
               onSearchQueryChange={onSearchQueryChange}
               onCloseSearch={onCloseSearch}
-              bodyRef={bodyRef}
+              bodyRef={bodyRef as any}
             />
           )}
 
           {(() => {
             let assistantResponseCount = 0;
             return visibleMessages.map((message, index) => {
-              const parsedMessage = parsedMessages.find(
-                (pm) => pm.id === message.id,
-              );
+              const parsedMessage = parsedMessages.find((pm) => pm.id === message.id);
               if (!parsedMessage || !parsedMessage.parsed) return null;
               const parsedContent = parsedMessage.parsed;
 
               // Track assistant response number
-              if (message.role === "assistant") {
+              if (message.role === 'assistant') {
                 assistantResponseCount++;
               }
               const currentResponseNumber =
-                message.role === "assistant" ? assistantResponseCount : null;
+                message.role === 'assistant' ? assistantResponseCount : null;
 
               const nextUserMessage = messages
                 .slice(messages.findIndex((m) => m.id === message.id) + 1)
-                .find((m) => m.role === "user");
+                .find((m) => m.role === 'user');
               const previousAssistantMessage = messages
                 .slice(
                   0,
                   messages.findIndex((m) => m.id === message.id),
                 )
                 .reverse()
-                .find((m) => m.role === "assistant");
+                .find((m) => m.role === 'assistant');
 
               const nextVisibleMessage = visibleMessages[index + 1];
-              const hasNextAssistantMessage =
-                nextVisibleMessage?.role === "assistant";
+              const hasNextAssistantMessage = nextVisibleMessage?.role === 'assistant';
 
               return (
                 <MessageBoxWithErrorBoundary
@@ -651,26 +614,19 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                   parsedContent={parsedContent}
                   nextUserMessage={nextUserMessage}
                   responseNumber={currentResponseNumber}
-                  isGenerating={
-                    isProcessing && index === visibleMessages.length - 1
-                  }
+                  isGenerating={isProcessing && index === visibleMessages.length - 1}
                   isCollapsed={
-                    message.role === "user"
-                      ? collapsedSections.has(`prompt-${message.id}`)
-                      : false
+                    message.role === 'user' ? collapsedSections.has(`prompt-${message.id}`) : false
                   }
-                  onToggleCollapse={() =>
-                    toggleCollapse(`prompt-${message.id}`)
-                  }
+                  onToggleCollapse={() => toggleCollapse(`prompt-${message.id}`)}
                   clickedActions={clickedActions}
                   failedActions={failedActions}
                   rejectedActions={rejectedActions}
                   onToolClick={handleToolClick}
                   executionState={executionState}
                   isLastMessage={
-                    message.role === "assistant" &&
-                    (index === visibleMessages.length - 1 ||
-                      index === lastAssistantIndex) &&
+                    message.role === 'assistant' &&
+                    (index === visibleMessages.length - 1 || index === lastAssistantIndex) &&
                     hasNextAssistantMessage === false
                   }
                   hasNextAssistantMessage={hasNextAssistantMessage}
@@ -694,6 +650,51 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                   isGitProcessing={isGitProcessing}
                   isGitStatusVisible={isGitStatusVisible}
                   onBackToHome={onBackToHome}
+                  isRestored={isRestored}
+                  onRetryRequest={(messageId: string) => {
+                    const msgIndex = messages.findIndex((m) => m.id === messageId);
+                    if (msgIndex <= 0) return;
+
+                    let prevUserMsg: Message | null = null;
+                    for (let i = msgIndex - 1; i >= 0; i--) {
+                      if (messages[i].role === 'user') {
+                        prevUserMsg = messages[i];
+                        break;
+                      }
+                    }
+
+                    if (!prevUserMsg) return;
+
+                    if (onRevertConversation) {
+                      onRevertConversation(messageId, message.timestamp);
+                    }
+
+                    if (onSendMessage && prevUserMsg.rawRequest) {
+                      setTimeout(() => {
+                        const rawReq = prevUserMsg!.rawRequest || '';
+                        const userContentMatch = rawReq.match(/<zen-user-content>\n?([\s\S]*?)\n?<\/zen-user-content>/);
+
+                        let contentToSend: string;
+                        let shouldSkipLogic: boolean;
+
+                        if (userContentMatch) {
+                          contentToSend = userContentMatch[1];
+                          shouldSkipLogic = false;
+                        } else {
+                          contentToSend = rawReq;
+                          shouldSkipLogic = true;
+                        }
+
+                        onSendMessage(
+                          contentToSend,
+                          prevUserMsg!.uploadedFiles,
+                          undefined,
+                          undefined,
+                          shouldSkipLogic,
+                        );
+                      }, 100);
+                    }
+                  }}
                 />
               );
             });
@@ -702,15 +703,14 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
           {(() => {
             const lastMessage = visibleMessages[visibleMessages.length - 1];
             const isRenderingThinking =
-              lastMessage && lastMessage.role === "assistant" && isProcessing;
+              lastMessage && lastMessage.role === 'assistant' && isProcessing;
 
             if (!isRenderingThinking) {
               return null;
             }
 
             // Check for thinking from SSE stream (unclosed thinking)
-            const hasSSEThinking =
-              lastMessage.thinking && lastMessage.thinking.trim();
+            const hasSSEThinking = lastMessage.thinking && lastMessage.thinking.trim();
 
             if (hasSSEThinking) {
               return (
@@ -723,9 +723,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
             }
 
             // Check for unclosed thinking blocks in parsed content
-            const parsedMessage = parsedMessages.find(
-              (pm) => pm.id === lastMessage.id,
-            );
+            const parsedMessage = parsedMessages.find((pm) => pm.id === lastMessage.id);
             if (!parsedMessage || !parsedMessage.parsed) {
               return null;
             }
@@ -734,18 +732,12 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
             const contentBlocks = parsedMessage.parsed.contentBlocks || [];
             const lastBlock = contentBlocks[contentBlocks.length - 1];
             const isLastBlockUnclosedThinking =
-              lastBlock &&
-              lastBlock.type === "thinking" &&
-              lastBlock.content?.trim();
+              lastBlock && lastBlock.type === 'thinking' && lastBlock.content?.trim();
 
             // Only render if the LAST block is a thinking block (means thinking is still open/unclosed)
             if (isLastBlockUnclosedThinking) {
               return (
-                <ThinkingRenderer
-                  content={lastBlock.content!}
-                  maxHeight={240}
-                  isStreaming={true}
-                />
+                <ThinkingRenderer content={lastBlock.content!} maxHeight={240} isStreaming={true} />
               );
             }
 
@@ -755,54 +747,54 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
           {hasUnexecutedAutoActions && onContinue && (
             <div
               style={{
-                marginTop: "12px",
-                marginBottom: "12px",
-                display: "flex",
+                marginTop: '12px',
+                marginBottom: '12px',
+                display: 'flex',
               }}
             >
               <button
                 onClick={onContinue}
                 style={{
                   backgroundColor:
-                    "color-mix(in srgb, var(--vscode-button-background, #007acc) 15%, transparent)",
-                  color: "var(--vscode-button-background, #007acc)",
+                    `color-mix(in srgb, ${$('--primary')} 15%, transparent)`,
+                  color: $('--primary'),
                   border:
-                    "1px solid color-mix(in srgb, var(--vscode-button-background, #007acc) 30%, transparent)",
-                  padding: "6px 16px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "11px",
+                    `1px solid color-mix(in srgb, ${$('--primary')} 30%, transparent)`,
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '11px',
                   fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px",
-                  height: "28px",
-                  boxSizing: "border-box",
-                  transition: "all 0.2s ease",
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  height: '28px',
+                  boxSizing: 'border-box',
+                  transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor =
-                    "color-mix(in srgb, var(--vscode-button-background, #007acc) 25%, transparent)";
+                    `color-mix(in srgb, ${$('--primary')} 25%, transparent)`;
                   e.currentTarget.style.borderColor =
-                    "color-mix(in srgb, var(--vscode-button-background, #007acc) 50%, transparent)";
+                    `color-mix(in srgb, ${$('--primary')} 50%, transparent)`;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor =
-                    "color-mix(in srgb, var(--vscode-button-background, #007acc) 15%, transparent)";
+                    `color-mix(in srgb, ${$('--primary')} 15%, transparent)`;
                   e.currentTarget.style.borderColor =
-                    "color-mix(in srgb, var(--vscode-button-background, #007acc) 30%, transparent)";
+                    `color-mix(in srgb, ${$('--primary')} 30%, transparent)`;
                 }}
               >
                 <span
                   className="codicon codicon-play"
                   style={{
-                    fontSize: "12px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    fontSize: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 />
                 <span>Continue Task</span>
@@ -826,11 +818,11 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
           background: transparent;
         }
         .chat-body-scroll::-webkit-scrollbar-thumb {
-          background: var(--vscode-scrollbarSlider-background, rgba(128, 128, 128, 0.4));
+          background: ${$('--text-secondary')}66;
           border-radius: 4px;
         }
         .chat-body-scroll::-webkit-scrollbar-thumb:hover {
-          background: var(--vscode-scrollbarSlider-hoverBackground, rgba(128, 128, 128, 0.6));
+          background: ${$('--text-secondary')}99;
         }
         .chat-body-scroll {
           scrollbar-width: thin;

@@ -1,7 +1,9 @@
-import React from "react";
+import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 // COMPONENTS
-import WarningBlock from "../blocks/warning/WarningBlock";
+import WarningBlock from '../blocks/WarningBlock';
+import { TagHeader } from '../TagHeader';
 
 interface WarningRendererProps {
   label: string;
@@ -17,15 +19,21 @@ interface WarningRendererProps {
 export const WarningRenderer: React.FC<WarningRendererProps> = ({
   label,
   message,
-  warningColor = "var(--vscode-editorWarning-foreground, #cca700)",
+  warningColor = $('--warn'),
   isPulsing = false,
 }) => {
   return (
-    <WarningBlock
-      label={label}
-      message={message}
-      warningColor={warningColor}
-      isPulsing={isPulsing}
-    />
+    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <TagHeader
+        title={label}
+        statusColor={warningColor}
+        isPartial={isPulsing}
+        statusTooltip="Warning"
+      />
+      <WarningBlock
+        message={message}
+        warningColor={warningColor}
+      />
+    </div>
   );
 };

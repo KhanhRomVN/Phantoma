@@ -62,12 +62,43 @@ export interface Message {
     content: string;
     file_id?: string;
   }>;
-  /** Attached items (files/folders/snippets) sent with this message */
+/** Attached items (files/folders/snippets) sent with this message */
   attachedItems?: Array<{
     id: string;
     path: string;
-    type: "file" | "folder" | "external" | "text-snippet";
+    type: "file" | "external" | "text-snippet";
     content?: string;
     lineCount?: number;
   }>;
+  /** Parse debug information for troubleshooting parse errors */
+  parseDebugInfo?: {
+    totalActions: number;
+    successfulActions: number;
+    failedActions: number;
+    actions: Array<{
+      index: number;
+      type: string;
+      params: Record<string, any>;
+      status: "success" | "error";
+      errorMessage?: string;
+      errorCode?: string;
+      extractedParams?: Array<{
+        name: string;
+        found: boolean;
+        length?: number;
+      }>;
+    }>;
+    contentBlocks?: Array<{
+      index: number;
+      type: string;
+      contentLength: number;
+      language?: string;
+      actionIndex?: number;
+    }>;
+    contentBlockStats?: Record<string, number>;
+    parseError?: {
+      message: string;
+      rawContent: string;
+    };
+  };
 }

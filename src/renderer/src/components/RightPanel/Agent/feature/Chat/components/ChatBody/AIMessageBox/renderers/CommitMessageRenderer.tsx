@@ -1,4 +1,8 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
+
+// CONSTANTS
+import { TOOL_ACTION_TYPES, getToolLabel } from '../../../../constants/constants';
 
 // TYPES
 import { ToolAction } from '../../../../services/ResponseParser';
@@ -41,10 +45,10 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
   const [isCommitted, setIsCommitted] = React.useState(false);
 
   const statusColor = isRejected
-    ? 'var(--vscode-errorForeground, #ff4d4d)'
+    ? $('--error')
     : isCommitted
-      ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
-      : 'var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)';
+      ? $('--success')
+      : $('--teal');
 
   return (
     <div
@@ -67,11 +71,11 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                 alignItems: 'center',
                 gap: '8px',
                 fontSize: '12px',
-                color: 'var(--vscode-editor-foreground)',
+                color: $('--text-primary'),
               }}
             >
               <span style={{ fontWeight: 600, opacity: 0.8 }}>
-                COMMIT MESSAGE{branch ? ` (${branch})` : ''}
+                {getToolLabel("commit_message")}{branch ? ` (${branch})` : ''}
               </span>
               <span className="codicon codicon-git-commit" style={{ fontSize: '14px' }} />
               {isRejected && (
@@ -79,9 +83,9 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                   style={{
                     fontSize: '10px',
                     fontWeight: 600,
-                    color: 'var(--vscode-errorForeground, #ff4d4d)',
+                    color: $('--error'),
                     background:
-                      'color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 15%, transparent)',
+                      `color-mix(in srgb, ${$('--error')} 15%, transparent)`,
                     padding: '2px 8px',
                     borderRadius: '4px',
                     marginLeft: '4px',
@@ -95,9 +99,9 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                   style={{
                     fontSize: '10px',
                     fontWeight: 600,
-                    color: 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
+                    color: $('--success'),
                     background:
-                      'color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 15%, transparent)',
+                      `color-mix(in srgb, ${$('--success')} 15%, transparent)`,
                     padding: '2px 8px',
                     borderRadius: '4px',
                     marginLeft: '4px',
@@ -115,14 +119,14 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
           <div
             style={{
               padding: '12px 14px',
-              background: 'var(--vscode-editor-background, #1e1e1e)',
+              background: $('--card-background'),
               borderRadius: '6px',
-              border: '1px solid var(--vscode-widget-border, #454545)',
-              fontFamily: 'var(--vscode-editor-font-family, monospace)',
+              border: `1px solid ${$('--border')}`,
+              fontFamily: '"JetBrains Mono", "Fira Code", monospace',
               fontSize: '13px',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
-              color: 'var(--vscode-foreground, #cccccc)',
+              color: $('--text-primary'),
               maxHeight: 'auto',
               overflowY: 'visible',
             }}
@@ -134,18 +138,18 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                   marginTop: '12px',
                   padding: '10px 14px',
                   background:
-                    'color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 10%, transparent)',
+                    `color-mix(in srgb, ${$('--success')} 10%, transparent)`,
                   border:
-                    '1px solid color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 30%, transparent)',
+                    `1px solid color-mix(in srgb, ${$('--success')} 30%, transparent)`,
                   borderRadius: '6px',
                   fontSize: '12px',
-                  color: 'var(--vscode-foreground)',
+                  color: $('--text-primary'),
                 }}
               >
                 <div
                   style={{
                     fontWeight: 600,
-                    color: 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
+                    color: $('--success'),
                     marginBottom: '4px',
                   }}
                 >
@@ -155,10 +159,10 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                   Hãy chạy{' '}
                   <code
                     style={{
-                      background: 'var(--vscode-textCodeBlock-background)',
+                      background: $('--card-background'),
                       padding: '2px 6px',
                       borderRadius: '4px',
-                      fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                      fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                       fontSize: '11px',
                     }}
                   >
@@ -184,15 +188,15 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                   if (vscodeApi) {
                     setIsCommitted(true);
                     vscodeApi.postMessage({
-                      command: 'acceptCommitMessage',
+                      command: 'gitCommit',
                       message: messageContent,
                     });
                   }
                 }}
                 style={{
-                  background: `color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #4ec9b0) 15%, transparent)`,
-                  color: 'var(--vscode-editorBracketHighlight-foreground2, #4ec9b0)',
-                  border: `1px solid color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #4ec9b0) 30%, transparent)`,
+                  background: `color-mix(in srgb, $('--teal') 15%, transparent)`,
+                  color: $('--teal'),
+                  border: `1px solid color-mix(in srgb, $('--teal') 30%, transparent)`,
                   padding: '4px 10px',
                   borderRadius: '6px',
                   fontSize: '11px',
@@ -204,10 +208,10 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                   height: '24px',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #4ec9b0) 25%, transparent)`;
+                  e.currentTarget.style.background = `color-mix(in srgb, $('--teal') 25%, transparent)`;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #4ec9b0) 15%, transparent)`;
+                  e.currentTarget.style.background = `color-mix(in srgb, $('--teal') 15%, transparent)`;
                 }}
               >
                 <svg
@@ -236,9 +240,9 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                   }
                 }}
                 style={{
-                  background: `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 15%, transparent)`,
-                  color: 'var(--vscode-errorForeground, #ff4d4d)',
-                  border: `1px solid color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 30%, transparent)`,
+                  background: `color-mix(in srgb, $('--error') 15%, transparent)`,
+                  color: $('--error'),
+                  border: `1px solid color-mix(in srgb, $('--error') 30%, transparent)`,
                   padding: '4px 10px',
                   borderRadius: '6px',
                   fontSize: '11px',
@@ -253,12 +257,12 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                 disabled={isRejected}
                 onMouseEnter={(e) => {
                   if (!isRejected) {
-                    e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 25%, transparent)`;
+                    e.currentTarget.style.background = `color-mix(in srgb, $('--error') 25%, transparent)`;
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isRejected) {
-                    e.currentTarget.style.background = `color-mix(in srgb, var(--vscode-errorForeground, #ff4d4d) 15%, transparent)`;
+                    e.currentTarget.style.background = `color-mix(in srgb, $('--error') 15%, transparent)`;
                   }
                 }}
               >

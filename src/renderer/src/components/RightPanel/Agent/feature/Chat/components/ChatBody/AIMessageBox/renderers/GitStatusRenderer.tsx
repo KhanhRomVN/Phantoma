@@ -1,21 +1,19 @@
-import React, { useMemo } from "react";
+import React, { useMemo } from 'react';
+import { $ } from '@renderer/utils/color';
 
 // CONSTANTS
-import { TOOL_ACTION_TYPES } from "@/features/chat/constants/constants";
+import { TOOL_ACTION_TYPES, getToolLabel } from '../../../../constants/constants';
 
 // TYPES
-import { ToolAction } from "@/features/chat/services/ResponseParser";
-import { GitStatusItem } from "@/features/chat/types/tool-types";
+import { ToolAction } from '../../../../services/ResponseParser';
+import { GitStatusItem } from '../../../../types/tool-types';
 
 // UTILS
-import { parseGitStatusOutput } from "@/features/chat/utils/gitUtils";
+import { parseGitStatusOutput } from '../../../../utils/gitUtils';
 
 // COMPONENTS
-import { TagHeader } from "../TagHeader";
-import { GitStatusBlock } from "../blocks/git_status/GitStatusBlock";
-
-// STYLES
-import "../blocks/run_command/TerminalBlock.css";
+import { TagHeader } from '../TagHeader';
+import GitStatusBlock from '../blocks/GitStatusBlock';
 
 interface GitStatusRendererProps {
   action: ToolAction;
@@ -104,16 +102,16 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
   const getStatusColor = () => {
     if (hasOutput) {
       const output = toolOutputs[actionId];
-      if (output.isError) return "var(--vscode-errorForeground, #f14c4c)";
-      return "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)";
+      if (output.isError) return $('--error');
+      return $('--warn');
     }
-    return "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)";
+    return $('--warn');
   };
 
   const getTitleParts = () => {
     if (hasOutput) {
       const output = toolOutputs[actionId];
-      if (output.isError) return { label: "GIT STATUS", stats: "Error" };
+      if (output.isError) return { label: getToolLabel("git_status"), stats: "Error" };
       const totalAdded = effectiveItems.reduce(
         (sum, item) => sum + (item.added || 0),
         0,
@@ -123,13 +121,13 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
         0,
       );
       return {
-        label: `GIT STATUS${branch ? ` (${branch})` : ""}`,
+        label: `${getToolLabel("git_status")}${branch ? ` (${branch})` : ""}`,
         stats: `${effectiveItems.length} changes +${totalAdded} -${totalDeleted}`,
         totalAdded,
         totalDeleted,
       };
     }
-    return { label: "GIT STATUS", stats: "" };
+    return { label: getToolLabel("git_status"), stats: "" };
   };
 
   const handleConfirm = () => {
@@ -166,7 +164,7 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
               alignItems: "center",
               gap: "6px",
               fontSize: "12px",
-              color: "var(--vscode-editor-foreground)",
+              color: $('--text-primary'),
             }}
           >
             <span style={{ fontWeight: 600, opacity: 0.8 }}>
@@ -189,7 +187,7 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
                 <span
                   style={{
                     color:
-                      "var(--vscode-gitDecoration-addedResourceForeground, #3fb950)",
+                      $('--success'),
                     fontWeight: 600,
                     fontSize: "11px",
                   }}
@@ -199,7 +197,7 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
                 <span
                   style={{
                     color:
-                      "var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c)",
+                      $('--error'),
                     fontWeight: 600,
                     fontSize: "11px",
                   }}

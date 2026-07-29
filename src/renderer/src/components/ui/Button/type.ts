@@ -1,6 +1,20 @@
 import React from 'react';
 
-export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'ghost' | 'error';
+export type ButtonVariant =
+  | 'solid'
+  | 'outline'
+  | 'soft'
+  | 'ghost'
+  | 'error'
+  | 'soft-info'
+  | 'soft-success'
+  | 'soft-warning'
+  | 'soft-error'
+  | 'solid-info'
+  | 'solid-success'
+  | 'solid-warning'
+  | 'solid-error';
+
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

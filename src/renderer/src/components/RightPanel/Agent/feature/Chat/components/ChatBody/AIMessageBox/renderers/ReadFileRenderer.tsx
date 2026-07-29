@@ -1,20 +1,24 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
+
+// CONSTANTS
+import { getToolLabel } from '../../../../constants/constants';
 
 // SERVICES
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 // TYPES
-import { BaseRendererProps, Diagnostic } from '@/features/chat/types/renderer-types';
+import { BaseRendererProps, Diagnostic } from '../../../../types/renderer-types';
 
 // UTILS
 import { collectConvFilePaths, getNextUserMessage } from '../../../../utils/renderer-utils';
 
 // ICONS
-import FileIcon from '@/icons/FileIcon';
+import FileIcon from '@renderer/components/common/FileIcon';
 
 // COMPONENTS
 import { TagHeader } from '../TagHeader';
-import ErrorBlock from '../blocks/error/ErrorBlock';
+import ErrorBlock from '../blocks/ErrorBlock';
 
 export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
   action,
@@ -30,7 +34,6 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
   conversationId,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
-  const [showRawView, setShowRawView] = React.useState(false);
   const [cachedDiagnostics, setCachedDiagnostics] = React.useState<Diagnostic[] | null>(null);
 
   const actionId = `${messageId}-action-${actionIndex}`;
@@ -171,7 +174,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
               alignItems: 'center',
               gap: '8px',
               fontSize: '12px',
-              color: 'var(--vscode-editor-foreground)',
+              color: $('--text-primary'),
             }}
           >
             <span
@@ -190,7 +193,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
                 }
               }}
             >
-              READ
+              {getToolLabel('read_file')}
             </span>
             <span
               onClick={(e) => {
@@ -214,7 +217,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
               style={{
                 fontWeight: 500,
                 opacity: 0.9,
-                fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                 fontSize: '11px',
                 cursor: 'pointer',
               }}
@@ -236,8 +239,8 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
                   opacity: 0.5,
                   fontSize: '10px',
                   marginLeft: '6px',
-                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                  color: 'var(--vscode-descriptionForeground)',
+                  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                  color: $('--text-secondary'),
                 }}
               >
                 {lineRangeText}
@@ -247,12 +250,12 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
         }
         statusColor={
           isError
-            ? 'var(--vscode-errorForeground)'
+            ? $('--error')
             : isCompleted
-              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
+              ? $('--success')
               : isActiveGroup
-                ? 'var(--vscode-descriptionForeground)'
-                : 'var(--vscode-descriptionForeground)'
+                ? $('--text-secondary')
+                : $('--text-secondary')
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !isCompleted}
@@ -278,32 +281,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
             path: clickedPath,
           });
         }}
-        onDotClick={() => {
-          setShowRawView(!showRawView);
-        }}
       />
-
-      {showRawView && (
-        <div
-          style={{
-            marginTop: '4px',
-            padding: '8px 12px',
-            backgroundColor:
-              'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-            border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
-            borderRadius: '4px',
-            fontFamily: 'var(--vscode-editor-font-family, monospace)',
-            fontSize: '11px',
-            lineHeight: '1.5',
-            color: 'var(--vscode-editor-foreground)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            overflowX: 'auto',
-          }}
-        >
-          {action.rawXml || JSON.stringify(action, null, 2)}
-        </div>
-      )}
 
       {isError && errorMessage && (
         <ErrorBlock content={errorMessage} compact={true} maxHeight="300px" />

@@ -1,21 +1,25 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
+
+// CONSTANTS
+import { getToolLabel } from '../../../../constants/constants';
 
 // SERVICES
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 // TYPES
-import { BaseRendererProps } from '@/features/chat/types/renderer-types';
+import { BaseRendererProps } from '../../../../types/renderer-types';
 
 // UTILS
 import { getNextUserMessage, buildTreeFromPaths } from '../../../../utils/renderer-utils';
 
 // ICONS
-import FileIcon from '@/icons/FileIcon';
+import FileIcon from '@renderer/components/common/FileIcon';
 
 // COMPONENTS
 import { TagHeader } from '../TagHeader';
-import { TreeBlock } from '../blocks/tree/TreeBlock';
-import ErrorBlock from '../blocks/error/ErrorBlock';
+import { TreeBlock } from '../blocks/TreeBlock';
+import ErrorBlock from '../blocks/ErrorBlock';
 
 export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
   action,
@@ -31,7 +35,6 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
   conversationId,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
-  const [showRawView, setShowRawView] = React.useState(false);
 
   const actionId = `${messageId}-action-${actionIndex}`;
 
@@ -77,13 +80,13 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
               flexDirection: 'column',
               gap: '4px',
               fontSize: '12px',
-              color: 'var(--vscode-editor-foreground)',
+              color: $('--text-primary'),
               cursor: isCompleted ? 'pointer' : 'default',
             }}
             onClick={isCompleted ? () => setIsCollapsed((v) => !v) : undefined}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 600, opacity: 0.8 }}>FIND</span>
+              <span style={{ fontWeight: 600, opacity: 0.8 }}>{getToolLabel("find_files")}</span>
               {isPartial && !isCompleted && (
                 <span
                   style={{
@@ -111,7 +114,7 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
                     style={{
                       opacity: 0.5,
                       fontSize: '10px',
-                      color: 'var(--vscode-descriptionForeground)',
+                      color: $('--text-secondary'),
                     }}
                   >
                     {fileCount} {fileCount === 1 ? 'file' : 'files'}
@@ -156,7 +159,7 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
                         />
                         <span
                           style={{
-                            fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                             fontSize: '11px',
                             fontWeight: 500,
                             opacity: 0.9,
@@ -175,43 +178,18 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
         }
         statusColor={
           isError
-            ? 'var(--vscode-errorForeground)'
+            ? $('--error')
             : isCompleted
-              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
+              ? $('--success')
               : isActiveGroup
-                ? 'var(--vscode-descriptionForeground)'
-                : 'var(--vscode-descriptionForeground)'
+                ? $('--text-secondary')
+                : $('--text-secondary')
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !isCompleted}
         toolType="find_files"
         isPartial={isPartial}
-        onDotClick={() => {
-          setShowRawView(!showRawView);
-        }}
       />
-
-      {showRawView && (
-        <div
-          style={{
-            marginTop: '4px',
-            padding: '8px 12px',
-            backgroundColor:
-              'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-            border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
-            borderRadius: '4px',
-            fontFamily: 'var(--vscode-editor-font-family, monospace)',
-            fontSize: '11px',
-            lineHeight: '1.5',
-            color: 'var(--vscode-editor-foreground)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            overflowX: 'auto',
-          }}
-        >
-          {action.rawXml || JSON.stringify(action, null, 2)}
-        </div>
-      )}
 
       {isError && errorMessage && (
         <ErrorBlock content={errorMessage} compact={true} maxHeight="300px" />
@@ -237,11 +215,10 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
                 <div
                   style={{
                     padding: '10px 12px',
-                    backgroundColor:
-                      'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-                    border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+                    backgroundColor: $('--card-background'),
+                    border: `1px solid ${$('--border')}`,
                     borderRadius: '4px',
-                    color: 'var(--vscode-descriptionForeground)',
+                    color: $('--text-secondary'),
                     opacity: 0.7,
                     fontStyle: 'italic',
                     fontSize: '11px',
@@ -258,9 +235,8 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
               <div
                 style={{
                   padding: '10px 12px',
-                  backgroundColor:
-                    'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-                  border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+                  backgroundColor: $('--card-background'),
+                  border: `1px solid ${$('--border')}`,
                   borderRadius: '4px',
                   maxHeight: '400px',
                   overflowY: 'auto',

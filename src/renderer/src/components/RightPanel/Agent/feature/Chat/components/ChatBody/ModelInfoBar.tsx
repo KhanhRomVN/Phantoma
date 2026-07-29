@@ -65,9 +65,9 @@ const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
     padding: "8px 16px",
     margin: "8px 0",
     background:
-      "color-mix(in srgb, var(--vscode-badge-background, #4d4d4d) 10%, transparent)",
+      "color-mix(in srgb, $('--primary') 10%, transparent)",
     border:
-      "1.5px dashed color-mix(in srgb, var(--vscode-badge-background, #4d4d4d) 40%, transparent)",
+      "1.5px dashed color-mix(in srgb, $('--primary') 40%, transparent)",
     borderRadius: "10px",
     overflow: "hidden",
   };
@@ -94,7 +94,7 @@ const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
 
   const codiconStyle: React.CSSProperties = {
     fontSize: "18px",
-    color: "var(--vscode-badge-foreground, #ffffff)",
+    color: "$('--text-primary')",
   };
 
   const contentStyle: React.CSSProperties = {
@@ -111,20 +111,20 @@ const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
   const modelNameStyle: React.CSSProperties = {
     fontSize: "13px",
     fontWeight: 700,
-    color: "var(--vscode-badge-foreground, #ffffff)",
-    fontFamily: "var(--vscode-editor-font-family, monospace)",
+    color: "$('--text-primary')",
+    fontFamily: ""JetBrains Mono", "Fira Code", monospace",
   };
 
   const separatorStyle: React.CSSProperties = {
     fontSize: "12px",
-    color: "var(--vscode-descriptionForeground)",
+    color: "$('--text-secondary')",
     opacity: 0.5,
   };
 
   const accountStyle: React.CSSProperties = {
     fontSize: "11px",
     fontWeight: 500,
-    color: "var(--vscode-descriptionForeground)",
+    color: "$('--text-secondary')",
     opacity: 0.9,
   };
 
@@ -152,7 +152,7 @@ const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
     borderRadius: "10px",
     padding: "1.5px",
     background:
-      "linear-gradient(135deg, color-mix(in srgb, var(--vscode-badge-background, #4d4d4d) 60%, transparent), color-mix(in srgb, var(--vscode-focusBorder, #007acc) 40%, transparent), color-mix(in srgb, var(--vscode-badge-background, #4d4d4d) 60%, transparent))",
+      "linear-gradient(135deg, color-mix(in srgb, $('--primary') 60%, transparent), color-mix(in srgb, $('--primary') 40%, transparent), color-mix(in srgb, $('--primary') 60%, transparent))",
     opacity: 0,
     pointerEvents: "none",
   };

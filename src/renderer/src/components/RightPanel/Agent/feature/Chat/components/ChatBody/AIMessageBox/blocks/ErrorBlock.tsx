@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { $ } from '@renderer/utils/color';
-import { ToolHeader } from '../../../tools/ToolHeader';
 
 export interface ErrorBlockProps {
   content: string;
@@ -8,14 +7,11 @@ export interface ErrorBlockProps {
   isPartial?: boolean;
   isLast?: boolean;
   isLastMessage?: boolean;
-  /** Whether to show the ToolHeader (default: true) */
   showHeader?: boolean;
-  /** Padding left for content when header is hidden */
   contentPaddingLeft?: string;
-  /** Use compact inline style (like GrepBlock error) instead of full header style */
   compact?: boolean;
-  /** Maximum height for error content */
   maxHeight?: string;
+  label?: string;
 }
 
 // Parse error message to extract meaningful information
@@ -68,13 +64,14 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
   content,
   errorCode,
   isPartial = false,
-  // isLast and isLastMessage are unused but kept for compatibility
+  isLast = false,
+  isLastMessage = false,
   showHeader = true,
   contentPaddingLeft = '36px',
   compact = false,
   maxHeight,
+  label = 'ERROR',
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const errorColor = $('--error') || '#f44336';
 
   // Extract the actual error message (remove "Error:" prefix if present)
@@ -106,50 +103,24 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({
     );
   }
 
+  // Full style — header removed, only error content remains (matching Zen)
   return (
     <div className="relative flex flex-col gap-1.5 pb-0">
-      <div className="terminal-block border-none bg-transparent overflow-visible rounded-none [&_.terminal-block-header]:border-b-0">
-        {showHeader && (
-          <ToolHeader
-            title={
-              <div className="flex items-center gap-2 text-xs text-primary">
-                <span style={{ fontWeight: 600, opacity: 0.8, color: errorColor }}>ERROR</span>
-                {displayErrorCode && (
-                  <span
-                    style={{ fontWeight: 500, opacity: 0.7, fontSize: '11px', color: errorColor }}
-                  >
-                    {displayErrorCode}
-                  </span>
-                )}
-              </div>
-            }
-            statusColor={errorColor}
-            isPartial={isPartial}
-            isCollapsed={isCollapsed}
-            onClick={() => {
-              if (content) setIsCollapsed(!isCollapsed);
-            }}
-          />
-        )}
-
-        {!isCollapsed && (
-          <div
-            className="error-block-content pt-2 px-3 pb-3 font-mono text-xs leading-[1.6] text-primary whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto border border-error/40 rounded-md bg-error/6 mt-1 mx-3 mb-2"
-            style={{
-              marginLeft: showHeader ? '36px' : contentPaddingLeft,
-              marginTop: '0',
-              marginBottom: '0',
-              marginRight: '0',
-              display: 'flex',
-              alignItems: 'center',
-              minHeight: '32px',
-              maxHeight: maxHeight || undefined,
-              overflowY: maxHeight ? 'auto' : 'visible',
-            }}
-          >
-            <div className="whitespace-pre-wrap break-words text-error">{displayMessage}</div>
+      <div className="bg-transparent rounded-none overflow-visible">
+        <div
+          style={{
+            marginTop: '4px',
+            maxHeight: maxHeight || undefined,
+            overflowY: maxHeight ? 'auto' : 'visible',
+          }}
+        >
+          <div className="flex items-start gap-1.5 px-2 py-[5px] bg-error/4 border border-error/20 rounded-[4px]">
+            <span className="codicon codicon-error text-[11px] text-error opacity-70 mt-px shrink-0" />
+            <span className="text-[11px] text-error opacity-85 font-mono break-words">
+              {displayMessage}
+            </span>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

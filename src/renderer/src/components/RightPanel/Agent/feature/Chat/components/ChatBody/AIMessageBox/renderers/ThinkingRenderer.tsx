@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState, useMemo } from "react";
+import React, { useRef, useEffect, useState, useMemo } from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface ThinkingRendererProps {
   content: string;
@@ -107,11 +108,10 @@ export const ThinkingRenderer: React.FC<ThinkingRendererProps> = ({
         ref={containerRef}
         onScroll={handleScroll}
         style={{
-          fontFamily: "var(--vscode-editor-font-family, monospace)",
-          fontSize: "12px",
-          lineHeight: "1.5",
-          color:
-            "var(--vscode-descriptionForeground, var(--vscode-editor-foreground))",
+          fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+          fontSize: '12px',
+          lineHeight: '1.5',
+          color: $('--text-secondary'),
           opacity: 0.75,
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",

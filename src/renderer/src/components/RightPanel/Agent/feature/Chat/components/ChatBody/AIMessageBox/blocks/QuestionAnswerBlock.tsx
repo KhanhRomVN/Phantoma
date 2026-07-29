@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Question, QuestionAnswer, QuestionType } from '../../../../types/message';
 import { cn } from '@renderer/shared/lib/utils';
 import { $ } from '@renderer/utils/color';
-import { ToolHeader } from '../../../tools/ToolHeader';
+import { TagHeader } from '../TagHeader';
 
 interface QuestionAnswerBlockProps {
   questions?: Question[];
@@ -214,9 +214,9 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     const legacySelected = selectedOptionProp || null;
     return (
       <div className={wrapperClassName}>
-        <ToolHeader
+        <TagHeader
           title="QUESTION"
-          statusColor={legacyAnswered ? $('--success, #3fb950') : $('--secondary-text')}
+          statusColor={legacyAnswered ? $('--success') : $('--text-secondary')}
           icon={<span className="codicon codicon-question text-sm" />}
         />
         <div className="pl-9 mt-1">
@@ -558,7 +558,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     const isAnswered = !!answers[q.id];
     const selected = confirmValues[q.id];
     const greenColor = $('--success, #3fb950');
-    const redColor = $('--error, #f85149');
+    const redColor = $('--error');
     const customValue = customValues[q.id] || '';
 
     const updateCustomSelection = (value: string) => {
@@ -785,7 +785,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
 
     return (
       <div className={wrapperClassName}>
-        <ToolHeader
+        <TagHeader
           title={
             <div className="flex items-center gap-2 text-xs text-text-primary">
               <span className="font-semibold opacity-80">QUESTION</span>
@@ -848,7 +848,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
 
   return (
     <div className={wrapperClassName}>
-      <ToolHeader
+      <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
             <span className="font-semibold opacity-80">QUESTION</span>

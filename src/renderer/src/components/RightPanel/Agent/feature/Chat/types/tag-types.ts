@@ -16,6 +16,7 @@ export type TagCategory = "tool" | "ui";
 
 export interface TagDefinition {
   id: string;
+  title?: string;
   category: TagCategory;
 
   // Only tools have permissions

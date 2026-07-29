@@ -10,7 +10,6 @@ import { useGitOperations } from './hooks/workspace/useGitOperations';
 import { useConversationRestore } from './hooks/conversation/useConversationRestore';
 import { useFileHandling } from '../../hooks/useFileHandling';
 import { useMentionSystem } from './hooks/ui/useMentionSystem';
-import { useTerminalPolling } from './hooks/tools/useTerminalPolling';
 import { useBrowserSession } from './hooks/llm/useBrowserSession';
 import { useDraftManagement } from './hooks/conversation/useDraftManagement';
 import { useModelAccount } from '../../hooks/useModelAccount';
@@ -21,10 +20,8 @@ import { useUIState } from './hooks/ui/useUIState';
 import { useMessageParsing } from './hooks/messages/useMessageParsing';
 import { useContextUsage } from './hooks/messages/useContextUsage';
 import { useFileStats } from './hooks/messages/useFileStats';
-import { useContextCompression } from './hooks/compression/useContextCompression';
 import { useMessageHandlers } from './hooks/handlers/useMessageHandlers';
 import { useTextareaHandlers } from './hooks/handlers/useTextareaHandlers';
-import { useModelSwitch } from './hooks/handlers/useModelSwitch';
 import { useExternalMessages } from './hooks/events/useExternalMessages';
 import { useConversationCache } from './hooks/cache/useConversationCache';
 import { useConversationPersistence } from './hooks/persistence/useConversationPersistence';
@@ -36,7 +33,6 @@ import { ChatSession } from './types/chat';
 import ChatHeader from './components/ChatHeader';
 import ChatBody from './components/ChatBody';
 import ChatFooter from './components/ChatFooter';
-import { ChatErrorBoundary } from './components/ChatErrorBoundary';
 
 interface ChatPanelProps {
   currentChat: ChatSession | null;
@@ -59,7 +55,6 @@ interface ChatPanelProps {
 const ChatPanel: React.FC<ChatPanelProps> = ({
   currentChat,
   onBack,
-  feature,
   onLoadConversation,
   initialMessageData,
   onClearInitialData,
@@ -132,7 +127,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const { apiUrl, isApiUrlReady, providers } = useApiConfiguration();
 
   // --- Terminal State ---
-  const { activeTerminalIds, attachedTerminalIds } = useTerminalPolling();
+  const activeTerminalIds = new Set<string>();
+  const attachedTerminalIds = new Set<string>();
 
   // --- Model & Account Selection ---
   const { currentModel, setCurrentModel, currentAccount, setCurrentAccount } = useModelAccount(
@@ -198,8 +194,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setIsProcessing,
     isStreaming,
     isContinuing,
-    incompleteHasPartialTool,
-    incompletePartialToolType,
     currentConversationId,
     setCurrentConversationId,
     currentConversationIdRef,
@@ -221,6 +215,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         conversationToolOverrides,
         actionType,
       ),
+    onMalformedTool: (actionId, _toolName, errorMessage, errorCode) => {
+      setToolOutputs((prev: any) => ({
+        ...prev,
+        [actionId]: {
+          output: `${errorCode}: ${errorMessage}`,
+          isError: true,
+          originalError: `${errorCode}: ${errorMessage}`,
+        },
+      }));
+    },
   });
 
   // DEBUG: Track messages and streaming state changes
@@ -272,7 +276,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   } = useMentionSystem({
     message,
     setMessage,
-    textareaRef,
+    textareaRef: textareaRef as any,
     availableFiles,
     availableFolders,
     onRequestWorkspaceFiles: () => {
@@ -383,8 +387,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     gitStatus,
     gitLoading,
     showGitStatusBlock,
-    gitCommitLoading,
     setShowGitStatusBlock,
+    gitCommitLoading,
     enrichedModel,
     handleGitPullRequest,
     handleGitConfirm,
@@ -402,8 +406,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   });
 
   // --- Conversation Restore ---
-  const { isLoadingConversation, isRestored, setIsRestored, handleRevertConversation } =
-    useConversationRestore({
+  const {
+    isLoadingConversation,
+    isRestored,
+    setIsRestored,
+    handleRevertConversation,
+  } = useConversationRestore({
       currentChat,
       currentConversationId,
       currentConversationIdRef,
@@ -441,16 +449,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return null;
   }, [parsedMessages]);
 
-  // --- Context Compression ---
-  const { shouldShowCompressionButton } = useContextCompression({
-    currentConversationIdRef,
-    messages,
-    isProcessing,
-    sendMessage,
-    currentModelRef,
-    currentAccountRef,
-  });
-
   // --- Message Handlers ---
   const { handleSend, handleStopGeneration } = useMessageHandlers({
     message,
@@ -460,7 +458,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     invalidExternalFiles,
     currentModelRef,
     currentAccountRef,
-    textareaRef,
+    textareaRef: textareaRef as any,
     clearDraft,
     clearFiles,
     clearAttachedItems,
@@ -481,15 +479,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setMessage,
     checkMentions,
     handleDraftKeyDown,
-  });
-
-  // --- Model Switch ---
-  const { handleModelSwitch } = useModelSwitch({
-    messages,
-    currentConversationId,
-    currentChat,
-    providers,
-    setMessages,
   });
 
   // --- Handle Back to Home ---
@@ -665,13 +654,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       />
 
       {/* ─── ChatBody ─── */}
-      <ChatErrorBoundary>
-        <ChatBody
+      <ChatBody
           messages={parsedMessages}
           isProcessing={isProcessing}
           isContinuing={isContinuing}
-          incompleteHasPartialTool={incompleteHasPartialTool}
-          incompletePartialToolType={incompletePartialToolType}
           onSendToolRequest={memoizedHandleToolRequest}
           onSendMessage={memoizedWrappedSendMessage}
           executionState={executionState}
@@ -682,8 +668,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           activeTerminalIds={activeTerminalIds}
           attachedTerminalIds={attachedTerminalIds}
 conversationId={currentConversationId}
-          onToolAction={(_actionId: string, actionType: 'accept_all' | 'accept_once' | 'reject', toolName?: string) =>
-            handleToolAction(actionType, toolName)
+          onToolAction={(_actionId: string, actionType: any, toolName?: string) =>
+            handleToolAction(actionType as any, toolName as any)
           }
           onSelectOption={handleSelectOption}
           isRestored={isRestored}
@@ -711,8 +697,6 @@ conversationId={currentConversationId}
           onBackToHome={handleBackToHome}
           isLoadingConversation={isLoadingConversation}
         />
-      </ChatErrorBoundary>
-
       {/* ─── ChatFooter ─── */}
       <ChatFooter
         message={message}
@@ -757,6 +741,11 @@ conversationId={currentConversationId}
         externalFileInputRef={externalFileInputRef}
         handleExternalFileInputChange={handleExternalFileInputChange}
         handleFileInputChange={handleFileInputChange}
+        gitStatus={gitStatus}
+        onOpenGitStatus={() => setShowGitStatusBlock(true)}
+        loadedConversationFileStats={loadedConversationFileStats}
+        autoScrollPaused={autoScrollPaused}
+        scrollToBottom={scrollToBottomRef.current || undefined}
       />
     </div>
   );

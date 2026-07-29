@@ -6,19 +6,16 @@ import {
   TOOL_ACTION_TYPES,
   TERMINAL_STATUS,
   type TerminalStatus,
-} from '@/features/chat/constants/constants';
+} from '../../../constants/constants';
 
 // TYPES
-import { Message, Question } from '@/features/chat/types/message';
-import { ParsedResponse } from '@/features/chat/services/ResponseParser';
+import { Message } from '../../../types/message';
+import { ParsedResponse } from '../../../services/ResponseParser';
+import { GroupType } from '../../../types/renderer-types';
 
 // COMPONENTS
 import TagRouter from './TagRouter';
 import ResponseMetadataBar from './ResponseMetadataBar';
-
-// STYLES
-import './blocks/run_command/TerminalBlock.css';
-import './blocks/markdown/MarkdownBlock.css';
 
 interface AIMessageBoxProps {
   message: Message;
@@ -39,6 +36,7 @@ interface AIMessageBoxProps {
   };
   isLastMessage?: boolean;
   hasNextAssistantMessage?: boolean;
+  isRestored?: boolean;
   toolOutputs?: Record<string, { output: string; isError: boolean }>;
   terminalStatus?: Record<string, TerminalStatus>;
   nextUserMessage?: Message;
@@ -67,6 +65,8 @@ interface AIMessageBoxProps {
   isGitStatusVisible?: boolean;
   onBackToHome?: (summary: string) => void;
   responseNumber?: number | null;
+  onRetryRequest?: (messageId: string) => void;
+  onRevertConversation?: (messageId: string, timestamp: number) => void;
 }
 
 const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
@@ -79,6 +79,7 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   executionState,
   isLastMessage,
   hasNextAssistantMessage = false,
+  isRestored = false,
   toolOutputs,
   terminalStatus,
   nextUserMessage,
@@ -99,6 +100,8 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   isGitStatusVisible = true,
   onBackToHome,
   responseNumber,
+  onRetryRequest,
+  onRevertConversation,
 }) => {
   // Track render count for this specific message
   const renderCountRef = React.useRef(0);
@@ -217,38 +220,13 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
         pointerEvents: message.isCancelled ? 'none' : 'auto',
         transition: 'all 0.3s ease',
         backgroundColor: 'transparent',
-        borderRadius: 'var(--border-radius)',
+        borderRadius: '6px',
         border: 'none',
         padding: '0px',
       }}
     >
       {(() => {
-        const groups: Array<
-          | { type: 'markdown'; content: string; key: string }
-          | {
-              type: 'tools';
-              items: { action: any; index: number }[];
-              key: string;
-            }
-          | {
-              type: 'question';
-              options: string[];
-              title?: string;
-              optional?: boolean;
-              questions?: Question[];
-              key: string;
-            }
-          | {
-              type: 'error';
-              content: string;
-              errorCode?: string;
-              toolName?: string;
-              toolParams?: Record<string, any>;
-              key: string;
-            }
-          | { type: 'response_number'; content: string; key: string }
-          | { type: 'warning'; label: string; message: string; key: string }
-        > = [];
+        const groups: GroupType[] = [];
 
         if (responseNumber !== null && responseNumber !== undefined && !message.isError) {
           groups.push({
@@ -311,12 +289,25 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
                 key: `error-${idx}`,
               });
             } else if (block.type === 'markdown') {
-              flushTools();
-              groups.push({
-                type: 'markdown',
-                content: block.content,
-                key: `markdown-${idx}`,
-              });
+              if (block.content.trim().length > 0) {
+                flushTools();
+                groups.push({
+                  type: 'markdown',
+                  content: block.content,
+                  key: `markdown-${idx}`,
+                });
+              }
+            } else if ((block as any).type === 'code') {
+              // Handle code blocks
+              if ((block as any).content.trim().length > 0) {
+                flushTools();
+                groups.push({
+                  type: 'code',
+                  content: (block as any).content,
+                  language: (block as any).language || 'text',
+                  key: `code-${idx}`,
+                });
+              }
             } else if (block.type === 'thinking') {
               // Skip
             } else if (block.type === 'question') {
@@ -327,6 +318,7 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
                 title: block.title,
                 optional: block.optional,
                 questions: block.questions,
+                questionAnswers: message.questionAnswers as any,
                 key: `question-${idx}`,
               });
             }
@@ -349,6 +341,23 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
           }
         }
 
+        // Calculate firstUnclickedActionIndex for approval mode
+        let firstUnclickedActionIndex: number | undefined = undefined;
+        if (isLastMessage && parsedContent.actions) {
+          for (let i = 0; i < parsedContent.actions.length; i++) {
+            const actionId = `${message.id}-action-${i}`;
+            const isClicked = clickedActions.has(actionId);
+            const hasOutput = toolOutputs && toolOutputs[actionId];
+            const hasHistoryOutput =
+              !!nextUserMessage || !!allMessages?.some((m) => m.actionIds?.includes(actionId));
+
+            if (!isClicked && !hasOutput && !hasHistoryOutput) {
+              firstUnclickedActionIndex = i;
+              break;
+            }
+          }
+        }
+
         let isInteractionBlocked = false;
         const renderGroups = groups;
 
@@ -362,12 +371,14 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
                   responseNumber={responseNumber!}
                   message={message}
                   previousUserMessage={previousUserMessage}
+                  onRetryRequest={onRetryRequest ? () => onRetryRequest(message.id) : undefined}
+                  onRevertConversation={onRevertConversation}
                 />
               </React.Fragment>
             );
           }
 
-          // Pass all other groups to TagRouter (tools, markdown, question, error, warning)
+          // Pass all other groups to TagRouter (tools, markdown, code, question, error, warning)
           const content = (
             <TagRouter
               group={group}
@@ -380,6 +391,7 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
               }
               executionState={executionState}
               isLastMessage={isLastMessage}
+              isRestored={isRestored}
               isLastGroup={isLastGroup}
               toolOutputs={toolOutputs}
               terminalStatus={terminalStatus}
@@ -402,6 +414,7 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
               isGenerating={isGenerating}
               onSelectOption={onSelectOption}
               onSendMessage={onSendMessage}
+              firstUnclickedActionIndex={firstUnclickedActionIndex}
             />
           );
 

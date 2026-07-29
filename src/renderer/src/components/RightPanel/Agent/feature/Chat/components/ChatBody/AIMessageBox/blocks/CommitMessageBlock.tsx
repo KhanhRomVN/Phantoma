@@ -19,11 +19,8 @@ const CommitMessageBlock: React.FC<CommitMessageBlockProps> = ({
   onReject,
   isProcessing = false,
 }) => {
-  const accentColor = $('--teal') || '#4ec9b0';
-  const errorColor = $('--error') || '#f44336';
-
   return (
-    <div className="px-3 pb-3">
+    <div style={{ padding: '0px 12px 12px 0' }}>
       <div
         className="bg-background border border-border rounded-md p-3 font-mono text-[13px] text-text-primary whitespace-pre-wrap break-words overflow-y-auto max-h-[400px] leading-relaxed"
         style={{
@@ -42,18 +39,18 @@ const CommitMessageBlock: React.FC<CommitMessageBlockProps> = ({
           disabled={isProcessing}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold h-6 border border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: `color-mix(in srgb, ${accentColor} 15%, transparent)`,
-            color: accentColor,
-            borderColor: `color-mix(in srgb, ${accentColor} 30%, transparent)`,
+            background: `color-mix(in srgb, ${$('--teal') || '#4ec9b0'} 15%, transparent)`,
+            color: $('--teal') || '#4ec9b0',
+            borderColor: `color-mix(in srgb, ${$('--teal') || '#4ec9b0'} 30%, transparent)`,
           }}
           onMouseEnter={(e) => {
             if (!isProcessing) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${accentColor} 25%, transparent)`;
+              e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal') || '#4ec9b0'} 25%, transparent)`;
             }
           }}
           onMouseLeave={(e) => {
             if (!isProcessing) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${accentColor} 15%, transparent)`;
+              e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal') || '#4ec9b0'} 15%, transparent)`;
             }
           }}
         >
@@ -66,18 +63,18 @@ const CommitMessageBlock: React.FC<CommitMessageBlockProps> = ({
           disabled={isProcessing}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold h-6 border border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: `color-mix(in srgb, ${errorColor} 15%, transparent)`,
-            color: errorColor,
-            borderColor: `color-mix(in srgb, ${errorColor} 30%, transparent)`,
+            background: `color-mix(in srgb, ${$('--error') || '#ff4d4d'} 15%, transparent)`,
+            color: $('--error') || '#ff4d4d',
+            borderColor: `color-mix(in srgb, ${$('--error') || '#ff4d4d'} 30%, transparent)`,
           }}
           onMouseEnter={(e) => {
             if (!isProcessing) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${errorColor} 25%, transparent)`;
+              e.currentTarget.style.background = `color-mix(in srgb, ${$('--error') || '#ff4d4d'} 25%, transparent)`;
             }
           }}
           onMouseLeave={(e) => {
             if (!isProcessing) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${errorColor} 15%, transparent)`;
+              e.currentTarget.style.background = `color-mix(in srgb, ${$('--error') || '#ff4d4d'} 15%, transparent)`;
             }
           }}
         >
@@ -85,22 +82,6 @@ const CommitMessageBlock: React.FC<CommitMessageBlockProps> = ({
           <span>Reject</span>
         </button>
       </div>
-
-      <style>{`
-        .commit-message-block pre::-webkit-scrollbar {
-          width: 8px;
-        }
-        .commit-message-block pre::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .commit-message-block pre::-webkit-scrollbar-thumb {
-          background: rgba(128,128,128,0.4);
-          border-radius: 4px;
-        }
-        .commit-message-block pre::-webkit-scrollbar-thumb:hover {
-          background: rgba(128,128,128,0.6);
-        }
-      `}</style>
     </div>
   );
 };

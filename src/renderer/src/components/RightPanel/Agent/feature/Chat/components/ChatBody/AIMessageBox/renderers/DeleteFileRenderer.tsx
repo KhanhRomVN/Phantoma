@@ -1,23 +1,27 @@
-import React from "react";
+import React from 'react';
+import { $ } from '@renderer/utils/color';
+
+// CONSTANTS
+import { getToolLabel } from '../../../../constants/constants';
 
 // TYPES
 import {
   getDisplayPath,
   collectConvFilePaths,
   getNextUserMessage,
-} from "../../../../utils/renderer-utils";
-import { BaseRendererProps } from "@/features/chat/types/renderer-types";
+} from '../../../../utils/renderer-utils';
+import { BaseRendererProps } from '../../../../types/renderer-types';
 
 // UTILS
-import { getFilename } from "@/features/chat/utils/toolUtils";
+import { getFilename } from '../../../../utils/toolUtils';
 
 // ICONS
-import FileIcon from "@/icons/FileIcon";
+import FileIcon from '@renderer/components/common/FileIcon';
 
 // COMPONENTS
-import { TagHeader } from "../TagHeader";
-import ExecuteButton from "../ExecuteButton";
-import ErrorBlock from "../blocks/error/ErrorBlock";
+import { TagHeader } from '../TagHeader';
+import ActionBar from '../ActionBar';
+import ErrorBlock from '../blocks/ErrorBlock';
 
 /**
  * Renderer for delete_file tool type
@@ -45,12 +49,9 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
     action.params.path ||
     getFilename(action);
 
-  const allPaths = React.useMemo(
-    () => collectConvFilePaths(allMessages || []),
-    [allMessages],
-  );
+  const allPaths = React.useMemo(() => collectConvFilePaths(allMessages || []), [allMessages]);
 
-  const displayName = rawPath ? rawPath.split("/").pop() || rawPath : "";
+  const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
 
   const nextUserMessage = getNextUserMessage(allMessages || [], messageId);
 
@@ -59,59 +60,52 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
   );
 
   const isError = !!toolOutputs?.[actionId]?.isError;
-  const errorMessage = isError ? toolOutputs?.[actionId]?.output || "" : "";
+  const errorMessage = isError ? toolOutputs?.[actionId]?.output || '' : '';
 
-  const prefix = "DELETE FILE";
+  // Check if action has validation error
+  const hasValidationError = !!action.isError;
 
-  const statusColor = isError
-    ? "var(--vscode-errorForeground, #f14c4c)"
-    : isCompleted
-      ? "var(--vscode-gitDecoration-deletedResourceForeground, #f85149)"
-      : "var(--vscode-textLink-foreground, #3794ff)";
+  const statusColor = isError ? $('--error') : isCompleted ? $('--error') : $('--primary');
 
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "6px",
-        paddingBottom: "4px",
-        marginBottom: isLastItemInList ? "0" : "2px",
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        paddingBottom: '4px',
+        marginBottom: isLastItemInList ? '0' : '2px',
       }}
     >
       <TagHeader
         title={
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "12px",
-              color: "var(--vscode-editor-foreground)",
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '12px',
+              color: $('--text-primary'),
             }}
           >
-            <span style={{ fontWeight: 600, opacity: 0.8 }}>{prefix}</span>
-            <FileIcon
-              path={rawPath}
-              isFolder={false}
-              style={{ width: "14px", height: "14px" }}
-            />
+            <span style={{ fontWeight: 600, opacity: 0.8 }}>{getToolLabel('delete_file')}</span>
+            <FileIcon path={rawPath} isFolder={false} style={{ width: '14px', height: '14px' }} />
             <span
               style={{
                 fontWeight: 500,
                 opacity: 0.8,
-                fontFamily: "var(--vscode-editor-font-family, monospace)",
-                fontSize: "11px",
+                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                fontSize: '11px',
               }}
             >
-              {getDisplayPath(rawPath, allPaths) || "..."}
+              {getDisplayPath(rawPath, allPaths) || '...'}
             </span>
             {isCompleted && !isError && (
               <span
                 style={{
-                  fontSize: "10px",
+                  fontSize: '10px',
                   opacity: 0.5,
-                  color: "var(--vscode-descriptionForeground)",
+                  color: $('--text-secondary'),
                 }}
               >
                 deleted
@@ -126,27 +120,28 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
         toolType={toolType}
       />
 
-      {isError && (
-        <ErrorBlock
-          content={errorMessage}
-          showHeader={false}
-          maxHeight="300px"
-        />
-      )}
+      {isError && <ErrorBlock content={errorMessage} showHeader={false} maxHeight="300px" />}
 
-      {!isCompleted && !isError && (
-        <div style={{ padding: "0 12px 8px 0" }}>
-          <ExecuteButton
+      {!isCompleted && (
+        <div style={{ padding: '0 12px 8px 0' }}>
+          <ActionBar
+            action={action}
+            messageId={messageId}
+            actionIndex={actionIndex}
+            hasError={hasValidationError || isError}
             isCompleted={isCompleted}
-            isActive={isActionClicked}
-            isFailed={isError}
-            isLastMessage={isLastMessage}
-            onExecute={(e, type) =>
+            onAction={(e, type) =>
               onToolClick(action, messageId, actionIndex, type)
             }
-            title="Delete File"
           />
         </div>
+      )}
+      {hasValidationError && action.errorMessage && (
+        <ErrorBlock
+          content={`Validation Error: ${action.errorMessage}`}
+          compact={true}
+          maxHeight="300px"
+        />
       )}
     </div>
   );

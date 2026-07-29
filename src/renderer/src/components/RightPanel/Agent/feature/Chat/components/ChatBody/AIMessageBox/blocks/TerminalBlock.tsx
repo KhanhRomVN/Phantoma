@@ -10,6 +10,7 @@ interface TerminalBlockProps {
   maxHeight?: number;
   rows?: number;
   initialCommand?: string;
+  cwd?: string;
   onInput?: (data: string) => void;
   rejectedOutline?: boolean;
 }

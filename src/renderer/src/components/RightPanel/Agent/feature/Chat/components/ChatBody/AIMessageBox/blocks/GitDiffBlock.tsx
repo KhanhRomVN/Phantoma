@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { FileIcon } from 'lucide-react';
-import { ToolHeader } from '../../../tools/ToolHeader';
+import FileIcon from '@renderer/components/common/FileIcon';
 import { $ } from '@renderer/utils/color';
+import { TagHeader } from '../TagHeader';
 
 export interface GitDiffBlockProps {
   filePath: string;
@@ -108,11 +108,11 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
       if (type === 'added') {
         color = $('--success') || '#3fb950';
         backgroundColor =
-          'color-mix(in srgb, ' + ($('--success') || '#3fb950') + ' 12%, transparent)';
+          `color-mix(in srgb, ${$('--success')} 12%, transparent)`;
       } else if (type === 'removed') {
         color = $('--error') || '#f14c4c';
         backgroundColor =
-          'color-mix(in srgb, ' + ($('--error') || '#f14c4c') + ' 12%, transparent)';
+          `color-mix(in srgb, ${$('--error')} 12%, transparent)`;
       } else if (type === 'empty') {
         color = 'transparent';
         backgroundColor = 'transparent';
@@ -123,7 +123,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
             style={{
               padding: '0 8px',
               height: '20px',
-              fontFamily: $('--font-family') || 'monospace',
+              fontFamily: '"JetBrains Mono", "Fira Code", monospace',
               fontSize: '12px',
               lineHeight: '1.5',
             }}
@@ -138,7 +138,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
             padding: '0 8px',
             color,
             backgroundColor,
-            fontFamily: $('--font-family') || 'monospace',
+            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
             fontSize: '12px',
             lineHeight: '1.5',
             whiteSpace: 'pre-wrap',
@@ -155,7 +155,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
 
   const fileName = filePath.split('/').pop() || filePath;
 
-  // Header style - collapse icon + label + file icon + filename + stats + action icon
+  // Header title — matching Zen's header structure
   const headerTitle = (
     <div className="terminal-name contents">
       <div className="flex items-center gap-2 text-xs text-primary">
@@ -195,11 +195,10 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
 
   return (
     <div className="terminal-block git-diff-block mb-2 bg-transparent rounded-none overflow-visible [&_.terminal-block-header]:border-b-0 [&_.terminal-block-header]:bg-transparent [&_.terminal-block-header:hover]:bg-transparent">
-      <ToolHeader
+      <TagHeader
         title={headerTitle}
         statusColor={statusColor}
         isPartial={isPartial}
-        isCollapsed={isCollapsed}
         onClick={handleHeaderClick}
         path={filePath}
         onPathClick={() => {
@@ -207,8 +206,58 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
         }}
       />
 
+      {/* File path connector — matching Zen's decorative element */}
+      {filePath && (
+        <div
+          className="flex justify-end items-center pr-1 pt-1 mt-0.5 relative w-full max-w-full overflow-hidden"
+          style={{ paddingLeft: '36px' }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              left: '20px',
+              top: '0',
+              width: '16px',
+              height: '12px',
+              borderLeft: `1px solid color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`,
+              borderBottom: `1px solid color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`,
+            }}
+          />
+          <span
+            className="text-[10px] opacity-60 text-secondary font-mono whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 pl-5 rounded-[2px] transition-[text-decoration] duration-[0.15s]"
+            style={{
+              cursor: onFileClick ? 'pointer' : 'default',
+              textDecoration: 'none',
+            }}
+            title={filePath}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onFileClick) {
+                onFileClick(filePath);
+              }
+            }}
+            onMouseEnter={(e) => {
+              if (onFileClick) {
+                e.currentTarget.style.textDecoration = 'underline';
+                e.currentTarget.style.textDecorationColor =
+                  $('--primary') || 'rgba(0, 122, 204, 0.6)';
+                e.currentTarget.style.textUnderlineOffset = '2px';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.textDecoration = 'none';
+            }}
+          >
+            {filePath}
+          </span>
+        </div>
+      )}
+
       {!isCollapsed && diffContent && (
-        <div className="pt-1 px-3 pb-3 pl-[29px]">
+        <div
+          className="pt-1 pr-3 pb-3 pl-0"
+          style={{ paddingLeft: '0', paddingRight: '12px', paddingBottom: '12px' }}
+        >
           <div className="bg-background rounded-[4px] border overflow-auto max-h-[400px] font-mono text-xs leading-[1.5] py-1 break-words">
             {renderDiffLines(diffContent)}
           </div>
@@ -218,4 +267,5 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
   );
 };
 
+export { GitDiffBlock };
 export default GitDiffBlock;

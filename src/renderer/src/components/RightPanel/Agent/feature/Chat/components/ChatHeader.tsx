@@ -1,4 +1,5 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 interface ChatHeaderProps {
   displayedModel: any;
@@ -68,7 +69,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               <span className="opacity-30">|</span>
               <div
                 className="flex items-center gap-1 text-[11px] font-medium overflow-hidden"
-                style={{ color: '#3794ff' }}
+                style={{ color: $('--primary') }}
               >
                 <div
                   className="w-[5px] h-[5px] rounded-full shrink-0"
@@ -95,14 +96,14 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             className="cursor-pointer p-[3px_4px] flex items-center justify-center rounded transition-all duration-150"
             style={{
               background: isSearchOpen
-                ? 'color-mix(in srgb, #0e639c 15%, transparent)'
+                ? `color-mix(in srgb, ${$('--primary')} 15%, transparent)`
                 : 'transparent',
               border: isSearchOpen
-                ? '1px solid color-mix(in srgb, #0e639c 40%, transparent)'
+                ? `1px solid color-mix(in srgb, ${$('--primary')} 40%, transparent)`
                 : '1px solid transparent',
               color: isSearchOpen
-                ? '#0e639c'
-                : '#cccccc',
+                ? $('--primary')
+                : $('--text-secondary'),
               opacity: isSearchOpen ? 1 : 0.65,
             }}
             onMouseEnter={(e) => {

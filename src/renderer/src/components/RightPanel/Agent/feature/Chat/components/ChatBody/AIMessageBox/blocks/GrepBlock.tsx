@@ -132,11 +132,13 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
   const searchTerm = action.params.search_term || action.params.searchTerm || '';
+  const folderPath = action.params.folder_path || action.params.folderPath || '';
+  const filePath = action.params.file_path || action.params.filePath || '';
 
   // Check for validation error from parser
   const validationError = action.params._validationError;
 
-  const parseGrepResult = (): GrepResultData | null => {
+  const grepResult = React.useMemo((): GrepResultData | null => {
     const output = toolOutputs?.[actionId]?.output;
     if (!output) return null;
 
@@ -166,9 +168,8 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
       console.warn('[GrepBlock] Failed to parse output:', e);
       return null;
     }
-  };
+  }, [actionId, toolOutputs]);
 
-  const grepResult = parseGrepResult();
   const hasResults = grepResult && grepResult.totalMatches > 0;
   const filePaths = Object.keys(grepResult?.results || {});
 

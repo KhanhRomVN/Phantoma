@@ -1,29 +1,29 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 // HOOKS
-import { useSettings } from '@/context/SettingsContext';
+import { useSettings } from '../../../../../../context/SettingsContext';
 
 // SERVICES
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 // CONSTANTS
-import { STREAM_BOX_HEIGHT, TOOL_ACTION_TYPES } from '@/features/chat/constants/constants';
+import { getToolLabel } from '../../../../constants/constants';
 
 // TYPES
 
 // UTILS
 import { collectConvFilePaths, getNextUserMessage } from '../../../../utils/renderer-utils';
-import { getPermissionDecision } from '@/features/chat/utils/permissionUtils';
+import { getPermissionDecision } from '../../../../utils/permissionUtils';
 
 // ICONS
-import FileIcon from '@/icons/FileIcon';
+import FileIcon from '@renderer/components/common/FileIcon';
 
 // COMPONENTS
 import { TagHeader } from '../TagHeader';
-import ExecuteButton from '../ExecuteButton';
-import ErrorBlock from '../blocks/error/ErrorBlock';
-import FileStreamingBlock from '../blocks/file_streaming/FileStreamingBlock';
-import { MergedRendererProps } from '@/features/chat/types/renderer-types';
+import ActionBar from '../ActionBar';
+import ErrorBlock from '../blocks/ErrorBlock';
+import { MergedRendererProps } from '../../../../types/renderer-types';
 
 export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
   action,
@@ -41,7 +41,6 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
   onRejectSingleLineAction,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
-  const [showRawView, setShowRawView] = React.useState(false);
   const { permissionMode } = useSettings();
 
   const actionId = `${messageId}-action-${actionIndex}`;
@@ -64,6 +63,39 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
 
   const shouldHideContent = false;
 
+  // Check if action has validation error
+  const hasValidationError = !!action.isError;
+
+  // Debug logs
+  const permissionDecision = getPermissionDecision(permissionMode, 'write_to_file');
+  const shouldShowExecuteButton =
+    !shouldHideContent &&
+    !isCompleted &&
+    !isPartial &&
+    !hasValidationError &&
+    permissionDecision === 'confirm';
+
+  // Debug logging for validation errors
+  React.useEffect(() => {
+    if (hasValidationError) {
+      console.log('[WriteToFileRenderer] Validation error detected:', {
+        actionId,
+        filePath: rawPath,
+        errorCode: action.errorCode,
+        errorMessage: action.errorMessage,
+        shouldShowExecuteButton,
+        actionParams: action.params,
+      });
+    }
+  }, [hasValidationError, actionId, rawPath, action.errorCode, action.errorMessage, shouldShowExecuteButton]);
+
+  const handleToolClickWithLog = React.useCallback(
+    (e: React.MouseEvent, type: any) => {
+      onToolClick(action, messageId, actionIndex, type);
+    },
+    [action, messageId, actionIndex, onToolClick, actionId, rawPath],
+  );
+
   return (
     <div
       style={{
@@ -82,7 +114,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
               alignItems: 'center',
               gap: '8px',
               fontSize: '12px',
-              color: 'var(--vscode-editor-foreground)',
+              color: $('--text-primary'),
             }}
           >
             <span
@@ -103,7 +135,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
                 }
               }}
             >
-              WRITE
+              {getToolLabel('write_to_file')}
             </span>
             <span
               onClick={(e) => {
@@ -129,7 +161,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
               style={{
                 fontWeight: 500,
                 opacity: 0.9,
-                fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                 fontSize: '11px',
                 cursor: 'pointer',
               }}
@@ -181,12 +213,12 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
         }
         statusColor={
           isError
-            ? 'var(--vscode-errorForeground)'
+            ? $('--error')
             : isCompleted
-              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
+              ? $('--success')
               : isActiveGroup
-                ? 'var(--vscode-descriptionForeground)'
-                : 'var(--vscode-descriptionForeground)'
+                ? $('--text-secondary')
+                : $('--text-secondary')
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !isCompleted}
@@ -211,32 +243,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
             path: clickedPath,
           });
         }}
-        onDotClick={() => {
-          setShowRawView(!showRawView);
-        }}
       />
-
-      {showRawView && (
-        <div
-          style={{
-            marginTop: '4px',
-            padding: '8px 12px',
-            backgroundColor:
-              'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-            border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
-            borderRadius: '4px',
-            fontFamily: 'var(--vscode-editor-font-family, monospace)',
-            fontSize: '11px',
-            lineHeight: '1.5',
-            color: 'var(--vscode-editor-foreground)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            overflowX: 'auto',
-          }}
-        >
-          {action.rawXml || JSON.stringify(action, null, 2)}
-        </div>
-      )}
 
       {/* Single-line review UI for write_to_file with content crammed into 1 line */}
       {!shouldHideContent &&
@@ -260,12 +267,12 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
                   minHeight: '200px',
                   maxHeight: '400px',
                   padding: '8px 10px',
-                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                   fontSize: '11px',
                   lineHeight: '1.5',
-                  color: 'var(--vscode-editor-foreground)',
+                  color: $('--text-primary'),
                   backgroundColor:
-                    'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
+                    $('--card-background'),
                   border: '1.5px dashed #e5a100',
                   borderRadius: '4px',
                   resize: 'vertical',
@@ -307,10 +314,10 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
                       fontWeight: 600,
                       borderRadius: '4px',
                       border:
-                        '1px solid color-mix(in srgb, var(--vscode-errorForeground, #f44336) 40%, transparent)',
+                        `1px solid color-mix(in srgb, ${$('--error')} 40%, transparent)`,
                       backgroundColor:
-                        'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 10%, transparent)',
-                      color: 'var(--vscode-errorForeground, #f44336)',
+                        `color-mix(in srgb, ${$('--error')} 10%, transparent)`,
+                      color: $('--error'),
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -331,10 +338,10 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
                       fontWeight: 600,
                       borderRadius: '4px',
                       border:
-                        '1px solid color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 40%, transparent)',
+                        `1px solid color-mix(in srgb, ${$('--success')} 40%, transparent)`,
                       backgroundColor:
-                        'color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #3fb950) 10%, transparent)',
-                      color: 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
+                        `color-mix(in srgb, ${$('--success')} 10%, transparent)`,
+                      color: $('--success'),
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -350,46 +357,30 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
           );
         })()}
 
-      {!shouldHideContent &&
-        !isCompleted &&
-        !isPartial &&
-        (isActiveGroup || !isLastMessage) &&
-        getPermissionDecision(permissionMode, 'write_to_file') === 'confirm' && (
-          <div style={{ marginTop: '8px', marginBottom: '8px', order: 1 }}>
-            <ExecuteButton
-              isActive={!!isActiveGroup}
-              isCompleted={!!isCompleted}
-              isLastMessage={!!isLastMessage}
-              isLoading={false}
-              title="Approve action"
-              labelText="Approve"
-              onExecute={(e, type) => {
-                onToolClick(action, messageId, actionIndex, type);
-              }}
-            />
-          </div>
-        )}
+      {!shouldHideContent && !isCompleted && (
+        <div style={{ marginTop: '8px', marginBottom: '8px', order: 1 }}>
+          <ActionBar
+            action={action}
+            messageId={messageId}
+            actionIndex={actionIndex}
+            hasError={hasValidationError || isError}
+            isCompleted={isCompleted}
+            onAction={handleToolClickWithLog}
+          />
+        </div>
+      )}
 
       {!shouldHideContent && isError && errorMessage && (
         <ErrorBlock content={errorMessage} compact={true} maxHeight="300px" />
       )}
 
-      {/* Streaming preview for write_to_file */}
-      {!shouldHideContent &&
-        isPartial &&
-        (() => {
-          const streamingContent = action.params.content || '';
-
-          if (!streamingContent || streamingContent.trim().length === 0) {
-            return null;
-          }
-
-          return (
-            <div style={{}}>
-              <FileStreamingBlock content={streamingContent} maxHeight={STREAM_BOX_HEIGHT} />
-            </div>
-          );
-        })()}
+      {!shouldHideContent && hasValidationError && action.errorMessage && (
+        <ErrorBlock
+          content={`Validation Error: ${action.errorMessage}`}
+          compact={true}
+          maxHeight="300px"
+        />
+      )}
     </div>
   );
 };

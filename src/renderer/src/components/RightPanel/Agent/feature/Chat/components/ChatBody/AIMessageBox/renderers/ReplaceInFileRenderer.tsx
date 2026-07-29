@@ -1,30 +1,67 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 // HOOKS
-import { useSettings } from '@/context/SettingsContext';
+import { useSettings } from '../../../../../../context/SettingsContext';
 
 // SERVICES
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 // CONSTANTS
-import { STREAM_BOX_HEIGHT, TOOL_ACTION_TYPES } from '@/features/chat/constants/constants';
+import { getToolLabel, TOOL_ACTION_TYPES } from '../../../../constants/constants';
 
 // TYPES
-import { MergedRendererProps, Diagnostic } from '@/features/chat/types/renderer-types';
+import { MergedRendererProps, Diagnostic } from '../../../../types/renderer-types';
 
 // UTILS
 import { collectConvFilePaths, getNextUserMessage } from '../../../../utils/renderer-utils';
-import { getPermissionDecision } from '@/features/chat/utils/permissionUtils';
-import { parseDiff } from '@/utils/diffUtils';
+import { getPermissionDecision } from '../../../../utils/permissionUtils';
+import { parseDiff, DiffHighlight } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
 
 // ICONS
-import FileIcon from '@/icons/FileIcon';
+import FileIcon from '@renderer/components/common/FileIcon';
 
 // COMPONENTS
 import { TagHeader } from '../TagHeader';
-import ExecuteButton from '../ExecuteButton';
-import ErrorBlock from '../blocks/error/ErrorBlock';
-import FileStreamingBlock from '../blocks/file_streaming/FileStreamingBlock';
+import ActionBar from '../ActionBar';
+import ErrorBlock from '../blocks/ErrorBlock';
+import { CodeBlock } from '@renderer/components/common/CodeBlock';
+
+// Helper: map file extension to language for CodeBlock header
+const getLanguageFromPath = (filePath: string): string | undefined => {
+  const ext = filePath.split('.').pop()?.toLowerCase();
+  if (!ext) return undefined;
+  const extToLang: Record<string, string> = {
+    ts: 'typescript',
+    tsx: 'tsx',
+    js: 'javascript',
+    jsx: 'jsx',
+    py: 'python',
+    java: 'java',
+    cpp: 'cpp',
+    c: 'c',
+    go: 'go',
+    rs: 'rust',
+    rb: 'ruby',
+    php: 'php',
+    swift: 'swift',
+    kt: 'kotlin',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    json: 'json',
+    yaml: 'yaml',
+    yml: 'yml',
+    xml: 'xml',
+    md: 'markdown',
+    sql: 'sql',
+    sh: 'shell',
+    bash: 'shell',
+    ps1: 'powershell',
+    dockerfile: 'dockerfile',
+  };
+  return extToLang[ext];
+};
 
 export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   action,
@@ -39,9 +76,9 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   onToolClick,
   mergedItems,
   conversationId,
+  rejectedActions,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
-  const [showRawView, setShowRawView] = React.useState(false);
   const [cachedDiagnostics, setCachedDiagnostics] = React.useState<Diagnostic[] | null>(null);
   const { permissionMode } = useSettings();
 
@@ -55,6 +92,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
 
   const isPartial = false;
   const isError = !!toolOutputs?.[actionId]?.isError;
+
   const errorMessage = isError ? toolOutputs?.[actionId]?.output || '' : '';
 
   // Calculate diff stats
@@ -63,14 +101,27 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   if (action.params.diff) {
     const stats = parseDiff(action.params.diff).stats;
     diffStats = { added: stats.added, removed: stats.removed };
-  } else if (action.params.old_str && action.params.new_str) {
-    const oldLines = (action.params.old_str || '').split('\n');
-    const newLines = (action.params.new_str || '').split('\n');
+  } else {
+    const oldContent = action.params.old_content || action.params.old_str;
+    const newContent = action.params.new_content || action.params.new_str;
 
-    diffStats = {
-      added: newLines.length,
-      removed: oldLines.length,
-    };
+    if (oldContent !== undefined && newContent !== undefined) {
+      const oldLines = String(oldContent).split('\n');
+      const newLines = String(newContent).split('\n');
+
+      diffStats = {
+        added: newLines.length,
+        removed: oldLines.length,
+      };
+    } else {
+      console.warn('[ReplaceInFileRenderer] No diff data available:', {
+        filePath: rawPath,
+        hasParams: !!action.params,
+        paramKeys: Object.keys(action.params || {}),
+        oldContentUndefined: oldContent === undefined,
+        newContentUndefined: newContent === undefined,
+      });
+    }
   }
 
   // Handle merged items
@@ -84,12 +135,14 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
         totalRemoved += s.removed;
       }
     });
-    if (totalAdded > 0 || totalRemoved > 0)
+    if (totalAdded > 0 || totalRemoved > 0) {
       diffStats = { added: totalAdded, removed: totalRemoved };
+    }
   }
 
   const isCompleted = Boolean(
-    !isPartial && (!!isActionClicked || isError || !!toolOutputs?.[actionId] || !!nextUserMessage),
+    !isPartial &&
+      (!!isActionClicked || isError || !!toolOutputs?.[actionId] || !!nextUserMessage),
   );
 
   // Get diagnostics from toolOutputs
@@ -178,12 +231,145 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
 
   const shouldHideContent = false;
 
+  // Check if action has validation error
+  const hasValidationError = !!action.isError;
+
+  // Check if action has been rejected (to hide error UI after rejection)
+  const isRejected = rejectedActions?.has(actionId);
+
+  // Debug logs
+  const permissionDecision = getPermissionDecision(permissionMode, 'replace_in_file');
+
+  // Fetch full file content for approval mode
+  const [fullFileContent, setFullFileContent] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (permissionDecision !== 'confirm' || !rawPath) {
+      return;
+    }
+
+    const requestId = `file-content-${actionId}`;
+    const handleMessage = (event: MessageEvent) => {
+      const msg = event.data;
+      if (msg.command === 'getFileContentResult' && msg.requestId === requestId) {
+        setFullFileContent(msg.content || null);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    extensionService.postMessage({
+      command: 'getFileContent',
+      path: rawPath,
+      requestId,
+    });
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [permissionDecision, rawPath, actionId]);
+
+  // Build diff preview data for approval mode
+  const approvalDiffData = React.useMemo(() => {
+    if (permissionDecision !== 'confirm') return null;
+
+    // Calculate line highlights based on old/new content
+    const oldContent = action.params.old_content || action.params.old_str;
+    const newContent = action.params.new_content || action.params.new_str;
+
+    if (!oldContent || !newContent) return null;
+
+    // If we have full file content, show it with highlights
+    if (fullFileContent) {
+      // Find where old content appears in the file
+      const fileLines = fullFileContent.split('\n');
+      const oldLines = String(oldContent).trim().split('\n');
+      const newLines = String(newContent).trim().split('\n');
+
+      let startLineIndex = -1;
+
+      // Try exact match first
+      for (let i = 0; i <= fileLines.length - oldLines.length; i++) {
+        let matches = true;
+        for (let j = 0; j < oldLines.length; j++) {
+          if (fileLines[i + j].trim() !== oldLines[j].trim()) {
+            matches = false;
+            break;
+          }
+        }
+        if (matches) {
+          startLineIndex = i;
+          break;
+        }
+      }
+
+      if (startLineIndex !== -1) {
+        // Build new file content with both old and new lines for diff view
+        const beforeLines = fileLines.slice(0, startLineIndex);
+        const afterLines = fileLines.slice(startLineIndex + oldLines.length);
+
+        // Merge: show old lines (removed) + new lines (added)
+        const mergedLines = [...beforeLines, ...oldLines, ...newLines, ...afterLines];
+        const mergedContent = mergedLines.join('\n');
+
+        // Build line highlights
+        const lineHighlights: DiffHighlight[] = [];
+
+        // Mark old lines as removed
+        for (let i = 0; i < oldLines.length; i++) {
+          lineHighlights.push({
+            type: 'removed',
+            startLine: beforeLines.length + i + 1, // 1-based
+            endLine: beforeLines.length + i + 1,
+          });
+        }
+
+        // Mark new lines as added (after old lines)
+        for (let i = 0; i < newLines.length; i++) {
+          lineHighlights.push({
+            type: 'added',
+            startLine: beforeLines.length + oldLines.length + i + 1, // 1-based
+            endLine: beforeLines.length + oldLines.length + i + 1,
+          });
+        }
+
+        return {
+          code: mergedContent,
+          lineHighlights,
+        };
+      } else {
+        console.warn(
+          '[ReplaceInFileRenderer] Old content not found in file, falling back to diff view',
+        );
+      }
+    }
+
+    // Fallback: show old/new content directly if full file not available
+    const diffText =
+      action.params.diff ||
+      `<<<<<<< SEARCH\n${oldContent}\n=======\n${newContent}\n>>>>>>> REPLACE`;
+    const parsed = parseDiff(diffText);
+
+    return {
+      code: parsed.code,
+      lineHighlights: parsed.lineHighlights,
+    };
+  }, [
+    permissionDecision,
+    fullFileContent,
+    action.params.old_content,
+    action.params.old_str,
+    action.params.new_content,
+    action.params.new_str,
+    action.params.diff,
+  ]);
+
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '6px',
+        gap: '8px',
         paddingBottom: '4px',
         marginBottom: isLastItemInList ? '0' : '2px',
       }}
@@ -196,7 +382,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
               alignItems: 'center',
               gap: '8px',
               fontSize: '12px',
-              color: 'var(--vscode-editor-foreground)',
+              color: $('--text-primary'),
             }}
           >
             <span
@@ -211,7 +397,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
                   const oldContent = action.params.old_content || action.params.old_str || '';
                   const newContent = action.params.new_content || action.params.new_str || '';
                   extensionService.postMessage({
-                    command: 'openReplaceInFileDiff',
+                    command: 'openFileDiff',
                     filePath: rawPath,
                     oldContent,
                     newContent,
@@ -219,7 +405,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
                 }
               }}
             >
-              REPLACE
+              {getToolLabel('replace_in_file')}
             </span>
             <span
               onClick={(e) => {
@@ -228,7 +414,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
                   const oldContent = action.params.old_content || action.params.old_str || '';
                   const newContent = action.params.new_content || action.params.new_str || '';
                   extensionService.postMessage({
-                    command: 'openReplaceInFileDiff',
+                    command: 'openFileDiff',
                     filePath: rawPath,
                     oldContent,
                     newContent,
@@ -247,7 +433,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
               style={{
                 fontWeight: 500,
                 opacity: 0.9,
-                fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                 fontSize: '11px',
                 cursor: 'pointer',
               }}
@@ -257,7 +443,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
                   const oldContent = action.params.old_content || action.params.old_str || '';
                   const newContent = action.params.new_content || action.params.new_str || '';
                   extensionService.postMessage({
-                    command: 'openReplaceInFileDiff',
+                    command: 'openFileDiff',
                     filePath: rawPath,
                     oldContent,
                     newContent,
@@ -278,20 +464,9 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
                   marginLeft: '6px',
                 }}
               >
-                <span
-                  style={{
-                    color: 'var(--vscode-gitDecoration-addedResourceForeground)',
-                  }}
-                >
-                  +{diffStats.added}
-                </span>
-                <span
-                  style={{
-                    color: 'var(--vscode-gitDecoration-deletedResourceForeground)',
-                  }}
-                >
-                  -{diffStats.removed}
-                </span>
+                <span style={{ color: $('--success') }}>+{diffStats.added}</span>
+                <span style={{ color: $('--error') }}>-{diffStats.removed}</span>
+                {/* version display removed - not in ToolOutput type */}
               </span>
             )}
             {isPartial && (
@@ -316,17 +491,17 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
         }
         statusColor={
           isError
-            ? 'var(--vscode-errorForeground)'
+            ? $('--error')
             : isCompleted
-              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
+              ? $('--success')
               : isActiveGroup
-                ? 'var(--vscode-descriptionForeground)'
-                : 'var(--vscode-descriptionForeground)'
+                ? $('--text-secondary')
+                : $('--text-secondary')
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !isCompleted}
         toolType="replace_in_file"
-        diffStats={diffStats || undefined}
+        diffStats={undefined}
         isPartial={isPartial}
         diagnostics={mergedDiagnostics}
         onClick={() => {
@@ -345,82 +520,56 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
             path: clickedPath,
           });
         }}
-        onDotClick={() => {
-          setShowRawView(!showRawView);
-        }}
       />
 
-      {showRawView && (
-        <div
-          style={{
-            marginTop: '4px',
-            padding: '8px 12px',
-            backgroundColor:
-              'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-            border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
-            borderRadius: '4px',
-            fontFamily: 'var(--vscode-editor-font-family, monospace)',
-            fontSize: '11px',
-            lineHeight: '1.5',
-            color: 'var(--vscode-editor-foreground)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            overflowX: 'auto',
-          }}
-        >
-          {action.rawXml || JSON.stringify(action, null, 2)}
-        </div>
+      {/* Show diff in CodeBlock when approval mode — only when not completed */}
+      {!isCompleted && approvalDiffData && (
+        <CodeBlock
+          code={approvalDiffData.code}
+          language={getLanguageFromPath(rawPath)}
+          highlightRanges={
+            approvalDiffData.lineHighlights.length > 0
+              ? approvalDiffData.lineHighlights.map((h) => ({
+                  startLine: h.startLine,
+                  endLine: h.endLine,
+                  color: h.type === 'added' ? $('--success') : $('--error'),
+                  label: h.type === 'added' ? 'Added' : 'Removed',
+                }))
+              : undefined
+          }
+        />
+      )}
+
+      {/* Show error message when there's an error */}
+      {!isPartial && (hasValidationError || isError) && !isRejected && (
+        <ErrorBlock
+          content={
+            hasValidationError && action.errorMessage
+              ? `Validation Error: ${action.errorMessage}`
+              : isError && errorMessage
+                ? errorMessage
+                : 'Unknown error occurred'
+          }
+          compact={true}
+          maxHeight="300px"
+        />
       )}
 
       {!shouldHideContent &&
         !isCompleted &&
         !isPartial &&
-        (isActiveGroup || !isLastMessage) &&
         getPermissionDecision(permissionMode, 'replace_in_file') === 'confirm' && (
-          <div style={{ marginTop: '8px', marginBottom: '8px', order: 1 }}>
-            <ExecuteButton
-              isActive={!!isActiveGroup}
-              isCompleted={!!isCompleted}
-              isLastMessage={!!isLastMessage}
-              isLoading={false}
-              title="Approve action"
-              labelText="Approve"
-              onExecute={(e, type) => {
-                onToolClick(action, messageId, actionIndex, type);
-              }}
-            />
-          </div>
+          <ActionBar
+            action={action}
+            messageId={messageId}
+            actionIndex={actionIndex}
+            hasError={hasValidationError || isError}
+            isCompleted={isCompleted}
+            onAction={(e, type) => {
+              onToolClick(action, messageId, actionIndex, type);
+            }}
+          />
         )}
-
-      {!shouldHideContent && isError && errorMessage && (
-        <ErrorBlock content={errorMessage} compact={true} maxHeight="300px" />
-      )}
-
-      {/* Streaming preview for replace_in_file */}
-      {!shouldHideContent &&
-        isPartial &&
-        (() => {
-          const oldStr = action.params.old_str || '';
-          const newStr = action.params.new_str || '';
-          const diff = action.params.diff || '';
-
-          let streamingContent = '';
-          if (oldStr || newStr) {
-            streamingContent = `<<<<<<< OLD\n${oldStr}\n=======\n${newStr}`;
-          } else if (diff) {
-            streamingContent = diff;
-          }
-
-          if (!streamingContent || streamingContent.trim().length === 0) {
-            return null;
-          }
-
-          return (
-            <div style={{}}>
-              <FileStreamingBlock content={streamingContent} maxHeight={STREAM_BOX_HEIGHT} />
-            </div>
-          );
-        })()}
     </div>
   );
 };

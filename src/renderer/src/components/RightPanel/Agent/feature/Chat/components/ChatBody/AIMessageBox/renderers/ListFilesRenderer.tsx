@@ -1,4 +1,8 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
+
+// CONSTANTS
+import { getToolLabel } from '../../../../constants/constants';
 
 // SERVICES
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
@@ -19,6 +23,7 @@ import { TagHeader } from '../TagHeader';
 import { BaseRendererProps } from '../../../../types/renderer-types';
 import FileIcon from '@renderer/components/common/FileIcon';
 import ErrorBlock from '../blocks/ErrorBlock';
+import TreeBlock from '../blocks/TreeBlock';
 
 export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   action,
@@ -34,7 +39,6 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   conversationId,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
-  const [showRawView, setShowRawView] = React.useState(false);
 
   const actionId = `${messageId}-action-${actionIndex}`;
   const rawPath = action.params.folder_path || action.params.path || '';
@@ -131,7 +135,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
               alignItems: 'center',
               gap: '8px',
               fontSize: '12px',
-              color: 'var(--vscode-editor-foreground)',
+              color: $('--text-primary'),
             }}
           >
             <span
@@ -150,7 +154,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
                 }
               }}
             >
-              LIST
+              {getToolLabel('list_files')}
             </span>
             <span
               onClick={(e) => {
@@ -174,7 +178,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
               style={{
                 fontWeight: 500,
                 opacity: 0.9,
-                fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                 fontSize: '11px',
                 cursor: 'pointer',
               }}
@@ -214,7 +218,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
                     style={{
                       opacity: 0.5,
                       fontSize: '10px',
-                      color: 'var(--vscode-descriptionForeground)',
+                      color: $('--text-secondary'),
                     }}
                   >
                     {parts.join(' • ')}
@@ -243,12 +247,12 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
         }
         statusColor={
           isError
-            ? 'var(--vscode-errorForeground)'
+            ? $('--error')
             : isCompleted
-              ? 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)'
+              ? $('--success')
               : isActiveGroup
-                ? 'var(--vscode-descriptionForeground)'
-                : 'var(--vscode-descriptionForeground)'
+                ? $('--text-secondary')
+                : $('--text-secondary')
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !isCompleted}
@@ -265,32 +269,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
             path: clickedPath,
           });
         }}
-        onDotClick={() => {
-          setShowRawView(!showRawView);
-        }}
       />
-
-      {showRawView && (
-        <div
-          style={{
-            marginTop: '4px',
-            padding: '8px 12px',
-            backgroundColor:
-              'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-            border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
-            borderRadius: '4px',
-            fontFamily: 'var(--vscode-editor-font-family, monospace)',
-            fontSize: '11px',
-            lineHeight: '1.5',
-            color: 'var(--vscode-editor-foreground)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            overflowX: 'auto',
-          }}
-        >
-          {action.rawXml || JSON.stringify(action, null, 2)}
-        </div>
-      )}
 
       {isError && errorMessage && (
         <ErrorBlock content={errorMessage} compact={true} maxHeight="300px" />
@@ -309,11 +288,11 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
                   marginTop: '8px',
                   padding: '8px 12px',
                   backgroundColor:
-                    'var(--vscode-editor-background, var(--vscode-textCodeBlock-background))',
-                  border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+                    $('--card-background'),
+                  border: `1px solid ${$('--border')}`,
                   borderRadius: '4px',
                   fontSize: '11px',
-                  color: 'var(--vscode-descriptionForeground)',
+                  color: $('--text-secondary'),
                   fontStyle: 'italic',
                   display: 'flex',
                   alignItems: 'center',
@@ -326,9 +305,9 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
                   <code
                     style={{
                       padding: '1px 4px',
-                      backgroundColor: 'var(--vscode-textCodeBlock-background)',
+                      backgroundColor: $('--card-background'),
                       borderRadius: '2px',
-                      fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                      fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                     }}
                   >
                     {rawPath}

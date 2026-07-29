@@ -1,10 +1,10 @@
 import React from "react";
 
 // TYPES
-import { Question, QuestionAnswer } from "@/features/chat/types/message";
+import { Question, QuestionAnswer } from "../../../../types/message";
 
 // COMPONENTS
-import QuestionBlock from "../blocks/question/QuestionBlock";
+import QuestionAnswerBlock from "../blocks/QuestionAnswerBlock";
 
 interface QuestionRendererProps {
   questions?: Question[];
@@ -38,7 +38,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   const hasQuestions = questions && questions.length > 0;
 
   return (
-    <QuestionBlock
+    <QuestionAnswerBlock
       questions={hasQuestions ? questions : undefined}
       options={!hasQuestions ? options : undefined}
       title={title}

@@ -1,7 +1,45 @@
-import React from "react";
-import RevertConfirmModal from "@/components/RevertConfirmModal";
-import FilesPreviews from "@/components/MessageInput/FilesPreviews";
-import { Message } from "@/features/chat/types/message";
+import React from 'react';
+import { $ } from '@renderer/utils/color';
+import RevertConfirmModal from '@renderer/components/common/RevertConfirmModal';
+import FilesPreviews from '../../../../components/common/MessageInput/FilesPreviews';
+import { Message } from '../../types/message';
+
+/**
+ * Parse <question-answer> tag from user message content
+ * Returns: { answers: Record<string, string>, cleanedContent: string }
+ */
+const parseQuestionAnswerFromContent = (
+  content: string,
+): { answers: Record<string, string>; cleanedContent: string } => {
+  const regex = /<question-answer>([\s\S]*?)<\/question-answer>/i;
+  const match = regex.exec(content);
+
+  if (!match) {
+    return { answers: {}, cleanedContent: content };
+  }
+
+  const innerContent = match[1].trim();
+  const answers: Record<string, string> = {};
+
+  // Parse each line: "N. answer"
+  const lines = innerContent.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const lineMatch = /^(\d+)\.\s*(.*)$/i.exec(trimmed);
+    if (!lineMatch) continue;
+
+    const questionNumber = lineMatch[1];
+    const answerText = lineMatch[2].trim();
+
+    // Store answer (even if empty)
+    answers[`q${questionNumber}`] = answerText || '(no answer)';
+  }
+
+  // Remove <question-answer> block from content
+  const cleanedContent = content.replace(regex, '').trim();
+
+  return { answers, cleanedContent };
+};
 
 interface UserMessageBoxProps {
   message: Message;
@@ -19,24 +57,34 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
     /## User Message\n<zen-user-content>\n([\s\S]*?)\n<\/zen-user-content>/;
   const match = message.content.match(userMsgRegex);
 
-  if (!match && !message.content.includes("## User Message")) {
+  if (!match && !message.content.includes('## User Message')) {
     return null;
   }
 
   let displayContent = match
     ? match[1]
-    : message.content.replace(/^[\s\S]*?## User Message\n/, "");
+    : message.content.replace(/^[\s\S]*?## User Message\n/, '');
 
   // Fallback cleanup if it didn't match the full block regex but has the header
   if (!match) {
     // Legacy: strip old ``` wrapper if present
-    if (displayContent.startsWith("```") && displayContent.includes("```", 3)) {
-      displayContent = displayContent.split("```")[1].trim();
+    if (displayContent.startsWith('```') && displayContent.includes('```', 3)) {
+      displayContent = displayContent.split('```')[1].trim();
     }
     // Strip new zen-user-content wrapper if partially matched
     displayContent = displayContent
-      .replace(/^<zen-user-content>\n?/, "")
-      .replace(/\n?<\/zen-user-content>[\s\S]*$/, "");
+      .replace(/^<zen-user-content>\n?/, '')
+      .replace(/\n?<\/zen-user-content>[\s\S]*$/, '');
+  }
+
+  // Parse <question-answer> tag from content
+  const { answers: questionAnswers, cleanedContent } =
+    parseQuestionAnswerFromContent(displayContent);
+  const hasQuestionAnswers = Object.keys(questionAnswers).length > 0;
+
+  // Use cleaned content (without <question-answer> tag) for display
+  if (hasQuestionAnswers) {
+    displayContent = cleanedContent;
   }
 
   const handleCopy = () => {
@@ -45,114 +93,87 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
     setTimeout(() => setIsCopied(false), 1000);
   };
 
-  const handleRegenerate = () => {
-    // TODO: Implement regenerate logic - resend this message
-  };
-
   return (
     <div
-      className="user-message-container"
+      className="flex flex-col gap-0 mb-4 relative z-[1] transition-all duration-300"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "0px",
-        marginBottom: "var(--spacing-md)",
         opacity: message.isCancelled ? 0.4 : 1,
-        filter: message.isCancelled ? "grayscale(1) blur(0.5px)" : "none",
-        pointerEvents: message.isCancelled ? "none" : "auto",
-        transition: "all 0.3s ease",
-        position: "relative",
-        zIndex: 1,
+        filter: message.isCancelled ? 'grayscale(1) blur(0.5px)' : 'none',
+        pointerEvents: message.isCancelled ? 'none' : 'auto',
       }}
     >
       {/* Files Preview - Show at top if there are files */}
       {message.uploadedFiles?.length || message.attachedItems?.length ? (
-        <div style={{ marginBottom: "var(--spacing-xs)" }}>
+        <div className="mb-1">
           <FilesPreviews
             uploadedFiles={message.uploadedFiles || []}
-            attachedItems={message.attachedItems || []}
-            onRemoveFile={() => {}} // Read-only in message display
-            onRemoveAttachedItem={() => {}} // Read-only in message display
-            onOpenImage={(file) => {
+            attachedItems={(message.attachedItems || []) as any}
+            onRemoveFile={() => {}}
+            onRemoveAttachedItem={() => {}}
+            onOpenImage={(file: any) => {
               const vscodeApi = (window as any).vscodeApi;
               if (vscodeApi) {
                 vscodeApi.postMessage({
-                  command: "openTempImage",
+                  command: 'openTempImage',
                   content: file.content,
                   filename: file.name,
                 });
               }
             }}
             onAttachedItemClick={() => {}}
-            readOnly={true}
           />
         </div>
       ) : null}
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "var(--spacing-xs)",
-          borderRadius: "var(--border-radius)",
-          backgroundColor: "var(--input-bg)",
-          border:
-            "1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))",
-          padding: "var(--spacing-md)",
-          marginLeft: "0px",
-          position: "relative",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "var(--font-size-sm)",
-            color: "var(--primary-text)",
-            lineHeight: 1.6,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            overflowWrap: "break-word",
-            maxWidth: "100%",
-            maxHeight: "400px",
-            overflow: "auto",
-          }}
-        >
+      <div className="flex flex-col gap-1 rounded-md p-4 ml-0 relative bg-input-background border border-border">
+        {/* Question Answers Summary - Show if parsed from content */}
+        {hasQuestionAnswers && (
+          <div
+            className="mb-2 p-2 rounded"
+            style={{
+              backgroundColor: `color-mix(in srgb, ${$('--primary')} 10%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${$('--primary')} 20%, transparent)`,
+            }}
+          >
+            <div className="text-[11px] font-semibold uppercase tracking-[0.5px] mb-2 text-text-secondary">
+              Question Answers
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {Object.entries(questionAnswers).map(([qId, answer]) => {
+                const questionNumber = qId.replace('q', '');
+                return (
+                  <div key={qId} className="text-xs leading-relaxed text-text-primary">
+                    <span className="font-semibold mr-1.5 text-primary">
+                      {questionNumber}.
+                    </span>
+                    <span
+                      style={{
+                        opacity: answer === '(no answer)' ? 0.5 : 1,
+                        fontStyle: answer === '(no answer)' ? 'italic' : 'normal',
+                      }}
+                    >
+                      {answer}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="text-xs text-text-primary leading-relaxed whitespace-pre-wrap break-all max-w-full max-h-[400px] overflow-auto">
           {displayContent}
         </div>
       </div>
 
       {/* Bottom toolbar - always visible, transparent background */}
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "flex-start",
-          alignItems: "center",
-          gap: "8px",
-          backgroundColor: "transparent",
-          padding: "4px 8px",
-        }}
-      >
+      <div className="w-full flex justify-start items-center gap-2 bg-transparent py-1 px-2">
         {/* Copy button */}
         <button
           onClick={handleCopy}
           title="Copy content"
-          style={{
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            padding: "4px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: isCopied
-              ? "var(--vscode-gitDecoration-addedResourceForeground, #3fb950)"
-              : "var(--vscode-descriptionForeground)",
-            borderRadius: "4px",
-            opacity: 0.7,
-            transition: "opacity 0.2s, color 0.2s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+          className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200"
+          style={{ color: isCopied ? $('--success') : $('--text-secondary') }}
         >
           {isCopied ? (
             <svg
@@ -193,21 +214,8 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
               setShowRevertModal(true);
             }}
             title="Revert conversation to this point"
-            style={{
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--vscode-descriptionForeground)",
-              borderRadius: "4px",
-              opacity: 0.7,
-              transition: "opacity 0.2s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+            className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200"
+            style={{ color: $('--text-secondary') }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -228,23 +236,10 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
 
         {/* Regenerate button */}
         <button
-          onClick={handleRegenerate}
+          onClick={() => {}}
           title="Regenerate response"
-          style={{
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            padding: "4px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--vscode-descriptionForeground)",
-            borderRadius: "4px",
-            opacity: 0.7,
-            transition: "opacity 0.2s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+          className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200"
+          style={{ color: $('--text-secondary') }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
