@@ -1,6 +1,5 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
-import { $ } from '@renderer/utils/color';
 
 export interface CommitMessageBlockProps {
   message: string;
@@ -20,13 +19,10 @@ const CommitMessageBlock: React.FC<CommitMessageBlockProps> = ({
   isProcessing = false,
 }) => {
   return (
-    <div style={{ padding: '0px 12px 12px 0' }}>
+    <div className="pr-3 pb-3">
       <div
         className="bg-background border border-border rounded-md p-3 font-mono text-[13px] text-text-primary whitespace-pre-wrap break-words overflow-y-auto max-h-[400px] leading-relaxed"
-        style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(128,128,128,0.4) transparent',
-        }}
+        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(128,128,128,0.4) transparent' }}
       >
         <pre className="m-0 font-inherit whitespace-pre-wrap break-words">
           {message}
@@ -37,20 +33,15 @@ const CommitMessageBlock: React.FC<CommitMessageBlockProps> = ({
         <button
           onClick={onAccept}
           disabled={isProcessing}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold h-6 border border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            background: `color-mix(in srgb, ${$('--teal') || '#4ec9b0'} 15%, transparent)`,
-            color: $('--teal') || '#4ec9b0',
-            borderColor: `color-mix(in srgb, ${$('--teal') || '#4ec9b0'} 30%, transparent)`,
-          }}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold h-6 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-teal/15 text-teal border border-teal/30"
           onMouseEnter={(e) => {
             if (!isProcessing) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal') || '#4ec9b0'} 25%, transparent)`;
+              e.currentTarget.style.background = 'color-mix(in srgb, rgb(0, 210, 255) 25%, transparent)';
             }
           }}
           onMouseLeave={(e) => {
             if (!isProcessing) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${$('--teal') || '#4ec9b0'} 15%, transparent)`;
+              e.currentTarget.style.background = 'color-mix(in srgb, rgb(0, 210, 255) 15%, transparent)';
             }
           }}
         >
@@ -61,20 +52,15 @@ const CommitMessageBlock: React.FC<CommitMessageBlockProps> = ({
         <button
           onClick={onReject}
           disabled={isProcessing}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold h-6 border border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            background: `color-mix(in srgb, ${$('--error') || '#ff4d4d'} 15%, transparent)`,
-            color: $('--error') || '#ff4d4d',
-            borderColor: `color-mix(in srgb, ${$('--error') || '#ff4d4d'} 30%, transparent)`,
-          }}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold h-6 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-error/15 text-error border border-error/30"
           onMouseEnter={(e) => {
             if (!isProcessing) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${$('--error') || '#ff4d4d'} 25%, transparent)`;
+              e.currentTarget.style.background = 'color-mix(in srgb, rgb(255, 45, 85) 25%, transparent)';
             }
           }}
           onMouseLeave={(e) => {
             if (!isProcessing) {
-              e.currentTarget.style.background = `color-mix(in srgb, ${$('--error') || '#ff4d4d'} 15%, transparent)`;
+              e.currentTarget.style.background = 'color-mix(in srgb, rgb(255, 45, 85) 15%, transparent)';
             }
           }}
         >

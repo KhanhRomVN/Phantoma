@@ -1,12 +1,15 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 import { parseAIResponse, ParsedResponse, ToolAction } from '../../services/ResponseParser';
 import { Message } from '../../types/message';
 import { EXECUTION_STATUS, TOOL_ACTION_TYPES, TERMINAL_STATUS } from '../../constants/constants';
 import { useCollapseSections } from '../../hooks/ui/useCollapseSections';
 import { useToolActions } from '../../hooks/tools/useToolActions';
 import { useScrollBehavior } from '../../hooks/ui/useScrollBehavior';
+import { useMessagePagination } from '../../hooks/ui/useMessagePagination';
 import ChatBodySkeleton from './ChatBodySkeleton';
+import { LoadMoreButton } from './LoadMoreButton';
+import ModelInfoBar from './ModelInfoBar';
 import SearchBar from './SearchBar';
 import { ThinkingRenderer } from './AIMessageBox/renderers/ThinkingRenderer';
 import ContinuingIndicator from './ContinuingIndicatorBox';
@@ -39,7 +42,6 @@ interface ChatBodyProps {
     uiHidden?: boolean,
   ) => void | Promise<void>;
   onSelectOption?: (messageId: string, option: string) => void;
-  /** ID of the first user message — used to skip rendering it in some views. */
   firstRequestMessageId?: string;
   executionState?: {
     total: number;
@@ -60,7 +62,6 @@ interface ChatBodyProps {
   isGitProcessing?: boolean;
   isGitStatusVisible?: boolean;
   onBackToHome?: (summary: string) => void;
-  /** Loading state when restoring conversation from history */
   isLoadingConversation?: boolean;
 }
 
@@ -97,10 +98,6 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-/**
- * Error boundary for MessageBox.
- * Catches render errors and shows a recoverable error UI instead of crashing.
- */
 class MessageBoxErrorBoundary extends React.Component<
   { children: React.ReactNode },
   ErrorBoundaryState
@@ -120,99 +117,28 @@ class MessageBoxErrorBoundary extends React.Component<
 
   render() {
     if (this.state.hasError) {
-      const errorColor = $('--error');
-
       return (
-        <div
-          style={{
-            padding: '12px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              width: '100%',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
+        <div className="p-3 px-4 flex flex-col gap-2">
+          <div className="flex items-start justify-between w-full">
+            <div className="flex items-start gap-2 flex-1 min-w-0">
               <div
-                style={{
-                  position: 'relative',
-                  width: '16px',
-                  height: '16px',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginTop: '2px',
-                }}
+                className="relative w-4 h-4 shrink-0 flex items-center justify-center mt-0.5"
                 title="Error - Render failed"
               >
-                <div
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: errorColor,
-                  }}
-                />
+                <div className="w-2 h-2 rounded-full bg-error" />
               </div>
             </div>
 
-            <div
-              style={{
-                flexShrink: 0,
-                marginLeft: '8px',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: errorColor,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
+            <div className="shrink-0 ml-2">
+              <span className="text-[11px] font-semibold text-error uppercase tracking-[0.5px]">
                 ERROR
               </span>
             </div>
           </div>
 
           {this.state.error && (
-            <div
-              style={{
-                padding: '12px 16px',
-                borderRadius: '6px',
-                border: `1px solid color-mix(in srgb, ${errorColor} 30%, transparent)`,
-                background: `color-mix(in srgb, ${errorColor} 5%, transparent)`,
-              }}
-            >
-              <pre
-                style={{
-                  fontSize: '11px',
-                  color: $('--text-secondary'),
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  maxHeight: '120px',
-                  overflowY: 'auto',
-                  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                }}
-              >
+            <div className="py-3 px-4 rounded-md border border-error/30 bg-error/5">
+              <pre className="text-[11px] text-text-secondary m-0 whitespace-pre-wrap break-words max-h-[120px] overflow-y-auto font-mono">
                 {this.state.error.message}
               </pre>
             </div>
@@ -286,8 +212,6 @@ interface MessageBoxProps {
   isRestored?: boolean;
 }
 
-// Note: onRetryRequest đã có trong interface
-
 // ─────────────────────────────────────────────────────────────────────────────
 // MessageBox Component (Inline - previously in MessageBox.tsx)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -306,7 +230,6 @@ const MessageBoxComponent: React.FC<MessageBoxProps> = (props) => {
 const MessageBox = React.memo(MessageBoxComponent, (prevProps, nextProps) => {
   const isStreaming = prevProps.isGenerating === true && nextProps.isGenerating === true;
 
-  // During streaming, only check props that actually change per chunk
   if (isStreaming) {
     const streamingPropsEqual =
       prevProps.message.id === nextProps.message.id &&
@@ -318,7 +241,6 @@ const MessageBox = React.memo(MessageBoxComponent, (prevProps, nextProps) => {
     return streamingPropsEqual;
   }
 
-  // Full comparison when not streaming
   const propsAreEqual =
     prevProps.message.id === nextProps.message.id &&
     prevProps.message.content === nextProps.message.content &&
@@ -328,7 +250,7 @@ const MessageBox = React.memo(MessageBoxComponent, (prevProps, nextProps) => {
     prevProps.rejectedActions === nextProps.rejectedActions &&
     prevProps.isGenerating === nextProps.isGenerating &&
     prevProps.toolOutputs === nextProps.toolOutputs;
-  return propsAreEqual; // true = skip re-render, false = do re-render
+  return propsAreEqual;
 });
 
 // Wrap with error boundary
@@ -384,15 +306,24 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
+  const {
+    visibleMessages: paginatedMessages,
+    hiddenCount,
+    loadMore,
+    loadAll,
+    hasHiddenMessages,
+  } = useMessagePagination({
+    messages,
+    messagesPerPage: 10,
+  });
+
   const parseCacheRef = useRef<Map<string, ParsedResponse>>(new Map());
   const lastParsedMessagesRef = useRef<any[]>([]);
 
   const parsedMessages = useMemo(() => {
     const startTime = performance.now();
 
-    // Check if messages are already parsed (from ChatPanel)
     if (messages.length > 0 && messages[0].parsed !== undefined) {
-      // STREAMING FIX: During streaming, always check content changes for last message
       const messagesUnchanged =
         lastParsedMessagesRef.current.length === messages.length &&
         messages.every(
@@ -405,12 +336,10 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
         return lastParsedMessagesRef.current;
       }
 
-      // Content changed or new messages - update cache
       lastParsedMessagesRef.current = messages;
       return messages;
     }
 
-    // Fallback: parse messages if not already parsed
     const cache = parseCacheRef.current;
 
     const result = messages.map((msg) => {
@@ -472,7 +401,6 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
       return !hasOutput && !isClicked;
     });
     if (!firstPendingAction) return false;
-    // Complex mode: always show all tools, never auto-approve
     return false;
   }, [messages, isRestored, toolOutputs, permissionMode, clickedActions]);
 
@@ -496,41 +424,35 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     if (!parsedMessage || !parsedMessage.parsed) return false;
     const parsed = parsedMessage.parsed;
 
-    // Check message.thinking (SSE stream)
     if (lastMessage.thinking && lastMessage.thinking.trim().length > 0) {
       return false;
     }
 
-    // Check thinking blocks in contentBlocks
     const hasThinkingBlock =
       parsed.contentBlocks && parsed.contentBlocks.some((b: any) => b.type === 'thinking');
     if (hasThinkingBlock) {
       return false;
     }
 
-    // Check text content
     const hasText = parsed.displayText && parsed.displayText.trim().length > 0;
     if (hasText) {
       return false;
     }
 
-    // Check actions
     const hasActions = parsed.actions && parsed.actions.length > 0;
     if (hasActions) {
       return false;
     }
 
-    // Check other blocks (code, file, markdown) - skip thinking
     const hasOtherBlocks =
       parsed.contentBlocks &&
       parsed.contentBlocks.some((b: any) => {
-        // Skip thinking blocks - they're rendered separately
         if (b.type === 'thinking') {
           return false;
         }
         switch (b.type) {
           case 'tool':
-            return true; // Tools count as content
+            return true;
           case 'code':
           case 'file':
           case 'markdown':
@@ -550,22 +472,11 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   return (
     <div
       ref={bodyRef}
-      className="chat-body-scroll bg-background"
-      style={{
-        flex: 1,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        padding: '16px',
-        paddingLeft: '24px',
-        paddingBottom: visibleMessages.length > 0 ? '200px' : '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        fontSize: '14px',
-        position: 'relative',
-      }}
+      className={cn(
+        'chat-body-scroll bg-background flex-1 overflow-y-auto overflow-x-hidden p-4 pl-6 flex flex-col gap-2 text-sm relative',
+        visibleMessages.length > 0 ? 'pb-[200px]' : 'pb-4'
+      )}
     >
-      {/* Show skeleton when loading conversation */}
       {isLoadingConversation ? (
         <ChatBodySkeleton />
       ) : (
@@ -579,14 +490,25 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
             />
           )}
 
+          {hasHiddenMessages && (
+            <LoadMoreButton
+              hiddenCount={hiddenCount}
+              onLoadMore={loadMore}
+              onLoadAll={loadAll}
+            />
+          )}
+
           {(() => {
             let assistantResponseCount = 0;
             return visibleMessages.map((message, index) => {
+              if (message.content?.startsWith('__MODEL_SWITCH__::')) {
+                return <ModelInfoBar key={message.id} message={message} />;
+              }
+
               const parsedMessage = parsedMessages.find((pm) => pm.id === message.id);
               if (!parsedMessage || !parsedMessage.parsed) return null;
               const parsedContent = parsedMessage.parsed;
 
-              // Track assistant response number
               if (message.role === 'assistant') {
                 assistantResponseCount++;
               }
@@ -709,7 +631,6 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
               return null;
             }
 
-            // Check for thinking from SSE stream (unclosed thinking)
             const hasSSEThinking = lastMessage.thinking && lastMessage.thinking.trim();
 
             if (hasSSEThinking) {
@@ -722,19 +643,16 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
               );
             }
 
-            // Check for unclosed thinking blocks in parsed content
             const parsedMessage = parsedMessages.find((pm) => pm.id === lastMessage.id);
             if (!parsedMessage || !parsedMessage.parsed) {
               return null;
             }
 
-            // Look for UNCLOSED thinking block (still streaming)
             const contentBlocks = parsedMessage.parsed.contentBlocks || [];
             const lastBlock = contentBlocks[contentBlocks.length - 1];
             const isLastBlockUnclosedThinking =
               lastBlock && lastBlock.type === 'thinking' && lastBlock.content?.trim();
 
-            // Only render if the LAST block is a thinking block (means thinking is still open/unclosed)
             if (isLastBlockUnclosedThinking) {
               return (
                 <ThinkingRenderer content={lastBlock.content!} maxHeight={240} isStreaming={true} />
@@ -745,58 +663,23 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
           })()}
 
           {hasUnexecutedAutoActions && onContinue && (
-            <div
-              style={{
-                marginTop: '12px',
-                marginBottom: '12px',
-                display: 'flex',
-              }}
-            >
+            <div className="my-3 flex">
               <button
                 onClick={onContinue}
-                style={{
-                  backgroundColor:
-                    `color-mix(in srgb, ${$('--primary')} 15%, transparent)`,
-                  color: $('--primary'),
-                  border:
-                    `1px solid color-mix(in srgb, ${$('--primary')} 30%, transparent)`,
-                  padding: '6px 16px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  height: '28px',
-                  boxSizing: 'border-box',
-                  transition: 'all 0.2s ease',
-                }}
+                className={cn(
+                  'inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-md cursor-pointer text-[11px] font-semibold uppercase tracking-[0.5px] h-7 box-border transition-all duration-200',
+                  'bg-primary/15 text-primary border border-primary/30'
+                )}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    `color-mix(in srgb, ${$('--primary')} 25%, transparent)`;
-                  e.currentTarget.style.borderColor =
-                    `color-mix(in srgb, ${$('--primary')} 50%, transparent)`;
+                  e.currentTarget.style.backgroundColor = 'color-mix(in srgb, rgb(10, 132, 255) 25%, transparent)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, rgb(10, 132, 255) 50%, transparent)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    `color-mix(in srgb, ${$('--primary')} 15%, transparent)`;
-                  e.currentTarget.style.borderColor =
-                    `color-mix(in srgb, ${$('--primary')} 30%, transparent)`;
+                  e.currentTarget.style.backgroundColor = 'color-mix(in srgb, rgb(10, 132, 255) 15%, transparent)';
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, rgb(10, 132, 255) 30%, transparent)';
                 }}
               >
-                <span
-                  className="codicon codicon-play"
-                  style={{
-                    fontSize: '12px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                />
+                <span className="codicon codicon-play text-xs inline-flex items-center justify-center" />
                 <span>Continue Task</span>
               </button>
             </div>
@@ -818,11 +701,11 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
           background: transparent;
         }
         .chat-body-scroll::-webkit-scrollbar-thumb {
-          background: ${$('--text-secondary')}66;
+          background: rgb(106, 122, 154, 0.4);
           border-radius: 4px;
         }
         .chat-body-scroll::-webkit-scrollbar-thumb:hover {
-          background: ${$('--text-secondary')}99;
+          background: rgb(106, 122, 154, 0.6);
         }
         .chat-body-scroll {
           scrollbar-width: thin;
@@ -834,10 +717,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   );
 };
 
-// PERF: React.memo with custom comparator to prevent re-renders when parent
-// (ChatPanel) re-renders due to unrelated state changes (e.g., useBrowserSession polling).
-// ChatBody has ~30 props; without memo it re-renders the entire message list
-// and triggers 150+ MessageBox memo checks on every parent render.
+// PERF: React.memo with custom comparator
 const ChatBody = React.memo(ChatBodyInternal, (prevProps, nextProps) => {
   return (
     prevProps.messages === nextProps.messages &&

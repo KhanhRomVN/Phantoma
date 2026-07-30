@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 // CONSTANTS
 import { getToolLabel } from '../../../../constants/constants';
@@ -51,8 +51,6 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
 
   const allPaths = React.useMemo(() => collectConvFilePaths(allMessages || []), [allMessages]);
 
-  const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
-
   const nextUserMessage = getNextUserMessage(allMessages || [], messageId);
 
   const isCompleted: boolean = Boolean(
@@ -62,59 +60,32 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
   const isError = !!toolOutputs?.[actionId]?.isError;
   const errorMessage = isError ? toolOutputs?.[actionId]?.output || '' : '';
 
-  // Check if action has validation error
   const hasValidationError = !!action.isError;
-
-  const statusColor = isError ? $('--error') : isCompleted ? $('--error') : $('--primary');
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        paddingBottom: '4px',
-        marginBottom: isLastItemInList ? '0' : '2px',
-      }}
+      className={cn(
+        'flex flex-col gap-1.5 pb-1',
+        isLastItemInList ? 'mb-0' : 'mb-0.5'
+      )}
     >
       <TagHeader
         title={
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '12px',
-              color: $('--text-primary'),
-            }}
-          >
-            <span style={{ fontWeight: 600, opacity: 0.8 }}>{getToolLabel('delete_file')}</span>
+          <div className="flex items-center gap-2 text-xs text-text-primary">
+            <span className="font-semibold opacity-80">{getToolLabel('delete_file')}</span>
             <FileIcon path={rawPath} isFolder={false} style={{ width: '14px', height: '14px' }} />
-            <span
-              style={{
-                fontWeight: 500,
-                opacity: 0.8,
-                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                fontSize: '11px',
-              }}
-            >
+            <span className="font-medium opacity-80 font-mono text-[11px]">
               {getDisplayPath(rawPath, allPaths) || '...'}
             </span>
             {isCompleted && !isError && (
-              <span
-                style={{
-                  fontSize: '10px',
-                  opacity: 0.5,
-                  color: $('--text-secondary'),
-                }}
-              >
+              <span className="text-[10px] opacity-50 text-text-secondary">
                 deleted
               </span>
             )}
           </div>
         }
         path={rawPath}
-        statusColor={statusColor}
+        statusColor={isError ? 'rgb(255, 45, 85)' : isCompleted ? 'rgb(255, 45, 85)' : 'rgb(10, 132, 255)'}
         isPartial={false}
         isError={isError}
         toolType={toolType}
@@ -123,7 +94,7 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
       {isError && <ErrorBlock content={errorMessage} showHeader={false} maxHeight="300px" />}
 
       {!isCompleted && (
-        <div style={{ padding: '0 12px 8px 0' }}>
+        <div className="pr-3 pb-2">
           <ActionBar
             action={action}
             messageId={messageId}

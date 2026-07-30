@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 // CONSTANTS
 import { getToolLabel } from '../../../../constants/constants';
@@ -7,16 +7,12 @@ import { getToolLabel } from '../../../../constants/constants';
 // SERVICES
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
-// TYPES
-
 // UTILS
 import {
   collectConvFilePaths,
   getDisplayPath,
   getNextUserMessage,
 } from '../../../../utils/renderer-utils';
-
-// ICONS
 
 // COMPONENTS
 import { TagHeader } from '../TagHeader';
@@ -58,46 +54,25 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        paddingBottom: '4px',
-        marginBottom: isLastItemInList ? '0' : '2px',
-      }}
+      className={cn(
+        'flex flex-col gap-1.5 pb-1',
+        isLastItemInList ? 'mb-0' : 'mb-0.5'
+      )}
     >
       <TagHeader
         title={
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '12px',
-              color: $('--text-primary'),
-              cursor: grepCompleted ? 'pointer' : 'default',
-            }}
+            className={cn(
+              'flex items-center gap-2 text-xs text-text-primary',
+              grepCompleted ? 'cursor-pointer' : 'cursor-default'
+            )}
             onClick={grepCompleted ? () => setIsGrepCollapsed((v) => !v) : undefined}
           >
-            <span style={{ fontWeight: 600, opacity: 0.8, flexShrink: 0 }}>
+            <span className="font-semibold opacity-80 shrink-0">
               {getToolLabel('grep')}
             </span>
             <span
-              style={{
-                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: $('--primary'),
-                padding: '0 5px',
-                backgroundColor:
-                  `color-mix(in srgb, ${$('--primary')} 12%, transparent)`,
-                borderRadius: '3px',
-                maxWidth: '200px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flexShrink: 1,
-              }}
+              className="font-mono text-[11px] font-semibold text-primary px-[5px] bg-primary/12 rounded-[3px] max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap shrink"
               title={action.params.search_term || action.params.searchTerm || ''}
             >
               {action.params.search_term || action.params.searchTerm || ''}
@@ -112,24 +87,14 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
               if (segments.length === 0) return null;
               return (
                 <>
-                  <span style={{ opacity: 0.4, fontSize: '11px', flexShrink: 0 }}>in</span>
+                  <span className="opacity-40 text-[11px] shrink-0">in</span>
                   <FileIcon
                     path={targetPath}
                     isFolder={isFolder}
                     style={{ width: '14px', height: '14px', flexShrink: 0 }}
                   />
                   <span
-                    style={{
-                      fontWeight: 500,
-                      opacity: 0.8,
-                      fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                      fontSize: '11px',
-                      maxWidth: '150px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 1,
-                    }}
+                    className="font-medium opacity-80 font-mono text-[11px] max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap shrink"
                     title={targetPath}
                   >
                     {getDisplayPath(targetPath, allPaths) || '...'}
@@ -138,21 +103,8 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
               );
             })()}
             {isPartial && !grepCompleted && (
-              <span
-                style={{
-                  fontSize: '10px',
-                  opacity: 0.55,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  flexShrink: 0,
-                  marginLeft: 'auto',
-                }}
-              >
-                <span
-                  className="codicon codicon-loading codicon-modifier-spin"
-                  style={{ fontSize: '10px' }}
-                />
+              <span className="text-[10px] opacity-55 flex items-center gap-1 shrink-0 ml-auto">
+                <span className="codicon codicon-loading codicon-modifier-spin text-[10px]" />
                 Searching...
               </span>
             )}
@@ -169,31 +121,13 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
                 } catch {}
                 if (totalMatches === 0 && fileCount === 0) {
                   return (
-                    <span
-                      style={{
-                        opacity: 0.5,
-                        fontSize: '10px',
-                        color: $('--text-secondary'),
-                        fontStyle: 'italic',
-                        flexShrink: 0,
-                        marginLeft: 'auto',
-                      }}
-                    >
+                    <span className="opacity-50 text-[10px] text-text-secondary italic shrink-0 ml-auto">
                       no matches
                     </span>
                   );
                 }
                 return (
-                  <span
-                    style={{
-                      opacity: 0.5,
-                      fontSize: '10px',
-                      color: $('--text-secondary'),
-                      flexShrink: 0,
-                      marginLeft: 'auto',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
+                  <span className="opacity-50 text-[10px] text-text-secondary shrink-0 ml-auto whitespace-nowrap">
                     {totalMatches} {totalMatches === 1 ? 'match' : 'matches'} in {fileCount}{' '}
                     {fileCount === 1 ? 'file' : 'files'}
                   </span>
@@ -201,20 +135,17 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
               })()}
             {grepCompleted && (
               <span
-                className={`codicon codicon-chevron-${isGrepCollapsed ? 'right' : 'down'}`}
-                style={{ fontSize: '10px', opacity: 0.5, marginLeft: '2px', flexShrink: 0 }}
+                className={`codicon codicon-chevron-${isGrepCollapsed ? 'right' : 'down'} text-[10px] opacity-50 ml-0.5 shrink-0`}
               />
             )}
           </div>
         }
         statusColor={
           isError
-            ? $('--error')
+            ? 'rgb(255, 45, 85)'
             : grepCompleted
-              ? $('--success')
-              : isActiveGroup
-                ? $('--text-secondary')
-                : $('--text-secondary')
+              ? 'rgb(48, 209, 88)'
+              : 'rgb(106, 122, 154)'
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !grepCompleted}

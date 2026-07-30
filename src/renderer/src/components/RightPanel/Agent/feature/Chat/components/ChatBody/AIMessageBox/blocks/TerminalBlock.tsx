@@ -3,6 +3,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 interface TerminalBlockProps {
   logs: string;
@@ -223,7 +224,6 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
         cursorInactiveStyle: 'none',
         disableStdin: true,
         fontSize: 12,
-        fontFamily: $('--font-family') || '"Courier New", Courier, monospace',
         theme: buildXtermTheme(),
         allowProposedApi: true,
         rows: rows,
@@ -306,22 +306,16 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
   return (
     <>
       <div
-        className="terminal-block-container flex flex-col bg-background rounded-md overflow-hidden font-mono border border-border"
-        style={
-          rejectedOutline
-            ? {
-                outline: '1px solid color-mix(in srgb, ' + ($('--error') || '#f44336') + ' 60%, transparent)',
-                borderRadius: '6px',
-              }
-            : undefined
-        }
+        className={cn(
+          'terminal-block-container flex flex-col bg-background rounded-md overflow-hidden font-mono border border-border',
+          rejectedOutline && 'outline outline-1 outline-error/60',
+        )}
       >
         {/* ── COMMAND HEADER ── Copy button hidden by default, shown on hover via CSS */}
         {isXtermVisible && (
           <div
-            className="terminal-fixed-header terminal-cmd-area flex items-center gap-2 px-2.5 py-1.5 bg-background border-b border-border z-[5] sticky top-0 select-none transition-colors duration-200"
+            className={`terminal-fixed-header terminal-cmd-area flex items-center gap-2 px-2.5 py-1.5 bg-background border-b border-border z-[5] sticky top-0 select-none transition-colors duration-200 ${canExpand ? 'cursor-pointer' : 'cursor-default'}`}
             onClick={toggleExpand}
-            style={{ cursor: canExpand ? 'pointer' : 'default' }}
             onMouseEnter={(e) => {
               if (canExpand)
                 e.currentTarget.style.backgroundColor =
@@ -365,11 +359,10 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
           )}
 
           <div
-            className="terminal-content-wrapper px-3 py-2 bg-background overflow-y-auto"
+            className="terminal-content-wrapper px-3 py-2 bg-background overflow-y-auto select-none"
             style={{
               maxHeight: `${maxHeight}px`,
               pointerEvents: 'auto',
-              userSelect: 'none',
             }}
           >
             {!isXtermVisible ? (

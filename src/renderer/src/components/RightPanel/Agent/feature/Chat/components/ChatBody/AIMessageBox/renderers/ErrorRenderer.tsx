@@ -68,7 +68,7 @@ export const ErrorRenderer: React.FC<ErrorRendererProps> = ({
   const errorColor = $('--error');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <div className="flex flex-col gap-1">
       <TagHeader
         title={errorLabel}
         statusColor={errorColor}

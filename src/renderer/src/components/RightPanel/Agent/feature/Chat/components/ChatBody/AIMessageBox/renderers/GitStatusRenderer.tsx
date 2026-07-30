@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 // CONSTANTS
 import { TOOL_ACTION_TYPES, getToolLabel } from '../../../../constants/constants';
@@ -73,12 +73,10 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
     if (gitStatusItems.length > 0) {
       return gitStatusItems;
     }
-    // First, try to get from toolOutputs (works for active sessions)
     if (hasOutput && toolOutputs[actionId] && !toolOutputs[actionId].isError) {
       const parsed = parseGitStatusOutput(toolOutputs[actionId].output);
       if (parsed.length > 0) return parsed;
     }
-    // Fallback: parse from action.params.items (restored from conversation)
     const itemsFromParams = action.params?.items;
     if (
       itemsFromParams &&
@@ -87,7 +85,6 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
     ) {
       return itemsFromParams;
     }
-    // Last resort: try to parse from raw git output stored in action params
     const rawOutput = action.params?.raw;
     if (rawOutput && typeof rawOutput === "string") {
       const parsed = parseGitStatusOutput(rawOutput);
@@ -96,16 +93,15 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
     return [];
   }, [gitStatusItems, hasOutput, toolOutputs, actionId, action.params]);
 
-  // Use parsed items instead of the prop
   const effectiveItems = parsedItems.length > 0 ? parsedItems : gitStatusItems;
 
-  const getStatusColor = () => {
+  const getStatusColor = (): string => {
     if (hasOutput) {
       const output = toolOutputs[actionId];
-      if (output.isError) return $('--error');
-      return $('--warn');
+      if (output.isError) return 'rgb(255, 45, 85)';
+      return 'rgb(255, 159, 10)';
     }
-    return $('--warn');
+    return 'rgb(255, 159, 10)';
   };
 
   const getTitleParts = () => {
@@ -133,10 +129,6 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
   const handleConfirm = () => {
     if (onConfirm && effectiveItems.length > 0) {
       onConfirm(effectiveItems);
-    } else {
-      console.warn(
-        "[GitStatusRenderer] Cannot confirm - no onConfirm or no items",
-      );
     }
   };
 
@@ -148,68 +140,35 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
 
   return (
     <div
-      className={`terminal-block git-tool ${isActiveGroup ? "active" : ""}`}
-      style={{
-        marginBottom: isLastItemInList ? "0" : "8px",
-        backgroundColor: "transparent",
-        borderRadius: "0px",
-        overflow: "visible",
-      }}
+      className={cn(
+        'terminal-block git-tool bg-transparent rounded-none overflow-visible',
+        isActiveGroup && 'active',
+        isLastItemInList ? 'mb-0' : 'mb-2'
+      )}
     >
       <TagHeader
         title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              color: $('--text-primary'),
-            }}
-          >
-            <span style={{ fontWeight: 600, opacity: 0.8 }}>
+          <div className="flex items-center gap-1.5 text-xs text-text-primary">
+            <span className="font-semibold opacity-80">
               {getTitleParts().label}
             </span>
             {getTitleParts().stats && (
               <>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    opacity: 0.5,
-                    marginLeft: "2px",
-                  }}
-                >
+                <span className="text-[11px] opacity-50 ml-0.5">
                   {getTitleParts()
                     .stats.replace(/\+[0-9]+/, "")
                     .replace(/ -[0-9]+/, "")
                     .trim()}
                 </span>
-                <span
-                  style={{
-                    color:
-                      $('--success'),
-                    fontWeight: 600,
-                    fontSize: "11px",
-                  }}
-                >
+                <span className="text-success font-semibold text-[11px]">
                   +{getTitleParts().totalAdded}
                 </span>
-                <span
-                  style={{
-                    color:
-                      $('--error'),
-                    fontWeight: 600,
-                    fontSize: "11px",
-                  }}
-                >
+                <span className="text-error font-semibold text-[11px]">
                   -{getTitleParts().totalDeleted}
                 </span>
               </>
             )}
-            <span
-              className="codicon codicon-git-pull-request"
-              style={{ fontSize: "14px", marginLeft: "2px" }}
-            />
+            <span className="codicon codicon-git-pull-request text-sm ml-0.5" />
           </div>
         }
         statusColor={getStatusColor()}
@@ -217,7 +176,7 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
       />
 
       {hasOutput && (
-        <div style={{ padding: "0px 12px 12px 0" }}>
+        <div className="pr-3 pb-3">
           <GitStatusBlock
             statusItems={effectiveItems}
             onConfirm={handleConfirm}

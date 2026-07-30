@@ -445,7 +445,7 @@ export default React.memo(function Emulate({
               key={tool.id}
               onClick={() => handleSetSelectedTool(tool.id)}
               className={cn(
-                'flex items-center gap-1.5 px-3 h-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all border-b-2',
+                'flex items-center gap-1.5 px-3 h-full text-sm font-medium whitespace-nowrap cursor-pointer transition-all border-b-2',
                 isActive
                   ? 'text-text-primary'
                   : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-dropdown-item-hover',

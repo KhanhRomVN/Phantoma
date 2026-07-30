@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { extensionService } from '../services/ExtensionService';
 
-export type PermissionMode = 'fullAccess' | 'approval' | 'readOnly';
+export type PermissionMode = 'fullAccess' | 'approval';
 
 interface SettingsContextType {
   apiUrl: string;
@@ -81,10 +81,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           bypassPermissions: 'fullAccess',
           acceptEdits: 'approval',
           auto: 'approval',
-          plan: 'readOnly',
+          plan: 'approval',
           fullAccess: 'fullAccess',
           approval: 'approval',
-          readOnly: 'readOnly',
+          readOnly: 'approval',
         };
         setPermissionModeState(migrationMap[val] ?? 'fullAccess');
       }

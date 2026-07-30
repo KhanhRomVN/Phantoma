@@ -23,7 +23,7 @@ export const WarningRenderer: React.FC<WarningRendererProps> = ({
   isPulsing = false,
 }) => {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+    <div className="flex flex-col gap-1">
       <TagHeader
         title={label}
         statusColor={warningColor}

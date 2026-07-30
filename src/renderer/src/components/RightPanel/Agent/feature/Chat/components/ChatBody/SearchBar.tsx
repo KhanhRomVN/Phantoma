@@ -4,7 +4,7 @@ import React, {
   useRef,
   useCallback,
 } from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 export interface SearchBarProps {
   searchQuery: string;
@@ -162,24 +162,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
     <button
       title={title}
       onClick={onClick}
-      style={{
-        background: active
-          ? `color-mix(in srgb, ${$('--primary')} 20%, transparent)`
-          : 'transparent',
-        border: active
-          ? `1px solid color-mix(in srgb, ${$('--primary')} 45%, transparent)`
-          : '1px solid transparent',
-        color: active ? $('--primary') : $('--text-secondary'),
-        cursor: 'pointer',
-        padding: '2px 4px',
-        borderRadius: '3px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: active ? 1 : 0.6,
-        transition: 'all 0.12s ease',
-        flexShrink: 0,
-      }}
+      className={cn(
+        'flex items-center justify-center p-0.5 rounded-[3px] shrink-0 transition-all duration-[0.12s]',
+        active
+          ? 'bg-primary/20 border border-primary/45 text-primary opacity-100'
+          : 'bg-transparent border border-transparent text-text-secondary opacity-60'
+      )}
       onMouseEnter={(e) => {
         if (!active) e.currentTarget.style.opacity = '1';
       }}
@@ -191,36 +179,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
     </button>
   );
 
-  const inputBorderStyle = `1px solid ${$('--border')}`;
-  const inputBg = $('--input-background');
-
   return (
     <div
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        alignSelf: 'flex-end',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.32)',
-        marginBottom: '6px',
-        backgroundColor: $('--dropdown-background'),
-        border: `1px solid ${$('--border')}`,
-        borderRadius: '6px',
-        padding: '3px 4px',
-      }}
+      className={cn(
+        'sticky top-0 z-[100] self-end inline-flex items-center gap-1',
+        'shadow-[0_2px_10px_rgba(0,0,0,0.32)] mb-1.5',
+        'bg-dropdown-background border border-border rounded-md py-[3px] px-1'
+      )}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'stretch',
-          overflow: 'hidden',
-          backgroundColor: inputBg,
-          borderRadius: '3px',
-        }}
-      >
+      <div className="flex items-stretch overflow-hidden bg-input-background rounded-[3px]">
         <input
           ref={inputRef}
           type="text"
@@ -234,58 +201,31 @@ const SearchBar: React.FC<SearchBarProps> = ({
               navigate(e.shiftKey ? -1 : 1);
             }
           }}
-          style={{
-            background: inputBg,
-            border: 'none',
-            outline: 'none',
-            color: $('--text-primary'),
-            fontSize: '12px',
-            padding: '4px 6px',
-            width: '180px',
-            fontFamily: 'system-ui, sans-serif',
-          }}
+          className="bg-input-background border-none outline-none text-text-primary text-xs py-1 px-1.5 w-[180px] font-sans"
         />
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1px',
-            padding: '2px 4px',
-            borderLeft: inputBorderStyle,
-            backgroundColor: inputBg,
-          }}
-        >
+        <div className="flex items-center gap-px py-0.5 px-1 border-l border-border bg-input-background">
           {iconBtn(
             flags.has('matchCase'),
             'Match Case (Alt+C)',
             () => toggleFlag('matchCase'),
-            <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'monospace', lineHeight: 1 }}>Aa</span>,
+            <span className="text-[11px] font-bold font-mono leading-none">Aa</span>,
           )}
           {iconBtn(
             flags.has('wholeWord'),
             'Match Whole Word (Alt+W)',
             () => toggleFlag('wholeWord'),
-            <span style={{ fontSize: '10px', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '-0.5px', lineHeight: 1 }}>ab</span>,
+            <span className="text-[10px] font-bold font-mono tracking-[-0.5px] leading-none">ab</span>,
           )}
           {iconBtn(
             flags.has('regex'),
             'Use Regular Expression (Alt+R)',
             () => toggleFlag('regex'),
-            <span style={{ fontSize: '10px', fontWeight: 700, fontFamily: 'monospace', lineHeight: 1 }}>.*</span>,
+            <span className="text-[10px] font-bold font-mono leading-none">.*</span>,
           )}
         </div>
       </div>
 
-      <span
-        style={{
-          fontSize: '11px',
-          color: $('--text-secondary'),
-          whiteSpace: 'nowrap',
-          minWidth: '72px',
-          textAlign: 'center',
-          userSelect: 'none',
-        }}
-      >
+      <span className="text-[11px] text-text-secondary whitespace-nowrap min-w-[72px] text-center select-none">
         {localQuery
           ? matchCount === 0
             ? 'No results'
@@ -297,7 +237,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
         title="Previous match (Shift+Enter)"
         onClick={() => navigate(-1)}
         disabled={matchCount === 0}
-        style={{ background: 'transparent', border: 'none', cursor: matchCount > 0 ? 'pointer' : 'default', color: $('--text-secondary'), padding: '2px 3px', opacity: matchCount > 0 ? 0.7 : 0.3, display: 'flex', alignItems: 'center' }}
+        className={cn(
+          'bg-transparent border-none flex items-center py-0.5 px-[3px] text-text-secondary',
+          matchCount > 0 ? 'opacity-70 cursor-pointer' : 'opacity-30 cursor-default'
+        )}
         onMouseEnter={(e) => { if (matchCount > 0) e.currentTarget.style.opacity = '1'; }}
         onMouseLeave={(e) => { if (matchCount > 0) e.currentTarget.style.opacity = '0.7'; }}
       >
@@ -310,7 +253,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
         title="Next match (Enter)"
         onClick={() => navigate(1)}
         disabled={matchCount === 0}
-        style={{ background: 'transparent', border: 'none', cursor: matchCount > 0 ? 'pointer' : 'default', color: $('--text-secondary'), padding: '2px 3px', opacity: matchCount > 0 ? 0.7 : 0.3, display: 'flex', alignItems: 'center' }}
+        className={cn(
+          'bg-transparent border-none flex items-center py-0.5 px-[3px] text-text-secondary',
+          matchCount > 0 ? 'opacity-70 cursor-pointer' : 'opacity-30 cursor-default'
+        )}
         onMouseEnter={(e) => { if (matchCount > 0) e.currentTarget.style.opacity = '1'; }}
         onMouseLeave={(e) => { if (matchCount > 0) e.currentTarget.style.opacity = '0.7'; }}
       >
@@ -322,7 +268,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       <button
         title="Close (Esc)"
         onClick={() => { handleQueryChange(''); onCloseSearch?.(); }}
-        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: $('--text-secondary'), padding: '2px 3px', opacity: 0.55, display: 'flex', alignItems: 'center', transition: 'opacity 0.12s' }}
+        className="bg-transparent border-none cursor-pointer flex items-center py-0.5 px-[3px] text-text-secondary opacity-55 transition-opacity duration-[0.12s]"
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
         onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.55'; }}
       >

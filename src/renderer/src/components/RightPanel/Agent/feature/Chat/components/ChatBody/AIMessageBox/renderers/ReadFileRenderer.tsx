@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 // CONSTANTS
 import { getToolLabel } from '../../../../constants/constants';
@@ -158,31 +158,16 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        paddingBottom: '4px',
-        marginBottom: isLastItemInList ? '0' : '2px',
-      }}
+      className={cn(
+        'flex flex-col gap-1.5 pb-1',
+        isLastItemInList ? 'mb-0' : 'mb-0.5'
+      )}
     >
       <TagHeader
         title={
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '12px',
-              color: $('--text-primary'),
-            }}
-          >
+          <div className="flex items-center gap-2 text-xs text-text-primary">
             <span
-              style={{
-                fontWeight: 600,
-                opacity: 0.8,
-                cursor: 'pointer',
-              }}
+              className="font-semibold opacity-80 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (rawPath) {
@@ -205,7 +190,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
                   });
                 }
               }}
-              style={{ display: 'flex', alignItems: 'center' }}
+              className="flex items-center"
             >
               <FileIcon
                 path={rawPath}
@@ -214,13 +199,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
               />
             </span>
             <span
-              style={{
-                fontWeight: 500,
-                opacity: 0.9,
-                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                fontSize: '11px',
-                cursor: 'pointer',
-              }}
+              className="font-medium opacity-90 font-mono text-[11px] cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (rawPath) {
@@ -234,15 +213,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
               {displayName}
             </span>
             {lineRangeText && (
-              <span
-                style={{
-                  opacity: 0.5,
-                  fontSize: '10px',
-                  marginLeft: '6px',
-                  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                  color: $('--text-secondary'),
-                }}
-              >
+              <span className="opacity-50 text-[10px] ml-1.5 font-mono text-text-secondary">
                 {lineRangeText}
               </span>
             )}
@@ -250,12 +221,10 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
         }
         statusColor={
           isError
-            ? $('--error')
+            ? 'rgb(255, 45, 85)'
             : isCompleted
-              ? $('--success')
-              : isActiveGroup
-                ? $('--text-secondary')
-                : $('--text-secondary')
+              ? 'rgb(48, 209, 88)'
+              : 'rgb(106, 122, 154)'
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !isCompleted}

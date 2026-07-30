@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 /**
  * ContinuingIndicatorBox displays a pulsing indicator when the AI response
@@ -7,98 +7,48 @@ import { $ } from '@renderer/utils/color';
  * used in ChatBody to show that content is being fetched.
  */
 export const ContinuingIndicatorBox: React.FC = () => {
-  const warningColor = $('--warn');
-
   return (
     <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "6px",
-        paddingBottom: "4px",
-        marginBottom: "2px",
-      }}
+      className={cn(
+        'flex flex-col gap-1.5',
+        'pb-1 mb-0.5'
+      )}
     >
       {/* Header with pulsing status indicator */}
       <div
-        style={{
-          paddingTop: "4px",
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          width: "100%",
-        }}
+        className={cn(
+          'pt-1 flex items-start justify-between w-full'
+        )}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "8px",
-              flexWrap: "nowrap",
-            }}
-          >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-2 flex-nowrap">
             {/* Pulsing status indicator */}
             <div
-              style={{
-                position: "relative",
-                width: "16px",
-                height: "16px",
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: "2px",
-              }}
+              className={cn(
+                'relative w-4 h-4 shrink-0',
+                'flex items-center justify-center mt-0.5'
+              )}
               title="CONTINUING RESPONSE"
             >
               {/* Spinning ring */}
               <div
-                style={{
-                  position: "absolute",
-                  width: "16px",
-                  height: "16px",
-                  borderRadius: "50%",
-                  borderWidth: "2px",
-                  borderStyle: "solid",
-                  borderRightColor: warningColor,
-                  borderBottomColor: warningColor,
-                  borderLeftColor: warningColor,
-                  borderTopColor: "transparent",
-                  animation: "continuing-indicator-spin 1s linear infinite",
-                  opacity: 0.8,
-                }}
+                className={cn(
+                  'absolute w-4 h-4 rounded-full border-2',
+                  'border-r-warn border-b-warn border-l-warn border-t-transparent',
+                  'animate-[continuing-indicator-spin_1s_linear_infinite]',
+                  'opacity-80'
+                )}
               />
               {/* Center dot */}
-              <div
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  backgroundColor: warningColor,
-                }}
-              />
+              <div className="w-2 h-2 rounded-full bg-warn" />
             </div>
 
             {/* Label */}
-            <div
-              style={{
-                flex: 1,
-                minWidth: 0,
-                display: "flex",
-                flexDirection: "column",
-                gap: "2px",
-                marginTop: "2px",
-              }}
-            >
+            <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
               <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  letterSpacing: "0.5px",
-                  textTransform: "uppercase",
-                  color: warningColor,
-                }}
+                className={cn(
+                  'text-[11px] font-semibold tracking-[0.5px] uppercase text-warn'
+                )}
               >
                 CONTINUING RESPONSE
               </span>
@@ -109,21 +59,15 @@ export const ContinuingIndicatorBox: React.FC = () => {
 
       {/* Message block */}
       <div
-        style={{
-          padding: "12px 16px",
-          borderRadius: "6px",
-          marginLeft: "24px",
-          border: `1px solid color-mix(in srgb, ${warningColor} 30%, transparent)`,
-          background: `color-mix(in srgb, ${warningColor} 5%, transparent)`,
-        }}
+        className={cn(
+          'py-3 px-4 rounded-md ml-6',
+          'border border-warn/30 bg-warn/5'
+        )}
       >
         <span
-          style={{
-            fontSize: "11px",
-            lineHeight: 1.5,
-            display: "block",
-            color: warningColor,
-          }}
+          className={cn(
+            'text-[11px] leading-relaxed block text-warn'
+          )}
         >
           AI response was interrupted. Fetching the remaining content…
         </span>

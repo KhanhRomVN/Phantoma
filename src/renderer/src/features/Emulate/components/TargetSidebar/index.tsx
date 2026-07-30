@@ -88,7 +88,7 @@ const TargetSidebar: React.FC<TargetSidebarProps> = ({
     <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background relative">
       {/* Header */}
       <div className="flex items-center px-3 h-10 border-b border-border shrink-0">
-        <span className="text-xs font-medium text-text-secondary">Targets</span>
+        <span className="text-sm font-medium text-text-secondary">Targets</span>
       </div>
 
       <TargetList

@@ -12,7 +12,6 @@ interface QuestionAnswerBlockProps {
   initialAnswers?: Record<string, QuestionAnswer>;
   disabled?: boolean;
   title?: string;
-  /** Legacy props for single-question mode */
   selectedOption?: string;
   onOptionSelect?: (option: string) => void;
   optional?: boolean;
@@ -29,7 +28,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   selectedOption: selectedOptionProp,
   onOptionSelect: onOptionSelectProp,
 }) => {
-  // Determine if this is paginated mode (has questions array) or legacy mode (has options)
   const isPaginated = questionsProp && questionsProp.length > 0;
   const questions = isPaginated ? questionsProp! : [];
   const legacyOptions = optionsProp || [];
@@ -39,28 +37,20 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string | string[]>>({});
   const [textInputs, setTextInputs] = useState<Record<string, string>>({});
   const [confirmValues, setConfirmValues] = useState<Record<string, boolean>>({});
-  // Store custom "Khác" values separately so they persist when switching options
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
-  // Store multi-choice custom "Khác" values separately
   const [multiCustomValues, setMultiCustomValues] = useState<Record<string, string>>({});
-  // Internal state to control summary view (avoid relying on props)
-  const [isSummaryMode, setIsSummaryModeState] = useState(false);
-  // Ref to track summary mode across re-renders and re-mounts (giống cách TerminalBlock track state)
+  const [isSummaryModeState, setIsSummaryModeState] = useState(false);
   const isSummaryModeRef = useRef(false);
-  // Ref to track if we've restored from initialAnswers (prevent re-initialization)
   const hasRestoredRef = useRef(false);
 
-  // Wrapper to keep state and ref in sync
   const setIsSummaryMode = (value: boolean) => {
     isSummaryModeRef.current = value;
     setIsSummaryModeState(value);
   };
 
-  // Legacy mode: single question with options
   const isLegacyMode = !isPaginated && legacyOptions.length > 0;
   const legacyAnswered = !!selectedOptionProp;
 
-  // Sync initialAnswers to answers state when it changes (for history load)
   useEffect(() => {
     const initialAnswersKeys = Object.keys(initialAnswers);
     const hasInitialAnswers = isPaginated && initialAnswersKeys.length > 0;
@@ -105,7 +95,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     ? Object.keys(answers).length === totalQuestions
     : legacyAnswered;
 
-  // Check if current question is answered
   const isCurrentAnswered = useCallback(() => {
     if (!isPaginated || !currentQuestion) return false;
     const q = currentQuestion;
@@ -228,16 +217,13 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
                 onClick={() => onOptionSelectProp?.(option)}
                 disabled={disabled || legacyAnswered}
                 className={cn(
-                  'py-1.5 px-3 border-none rounded-none text-[13px] text-left transition-all duration-[0.15s] w-full',
+                  'py-1.5 px-3 border-none rounded-none text-[13px] text-left transition-all duration-[0.15s] w-full border-l-[3px]',
                   legacySelected === option
-                    ? 'bg-primary text-text-foreground font-semibold opacity-100'
-                    : 'bg-transparent text-text-primary font-normal',
+                    ? 'bg-primary text-text-foreground font-semibold opacity-100 border-l-primary'
+                    : 'bg-transparent text-text-primary font-normal border-l-text-secondary',
                   legacyAnswered && legacySelected !== option && 'opacity-50',
                   disabled || legacyAnswered ? 'cursor-default' : 'cursor-pointer',
                 )}
-                style={{
-                  borderLeft: `3px solid ${legacySelected === option ? $('--primary') : $('--secondary-text')}`,
-                }}
               >
                 {option}
               </button>
@@ -268,10 +254,9 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     }
   };
 
-  // Determine status color for ToolHeader dot
   const getStatusColor = () => {
-    if (isAllAnswered) return $('--success, #3fb950');
-    if (isCurrentAnswered()) return $('--success, #3fb950');
+    if (isAllAnswered) return $('--success');
+    if (isCurrentAnswered()) return $('--success');
     return $('--secondary-text');
   };
 
@@ -317,12 +302,9 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
         <div
           key={key}
           className={cn(
-            'flex items-center px-4 py-2 transition-all duration-[0.15s] cursor-pointer',
-            isSelected ? 'bg-primary/20' : 'bg-transparent',
+            'flex items-center px-4 py-2 transition-all duration-[0.15s] cursor-pointer border-l-[3px]',
+            isSelected ? 'bg-primary/20 border-l-primary' : 'bg-transparent border-l-text-secondary',
           )}
-          style={{
-            borderLeft: `3px solid ${isSelected ? $('--primary') : $('--secondary-text')}`,
-          }}
           onMouseEnter={(e) => {
             if (!isDisabled && !isSelected) {
               e.currentTarget.style.borderLeftColor = $('--secondary-text');
@@ -393,15 +375,12 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           onClick={() => handleSingleSelect(option)}
           disabled={isDisabled}
           className={cn(
-            'question-option-btn py-2 px-4 border-none rounded-none text-[13px] text-left transition-[background-color,color,border-color,font-weight] duration-[0.15s] w-full',
+            'question-option-btn py-2 px-4 border-none rounded-none text-[13px] text-left transition-[background-color,color,border-color,font-weight] duration-[0.15s] w-full border-l-[3px]',
             isSelected
-              ? 'bg-primary/20 text-primary font-semibold opacity-100'
-              : 'bg-transparent text-text-primary font-normal',
+              ? 'bg-primary/20 text-primary font-semibold opacity-100 border-l-primary'
+              : 'bg-transparent text-text-primary font-normal border-l-text-secondary',
             isDisabled ? 'cursor-default' : 'cursor-pointer',
           )}
-          style={{
-            borderLeft: `3px solid ${isSelected ? $('--primary') : $('--secondary-text')}`,
-          }}
           onMouseEnter={(e) => {
             if (!isDisabled && !isSelected) {
               e.currentTarget.style.borderLeftColor = $('--secondary-text');
@@ -446,7 +425,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
 
     const options = hasOther ? originalOptions : [...originalOptions, 'Khác'];
     const otherOptionText = 'Khác';
-    const hasOtherOption = true;
 
     const handleMultiCustomChange = (value: string) => {
       setMultiCustomValues((prev) => ({ ...prev, [q.id]: value }));
@@ -469,15 +447,15 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
       <div className="flex flex-col gap-1">
         {options.map((option) => {
           const isSelected = selected.includes(option);
-          const isOther = hasOtherOption && option === otherOptionText;
+          const isOther = option === otherOptionText;
           return (
             <div key={option}>
               <div
                 className={cn(
                   'flex items-center gap-2.5 px-1.5 py-2 transition-all duration-[0.15s] border-l-0 bg-transparent',
                   isAnswered && !isSelected && 'opacity-50',
+                  isDisabled || isAnswered ? 'cursor-default' : 'cursor-pointer'
                 )}
-                style={{ cursor: isDisabled || isAnswered ? 'default' : 'pointer' }}
               >
                 <input
                   type="checkbox"
@@ -537,7 +515,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   const renderText = (q: Question) => {
     const isDisabled = disabled || isAllAnswered;
     const value = textInputs[q.id] || '';
-    const isAnswered = !!answers[q.id];
     return (
       <div className="flex flex-col gap-2">
         <textarea
@@ -545,7 +522,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           onChange={(e) => setTextInputs({ ...textInputs, [q.id]: e.target.value })}
           onKeyDown={handleKeyDown}
           placeholder="Nhập câu trả lời của bạn..."
-          disabled={isDisabled || isAnswered}
+          disabled={isDisabled}
           className="w-full min-h-[80px] bg-input-background text-text-primary border border-border rounded-[4px] p-2 text-[13px] font-[inherit] resize-y outline-none"
         />
       </div>
@@ -555,9 +532,8 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   // Render confirm question type
   const renderConfirm = (q: Question) => {
     const isDisabled = disabled || isAllAnswered;
-    const isAnswered = !!answers[q.id];
     const selected = confirmValues[q.id];
-    const greenColor = $('--success, #3fb950');
+    const greenColor = $('--success');
     const redColor = $('--error');
     const customValue = customValues[q.id] || '';
 
@@ -599,12 +575,12 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
             }
           }}
           className={cn(
-            'flex items-center px-4 py-2 rounded-none text-[13px] w-full transition-all duration-[0.15s] opacity-100',
+            'flex items-center px-4 py-2 rounded-none text-[13px] w-full transition-all duration-[0.15s] opacity-100 border-l-[3px]',
             isDisabled ? 'cursor-default' : 'cursor-pointer',
             isSelected ? 'font-semibold' : 'font-normal',
+            isSelected && value ? 'border-l-success' : isSelected && !value ? 'border-l-error' : 'border-l-text-secondary',
           )}
           style={{
-            borderLeft: `3px solid ${borderColor}`,
             backgroundColor: bgColor,
             color: isSelected ? color : $('--text-primary'),
           }}
@@ -635,12 +611,9 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
 
         <div
           className={cn(
-            'flex items-center px-4 py-2 transition-all duration-[0.15s] cursor-pointer',
-            customValue.trim() ? 'bg-primary/20' : 'bg-transparent',
+            'flex items-center px-4 py-2 transition-all duration-[0.15s] cursor-pointer border-l-[3px]',
+            customValue.trim() ? 'bg-primary/20 border-l-primary' : 'bg-transparent border-l-text-secondary',
           )}
-          style={{
-            borderLeft: `3px solid ${customValue.trim() ? $('--primary') : $('--secondary-text')}`,
-          }}
           onMouseEnter={(e) => {
             if (!isDisabled && !customValue.trim()) {
               e.currentTarget.style.borderLeftColor = $('--secondary-text');
@@ -691,7 +664,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
 
   const answeredCount = Object.keys(answers).length;
 
-  // Navigation icons for view mode (after all answered)
   const renderNavIcons = () => {
     if (totalQuestions <= 1) return null;
     const iconColor = $('--text-primary');
@@ -702,14 +674,13 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
           disabled={currentIndex === 0}
           className={cn(
-            'border-none p-1 rounded flex items-center justify-center',
+            'border-none p-1 rounded flex items-center justify-center text-text-primary',
             currentIndex === 0
               ? 'bg-transparent cursor-default opacity-30'
               : 'cursor-pointer opacity-80',
           )}
           style={{
             background: currentIndex === 0 ? 'transparent' : bgColor,
-            color: iconColor,
           }}
           title="Câu hỏi trước"
         >
@@ -731,14 +702,13 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           onClick={() => setCurrentIndex(Math.min(totalQuestions - 1, currentIndex + 1))}
           disabled={currentIndex === totalQuestions - 1}
           className={cn(
-            'border-none p-1 rounded flex items-center justify-center',
+            'border-none p-1 rounded flex items-center justify-center text-text-primary',
             currentIndex === totalQuestions - 1
               ? 'bg-transparent cursor-default opacity-30'
               : 'cursor-pointer opacity-80',
           )}
           style={{
             background: currentIndex === totalQuestions - 1 ? 'transparent' : bgColor,
-            color: iconColor,
           }}
           title="Câu hỏi tiếp theo"
         >
@@ -764,7 +734,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   const renderSummary = () => {
     const answerCount = Object.keys(answers).length;
     const statusColor =
-      answerCount === totalQuestions ? $('--success, #3fb950') : $('--secondary-text');
+      answerCount === totalQuestions ? $('--success') : $('--secondary-text');
 
     const formatAnswer = (answer: QuestionAnswer): string => {
       const value = answer.value;
@@ -840,8 +810,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     );
   };
 
-  // If in summary mode, render summary view
-  const willRenderSummary = isSummaryMode && isPaginated;
+  const willRenderSummary = isSummaryModeState && isPaginated;
   if (willRenderSummary) {
     return renderSummary();
   }
@@ -862,7 +831,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
         headerActions={isAllAnswered ? renderNavIcons() : undefined}
       />
       <div className="pl-9 mt-2">
-        {/* Question Label */}
         <div className="text-sm font-medium text-text-primary py-1 pb-2">
           {currentQuestion?.label}
           {currentQuestion?.type && (
@@ -872,11 +840,9 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           )}
         </div>
 
-        {/* Question Content */}
         <div className="py-0.5">{renderQuestionContent()}</div>
 
-        {/* Navigation buttons */}
-        {!isSummaryMode && (
+        {!isSummaryModeState && (
           <div className="flex justify-end gap-2 mt-2">
             <button
               onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}

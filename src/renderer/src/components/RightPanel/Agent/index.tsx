@@ -43,30 +43,30 @@ export function AgentPanel() {
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
 
+  // Ref để giữ giá trị mới nhất mà không gây re-render/loop
+  const currentChatRef = useRef(currentChat);
+  const initialMessageDataRef = useRef(initialMessageData);
+  const homeInitialValueRef = useRef(homeInitialValue);
+  currentChatRef.current = currentChat;
+  initialMessageDataRef.current = initialMessageData;
+  homeInitialValueRef.current = homeInitialValue;
+
   // Kiểm tra xem có nên hiển thị overlay không
   const shouldShowOverlay = () => {
     // TEMPORARILY DISABLED FOR TESTING - comment out to re-enable
     return false;
-    // if (activeFeature !== 'emulate') {
-    //   return true; // Feature khác Emulate -> hiển thị overlay mặc định
-    // }
-    // // Feature là Emulate: kiểm tra target
-    // if (!activeTargetId || !isTargetActive) {
-    //   return true; // Chưa chọn target hoặc session chưa chạy
-    // }
-    // return false;
   };
 
-  // Lưu state hiện tại vào Map khi target thay đổi
+  // Lưu state hiện tại vào Map khi target thay đổi — dùng ref để tránh dependency loop
   const saveCurrentState = useCallback(() => {
     if (currentTargetId) {
       targetStatesMap.current.set(currentTargetId, {
-        currentChat,
-        initialMessageData,
-        homeInitialValue,
+        currentChat: currentChatRef.current,
+        initialMessageData: initialMessageDataRef.current,
+        homeInitialValue: homeInitialValueRef.current,
       });
     }
-  }, [currentTargetId, currentChat, initialMessageData, homeInitialValue]);
+  }, [currentTargetId]);
 
   // Restore state từ Map hoặc tạo mới
   const restoreStateForTarget = useCallback((targetId: string) => {
@@ -76,7 +76,6 @@ export function AgentPanel() {
       setInitialMessageData(savedState.initialMessageData);
       setHomeInitialValue(savedState.homeInitialValue);
     } else {
-      // Reset về mặc định
       setCurrentChat(null);
       setInitialMessageData(null);
       setHomeInitialValue('');
@@ -84,16 +83,14 @@ export function AgentPanel() {
     setCurrentTargetId(targetId);
   }, []);
 
-  // Khi activeTargetId thay đổi
+  // Khi activeTargetId hoặc activeFeature thay đổi
   useEffect(() => {
     if (activeFeature === 'emulate') {
-      // Lưu state cũ trước khi chuyển
       saveCurrentState();
 
       if (activeTargetId && isTargetActive) {
         restoreStateForTarget(activeTargetId);
       } else {
-        // Không có target active -> reset về mặc định
         setCurrentTargetId(null);
         setCurrentChat(null);
         setInitialMessageData(null);
@@ -102,7 +99,7 @@ export function AgentPanel() {
     }
   }, [activeTargetId, isTargetActive, activeFeature, saveCurrentState, restoreStateForTarget]);
 
-  // Lưu state khi component unmount hoặc khi các state thay đổi
+  // Lưu state khi các giá trị thay đổi (dùng ref để không trigger loop)
   useEffect(() => {
     if (currentTargetId && activeFeature === 'emulate') {
       targetStatesMap.current.set(currentTargetId, {

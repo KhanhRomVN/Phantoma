@@ -225,15 +225,9 @@ const domNodeToReact = (
               isFolder={false}
               style={{ width: '12px', height: '12px', flexShrink: 0 }}
             />
-            <span style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+            <span className="whitespace-normal break-words">
               {filename}
-              <span
-                style={{
-                  opacity: 0.6,
-                  fontSize: '0.9em',
-                  marginLeft: '4px',
-                }}
-              >
+              <span className="opacity-60 text-[0.9em] ml-1">
                 ({shortenedPath})
               </span>
             </span>

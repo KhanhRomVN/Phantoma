@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 // CONSTANTS
 import { getToolLabel } from '../../../../constants/constants';
@@ -54,10 +54,10 @@ export const ViewReplaceHistoryRenderer: React.FC<BaseRendererProps> = ({
 
   // Determine color based on status
   const historyColor = isError
-    ? $('--error')
+    ? 'rgb(255, 45, 85)'
     : isCompleted
-      ? $('--success')
-      : $('--primary');
+      ? 'rgb(48, 209, 88)'
+      : 'rgb(10, 132, 255)';
 
   // Summary result for TagHeader
   const summaryResult =
@@ -73,52 +73,31 @@ export const ViewReplaceHistoryRenderer: React.FC<BaseRendererProps> = ({
 
   return (
     <div
-      style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-        marginBottom: isLastItemInList ? "0" : "8px",
-      }}
+      className={cn(
+        'relative flex flex-col gap-2',
+        isLastItemInList ? 'mb-0' : 'mb-2'
+      )}
     >
-      <div onClick={handleTagClick} style={{ cursor: isCompleted && !isError && histories.length > 0 ? "pointer" : "default" }}>
+      <div
+        onClick={handleTagClick}
+        className={isCompleted && !isError && histories.length > 0 ? 'cursor-pointer' : 'cursor-default'}
+      >
         <TagHeader
         title={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "12px",
-              color: $('--text-primary'),
-            }}
-          >
-            <span style={{ fontWeight: 600, opacity: 0.8 }}>{getToolLabel("view_replace_history")}</span>
-            <span style={{ display: "flex", alignItems: "center" }}>
+          <div className="flex items-center gap-2 text-xs text-text-primary">
+            <span className="font-semibold opacity-80">{getToolLabel("view_replace_history")}</span>
+            <span className="flex items-center">
               <FileIcon
                 path={filePath}
                 isFolder={false}
                 style={{ width: "16px", height: "16px" }}
               />
             </span>
-            <span
-              style={{
-                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                fontSize: '11px',
-                fontWeight: 500,
-                opacity: 0.9,
-              }}
-            >
+            <span className="font-mono text-[11px] font-medium opacity-90">
               {filePath.split("/").pop() || filePath}
             </span>
             {summaryResult && (
-              <span
-                style={{
-                  opacity: 0.5,
-                  fontSize: "10px",
-                  color: $('--text-secondary'),
-                }}
-              >
+              <span className="opacity-50 text-[10px] text-text-secondary">
                 {summaryResult}
               </span>
             )}

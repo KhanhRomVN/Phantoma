@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 import RevertConfirmModal from '@renderer/components/common/RevertConfirmModal';
 import FilesPreviews from '../../../../components/common/MessageInput/FilesPreviews';
 import { Message } from '../../types/message';
@@ -95,12 +95,12 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
 
   return (
     <div
-      className="flex flex-col gap-0 mb-4 relative z-[1] transition-all duration-300"
-      style={{
-        opacity: message.isCancelled ? 0.4 : 1,
-        filter: message.isCancelled ? 'grayscale(1) blur(0.5px)' : 'none',
-        pointerEvents: message.isCancelled ? 'none' : 'auto',
-      }}
+      className={cn(
+        'flex flex-col gap-0 mb-4 relative z-[1] transition-all duration-300',
+        message.isCancelled
+          ? 'opacity-40 grayscale blur-[0.5px] pointer-events-none'
+          : 'opacity-100 pointer-events-auto'
+      )}
     >
       {/* Files Preview - Show at top if there are files */}
       {message.uploadedFiles?.length || message.attachedItems?.length ? (
@@ -128,13 +128,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
       <div className="flex flex-col gap-1 rounded-md p-4 ml-0 relative bg-input-background border border-border">
         {/* Question Answers Summary - Show if parsed from content */}
         {hasQuestionAnswers && (
-          <div
-            className="mb-2 p-2 rounded"
-            style={{
-              backgroundColor: `color-mix(in srgb, ${$('--primary')} 10%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${$('--primary')} 20%, transparent)`,
-            }}
-          >
+          <div className="mb-2 p-2 rounded bg-primary/10 border border-primary/20">
             <div className="text-[11px] font-semibold uppercase tracking-[0.5px] mb-2 text-text-secondary">
               Question Answers
             </div>
@@ -147,10 +141,9 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
                       {questionNumber}.
                     </span>
                     <span
-                      style={{
-                        opacity: answer === '(no answer)' ? 0.5 : 1,
-                        fontStyle: answer === '(no answer)' ? 'italic' : 'normal',
-                      }}
+                      className={cn(
+                        answer === '(no answer)' ? 'opacity-50 italic' : 'opacity-100 not-italic'
+                      )}
                     >
                       {answer}
                     </span>
@@ -172,8 +165,10 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
         <button
           onClick={handleCopy}
           title="Copy content"
-          className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200"
-          style={{ color: isCopied ? $('--success') : $('--text-secondary') }}
+          className={cn(
+            'bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200',
+            isCopied ? 'text-success' : 'text-text-secondary'
+          )}
         >
           {isCopied ? (
             <svg
@@ -214,8 +209,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
               setShowRevertModal(true);
             }}
             title="Revert conversation to this point"
-            className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200"
-            style={{ color: $('--text-secondary') }}
+            className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200 text-text-secondary"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -238,8 +232,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
         <button
           onClick={() => {}}
           title="Regenerate response"
-          className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200"
-          style={{ color: $('--text-secondary') }}
+          className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200 text-text-secondary"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

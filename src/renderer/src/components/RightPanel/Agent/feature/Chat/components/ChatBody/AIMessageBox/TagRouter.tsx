@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '@renderer/shared/lib/utils';
 import { $ } from '@renderer/utils/color';
 
 // HOOKS
@@ -27,27 +28,25 @@ import { GroupType } from '../../../types/renderer-types';
 // UTILS
 import { formatActionForDisplay } from '../../../services/ResponseParser';
 
-// ICONS
-
 // COMPONENTS
 import {
-  CommitMessageRenderer, // commit_message
-  DeleteFileRenderer, // delete_file
-  ErrorRenderer, // error (not tag)
-  WriteToFileRenderer, // write_to_file
-  ReplaceInFileRenderer, // replace_in_file
-  ReadFileRenderer, // read_file
-  ListFilesRenderer, // list_file
-  FindFilesRenderer, // find_files
-  GrepRenderer, // grep
-  RevertFileRenderer, // revert_file
-  ViewReplaceHistoryRenderer, // view_replace_history
-  RunCommandRenderer, // run_command
-  GitStatusRenderer, // git_status
-  MarkdownRenderer, // markdown
-  QuestionRenderer, // question
-  WarningRenderer, // warning (not tag)
-  ThinkingRenderer, // thinking
+  CommitMessageRenderer,
+  DeleteFileRenderer,
+  ErrorRenderer,
+  WriteToFileRenderer,
+  ReplaceInFileRenderer,
+  ReadFileRenderer,
+  ListFilesRenderer,
+  FindFilesRenderer,
+  GrepRenderer,
+  RevertFileRenderer,
+  ViewReplaceHistoryRenderer,
+  RunCommandRenderer,
+  GitStatusRenderer,
+  MarkdownRenderer,
+  QuestionRenderer,
+  WarningRenderer,
+  ThinkingRenderer,
 } from './renderers';
 import ErrorBlock from './blocks/ErrorBlock';
 import ActionBar from './ActionBar';
@@ -145,16 +144,14 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
 }) => {
   const { rootPath } = useProject();
 
-  // Handle UI blocks (markdown, code, question, error, warning)
+  // Handle UI blocks
   if (group.type === 'markdown') {
     return <MarkdownRenderer content={group.content} knownFilePaths={knownFilePaths} />;
   }
 
   if (group.type === 'code') {
     return (
-      <div
-        className="pt-1 text-xs text-text-primary"
-      >
+      <div className="pt-1 text-xs text-text-primary">
         <CodeBlock code={group.content} language={group.language} wordWrap="off" />
       </div>
     );
@@ -237,7 +234,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     return <ThinkingRenderer content={group.content} />;
   }
 
-  // Handle tools group - rest of the original logic
+  // Handle tools group
   if (group.type !== 'tools') {
     return null;
   }
@@ -321,7 +318,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     toolGroup.forEach((item) => {
       const { action, index } = item;
 
-      // Check if tool needs fuzzy match validation
       if (shouldValidateFuzzyMatch(action.type) && action.params.diff) {
         const validationId = `${messageId}-${index}-validate`;
         if (processedActions.current.has(validationId)) return;
@@ -348,7 +344,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
         });
       }
 
-      // Check if tool needs file stats
       if (shouldShowFileStats(action.type) && (action.params.path || action.params.file_path)) {
         const path = action.params.path || action.params.file_path;
         if (fileStatsMap[path]) return;
@@ -385,15 +380,13 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   const toolType = firstAction.type;
   const isLastItemInList = isLastGroup;
 
-  // Handle malformed/error tool actions - show custom header + ErrorBlock
+  // Handle malformed/error tool actions
   if (firstAction.isError) {
     const errorColor = $('--error');
 
-    // Determine label based on tool type from TAG_REGISTRY
     const toolLabel =
       TAG_REGISTRY[toolType]?.title ?? toolType.toUpperCase().replace(/_/g, ' ');
 
-    // Extract file path or relevant info from params
     const filePath =
       firstAction.params.file_path ||
       firstAction.params.folder_path ||
@@ -403,122 +396,42 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
 
     return (
       <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-          marginBottom: isLastItemInList ? '0' : '8px',
-        }}
+        className={cn(
+          'relative flex flex-col gap-1.5',
+          isLastItemInList ? 'mb-0' : 'mb-2'
+        )}
       >
-        <div
-          className="terminal-block-header"
-          style={{
-            paddingTop: '4px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            width: '100%',
-          }}
-        >
-          <div className="terminal-info" style={{ flex: 1, minWidth: 0 }}>
+        <div className="terminal-block-header pt-1 flex items-start justify-between w-full">
+          <div className="terminal-info flex-1 min-w-0">
             <div className="terminal-header-top">
-              <div
-                style={{
-                  marginTop: '1px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  flex: 1,
-                  minWidth: 0,
-                  width: '100%',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '8px',
-                    flexWrap: 'nowrap',
-                  }}
-                >
+              <div className="mt-px flex flex-col gap-0.5 flex-1 min-w-0 w-full">
+                <div className="flex items-start gap-2 flex-nowrap">
                   {/* Status dot */}
                   <div
-                    style={{
-                      position: 'relative',
-                      width: '16px',
-                      height: '16px',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginTop: '2px',
-                    }}
+                    className="relative w-4 h-4 shrink-0 flex items-center justify-center mt-0.5"
                     title="Error - Action failed"
                   >
                     <div
-                      style={{
-                        position: 'absolute',
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        border: `2px solid ${errorColor}`,
-                        opacity: 0.4,
-                      }}
+                      className="absolute w-4 h-4 rounded-full opacity-40"
+                      style={{ border: `2px solid ${errorColor}` }}
                     />
                     <div
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        backgroundColor: errorColor,
-                      }}
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: errorColor }}
                     />
                   </div>
 
                   {/* Content */}
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '2px',
-                      marginTop: '2px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <div
-                        className="terminal-name"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '12px',
-                          color: $('--text-primary'),
-                        }}
-                      >
-                        <span style={{ fontWeight: 600, opacity: 0.8 }}>{toolLabel}</span>
+                  <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="terminal-name flex items-center gap-2 text-xs text-text-primary">
+                        <span className="font-semibold opacity-80">{toolLabel}</span>
                         {fileName && (
                           <>
-                            <span style={{ display: 'flex', alignItems: 'center' }}>
+                            <span className="flex items-center">
                               <FileIcon path={filePath} style={{ width: '16px', height: '16px' }} />
                             </span>
-                            <span
-                              style={{
-                                fontWeight: 500,
-                                opacity: 0.9,
-                                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                                fontSize: '11px',
-                              }}
-                            >
+                            <span className="font-medium opacity-90 font-mono text-[11px]">
                               {fileName}
                             </span>
                           </>
@@ -527,46 +440,17 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
                     </div>
 
                     {filePath && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                          alignItems: 'center',
-                          paddingRight: '4px',
-                          paddingTop: '4px',
-                          marginTop: '2px',
-                          position: 'relative',
-                          width: '100%',
-                          maxWidth: '100%',
-                          overflow: 'hidden',
-                        }}
-                      >
+                      <div className="flex justify-end items-center pr-1 pt-1 mt-0.5 relative w-full max-w-full overflow-hidden">
                         <div
+                          className="absolute left-0 top-0 w-4 h-3"
                           style={{
-                            position: 'absolute',
-                            left: '0',
-                            top: '0',
-                            width: '16px',
-                            height: '12px',
-                            borderLeft:
-                              `1px solid color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`,
-                            borderBottom:
-                              `1px solid color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`,
+                            borderLeft: `1px solid color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`,
+                            borderBottom: `1px solid color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`,
                           }}
                         />
                         <span
-                          style={{
-                            fontSize: '10px',
-                            opacity: 0.6,
-                            color: $('--text-secondary'),
-                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            width: '100%',
-                            padding: '0 4px 0 20px',
-                            borderRadius: '2px',
-                          }}
+                          className="text-[10px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 pl-5 rounded-sm"
+                          style={{ color: $('--text-secondary') }}
                           title={filePath}
                         >
                           {filePath}
@@ -587,21 +471,22 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
           maxHeight="300px"
         />
 
-        {/* Show Skip button for malformed tools in approve mode */}
-        <ActionBar
-          action={firstAction}
-          messageId={messageId}
-          actionIndex={toolGroup[0].index}
-          hasError={true}
-          onAction={(_e, type) => {
-            onToolClick(firstAction, messageId, toolGroup[0].index, type);
-          }}
-        />
+        {!nextUserMessage && (
+          <ActionBar
+            action={firstAction}
+            messageId={messageId}
+            actionIndex={toolGroup[0].index}
+            hasError={true}
+            onAction={(_e, type) => {
+              onToolClick(firstAction, messageId, toolGroup[0].index, type);
+            }}
+          />
+        )}
       </div>
     );
   }
 
-  // Handle view_replace_history BEFORE isFileTool check
+  // Handle view_replace_history
   if (toolType === 'view_replace_history') {
     const action = firstAction;
     const actionIndex = toolGroup[0].index;
@@ -627,13 +512,12 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
           const isFirstInGroup = index === toolGroup[0].index;
           const isActive = isActiveGroup && isFirstInGroup;
 
-          // In approval mode: hide all actions that come after the first unclicked action
           if (
             firstUnclickedActionIndex !== undefined &&
             index > firstUnclickedActionIndex &&
             !isClicked
           ) {
-            return null; // Hide this action completely
+            return null;
           }
 
           return (
@@ -676,9 +560,8 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
             index > firstUnclickedActionIndex &&
             !isClicked;
 
-          // In approval mode: hide all actions that come after the first unclicked action
           if (willHide) {
-            return null; // Hide this action completely
+            return null;
           }
 
           return (
@@ -728,7 +611,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   }
 
   if (toolType === 'git_status') {
-    // Use props gitStatusItems if available, otherwise parse from action params
     let finalGitStatusItems = gitStatusItems;
     if (!finalGitStatusItems || finalGitStatusItems.length === 0) {
       let itemsFromParams = firstAction.params?.items || [];
@@ -787,12 +669,10 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     const actionIndex = toolGroup[0].index;
     const actionId = `${messageId}-action-${actionIndex}`;
 
-    // Check if we already have the diff result in toolOutputs
     const outputData = toolOutputs?.[actionId];
     const diffContent = outputData?.output || firstAction.params.diff || '';
     const hasOutput = !!outputData && !outputData.isError;
 
-    // Auto-execute the tool if not yet executed and it's the active group
     const hasTriggeredExecution = React.useRef(false);
     React.useEffect(() => {
       if (!hasTriggeredExecution.current && !hasOutput && isActiveGroup && !isLastMessage) {
@@ -801,7 +681,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
       }
     }, [hasOutput, isActiveGroup, isLastMessage, actionId]);
 
-    // Parse diff stats from the diff content
     const parseDiffStats = (content: string) => {
       let added = 0;
       let deleted = 0;
@@ -816,17 +695,9 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
 
     const stats = parseDiffStats(diffContent);
 
-    // If no output yet and we're not the active group, show a loading/skeleton state
     if (!hasOutput && !isActiveGroup) {
       return (
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-          }}
-        >
+        <div className="relative flex flex-col gap-1.5">
           <GitDiffBlock
             filePath={filePath}
             diffContent=""
@@ -850,20 +721,13 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     }
 
     return (
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-        }}
-      >
+      <div className="relative flex flex-col gap-1.5">
         <GitDiffBlock
           filePath={filePath}
           diffContent={diffContent}
           added={stats.added}
           deleted={stats.deleted}
-          statusColor="$('--success')"
+          statusColor={$('--success')}
           isPartial={!hasOutput && isActiveGroup}
           branch={gitStatusBranch}
           onFileClick={(path: any) => {
@@ -880,147 +744,22 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     );
   }
 
-  // Handle read_file tool type
-  if (toolType === 'read_file') {
-    return (
-      <>
-        {toolGroup.map(({ action, index }) => (
-          <ReadFileRenderer
-            key={index}
-            action={action}
-            actionIndex={index}
-            messageId={messageId}
-            isActionClicked={clickedActions.has(`${messageId}-action-${index}`)}
-            isActiveGroup={isActiveGroup && index === toolGroup[0].index}
-            isLastMessage={isLastMessage}
-            isLastItemInList={
-              isLastItemInList && index === toolGroup[toolGroup.length - 1].index
-            }
-            toolOutputs={toolOutputs}
-            allMessages={allMessages}
-            fileStatsMap={fileStatsMap}
-            onToolClick={onToolClick}
-            conversationId={conversationId}
-          />
-        ))}
-      </>
-    );
-  }
+  // Handle read_file, list_files, find_files, grep, delete_file, revert_file
+  const fileToolRenderers: Record<string, React.FC<any>> = {
+    read_file: ReadFileRenderer,
+    list_files: ListFilesRenderer,
+    find_files: FindFilesRenderer,
+    grep: GrepRenderer,
+    delete_file: DeleteFileRenderer,
+    revert_file: RevertFileRenderer,
+  };
 
-  // Handle list_files tool type
-  if (toolType === 'list_files') {
+  const FileRenderer = fileToolRenderers[toolType];
+  if (FileRenderer) {
     return (
       <>
         {toolGroup.map(({ action, index }) => (
-          <ListFilesRenderer
-            key={index}
-            action={action}
-            actionIndex={index}
-            messageId={messageId}
-            isActionClicked={clickedActions.has(`${messageId}-action-${index}`)}
-            isActiveGroup={isActiveGroup && index === toolGroup[0].index}
-            isLastMessage={isLastMessage}
-            isLastItemInList={
-              isLastItemInList && index === toolGroup[toolGroup.length - 1].index
-            }
-            toolOutputs={toolOutputs}
-            allMessages={allMessages}
-            fileStatsMap={fileStatsMap}
-            onToolClick={onToolClick}
-            conversationId={conversationId}
-          />
-        ))}
-      </>
-    );
-  }
-
-  // Handle find_files tool type
-  if (toolType === 'find_files') {
-    return (
-      <>
-        {toolGroup.map(({ action, index }) => (
-          <FindFilesRenderer
-            key={index}
-            action={action}
-            actionIndex={index}
-            messageId={messageId}
-            isActionClicked={clickedActions.has(`${messageId}-action-${index}`)}
-            isActiveGroup={isActiveGroup && index === toolGroup[0].index}
-            isLastMessage={isLastMessage}
-            isLastItemInList={
-              isLastItemInList && index === toolGroup[toolGroup.length - 1].index
-            }
-            toolOutputs={toolOutputs}
-            allMessages={allMessages}
-            fileStatsMap={fileStatsMap}
-            onToolClick={onToolClick}
-            conversationId={conversationId}
-          />
-        ))}
-      </>
-    );
-  }
-
-  // Handle grep tool type
-  if (toolType === 'grep') {
-    return (
-      <>
-        {toolGroup.map(({ action, index }) => (
-          <GrepRenderer
-            key={index}
-            action={action}
-            actionIndex={index}
-            messageId={messageId}
-            isActionClicked={clickedActions.has(`${messageId}-action-${index}`)}
-            isActiveGroup={isActiveGroup && index === toolGroup[0].index}
-            isLastMessage={isLastMessage}
-            isLastItemInList={
-              isLastItemInList && index === toolGroup[toolGroup.length - 1].index
-            }
-            toolOutputs={toolOutputs}
-            allMessages={allMessages}
-            fileStatsMap={fileStatsMap}
-            onToolClick={onToolClick}
-            conversationId={conversationId}
-          />
-        ))}
-      </>
-    );
-  }
-
-  // Handle delete_file tool type
-  if (toolType === 'delete_file') {
-    return (
-      <>
-        {toolGroup.map(({ action, index }) => (
-          <DeleteFileRenderer
-            key={index}
-            action={action}
-            actionIndex={index}
-            messageId={messageId}
-            isActionClicked={clickedActions.has(`${messageId}-action-${index}`)}
-            isActiveGroup={isActiveGroup && index === toolGroup[0].index}
-            isLastMessage={isLastMessage}
-            isLastItemInList={
-              isLastItemInList && index === toolGroup[toolGroup.length - 1].index
-            }
-            toolOutputs={toolOutputs}
-            allMessages={allMessages}
-            fileStatsMap={fileStatsMap}
-            onToolClick={onToolClick}
-            conversationId={conversationId}
-          />
-        ))}
-      </>
-    );
-  }
-
-  // Handle revert_file tool type
-  if (toolType === 'revert_file') {
-    return (
-      <>
-        {toolGroup.map(({ action, index }) => (
-          <RevertFileRenderer
+          <FileRenderer
             key={index}
             action={action}
             actionIndex={index}
@@ -1048,11 +787,11 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
       {toolGroup.map(({ action, index }) => (
         <div key={index} className="mb-2">
           <div
-            className="py-2 px-4 bg-card-background rounded-lg flex items-center gap-2 w-fit transition-all duration-200"
-            style={{
-              border: `2px solid ${$('--text-secondary')}`,
-              cursor: isToolClickable(action.type) ? 'pointer' : 'default',
-            }}
+            className={cn(
+              'py-2 px-4 bg-card-background rounded-lg flex items-center gap-2 w-fit transition-all duration-200',
+              isToolClickable(action.type) ? 'cursor-pointer' : 'cursor-default'
+            )}
+            style={{ border: `2px solid ${$('--text-secondary')}` }}
             onClick={() => {
               if (isToolClickable(action.type)) onToolClick(action, messageId, index, 'accept');
             }}
@@ -1066,7 +805,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
                 height="16"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="$('--text-secondary')"
+                stroke={$('--text-secondary')}
                 strokeWidth="2"
               >
                 <polyline points="9 18 15 12 9 6" />
@@ -1080,7 +819,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
 };
 
 // ============================================
-// ToolActionsList Component (from ToolAction.tsx)
+// ToolActionsList Component
 // ============================================
 
 interface ToolActionsListProps {
@@ -1152,12 +891,10 @@ const ToolActionsList: React.FC<ToolActionsListProps> = ({
   isGitStatusVisible = true,
   onBackToHome,
 }) => {
-  // Filter out invisible tools immediately
   const visibleItems = React.useMemo(() => {
     return items.filter((item) => isVisibleTool(item.action.type));
   }, [items, isVisibleTool]);
 
-  // Memoize action handlers to prevent unnecessary re-renders
   const memoizedActions = React.useMemo(() => {
     const MERGE_TYPES = new Set(['write_to_file', 'replace_in_file']);
     const getPath = (action: ToolAction) =>
@@ -1188,13 +925,10 @@ const ToolActionsList: React.FC<ToolActionsListProps> = ({
         const hasOutput = toolOutputs && toolOutputs[actionId];
         const isClicked = clickedActions.has(actionId);
 
-        // If there's a user message after this assistant message,
-        // or a message in history containing the output of this action, it is completed.
         const hasHistoryOutput =
           !!nextUserMessage ||
           !!allMessages?.some((m) => m.actionIds?.includes(actionId));
 
-        // Check if this action is completed (clicked, has output, or history output)
         const isCompleted = isClicked || hasOutput || hasHistoryOutput;
 
         if (!isCompleted) {
@@ -1205,18 +939,15 @@ const ToolActionsList: React.FC<ToolActionsListProps> = ({
               action.type === 'replace_in_file');
 
           if (isWriteTool && !hasHistoryOutput) {
-            // Write/edit tool not yet approved → block subsequent tools
             isPreviousAllDone = false;
             break;
           }
-          // For non-write tools (read, run_command, etc.), block as usual
           if (!isWriteTool) {
             isPreviousAllDone = false;
             break;
           }
         }
 
-        // If it's a run_command, check if it's actually finished
         const action = allActions ? allActions[i] : null;
         if (action && action.type === 'run_command') {
           const output = toolOutputs?.[actionId];
@@ -1293,13 +1024,7 @@ const ToolActionsList: React.FC<ToolActionsListProps> = ({
   if (!visibleItems || visibleItems.length === 0) return null;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0',
-      }}
-    >
+    <div className="flex flex-col gap-0">
       {memoizedActions}
     </div>
   );

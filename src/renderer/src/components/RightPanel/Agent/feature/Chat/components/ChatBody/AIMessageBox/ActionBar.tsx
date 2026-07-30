@@ -1,14 +1,12 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
+import { cn } from '@renderer/shared/lib/utils';
 
 // CONSTANTS
 import { TOOL_ACTION_TYPES } from '../../../constants/constants';
 
 // TYPES
 import { ToolAction } from '../../../services/ResponseParser';
-
-// UTILS
-import { $ } from '@renderer/utils/color';
 
 export interface ActionBarProps {
   /** Tool action object containing type and params */
@@ -32,9 +30,6 @@ export interface ActionBarProps {
   toolColor?: string;
 }
 
-// MidnightBlue theme error color: rgb(255, 45, 85)
-const ERROR_RGB = '255, 45, 85';
-
 /**
  * Smart ActionBar that automatically decides which buttons to show based on action state:
  * - If hasError=true: Show "Skip this tool because of error" button
@@ -50,7 +45,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
   isCompleted = false,
   hasError = false,
   isLoading = false,
-  toolColor = $( '--text-secondary'),
+  toolColor,
 }) => {
   const handleClick = React.useCallback(
     (e: React.MouseEvent, type: any) => {
@@ -69,53 +64,33 @@ const ActionBar: React.FC<ActionBarProps> = ({
 
   // PRIORITY 2: If has validation/parsing error, show Skip button
   if (hasError) {
-    const errorColor = $( '--error');
     return (
-      <div
-        style={{
-          display: 'flex',
-          gap: '6px',
-          marginTop: '0px',
-          marginBottom: '8px',
-          flexWrap: 'wrap',
-          justifyContent: 'flex-end',
-        }}
-      >
+      <div className="flex gap-1.5 mt-0 mb-2 flex-wrap justify-end">
         <button
           onClick={(e) => handleClick(e, TOOL_ACTION_TYPES.REJECT)}
           disabled={isLoading}
-          style={{
-            background: `rgba(${ERROR_RGB}, 0.04)`,
-            color: errorColor,
-            opacity: 0.85,
-            border: `1px solid rgba(${ERROR_RGB}, 0.20)`,
-            cursor: isLoading ? 'wait' : 'pointer',
-            padding: '5px 8px',
-            borderRadius: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '11px',
-            fontWeight: 600,
-            height: '24px',
-            transition: 'all 0.2s ease',
-            gap: '6px',
-          }}
+          className={cn(
+            'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+            'bg-error/4 text-error/85 border border-error/20',
+            isLoading ? 'cursor-wait' : 'cursor-pointer',
+          )}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = `rgba(${ERROR_RGB}, 0.10)`;
-            e.currentTarget.style.borderColor = `rgba(${ERROR_RGB}, 0.35)`;
-            e.currentTarget.style.opacity = '1';
-            e.currentTarget.style.color = `rgba(${ERROR_RGB}, 0.85)`;
+            e.currentTarget.className = cn(
+              'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+              'bg-error/10 text-error border border-error/35',
+              isLoading ? 'cursor-wait' : 'cursor-pointer',
+            );
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = `rgba(${ERROR_RGB}, 0.04)`;
-            e.currentTarget.style.borderColor = `rgba(${ERROR_RGB}, 0.20)`;
-            e.currentTarget.style.opacity = '0.85';
-            e.currentTarget.style.color = errorColor;
+            e.currentTarget.className = cn(
+              'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+              'bg-error/4 text-error/85 border border-error/20',
+              isLoading ? 'cursor-wait' : 'cursor-pointer',
+            );
           }}
           title="Skip this tool due to error and continue to next tool"
         >
-          <span style={{ textTransform: 'none' }}>Skip this tool because of error</span>
+          <span>Skip this tool because of error</span>
         </button>
       </div>
     );
@@ -126,114 +101,93 @@ const ActionBar: React.FC<ActionBarProps> = ({
     return (
       <button
         disabled={true}
-        style={{
-          background: `${toolColor}20`,
-          color: toolColor,
-          border: `1px solid ${toolColor}40`,
-          cursor: 'wait',
-          padding: '4px 8px',
-          borderRadius: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          fontSize: '12px',
-          gap: '6px',
-          fontWeight: 600,
-          height: '24px',
-        }}
+        className={cn(
+          'flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold h-6 transition-all duration-200 cursor-wait',
+          toolColor ? '' : 'bg-primary/12 text-primary border border-primary/25'
+        )}
+        style={
+          toolColor
+            ? {
+                background: `${toolColor}20`,
+                color: toolColor,
+                border: `1px solid ${toolColor}40`,
+              }
+            : undefined
+        }
         title="Loading..."
       >
-        <div
-          className="codicon codicon-loading codicon-modifier-spin"
-          style={{ fontSize: '14px' }}
-        />
+        <div className="codicon codicon-loading codicon-modifier-spin text-sm" />
       </button>
     );
   }
 
   // DEFAULT: Show Accept + Reject buttons for approval
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '6px',
-        marginTop: '0px',
-        marginBottom: '8px',
-        flexWrap: 'wrap',
-        justifyContent: 'flex-end',
-      }}
-    >
-      {[
-        {
-          type: TOOL_ACTION_TYPES.ACCEPT,
-          color: toolColor,
-          icon: <Check size={14} strokeWidth={2.5} />,
-          label: 'Accept',
-          title: 'Accept this tool action',
-        },
-        {
-          type: TOOL_ACTION_TYPES.REJECT,
-          color: $( '--error'),
-          icon: <X size={14} strokeWidth={2.5} />,
-          label: 'Reject',
-          title: 'Reject this tool action',
-        },
-      ].map(({ type, color, icon, label, title }) => {
-        const isReject = type === TOOL_ACTION_TYPES.REJECT;
+    <div className="flex gap-1.5 mt-0 mb-2 flex-wrap justify-end">
+      {/* Accept button */}
+      <button
+        onClick={(e) => handleClick(e, TOOL_ACTION_TYPES.ACCEPT)}
+        disabled={isLoading}
+        className={cn(
+          'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+          isLoading ? 'cursor-wait' : 'cursor-pointer',
+          toolColor ? '' : 'bg-primary/4 text-primary border border-primary/20'
+        )}
+        style={
+          toolColor
+            ? {
+                background: `color-mix(in srgb, ${toolColor} 4%, transparent)`,
+                color: toolColor,
+                border: `1px solid color-mix(in srgb, ${toolColor} 20%, transparent)`,
+              }
+            : undefined
+        }
+        onMouseEnter={(e) => {
+          if (toolColor) {
+            e.currentTarget.style.background = `color-mix(in srgb, ${toolColor} 12%, transparent)`;
+            e.currentTarget.style.borderColor = `color-mix(in srgb, ${toolColor} 35%, transparent)`;
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (toolColor) {
+            e.currentTarget.style.background = `color-mix(in srgb, ${toolColor} 4%, transparent)`;
+            e.currentTarget.style.borderColor = `color-mix(in srgb, ${toolColor} 20%, transparent)`;
+          }
+        }}
+        title="Accept this tool action"
+      >
+        <Check size={14} strokeWidth={2.5} />
+        <span>Accept</span>
+      </button>
 
-        return (
-          <button
-            key={type}
-            onClick={(e) => handleClick(e, type)}
-            disabled={isLoading}
-            style={{
-              background: isReject
-                ? `rgba(${ERROR_RGB}, 0.04)`
-                : `color-mix(in srgb, ${color} 4%, transparent)`,
-              color,
-              border: isReject
-                ? `1px solid rgba(${ERROR_RGB}, 0.20)`
-                : `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-              cursor: isLoading ? 'wait' : 'pointer',
-              padding: '5px 8px',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '11px',
-              fontWeight: 600,
-              height: '24px',
-              transition: 'all 0.2s ease',
-              gap: '6px',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = isReject
-                ? `rgba(${ERROR_RGB}, 0.10)`
-                : `color-mix(in srgb, ${color} 12%, transparent)`;
-              e.currentTarget.style.borderColor = isReject
-                ? `rgba(${ERROR_RGB}, 0.35)`
-                : `color-mix(in srgb, ${color} 35%, transparent)`;
-              e.currentTarget.style.color = isReject
-                ? `rgba(${ERROR_RGB}, 0.85)`
-                : `color-mix(in srgb, ${color} 85%, white 15%)`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = isReject
-                ? `rgba(${ERROR_RGB}, 0.04)`
-                : `color-mix(in srgb, ${color} 4%, transparent)`;
-              e.currentTarget.style.borderColor = isReject
-                ? `rgba(${ERROR_RGB}, 0.20)`
-                : `color-mix(in srgb, ${color} 20%, transparent)`;
-              e.currentTarget.style.color = color;
-            }}
-            title={title}
-          >
-            {icon}
-            <span>{label}</span>
-          </button>
-        );
-      })}
+      {/* Reject button */}
+      <button
+        onClick={(e) => handleClick(e, TOOL_ACTION_TYPES.REJECT)}
+        disabled={isLoading}
+        className={cn(
+          'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+          'bg-error/4 text-error border border-error/20',
+          isLoading ? 'cursor-wait' : 'cursor-pointer',
+        )}
+        onMouseEnter={(e) => {
+          e.currentTarget.className = cn(
+            'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+            'bg-error/10 text-error border border-error/35',
+            isLoading ? 'cursor-wait' : 'cursor-pointer',
+          );
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.className = cn(
+            'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+            'bg-error/4 text-error border border-error/20',
+            isLoading ? 'cursor-wait' : 'cursor-pointer',
+          );
+        }}
+        title="Reject this tool action"
+      >
+        <X size={14} strokeWidth={2.5} />
+        <span>Reject</span>
+      </button>
     </div>
   );
 };

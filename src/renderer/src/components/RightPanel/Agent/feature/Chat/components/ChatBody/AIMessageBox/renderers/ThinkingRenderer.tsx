@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 interface ThinkingRendererProps {
   content: string;
@@ -95,38 +95,16 @@ export const ThinkingRenderer: React.FC<ThinkingRendererProps> = ({
   }, []);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "4px",
-        paddingLeft: "12px",
-      }}
-    >
+    <div className="flex items-start gap-1 pl-3">
       {/* Virtual scrolling container */}
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        style={{
-          fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-          fontSize: '12px',
-          lineHeight: '1.5',
-          color: $('--text-secondary'),
-          opacity: 0.75,
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          maxHeight: `${maxHeightPx}px`,
-          overflowY:
-            totalLines * LINE_HEIGHT > maxHeightPx ? "auto" : "hidden",
-          padding: 0,
-          border: "none",
-          background: "transparent",
-          outline: "none",
-          flex: 1,
-          position: "relative",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        }}
+        className={cn(
+          'font-mono text-xs leading-[1.5] text-text-secondary opacity-75 whitespace-pre-wrap break-words p-0 border-none bg-transparent outline-none flex-1 relative scrollbar-none',
+          totalLines * LINE_HEIGHT > maxHeightPx ? 'overflow-y-auto' : 'overflow-y-hidden'
+        )}
+        style={{ maxHeight: `${maxHeightPx}px` }}
       >
         {/* Spacer to maintain scroll height */}
         <div

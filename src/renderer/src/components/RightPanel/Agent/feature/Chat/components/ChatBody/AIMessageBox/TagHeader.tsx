@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-
+import { cn } from '@renderer/shared/lib/utils';
 import { $ } from '@renderer/utils/color';
 
 interface TagHeaderProps {
@@ -53,14 +53,12 @@ interface TagHeaderProps {
 const truncatePath = (fullPath: string, maxLength: number = 35): string => {
   if (!fullPath) return "";
 
-  // If path is short enough, return as-is
   if (fullPath.length <= maxLength) {
     return fullPath;
   }
 
   const parts = fullPath.split("/");
 
-  // If only 1-2 parts, just return as-is
   if (parts.length <= 2) {
     return fullPath;
   }
@@ -68,24 +66,17 @@ const truncatePath = (fullPath: string, maxLength: number = 35): string => {
   const fileName = parts[parts.length - 1];
   const rootFolder = parts[0];
 
-  // Strategy: Keep first folder and last file, truncate middle progressively
-  // Try to fit as many folders as possible from both ends
-
-  // Start with minimum: root/.../filename
   let result = `${rootFolder}/.../${fileName}`;
   let currentLength = result.length;
 
-  // If this doesn't fit, return it anyway (minimum viable)
   if (currentLength >= maxLength) {
     return result;
   }
 
-  // Try to add folders from right side (closest to filename)
-  let rightIndex = parts.length - 2; // Start before filename
+  let rightIndex = parts.length - 2;
   const foldersToAdd = [];
 
   while (rightIndex > 0) {
-    // rightIndex > 0 to skip root folder
     const folderToTest = parts[rightIndex];
     const testResult = `${rootFolder}/.../${[...foldersToAdd, folderToTest].reverse().join("/")}/${fileName}`;
 
@@ -130,7 +121,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [pathContainerWidth, setPathContainerWidth] = useState<number>(0);
   const [pathSpanWidth, setPathSpanWidth] = useState<number>(0);
-  // Inject spin animation for loading circle ring
+
   useEffect(() => {
     const styleId = "circle-ring-spin-animation";
     if (!document.getElementById(styleId)) {
@@ -176,17 +167,14 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
 
   const maxLength = useMemo(() => {
     if (containerWidth === 0) {
-      return 999; // Default to very large to avoid premature truncation
+      return 999;
     }
 
-    // Use actual path container width if available, otherwise estimate
     const availableWidth =
       pathContainerWidth > 0
-        ? pathContainerWidth - 24 // subtract padding (20px left + 4px right)
-        : Math.max(containerWidth - 80, 100); // less conservative estimate
+        ? pathContainerWidth - 24
+        : Math.max(containerWidth - 80, 100);
 
-    // Font size is 10px, monospace typically 6-6.5px per char (more accurate)
-    // Using 6.5px for better accuracy with VS Code's default monospace fonts
     const chars = Math.floor(availableWidth / 6.5);
     const result = Math.max(chars, 30);
 
@@ -199,7 +187,6 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     return truncated;
   }, [path, maxLength]);
 
-  // Track path span width to see actual content width
   useEffect(() => {
     if (!pathSpanRef.current) return;
     const observer = new ResizeObserver((entries) => {
@@ -212,9 +199,8 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     const initialWidth = pathSpanRef.current.offsetWidth || 0;
     setPathSpanWidth(initialWidth);
     return () => observer.disconnect();
-  }, [displayPath]); // Re-observe when displayPath changes
+  }, [displayPath]);
 
-  // Track previous diagnostic counts to avoid redundant logs
   const prevDiagnosticCountsRef = useRef<{
     total: number;
     errors: number;
@@ -225,7 +211,6 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     warnings: 0,
   });
 
-  // Calculate error and warning counts from diagnostics
   const diagnosticCounts = useMemo(() => {
     if (!diagnostics || diagnostics.length === 0) {
       return { errors: 0, warnings: 0 };
@@ -234,14 +219,12 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     const errors = diagnostics.filter((d) => d.severity === "Error").length;
     const warnings = diagnostics.filter((d) => d.severity === "Warning").length;
 
-    // Only log when counts actually change
     const countsChanged =
       prevDiagnosticCountsRef.current.total !== diagnostics.length ||
       prevDiagnosticCountsRef.current.errors !== errors ||
       prevDiagnosticCountsRef.current.warnings !== warnings;
 
     if (countsChanged && diagnostics.length > 0) {
-      // Update previous counts
       prevDiagnosticCountsRef.current = {
         total: diagnostics.length,
         errors,
@@ -252,18 +235,16 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     return { errors, warnings };
   }, [diagnostics, toolType, path]);
 
-  // Determine path color based on diagnostics (electron-specific enhancement)
   const pathColor = useMemo(() => {
     if (diagnosticCounts.errors > 0) {
-      return $( '--error');
+      return $('--error');
     }
     if (diagnosticCounts.warnings > 0) {
-      return $( '--warn');
+      return $('--warn');
     }
-    return $( '--text-secondary');
+    return $('--text-secondary');
   }, [diagnosticCounts]);
 
-  // Generate tooltip text based on status
   const getStatusTooltip = useMemo(() => {
     if (statusTooltip) return statusTooltip;
 
@@ -271,13 +252,11 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     if (isPartial) return "In progress...";
     if (isWaitingApproval) return "Waiting for approval";
 
-    // Check if completed based on color
     const isCompleted =
       statusColor?.includes("gitDecoration-addedResourceForeground") ||
       statusColor?.includes("#3fb950");
 
     if (isCompleted && toolType) {
-      // Context-specific tooltips for completed actions
       switch (toolType) {
         case "write_to_file":
           if (tooltipMeta?.lineCount) {
@@ -342,7 +321,6 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
       return "✓ Completed successfully";
     }
 
-    // Default for gray/description color (not started or waiting)
     if (statusColor?.includes("descriptionForeground")) {
       return isWaitingApproval ? "Waiting for approval" : "Not started yet";
     }
@@ -362,54 +340,23 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
   return (
     <div
       ref={containerRef}
-      className="terminal-block-header"
+      className={cn(
+        'terminal-block-header pt-1 flex items-start justify-between w-full',
+        onClick || onToggleCollapse ? 'cursor-pointer' : 'cursor-default'
+      )}
       onClick={onClick || onToggleCollapse}
-      style={{
-        cursor: onClick || onToggleCollapse ? "pointer" : "default",
-        paddingTop: "4px",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        width: "100%",
-      }}
     >
-      <div className="terminal-info" style={{ flex: 1, minWidth: 0 }}>
+      <div className="terminal-info flex-1 min-w-0">
         <div className="terminal-header-top">
-          <div
-            style={{
-              marginTop: "1px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "2px",
-              flex: 1,
-              minWidth: 0,
-              width: "100%",
-              maxWidth: "100%",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "8px",
-                flexWrap: "nowrap",
-              }}
-            >
+          <div className="mt-px flex flex-col gap-0.5 flex-1 min-w-0 w-full max-w-full overflow-hidden">
+            <div className="flex items-start gap-2 flex-nowrap">
               {/* Left column: CircleDot + CircleRing */}
               {statusColor && (
                 <div
-                  style={{
-                    position: "relative",
-                    width: "16px",
-                    height: "16px",
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: onDotClick ? "pointer" : "default",
-                    marginTop: "2px", // Align with text baseline
-                  }}
+                  className={cn(
+                    'relative w-4 h-4 shrink-0 flex items-center justify-center mt-0.5',
+                    onDotClick ? 'cursor-pointer' : 'cursor-default'
+                  )}
                   title={getStatusTooltip}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -425,7 +372,6 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                       width: "16px",
                       height: "16px",
                       borderRadius: "50%",
-                      // FIX: Use individual border properties instead of shorthand to avoid conflict
                       ...(!isPartial && {
                         border: `2px solid ${statusColor}`,
                         opacity: 0.4,
@@ -444,53 +390,29 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                   />
                   {/* CircleDot */}
                   <div
-                    style={{
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      backgroundColor: statusColor,
-                    }}
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: statusColor }}
                   />
                 </div>
               )}
 
               {/* Right column: All other content */}
-              <div
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "2px",
-                  marginTop: "2px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    flexWrap: "wrap",
-                  }}
-                >
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {onToggleCollapse && (
                     <span
-                      className={`collapse-icon codicon codicon-chevron-${isCollapsed ? "right" : "down"}`}
-                      style={{ fontSize: "12px", marginRight: "4px" }}
+                      className={`collapse-icon codicon codicon-chevron-${isCollapsed ? "right" : "down"} text-xs mr-1`}
                     />
                   )}
                   {icon && (
-                    <span style={{ display: "flex", alignItems: "center" }}>
+                    <span className="flex items-center">
                       {icon}
                     </span>
                   )}
                   {typeof title === "string" ? (
                     <span className="terminal-name">{title}</span>
                   ) : (
-                    <div
-                      className="terminal-name"
-                      style={{ display: "contents" }}
-                    >
+                    <div className="terminal-name contents">
                       {title}
                     </div>
                   )}
@@ -499,55 +421,14 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                 {displayPath && path && (
                   <div
                     ref={pathContainerRef}
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-start",
-                      alignItems: "center",
-                      paddingLeft: "20px",
-                      paddingRight: "4px",
-                      paddingTop: "4px",
-                      marginTop: "2px",
-                      position: "relative",
-                      width: "100%",
-                      maxWidth: "100%",
-                      overflow: "hidden",
-                    }}
+                    className="flex justify-start items-center pl-5 pr-1 pt-1 mt-0.5 relative w-full max-w-full overflow-hidden"
                   >
                     {/* Corner line: vertical + horizontal L-shape */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        left: "0",
-                        top: "0",
-                        width: "16px",
-                        height: "12px",
-                        borderLeft:
-                          "1px solid rgba(106, 122, 154, 0.20)",
-                        borderBottom:
-                          "1px solid rgba(106, 122, 154, 0.20)",
-                      }}
-                    />
+                    <div className="absolute left-0 top-0 w-4 h-3 border-l border-b border-text-secondary/20" />
                     <span
                       ref={pathSpanRef}
-                      style={{
-                        fontSize: "10px",
-                        opacity: 0.6,
-                        color: pathColor,
-                        fontFamily:
-                          "monospace",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        borderRadius: "2px",
-                        transition: "text-decoration 0.15s ease",
-                        cursor: "default",
-                        textDecoration: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        flexShrink: 1,
-                        minWidth: 0,
-                      }}
+                      className="text-[10px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis rounded-sm transition-[text-decoration] duration-150 cursor-default no-underline flex items-center gap-1 shrink min-w-0"
+                      style={{ color: pathColor }}
                       title={path}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -557,8 +438,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.textDecoration = "underline";
-                        e.currentTarget.style.textDecorationColor =
-                          $( '--primary');
+                        e.currentTarget.style.textDecorationColor = $('--primary');
                         e.currentTarget.style.textUnderlineOffset = "2px";
                         e.currentTarget.style.cursor = "pointer";
                       }}
@@ -571,27 +451,10 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                     </span>
                     {(diagnosticCounts.warnings > 0 ||
                       diagnosticCounts.errors > 0) && (
-                      <span
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          flexShrink: 0,
-                          fontSize: "10px",
-                          fontWeight: 600,
-                          color: $('--text-secondary'),
-                          opacity: 0.6,
-                        }}
-                      >
+                      <span className="flex items-center gap-1 shrink-0 text-[10px] font-semibold text-text-secondary opacity-60">
                         [
                         {diagnosticCounts.warnings > 0 && (
-                          <span
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "2px",
-                            }}
-                          >
+                          <span className="flex items-center gap-0.5">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               width="10"
@@ -602,7 +465,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                               strokeWidth="2"
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              style={{ opacity: 1.67 }}
+                              className="opacity-[1.67]"
                             >
                               <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
                               <path d="M12 9v4" />
@@ -615,24 +478,18 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                           diagnosticCounts.errors > 0 &&
                           " "}
                         {diagnosticCounts.errors > 0 && (
-                          <span
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "2px",
-                            }}
-                          >
+                          <span className="flex items-center gap-0.5">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               width="10"
                               height="10"
                               viewBox="0 0 24 24"
                               fill="none"
-                              stroke={$( '--error')}
+                              stroke={$('--error')}
                               strokeWidth="2"
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              style={{ opacity: 1.67 }}
+                              className="opacity-[1.67]"
                             >
                               <path d="M12 20v-9" />
                               <path d="M14 7a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4z" />
@@ -664,25 +521,11 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
           >
             {diffStats ? (
               <>
-                <span
-                  style={{
-                    display: "flex",
-                    gap: "6px",
-                    alignItems: "center",
-                  }}
-                >
-                  <span
-                    style={{
-                      color: $( '--success'),
-                    }}
-                  >
+                <span className="flex gap-1.5 items-center">
+                  <span className="text-success">
                     +{diffStats.added}
                   </span>
-                  <span
-                    style={{
-                      color: $( '--error'),
-                    }}
-                  >
+                  <span className="text-error">
                     -{diffStats.removed}
                   </span>
                   <span>lines</span>
@@ -695,9 +538,8 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
         )}
       </div>
       <div
-        className="header-actions"
+        className="header-actions shrink-0 ml-2"
         onClick={(e) => e.stopPropagation()}
-        style={{ flexShrink: 0, marginLeft: "8px" }}
       >
         {headerActions}
       </div>

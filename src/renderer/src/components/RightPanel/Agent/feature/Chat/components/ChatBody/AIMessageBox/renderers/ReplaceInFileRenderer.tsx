@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 // HOOKS
 import { useSettings } from '../../../../../../context/SettingsContext';
@@ -8,7 +8,7 @@ import { useSettings } from '../../../../../../context/SettingsContext';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 // CONSTANTS
-import { getToolLabel, TOOL_ACTION_TYPES } from '../../../../constants/constants';
+import { getToolLabel } from '../../../../constants/constants';
 
 // TYPES
 import { MergedRendererProps, Diagnostic } from '../../../../types/renderer-types';
@@ -113,14 +113,6 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
         added: newLines.length,
         removed: oldLines.length,
       };
-    } else {
-      console.warn('[ReplaceInFileRenderer] No diff data available:', {
-        filePath: rawPath,
-        hasParams: !!action.params,
-        paramKeys: Object.keys(action.params || {}),
-        oldContentUndefined: oldContent === undefined,
-        newContentUndefined: newContent === undefined,
-      });
     }
   }
 
@@ -273,22 +265,18 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   const approvalDiffData = React.useMemo(() => {
     if (permissionDecision !== 'confirm') return null;
 
-    // Calculate line highlights based on old/new content
     const oldContent = action.params.old_content || action.params.old_str;
     const newContent = action.params.new_content || action.params.new_str;
 
     if (!oldContent || !newContent) return null;
 
-    // If we have full file content, show it with highlights
     if (fullFileContent) {
-      // Find where old content appears in the file
       const fileLines = fullFileContent.split('\n');
       const oldLines = String(oldContent).trim().split('\n');
       const newLines = String(newContent).trim().split('\n');
 
       let startLineIndex = -1;
 
-      // Try exact match first
       for (let i = 0; i <= fileLines.length - oldLines.length; i++) {
         let matches = true;
         for (let j = 0; j < oldLines.length; j++) {
@@ -304,31 +292,26 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
       }
 
       if (startLineIndex !== -1) {
-        // Build new file content with both old and new lines for diff view
         const beforeLines = fileLines.slice(0, startLineIndex);
         const afterLines = fileLines.slice(startLineIndex + oldLines.length);
 
-        // Merge: show old lines (removed) + new lines (added)
         const mergedLines = [...beforeLines, ...oldLines, ...newLines, ...afterLines];
         const mergedContent = mergedLines.join('\n');
 
-        // Build line highlights
         const lineHighlights: DiffHighlight[] = [];
 
-        // Mark old lines as removed
         for (let i = 0; i < oldLines.length; i++) {
           lineHighlights.push({
             type: 'removed',
-            startLine: beforeLines.length + i + 1, // 1-based
+            startLine: beforeLines.length + i + 1,
             endLine: beforeLines.length + i + 1,
           });
         }
 
-        // Mark new lines as added (after old lines)
         for (let i = 0; i < newLines.length; i++) {
           lineHighlights.push({
             type: 'added',
-            startLine: beforeLines.length + oldLines.length + i + 1, // 1-based
+            startLine: beforeLines.length + oldLines.length + i + 1,
             endLine: beforeLines.length + oldLines.length + i + 1,
           });
         }
@@ -337,14 +320,9 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
           code: mergedContent,
           lineHighlights,
         };
-      } else {
-        console.warn(
-          '[ReplaceInFileRenderer] Old content not found in file, falling back to diff view',
-        );
       }
     }
 
-    // Fallback: show old/new content directly if full file not available
     const diffText =
       action.params.diff ||
       `<<<<<<< SEARCH\n${oldContent}\n=======\n${newContent}\n>>>>>>> REPLACE`;
@@ -366,31 +344,16 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        paddingBottom: '4px',
-        marginBottom: isLastItemInList ? '0' : '2px',
-      }}
+      className={cn(
+        'flex flex-col gap-2 pb-1',
+        isLastItemInList ? 'mb-0' : 'mb-0.5'
+      )}
     >
       <TagHeader
         title={
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '12px',
-              color: $('--text-primary'),
-            }}
-          >
+          <div className="flex items-center gap-2 text-xs text-text-primary">
             <span
-              style={{
-                fontWeight: 600,
-                opacity: 0.8,
-                cursor: 'pointer',
-              }}
+              className="font-semibold opacity-80 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (rawPath) {
@@ -421,7 +384,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
                   });
                 }
               }}
-              style={{ display: 'flex', alignItems: 'center' }}
+              className="flex items-center"
             >
               <FileIcon
                 path={rawPath}
@@ -430,13 +393,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
               />
             </span>
             <span
-              style={{
-                fontWeight: 500,
-                opacity: 0.9,
-                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                fontSize: '11px',
-                cursor: 'pointer',
-              }}
+              className="font-medium opacity-90 font-mono text-[11px] cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (rawPath) {
@@ -454,49 +411,24 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
               {displayName || (isPartial && !rawPath ? '...' : '')}
             </span>
             {diffStats && (diffStats.added > 0 || diffStats.removed > 0) && (
-              <span
-                style={{
-                  display: 'flex',
-                  gap: '6px',
-                  alignItems: 'center',
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  marginLeft: '6px',
-                }}
-              >
-                <span style={{ color: $('--success') }}>+{diffStats.added}</span>
-                <span style={{ color: $('--error') }}>-{diffStats.removed}</span>
-                {/* version display removed - not in ToolOutput type */}
+              <span className="flex gap-1.5 items-center text-[11px] font-medium ml-1.5">
+                <span className="text-success">+{diffStats.added}</span>
+                <span className="text-error">-{diffStats.removed}</span>
               </span>
             )}
             {isPartial && (
-              <span
-                style={{
-                  fontSize: '10px',
-                  opacity: 0.6,
-                  fontStyle: 'italic',
-                  marginLeft: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <span
-                  className="codicon codicon-loading codicon-modifier-spin"
-                  style={{ fontSize: '10px' }}
-                />
+              <span className="text-[10px] opacity-60 italic ml-1 flex items-center gap-1">
+                <span className="codicon codicon-loading codicon-modifier-spin text-[10px]" />
               </span>
             )}
           </div>
         }
         statusColor={
           isError
-            ? $('--error')
+            ? 'rgb(255, 45, 85)'
             : isCompleted
-              ? $('--success')
-              : isActiveGroup
-                ? $('--text-secondary')
-                : $('--text-secondary')
+              ? 'rgb(48, 209, 88)'
+              : 'rgb(106, 122, 154)'
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !isCompleted}
@@ -532,7 +464,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
               ? approvalDiffData.lineHighlights.map((h) => ({
                   startLine: h.startLine,
                   endLine: h.endLine,
-                  color: h.type === 'added' ? $('--success') : $('--error'),
+                  color: h.type === 'added' ? 'rgb(48, 209, 88)' : 'rgb(255, 45, 85)',
                   label: h.type === 'added' ? 'Added' : 'Removed',
                 }))
               : undefined

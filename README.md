@@ -73,6 +73,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 lưu ý: ngoại trừ folder prompts sẽ ko cần so sánh
 
-ta sẽ bắt đầu so sánh toàn bộ file trong folder src/renderer/src/components/RightPanel/Agent/feature/Chat/components/ChatBody/AIMessageBox/renderers với folder temp/Zen-webview-ui/src/features/chat/components/ChatBody/AIMessageBox/renderers xem có khác nhau về UI. ngoài so sánh UI thì so sánh logic, cấu trúc code, các hàm... thiếu gì, thừa gì, sai gì... thì đều liệt kê 
+ta sẽ bắt đầu so sánh toàn bộ file trong folder src/renderer/src/components/RightPanel/Agent/feature/Chat/hooks với folder temp/Zen-webview-ui/src/features/chat/hooks xem có khác nhau về UI. ngoài so sánh UI thì so sánh logic, cấu trúc code, các hàm... thiếu gì, thừa gì, sai gì... thì đều liệt kê 
 
 trong code của các file trong folder src/renderer/src/components/RightPanel/Agent/feature/Chat thì đôi khi sẽ có style, CSS và --vscode... đó là bởi vì tôi đã copy toàn bộ nội dung của code trong temp/Zen-webview-ui/src/features/chat. vì vậy, bạn cần đọc file .styling-rules.md, tailwind.config.js và src/renderer/src/theme/themes/MidnightBlue.ts để hiễu rõ theme và color đang dùng của electron để sửa cùng lúc

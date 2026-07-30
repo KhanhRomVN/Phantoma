@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 // HOOKS
 import { useSettings } from '../../../../../../context/SettingsContext';
@@ -9,8 +9,6 @@ import { extensionService } from '@renderer/components/RightPanel/Agent/services
 
 // CONSTANTS
 import { getToolLabel } from '../../../../constants/constants';
-
-// TYPES
 
 // UTILS
 import { collectConvFilePaths, getNextUserMessage } from '../../../../utils/renderer-utils';
@@ -63,10 +61,8 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
 
   const shouldHideContent = false;
 
-  // Check if action has validation error
   const hasValidationError = !!action.isError;
 
-  // Debug logs
   const permissionDecision = getPermissionDecision(permissionMode, 'write_to_file');
   const shouldShowExecuteButton =
     !shouldHideContent &&
@@ -75,7 +71,6 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
     !hasValidationError &&
     permissionDecision === 'confirm';
 
-  // Debug logging for validation errors
   React.useEffect(() => {
     if (hasValidationError) {
       console.log('[WriteToFileRenderer] Validation error detected:', {
@@ -98,31 +93,16 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        paddingBottom: '4px',
-        marginBottom: isLastItemInList ? '0' : '2px',
-      }}
+      className={cn(
+        'flex flex-col gap-1.5 pb-1',
+        isLastItemInList ? 'mb-0' : 'mb-0.5'
+      )}
     >
       <TagHeader
         title={
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '12px',
-              color: $('--text-primary'),
-            }}
-          >
+          <div className="flex items-center gap-2 text-xs text-text-primary">
             <span
-              style={{
-                fontWeight: 600,
-                opacity: 0.8,
-                cursor: 'pointer',
-              }}
+              className="font-semibold opacity-80 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (rawPath) {
@@ -149,7 +129,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
                   });
                 }
               }}
-              style={{ display: 'flex', alignItems: 'center' }}
+              className="flex items-center"
             >
               <FileIcon
                 path={rawPath}
@@ -158,13 +138,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
               />
             </span>
             <span
-              style={{
-                fontWeight: 500,
-                opacity: 0.9,
-                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                fontSize: '11px',
-                cursor: 'pointer',
-              }}
+              className="font-medium opacity-90 font-mono text-[11px] cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (rawPath) {
@@ -180,45 +154,23 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
               {displayName || (isPartial && !rawPath ? '...' : '')}
             </span>
             {linesCount > 0 && (
-              <span
-                style={{
-                  opacity: 0.7,
-                  fontSize: '11px',
-                  marginLeft: '6px',
-                  fontWeight: 500,
-                }}
-              >
+              <span className="opacity-70 text-[11px] ml-1.5 font-medium">
                 +{linesCount} {linesCount === 1 ? 'line' : 'lines'}
               </span>
             )}
             {isPartial && (
-              <span
-                style={{
-                  fontSize: '10px',
-                  opacity: 0.6,
-                  fontStyle: 'italic',
-                  marginLeft: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <span
-                  className="codicon codicon-loading codicon-modifier-spin"
-                  style={{ fontSize: '10px' }}
-                />
+              <span className="text-[10px] opacity-60 italic ml-1 flex items-center gap-1">
+                <span className="codicon codicon-loading codicon-modifier-spin text-[10px]" />
               </span>
             )}
           </div>
         }
         statusColor={
           isError
-            ? $('--error')
+            ? 'rgb(255, 45, 85)'
             : isCompleted
-              ? $('--success')
-              : isActiveGroup
-                ? $('--text-secondary')
-                : $('--text-secondary')
+              ? 'rgb(48, 209, 88)'
+              : 'rgb(106, 122, 154)'
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !isCompleted}
@@ -245,86 +197,32 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
         }}
       />
 
-      {/* Single-line review UI for write_to_file with content crammed into 1 line */}
+      {/* Single-line review UI */}
       {!shouldHideContent &&
         singleLineReviewActions?.[actionId] &&
         (() => {
           const reviewContent = action.params.content || '';
           return (
-            <div
-              style={{
-                marginTop: '8px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-              }}
-            >
+            <div className="mt-2 flex flex-col gap-1.5">
               <textarea
                 readOnly
                 value={reviewContent}
-                style={{
-                  width: '100%',
-                  minHeight: '200px',
-                  maxHeight: '400px',
-                  padding: '8px 10px',
-                  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                  fontSize: '11px',
-                  lineHeight: '1.5',
-                  color: $('--text-primary'),
-                  backgroundColor:
-                    $('--card-background'),
-                  border: '1.5px dashed #e5a100',
-                  borderRadius: '4px',
-                  resize: 'vertical',
-                  outline: 'none',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-all',
-                }}
+                className="w-full min-h-[200px] max-h-[400px] py-2 px-2.5 font-mono text-[11px] leading-[1.5] text-text-primary bg-card-background border-[1.5px] border-dashed border-[#e5a100] rounded resize-y outline-none whitespace-pre-wrap break-all"
               />
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: '#e5a100',
-                    fontWeight: 500,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <span className="codicon codicon-warning" style={{ fontSize: '11px' }} />
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] text-[#e5a100] font-medium flex items-center gap-1">
+                  <span className="codicon codicon-warning text-[11px]" />
                   Nội dung file bị dồn vào 1 dòng ({reviewContent.length} ký tự)
                 </span>
-                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <div className="flex gap-2 shrink-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onRejectSingleLineAction?.(actionId);
                     }}
-                    style={{
-                      padding: '4px 12px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      borderRadius: '4px',
-                      border:
-                        `1px solid color-mix(in srgb, ${$('--error')} 40%, transparent)`,
-                      backgroundColor:
-                        `color-mix(in srgb, ${$('--error')} 10%, transparent)`,
-                      color: $('--error'),
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
+                    className="flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded bg-error/10 border border-error/40 text-error cursor-pointer"
                   >
-                    <span className="codicon codicon-close" style={{ fontSize: '11px' }} />
+                    <span className="codicon codicon-close text-[11px]" />
                     Từ chối
                   </button>
                   <button
@@ -332,23 +230,9 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
                       e.stopPropagation();
                       onConfirmSingleLineAction?.(actionId);
                     }}
-                    style={{
-                      padding: '4px 12px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      borderRadius: '4px',
-                      border:
-                        `1px solid color-mix(in srgb, ${$('--success')} 40%, transparent)`,
-                      backgroundColor:
-                        `color-mix(in srgb, ${$('--success')} 10%, transparent)`,
-                      color: $('--success'),
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
+                    className="flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded bg-success/10 border border-success/40 text-success cursor-pointer"
                   >
-                    <span className="codicon codicon-check" style={{ fontSize: '11px' }} />
+                    <span className="codicon codicon-check text-[11px]" />
                     Xác nhận
                   </button>
                 </div>
@@ -358,7 +242,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
         })()}
 
       {!shouldHideContent && !isCompleted && (
-        <div style={{ marginTop: '8px', marginBottom: '8px', order: 1 }}>
+        <div className="my-2 order-1">
           <ActionBar
             action={action}
             messageId={messageId}

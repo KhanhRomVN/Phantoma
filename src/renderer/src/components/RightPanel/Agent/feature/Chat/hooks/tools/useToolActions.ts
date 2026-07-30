@@ -18,7 +18,7 @@ interface UseToolActionsProps {
     toolName?: string,
   ) => void;
   parsedMessages: any[];
-  isProcessing?: boolean; // Prevents auto-triggering mid-stream
+  isProcessing?: boolean;
   isRestored?: boolean;
 }
 
@@ -45,7 +45,6 @@ export const useToolActions = ({
   // Load initially clicked actions from message history
   const loadHistoryPrevLengthRef = useRef(0);
   useEffect(() => {
-    // Only run when parsedMessages length changes (new message added)
     const currentLength = parsedMessages.length;
     if (currentLength === loadHistoryPrevLengthRef.current) {
       return;
@@ -118,7 +117,6 @@ export const useToolActions = ({
       }
 
       if (command === "markActionFailed" && actionId) {
-        // Mark as clicked AND failed
         setClickedActions((prev: Set<string>) => {
           const newSet = new Set(prev);
           newSet.add(actionId);
@@ -149,9 +147,9 @@ export const useToolActions = ({
       }
 
       const actionIdBase = `${message.id}-action-`;
+      const actionId = `${actionIdBase}${actionIndex}`;
 
       if (type === TOOL_ACTION_TYPES.REJECT) {
-        // 🐛 FIX: Truyền đúng _index cho action để không bị nhầm actionId
         const actions = Array.isArray(actionOrActions)
           ? actionOrActions.map((a) => ({ ...a, _index: actionIndex }))
           : [{ ...actionOrActions, _index: actionIndex }];
@@ -167,74 +165,107 @@ export const useToolActions = ({
       // accept_all logic removed — only accept (formerly accept_once) is kept
 
       if (Array.isArray(actionOrActions)) {
-        // Handle Batch
-        const actionsToProcess: ToolAction[] = [];
+        // FIX: When user clicks on a merged action group, only send the SINGLE action at actionIndex
+        // This ensures approval mode requires individual approval for each merged action
+        const targetAction = actionOrActions.find(
+          (a: any) => (a._index !== undefined ? a._index : 0) === actionIndex,
+        );
 
-        actionOrActions.forEach((action: any) => {
-          const idx = action._index !== undefined ? action._index : actionIndex;
-          const actionId = `${actionIdBase}${idx}`;
-
-          if (!clickedActions.has(actionId)) {
-            actionsToProcess.push({ ...action, actionId });
-          }
-        });
-
-        if (actionsToProcess.length > 0) {
-          onSendToolRequest(
-            actionsToProcess as any,
-            message,
-            false,
-            TOOL_ACTION_TYPES.ACCEPT,
+        if (!targetAction) {
+          console.warn(
+            `[Zen][handleToolClick] Cannot find action at index ${actionIndex}`,
+            {
+              actionIndex,
+              availableIndices: actionOrActions.map((a: any) => a._index),
+              messageId: message.id,
+            },
           );
+          return;
+        }
+
+        const actionId = `${actionIdBase}${actionIndex}`;
+
+        // Skip if already clicked
+        if (clickedActions.has(actionId)) {
+          return;
+        }
+
+        // Send ONLY this single action, not the entire merged group
+        if (isToolClickable(targetAction.type)) {
+          const actionToProcess = {
+            ...targetAction,
+            actionId,
+            _index: actionIndex,
+          };
+
+          onSendToolRequest(actionToProcess, message, false, type);
         }
       } else {
         // Handle Single
         const action = actionOrActions;
-        if (isToolClickable(action.type)) {
-          // Mark as clicked
-          const actionId = `${actionIdBase}${actionIndex}`;
-          setClickedActions((prev: Set<string>) => new Set(prev).add(actionId));
+        const actionId = `${actionIdBase}${actionIndex}`;
 
-          // Also attach _index for ChatPanel logic to track completion
+        if (isToolClickable(action.type)) {
+          // DON'T mark as clicked here - let handleToolRequest do it
+          // This prevents the "already clicked" skip logic from triggering
           const actionWithId = { ...action, actionId, _index: actionIndex };
           onSendToolRequest(actionWithId, message, false, type);
         }
       }
     },
-    [onSendToolRequest, onToolAction, clickedActions],
+    [onSendToolRequest, onToolAction, clickedActions, permissionMode],
   );
 
   // Auto-execute tools logic
   const prevParsedLengthRef = useRef(0);
+  const prevPermissionModeRef = useRef(permissionMode);
+
   useEffect(() => {
-    // Only run when parsedMessages actually changes (new message or new actions)
+    // Check if permission mode changed
+    const permissionModeChanged =
+      prevPermissionModeRef.current !== permissionMode;
+    if (permissionModeChanged) {
+      prevPermissionModeRef.current = permissionMode;
+    }
+
+    // Only run when parsedMessages actually changes (new message or new actions) OR permission mode changes
     const currentLength = parsedMessages.length;
-    if (currentLength === prevParsedLengthRef.current && !isProcessing) {
-      // No new messages, skip
+    const lengthUnchanged = currentLength === prevParsedLengthRef.current;
+
+    if (lengthUnchanged && !permissionModeChanged && !isProcessing) {
+      // No new messages and permission unchanged, skip
       return;
     }
     prevParsedLengthRef.current = currentLength;
 
     // Early returns to prevent unnecessary processing
+    // ALWAYS skip if restored (even if permission mode changed)
     if (isRestored || !onSendToolRequest || parsedMessages.length === 0) {
       return;
     }
 
     // CRITICAL: Do NOT auto-trigger while the LLM is still streaming.
-    // Triggering mid-stream causes the flush logic to parseAIResponse on
-    // incomplete content, flushing early and skipping later actions (e.g. SEARCH).
     if (isProcessing) {
       return;
     }
 
     const lastMessage = parsedMessages[parsedMessages.length - 1];
-    if (lastMessage.role !== "assistant") return;
-    if (lastMessage.isCancelled) return;
-    if (!lastMessage.parsed || !lastMessage.parsed.actions) return;
+    if (lastMessage.role !== "assistant") {
+      return;
+    }
+    if (lastMessage.isCancelled) {
+      return;
+    }
+    if (!lastMessage.parsed || !lastMessage.parsed.actions) {
+      return;
+    }
 
     const actionsToRun: ToolAction[] = [];
     const contentBlocks = lastMessage.parsed.contentBlocks || [];
     const selectedOption = lastMessage.selectedOption;
+
+    // Collect action IDs to mark as triggered (batch state update at the end)
+    const actionsToMarkTriggered: string[] = [];
 
     lastMessage.parsed.actions.forEach((action: ToolAction, idx: number) => {
       const actionId = `${lastMessage.id}-action-${idx}`;
@@ -254,7 +285,6 @@ export const useToolActions = ({
       }
 
       // SEQUENTIAL BLOCK CHECK:
-      // Find this action's position in contentBlocks to check for preceding unanswered questions or tools
       const actionBlockIdx = contentBlocks.findIndex(
         (b: any) => b.type === "tool" && b.actionIndex === idx,
       );
@@ -282,15 +312,45 @@ export const useToolActions = ({
       // Check if settings specify this tool runs auto or deny
       const decision = getPermissionDecision(permissionMode, action.type);
       if (decision === "allow" || decision === TOOL_ACTION_TYPES.REJECT) {
-        // Optimistic Synchronous Update
-        triggeredIdsRef.current.add(actionId);
-        setClickedActions((prev: Set<string>) => new Set(prev).add(actionId));
+        // Collect for batch update
+        actionsToMarkTriggered.push(actionId);
         actionsToRun.push({ ...action, actionId, _index: idx } as any);
       }
     });
 
-    if (actionsToRun.length > 0) {
-      onSendToolRequest(actionsToRun as any, lastMessage, true);
+    // BATCH STATE UPDATE: Update all triggered actions at once (after loop)
+    if (actionsToMarkTriggered.length > 0) {
+      actionsToMarkTriggered.forEach((id) => triggeredIdsRef.current.add(id));
+      setClickedActions((prev: Set<string>) => {
+        const newSet = new Set(prev);
+        actionsToMarkTriggered.forEach((id) => newSet.add(id));
+        return newSet;
+      });
+    }
+
+    if (actionsToRun.length > 0 && onSendToolRequest) {
+      // Check if there are REJECT actions (malformed tools)
+      const rejectActions = actionsToRun.filter(
+        (a: any) => a._actionType === TOOL_ACTION_TYPES.REJECT,
+      );
+      const acceptActions = actionsToRun.filter(
+        (a: any) => a._actionType !== TOOL_ACTION_TYPES.REJECT,
+      );
+
+      // Send REJECT actions first (to generate error feedback)
+      if (rejectActions.length > 0) {
+        onSendToolRequest(
+          rejectActions as any,
+          lastMessage,
+          true,
+          TOOL_ACTION_TYPES.REJECT,
+        );
+      }
+
+      // Then send ACCEPT actions
+      if (acceptActions.length > 0) {
+        onSendToolRequest(acceptActions as any, lastMessage, true);
+      }
     }
   }, [
     parsedMessages,

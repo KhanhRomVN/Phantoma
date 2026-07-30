@@ -267,8 +267,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
           <div key={filePathKey} className="mb-3">
             <div
               onClick={() => toggleFileCollapse(filePathKey)}
-              className="flex items-center gap-1.5 cursor-pointer py-0.5 select-none"
-              style={{ marginBottom: isFileCollapsed ? '0' : '6px' }}
+              className={`flex items-center gap-1.5 cursor-pointer py-0.5 select-none ${isFileCollapsed ? 'mb-0' : 'mb-1.5'}`}
             >
               <span
                 className={`codicon codicon-chevron-${isFileCollapsed ? 'right' : 'down'} text-xs opacity-60 text-secondary`}

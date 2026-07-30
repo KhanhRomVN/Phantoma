@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 // CONSTANTS
 import { getToolLabel } from '../../../../constants/constants';
@@ -51,7 +51,6 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
     !isPartial && (!!isActionClicked || isError || !!toolOutputs?.[actionId] || !!nextUserMessage),
   );
 
-  // Calculate file count
   let fileCount = 0;
   if (codeContent && !isError) {
     try {
@@ -64,59 +63,34 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        paddingBottom: '4px',
-        marginBottom: isLastItemInList ? '0' : '2px',
-      }}
+      className={cn(
+        'flex flex-col gap-1.5 pb-1',
+        isLastItemInList ? 'mb-0' : 'mb-0.5'
+      )}
     >
       <TagHeader
         title={
           <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-              fontSize: '12px',
-              color: $('--text-primary'),
-              cursor: isCompleted ? 'pointer' : 'default',
-            }}
+            className={cn(
+              'flex flex-col gap-1 text-xs text-text-primary',
+              isCompleted ? 'cursor-pointer' : 'cursor-default'
+            )}
             onClick={isCompleted ? () => setIsCollapsed((v) => !v) : undefined}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 600, opacity: 0.8 }}>{getToolLabel("find_files")}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold opacity-80">{getToolLabel("find_files")}</span>
               {isPartial && !isCompleted && (
-                <span
-                  style={{
-                    fontSize: '10px',
-                    opacity: 0.55,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <span
-                    className="codicon codicon-loading codicon-modifier-spin"
-                    style={{ fontSize: '10px' }}
-                  />
+                <span className="text-[10px] opacity-55 flex items-center gap-1">
+                  <span className="codicon codicon-loading codicon-modifier-spin text-[10px]" />
                   Searching...
                 </span>
               )}
               {isCompleted && (
                 <>
                   <span
-                    className={`codicon codicon-chevron-${isCollapsed ? 'right' : 'down'}`}
-                    style={{ fontSize: '10px', opacity: 0.5 }}
+                    className={`codicon codicon-chevron-${isCollapsed ? 'right' : 'down'} text-[10px] opacity-50`}
                   />
-                  <span
-                    style={{
-                      opacity: 0.5,
-                      fontSize: '10px',
-                      color: $('--text-secondary'),
-                    }}
-                  >
+                  <span className="opacity-50 text-[10px] text-text-secondary">
                     {fileCount} {fileCount === 1 ? 'file' : 'files'}
                   </span>
                 </>
@@ -133,38 +107,16 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
 
               if (fileNamesArray.length > 0) {
                 return (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '6px',
-                      alignItems: 'center',
-                      marginLeft: '2px',
-                    }}
-                  >
+                  <div className="flex flex-wrap gap-1.5 items-center ml-0.5">
                     {fileNamesArray.map((fileName, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        {idx > 0 && <span style={{ opacity: 0.3, fontSize: '11px' }}>|</span>}
+                      <div key={idx} className="flex items-center gap-1">
+                        {idx > 0 && <span className="opacity-30 text-[11px]">|</span>}
                         <FileIcon
                           path={fileName}
                           isFolder={false}
                           style={{ width: '14px', height: '14px' }}
                         />
-                        <span
-                          style={{
-                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                            fontSize: '11px',
-                            fontWeight: 500,
-                            opacity: 0.9,
-                          }}
-                        >
+                        <span className="font-mono text-[11px] font-medium opacity-90">
                           {fileName}
                         </span>
                       </div>
@@ -178,12 +130,10 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
         }
         statusColor={
           isError
-            ? $('--error')
+            ? 'rgb(255, 45, 85)'
             : isCompleted
-              ? $('--success')
-              : isActiveGroup
-                ? $('--text-secondary')
-                : $('--text-secondary')
+              ? 'rgb(48, 209, 88)'
+              : 'rgb(106, 122, 154)'
         }
         isError={isError}
         isWaitingApproval={!!isActiveGroup && !isCompleted}
@@ -196,7 +146,7 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
       )}
 
       {codeContent && !isError && !isCollapsed && (
-        <div style={{ marginTop: '8px' }}>
+        <div className="mt-2">
           {(() => {
             const lines = codeContent.split('\n');
             const filePaths: string[] = [];
@@ -212,18 +162,7 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
 
             if (filePaths.length === 0) {
               return (
-                <div
-                  style={{
-                    padding: '10px 12px',
-                    backgroundColor: $('--card-background'),
-                    border: `1px solid ${$('--border')}`,
-                    borderRadius: '4px',
-                    color: $('--text-secondary'),
-                    opacity: 0.7,
-                    fontStyle: 'italic',
-                    fontSize: '11px',
-                  }}
-                >
+                <div className="py-2.5 px-3 bg-card-background border border-border rounded text-text-secondary opacity-70 italic text-[11px]">
                   No files found matching the search criteria.
                 </div>
               );
@@ -232,16 +171,7 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
             const treeData = buildTreeFromPaths(filePaths);
 
             return (
-              <div
-                style={{
-                  padding: '10px 12px',
-                  backgroundColor: $('--card-background'),
-                  border: `1px solid ${$('--border')}`,
-                  borderRadius: '4px',
-                  maxHeight: '400px',
-                  overflowY: 'auto',
-                }}
-              >
+              <div className="py-2.5 px-3 bg-card-background border border-border rounded max-h-[400px] overflow-y-auto">
                 <TreeBlock
                   files={treeData}
                   onFileClick={(path) => {

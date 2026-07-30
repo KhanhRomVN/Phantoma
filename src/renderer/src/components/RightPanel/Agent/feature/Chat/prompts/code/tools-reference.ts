@@ -8,19 +8,20 @@ Use XML tags for all tool calls:
 <old_content>exact original (indentation must match)</old_content>
 <new_content>replacement</new_content>
 </replace_in_file>
+⚠ TAG-CLOSE-VERIFY: closing tag must be </new_content> — never </old_content>. Re-read the opening tag before closing.
 <view_replace_history><file_path>path/to/file</file_path></view_replace_history>
 <revert_file><file_path>path/to/file</file_path></revert_file>
 <revert_file><file_path>path/to/file</file_path><version>3</version></revert_file>
 <list_files><folder_path>path/to/folder</folder_path></list_files>
 <list_files><folder_path>path/to/folder</folder_path><depth>2</depth></list_files>
 <list_files><folder_path>path/to/folder</folder_path><depth>max</depth></list_files>
-<find_files><file_name>filename.ts</file_name><file_name>another.js</file_name></find_files>
+<find_files><file_name>filename.ts</file_name></find_files>
+<find_files><file_name>filename.ts</file_name><folder_path>src/components</folder_path></find_files>
 <grep><search_term>string</search_term><file_path>path/to/file</file_path></grep>
 <grep><search_term>string</search_term><folder_path>path/to/folder</folder_path></grep>
 <delete_file><file_path>path/to/file</file_path></delete_file>
-<move_file><file_path>path/to/source/file.ts</file_path><target_folder_path>path/to/destination/folder</target_folder_path></move_file>
-<move_file><file_path>path/to/source/file.ts</file_path><target_folder_path>path/to/destination/folder</target_folder_path><target_file_name>new-name.ts</target_file_name></move_file>
 <run_command><command>your command here</command></run_command>
+<run_command><command>your command here</command><folder_path>path/to/folder</folder_path></run_command>
 **revert_file**: Undo the last change made to a file using VSCode's undo functionality. Each call undoes one change in the file's edit history.
 - \`file_path\`: Path to the file to revert
 - \`version\`: (optional) Version number to revert to. If provided, reverts to that specific replace_in_file version and deletes all versions after it. If omitted, reverts to the last checkpoint (single undo).
@@ -32,13 +33,25 @@ Use XML tags for all tool calls:
 - Returns: List of versions with format: [Version N] Errors: X, Warnings: Y
 - Example: \`<view_replace_history><file_path>src/utils.ts</file_path></view_replace_history>\` — shows all replace_in_file history for src/utils.ts
 - Use this before revert_file to see which version to revert to
-**find_files**: Search for files by name across the entire workspace (respects .gitignore).
-- Multiple \`file_name\` tags can be provided to search for multiple files at once.
-- Returns: For each file name, a list of all matching file paths found in the workspace.
+**find_files**: Search for files by name (respects .gitignore).
+- \`file_name\`: The file name or pattern to search for (required, only one file name per call)
+- \`folder_path\`: (optional) The folder path to search within. If provided, searches only in that folder and its subfolders. If omitted, searches the entire workspace.
+- Returns: A list of all matching file paths found.
 - Examples:
-  - \`<find_files><file_name>config.json</file_name></find_files>\` — finds all files named "config.json"
-  - \`<find_files><file_name>*.test.ts</file_name><file_name>utils.ts</file_name></find_files>\` — finds test files and utils.ts
-**move_file**: \`target_file_name\` is optional — omit it to keep the original filename while moving, or provide it to rename during the move (including renaming in place by using the same folder as the source). // [OPT#8] thêm khả năng rename qua move_file
+  - \`<find_files><file_name>config.json</file_name></find_files>\` — finds all files named "config.json" in the entire workspace
+  - \`<find_files><file_name>*.test.ts</file_name><folder_path>src/components</folder_path></find_files>\` — finds test files only in src/components folder
+  - \`<find_files><file_name>utils.ts</file_name><folder_path>src</folder_path></find_files>\` — finds utils.ts only in src folder
+**run_command**: Execute a shell command in the workspace. By default, runs in the workspace root folder.
+- \`command\`: The shell command to execute
+- \`folder_path\`: (optional) The folder path where the command should be executed. Can be:
+  - Relative path (e.g., "src/components") — relative to workspace root
+  - Absolute system path (e.g., "/home/user/projects/other") — any location on the system
+  - If omitted, the command runs in the workspace root folder
+- Examples:
+  - \`<run_command><command>npm install</command></run_command>\` — runs in workspace root
+  - \`<run_command><command>npm test</command><folder_path>src</folder_path></run_command>\` — runs in workspace_root/src
+  - \`<run_command><command>ls -la</command><folder_path>/tmp</folder_path></run_command>\` — runs in /tmp (system path)
+  - \`<run_command><command>pwd</command><folder_path>src/components</folder_path></run_command>\` — runs in workspace_root/src/components
 **run_command stdin/prompt rules**: stdin is a pipe (not a TTY). "read -p" suppresses its prompt when stdin is not a TTY. To show a prompt to the user, use "printf ... >&2" before "read":
   - broken: read -p "Enter value: " x
   - correct: printf "Enter value: " >&2; read x

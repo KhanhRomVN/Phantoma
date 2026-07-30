@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { $ } from '@renderer/utils/color';
 import { useSettings } from '../../context/SettingsContext';
 
 // Core chat hooks
@@ -9,7 +8,6 @@ import { useWorkspaceData } from './hooks/workspace/useWorkspaceData';
 import { useGitOperations } from './hooks/workspace/useGitOperations';
 import { useConversationRestore } from './hooks/conversation/useConversationRestore';
 import { useFileHandling } from '../../hooks/useFileHandling';
-import { useMentionSystem } from './hooks/ui/useMentionSystem';
 import { useBrowserSession } from './hooks/llm/useBrowserSession';
 import { useDraftManagement } from './hooks/conversation/useDraftManagement';
 import { useModelAccount } from '../../hooks/useModelAccount';
@@ -53,12 +51,13 @@ interface ChatPanelProps {
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
-  currentChat,
+currentChat,
   onBack,
+  feature,
   onLoadConversation,
   initialMessageData,
   onClearInitialData,
-}) => {
+}: ChatPanelProps) => {
   // Track render count for performance monitoring
   const renderCountRef = useRef(0);
   const prevPropsRef = useRef<any>({});
@@ -126,10 +125,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   // --- API & Configuration ---
   const { apiUrl, isApiUrlReady, providers } = useApiConfiguration();
 
-  // --- Terminal State ---
-  const activeTerminalIds = new Set<string>();
-  const attachedTerminalIds = new Set<string>();
-
   // --- Model & Account Selection ---
   const { currentModel, setCurrentModel, currentAccount, setCurrentAccount } = useModelAccount(
     currentChat?.folderPath,
@@ -167,9 +162,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   // --- Refs ---
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionDropdownRef = useRef<HTMLDivElement>(null);
   const scrollToBottomRef = useRef<(() => void) | null>(null);
   const hasProcessedInitial = useRef(false);
+  const wasPaused = useRef(false);
   const isStoppedRef = useRef(false);
+
+  // --- Mention helpers (simplified - no mention system in Electron) ---
+  const [showAtMenu, setShowAtMenu] = useState(false);
+  const checkMentions = useCallback((_value: string) => {}, []);
 
   // Revert state
   const [revertInput, setRevertInput] = useState<{
@@ -202,11 +203,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     resetSession,
     setBackendConversationId,
     conversationToolOverrides,
+    setConversationToolOverrides,
     handleToolAction,
     handleSelectOption,
   } = useChatLLM({
     apiUrl,
     selectedTab: currentChat,
+    feature,
     onToolRequest: (actions, assistantMessage, isAutoTrigger, actionType) =>
       handleToolRequest(
         actions,
@@ -249,7 +252,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   });
 
   // --- Workspace Data ---
-  const { availableFiles, availableFolders } = useWorkspaceData();
+  useWorkspaceData();
 
   // --- Draft Management ---
   const {
@@ -259,48 +262,34 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     handleKeyDown: handleDraftKeyDown,
     undoStackRef,
     undoIndexRef,
+  storage,
   } = useDraftManagement(currentConversationId, revertInput);
 
-  // --- Mention System ---
-  const {
-    showAtMenu,
-    setShowAtMenu,
-    showMentionDropdown,
-    setShowMentionDropdown,
-    setMentionType,
-    attachedItems,
-    checkMentions,
-    removeAttachedItem,
-    clearAttachedItems,
-    addAttachedItem,
-  } = useMentionSystem({
-    message,
-    setMessage,
-    textareaRef: textareaRef as any,
-    availableFiles,
-    availableFolders,
-    onRequestWorkspaceFiles: () => {
-      const vscodeApi = (window as any).vscodeApi;
-      if (vscodeApi) {
-        vscodeApi.postMessage({ command: 'getWorkspaceFiles' });
-      }
-    },
-    onRequestWorkspaceFolders: () => {
-      const vscodeApi = (window as any).vscodeApi;
-      if (vscodeApi) {
-        vscodeApi.postMessage({ command: 'getWorkspaceFolders' });
-      }
-    },
-  });
+  // --- Attached Items ---
+  const [attachedItems, setAttachedItems] = React.useState<any[]>([]);
+
+  const removeAttachedItem = useCallback((itemId: string) => {
+    setAttachedItems((prev) => prev.filter((item) => item.id !== itemId));
+  }, []);
+
+  const clearAttachedItems = useCallback(() => {
+    setAttachedItems([]);
+  }, []);
+
+  const addAttachedItem = useCallback((item: any) => {
+    setAttachedItems((prev) => [...prev, item]);
+  }, []);
 
   // --- File Handling ---
   const {
     uploadedFiles,
+    externalFiles,
     invalidExternalFiles,
     fileInputRef,
     externalFileInputRef,
     handlePaste,
     handleFileSelect,
+    handleExternalFileSelect,
     handleFileInputChange,
     removeFile,
     handleExternalFileInputChange,
@@ -312,12 +301,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     accountId: currentAccount?.id,
     onAddAttachedItem: (item) => {
       addAttachedItem(item);
-      setShowAtMenu(false);
     },
   });
 
   // --- Browser Session ---
-  const { showBrowserWarning, isLaunchingBrowser, launchBrowserSession } = useBrowserSession(
+  const {
+    isBrowserSessionReady,
+    showBrowserWarning,
+    isLaunchingBrowser,
+    launchBrowserSession,
+  } = useBrowserSession(
     currentModel,
     currentAccount,
     apiUrl,
@@ -386,13 +379,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const {
     gitStatus,
     gitLoading,
+    gitError,
     showGitStatusBlock,
-    setShowGitStatusBlock,
+    gitCommitMessage,
     gitCommitLoading,
+    gitCommitInput,
+    setGitCommitInput,
+    setShowGitStatusBlock,
+    setGitError,
+    setGitCommitMessage,
     enrichedModel,
     handleGitPullRequest,
     handleGitConfirm,
     handleGitCancel,
+    handleGitRetry,
+    handleGitCommit,
     handleGitCommitMessageDetected,
   } = useGitOperations({
     currentModel,
@@ -410,7 +411,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     isLoadingConversation,
     isRestored,
     setIsRestored,
+    setIsLoadingConversation,
     handleRevertConversation,
+    handleClearConfirmed,
   } = useConversationRestore({
       currentChat,
       currentConversationId,
@@ -591,32 +594,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [message]);
 
-  // Click outside for dropdowns
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (showAtMenu) {
-        const menu = document.querySelector('[data-at-menu="true"]');
-        if (menu && !menu.contains(target) && target !== textareaRef.current) {
-          setShowAtMenu(false);
-        }
-      }
-      if (showMentionDropdown) {
-        const dropdown = document.querySelector('[data-mention-dropdown="true"]');
-        if (dropdown && !dropdown.contains(target)) {
-          setShowMentionDropdown(false);
-          setMentionType(null);
-        }
-      }
-    };
-    if (showAtMenu || showMentionDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showAtMenu, showMentionDropdown, setShowAtMenu, setShowMentionDropdown, setMentionType]);
-
   // Listen for Git commit message detection
   useEffect(() => {
     handleGitCommitMessageDetected(messages);
@@ -629,17 +606,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const firstRequestMessage = messages.find((m) => m.role === 'user');
   const displayedModel = enrichedModel ?? currentModel;
+  const totalTokens = contextUsage?.total ?? 0;
+  const footerPaddingBottom =
+    showBrowserWarning && currentModel?.providerId === 'zai-browser' ? '20px' : '8px';
+
+  // Wrap removeAttachedItem to also update localStorage cache
+  const handleRemoveAttachedItem = useCallback(
+    (itemId: string) => {
+      removeAttachedItem(itemId);
+    },
+    [removeAttachedItem],
+  );
 
   // --- Render ---
   return (
     <div
-      className="chat-panel text-text-primary"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        backgroundColor: `${$('--secondary-bg')}`,
-      }}
+      className="flex flex-col h-full bg-background text-text-primary"
     >
       {/* ─── ChatHeader ─── */}
       <ChatHeader
@@ -665,9 +647,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           terminalStatus={terminalStatus}
           firstRequestMessageId={firstRequestMessage?.id}
           onLoadConversation={onLoadConversation}
-          activeTerminalIds={activeTerminalIds}
-          attachedTerminalIds={attachedTerminalIds}
-conversationId={currentConversationId}
+          conversationId={currentConversationId}
           onToolAction={(_actionId: string, actionType: any, toolName?: string) =>
             handleToolAction(actionType as any, toolName as any)
           }
@@ -745,6 +725,7 @@ conversationId={currentConversationId}
         onOpenGitStatus={() => setShowGitStatusBlock(true)}
         loadedConversationFileStats={loadedConversationFileStats}
         autoScrollPaused={autoScrollPaused}
+        footerPaddingBottom={footerPaddingBottom}
         scrollToBottom={scrollToBottomRef.current || undefined}
       />
     </div>

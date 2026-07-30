@@ -27,11 +27,8 @@ export const getPermissionDecision = (
     case "approval":
       permissionValue = tagDef.permissions.approval;
       break;
-    case "readOnly":
-      permissionValue = tagDef.permissions.readOnly;
-      break;
     default:
-      return "confirm";
+      return "reject";
   }
 
   // Nếu là string, return trực tiếp

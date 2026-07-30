@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@renderer/shared/lib/utils';
 import { $ } from '@renderer/utils/color';
-import { X, Zap, ShieldCheck, Eye, PlusIcon, SendIcon } from 'lucide-react';
+import { X, Zap, ShieldCheck, PlusIcon, SendIcon } from 'lucide-react';
 import { GitPullRequestArrow } from 'lucide-react';
 import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
 import { LANGUAGES } from '@renderer/components/RightPanel/Agent/feature/Setting/components/LanguageSelector';
@@ -278,13 +278,7 @@ const GlobalPermissionButton: React.FC = () => {
       icon: <ShieldCheck size={11} />,
       color: $('--info') || '#3b82f6',
     },
-    readOnly: {
-      label: 'Read Only',
-      desc: 'AI can only read project files, cannot modify them or run commands',
-      icon: <Eye size={11} />,
-      color: $('--purple') || '#8b5cf6',
-    },
-  };
+    };
 
   const handleItemMouseEnter = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
     if (!e.currentTarget.parentElement) return;
@@ -320,9 +314,7 @@ const GlobalPermissionButton: React.FC = () => {
           isHovered ? 'opacity-100' : 'opacity-90',
           permissionMode === 'fullAccess'
             ? 'text-warn'
-            : permissionMode === 'approval'
-              ? 'text-info'
-              : 'text-purple',
+            : 'text-info',
         )}
         style={{
           border: `1px solid ${metadata.color}40`,

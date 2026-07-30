@@ -1,8 +1,8 @@
 import React from 'react';
+import { cn } from '@renderer/shared/lib/utils';
 import { Message } from '../../../types/message';
 import { CodeBlock } from '@renderer/components/common/CodeBlock';
 import RevertConfirmModal from '@renderer/components/common/RevertConfirmModal';
-import { $ } from '@renderer/utils/color';
 
 interface ResponseMetadataBarProps {
   responseNumber: number;
@@ -36,7 +36,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
     previousUserMessage?.token_usage ?? previousUserMessage?.usage?.prompt_tokens ?? 0;
   const resTokens = message.usage?.completion_tokens ?? message.token_usage ?? 0;
 
-  // Request/Response icons (upload/download)
+  // Request/Response icons
   const RequestIcon = (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -48,7 +48,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
+      className="shrink-0"
     >
       <path d="M12 3v12" />
       <path d="m17 8-5-5-5 5" />
@@ -67,7 +67,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
+      className="shrink-0"
     >
       <path d="M12 15V3" />
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -86,7 +86,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
+      className="shrink-0"
     >
       <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
       <path d="M21 3v5h-5" />
@@ -104,7 +104,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
+      className="shrink-0"
     >
       <path d="M9 14 4 9l5-5" />
       <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
@@ -122,7 +122,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
+      className="shrink-0"
     >
       <path d="m8 2 1.88 1.88" />
       <path d="M14.12 3.88 16 2" />
@@ -162,100 +162,50 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
 
   return (
     <div>
-      <div
-        style={{
-          position: 'relative',
-          paddingTop: '6px',
-          paddingBottom: '6px',
-          fontSize: '11px',
-          fontFamily: 'monospace',
-          lineHeight: 1.6,
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          gap: '12px',
-          userSelect: 'none',
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className="relative py-1.5 text-[11px] font-mono leading-[1.6] flex justify-end items-center gap-3 select-none flex-wrap">
         {/* Request Badge */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}
-        >
+        <div className="inline-flex items-center gap-1.5">
           <div
             onClick={() => setRequestChecked(!requestChecked)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              textDecoration: requestChecked ? 'underline' : 'none',
-              textUnderlineOffset: '3px',
-              transition: 'opacity 0.2s ease',
-              opacity: requestChecked ? 1 : 0.8,
-            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 cursor-pointer transition-opacity duration-200',
+              requestChecked ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-80'
+            )}
           >
-            <span
-              style={{
-                color: $('--success'),
-                display: 'inline-flex',
-                alignItems: 'center',
-              }}
-            >
+            <span className="text-success inline-flex items-center">
               {RequestIcon}
             </span>
-            <span
-              style={{
-                color: $('--text-primary'),
-                fontWeight: 600,
-              }}
-            >
+            <span className="text-text-primary font-semibold">
               {reqTokens.toLocaleString()}
             </span>
           </div>
 
-          {/* Retry Icon - Only show when request is active (checked) */}
+          {/* Retry Icon */}
           {onRetryRequest && previousUserMessage && requestChecked && (
             <div
               onClick={handleRetryClick}
               onMouseEnter={() => setIsRetryHovered(true)}
               onMouseLeave={() => setIsRetryHovered(false)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-                color: $('--warn'),
-                textDecoration: isRetryHovered ? 'underline' : 'none',
-                textUnderlineOffset: '3px',
-                transition: 'opacity 0.2s ease',
-                opacity: isRetryHovered ? 1 : 0.7,
-              }}
+              className={cn(
+                'inline-flex items-center cursor-pointer text-warn transition-opacity duration-200',
+                isRetryHovered ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-70'
+              )}
               title="Retry this request"
             >
               {RetryIcon}
             </div>
           )}
 
-          {/* Revert Icon - Only show when request is active (checked) */}
+          {/* Revert Icon */}
           {onRevertConversation && requestChecked && (
             <div
               onClick={handleRevertClick}
               onMouseEnter={() => setIsRevertHovered(true)}
               onMouseLeave={() => setIsRevertHovered(false)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-                color: $('--warn'),
-                textDecoration: isRevertHovered ? 'underline' : 'none',
-                textUnderlineOffset: '3px',
-                transition: 'opacity 0.2s ease',
-                opacity: isRevertHovered ? 1 : 0.7,
-              }}
+              className={cn(
+                'inline-flex items-center cursor-pointer text-warn transition-opacity duration-200',
+                isRevertHovered ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-70'
+              )}
               title="Revert conversation to this point"
             >
               {RevertIcon}
@@ -264,75 +214,37 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
         </div>
 
         {/* Response Badge */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}
-        >
+        <div className="inline-flex items-center gap-1.5">
           <div
             onClick={() => setResponseChecked(!responseChecked)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              textDecoration: responseChecked ? 'underline' : 'none',
-              textUnderlineOffset: '3px',
-              transition: 'opacity 0.2s ease',
-              opacity: responseChecked ? 1 : 0.8,
-            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 cursor-pointer transition-opacity duration-200',
+              responseChecked ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-80'
+            )}
           >
-            <span
-              style={{
-                color: $('--error'),
-                display: 'inline-flex',
-                alignItems: 'center',
-              }}
-            >
+            <span className="text-error inline-flex items-center">
               {ResponseIcon}
             </span>
-            <span
-              style={{
-                color: $('--text-primary'),
-                fontWeight: 600,
-              }}
-            >
+            <span className="text-text-primary font-semibold">
               {resTokens.toLocaleString()}
             </span>
           </div>
         </div>
 
-        {/* Parse Debug Badge - Only show if parseDebugInfo exists */}
+        {/* Parse Debug Badge */}
         {message.parseDebugInfo && (
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
+          <div className="inline-flex items-center gap-1.5">
             <div
               onClick={() => setParseDebugChecked(!parseDebugChecked)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
-                textDecoration: parseDebugChecked ? 'underline' : 'none',
-                textUnderlineOffset: '3px',
-                transition: 'opacity 0.2s ease',
-                opacity: parseDebugChecked ? 1 : 0.8,
-                padding: '2px 6px',
-                borderRadius: '3px',
-                backgroundColor:
-                  message.parseDebugInfo.failedActions > 0
-                    ? 'rgba(255, 45, 85, 0.2)'
-                    : message.parseDebugInfo.parseError
-                      ? 'rgba(255, 159, 10, 0.2)'
-                      : 'transparent',
-              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 cursor-pointer transition-opacity duration-200 py-0.5 px-1.5 rounded-[3px]',
+                parseDebugChecked ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-80',
+                message.parseDebugInfo.failedActions > 0
+                  ? 'bg-error/20'
+                  : message.parseDebugInfo.parseError
+                    ? 'bg-warn/20'
+                    : 'bg-transparent'
+              )}
               title={
                 message.parseDebugInfo.parseError
                   ? `Parse Error: ${message.parseDebugInfo.parseError.message}`
@@ -340,26 +252,18 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
               }
             >
               <span
-                style={{
-                  color:
-                    message.parseDebugInfo.failedActions > 0
-                      ? $('--error')
-                      : message.parseDebugInfo.parseError
-                        ? $('--warn')
-                        : $('--info'),
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                }}
+                className={cn(
+                  'inline-flex items-center',
+                  message.parseDebugInfo.failedActions > 0
+                    ? 'text-error'
+                    : message.parseDebugInfo.parseError
+                      ? 'text-warn'
+                      : 'text-info'
+                )}
               >
                 {DebugIcon}
               </span>
-              <span
-                style={{
-                  color: $('--text-primary'),
-                  fontWeight: 600,
-                  fontSize: '11px',
-                }}
-              >
+              <span className="text-text-primary font-semibold text-[11px]">
                 {message.parseDebugInfo.parseError
                   ? 'Parse Error'
                   : `${message.parseDebugInfo.successfulActions}/${message.parseDebugInfo.totalActions}`}
@@ -369,79 +273,39 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
         )}
 
         {/* Response Number */}
-        <span
-          style={{
-            color: $('--text-secondary'),
-            fontSize: '11px',
-            fontWeight: 600,
-          }}
-        >
+        <span className="text-text-secondary text-[11px] font-semibold">
           [{responseNumber}]
         </span>
       </div>
+
       {showRaw && (
-        <div
-          style={{
-            marginTop: '4px',
-            marginBottom: '8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-        >
+        <div className="mt-1 mb-2 flex flex-col gap-2">
           {requestChecked && previousUserMessage?.rawRequest && (
             <div>
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: $('--text-secondary'),
-                  marginBottom: '4px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
+              <div className="text-[11px] font-semibold text-text-secondary mb-1 uppercase tracking-[0.5px]">
                 Request (User Content)
               </div>
-              <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+              <div className="max-h-[400px] overflow-auto">
                 <CodeBlock code={previousUserMessage.rawRequest} language="text" />
               </div>
             </div>
           )}
           {responseChecked && message.rawResponse && (
             <div>
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: $('--text-secondary'),
-                  marginBottom: '4px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
+              <div className="text-[11px] font-semibold text-text-secondary mb-1 uppercase tracking-[0.5px]">
                 Response (Assistant Content)
               </div>
-              <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+              <div className="max-h-[400px] overflow-auto">
                 <CodeBlock code={message.rawResponse} language="text" />
               </div>
             </div>
           )}
           {parseDebugChecked && message.parseDebugInfo && (
             <div>
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: $('--text-secondary'),
-                  marginBottom: '4px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
+              <div className="text-[11px] font-semibold text-text-secondary mb-1 uppercase tracking-[0.5px]">
                 Parse Debug Log
               </div>
-              <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+              <div className="max-h-[400px] overflow-auto">
                 <CodeBlock
                   code={(() => {
                     const info = message.parseDebugInfo!;
@@ -452,14 +316,12 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
                     lines.push('='.repeat(60));
                     lines.push('');
 
-                    // Summary
                     lines.push('📊 SUMMARY');
                     lines.push('-'.repeat(60));
                     lines.push(`Total Tool Actions: ${info.totalActions}`);
                     lines.push(`Successful: ${info.successfulActions}`);
                     lines.push(`Failed: ${info.failedActions}`);
 
-                    // Content blocks summary
                     if (info.contentBlocks && info.contentBlocks.length > 0) {
                       lines.push('');
                       lines.push(`Total Content Blocks: ${info.contentBlocks.length}`);
@@ -472,7 +334,6 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
                     }
                     lines.push('');
 
-                    // Parse Error (if exists)
                     if (info.parseError) {
                       lines.push('❌ PARSE ERROR');
                       lines.push('-'.repeat(60));
@@ -483,7 +344,6 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
                       lines.push('');
                     }
 
-                    // Content Blocks (new section)
                     if (info.contentBlocks && info.contentBlocks.length > 0) {
                       lines.push('📄 CONTENT BLOCKS');
                       lines.push('-'.repeat(60));
@@ -518,7 +378,6 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
                       lines.push('');
                     }
 
-                    // Action Details
                     if (info.actions.length > 0) {
                       lines.push('🔧 TOOL ACTION DETAILS');
                       lines.push('-'.repeat(60));
@@ -537,7 +396,6 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
                           lines.push(`    Error Code: ${action.errorCode}`);
                         }
 
-                        // Parameters
                         if (action.extractedParams && action.extractedParams.length > 0) {
                           lines.push('    Parameters:');
                           action.extractedParams.forEach((param) => {
@@ -548,7 +406,6 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
                           });
                         }
 
-                        // Show actual param values for debugging
                         const paramEntries = Object.entries(action.params);
                         if (paramEntries.length > 0) {
                           lines.push('    Values:');
@@ -582,14 +439,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
             </div>
           )}
           {showRaw && !previousUserMessage?.rawRequest && !message.rawResponse && (
-            <div
-              style={{
-                fontSize: '11px',
-                color: $('--text-secondary'),
-                fontStyle: 'italic',
-                padding: '8px',
-              }}
-            >
+            <div className="text-[11px] text-text-secondary italic p-2">
               Raw data not available for this response (may have been loaded from history before
               this feature was added).
             </div>

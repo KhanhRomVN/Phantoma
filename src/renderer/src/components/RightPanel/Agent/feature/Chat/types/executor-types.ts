@@ -17,7 +17,7 @@ export interface ExecutorContext {
   conversationIdRef?: React.MutableRefObject<string>;
   getToolTimeout: (actionType: string) => number;
   extensionService: typeof extensionService;
-  messageDispatcher: typeof extensionService;
+  messageDispatcher: any;
   // Optional fields for run_command and other special executors
   pendingToolResolvers?: Map<string, (result: string | null) => void>;
   commandStartTimes?: Map<string, number>;

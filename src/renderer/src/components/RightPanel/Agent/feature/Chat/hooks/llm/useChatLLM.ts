@@ -18,11 +18,12 @@ import { PromptBuilder } from '../../services/PromptBuilder';
 import { StreamingService } from '../../services/StreamingService';
 import { TOOL_ACTION_TYPES } from '../../constants/constants';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { XML_TOOL_SYNTAX_REMINDER } from '../../prompts/code/reminder';
+import { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
 
 interface UseChatLLMProps {
   apiUrl: string;
   selectedTab: ChatSession | null;
+  feature?: string | null;
   onConversationIdChange?: (id: string) => void;
   onToolRequest?: (
     actions: ToolAction[],
@@ -46,29 +47,24 @@ export const parseQuestionAnswerTag = (content: string): Record<string, Question
   const innerContent = match[1].trim();
   const answers: Record<string, QuestionAnswer> = {};
 
-  // Parse each line: "1. {questionId}: {answer}"
   const lines = innerContent.split('\n');
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || trimmed === 'No answer') continue;
 
-    // Match pattern: "N. questionId: answer"
     const lineMatch = /^\d+\.\s+([^:]+):\s+(.+)$/i.exec(trimmed);
     if (!lineMatch) continue;
 
     const questionId = lineMatch[1].trim();
     const answerValue = lineMatch[2].trim();
 
-    // Parse answer value (could be array for multi-choice)
     let parsedValue: string | string[] | boolean = answerValue;
 
-    // Check if it's a boolean (for confirm type)
     if (answerValue.toLowerCase() === 'true') {
       parsedValue = true;
     } else if (answerValue.toLowerCase() === 'false') {
       parsedValue = false;
     } else if (answerValue.includes(',')) {
-      // Array for multi-choice
       parsedValue = answerValue.split(',').map((v) => v.trim());
     }
 
@@ -84,11 +80,11 @@ export const parseQuestionAnswerTag = (content: string): Record<string, Question
 export const useChatLLM = ({
   apiUrl,
   selectedTab,
+  feature,
   onConversationIdChange,
   onToolRequest,
   onMalformedTool,
 }: UseChatLLMProps) => {
-  // Use extracted hooks
   const {
     streamingState,
     dispatchStreaming,
@@ -111,28 +107,23 @@ export const useChatLLM = ({
     prevDepsRef,
   } = useConversationRefs();
 
-  // Track render performance
   const renderStartTime = performance.now();
   renderCountRef.current++;
 
-  // Get context values
   const { aiLanguage, permissionMode } = useSettings();
   const { workspace, treeView } = useProject();
   const { uploadFiles } = useFileUpload(apiUrl);
 
-  // Local state
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string>('');
   const [conversationToolOverrides, setConversationToolOverrides] = useState<
     Record<string, 'auto'>
   >({});
 
-  // Sync messages to ref
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Sync conversation ID
   useEffect(() => {
     if (
       !currentConversationIdRef.current ||
@@ -143,7 +134,6 @@ export const useChatLLM = ({
     onConversationIdChange?.(currentConversationId);
   }, [currentConversationId, onConversationIdChange]);
 
-  // Use message handlers hook
   useMessageHandlers({
     selectedTab,
     setMessages,
@@ -151,9 +141,6 @@ export const useChatLLM = ({
     backendConversationIdRef,
   });
 
-  /**
-   * Reset all session state
-   */
   const resetSession = useCallback(() => {
     currentConversationIdRef.current = '';
     backendConversationIdRef.current = '';
@@ -169,16 +156,12 @@ export const useChatLLM = ({
     setConversationToolOverrides({});
   }, [setIsProcessingSync, dispatchStreaming]);
 
-  /**
-   * Stop generation
-   */
   const stopGeneration = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
 
-    // Cleanup if first turn of new session
     if (isProcessingRef.current && messagesRef.current.length <= 2) {
       const chatId = currentConversationIdRef.current;
       if (chatId) {
@@ -198,9 +181,6 @@ export const useChatLLM = ({
     });
   }, [dispatchStreaming]);
 
-  /**
-   * Send message - main chat logic
-   */
   const sendMessage = useCallback(
     async (
       content: string,
@@ -212,7 +192,9 @@ export const useChatLLM = ({
       uiHidden?: boolean,
       parentMessageId?: string,
     ) => {
-      if (isProcessingRef.current) {
+      // Cho phép tool results (skipFirstRequestLogic=true) đi qua ngay cả khi đang processing
+      // để tránh mất kết quả khi user click nhiều tool liên tiếp
+      if (isProcessingRef.current && !skipFirstRequestLogic) {
         console.warn(
           `[Zen][sendMessage] BLOCKED - already processing | skipFirstRequestLogic=${skipFirstRequestLogic} | conversationId=${currentConversationIdRef.current} | content preview: ${content.substring(0, 50)}`,
         );
@@ -224,7 +206,25 @@ export const useChatLLM = ({
 
       // Filter cancelled messages
       const currentMessages = messagesRef.current;
-      const filteredMessages = currentMessages.filter((m) => !m.isCancelled);
+      let filteredMessages = currentMessages.filter((m) => !m.isCancelled);
+
+      // Check if last message pair is complete; clean up incomplete pairs before sending
+      if (!skipFirstRequestLogic && filteredMessages.length > 0) {
+        const lastMsg = filteredMessages[filteredMessages.length - 1];
+
+        if (lastMsg.role === 'user') {
+          // Last message is a user request without assistant response → remove it
+          filteredMessages = filteredMessages.slice(0, -1);
+          messagesRef.current = filteredMessages;
+          setMessages(filteredMessages);
+        } else if (lastMsg.role === 'assistant' && lastMsg.isError) {
+          // Last message is an error assistant → remove both the error + preceding user request
+          filteredMessages = filteredMessages.slice(0, -2);
+          messagesRef.current = filteredMessages;
+          setMessages(filteredMessages);
+        }
+        // If last message is assistant (success) → pair is complete, proceed normally
+      }
 
       let effectiveChatUuid = currentConversationIdRef.current;
       const isNewSession = !effectiveChatUuid;
@@ -269,6 +269,7 @@ export const useChatLLM = ({
         workspace,
         files,
         userRequestCount: userRequestCountRef.current,
+        feature: feature as AgentFeature,
       });
 
       const userMessage: Message = {
@@ -280,7 +281,6 @@ export const useChatLLM = ({
         actionIds: actionIds,
         uiHidden: uiHidden,
         conversationId: backendConversationIdRef.current || undefined,
-        // Store uploaded files and attached items with the message
         uploadedFiles: files
           ?.filter((f: any) => f.type?.startsWith('image/') || f.file_id)
           .map((f: any) => ({
@@ -337,7 +337,6 @@ export const useChatLLM = ({
       setMessages(updatedMessages);
       setIsProcessingSync(true);
 
-      // Save conversation
       saveConversation(
         sessionId,
         folderPath,
@@ -349,13 +348,11 @@ export const useChatLLM = ({
         backendConversationIdRef.current,
       );
 
-      // Resolve model and account
       const oldModel = lastUsedModelRef.current;
       const oldAccount = lastUsedAccountRef.current;
       let finalModel = model || oldModel;
       let finalAccount = account || oldAccount;
 
-      // History fallback for truly fresh session
       if (!finalModel && !oldModel) {
         const lastMetadataMsg = [...filteredMessages]
           .reverse()
@@ -380,7 +377,6 @@ export const useChatLLM = ({
       if (finalModel) lastUsedModelRef.current = finalModel;
       if (finalAccount) lastUsedAccountRef.current = finalAccount;
 
-      // Model/account switch detection
       const modelSwitched =
         !skipFirstRequestLogic &&
         oldModel &&
@@ -399,7 +395,6 @@ export const useChatLLM = ({
       }
 
       try {
-        // Upload local files
         const ref_file_ids: string[] = [];
         const localFiles = files
           ? files.filter(
@@ -407,8 +402,8 @@ export const useChatLLM = ({
                 !f.id?.startsWith('attached-') &&
                 !f.id?.startsWith('rule-') &&
                 !f.id?.startsWith('terminal-') &&
-                !f.id?.startsWith('snippet-') && // 🚀 FIX: Don't upload text snippets
-                !f.id?.startsWith('external-'), // 🚀 FIX: Don't upload external files
+                !f.id?.startsWith('snippet-') &&
+                !f.id?.startsWith('external-'),
             )
           : [];
 
@@ -420,7 +415,6 @@ export const useChatLLM = ({
           ref_file_ids.push(...uploadedIds);
         }
 
-        // Prepare messages for API
         let payloadMessages = updatedMessages
           .filter((m) => !m.isError)
           .map((m) => ({
@@ -428,22 +422,18 @@ export const useChatLLM = ({
             content: m.content,
           }));
 
-        // Effective parent message ID
         const effectiveParentMessageId = qwenParentIdRef.current ?? parentMessageId;
 
-        // Conversation ID to send
         const convIdToSend =
           backendConversationIdRef.current ||
           (effectiveChatUuid
             ? sessionStorage.getItem(`zen-backend-conv:${effectiveChatUuid}`) || undefined
             : undefined);
 
-        // Setup abort controller
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
         dispatchStreaming({ type: 'SET_STREAMING', payload: true });
 
-        // Save raw request
         updatedMessages[updatedMessages.length - 1].rawRequest = userMessage.content;
         setMessages((prev) =>
           prev.map((m) =>
@@ -460,7 +450,6 @@ export const useChatLLM = ({
           timestamp: Date.now(),
         };
 
-        // Add placeholder to messages
         setMessages((prev) => [...prev, placeholderAssistant]);
 
         // Stream the response using StreamingService
@@ -478,12 +467,10 @@ export const useChatLLM = ({
             },
             {
               onMetadata: (meta) => {
-                // Update qwen parent ID
                 if (meta.parent_id) {
                   qwenParentIdRef.current = meta.parent_id;
                 }
 
-                // Update last used model/account
                 if (meta.providerId || meta.modelId) {
                   const serverModelId = meta.modelId || lastUsedModelRef.current?.id;
                   const serverProviderId = meta.providerId || lastUsedModelRef.current?.providerId;
@@ -508,22 +495,13 @@ export const useChatLLM = ({
               onContinuing: (isContinuing) => {
                 setIsContinuingSync(isContinuing);
               },
-              onRawContent: (content) => {
-                // Display raw streaming content in thinking block
-                setMessages((prev) => {
-                  const targetIndex = prev.findIndex((m) => m.id === assistantMessageId);
-                  if (targetIndex === -1) return prev;
-
-                  const currentMessage = prev[targetIndex];
-                  const updatedMessage = {
-                    ...currentMessage,
-                    thinking: (currentMessage.thinking || '') + content,
-                  };
-
-                  const newArray = prev.slice();
-                  newArray[targetIndex] = updatedMessage;
-                  return newArray;
-                });
+              // PERF: Khong goi setMessages trong streaming nua
+              // Thay vao do chi tich luy vao ref, ProcessingIndicator tu hien thi timer
+              // Tranh 130+ lan re-render toan bo UI moi khi stream
+              onRawContent: (_content) => {
+                // PERF: Khong goi setMessages trong streaming nua
+                // Thay vao do chi tich luy vao ref, ProcessingIndicator tu hien thi timer
+                // Tranh 130+ lan re-render toan bo UI moi khi stream
               },
               onContent: (content) => {
                 // Update UI with parsed content (called ONCE at the end with full content)
@@ -536,8 +514,8 @@ export const useChatLLM = ({
                   // Replace content and clear thinking
                   const updatedMessage = {
                     ...currentMessage,
-                    content: content, // Replace with full parsed content
-                    thinking: undefined, // Clear thinking field after parsing
+                    content: content,
+                    thinking: undefined,
                   };
                   const newArray = prev.slice();
                   newArray[targetIndex] = updatedMessage;
@@ -547,10 +525,8 @@ export const useChatLLM = ({
             },
           );
 
-        // Merge the final message from StreamingService with our tracked message
         assistantMessage.id = assistantMessageId;
 
-        // Store backend conversation ID
         if (backendConversationId) {
           backendConversationIdRef.current = backendConversationId;
           try {
@@ -558,7 +534,6 @@ export const useChatLLM = ({
           } catch {}
         }
 
-        // Log messages
         try {
           const userMsgToLog = updatedMessages[updatedMessages.length - 1];
           const finalConversationId = backendConversationId || backendConversationIdRef.current;
@@ -586,13 +561,11 @@ export const useChatLLM = ({
           });
         } catch (logErr) {}
 
-        // Final state update
         setMessages([...updatedMessages, assistantMessage]);
         setIsProcessingSync(false);
         dispatchStreaming({ type: 'RESET_STREAMING' });
         abortControllerRef.current = null;
 
-        // Parse response to extract tool sequence with error handling
         const { parseAIResponse } = await import('../../services/ResponseParser');
         let toolSequence = '';
         let parsed: any = null;
@@ -619,101 +592,19 @@ export const useChatLLM = ({
             .join(' ');
 
           console.log(`[Stream Complete] Parsed blocks: ${toolSequence || 'none'}`);
-
           console.log('[Raw Content]:', assistantMessage.content);
-
-          // 🔧 VALIDATION: Now that stream is complete, validate all tool actions
-          // Import validator
-          const { validateToolParams } = await import('../../utils/ToolParamValidator');
-
-          // Validate each action and mark as error if validation fails
-          for (const action of parsed.actions) {
-            if (action.isError) continue; // Already marked as error by parser
-
-            // Extract innerContent from rawXml for validation
-            const toolOpenTag = `<${action.type}`;
-            const toolCloseTag = `</${action.type}>`;
-            const openIndex = action.rawXml.indexOf(toolOpenTag);
-            const closeIndex = action.rawXml.lastIndexOf(toolCloseTag);
-
-            if (openIndex !== -1 && closeIndex !== -1) {
-              const openTagEnd = action.rawXml.indexOf('>', openIndex);
-              if (openTagEnd !== -1 && openTagEnd < closeIndex) {
-                // Run validation
-                const validation = validateToolParams(action.type, action.params);
-                if (!validation.isValid) {
-                  // Mark action as error
-                  action.isError = true;
-                  action.errorMessage = validation.errorMessage;
-                  action.errorCode = validation.errorCode;
-
-                  console.warn('[Zen][useChatLLM] Tool validation failed:', {
-                    toolName: action.type,
-                    errorCode: validation.errorCode,
-                    errorMessage: validation.errorMessage,
-                    params: action.params,
-                  });
-                }
-              }
-            }
-          }
-
-          // 🔧 If there are malformed tool actions, append their errors to content
-          // so they are sent in the next request for AI self-correction
-          const malformedActions = parsed.actions.filter((a: any) => a.isError);
-          if (malformedActions.length > 0) {
-            const errorTexts = malformedActions.map((action: any, index: number) => {
-              const toolName = action.type;
-              const errorMsg = action.errorMessage || 'Malformed tool output';
-              const errorCode = action.errorCode || 'UNKNOWN_ERROR';
-
-              // Extract file path or relevant context for the "for" part
-              const filePath =
-                action.params.file_path ||
-                action.params.folder_path ||
-                action.params.path ||
-                action.params.file_name ||
-                action.params.search_term ||
-                '';
-              const forPart = filePath ? ` for '${filePath}'` : '';
-
-              // Generate actionId for this malformed tool
-              const actionId = `${assistantMessageId}-action-${parsed.actions.indexOf(action)}`;
-
-              // Notify parent to save error in toolOutputs
-              if (onMalformedTool) {
-                onMalformedTool(actionId, toolName, errorMsg, errorCode);
-              }
-
-              return `\n[${toolName}${forPart}] Result: Error - ${errorCode}: ${errorMsg}`;
-            });
-
-            // Append errors and reminder to content
-            assistantMessage.content += errorTexts.join('') + '\n\n' + XML_TOOL_SYNTAX_REMINDER;
-
-            // Update messages array with appended errors
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMessageId ? { ...m, content: assistantMessage.content } : m,
-              ),
-            );
-          }
         } catch (parseError) {
           hasParsingError = true;
-          // Parsing failed - convert assistant message to error
           console.error('[Zen] Response parsing failed:', parseError);
 
           const errorDetails =
             parseError instanceof Error ? parseError.message : 'Unknown parsing error';
 
-          // Create error message with details
           const errorContent = `Error: Failed to parse response\n\nDetails: ${errorDetails}\n\n**Note:** The response was received but could not be displayed due to malformed content. This usually happens when tool calls are missing closing tags.\n\nYou can try:\n- Regenerating the response\n- Asking the assistant to fix the issue`;
 
-          // Update the assistant message to error state
           assistantMessage.content = errorContent;
           assistantMessage.isError = true;
 
-          // Update messages array with error state
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMessageId ? { ...m, content: errorContent, isError: true } : m,
@@ -721,7 +612,6 @@ export const useChatLLM = ({
           );
         }
 
-        // Save final conversation
         saveConversation(
           sessionId,
           folderPath,
@@ -733,7 +623,6 @@ export const useChatLLM = ({
           backendConversationId || backendConversationIdRef.current,
         );
 
-        // Trigger tool request only if parsing succeeded
         if (!hasParsingError && parsed && onToolRequest && parsed.actions?.length > 0) {
           onToolRequest(parsed.actions, assistantMessage, false, TOOL_ACTION_TYPES.ACCEPT);
         } else if (parsed && parsed.actions?.length > 0 && hasParsingError) {
@@ -796,9 +685,6 @@ export const useChatLLM = ({
     ],
   );
 
-  /**
-   * Handle tool action
-   */
   const handleToolAction = useCallback(
     (
       actionId: string,
@@ -810,12 +696,8 @@ export const useChatLLM = ({
     [],
   );
 
-  /**
-   * Handle select option
-   */
   const handleSelectOption = useCallback(
     (messageId: string, option: string) => {
-      // Guard: Don't process if already sending a message
       if (isProcessingRef.current) {
         console.warn(
           `[Zen][handleSelectOption] BLOCKED - already processing, skipping option selection`,
@@ -866,14 +748,12 @@ export const useChatLLM = ({
         );
 
         if (parsedPayload && parsedPayload.answers) {
-          // Check again before triggering sendMessage
           if (isProcessingRef.current) {
             console.warn(`[Zen][handleSelectOption] Race condition detected - canceling auto-send`);
             return updatedMessages;
           }
 
           setTimeout(() => {
-            // Final guard check inside timeout
             if (isProcessingRef.current) {
               console.warn(`[Zen][handleSelectOption] Timeout guard: still processing, canceling`);
               return;
@@ -901,7 +781,7 @@ export const useChatLLM = ({
 
             const promptText = `<question-answer>\n${formattedAnswers}\n</question-answer>`;
             sendMessage(promptText, undefined, undefined, undefined, true, undefined, true);
-          }, 100); // Increased from 10ms to 100ms for better stability
+          }, 100);
         }
 
         return updatedMessages;
@@ -910,7 +790,6 @@ export const useChatLLM = ({
     [selectedTab, sendMessage],
   );
 
-  // Memoize return value
   const returnValue = useMemo(
     () => ({
       messages,

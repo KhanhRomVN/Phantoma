@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 interface ChatHeaderProps {
   displayedModel: any;
@@ -47,10 +47,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     : 'https://www.google.com/s2/favicons?domain=deepseek.com&sz=64';
 
   return (
-    <div
-      className="flex flex-col border-b border-border bg-background"
-    >
-      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
+    <div className="flex flex-col border-b border-border bg-background">
+      <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold overflow-hidden text-text-primary">
           <img src={faviconUrl} alt="provider" className="w-3.5 h-3.5 rounded-[2px]" />
           <span className="whitespace-nowrap">
@@ -67,14 +65,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           {currentTaskName && (
             <>
               <span className="opacity-30">|</span>
-              <div
-                className="flex items-center gap-1 text-[11px] font-medium overflow-hidden"
-                style={{ color: $('--primary') }}
-              >
-                <div
-                  className="w-[5px] h-[5px] rounded-full shrink-0"
-                  style={{ backgroundColor: 'currentColor' }}
-                />
+              <div className="flex items-center gap-1 text-[11px] font-medium overflow-hidden text-primary">
+                <div className="w-[5px] h-[5px] rounded-full shrink-0 bg-current" />
                 <span className="whitespace-nowrap overflow-hidden text-ellipsis">
                   {currentTaskName}
                 </span>
@@ -93,19 +85,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               if (isSearchOpen) setSearchQuery('');
             }}
             title="Search in chat"
-            className="cursor-pointer p-[3px_4px] flex items-center justify-center rounded transition-all duration-150"
-            style={{
-              background: isSearchOpen
-                ? `color-mix(in srgb, ${$('--primary')} 15%, transparent)`
-                : 'transparent',
-              border: isSearchOpen
-                ? `1px solid color-mix(in srgb, ${$('--primary')} 40%, transparent)`
-                : '1px solid transparent',
-              color: isSearchOpen
-                ? $('--primary')
-                : $('--text-secondary'),
-              opacity: isSearchOpen ? 1 : 0.65,
-            }}
+            className={cn(
+              'cursor-pointer p-[3px_4px] flex items-center justify-center rounded transition-all duration-150',
+              isSearchOpen
+                ? 'bg-primary/15 border border-primary/40 text-primary opacity-100'
+                : 'bg-transparent border border-transparent text-text-secondary opacity-65'
+            )}
             onMouseEnter={(e) => {
               if (!isSearchOpen) e.currentTarget.style.opacity = '1';
             }}

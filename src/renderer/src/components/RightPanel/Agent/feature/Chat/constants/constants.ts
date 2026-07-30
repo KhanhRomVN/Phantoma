@@ -1,5 +1,5 @@
 import React from "react";
-import { Zap, ShieldCheck, Eye } from "lucide-react";
+import { Zap, ShieldCheck } from "lucide-react";
 import type {
   PermissionMode,
   PermissionValue,
@@ -96,12 +96,6 @@ export const PERMISSION_MODE: Record<
     icon: React.createElement(ShieldCheck, { size: 11 }),
     color: "$('--info')",
   },
-  readOnly: {
-    label: "Read Only",
-    desc: "AI can only read project files, cannot modify them or run commands",
-    icon: React.createElement(Eye, { size: 11 }),
-    color: "$('--violet')",
-  },
 };
 
 // ============= UNIFIED TAG REGISTRY =============
@@ -113,16 +107,11 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "allow",
       approval: "allow",
       fullAccess: "allow",
     },
     features: {
       showFileStats: true,
-    },
-    params: {
-      required: ["file_path"],
-      optional: ["start_line", "end_line"],
     },
   },
 
@@ -132,16 +121,12 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "reject",
       approval: "confirm",
       fullAccess: "allow",
     },
     features: {
       showFileStats: true,
       isFileMutation: true,
-    },
-    params: {
-      required: ["file_path", "content"],
     },
   },
 
@@ -151,16 +136,12 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "reject",
       approval: "confirm",
       fullAccess: "allow",
     },
     features: {
       validateFuzzyMatch: true,
       isFileMutation: true,
-    },
-    params: {
-      required: ["file_path", "old_content", "new_content"],
     },
   },
 
@@ -170,7 +151,6 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "reject",
       approval: "confirm",
       fullAccess: "allow",
     },
@@ -185,7 +165,6 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "allow",
       approval: "allow",
       fullAccess: "allow",
     },
@@ -197,13 +176,8 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "allow",
       approval: "allow",
       fullAccess: "allow",
-    },
-    params: {
-      required: ["folder_path"],
-      optional: ["type"],
     },
   },
 
@@ -213,12 +187,8 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "allow",
       approval: "allow",
       fullAccess: "allow",
-    },
-    params: {
-      required: ["file_name"],
     },
   },
 
@@ -228,13 +198,8 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "allow",
       approval: "allow",
       fullAccess: "allow",
-    },
-    params: {
-      required: ["search_term"],
-      optional: ["folder_path"],
     },
   },
 
@@ -244,27 +209,8 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "reject",
       approval: "confirm",
       fullAccess: "allow",
-    },
-    params: {
-      required: ["file_path"],
-    },
-  },
-
-  move_file: {
-    id: "move_file",
-    title: "MOVE",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      readOnly: "reject",
-      approval: "confirm",
-      fullAccess: "allow",
-    },
-    params: {
-      required: ["file_path", "target_folder_path"],
     },
   },
 
@@ -274,13 +220,8 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "reject",
       approval: "confirm",
       fullAccess: "confirm",
-    },
-    params: {
-      required: ["command"],
-      optional: ["cwd"],
     },
   },
 
@@ -290,7 +231,6 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "allow",
       approval: "allow",
       fullAccess: "allow",
     },
@@ -302,12 +242,8 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "allow",
       approval: "allow",
       fullAccess: "allow",
-    },
-    params: {
-      required: ["message"],
     },
   },
 
@@ -317,15 +253,10 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
     category: "tool",
     timeout: 60000,
     permissions: {
-      readOnly: "allow",
       approval: "allow",
       fullAccess: "allow",
     },
 
-    params: {
-      required: [],
-      optional: ["file_path"],
-    },
   },
 
   // ===== UI TAGS (category: "ui") =====
@@ -382,7 +313,7 @@ export const getAllTagTypes = (): string[] => {
  */
 export const requiresConfirmation = (
   type: string,
-  mode: "readOnly" | "approval" | "fullAccess" = "approval",
+  mode: "approval" | "fullAccess" = "approval",
 ): boolean => {
   const tag = getTagDef(type);
   if (!tag || tag.category !== "tool" || !tag.permissions) return false;
@@ -397,7 +328,7 @@ export const requiresConfirmation = (
  */
 export const shouldShowApprovalUI = (
   type: string,
-  mode: "readOnly" | "approval" | "fullAccess" = "approval",
+  mode: "approval" | "fullAccess" = "approval",
 ): boolean => {
   return requiresConfirmation(type, mode);
 };

@@ -186,8 +186,8 @@ const TargetItem = memo(
             )}
             {/* Title + second line */}
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium truncate">{tab.title}</div>
-              <div className="text-[10px] text-text-secondary truncate">
+              <div className="text-sm font-medium truncate">{tab.title}</div>
+              <div className="text-[11px] text-text-secondary truncate">
                 {platform === 'web' && tab.url
                   ? tab.url
                   : (platform === 'pc' || platform === 'cli') && tab.executablePath
@@ -196,7 +196,7 @@ const TargetItem = memo(
               </div>
             </div>
             {isRunning && (
-              <span className="absolute top-1.5 right-2 text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+              <span className="absolute top-1.5 right-2 text-[11px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                 {elapsed}
               </span>
             )}
@@ -204,7 +204,7 @@ const TargetItem = memo(
             {isActive && onStopSession && (
               <button
                 onClick={(e) => onStopSession(e, tab.id)}
-                className="flex items-center gap-0.5 px-1 py-0.5 text-[9px] font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 rounded transition-all shrink-0"
+                className="flex items-center gap-0.5 px-1 py-0.5 text-[10px] font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 rounded transition-all shrink-0"
               >
                 <Square className="w-2 h-2 text-red-400 pointer-events-none" /> Stop
               </button>
@@ -377,7 +377,7 @@ const TargetList: React.FC<TargetListProps> = ({
             placeholder="Search targets..."
             value={targetSearchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="flex-1 h-8 bg-input-background border border-border rounded pl-2 pr-2 text-xs text-text-primary placeholder:text-text-secondary outline-none focus:border-primary/50"
+            className="flex-1 h-8 bg-input-background border border-border rounded pl-2 pr-2 text-sm text-text-primary placeholder:text-text-secondary outline-none focus:border-primary/50"
           />
           <Dropdown>
             <DropdownTrigger>
@@ -444,7 +444,7 @@ const TargetList: React.FC<TargetListProps> = ({
             ))}
           </div>
         ) : (
-          <div className="text-center text-text-secondary text-xs py-6">
+          <div className="text-center text-text-secondary text-sm py-6">
             {targetSearchQuery ? 'No matching targets' : 'No targets found'}
           </div>
         )}

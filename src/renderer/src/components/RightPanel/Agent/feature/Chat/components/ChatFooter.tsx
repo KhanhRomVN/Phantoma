@@ -1,9 +1,7 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
 import FilesPreviews from '../../../components/common/MessageInput/FilesPreviews';
 import MessageInput from '../../../components/common/MessageInput';
-import { FILE_MUTATION_TOOLS, type FileMutationTool } from '../../constants/constants';
-
+import { FILE_MUTATION_TOOLS, type FileMutationTool } from '../constants/constants';
 interface ChatFooterProps {
   message: string;
   setMessage: React.Dispatch<React.SetStateAction<string>>;
@@ -54,6 +52,20 @@ interface ChatFooterProps {
     totalAdditions: number;
     totalDeletions: number;
   } | null;
+  footerPaddingBottom: string;
+  onModelSwitch?: (
+    newModel: any,
+    newAccount: any,
+    contextData: {
+      fileChanges: Array<{
+        path: string;
+        additions: number;
+        deletions: number;
+      }>;
+      userMessages: Array<{ content: string; responseNumber: number }>;
+    },
+  ) => void;
+  onRevertConversation?: (messageId: string, timestamp: number) => void;
   autoScrollPaused?: boolean;
   scrollToBottom?: () => void;
 }
@@ -104,6 +116,9 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   gitStatus,
   onOpenGitStatus,
   loadedConversationFileStats,
+  footerPaddingBottom,
+  onModelSwitch,
+  onRevertConversation,
   autoScrollPaused = false,
   scrollToBottom,
 }) => {
@@ -246,11 +261,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   return (
     <div
       id="chat-footer-container"
-      className="flex flex-col w-full overflow-hidden transition-[bottom] duration-200 flex-shrink-0"
-      style={{
-        backgroundColor: $('--secondary-bg'),
-        padding: '0 8px 8px 8px',
-      }}
+      className="flex flex-col w-full overflow-hidden transition-[bottom] duration-200 flex-shrink-0 bg-background px-2 pb-2"
     >
       <input
         ref={fileInputRef}
@@ -338,6 +349,10 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
           conversationFileStats={conversationFileStats}
           responseRange={responseRange}
           responseRanges={responseRanges}
+          onRevertConversation={onRevertConversation}
+          onModelSwitch={onModelSwitch}
+          autoScrollPaused={autoScrollPaused}
+          scrollToBottom={scrollToBottom}
         />
       </div>
     </div>

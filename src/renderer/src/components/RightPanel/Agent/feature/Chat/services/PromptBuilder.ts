@@ -1,11 +1,13 @@
 import {
-  getDefaultPrompt,
-  combinePrompts,
-  buildPermissionModeTag,
-  CHECKPOINT_REMINDER,
-  CHECKPOINT_INTERVAL,
+  getDefaultPrompt as getCodeDefaultPrompt,
+  combinePrompts as combineCodePrompts,
 } from '../prompts/code';
+import {
+  getDefaultPrompt as getEmulateDefaultPrompt,
+  combinePrompts as combineEmulatePrompts,
+} from '../prompts/emulate';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+import type { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
 
 export interface PromptBuilderOptions {
   content: string;
@@ -17,6 +19,7 @@ export interface PromptBuilderOptions {
   workspace: string;
   files?: any[];
   userRequestCount: number;
+  feature?: AgentFeature;
 }
 
 export const getShallowTree = (tree: string): string => {
@@ -63,6 +66,7 @@ export class PromptBuilder {
       workspace,
       files,
       userRequestCount,
+      feature,
     } = options;
 
     let systemPrompt = '';
@@ -71,7 +75,7 @@ export class PromptBuilder {
 
     // Build system prompt for first request
     if (isReq1) {
-      systemPrompt = await this.buildSystemPrompt(aiLanguage, permissionMode, treeView, workspace);
+      systemPrompt = await this.buildSystemPrompt(aiLanguage, permissionMode, feature);
       projectContextStr = this.buildProjectContext(treeView, workspace);
     }
 
@@ -85,19 +89,10 @@ export class PromptBuilder {
       ? content
       : `## User Message\n<zen-user-content>\n${content}\n</zen-user-content>`;
 
-    // Permission mode tag
-    const permissionModeTag = buildPermissionModeTag(permissionMode);
-
-    // Checkpoint reminder
-    let checkpointReminder = '';
-    if (!skipFirstRequestLogic && userRequestCount % CHECKPOINT_INTERVAL === 0) {
-      checkpointReminder = `\n\n${CHECKPOINT_REMINDER}`;
-    }
-
     // Combine all parts
     const promptPayload = isReq1
-      ? `${systemPrompt}${projectContextStr}${attachedContextStr}\n\n${permissionModeTag}${checkpointReminder}\n\n${fullContent}`
-      : `${attachedContextStr}\n\n${permissionModeTag}${checkpointReminder}\n\n${fullContent}`;
+      ? `${systemPrompt}${projectContextStr}${attachedContextStr}\n\n${fullContent}`
+      : `${attachedContextStr}\n\n${fullContent}`;
 
     return promptPayload;
   }
@@ -105,8 +100,7 @@ export class PromptBuilder {
   private static async buildSystemPrompt(
     aiLanguage: string,
     permissionMode: string,
-    treeView: string,
-    workspace: string,
+    feature?: AgentFeature,
   ): Promise<string> {
     let systemInfo = {
       os: 'Unknown OS',
@@ -131,6 +125,11 @@ export class PromptBuilder {
     }
 
     const effectiveLang = aiLanguage;
+
+    // Select prompt module based on feature
+    const getDefaultPrompt = feature === 'emulate' ? getEmulateDefaultPrompt : getCodeDefaultPrompt;
+    const combinePrompts = feature === 'emulate' ? combineEmulatePrompts : combineCodePrompts;
+
     let systemPrompt = getDefaultPrompt(effectiveLang);
 
     // Use real system info if we managed to fetch it
@@ -164,8 +163,8 @@ export class PromptBuilder {
         f.id?.startsWith('attached-') ||
         f.id?.startsWith('rule-') ||
         f.id?.startsWith('terminal-') ||
-        f.id?.startsWith('snippet-') || // 🚀 NEW: Support text snippets
-        f.id?.startsWith('external-'), // 🚀 NEW: Support external files
+        f.id?.startsWith('snippet-') ||
+        f.id?.startsWith('external-'),
     );
 
     if (attachedItems.length === 0) return '';
@@ -175,8 +174,8 @@ export class PromptBuilder {
     const fileItems = attachedItems.filter((f: any) => f.type === 'file');
     const folderItems = attachedItems.filter((f: any) => f.type === 'folder');
     const terminalItems = attachedItems.filter((f: any) => f.type === 'terminal');
-    const snippetItems = attachedItems.filter((f: any) => f.type === 'text-snippet'); // 🚀 NEW
-    const externalItems = attachedItems.filter((f: any) => f.type === 'external'); // 🚀 NEW
+    const snippetItems = attachedItems.filter((f: any) => f.type === 'text-snippet');
+    const externalItems = attachedItems.filter((f: any) => f.type === 'external');
 
     if (fileItems.length > 0) {
       attachedContextStr += '\n### Files\n';
@@ -217,7 +216,6 @@ export class PromptBuilder {
       });
     }
 
-    // 🚀 NEW: Handle text snippets
     if (snippetItems.length > 0) {
       attachedContextStr += '\n### Text Snippets\n';
       snippetItems.forEach((f: any, index: number) => {
@@ -225,7 +223,6 @@ export class PromptBuilder {
       });
     }
 
-    // 🚀 NEW: Handle external files
     if (externalItems.length > 0) {
       attachedContextStr += '\n### External Files\n';
       externalItems.forEach((f: any) => {

@@ -1,5 +1,4 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
 
 interface WarningBlockProps {
   message: string;
@@ -12,31 +11,13 @@ interface WarningBlockProps {
  */
 const WarningBlock: React.FC<WarningBlockProps> = ({
   message,
-  warningColor = $('--warn'),
 }) => {
   return (
-    <div
-      style={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        paddingBottom: '0px',
-      }}
-    >
+    <div className="relative flex flex-col gap-1.5 pb-0">
       {/* Warning Message Block */}
       {message && (
-        <div
-          className="warning-message-block"
-          style={{
-            border: `1px solid color-mix(in srgb, ${warningColor} 30%, transparent)`,
-            background: `color-mix(in srgb, ${warningColor} 5%, transparent)`,
-          }}
-        >
-          <span
-            className="warning-message-text"
-            style={{ color: warningColor }}
-          >
+        <div className="border border-warn/30 bg-warn/5 rounded-md px-4 py-3">
+          <span className="text-warn text-[11px] leading-relaxed block">
             {message}
           </span>
         </div>

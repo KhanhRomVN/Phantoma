@@ -1,5 +1,5 @@
 import React from 'react';
-import { $ } from '@renderer/utils/color';
+import { cn } from '@renderer/shared/lib/utils';
 
 // HOOKS
 import { useSettings } from '../../../../../../context/SettingsContext';
@@ -91,7 +91,6 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
   // Check if action has validation error
   const hasValidationError = !!action.isError;
 
-  const needsPrompt = getPermissionDecision(permissionMode, 'run_command') === 'confirm';
   const commandText = action.params.command || '';
 
   const folderPath = action.params.folder_path || action.params.cwd || rootPath || '';
@@ -136,28 +135,11 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
   }, [isCompleted, outputData]);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        paddingBottom: '4px',
-        marginBottom: '2px',
-      }}
-    >
+    <div className="flex flex-col gap-1.5 pb-1 mb-0.5">
       <TagHeader
         title={
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '12px',
-              color: $('--text-primary'),
-              flex: 1,
-            }}
-          >
-            <span style={{ fontWeight: 600, opacity: 0.8, flexShrink: 0 }}>
+          <div className="flex items-center gap-2 text-xs text-text-primary flex-1">
+            <span className="font-semibold opacity-80 shrink-0">
               {getToolLabel('run_command')}
             </span>
             {folderName && (
@@ -167,28 +149,13 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
                   isFolder={true}
                   style={{ width: '14px', height: '14px', flexShrink: 0 }}
                 />
-                <span
-                  style={{
-                    fontWeight: 500,
-                    opacity: 0.8,
-                    fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                    fontSize: '11px',
-                    flexShrink: 0,
-                  }}
-                >
+                <span className="font-medium opacity-80 font-mono text-[11px] shrink-0">
                   {folderName}
                 </span>
               </>
             )}
             {isCompleted && executionTime && (
-              <span
-                style={{
-                  opacity: 0.5,
-                  fontSize: '10px',
-                  color: $('--text-secondary'),
-                  flexShrink: 0,
-                }}
-              >
+              <span className="opacity-50 text-[10px] text-text-secondary shrink-0">
                 {executionTime}
               </span>
             )}
@@ -203,26 +170,10 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
                   });
                 }}
                 title="Finalize output, kill process and delete terminal"
-                style={{
-                  background:
-                    `color-mix(in srgb, ${$('--error')} 10%, transparent)`,
-                  border:
-                    `1px solid color-mix(in srgb, ${$('--error')} 30%, transparent)`,
-                  cursor: 'pointer',
-                  color: $('--error'),
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  gap: '6px',
-                  height: '24px',
-                  textTransform: 'uppercase',
-                  marginLeft: 'auto',
-                  flexShrink: 0,
-                }}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold h-6 uppercase ml-auto shrink-0 cursor-pointer',
+                  'bg-error/10 border border-error/30 text-error'
+                )}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -240,14 +191,12 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
         }
         statusColor={
           isRejected
-            ? $('--error')
+            ? 'rgb(255, 45, 85)'
             : isCompleted
-              ? $('--success')
+              ? 'rgb(48, 209, 88)'
               : isTerminalBusy || (isActionClicked && !outputData)
-                ? $('--warn')
-                : isActiveGroup
-                  ? $('--text-secondary')
-                  : $('--text-secondary')
+                ? 'rgb(255, 159, 10)'
+                : 'rgb(106, 122, 154)'
         }
         isError={isRejected}
         isWaitingApproval={!!isActiveGroup && !isCompleted && !isTerminalBusy}
@@ -268,22 +217,11 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
       {isCollapsed ? (
         <div
           onClick={() => setIsCollapsed(false)}
+          className="font-mono text-xs text-text-primary py-1.5 px-2.5 bg-background border border-border rounded-md whitespace-pre-wrap break-all overflow-hidden cursor-pointer leading-[1.5]"
           style={{
-            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-            fontSize: '12px',
-            color: $('--text-primary'),
-            padding: '6px 10px',
-            backgroundColor: $('--background'),
-            border: `1px solid ${$('--border')}`,
-            borderRadius: '6px',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical',
-            cursor: 'pointer',
-            lineHeight: '1.5',
           }}
         >
           {commandText}
