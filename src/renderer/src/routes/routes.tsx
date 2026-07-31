@@ -1,14 +1,14 @@
 import { RouteObject } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
-import InspectorPage from '../features/Tool';
-import { Dashboard } from '../features/Dashboard';
-import Scan from '../features/Scan';
-import Emulate from '../features/Emulate';
-import { Wireless } from '../features/Wireless';
-import Setting from '../features/Setting';
-import { Recon } from '../features/Intel';
-import TestPage from '../features/Test';
-import Code from '../features/Code/Code';
+import InspectorPage from '../modules/Tool';
+import { Dashboard } from '../modules/Dashboard';
+import Scan from '../modules/Scan';
+import Emulate from '../modules/Emulate';
+import { Wireless } from '../modules/Wireless';
+import Setting from '../modules/Setting';
+import { Recon } from '../modules/Intel';
+import TestPage from '../modules/Test';
+import Code from '../modules/Code/Code';
 export const routes: RouteObject[] = [
   {
     path: '/',

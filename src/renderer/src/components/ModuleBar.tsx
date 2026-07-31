@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../shared/lib/utils';
-import { NavModuleConfig, PhantomModule, SubMenuItem } from '../features/Tool/types/types';
+import { NavModuleConfig, PhantomModule, SubMenuItem } from '../modules/Tool/types/types';
 import {
   Settings as SettingsIcon,
   Crosshair as CrosshairIcon,
@@ -95,8 +95,6 @@ const NAV_MODULES: NavModuleConfig[] = [
     title: 'Wireless',
   },
 ];
-
-
 
 // ─── NavIcon ─────────────────────────────────────────────────────────────────
 function NavIcon({ module }: { module: PhantomModule }) {
@@ -363,8 +361,6 @@ export function ModuleBar({
     >
       {/* Border-left with divider */}
       <div className="h-full shrink-0 bg-sidebar-background border-r border-border flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
-        
-
         <div
           className={cn('flex flex-col gap-1 w-full py-2', expanded ? 'px-2' : 'px-0 items-center')}
         >

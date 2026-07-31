@@ -1,16 +1,22 @@
-import React from "react";
-import { Zap, ShieldCheck } from "lucide-react";
-import type {
-  PermissionMode,
-  PermissionValue,
-  TagCategory,
-  TagDefinition,
-  ToolType,
-  UITagType,
-  TagType,
-} from "../types/tag-types";
+/**
+ * Central constants — re-exports from split files for backward compatibility.
+ *
+ * Structure:
+ *   shared.ts  — shared enums, helpers, UI tags, permission metadata
+ *   code.ts    — code tool TAG_REGISTRY (read_file, write_to_file, ...)
+ *   emulate.ts — emulate tool TAG_REGISTRY (list_https, get_https_detail)
+ */
 
-// Re-export types for backward compatibility
+// Re-export raw values
+export {
+  STREAM_BOX_HEIGHT,
+  ALLOWED_FILE_EXTENSIONS,
+  TOOL_ACTION_TYPES,
+  EXECUTION_STATUS,
+  TERMINAL_STATUS,
+  PERMISSION_MODE,
+} from './shared';
+export type { TerminalStatus } from './shared';
 export type {
   PermissionMode,
   PermissionValue,
@@ -19,387 +25,93 @@ export type {
   ToolType,
   UITagType,
   TagType,
-};
+} from './shared';
 
-export const STREAM_BOX_HEIGHT = 154;
+// ============= AGGREGATED TAG REGISTRY =============
+import { SHARED_TAG_REGISTRY } from './shared';
+import { CODE_TAG_REGISTRY } from './code';
+import { EMULATE_TAG_REGISTRY } from './emulate';
+import type { TagDefinition } from '../types/tag-types';
 
-// Whitelist of allowed file extensions for external files
-export const ALLOWED_FILE_EXTENSIONS = [
-  ".txt",
-  ".md",
-  ".json",
-  ".ts",
-  ".tsx",
-  ".js",
-  ".jsx",
-  ".py",
-  ".java",
-  ".cpp",
-  ".c",
-  ".h",
-  ".hpp",
-  ".css",
-  ".html",
-  ".xml",
-  ".yaml",
-  ".yml",
-  ".toml",
-  ".ini",
-  ".cfg",
-  ".sh",
-  ".go",
-  ".rs",
-  ".rb",
-  ".php",
-  ".swift",
-  ".kt",
-  ".scala",
-];
-
-// ===== TOOL ACTION TYPES =====
-export const TOOL_ACTION_TYPES = {
-  ACCEPT: "accept",
-  REJECT: "reject",
-} as const;
-
-// ===== EXECUTION STATUS =====
-export const EXECUTION_STATUS = {
-  IDLE: "idle",
-  RUNNING: "running",
-  ERROR: "error",
-  DONE: "done",
-} as const;
-
-// ===== TERMINAL STATUS =====
-export const TERMINAL_STATUS = {
-  BUSY: "busy",
-  FREE: "free",
-} as const;
-
-export type TerminalStatus =
-  (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS];
-
-// ===== PERMISSION MODE METADATA =====
-export const PERMISSION_MODE: Record<
-  string,
-  { label: string; desc: string; icon: React.ReactNode; color: string }
-> = {
-  fullAccess: {
-    label: "Full Access",
-    desc: "AI has unrestricted access to all project files and tools",
-    icon: React.createElement(Zap, { size: 11 }),
-    color: "$('--warn')",
-  },
-  approval: {
-    label: "Approval Required",
-    desc: "AI must request explicit approval before accessing files or running commands",
-    icon: React.createElement(ShieldCheck, { size: 11 }),
-    color: "$('--info')",
-  },
-};
-
-// ============= UNIFIED TAG REGISTRY =============
 export const TAG_REGISTRY: Record<string, TagDefinition> = {
-  // ===== TOOLS (category: "tool") =====
-  read_file: {
-    id: "read_file",
-    title: "READ",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
-    features: {
-      showFileStats: true,
-    },
-  },
-
-  write_to_file: {
-    id: "write_to_file",
-    title: "WRITE",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "allow",
-    },
-    features: {
-      showFileStats: true,
-      isFileMutation: true,
-    },
-  },
-
-  replace_in_file: {
-    id: "replace_in_file",
-    title: "UPDATE",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "allow",
-    },
-    features: {
-      validateFuzzyMatch: true,
-      isFileMutation: true,
-    },
-  },
-
-  revert_file: {
-    id: "revert_file",
-    title: "REVERT",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "allow",
-    },
-    features: {
-      isFileMutation: true,
-    },
-  },
-
-  view_replace_history: {
-    id: "view_replace_history",
-    title: "HISTORY REPLACE",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
-  },
-
-  list_files: {
-    id: "list_files",
-    title: "LIST",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
-  },
-
-  find_files: {
-    id: "find_files",
-    title: "FIND",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
-  },
-
-  grep: {
-    id: "grep",
-    title: "GREP",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
-  },
-
-  delete_file: {
-    id: "delete_file",
-    title: "DELETE",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "allow",
-    },
-  },
-
-  run_command: {
-    id: "run_command",
-    title: "EXECUTE",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "confirm",
-    },
-  },
-
-  git_status: {
-    id: "git_status",
-    title: "GIT STATUS",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
-  },
-
-  commit_message: {
-    id: "commit_message",
-    title: "COMMIT MESSAGE",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
-  },
-
-  git_diff: {
-    id: "git_diff",
-    title: "DIFF",
-    category: "tool",
-    timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
-
-  },
-
-  // ===== UI TAGS (category: "ui") =====
-  markdown: {
-    id: "markdown",
-    category: "ui",
-  },
-  thinking: {
-    id: "thinking",
-    category: "ui",
-  },
-  question: {
-    id: "question",
-    category: "ui",
-  },
+  ...SHARED_TAG_REGISTRY,
+  ...CODE_TAG_REGISTRY,
+  ...EMULATE_TAG_REGISTRY,
 };
 
-// ============= HELPER FUNCTIONS =============
+// Re-export individual registries
+export { SHARED_TAG_REGISTRY } from './shared';
+export { CODE_TAG_REGISTRY } from './code';
+export { EMULATE_TAG_REGISTRY } from './emulate';
 
-/**
- * Lấy tag definition (bao gồm cả tool và ui tag)
- */
-export const getTagDef = (type: string): TagDefinition | undefined => {
-  return TAG_REGISTRY[type];
-};
+// ============= BACKWARD-COMPATIBLE WRAPPERS =============
+// Các hàm từ shared.ts yêu cầu tham số registry.
+// Wrapper dưới đây tự động dùng TAG_REGISTRY tổng hợp.
 
-/**
- * Lấy tất cả tool types (chỉ tools)
- */
-export const getAllToolTypes = (): string[] => {
-  return Object.entries(TAG_REGISTRY)
-    .filter(([_, def]) => def.category === "tool")
-    .map(([key]) => key);
-};
+import {
+  getTagDef as _getTagDef,
+  getAllToolTypes as _getAllToolTypes,
+  getAllUITagTypes as _getAllUITagTypes,
+  getAllTagTypes as _getAllTagTypes,
+  requiresConfirmation as _requiresConfirmation,
+  shouldShowApprovalUI as _shouldShowApprovalUI,
+  getConfigurableTools as _getConfigurableTools,
+  shouldShowFileStats as _shouldShowFileStats,
+  shouldValidateFuzzyMatch as _shouldValidateFuzzyMatch,
+  getFileMutationTools as _getFileMutationTools,
+  getToolTimeout as _getToolTimeout,
+  isToolClickable as _isToolClickable,
+  getToolLabel as _getToolLabel,
+} from './shared';
 
-/**
- * Lấy tất cả UI tag types (chỉ ui tags)
- */
-export const getAllUITagTypes = (): string[] => {
-  return Object.entries(TAG_REGISTRY)
-    .filter(([_, def]) => def.category === "ui")
-    .map(([key]) => key);
-};
+export const getTagDef = (type: string): TagDefinition | undefined =>
+  _getTagDef(TAG_REGISTRY, type);
 
-/**
- * Lấy tất cả tag types (bao gồm cả tool và ui)
- */
-export const getAllTagTypes = (): string[] => {
-  return Object.keys(TAG_REGISTRY);
-};
+export const getAllToolTypes = (): string[] =>
+  _getAllToolTypes(TAG_REGISTRY);
 
-/**
- * Kiểm tra xem tool có yêu cầu xác nhận hay không dựa trên permission mode hiện tại
- */
+export const getAllUITagTypes = (): string[] =>
+  _getAllUITagTypes(TAG_REGISTRY);
+
+export const getAllTagTypes = (): string[] =>
+  _getAllTagTypes(TAG_REGISTRY);
+
 export const requiresConfirmation = (
   type: string,
   mode: "approval" | "fullAccess" = "approval",
-): boolean => {
-  const tag = getTagDef(type);
-  if (!tag || tag.category !== "tool" || !tag.permissions) return false;
+): boolean => _requiresConfirmation(TAG_REGISTRY, type, mode);
 
-  const permission = tag.permissions[mode];
-  return permission === "confirm";
-};
-
-/**
- * Kiểm tra xem tool hoặc UI tag có nên hiển thị approval UI hay không
- * Dựa trên permission của mode hiện tại
- */
 export const shouldShowApprovalUI = (
   type: string,
   mode: "approval" | "fullAccess" = "approval",
-): boolean => {
-  return requiresConfirmation(type, mode);
-};
+): boolean => _shouldShowApprovalUI(TAG_REGISTRY, type, mode);
 
-/**
- * Get all tools that have user-configurable permissions (non-git, non-ui tools)
- */
-export const getConfigurableTools = (): string[] => {
-  return Object.entries(TAG_REGISTRY)
-    .filter(([_, def]) => def.category === "tool")
-    .map(([_, def]) => def.id);
-};
+export const getConfigurableTools = (): string[] =>
+  _getConfigurableTools(TAG_REGISTRY);
 
-// ============= HELPER FUNCTIONS FOR FILE STATS =============
+export const shouldShowFileStats = (toolType: string): boolean =>
+  _shouldShowFileStats(TAG_REGISTRY, toolType);
 
-export const shouldShowFileStats = (toolType: string): boolean => {
-  const tag = getTagDef(toolType);
-  return tag?.category === "tool"
-    ? (tag.features?.showFileStats ?? false)
-    : false;
-};
+export const shouldValidateFuzzyMatch = (toolType: string): boolean =>
+  _shouldValidateFuzzyMatch(TAG_REGISTRY, toolType);
 
-/**
- * Check if a tool should validate fuzzy match before execution
- */
-export const shouldValidateFuzzyMatch = (toolType: string): boolean => {
-  const tag = getTagDef(toolType);
-  return tag?.category === "tool"
-    ? (tag.features?.validateFuzzyMatch ?? false)
-    : false;
-};
+export const getFileMutationTools = (): readonly string[] =>
+  _getFileMutationTools(TAG_REGISTRY);
 
-/**
- * Get all file mutation tools (tools that modify file content)
- * These are tools like write_to_file, replace_in_file, revert_file
- */
-export const FILE_MUTATION_TOOLS = Object.entries(TAG_REGISTRY)
-  .filter(([_, def]) => def.features?.isFileMutation === true)
-  .map(([key]) => key) as any as readonly [
+export const getToolTimeout = (toolType: string): number =>
+  _getToolTimeout(TAG_REGISTRY, toolType);
+
+export const isToolClickable = (type: string): boolean =>
+  _isToolClickable(TAG_REGISTRY, type);
+
+export const getToolLabel = (toolType: string): string =>
+  _getToolLabel(TAG_REGISTRY, toolType);
+
+// ============= FILE_MUTATION_TOOLS (backward compatibility) =============
+export const FILE_MUTATION_TOOLS = _getFileMutationTools(TAG_REGISTRY) as readonly [
   "write_to_file",
   "replace_in_file",
   "revert_file",
 ];
 
 export type FileMutationTool = (typeof FILE_MUTATION_TOOLS)[number];
-
-export const getFileMutationTools = (): readonly string[] => {
-  return FILE_MUTATION_TOOLS;
-};
-
-/**
- * Get timeout (ms) for a tool. Default: 60000ms (60s)
- */
-export const getToolTimeout = (toolType: string): number => {
-  const tag = getTagDef(toolType);
-  return tag?.category === "tool" ? (tag.timeout ?? 60000) : 60000;
-};
-
-/**
- * Check if a tool type is clickable (i.e., it's a tool, not a UI tag)
- * UI tags are not clickable because they're just display content
- */
-export const isToolClickable = (type: string): boolean => {
-  const tag = getTagDef(type);
-  return tag?.category === "tool";
-};
-
-/**
- * Get the display label for a tool type from TAG_REGISTRY
- * Returns the title field, or a formatted version of the tool type if not found
- */
-export const getToolLabel = (toolType: string): string => {
-  return TAG_REGISTRY[toolType]?.title ?? toolType.toUpperCase().replace(/_/g, " ");
-};

@@ -967,7 +967,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         </div>
 
         <div className="px-3 py-2 flex justify-between items-center bg-input-background rounded-b-md">
-          <div className="flex gap-[var(--spacing-xs)] items-center">
+          <div className="flex gap-1.5 items-center">
             <div
               onClick={() => {
                 if (fileInputRef?.current) {

@@ -125,7 +125,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-1 rounded-md p-4 ml-0 relative bg-input-background border border-border">
+      <div className="flex flex-col gap-1 rounded-md p-3 ml-0 relative bg-input-background border border-border">
         {/* Question Answers Summary - Show if parsed from content */}
         {hasQuestionAnswers && (
           <div className="mb-2 p-2 rounded bg-primary/10 border border-primary/20">

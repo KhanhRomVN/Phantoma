@@ -15,7 +15,6 @@ import {
   isToolClickable,
   TOOL_ACTION_TYPES,
   EXECUTION_STATUS,
-  TERMINAL_STATUS,
   type TerminalStatus,
   TAG_REGISTRY,
 } from '../../../constants/constants';
@@ -46,12 +45,12 @@ import {
   MarkdownRenderer,
   QuestionRenderer,
   WarningRenderer,
-  ThinkingRenderer,
+  ListHttpsRenderer,
 } from './renderers';
-import ErrorBlock from './blocks/ErrorBlock';
+import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
 import FileIcon from '@renderer/components/common/FileIcon';
-import GitDiffBlock from './blocks/GitDiffBlock';
+import GitDiffBlock from './blocks/code/GitDiffBlock';
 import { CodeBlock } from '@renderer/components/common/CodeBlock';
 
 interface TagRouterProps {
@@ -115,15 +114,12 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   onToolClick,
   executionState,
   isActiveGroup,
-  failedActions,
   isLastMessage,
-  isRestored = false,
   isLastGroup = true,
   toolOutputs,
   terminalStatus,
   nextUserMessage,
   allMessages,
-  allActions,
   conversationId,
   singleLineReviewActions,
   onConfirmSingleLineAction,
@@ -134,12 +130,10 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   gitStatusBranch,
   isGitProcessing,
   isGitStatusVisible = true,
-  onBackToHome,
   knownFilePaths,
   isGenerating,
   onSelectOption,
   onSendMessage,
-  isBlockedByPrecedingInteraction = false,
   firstUnclickedActionIndex,
 }) => {
   const { rootPath } = useProject();
@@ -230,10 +224,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     );
   }
 
-  if (group.type === 'thinking') {
-    return <ThinkingRenderer content={group.content} />;
-  }
-
   // Handle tools group
   if (group.type !== 'tools') {
     return null;
@@ -241,7 +231,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
 
   const toolGroup = group.items;
 
-  const [fuzzyStatus, setFuzzyStatus] = React.useState<{
+  const [, setFuzzyStatus] = React.useState<{
     status: string;
     score?: number;
     startLine?: number;
@@ -250,17 +240,8 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     Record<string, { lines: number; loading: boolean }>
   >({});
   const [storedOutput, setStoredOutput] = useState<string | null>(null);
-  const [isPreviewing, setIsPreviewing] = React.useState<string | null>(null);
-  const [collapsedActions, setCollapsedActions] = useState<Set<string>>(new Set());
+  const [, setCollapsedActions] = useState<Set<string>>(new Set());
   const processedActions = React.useRef<Set<string>>(new Set());
-
-  const toggleCollapse = (actionId: string) => {
-    setCollapsedActions((prev) => {
-      const next = new Set(prev);
-      next.has(actionId) ? next.delete(actionId) : next.add(actionId);
-      return next;
-    });
-  };
 
   const effectCollapsedCountRef = React.useRef(0);
   useEffect(() => {
@@ -384,8 +365,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   if (firstAction.isError) {
     const errorColor = $('--error');
 
-    const toolLabel =
-      TAG_REGISTRY[toolType]?.title ?? toolType.toUpperCase().replace(/_/g, ' ');
+    const toolLabel = TAG_REGISTRY[toolType]?.title ?? toolType.toUpperCase().replace(/_/g, ' ');
 
     const filePath =
       firstAction.params.file_path ||
@@ -395,15 +375,10 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     const fileName = filePath ? filePath.split('/').pop() || filePath : '';
 
     return (
-      <div
-        className={cn(
-          'relative flex flex-col gap-1.5',
-          isLastItemInList ? 'mb-0' : 'mb-2'
-        )}
-      >
-        <div className="terminal-block-header pt-1 flex items-start justify-between w-full">
-          <div className="terminal-info flex-1 min-w-0">
-            <div className="terminal-header-top">
+      <div className={cn('relative flex flex-col gap-1.5', isLastItemInList ? 'mb-0' : 'mb-2')}>
+        <div className="pt-1 flex items-start justify-between w-full">
+          <div className="flex-1 min-w-0">
+            <div>
               <div className="mt-px flex flex-col gap-0.5 flex-1 min-w-0 w-full">
                 <div className="flex items-start gap-2 flex-nowrap">
                   {/* Status dot */}
@@ -415,16 +390,13 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
                       className="absolute w-4 h-4 rounded-full opacity-40"
                       style={{ border: `2px solid ${errorColor}` }}
                     />
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: errorColor }}
-                    />
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: errorColor }} />
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <div className="terminal-name flex items-center gap-2 text-xs text-text-primary">
+                      <div className="flex items-center gap-2 text-xs text-text-primary">
                         <span className="font-semibold opacity-80">{toolLabel}</span>
                         {fileName && (
                           <>
@@ -529,9 +501,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
               isActionClicked={isClicked}
               isActiveGroup={isActive}
               isLastMessage={isLastMessage}
-              isLastItemInList={
-                isLastItemInList && index === toolGroup[toolGroup.length - 1].index
-              }
+              isLastItemInList={isLastItemInList && index === toolGroup[toolGroup.length - 1].index}
               toolOutputs={toolOutputs}
               allMessages={allMessages}
               fileStatsMap={fileStatsMap}
@@ -573,9 +543,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
               isActionClicked={isClicked}
               isActiveGroup={isActive}
               isLastMessage={isLastMessage}
-              isLastItemInList={
-                isLastItemInList && index === toolGroup[toolGroup.length - 1].index
-              }
+              isLastItemInList={isLastItemInList && index === toolGroup[toolGroup.length - 1].index}
               toolOutputs={toolOutputs}
               allMessages={allMessages}
               fileStatsMap={fileStatsMap}
@@ -660,6 +628,25 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
         isLastItemInList={isLastItemInList}
         onToolClick={onToolClick}
         branch={gitStatusBranch}
+      />
+    );
+  }
+
+  if (toolType === 'list_https') {
+    return (
+      <ListHttpsRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
       />
     );
   }
@@ -767,9 +754,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
             isActionClicked={clickedActions.has(`${messageId}-action-${index}`)}
             isActiveGroup={isActiveGroup && index === toolGroup[0].index}
             isLastMessage={isLastMessage}
-            isLastItemInList={
-              isLastItemInList && index === toolGroup[toolGroup.length - 1].index
-            }
+            isLastItemInList={isLastItemInList && index === toolGroup[toolGroup.length - 1].index}
             toolOutputs={toolOutputs}
             allMessages={allMessages}
             fileStatsMap={fileStatsMap}
@@ -789,7 +774,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
           <div
             className={cn(
               'py-2 px-4 bg-card-background rounded-lg flex items-center gap-2 w-fit transition-all duration-200',
-              isToolClickable(action.type) ? 'cursor-pointer' : 'cursor-default'
+              isToolClickable(action.type) ? 'cursor-pointer' : 'cursor-default',
             )}
             style={{ border: `2px solid ${$('--text-secondary')}` }}
             onClick={() => {
@@ -815,218 +800,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
         </div>
       ))}
     </>
-  );
-};
-
-// ============================================
-// ToolActionsList Component
-// ============================================
-
-interface ToolActionsListProps {
-  message: Message;
-  items: { action: ToolAction; index: number }[];
-  clickedActions: Set<string>;
-  rejectedActions?: Set<string>;
-  onToolClick: (
-    action: ToolAction | ToolAction[],
-    message: Message,
-    actionIndex: number,
-    type: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
-  ) => void;
-  isVisibleTool?: (type: string) => boolean;
-  executionState?: {
-    total: number;
-    completed: number;
-    status: (typeof EXECUTION_STATUS)[keyof typeof EXECUTION_STATUS];
-  };
-  failedActions?: Set<string>;
-  isLastMessage?: boolean;
-  toolOutputs?: Record<string, { output: string; isError: boolean }>;
-  terminalStatus?: Record<string, TerminalStatus>;
-  nextUserMessage?: Message;
-  allMessages?: Message[];
-  conversationId?: string;
-  allActions?: ToolAction[];
-  isBlockedByPrecedingInteraction?: boolean;
-  singleLineReviewActions?: Record<
-    string,
-    { action: any; actionId: string; messageId: string }
-  >;
-  onConfirmSingleLineAction?: (actionId: string) => void;
-  onRejectSingleLineAction?: (actionId: string) => void;
-  onGitConfirm?: (items: any[]) => void;
-  onGitCancel?: () => void;
-  gitStatusItems?: any[];
-  gitStatusBranch?: string;
-  isGitProcessing?: boolean;
-  isGitStatusVisible?: boolean;
-  onBackToHome?: (summary: string) => void;
-}
-
-const ToolActionsList: React.FC<ToolActionsListProps> = ({
-  message,
-  items,
-  clickedActions,
-  rejectedActions,
-  onToolClick,
-  executionState,
-  failedActions,
-  isLastMessage,
-  toolOutputs,
-  terminalStatus,
-  nextUserMessage,
-  allMessages,
-  conversationId,
-  allActions,
-  isBlockedByPrecedingInteraction = false,
-  isVisibleTool = (_type: string) => true,
-  singleLineReviewActions,
-  onConfirmSingleLineAction,
-  onRejectSingleLineAction,
-  onGitConfirm,
-  onGitCancel,
-  gitStatusItems,
-  gitStatusBranch,
-  isGitProcessing,
-  isGitStatusVisible = true,
-  onBackToHome,
-}) => {
-  const visibleItems = React.useMemo(() => {
-    return items.filter((item) => isVisibleTool(item.action.type));
-  }, [items, isVisibleTool]);
-
-  const memoizedActions = React.useMemo(() => {
-    const MERGE_TYPES = new Set(['write_to_file', 'replace_in_file']);
-    const getPath = (action: ToolAction) =>
-      action.params.file_path || action.params.path || '';
-
-    const groups: { action: ToolAction; index: number }[][] = [];
-    visibleItems.forEach((item) => {
-      const last = groups[groups.length - 1];
-      if (
-        last &&
-        MERGE_TYPES.has(item.action.type) &&
-        MERGE_TYPES.has(last[0].action.type) &&
-        getPath(item.action) === getPath(last[0].action)
-      ) {
-        last.push(item);
-      } else {
-        groups.push([item]);
-      }
-    });
-
-    return groups.map((group, groupIdx) => {
-      const firstItem = group[0];
-      const key = `group-${firstItem.index}`;
-
-      let isPreviousAllDone = true;
-      for (let i = 0; i < firstItem.index; i++) {
-        const actionId = `${message.id}-action-${i}`;
-        const hasOutput = toolOutputs && toolOutputs[actionId];
-        const isClicked = clickedActions.has(actionId);
-
-        const hasHistoryOutput =
-          !!nextUserMessage ||
-          !!allMessages?.some((m) => m.actionIds?.includes(actionId));
-
-        const isCompleted = isClicked || hasOutput || hasHistoryOutput;
-
-        if (!isCompleted) {
-          const action = allActions ? allActions[i] : null;
-          const isWriteTool =
-            action &&
-            (action.type === 'write_to_file' ||
-              action.type === 'replace_in_file');
-
-          if (isWriteTool && !hasHistoryOutput) {
-            isPreviousAllDone = false;
-            break;
-          }
-          if (!isWriteTool) {
-            isPreviousAllDone = false;
-            break;
-          }
-        }
-
-        const action = allActions ? allActions[i] : null;
-        if (action && action.type === 'run_command') {
-          const output = toolOutputs?.[actionId];
-          const terminalId =
-            (output as any)?.terminalId || action.params.terminal_id;
-          if (
-            terminalId &&
-            terminalStatus?.[terminalId] === TERMINAL_STATUS.BUSY &&
-            !hasHistoryOutput
-          ) {
-            isPreviousAllDone = false;
-            break;
-          }
-        }
-      }
-
-      const isThisActionClicked = clickedActions.has(
-        `${message.id}-action-${firstItem.index}`,
-      );
-
-      const isActiveGroup =
-        isLastMessage &&
-        isPreviousAllDone &&
-        !isThisActionClicked &&
-        !isBlockedByPrecedingInteraction;
-
-      return (
-        <React.Fragment key={key}>
-          <TagRouterInternal
-            group={{ type: 'tools', items: group, key }}
-            messageId={message.id}
-            clickedActions={clickedActions}
-            rejectedActions={rejectedActions}
-            onToolClick={(act, _msgId, aIdx, type) =>
-              onToolClick(act, message, aIdx, type)
-            }
-            executionState={executionState}
-            isActiveGroup={isActiveGroup}
-            failedActions={failedActions}
-            isLastMessage={isLastMessage}
-            isLastGroup={groupIdx === groups.length - 1}
-            toolOutputs={toolOutputs}
-            terminalStatus={terminalStatus}
-            nextUserMessage={nextUserMessage}
-            allMessages={allMessages}
-            conversationId={conversationId}
-            singleLineReviewActions={singleLineReviewActions}
-            onConfirmSingleLineAction={onConfirmSingleLineAction}
-            onRejectSingleLineAction={onRejectSingleLineAction}
-            onGitConfirm={onGitConfirm}
-            onGitCancel={onGitCancel}
-            gitStatusItems={gitStatusItems}
-            gitStatusBranch={gitStatusBranch}
-            isGitProcessing={isGitProcessing}
-            isGitStatusVisible={isGitStatusVisible}
-            onBackToHome={onBackToHome}
-          />
-        </React.Fragment>
-      );
-    });
-  }, [
-    items,
-    clickedActions,
-    message,
-    onToolClick,
-    isLastMessage,
-    toolOutputs,
-    terminalStatus,
-    nextUserMessage,
-    allMessages,
-    allActions,
-  ]);
-
-  if (!visibleItems || visibleItems.length === 0) return null;
-
-  return (
-    <div className="flex flex-col gap-0">
-      {memoizedActions}
-    </div>
   );
 };
 

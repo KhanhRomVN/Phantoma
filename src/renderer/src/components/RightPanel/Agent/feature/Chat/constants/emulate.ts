@@ -1,0 +1,26 @@
+import type { TagDefinition } from "../types/tag-types";
+
+// ===== EMULATE TOOL TAG REGISTRY =====
+export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
+  list_https: {
+    id: "list_https",
+    title: "LIST HTTPS",
+    category: "tool",
+    timeout: 30000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  get_https_detail: {
+    id: "get_https_detail",
+    title: "HTTPS DETAIL",
+    category: "tool",
+    timeout: 30000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+};

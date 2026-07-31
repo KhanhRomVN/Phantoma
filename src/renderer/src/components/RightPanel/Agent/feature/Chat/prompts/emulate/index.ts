@@ -11,6 +11,7 @@ export { WORKFLOW } from './workflow';
 export { buildSystemContext } from './system-context';
 export type { SystemInfo } from './system-context';
 export { EXAMPLES } from './examples';
+export { CONSTRAINTS } from './constraints';
 export { EMULATE_TOOLS_REFERENCE } from './tools-reference';
 
 interface PromptConfig {

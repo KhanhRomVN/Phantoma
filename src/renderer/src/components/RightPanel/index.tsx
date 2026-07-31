@@ -1,6 +1,6 @@
 // src/renderer/src/features/Tool/components/IntelPanel/index.tsx
 import { useState, useRef, useEffect } from 'react';
-import type { SubTarget } from '../../features/Tool/types/types';
+import type { SubTarget } from '../../modules/Tool/types/types';
 import { AgentPanel } from './Agent';
 import { Analytic } from './Analytic';
 import { Terminal } from './Terminal';

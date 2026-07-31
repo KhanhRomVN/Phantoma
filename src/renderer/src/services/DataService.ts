@@ -1,5 +1,5 @@
 import { targetService } from './TargetService';
-import type { TargetTab } from '../features/Emulate/types/target.types';
+import type { TargetTab } from '../modules/Emulate/types/target.types';
 import { CreateTargetDTO, TargetDTO, UpdateTargetDTO } from '@renderer/types/api';
 
 /**

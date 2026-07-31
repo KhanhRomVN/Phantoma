@@ -11,7 +11,6 @@ import ChatBodySkeleton from './ChatBodySkeleton';
 import { LoadMoreButton } from './LoadMoreButton';
 import ModelInfoBar from './ModelInfoBar';
 import SearchBar from './SearchBar';
-import { ThinkingRenderer } from './AIMessageBox/renderers/ThinkingRenderer';
 import ContinuingIndicator from './ContinuingIndicatorBox';
 import ProcessingIndicator from './ProcessingIndicator';
 import UserMessageBox from './UserMessageBox';
@@ -473,8 +472,8 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     <div
       ref={bodyRef}
       className={cn(
-        'chat-body-scroll bg-background flex-1 overflow-y-auto overflow-x-hidden p-4 pl-6 flex flex-col gap-2 text-sm relative',
-        visibleMessages.length > 0 ? 'pb-[200px]' : 'pb-4'
+        'chat-body-scroll bg-background flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-2 text-sm relative',
+        visibleMessages.length > 0 ? 'pb-[200px]' : 'pb-4',
       )}
     >
       {isLoadingConversation ? (
@@ -491,11 +490,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
           )}
 
           {hasHiddenMessages && (
-            <LoadMoreButton
-              hiddenCount={hiddenCount}
-              onLoadMore={loadMore}
-              onLoadAll={loadAll}
-            />
+            <LoadMoreButton hiddenCount={hiddenCount} onLoadMore={loadMore} onLoadAll={loadAll} />
           )}
 
           {(() => {
@@ -594,7 +589,9 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                     if (onSendMessage && prevUserMsg.rawRequest) {
                       setTimeout(() => {
                         const rawReq = prevUserMsg!.rawRequest || '';
-                        const userContentMatch = rawReq.match(/<zen-user-content>\n?([\s\S]*?)\n?<\/zen-user-content>/);
+                        const userContentMatch = rawReq.match(
+                          /<zen-user-content>\n?([\s\S]*?)\n?<\/zen-user-content>/,
+                        );
 
                         let contentToSend: string;
                         let shouldSkipLogic: boolean;
@@ -631,34 +628,6 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
               return null;
             }
 
-            const hasSSEThinking = lastMessage.thinking && lastMessage.thinking.trim();
-
-            if (hasSSEThinking) {
-              return (
-                <ThinkingRenderer
-                  content={lastMessage.thinking!}
-                  maxHeight={240}
-                  isStreaming={true}
-                />
-              );
-            }
-
-            const parsedMessage = parsedMessages.find((pm) => pm.id === lastMessage.id);
-            if (!parsedMessage || !parsedMessage.parsed) {
-              return null;
-            }
-
-            const contentBlocks = parsedMessage.parsed.contentBlocks || [];
-            const lastBlock = contentBlocks[contentBlocks.length - 1];
-            const isLastBlockUnclosedThinking =
-              lastBlock && lastBlock.type === 'thinking' && lastBlock.content?.trim();
-
-            if (isLastBlockUnclosedThinking) {
-              return (
-                <ThinkingRenderer content={lastBlock.content!} maxHeight={240} isStreaming={true} />
-              );
-            }
-
             return null;
           })()}
 
@@ -668,15 +637,19 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                 onClick={onContinue}
                 className={cn(
                   'inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-md cursor-pointer text-[11px] font-semibold uppercase tracking-[0.5px] h-7 box-border transition-all duration-200',
-                  'bg-primary/15 text-primary border border-primary/30'
+                  'bg-primary/15 text-primary border border-primary/30',
                 )}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'color-mix(in srgb, rgb(10, 132, 255) 25%, transparent)';
-                  e.currentTarget.style.borderColor = 'color-mix(in srgb, rgb(10, 132, 255) 50%, transparent)';
+                  e.currentTarget.style.backgroundColor =
+                    'color-mix(in srgb, rgb(10, 132, 255) 25%, transparent)';
+                  e.currentTarget.style.borderColor =
+                    'color-mix(in srgb, rgb(10, 132, 255) 50%, transparent)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'color-mix(in srgb, rgb(10, 132, 255) 15%, transparent)';
-                  e.currentTarget.style.borderColor = 'color-mix(in srgb, rgb(10, 132, 255) 30%, transparent)';
+                  e.currentTarget.style.backgroundColor =
+                    'color-mix(in srgb, rgb(10, 132, 255) 15%, transparent)';
+                  e.currentTarget.style.borderColor =
+                    'color-mix(in srgb, rgb(10, 132, 255) 30%, transparent)';
                 }}
               >
                 <span className="codicon codicon-play text-xs inline-flex items-center justify-center" />

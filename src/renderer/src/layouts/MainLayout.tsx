@@ -1,23 +1,23 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Radar, 
-  Antenna, 
-  Wrench, 
-  Gamepad2, 
-  Wifi, 
-  Code2, 
-  Settings 
+import {
+  LayoutDashboard,
+  Radar,
+  Antenna,
+  Wrench,
+  Gamepad2,
+  Wifi,
+  Code2,
+  Settings,
 } from 'lucide-react';
-import { useActiveModule } from '../features/Tool/hooks/useActiveModule';
-import { useActiveTarget } from '../features/Tool/hooks/useActiveTarget';
+import { useActiveModule } from '../modules/Tool/hooks/useActiveModule';
+import { useActiveTarget } from '../modules/Tool/hooks/useActiveTarget';
 import { RightPanel } from '../components/RightPanel';
 import { FooterBar } from '../components/FooterBar';
 import { HeaderBar } from '../components/HeaderBar';
 import { QuickNavModal } from '../components/QuickNavModal';
-import { PhantomModule } from '../features/Tool/types/types';
+import { PhantomModule } from '../modules/Tool/types/types';
 import { ServerHealthGuard } from '../components/ServerHealthGuard';
 import {
   FeatureProvider,
@@ -169,7 +169,7 @@ const MainLayoutContent = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-background font-mono text-xs text-text-primary">
-      <HeaderBar 
+      <HeaderBar
         isRightPanelOpen={isRightPanelOpen}
         onToggleRightPanel={() => setIsRightPanelOpen(!isRightPanelOpen)}
       />

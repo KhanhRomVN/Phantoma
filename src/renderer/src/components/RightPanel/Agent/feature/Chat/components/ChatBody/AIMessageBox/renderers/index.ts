@@ -3,23 +3,23 @@
  * Makes importing renderers cleaner and more maintainable
  */
 
-export { ReadFileRenderer } from './ReadFileRenderer';
-export { WriteToFileRenderer } from './WriteToFileRenderer';
-export { ReplaceInFileRenderer } from './ReplaceInFileRenderer';
-export { RevertFileRenderer } from './RevertFileRenderer';
-export { ListFilesRenderer } from './ListFilesRenderer';
-export { FindFilesRenderer } from './FindFilesRenderer';
-export { GrepRenderer } from './GrepRenderer';
-export { DeleteFileRenderer } from './DeleteFileRenderer';
-export { ViewReplaceHistoryRenderer } from './ViewReplaceHistoryRenderer';
-export { RunCommandRenderer } from './RunCommandRenderer';
-export { GitStatusRenderer } from './GitStatusRenderer';
-export { CommitMessageRenderer } from './CommitMessageRenderer';
-export { MarkdownRenderer } from './MarkdownRenderer';
-export { QuestionRenderer } from './QuestionRenderer';
-export { ErrorRenderer } from './ErrorRenderer';
-export { WarningRenderer } from './WarningRenderer';
-export { ThinkingRenderer } from './ThinkingRenderer';
+export { ReadFileRenderer } from './code/ReadFileRenderer';
+export { WriteToFileRenderer } from './code/WriteToFileRenderer';
+export { ReplaceInFileRenderer } from './code//ReplaceInFileRenderer';
+export { RevertFileRenderer } from './code/RevertFileRenderer';
+export { ListFilesRenderer } from './code/ListFilesRenderer';
+export { FindFilesRenderer } from './code/FindFilesRenderer';
+export { GrepRenderer } from './code/GrepRenderer';
+export { DeleteFileRenderer } from './code/DeleteFileRenderer';
+export { ViewReplaceHistoryRenderer } from './code/ViewReplaceHistoryRenderer';
+export { RunCommandRenderer } from './code/RunCommandRenderer';
+export { GitStatusRenderer } from './code/GitStatusRenderer';
+export { CommitMessageRenderer } from './code/CommitMessageRenderer';
+export { MarkdownRenderer } from './other/MarkdownRenderer';
+export { QuestionRenderer } from './other/QuestionRenderer';
+export { ErrorRenderer } from './other/ErrorRenderer';
+export { WarningRenderer } from './other/WarningRenderer';
+export { ListHttpsRenderer } from './emulate/ListHttpsRenderer';
 
 // Shared types and utilities
 export type {

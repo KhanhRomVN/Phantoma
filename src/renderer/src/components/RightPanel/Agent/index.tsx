@@ -7,7 +7,6 @@ import { ProjectProvider } from './context/ProjectContext';
 import { BackendConnectionProvider } from './context/BackendConnectionContext';
 import { useAgentFeature } from './context/FeatureContext';
 import AgentOverlay from './components/AgentOverlay';
-// import { AgentFooterBar } from './components/AgentFooterBar';
 import { MousePointer } from 'lucide-react';
 
 // ─── AgentPanel ────────────────────────────────────────────────────────────
@@ -32,6 +31,7 @@ export function AgentPanel() {
   // Lưu state theo targetId để restore khi quay lại
   const targetStatesMap = useRef<Map<string, AgentState>>(new Map());
   const [currentTargetId, setCurrentTargetId] = useState<string | null>(null);
+  const currentTargetIdRef = useRef<string | null>(null);
 
   // State hiện tại
   const [currentChat, setCurrentChat] = useState<ChatSession | null>(null);
@@ -43,7 +43,7 @@ export function AgentPanel() {
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
 
-  // Ref để giữ giá trị mới nhất mà không gây re-render/loop
+  // Ref để giữ giá trị mới nhất
   const currentChatRef = useRef(currentChat);
   const initialMessageDataRef = useRef(initialMessageData);
   const homeInitialValueRef = useRef(homeInitialValue);
@@ -51,24 +51,32 @@ export function AgentPanel() {
   initialMessageDataRef.current = initialMessageData;
   homeInitialValueRef.current = homeInitialValue;
 
-  // Kiểm tra xem có nên hiển thị overlay không
+  // Cập nhật ref khi currentTargetId thay đổi
+  useEffect(() => {
+    currentTargetIdRef.current = currentTargetId;
+  }, [currentTargetId]);
+
+  // Kiểm tra overlay
   const shouldShowOverlay = () => {
-    // TEMPORARILY DISABLED FOR TESTING - comment out to re-enable
+    if (activeFeature === 'emulate') {
+      return !activeTargetId || !isTargetActive;
+    }
     return false;
   };
 
-  // Lưu state hiện tại vào Map khi target thay đổi — dùng ref để tránh dependency loop
+  // Lưu state hiện tại vào Map — dùng ref
   const saveCurrentState = useCallback(() => {
-    if (currentTargetId) {
-      targetStatesMap.current.set(currentTargetId, {
+    const targetId = currentTargetIdRef.current;
+    if (targetId) {
+      targetStatesMap.current.set(targetId, {
         currentChat: currentChatRef.current,
         initialMessageData: initialMessageDataRef.current,
         homeInitialValue: homeInitialValueRef.current,
       });
     }
-  }, [currentTargetId]);
+  }, []);
 
-  // Restore state từ Map hoặc tạo mới
+  // Restore state từ Map
   const restoreStateForTarget = useCallback((targetId: string) => {
     const savedState = targetStatesMap.current.get(targetId);
     if (savedState) {
@@ -99,25 +107,21 @@ export function AgentPanel() {
     }
   }, [activeTargetId, isTargetActive, activeFeature, saveCurrentState, restoreStateForTarget]);
 
-  // Lưu state khi các giá trị thay đổi (dùng ref để không trigger loop)
+  // Lưu state khi có thay đổi — dùng ref cho targetId
   useEffect(() => {
-    if (currentTargetId && activeFeature === 'emulate') {
-      targetStatesMap.current.set(currentTargetId, {
+    const targetId = currentTargetIdRef.current;
+    if (targetId && activeFeature === 'emulate') {
+      targetStatesMap.current.set(targetId, {
         currentChat,
         initialMessageData,
         homeInitialValue,
       });
     }
-  }, [currentChat, initialMessageData, homeInitialValue, currentTargetId, activeFeature]);
+  }, [currentChat, initialMessageData, homeInitialValue, activeFeature]);
 
   const handleHomeSendMessage = useCallback(
     (content: string, files: any[], model: any, account: any) => {
-      setInitialMessageData({
-        content,
-        files,
-        model,
-        account,
-      });
+      setInitialMessageData({ content, files, model, account });
       const newSession: ChatSession = {
         sessionId: Date.now(),
         folderPath: (window as any).__zenWorkspaceFolderPath || null,
@@ -132,11 +136,7 @@ export function AgentPanel() {
 
   const handleBack = useCallback((contentToReturn?: string) => {
     setCurrentChat(null);
-    if (typeof contentToReturn === 'string' && contentToReturn.trim()) {
-      setHomeInitialValue(contentToReturn);
-    } else {
-      setHomeInitialValue('');
-    }
+    setHomeInitialValue(typeof contentToReturn === 'string' && contentToReturn.trim() ? contentToReturn : '');
   }, []);
 
   const handleLoadConversation = useCallback(
@@ -152,12 +152,16 @@ export function AgentPanel() {
     [],
   );
 
-  // Render overlay cho Emulate khi chưa có target active
   const renderEmulateOverlay = () => {
+    const hasTarget = !!activeTargetId;
     return (
       <AgentOverlay
-        title="Select a target to start"
-        description="Please select a target and start a CDP or MITM session to use the Agent"
+        title={hasTarget ? 'Start the target session' : 'Select a target to start'}
+        description={
+          hasTarget
+            ? 'Click Start on the selected target to begin a CDP or MITM session and use the Agent'
+            : 'Please select a target and start a CDP or MITM session to use the Agent'
+        }
         icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
       />
     );
@@ -170,7 +174,6 @@ export function AgentPanel() {
           {activeFeature !== 'emulate' && <AgentOverlay featureName={activeFeature || undefined} />}
           {activeFeature === 'emulate' && shouldShowOverlay() && renderEmulateOverlay()}
 
-          {/* Main content - chỉ hiển thị khi không có overlay */}
           {!shouldShowOverlay() && (
             <>
               <div className="flex-1 overflow-hidden bg-background flex flex-col">
@@ -191,7 +194,6 @@ export function AgentPanel() {
                   />
                 )}
               </div>
-              {/* <AgentFooterBar /> */}
             </>
           )}
         </div>

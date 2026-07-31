@@ -1,21 +1,21 @@
 import { parseToolAction } from '../utils/ToolParser';
 import { getAllToolTypes } from '../constants/constants';
 // Tag parsers
-import { parseReadFile } from './parsers/ReadFileParser';
-import { parseWriteToFile } from './parsers/WriteToFileParser';
-import { parseReplaceInFile } from './parsers/ReplaceInFileParser';
-import { parseListFiles } from './parsers/ListFilesParser';
-import { parseFindFiles } from './parsers/FindFilesParser';
-import { parseGrep } from './parsers/GrepParser';
-import { parseDeleteFile } from './parsers/DeleteFileParser';
-import { parseRevertFile } from './parsers/RevertFileParser';
-import { parseViewReplaceHistory } from './parsers/ViewReplaceHistoryParser';
-import { parseRunCommand } from './parsers/RunCommandParser';
-import { parseGitStatus } from './parsers/GitStatusParser';
-import { parseGitDiff } from './parsers/GitDiffParser';
-import { parseMarkdown } from './parsers/MarkdownParser';
+import { parseReadFile } from './parsers/code/ReadFileParser';
+import { parseWriteToFile } from './parsers/code/WriteToFileParser';
+import { parseReplaceInFile } from './parsers/code/ReplaceInFileParser';
+import { parseListFiles } from './parsers/code/ListFilesParser';
+import { parseFindFiles } from './parsers/code/FindFilesParser';
+import { parseGrep } from './parsers/code/GrepParser';
+import { parseDeleteFile } from './parsers/code/DeleteFileParser';
+import { parseRevertFile } from './parsers/code/RevertFileParser';
+import { parseViewReplaceHistory } from './parsers/code/ViewReplaceHistoryParser';
+import { parseRunCommand } from './parsers/code/RunCommandParser';
+import { parseGitStatus } from './parsers/code/GitStatusParser';
+import { parseGitDiff } from './parsers/code/GitDiffParser';
+import { parseMarkdown } from './parsers/other/MarkdownParser';
 
-import { extractThinkingBlocks } from './parsers/ThinkingParser';
+import { extractThinkingBlocks } from './parsers/other/ThinkingParser';
 import { findClosingTagPosition } from '../utils/TagClosingFinder';
 import { TagType } from '../types/tag-types';
 

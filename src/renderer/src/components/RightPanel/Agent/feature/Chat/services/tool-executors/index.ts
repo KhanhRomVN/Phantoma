@@ -1,30 +1,30 @@
 // Re-export all executors
-export { executeReadFile } from './ReadFileExecutor';
-export { executeWriteToFile } from './WriteToFileExecutor';
-export { executeReplaceInFile } from './ReplaceInFileExecutor';
-export { executeRevertFile } from './RevertFileExecutor';
-export { executeViewReplaceHistory } from './ViewReplaceHistoryExecutor';
-export { executeListFiles } from './ListFilesExecutor';
-export { executeFindFiles } from './FindFilesExecutor';
-export { executeRunCommand } from './RunCommandExecutor';
-export { executeDeleteFile } from './DeleteFileExecutor';
-export { executeGrep } from './GrepExecutor';
-export { executeGitDiff } from './GitDiffExecutor';
-export { executeMoveFile } from './MoveFileExecutor';
+export { executeReadFile } from './code/ReadFileExecutor';
+export { executeWriteToFile } from './code/WriteToFileExecutor';
+export { executeReplaceInFile } from './code/ReplaceInFileExecutor';
+export { executeRevertFile } from './code/RevertFileExecutor';
+export { executeViewReplaceHistory } from './code/ViewReplaceHistoryExecutor';
+export { executeListFiles } from './code/ListFilesExecutor';
+export { executeFindFiles } from './code/FindFilesExecutor';
+export { executeRunCommand } from './code/RunCommandExecutor';
+export { executeDeleteFile } from './code/DeleteFileExecutor';
+export { executeGrep } from './code/GrepExecutor';
+export { executeGitDiff } from './code/GitDiffExecutor';
+export { executeMoveFile } from './code/MoveFileExecutor';
 
 import type { ExecutorContext, ExecutorOptions, ToolExecutor } from '../../types/executor-types';
-import { executeReadFile } from './ReadFileExecutor';
-import { executeWriteToFile } from './WriteToFileExecutor';
-import { executeReplaceInFile } from './ReplaceInFileExecutor';
-import { executeRevertFile } from './RevertFileExecutor';
-import { executeViewReplaceHistory } from './ViewReplaceHistoryExecutor';
-import { executeListFiles } from './ListFilesExecutor';
-import { executeFindFiles } from './FindFilesExecutor';
-import { executeRunCommand } from './RunCommandExecutor';
-import { executeDeleteFile } from './DeleteFileExecutor';
-import { executeGrep } from './GrepExecutor';
-import { executeGitDiff } from './GitDiffExecutor';
-import { executeMoveFile } from './MoveFileExecutor';
+import { executeReadFile } from './code/ReadFileExecutor';
+import { executeWriteToFile } from './code/WriteToFileExecutor';
+import { executeReplaceInFile } from './code/ReplaceInFileExecutor';
+import { executeRevertFile } from './code/RevertFileExecutor';
+import { executeViewReplaceHistory } from './code/ViewReplaceHistoryExecutor';
+import { executeListFiles } from './code/ListFilesExecutor';
+import { executeFindFiles } from './code/FindFilesExecutor';
+import { executeRunCommand } from './code/RunCommandExecutor';
+import { executeDeleteFile } from './code/DeleteFileExecutor';
+import { executeGrep } from './code/GrepExecutor';
+import { executeGitDiff } from './code/GitDiffExecutor';
+import { executeMoveFile } from './code/MoveFileExecutor';
 
 /**
  * Factory function to get the appropriate executor for a given action type.
@@ -113,7 +113,10 @@ export function getExecutor(actionType: string): ToolExecutor | null {
     case 'git_diff':
       return {
         execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
-          const filePath = typeof action.params === 'string' ? action.params : (action.params?.path || action.params?.file_path || '');
+          const filePath =
+            typeof action.params === 'string'
+              ? action.params
+              : action.params?.path || action.params?.file_path || '';
           return executeGitDiff(filePath, (action as any).actionId || `git-diff-${Date.now()}`);
         },
       };
@@ -121,6 +124,13 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       return {
         execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
           return executeMoveFile(action.params);
+        },
+      };
+    case 'list_https':
+      return {
+        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeListHttps } = await import('./emulate/ListHttpsExecutor');
+          return executeListHttps(action.params || {});
         },
       };
     case 'git_status':

@@ -261,7 +261,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   return (
     <div
       id="chat-footer-container"
-      className="flex flex-col w-full overflow-hidden transition-[bottom] duration-200 flex-shrink-0 bg-background px-2 pb-2"
+      className="flex flex-col w-full overflow-hidden transition-[bottom] duration-200 flex-shrink-0 bg-background px-4 pb-4"
     >
       <input
         ref={fileInputRef}

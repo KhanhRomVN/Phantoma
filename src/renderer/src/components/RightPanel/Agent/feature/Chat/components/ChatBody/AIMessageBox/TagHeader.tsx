@@ -341,13 +341,13 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     <div
       ref={containerRef}
       className={cn(
-        'terminal-block-header pt-1 flex items-start justify-between w-full',
+        'pt-1 flex items-start justify-between w-full',
         onClick || onToggleCollapse ? 'cursor-pointer' : 'cursor-default'
       )}
       onClick={onClick || onToggleCollapse}
     >
-      <div className="terminal-info flex-1 min-w-0">
-        <div className="terminal-header-top">
+      <div className="flex-1 min-w-0">
+        <div>
           <div className="mt-px flex flex-col gap-0.5 flex-1 min-w-0 w-full max-w-full overflow-hidden">
             <div className="flex items-start gap-2 flex-nowrap">
               {/* Left column: CircleDot + CircleRing */}
@@ -410,9 +410,9 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                     </span>
                   )}
                   {typeof title === "string" ? (
-                    <span className="terminal-name">{title}</span>
+                    <span>{title}</span>
                   ) : (
-                    <div className="terminal-name contents">
+                    <div className="contents">
                       {title}
                     </div>
                   )}
@@ -517,7 +517,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
         </div>
         {(subTitle || diffStats) && (
           <div
-            className={`terminal-sub-info${subTitleClassName ? ` ${subTitleClassName}` : ""}`}
+            className={subTitleClassName || ""}
           >
             {diffStats ? (
               <>
@@ -538,7 +538,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
         )}
       </div>
       <div
-        className="header-actions shrink-0 ml-2"
+        className="shrink-0 ml-2"
         onClick={(e) => e.stopPropagation()}
       >
         {headerActions}

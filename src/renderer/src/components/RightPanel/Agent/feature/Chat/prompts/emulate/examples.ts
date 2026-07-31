@@ -1,4 +1,4 @@
-export const EXAMPLES = `# REFERENCE PATTERNS
+export const EXAMPLES = `# REFERENCE EXAMPLES
 
 ## Ex 1: Clear Request — Filter and view details ✅
 
@@ -8,7 +8,8 @@ export const EXAMPLES = `# REFERENCE PATTERNS
 \`\`\`xml
 <thinking>
 Pass 1 (Plan): The user wants to see a specific request. I need to filter list_https by method, host, and status.
-Pass 2 (Verify): No assumptions — I will run list_https and STOP.
+Assumptions: None — I will run list_https and STOP.
+Pass 2 (Verify): I must not assume the result. I will only call list_https and STOP.
 </thinking>
 <list_https>
   <filter>
@@ -22,7 +23,7 @@ Pass 2 (Verify): No assumptions — I will run list_https and STOP.
 **Turn 2** — Result returns a single request (stt=7) → READ:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Only one request matched. I will get its detail.
+Pass 1 (Plan): Only one request matched (stt=7). I will get its detail.
 Pass 2 (Verify): stt=7 came from the list_https result — valid to call get_https_detail.
 </thinking>
 <get_https_detail><index>7</index></get_https_detail>
@@ -76,7 +77,7 @@ Found **4 requests** related to \`/upload\`:
 <question>
   <q id="1" type="multi" label="Select requests to inspect:">
     <option>POST /api/upload/image (stt=2)</option>
-    <option>POST /api/upload/video (stt=5) — status 413, suspicious</option>
+    <option>POST /api/upload/video (stt=5) — status 413, suspicious (recommended — the only error response, most likely the root cause)</option>
     <option>POST /api/upload/document (stt=9)</option>
     <option>All of them</option>
   </q>
@@ -139,7 +140,7 @@ Tried filtering by host \`payment-gateway.internal\` and \`payment\` — no matc
 \`\`\`xml
 <thinking>
 Pass 1 (Plan): The request is vague. I need to see what auth-related requests exist first.
-Pass 2 (Verify): No assumptions — run list_https and STOP.
+Pass 2 (Verify): No assumptions — run list_https with a reasonable limit and STOP.
 </thinking>
 <list_https><limit>50</limit></list_https>
 \`\`\`
@@ -158,7 +159,7 @@ Found **3 requests** related to auth:
 </markdown>
 <question>
   <q id="1" type="single" label="What analysis do you want?">
-    <option>View request/response details of each API</option>
+    <option>View request/response details of each API (recommended — start with the basics before deeper analysis)</option>
     <option>Check for security issues (rate limiting, token leaks, etc.)</option>
     <option>Describe the end-to-end authentication flow</option>
     <option>Other — I'll describe below</option>
@@ -181,8 +182,8 @@ Found **3 requests** related to auth:
 **Turn 1** — Explore scope:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): User wants full checkout flow. Need to find all related requests via list_https with multiple filters.
-Pass 2 (Verify): Two independent filters — batch them in one message.
+Pass 1 (Plan): User wants full checkout flow. Need to find all related requests via list_https with multiple filters. Two independent filters — batch them.
+Pass 2 (Verify): Batch in one message per BATCH rule.
 </thinking>
 <list_https>
   <filter>
@@ -196,11 +197,12 @@ Pass 2 (Verify): Two independent filters — batch them in one message.
 </list_https>
 \`\`\`
 
-**Turn 2** — IMPACT-CONFIRM because >5 requests across multiple steps:
+**Turn 2** — IMPACT-CONFIRM because >4 requests across multiple steps:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Found 7 requests in the payment flow. Per IMPACT-CONFIRM, must confirm with user before proceeding.
-Pass 2 (Verify): >5 requests affected. Scope is large. Ask for confirmation.
+Pass 1 (Plan): Found 7 requests in the payment flow. Per IMPACT-CONFIRM (>4 requests), must confirm with user before proceeding.
+Pass 3 (Impact): 7 requests across checkout + payment + order finalization. Full flow analysis.
+Pass 2 (Verify): >4 requests affected. Scope is large. Ask for confirmation.
 </thinking>
 <markdown>
 Found **7 requests** in the checkout flow:
@@ -251,7 +253,7 @@ Pass 2 (Verify): No assumptions — run list_https and STOP.
 **Turn 2** — READ:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): One request matched. Get its detail.
+Pass 1 (Plan): One request matched (stt=4). Get its detail.
 Pass 2 (Verify): stt=4 is valid from list_https result.
 </thinking>
 <get_https_detail><index>4</index></get_https_detail>
@@ -268,7 +270,7 @@ Request \`POST /api/login\` (stt=4) does NOT return a JWT token in the body — 
 </markdown>
 <question>
   <q id="1" type="single" label="The actual auth mechanism is session cookie-based, not JWT. How do you want to proceed?">
-    <option>Analyze the security of this session cookie instead</option>
+    <option>Analyze the security of this session cookie instead (recommended — this is the actual auth mechanism in use)</option>
     <option>Check if any other endpoint returns a JWT (e.g., /api/auth/token)</option>
     <option>Stop — I need to confirm the auth architecture first</option>
   </q>
@@ -305,25 +307,28 @@ Pass 2 (Verify): No early stop condition met — continue with batch 2.
 
 ---
 
-## Ex 8: RE-CLARIFY — 3 consecutive tool turns with no user message ✅
+## Ex 8: RE-CLARIFY — 6 consecutive tool calls with no user message ✅
 
-*(After 3 consecutive tool-call turns with no new user message)*
+*(After 6 consecutive tool-call turns with no new user message)*
 
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): 3 tool turns completed. Per RE-CLARIFY, pause and re-confirm direction.
+Pass 1 (Plan): 6 tool turns completed. Per RE-CLARIFY, pause and re-confirm direction.
 Pass 2 (Verify): No user message since the last turn. Must ask before continuing.
 </thinking>
 <markdown>
-**Progress so far** — completed 3 steps:
+**Progress so far** — completed 6 steps:
 1. ✅ \`list_https\` — found 15 requests related to \`/api/auth\`
 2. ✅ \`get_https_detail\` stt=3 — retrieved POST /api/auth/login details
 3. ✅ \`get_https_detail\` stt=5 — retrieved POST /api/auth/2fa details
+4. ✅ \`get_https_detail\` stt=8 — retrieved POST /api/auth/refresh details
+5. ✅ \`list_https\` — filtered for \`/api/user\` requests
+6. ✅ \`get_https_detail\` stt=12 — retrieved GET /api/user/profile details
 </markdown>
 <question>
-  <q id="1" type="single" label="Next step is to analyze the token refresh detail (stt=8). Continue?">
-    <option>Yes, continue analyzing</option>
-    <option>Show me a summary of the previous 2 steps first</option>
+  <q id="1" type="single" label="Next step is to analyze the remaining 3 user-related requests. Continue?">
+    <option>Yes, continue analyzing (recommended — completes the full auth + user flow picture)</option>
+    <option>Show me a summary of the previous 6 steps first</option>
     <option>Stop — the goal has changed</option>
   </q>
 </question>
