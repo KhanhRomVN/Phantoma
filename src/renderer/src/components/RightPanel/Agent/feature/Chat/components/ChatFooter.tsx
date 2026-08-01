@@ -1,7 +1,7 @@
 import React from 'react';
 import FilesPreviews from '../../../components/common/MessageInput/FilesPreviews';
 import MessageInput from '../../../components/common/MessageInput';
-import { FILE_MUTATION_TOOLS, type FileMutationTool } from '../constants/constants';
+import { type FileMutationTool } from '../constants/constants';
 interface ChatFooterProps {
   message: string;
   setMessage: React.Dispatch<React.SetStateAction<string>>;

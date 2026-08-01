@@ -23,4 +23,37 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
       fullAccess: "allow",
     },
   },
+
+  list_hosts: {
+    id: "list_hosts",
+    title: "LIST HOSTS",
+    category: "tool",
+    timeout: 15000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  list_sources: {
+    id: "list_sources",
+    title: "LIST SOURCES",
+    category: "tool",
+    timeout: 15000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  get_source_detail: {
+    id: "get_source_detail",
+    title: "SOURCE DETAIL",
+    category: "tool",
+    timeout: 15000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
 };

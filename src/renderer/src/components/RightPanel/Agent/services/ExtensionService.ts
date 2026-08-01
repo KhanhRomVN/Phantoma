@@ -1,7 +1,14 @@
 // ─── ExtensionService — Electron IPC Bridge ────────────────────────────
+/**
+ * ExtensionService — cầu nối IPC giữa renderer và Electron main process (thay thế acquireVsCodeApi).
+ *
+ *    postMessage()     : Gửi message qua window.api.invoke.
+ *    onMessage()       : Lắng nghe message từ main process.
+ *    MessageDispatcher : Class quản lý handler + timeout cho request-response pattern.
+ */
+
 //
-// Previously used VS Code's acquireVsCodeApi + postMessage.
-// Now refactored for Electron: uses window.api.invoke / window.api.on
+// Electron IPC bridge: uses window.api.invoke / window.api.on
 // for IPC, and localStorage for storage operations.
 // ────────────────────────────────────────────────────────────────────────
 

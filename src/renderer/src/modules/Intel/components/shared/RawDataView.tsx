@@ -1,8 +1,8 @@
-import type { DataPoint } from '../../types/data-point';
 import { DataPointRow } from './DataPointRow';
 
 interface RawDataViewProps {
-  dataPoints: DataPoint[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dataPoints: any[];
   title: string;
   description: string;
 }

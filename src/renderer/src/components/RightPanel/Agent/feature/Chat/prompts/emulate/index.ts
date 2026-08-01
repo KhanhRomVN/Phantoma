@@ -13,6 +13,8 @@ export type { SystemInfo } from './system-context';
 export { EXAMPLES } from './examples';
 export { CONSTRAINTS } from './constraints';
 export { EMULATE_TOOLS_REFERENCE } from './tools-reference';
+export { buildTrafficContext, buildEmptyTrafficContext } from './traffic-context';
+export type { TrafficSummary } from './traffic-context';
 
 interface PromptConfig {
   language: string;

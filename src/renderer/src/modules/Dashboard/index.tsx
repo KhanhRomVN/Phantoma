@@ -534,6 +534,7 @@ interface DashboardState {
 }
 
 export function Dashboard() {
+  console.log('[DEBUG] Dashboard render at', performance.now());
   const [state] = useModulePersistence<DashboardState>('dashboard', {
     greeting:
       new Date().getHours() < 12

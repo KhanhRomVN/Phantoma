@@ -1,6 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+/**
+ * useConversationRestore — khôi phục conversation từ cache hoặc localStorage khi load/switch conversation.
+ *
+ *    restoreConversation()       : Load conversation từ cache → localStorage → tạo mới nếu không tìm thấy.
+ *    handleConversationNotFound(): Xử lý khi conversation không tồn tại (xóa + tạo mới).
+ */
+
+import { useCallback, useRef } from 'react';
+
+// TYPES
 import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
+
+// SERVICES
 import { ConversationCache } from '../../services/ConversationCache';
 import { deleteConversation } from '../../services/ConversationService';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';

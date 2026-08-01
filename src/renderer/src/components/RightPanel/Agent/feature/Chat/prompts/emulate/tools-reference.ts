@@ -8,31 +8,63 @@ Use XML tags for all tool calls:
     <host>api.example.com</host>
     <path>/users</path>
     <status>200</status>
+    <type>xhr</type>
   </filter>
 </list_https>
 <get_https_detail><index>1</index></get_https_detail>
+<list_hosts />
+<list_sources />
+<list_sources>
+  <filter>
+    <host>cdn.example.com</host>
+    <type>js</type>
+  </filter>
+</list_sources>
+<get_source_detail><index>1</index></get_source_detail>
 **list_https**: List captured HTTPS requests with optional filters.
 - \`limit\`: (optional) Max number of requests to return. If omitted, returns all captured requests up to a default limit.
 - \`filter\`: (optional) Filter requests by attributes. All filter conditions are AND-ed together (must ALL match). Available filter attributes:
-  - \`method\`: HTTP method (GET, POST, PUT, DELETE, etc.) — case-insensitive partial match
+  - \`method\`: HTTP method (GET, POST, PUT, DELETE, etc.) — case-insensitive exact match
   - \`host\`: Request host (e.g., "api.example.com") — case-insensitive partial match
   - \`path\`: Request path (e.g., "/api/users") — case-insensitive partial match
   - \`status\`: HTTP response status code (e.g., "200", "404", "500") — exact match
-- Returns: A numbered list of matching requests with \`stt\` (index), \`method\`, \`host\`, \`path\`, \`status\`, and optional summary.
+  - \`type\`: Resource type — exact match. Values: \`xhr\`, \`js\`, \`css\`, \`img\`, \`doc\`, \`fetch\`, \`media\`, \`font\`, \`ws\`, \`manifest\`, \`other\`
+- Returns: A numbered list of matching requests with \`stt\` (index), \`method\`, \`host\`, \`path\`, \`status\`, \`type\`, and optional summary.
 - Examples:
   - \`<list_https><limit>20</limit></list_https>\` — list up to 20 most recent requests
   - \`<list_https><filter><host>api.example.com</host></filter></list_https>\` — filter by host
   - \`<list_https><filter><method>POST</method><status>500</status></filter></list_https>\` — filter POST requests with 500 status
+  - \`<list_https><filter><type>js</type></filter></list_https>\` — filter only JavaScript files
 **get_https_detail**: Get full request/response detail for a specific captured HTTPS request.
 - \`index\`: The \`stt\` (index) of the request from a previous \`list_https\` result (required).
 - Returns: Full detail including request method, URL, headers, body, response status, response headers, and response body.
 - Example: \`<get_https_detail><index>3</index></get_https_detail>\` — get detail for request stt=3
 - ⚠ LIST-BEFORE-DETAIL: Always call \`list_https\` before \`get_https_detail\`. The index must come from a \`list_https\` result.
+**list_hosts**: List all unique hosts from captured HTTPS traffic with request counts.
+- No parameters.
+- Returns: A numbered list of unique hosts with \`stt\` (index), \`host\`, and \`count\` (number of requests to that host).
+- Example: \`<list_hosts />\` — list all unique hosts
+**list_sources**: List source files (scripts, stylesheets) from captured traffic, organized as a directory tree.
+- \`filter\`: (optional) Filter source files. Available filter attributes:
+  - \`host\`: Filter by domain (case-insensitive partial match)
+  - \`type\`: Filter by resource type — exact match. Values: \`js\`, \`css\`, \`doc\`, \`other\`
+- Returns: A directory tree view with indented structure showing domains → folders → files. Each file has \`stt\` (index for use with \`get_source_detail\`), name, size, and optional unpacked indicator.
+- Examples:
+  - \`<list_sources />\` — list all source files as a tree
+  - \`<list_sources><filter><host>cdn.example.com</host></filter></list_sources>\` — sources from a specific host
+  - \`<list_sources><filter><type>js</type></filter></list_sources>\` — only JavaScript files
+- ⚠ SOURCE-BEFORE-DETAIL: Always call \`list_sources\` before \`get_source_detail\`. The index must come from a \`list_sources\` result.
+**get_source_detail**: Get the full source code of a specific file from the sources tree.
+- \`index\`: The \`stt\` (index) of the file from a previous \`list_sources\` result (required).
+- Returns: The file URL, size, and the source code (prettified if minified). If the file has an unpacked version (from debugger), returns the unpacked source instead.
+- Example: \`<get_source_detail><index>5</index></get_source_detail>\` — get source for file stt=5
+- ⚠ SOURCE-BEFORE-DETAIL: Always call \`list_sources\` before \`get_source_detail\`. The index must come from a \`list_sources\` result.
 
 # RESPONSE TAGS
 <thinking>your private two-pass (or three-pass, see WORKFLOW) reasoning and planning</thinking>
 <markdown>prose, tables, explanations</markdown>
 <code language="json">display request/response data (read-only)</code>
+<code language="javascript">display source code (read-only)</code>
 ## <question> — Multi-Question Block
 Use <question> to ask the user one or more questions at once. Each question is a <q> element.
 **Schema:**
@@ -115,7 +147,7 @@ The default mode of asking must be **confirmation**, not "here are N unranked ch
 # STRICT HONESTY RULES
 **Never fabricate tool results.** If a tool call was made but no result was returned in the conversation, you have NO data. In that case:
 - State plainly: "The tool returned no result." or "I did not receive output from the tool."
-- Do NOT invent hosts, paths, status codes, request counts, or any data.
+- Do NOT invent hosts, paths, status codes, request counts, source file names, source code, or any data.
 - Do NOT pretend the tool succeeded.
 **Never hallucinate.** Only report what is explicitly present in the tool output. If the result is empty or absent, say so directly.
 **Be direct, not pleasing.** Do not frame failures as successes. Do not add "✅" or "completed successfully" when you have no evidence the operation worked.`;

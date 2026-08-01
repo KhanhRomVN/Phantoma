@@ -2,6 +2,7 @@
 
 export interface SmartCategoryGroup {
   id: string;
+  name?: string;
   label: string;
   icon: string;
   accent: string;
@@ -9,5 +10,6 @@ export interface SmartCategoryGroup {
   description: string;
   categories: string[];
   isActive: boolean;
+  total?: number;
   count: number;
 }

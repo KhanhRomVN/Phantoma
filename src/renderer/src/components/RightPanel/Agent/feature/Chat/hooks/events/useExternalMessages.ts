@@ -1,6 +1,15 @@
 import { useEffect, useRef } from "react";
-import { Message } from "../../types/message";
-import { ChatSession } from "../../types/chat";
+/**
+ * useExternalMessages — lắng nghe external messages từ extension (gửi file, workspace context...).
+ *
+ *    Xử lý message command: addToCrypto, addFileToChat, addFolderToChat, addRulesToChat, externalFiles.
+ */
+
+import { useEffect } from 'react';
+
+// TYPES
+import { Message } from '../../types/message';
+import { ChatSession } from '../../types/chat';
 
 interface UseExternalMessagesProps {
   currentChat: ChatSession | null;

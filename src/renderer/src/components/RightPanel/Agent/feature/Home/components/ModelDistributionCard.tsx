@@ -232,4 +232,4 @@ const ModelDistributionCard: React.FC<Props> = ({
   );
 };
 
-export default ModelDistributionCard;
+export default React.memo(ModelDistributionCard);

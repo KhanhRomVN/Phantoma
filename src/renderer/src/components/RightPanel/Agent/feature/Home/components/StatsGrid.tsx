@@ -81,4 +81,4 @@ const StatsGrid: React.FC<StatsGridProps> = ({
   );
 };
 
-export default StatsGrid;
+export default React.memo(StatsGrid);

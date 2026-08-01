@@ -173,14 +173,29 @@ export class IndexedDBStorage {
       let skipped = 0;
       let collected = 0;
 
+      // Helper: decompress all records after cursor finishes
+      const finalize = async () => {
+        for (const r of requests) {
+          if (r.responseBodyCompressed && r.responseBody) {
+            try {
+              r.responseBody = await this.decompress(r.responseBody, true);
+              r.responseBodyCompressed = false;
+            } catch {
+              // Keep as-is if decompression fails
+            }
+          }
+        }
+        resolve(requests);
+      };
+
       // Query in descending timestamp order (newest first)
       const range = IDBKeyRange.bound([targetId, 0], [targetId, Date.now()]);
       const cursor = index.openCursor(range, 'prev');
 
-      cursor.onsuccess = async (event) => {
+      cursor.onsuccess = (event) => {
         const cursor_ = (event.target as IDBRequest).result;
         if (!cursor_) {
-          resolve(requests);
+          finalize();
           return;
         }
 
@@ -192,20 +207,11 @@ export class IndexedDBStorage {
 
         if (collected < limit) {
           const value = cursor_.value as StoredRequest;
-          // Decompress response body if needed
-          if (value.responseBodyCompressed && value.responseBody) {
-            try {
-              value.responseBody = await this.decompress(value.responseBody, true);
-              value.responseBodyCompressed = false;
-            } catch {
-              // Keep as-is if decompression fails
-            }
-          }
           requests.push(value);
           collected++;
           cursor_.continue();
         } else {
-          resolve(requests);
+          finalize();
         }
       };
 

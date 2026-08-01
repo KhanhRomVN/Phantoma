@@ -46,6 +46,9 @@ import {
   QuestionRenderer,
   WarningRenderer,
   ListHttpsRenderer,
+  ListHostsRenderer,
+  ListSourcesRenderer,
+  GetSourceDetailRenderer,
 } from './renderers';
 import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
@@ -635,6 +638,63 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   if (toolType === 'list_https') {
     return (
       <ListHttpsRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'list_hosts') {
+    return (
+      <ListHostsRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'list_sources') {
+    return (
+      <ListSourcesRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'get_source_detail') {
+    return (
+      <GetSourceDetailRenderer
         action={firstAction}
         actionIndex={toolGroup[0].index}
         messageId={messageId}

@@ -1,7 +1,18 @@
 import { useEffect, useRef } from "react";
-import { Message } from "../../types/message";
-import { ChatSession } from "../../types/chat";
-import { saveConversation } from "../../services/ConversationService";
+/**
+ * useConversationPersistence — tự động save conversation vào localStorage mỗi khi messages/toolOutputs thay đổi.
+ *
+ *    Debounce 500ms trước khi save để tránh ghi quá nhiều.
+ */
+
+import { useEffect, useRef } from 'react';
+
+// TYPES
+import { Message } from '../../types/message';
+import { ChatSession } from '../../types/chat';
+
+// SERVICES
+import { saveConversation } from '../../services/ConversationService';
 
 interface UseConversationPersistenceProps {
   currentConversationId: string | null;

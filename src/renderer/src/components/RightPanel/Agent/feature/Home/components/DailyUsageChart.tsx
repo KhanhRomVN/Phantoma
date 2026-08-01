@@ -176,4 +176,4 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
   );
 };
 
-export default DailyUsageChart;
+export default React.memo(DailyUsageChart);

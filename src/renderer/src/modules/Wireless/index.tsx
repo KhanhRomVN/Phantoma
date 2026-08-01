@@ -38,6 +38,7 @@ interface TooltipState {
 // ============================================================================
 
 export function Wireless() {
+  console.log('[DEBUG] Wireless render at', performance.now());
   const {
     networks,
     activeAttacks,

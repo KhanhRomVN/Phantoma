@@ -241,15 +241,11 @@ function ListFilterSection({
                 <span
                   key={item}
                   className={cn(
-                    'inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs border cursor-default',
+                    'inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-default',
                   )}
                   style={
                     color
-                      ? {
-                          color: color,
-                          borderColor: color,
-                          backgroundColor: `${color}20`,
-                        }
+                      ? { color: color }
                       : undefined
                   }
                 >
@@ -278,7 +274,7 @@ function ListFilterSection({
 }
 
 export function NetworkFilter({ filter, onChange, requests = [], targetId }: NetworkFilterProps) {
-  const { getColorByIndex } = useAccentColors();
+  const { getColorByIndex, toRgba } = useAccentColors();
 
   // Storage key for filter data
   const getStorageKey = () => {
@@ -459,18 +455,15 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                       })
                     }
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium border transition-all',
+                      'px-3 py-1 rounded text-xs font-medium transition-all',
                       isVisible
                         ? 'text-text-primary'
-                        : 'text-muted-foreground border-border bg-transparent opacity-50',
+                        : 'text-muted-foreground border-border bg-transparent hover:bg-white/10',
                     )}
                     style={
                       isVisible
-                        ? {
-                            color: color.color,
-                            borderColor: color.color,
-                          }
-                        : undefined
+                        ? { color: color.color }
+                        : { color: toRgba(color.color, 0.5) }
                     }
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >
@@ -507,12 +500,18 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
             <div className="flex flex-wrap gap-2">
               {availableStatuses.map((code) => {
                 const safeCode = typeof code === 'number' ? code : 0;
-                let colorClass = 'text-text-secondary border-border';
-                if (safeCode >= 200 && safeCode < 300) colorClass = 'text-green border-green/30';
-                else if (safeCode >= 300 && safeCode < 400)
-                  colorClass = 'text-yellow border-yellow/30';
-                else if (safeCode >= 400 && safeCode < 500) colorClass = 'text-red border-red/30';
-                else if (safeCode >= 500) colorClass = 'text-rose-400 border-rose-400/30';
+                let statusColor = '';
+                if (safeCode >= 200 && safeCode < 300) statusColor = '#22c55e';
+                else if (safeCode >= 300 && safeCode < 400) statusColor = '#eab308';
+                else if (safeCode >= 400 && safeCode < 500) statusColor = '#ef4444';
+                else if (safeCode >= 500) statusColor = '#fb7185';
+
+                const hexToRgba = (hex: string, alpha: number) => {
+                  const r = parseInt(hex.slice(1, 3), 16);
+                  const g = parseInt(hex.slice(3, 5), 16);
+                  const b = parseInt(hex.slice(5, 7), 16);
+                  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                };
 
                 const isVisible = filter.status[safeCode] !== false;
 
@@ -529,11 +528,18 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                       })
                     }
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium border transition-all whitespace-nowrap',
+                      'px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap',
                       isVisible
-                        ? colorClass
-                        : 'text-muted-foreground border-border bg-transparent opacity-50',
+                        ? ''
+                        : 'text-muted-foreground bg-transparent hover:bg-white/10',
                     )}
+                    style={
+                      isVisible
+                        ? { color: statusColor }
+                        : statusColor
+                          ? { color: hexToRgba(statusColor, 0.5) }
+                          : undefined
+                    }
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >
                     {safeCode}
@@ -571,18 +577,15 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                       })
                     }
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium border transition-all',
+                      'px-3 py-1 rounded text-xs font-medium transition-all',
                       isVisible
                         ? 'text-text-primary'
-                        : 'text-muted-foreground border-border bg-transparent opacity-50',
+                        : 'text-muted-foreground border-border bg-transparent hover:bg-white/10',
                     )}
                     style={
                       isVisible
-                        ? {
-                            color: config.color,
-                            borderColor: config.color,
-                          }
-                        : undefined
+                        ? { color: config.color }
+                        : { color: toRgba(config.color, 0.5) }
                     }
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >

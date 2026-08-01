@@ -1,4 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
+/**
+ * useToolExecution — thực thi tool actions từ LLM, quản lý permission, timeout, retry, terminal output.
+ */
+
 import { Message } from '../../types/message';
 
 import { parseAIResponse } from '../../services/ResponseParser';

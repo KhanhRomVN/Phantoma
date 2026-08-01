@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+/**
+ * BackendConnectionContext — theo dõi trạng thái kết nối đến backend server qua health check.
+ *
+ *    BackendConnectionProvider : Provider bọc ngoài, polling health endpoint mỗi 5s.
+ *    useBackendConnection()    : Hook trả về { isConnected, isChecking, checkConnection, apiUrl, setApiUrl }.
+ */
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 interface BackendConnectionContextType {
   isConnected: boolean;

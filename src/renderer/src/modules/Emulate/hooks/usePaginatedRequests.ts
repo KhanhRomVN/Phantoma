@@ -1,198 +1,68 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { requestStorage, StoredRequest } from '../../../services/IndexedDBStorage';
 import { NetworkRequest } from '../types/inspector';
 
 interface UsePaginatedRequestsOptions {
   targetId: string;
   limit?: number;
   maxMemory?: number;
+  initialRequests?: NetworkRequest[];
   onRequestsChange?: (requests: NetworkRequest[]) => void;
 }
 
 export function usePaginatedRequests({
   targetId,
-  limit = 100,
+  limit: _limit = 100,
   maxMemory = 1000,
+  initialRequests,
   onRequestsChange,
 }: UsePaginatedRequestsOptions) {
-  const [requests, setRequests] = useState<NetworkRequest[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
-  const offsetRef = useRef(0);
-  const isInitialLoadRef = useRef(true);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [requests, setRequests] = useState<NetworkRequest[]>(initialRequests || []);
+  const [totalCount, setTotalCount] = useState(initialRequests ? initialRequests.length : 0);
   const onRequestsChangeRef = useRef(onRequestsChange);
-  const pendingRequestsRef = useRef<StoredRequest[]>([]);
-  const targetIdRef = useRef(targetId);
+  const prevTargetIdRef = useRef(targetId);
 
   useEffect(() => {
     onRequestsChangeRef.current = onRequestsChange;
   }, [onRequestsChange]);
 
+  // Reset requests when targetId changes (in-memory only, no IndexedDB)
   useEffect(() => {
-    targetIdRef.current = targetId;
+    if (prevTargetIdRef.current !== targetId) {
+      prevTargetIdRef.current = targetId;
+      setRequests([]);
+      setTotalCount(0);
+      onRequestsChangeRef.current?.([]);
+    }
   }, [targetId]);
-
-  const getCurrentTargetId = useCallback(() => {
-    return targetIdRef.current || targetId;
-  }, [targetId]);
-
-  const toNetworkRequest = (stored: StoredRequest): NetworkRequest => ({
-    id: stored.id,
-    method: stored.method,
-    url: stored.url,
-    protocol: stored.protocol,
-    host: stored.host,
-    path: stored.path,
-    status: stored.status,
-    type: stored.type,
-    size: stored.size,
-    time: stored.time,
-    timestamp: stored.timestamp,
-    requestHeaders: stored.requestHeaders,
-    responseHeaders: stored.responseHeaders,
-    requestBody: stored.requestBody,
-    responseBody: stored.responseBody,
-    initiator: stored.initiator,
-    securityIssues: stored.securityIssues,
-    requestCookies: stored.requestCookies,
-    responseCookies: stored.responseCookies,
-  });
-
-  const loadInitial = useCallback(async () => {
-    if (!targetId) return;
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    setLoading(true);
-    offsetRef.current = 0;
-
-    try {
-      const count = await requestStorage.getRequestsCount(targetId);
-      setTotalCount(count);
-
-      const stored = await requestStorage.getRequests(targetId, Math.min(limit, maxMemory), 0);
-      const mapped = stored.map(toNetworkRequest);
-      setRequests(mapped);
-      setHasMore(stored.length < count && stored.length === limit);
-      offsetRef.current = stored.length;
-      onRequestsChangeRef.current?.(mapped);
-    } catch (error) {
-      console.error('[usePaginatedRequests] Failed to load initial:', error);
-    } finally {
-      setLoading(false);
-      isInitialLoadRef.current = false;
-    }
-  }, [targetId, limit, maxMemory]);
-
-  const loadMore = useCallback(async () => {
-    if (!targetId || loading || !hasMore) return;
-    if (offsetRef.current >= maxMemory) {
-      setHasMore(false);
-      return;
-    }
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    setLoading(true);
-
-    try {
-      const remaining = maxMemory - offsetRef.current;
-      const take = Math.min(limit, remaining);
-      const stored = await requestStorage.getRequests(targetId, take, offsetRef.current);
-
-      if (stored.length === 0) {
-        setHasMore(false);
-        setLoading(false);
-        return;
-      }
-
-      const mapped = stored.map(toNetworkRequest);
-      setRequests((prev) => {
-        const existingIds = new Set(prev.map((r) => r.id));
-        const newRequests = mapped.filter((r) => !existingIds.has(r.id));
-        const merged = [...prev, ...newRequests];
-        onRequestsChangeRef.current?.(merged);
-        return merged;
-      });
-
-      offsetRef.current += stored.length;
-      const total = await requestStorage.getRequestsCount(targetId);
-      setTotalCount(total);
-      setHasMore(offsetRef.current < total && offsetRef.current < maxMemory);
-    } catch (error) {
-      console.error('[usePaginatedRequests] Failed to load more:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [targetId, loading, hasMore, limit, maxMemory]);
 
   const addRequest = useCallback(
-    async (request: Partial<NetworkRequest>) => {
-      const currentTargetId = getCurrentTargetId();
-      const stored: StoredRequest = {
-        id: request.id || 'req-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
-        targetId: currentTargetId || '',
-        method: request.method || 'GET',
-        url: request.url || '',
-        protocol: request.protocol || 'http',
-        host: request.host || '',
-        path: request.path || '/',
-        status: request.status || 0,
-        type: request.type || 'other',
-        size: typeof request.size === 'string' ? request.size : String(request.size || '0 B'),
-        time: typeof request.time === 'string' ? request.time : String(request.time || '0ms'),
-        timestamp: typeof request.timestamp === 'number' ? request.timestamp : Date.now(),
-        requestHeaders: request.requestHeaders || {},
-        responseHeaders: request.responseHeaders || {},
-        requestBody:
-          typeof request.requestBody === 'string'
-            ? request.requestBody
-            : JSON.stringify(request.requestBody || ''),
-        responseBody:
-          typeof request.responseBody === 'string'
-            ? request.responseBody
-            : JSON.stringify(request.responseBody || ''),
-        responseBodyCompressed: false,
-        initiator: request.initiator,
-        securityIssues: request.securityIssues,
-        requestCookies: request.requestCookies,
-        responseCookies: request.responseCookies,
+    (request: Partial<NetworkRequest>) => {
+      const networkReq: NetworkRequest = {
+        id: (request as any).id || 'req-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
+        method: (request as any).method || 'GET',
+        url: (request as any).url || '',
+        protocol: (request as any).protocol || 'http',
+        host: (request as any).host || '',
+        path: (request as any).path || '/',
+        status: (request as any).status || 0,
+        type: (request as any).type || 'other',
+        size: (request as any).size || '0 B',
+        time: (request as any).time || '0ms',
+        timestamp: (request as any).timestamp || Date.now(),
+        requestHeaders: (request as any).requestHeaders || {},
+        responseHeaders: (request as any).responseHeaders || {},
+        requestBody: (request as any).requestBody || '',
+        responseBody: (request as any).responseBody || '',
+        initiator: (request as any).initiator,
+        securityIssues: (request as any).securityIssues,
+        requestCookies: (request as any).requestCookies,
+        responseCookies: (request as any).responseCookies,
       };
 
-      if (!currentTargetId) {
-        console.warn('[usePaginatedRequests] No targetId, buffering request:', stored.id);
-        pendingRequestsRef.current.push(stored);
-        const networkReq = toNetworkRequest(stored);
-        setRequests((prev) => {
-          if (prev.some((r) => r.id === networkReq.id)) return prev;
-          const newRequests = [networkReq, ...prev];
-          if (newRequests.length > maxMemory) {
-            const sliced = newRequests.slice(0, maxMemory);
-            onRequestsChangeRef.current?.(sliced);
-            return sliced;
-          }
-          onRequestsChangeRef.current?.(newRequests);
-          return newRequests;
-        });
-        return;
-      }
-
-      stored.targetId = currentTargetId;
-      requestStorage.saveRequest(currentTargetId, stored).catch(console.error);
-
       setRequests((prev) => {
-        if (prev.some((r) => r.id === stored.id)) {
+        if (prev.some((r) => (r as any).id === (networkReq as any).id)) {
           return prev;
         }
-        const networkReq = toNetworkRequest(stored);
         const newRequests = [networkReq, ...prev];
         if (newRequests.length > maxMemory) {
           const sliced = newRequests.slice(0, maxMemory);
@@ -205,49 +75,15 @@ export function usePaginatedRequests({
 
       setTotalCount((prev) => prev + 1);
     },
-    [getCurrentTargetId, maxMemory],
+    [maxMemory],
   );
 
   const updateRequest = useCallback(
-    async (id: string, updates: Partial<NetworkRequest>) => {
-      const currentTargetId = getCurrentTargetId();
-      if (!currentTargetId) return;
-
+    (id: string, updates: Partial<NetworkRequest>) => {
       setRequests((prev) => {
         const updated = prev.map((r) => {
-          if (r.id === id) {
-            const merged = { ...r, ...updates };
-            const stored: StoredRequest = {
-              id: merged.id,
-              targetId: currentTargetId,
-              method: merged.method,
-              url: merged.url,
-              protocol: merged.protocol,
-              host: merged.host,
-              path: merged.path,
-              status: merged.status || 0,
-              type: merged.type || 'other',
-              size: typeof merged.size === 'string' ? merged.size : String(merged.size || '0 B'),
-              time: typeof merged.time === 'string' ? merged.time : String(merged.time || '0ms'),
-              timestamp: typeof merged.timestamp === 'number' ? merged.timestamp : Date.now(),
-              requestHeaders: merged.requestHeaders || {},
-              responseHeaders: merged.responseHeaders || {},
-              requestBody:
-                typeof merged.requestBody === 'string'
-                  ? merged.requestBody
-                  : JSON.stringify(merged.requestBody || ''),
-              responseBody:
-                typeof merged.responseBody === 'string'
-                  ? merged.responseBody
-                  : JSON.stringify(merged.responseBody || ''),
-              responseBodyCompressed: false,
-              initiator: merged.initiator,
-              securityIssues: merged.securityIssues,
-              requestCookies: merged.requestCookies,
-              responseCookies: merged.responseCookies,
-            };
-            requestStorage.saveRequest(currentTargetId, stored).catch(console.error);
-            return merged;
+          if ((r as any).id === id) {
+            return { ...r, ...updates } as NetworkRequest;
           }
           return r;
         });
@@ -255,55 +91,27 @@ export function usePaginatedRequests({
         return updated;
       });
     },
-    [getCurrentTargetId],
+    [],
   );
 
-  const clearRequests = useCallback(async () => {
-    const currentTargetId = getCurrentTargetId();
-    if (!currentTargetId) return;
-    await requestStorage.deleteTarget(currentTargetId);
+  const clearRequests = useCallback(() => {
     setRequests([]);
     setTotalCount(0);
-    setHasMore(false);
-    offsetRef.current = 0;
     onRequestsChangeRef.current?.([]);
-  }, [getCurrentTargetId]);
+  }, []);
 
-  const reload = useCallback(async () => {
-    await loadInitial();
-  }, [loadInitial]);
+  const loadMore = useCallback(() => {
+    // No-op: all requests are in memory, no pagination from DB needed
+  }, []);
 
-  useEffect(() => {
-    if (targetId) {
-      if (pendingRequestsRef.current.length > 0) {
-        const pending = pendingRequestsRef.current;
-        pendingRequestsRef.current = [];
-        pending.forEach((stored) => {
-          const withTarget = { ...stored, targetId };
-          requestStorage.saveRequest(targetId, withTarget).catch(console.error);
-        });
-        setTotalCount((prev) => prev + pending.length);
-      }
-      isInitialLoadRef.current = true;
-      loadInitial();
-    } else {
-      setRequests([]);
-      setTotalCount(0);
-      setHasMore(false);
-      offsetRef.current = 0;
-    }
-
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [targetId, loadInitial]);
+  const reload = useCallback(() => {
+    // No-op: requests managed entirely in memory
+  }, []);
 
   return {
     requests,
-    loading,
-    hasMore,
+    loading: false,
+    hasMore: false,
     totalCount,
     addRequest,
     updateRequest,

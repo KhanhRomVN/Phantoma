@@ -100,6 +100,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     targetId,
     limit: 100,
     maxMemory: 500,
+    initialRequests,
     onRequestsChange,
   });
 

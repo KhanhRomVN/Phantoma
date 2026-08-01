@@ -1,8 +1,12 @@
-// ─── Agent Store (Zustand) ────────────────────────────────────────────────
+/**
+ * useAgentStore — zustand store cho Agent settings, persist API URL + model/account selection.
+ *
+ *    Persist qua localStorage key 'agent-store', chỉ lưu: apiUrl, language, aiLanguage, activeModelId, activeAccountId.
+ */
 
+// STORES
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { STORAGE_KEYS } from '../types'
 
 interface AgentState {
   // Settings

@@ -176,3 +176,34 @@ export interface QuestionBlock {
   optional?: boolean;
   questions?: any[]; // Avoid circular dependency with message types
 }
+
+// ===== EMULATE TOOLS =====
+export interface ListHttpsParams {
+  filter?: {
+    method?: string;
+    host?: string;
+    path?: string;
+    status?: number;
+    type?: string;
+  };
+  limit?: number;
+}
+
+export interface GetHttpsDetailParams {
+  index: number;
+}
+
+export interface ListHostsParams {
+  // Không có params
+}
+
+export interface ListSourcesParams {
+  filter?: {
+    host?: string;
+    type?: string;
+  };
+}
+
+export interface GetSourceDetailParams {
+  index: number;
+}

@@ -34,11 +34,16 @@ const saveRepeaterIds = (ids: Set<string>, targetId?: string | null) => {
 
 // Add a request to Repeater
 export const addToRepeater = (requestId: string, targetId?: string | null) => {
+  // [DEBUG] Xóa sau khi fix — log trạng thái trước khi lưu
+  console.log('[DEBUG] addToRepeater called:', { requestId, targetId });
   const ids = loadRepeaterIds(targetId);
+  console.log('[DEBUG] loadRepeaterIds returned:', { targetId, existingIds: [...ids], count: ids.size });
   ids.add(requestId);
+  console.log('[DEBUG] after add, ids:', { targetId, updatedIds: [...ids], count: ids.size });
   saveRepeaterIds(ids, targetId);
   // Dispatch event to notify components
   window.dispatchEvent(new CustomEvent('repeater-updated'));
+  console.log('[DEBUG] repeater-updated event dispatched');
 };
 
 // Check if a request is in Repeater
@@ -80,6 +85,9 @@ export function PayloadPanel({
   selectedRequestId,
   targetId,
 }: PayloadPanelProps) {
+  // [DEBUG] Xóa sau khi fix
+  console.log('[DEBUG] PayloadPanel mounted/rendered with:', { targetId, requestsCount: requests.length });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds(targetId));

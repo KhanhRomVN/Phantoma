@@ -1,9 +1,28 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ToolAction } from "../../services/ResponseParser";
-import { Message } from "../../types/message";
-import { useSettings } from "../../../../context/SettingsContext";
-import { getPermissionDecision } from "./useToolExecution";
-import { isToolClickable, TOOL_ACTION_TYPES } from "../../constants/constants";
+/**
+ * useToolActions — quản lý hành vi của tool actions trong chat (execute, approve, reject, auto-trigger...).
+ *
+ *    executeTool()   : Thực thi tool với permission check.
+ *    approveTool()   : Approve tool đang chờ review.
+ *    rejectTool()    : Từ chối tool.
+ *    retryTool()     : Thử lại tool đã fail.
+ *    autoTrigger()   : Tự động trigger tool action khi điều kiện đúng.
+ */
+
+import { useCallback } from 'react';
+
+// TYPES
+import { ToolAction } from '../../services/ResponseParser';
+import { Message } from '../../types/message';
+
+// CONTEXT
+import { useSettings } from '../../../../context/SettingsContext';
+
+// HOOKS
+import { getPermissionDecision } from './useToolExecution';
+
+// CONSTANTS
+import { isToolClickable, TOOL_ACTION_TYPES } from '../../constants/constants';
 
 interface UseToolActionsProps {
   onSendToolRequest?: (

@@ -1,7 +1,25 @@
 import { useState, useRef } from 'react';
-import { UploadedFile, ExternalFile, AttachedItem } from '../types/file-uploader';
+/**
+ * useFileHandling — hook quản lý upload file (local + external) và chuyển đổi thành AttachedItem.
+ *
+ *    uploadFileToServer()    : Upload file local lên server, theo dõi progress.
+ *    addExternalFile()       : Thêm external file (từ workspace) vào danh sách.
+ *    removeFile()            : Xóa file khỏi danh sách.
+ *    clearFiles()            : Xóa tất cả files.
+ */
+
+import React, { useState, useRef, useCallback } from 'react';
+
+// CONTEXT
 import { useSettings } from '../context/SettingsContext';
+
+// TYPES
+import { UploadedFile, ExternalFile, AttachedItem } from '../types/file-uploader';
+
+// UTILS
 import { isFileAllowed, readFileAsText } from '../feature/Chat/utils/fileUtils';
+
+// CONSTANTS
 import { ALLOWED_FILE_EXTENSIONS } from '../feature/Chat/constants/constants';
 
 interface UseFileHandlingProps {

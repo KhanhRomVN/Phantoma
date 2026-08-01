@@ -63,4 +63,4 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
   );
 };
 
-export default RecentActivity;
+export default React.memo(RecentActivity);

@@ -1,6 +1,20 @@
 import { useState, useCallback, useMemo } from 'react';
+/**
+ * useGitOperations — xử lý các thao tác Git trong chat (generate commit message, parse git status).
+ *
+ *    generateCommitMessage() : Tự động tạo commit message từ git diff và gửi lên LLM.
+ *    parseAndDisplayGitStatus(): Parse git status output và hiển thị dạng block.
+ */
+
+import { useCallback } from 'react';
+
+// TYPES
 import { Message } from '../../types/message';
+
+// UTILS
 import { parseGitStatusOutput } from '../../utils/gitUtils';
+
+// PROMPTS
 import { getCommitMessagePrompt } from '../../prompts/code/commit-message';
 
 interface UseGitOperationsProps {

@@ -1,12 +1,28 @@
-// ─── Agent Panel (Main Export) ────────────────────────────────────────────
+/**
+ * AgentPanel — panel chính của Agent, quản lý chuyển đổi giữa Home và Chat view.
+ *
+ *    handleHomeSendMessage()   : Nhận message từ Home, tạo ChatSession mới.
+ *    handleBack()              : Quay về Home từ Chat, giữ lại nội dung dang dở.
+ *    handleLoadConversation()  : Load conversation từ history vào Chat view.
+ *    saveCurrentState()        : Lưu state hiện tại vào Map theo targetId.
+ *    restoreStateForTarget()   : Khôi phục state đã lưu khi quay lại target.
+ */
+
 import { useState, useCallback, useRef, useEffect } from 'react';
+
+// COMPONENTS
 import HomePanel from './feature/Home';
 import ChatPanel from './feature/Chat';
-import { ChatSession } from './feature/Chat/types/chat';
-import { ProjectProvider } from './context/ProjectContext';
-import { BackendConnectionProvider } from './context/BackendConnectionContext';
-import { useAgentFeature } from './context/FeatureContext';
 import AgentOverlay from './components/AgentOverlay';
+
+// CONTEXT
+import { ProjectProvider } from './context/ProjectContext';
+import { useAgentFeature } from './context/FeatureContext';
+
+// TYPES
+import { ChatSession } from './feature/Chat/types/chat';
+
+// UTILS (icons)
 import { MousePointer } from 'lucide-react';
 
 // ─── AgentPanel ────────────────────────────────────────────────────────────
@@ -168,9 +184,8 @@ export function AgentPanel() {
   };
 
   return (
-    <BackendConnectionProvider>
-      <ProjectProvider>
-        <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
+    <ProjectProvider>
+      <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
           {activeFeature !== 'emulate' && <AgentOverlay featureName={activeFeature || undefined} />}
           {activeFeature === 'emulate' && shouldShowOverlay() && renderEmulateOverlay()}
 
@@ -198,6 +213,5 @@ export function AgentPanel() {
           )}
         </div>
       </ProjectProvider>
-    </BackendConnectionProvider>
   );
 }

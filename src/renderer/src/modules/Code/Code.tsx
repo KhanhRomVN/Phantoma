@@ -9,6 +9,7 @@ import { BottomPanel } from "./components/BottomPanel";
 // import { CODE_SHORTCUTS } from "./shortcuts"; // TODO: Use for centralized shortcut management
 
 export function Code() {
+  console.log('[DEBUG] Code render at', performance.now());
   const { isProjectManagerOpen, setProjectManagerOpen } = useCodeStore();
 
   // Keyboard shortcuts

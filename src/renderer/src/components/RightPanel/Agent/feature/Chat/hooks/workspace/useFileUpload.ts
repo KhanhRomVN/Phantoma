@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback } from 'react';
 
 /**
  * Hook that provides a function to upload local files to the backend
@@ -16,11 +16,11 @@ export const useFileUpload = (apiUrl: string) => {
 
       const localFiles = files.filter(
         (f: any) =>
-          !f.id?.startsWith("attached-") &&
-          !f.id?.startsWith("rule-") &&
-          !f.id?.startsWith("terminal-") &&
-          !f.id?.startsWith("snippet-") && // 🚀 FIX: Don't upload text snippets
-          !f.id?.startsWith("external-"), // 🚀 FIX: Don't upload external files (content already in them)
+          !f.id?.startsWith('attached-') &&
+          !f.id?.startsWith('rule-') &&
+          !f.id?.startsWith('terminal-') &&
+          !f.id?.startsWith('snippet-') && // 🚀 FIX: Don't upload text snippets
+          !f.id?.startsWith('external-'), // 🚀 FIX: Don't upload external files (content already in them)
       );
 
       for (const file of localFiles) {
@@ -32,12 +32,9 @@ export const useFileUpload = (apiUrl: string) => {
 
         try {
           let blob: Blob;
-          if (file.content.startsWith("data:")) {
-            const arr = file.content.split(",");
-            const mime =
-              arr[0].match(/:(.*?);/)?.[1] ||
-              file.type ||
-              "application/octet-stream";
+          if (file.content.startsWith('data:')) {
+            const arr = file.content.split(',');
+            const mime = arr[0].match(/:(.*?);/)?.[1] || file.type || 'application/octet-stream';
             const bstr = atob(arr[1]);
             let n = bstr.length;
             const u8arr = new Uint8Array(n);
@@ -47,17 +44,17 @@ export const useFileUpload = (apiUrl: string) => {
             blob = new Blob([u8arr], { type: mime });
           } else {
             blob = new Blob([file.content], {
-              type: file.type || "text/plain",
+              type: file.type || 'text/plain',
             });
           }
 
           const formData = new FormData();
-          formData.append("file", blob, file.name);
+          formData.append('file', blob, file.name);
 
-          const uploadRes = await fetch(
-            `${apiUrl}/v1/chat/accounts/${accountId}/uploads`,
-            { method: "POST", body: formData },
-          );
+          const uploadRes = await fetch(`${apiUrl}/v1/chat/accounts/${accountId}/uploads`, {
+            method: 'POST',
+            body: formData,
+          });
 
           if (!uploadRes.ok) {
             throw new Error(`Upload API returned status ${uploadRes.status}`);
@@ -67,7 +64,7 @@ export const useFileUpload = (apiUrl: string) => {
           if (uploadData.success && uploadData.data?.file_id) {
             ref_file_ids.push(uploadData.data.file_id);
           } else {
-            throw new Error(uploadData.error || "Unknown upload error");
+            throw new Error(uploadData.error || 'Unknown upload error');
           }
         } catch (err) {
           throw new Error(

@@ -1,7 +1,16 @@
-import type { DataPoint } from '../../types/data-point';
+import { cn } from '../../../../shared/lib/utils';
+import { $ } from '../../../../utils/color';
 
 interface DataPointRowProps {
-  dataPoint: DataPoint;
+  dataPoint: {
+    id: string;
+    displayValue: string;
+    value: unknown;
+    confidence: number;
+    source: { name: string };
+    isNoise: boolean;
+    riskScore?: number;
+  };
 }
 
 function ConfidenceBadge({ value }: { value: number }) {

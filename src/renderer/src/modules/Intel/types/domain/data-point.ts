@@ -18,6 +18,7 @@ export type VerificationStatus = 'verified' | 'unverified' | 'disputed' | 'pendi
 
 export interface DataPoint {
   id: string;
+  type?: string;
   category: DataCategory;
   label: string;
   value: unknown;
@@ -28,6 +29,7 @@ export interface DataPoint {
   isNoise: boolean;
   verificationStatus: VerificationStatus;
   discoveredAt: string;
+  timestamp?: number;
   riskScore?: number;
   tags?: string[];
   metadata?: Record<string, unknown>;

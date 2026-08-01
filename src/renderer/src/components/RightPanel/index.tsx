@@ -1,6 +1,14 @@
-// src/renderer/src/features/Tool/components/IntelPanel/index.tsx
+/**
+ * RightPanel — panel bên phải, chứa Agent / Analytic / Terminal với dropdown chuyển view.
+ *
+ *    AgentPanel sub-views: Home, Session, Account, History, Model, Setting, Analytic.
+ *    Dropdown chính chuyển giữa 3 panel view (Agent, Analytic, Terminal).
+ *    Ellipsis menu chứa các sub-view của Agent.
+ */
+
 import { useState, useRef, useEffect } from 'react';
-import type { SubTarget } from '../../modules/Tool/types/types';
+
+// COMPONENTS
 import { AgentPanel } from './Agent';
 import { Analytic } from './Analytic';
 import { Terminal } from './Terminal';
@@ -11,6 +19,18 @@ import { Analytic as AnalyticFeature } from './Agent/feature/Analytic';
 import HistoryPanel from './Agent/feature/History';
 import { Models as ModelsFeature } from './Agent/feature/Model';
 import SettingsPanel from './Agent/feature/Setting';
+
+// CONTEXT
+import { SettingsProvider } from './Agent/context/SettingsContext';
+
+// TYPES
+import type { SubTarget } from '../../modules/Tool/types/types';
+
+// UI
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/Dropdown';
+
+// UTILS
+import { cn } from '../../shared/lib/utils';
 import {
   ChevronDown,
   BarChart3,
@@ -24,9 +44,8 @@ import {
   Clock,
   Settings,
 } from 'lucide-react';
-import { cn } from '../../shared/lib/utils';
-import { SettingsProvider } from './Agent/context/SettingsContext';
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/Dropdown';
+
+// ─── Types ─────────────────────────────────────────────────────────────────
 
 type PanelView = 'agent' | 'analytic' | 'terminal';
 type AgentSubView =
@@ -38,6 +57,8 @@ type AgentSubView =
   | 'model'
   | 'setting'
   | null;
+
+// ─── Component ─────────────────────────────────────────────────────────────
 
 export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) {
   const [view, setView] = useState<PanelView>('agent');
@@ -67,19 +88,6 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
         return 'Terminal';
       default:
         return 'Panel';
-    }
-  };
-
-  const getIcon = () => {
-    switch (view) {
-      case 'agent':
-        return <Bot className="w-4 h-4" />;
-      case 'analytic':
-        return <BarChart3 className="w-4 h-4" />;
-      case 'terminal':
-        return <TerminalIcon className="w-4 h-4" />;
-      default:
-        return null;
     }
   };
 

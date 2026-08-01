@@ -1,11 +1,11 @@
-import type { DataPoint } from '../../types/data-point';
-import type { SmartCategoryGroup } from '../../types/smart-category';
 import { DataPointRow } from './DataPointRow';
 import { SectionHeader } from './SectionHeader';
 
 interface DataViewProps {
-  dataPoints: DataPoint[];
-  activeGroup: SmartCategoryGroup;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dataPoints: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  activeGroup: any;
   entityName?: string;
 }
 

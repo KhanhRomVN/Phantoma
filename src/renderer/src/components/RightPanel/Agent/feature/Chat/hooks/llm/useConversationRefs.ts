@@ -1,5 +1,15 @@
 import { useRef } from "react";
-import { Message } from "../../types/message";
+/**
+ * useConversationRefs — tập trung tất cả useRef dùng trong ChatLLM (messages, conversationId, model, abort...).
+ *
+ *    Trả về object chứa các ref: messagesRef, currentConversationIdRef, backendConversationIdRef,
+ *    lastUsedModelRef, lastUsedAccountRef, abortControllerRef, qwenParentIdRef, userRequestCountRef.
+ */
+
+import { useRef } from 'react';
+
+// TYPES
+import { Message } from '../../types/message';
 
 export const useConversationRefs = () => {
   const messagesRef = useRef<Message[]>([]);

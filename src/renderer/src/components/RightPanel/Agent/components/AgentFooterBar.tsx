@@ -1,3 +1,7 @@
+/**
+ * AgentFooterBar — spacer bar cố định ở cuối Agent panel, dành cho UI mở rộng sau này.
+ */
+
 import React from 'react';
 
 interface AgentFooterBarProps {

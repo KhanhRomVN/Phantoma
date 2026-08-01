@@ -133,6 +133,27 @@ export function getExecutor(actionType: string): ToolExecutor | null {
           return executeListHttps(action.params || {});
         },
       };
+    case 'list_hosts':
+      return {
+        execute: async (_action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeListHosts } = await import('./emulate/ListHostsExecutor');
+          return executeListHosts();
+        },
+      };
+    case 'list_sources':
+      return {
+        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeListSources } = await import('./emulate/ListSourcesExecutor');
+          return executeListSources(action.params || {});
+        },
+      };
+    case 'get_source_detail':
+      return {
+        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeGetSourceDetail } = await import('./emulate/GetSourceDetailExecutor');
+          return executeGetSourceDetail(action.params || {});
+        },
+      };
     case 'git_status':
     case 'commit_message':
       return null;

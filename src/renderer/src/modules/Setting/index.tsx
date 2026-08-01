@@ -8,6 +8,7 @@ import Performance from './components/Performance';
 type SettingTab = 'general' | 'interface' | 'database' | 'performance';
 
 const Setting: React.FC = () => {
+  console.log('[DEBUG] Setting render at', performance.now());
   const [activeTab, setActiveTab] = useState<SettingTab>('general');
 
   const getTabTitle = () => {

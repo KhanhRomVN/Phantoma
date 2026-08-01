@@ -13,6 +13,11 @@ import { parseViewReplaceHistory } from './parsers/code/ViewReplaceHistoryParser
 import { parseRunCommand } from './parsers/code/RunCommandParser';
 import { parseGitStatus } from './parsers/code/GitStatusParser';
 import { parseGitDiff } from './parsers/code/GitDiffParser';
+import { parseListHttps } from './parsers/emulate/ListHttpsParser';
+import { parseGetHttpsDetail } from './parsers/emulate/GetHttpsDetailParser';
+import { parseListHosts } from './parsers/emulate/ListHostsParser';
+import { parseListSources } from './parsers/emulate/ListSourcesParser';
+import { parseGetSourceDetail } from './parsers/emulate/GetSourceDetailParser';
 import { parseMarkdown } from './parsers/other/MarkdownParser';
 
 import { extractThinkingBlocks } from './parsers/other/ThinkingParser';
@@ -555,6 +560,31 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'git_diff': {
               const params = parseGitDiff(innerContent || '');
               action = { type: 'git_diff' as const, params, rawXml };
+              break;
+            }
+            case 'list_https': {
+              const params = parseListHttps(innerContent || '');
+              action = { type: 'list_https' as const, params, rawXml };
+              break;
+            }
+            case 'get_https_detail': {
+              const params = parseGetHttpsDetail(innerContent || '');
+              action = { type: 'get_https_detail' as const, params, rawXml };
+              break;
+            }
+            case 'list_hosts': {
+              const params = parseListHosts(innerContent || '');
+              action = { type: 'list_hosts' as const, params, rawXml };
+              break;
+            }
+            case 'list_sources': {
+              const params = parseListSources(innerContent || '');
+              action = { type: 'list_sources' as const, params, rawXml };
+              break;
+            }
+            case 'get_source_detail': {
+              const params = parseGetSourceDetail(innerContent || '');
+              action = { type: 'get_source_detail' as const, params, rawXml };
               break;
             }
             default:

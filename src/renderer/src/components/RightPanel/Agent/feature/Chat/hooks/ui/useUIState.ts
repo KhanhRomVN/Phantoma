@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef } from 'react';
 
 /**
  * Hook to manage all UI-related state (modals, dropdowns, search)
@@ -8,10 +8,9 @@ export const useUIState = () => {
   renderCountRef.current += 1;
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [autoScrollPaused, setAutoScrollPaused] = useState(false);
-  const [showProjectStructureDrawer, setShowProjectStructureDrawer] =
-    useState(false);
+  const [showProjectStructureDrawer, setShowProjectStructureDrawer] = useState(false);
   const [showChangesDropdown, setShowChangesDropdown] = useState(false);
   const [showProjectContextModal, setShowProjectContextModal] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);

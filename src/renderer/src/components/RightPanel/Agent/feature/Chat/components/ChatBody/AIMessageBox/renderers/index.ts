@@ -20,6 +20,9 @@ export { QuestionRenderer } from './other/QuestionRenderer';
 export { ErrorRenderer } from './other/ErrorRenderer';
 export { WarningRenderer } from './other/WarningRenderer';
 export { ListHttpsRenderer } from './emulate/ListHttpsRenderer';
+export { ListHostsRenderer } from './emulate/ListHostsRenderer';
+export { ListSourcesRenderer } from './emulate/ListSourcesRenderer';
+export { GetSourceDetailRenderer } from './emulate/GetSourceDetailRenderer';
 
 // Shared types and utilities
 export type {

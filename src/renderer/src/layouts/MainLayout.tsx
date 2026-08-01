@@ -23,8 +23,12 @@ import {
   FeatureProvider,
   useAgentFeature,
 } from '../components/RightPanel/Agent/context/FeatureContext';
+import { useNetworkService } from '../hooks/useNetworkService';
 
 const MainLayoutContent = () => {
+  // NetworkService: IPC listeners survive route changes
+  useNetworkService();
+
   const navigate = useNavigate();
   const location = useLocation();
   const { activeModule, setActiveModule } = useActiveModule('recon');

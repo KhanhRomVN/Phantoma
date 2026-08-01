@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { Search, ArrowUp, ArrowDown, CornerDownLeft } from 'lucide-react';
 import { Modal, ModalBody, ModalFooter } from './ui/Modal';
 import { Kbd } from './ui/Kbd';
@@ -18,6 +18,38 @@ interface QuickNavModalProps {
   onClose: () => void;
   items: QuickNavItem[];
 }
+
+// Tách riêng footer để tránh re-render khi hover item (chỉ phụ thuộc vào resultCount)
+const QuickNavFooter = memo(function QuickNavFooter({ resultCount }: { resultCount: number }) {
+  return (
+    <ModalFooter className="px-4 py-3 border-t border-border flex items-center justify-between text-[10px]">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <div className="flex items-center justify-center bg-sidebar-item-hover/70 rounded p-1">
+            <Kbd>
+              <ArrowUp className="w-3 h-3" strokeWidth={1.5} />
+              <ArrowDown className="w-3 h-3" strokeWidth={1.5} />
+            </Kbd>
+          </div>
+          <span className="text-text-primary">Navigate</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="flex items-center justify-center bg-sidebar-item-hover/70 rounded p-1">
+            <Kbd>
+              <CornerDownLeft className="w-3 h-3" strokeWidth={1.5} />
+            </Kbd>
+          </div>
+          <span className="text-text-primary">Select</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Kbd>ESC</Kbd>
+          <span className="text-text-primary">Close</span>
+        </div>
+      </div>
+      <span className="text-text-secondary/60">{resultCount} results</span>
+    </ModalFooter>
+  );
+});
 
 export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
   const [search, setSearch] = useState('');
@@ -157,32 +189,7 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
         </div>
       </ModalBody>
 
-      <ModalFooter className="px-4 py-3 border-t border-border flex items-center justify-between text-[10px]">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <div className="flex items-center justify-center bg-sidebar-item-hover/70 rounded p-1">
-              <Kbd>
-                <ArrowUp className="w-3 h-3" strokeWidth={1.5} />
-                <ArrowDown className="w-3 h-3" strokeWidth={1.5} />
-              </Kbd>
-            </div>
-            <span className="text-text-primary">Navigate</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="flex items-center justify-center bg-sidebar-item-hover/70 rounded p-1">
-              <Kbd>
-                <CornerDownLeft className="w-3 h-3" strokeWidth={1.5} />
-              </Kbd>
-            </div>
-            <span className="text-text-primary">Select</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Kbd>ESC</Kbd>
-            <span className="text-text-primary">Close</span>
-          </div>
-        </div>
-        <span className="text-text-secondary/60">{filteredItems.length} results</span>
-      </ModalFooter>
+      <QuickNavFooter resultCount={filteredItems.length} />
     </Modal>
   );
 }

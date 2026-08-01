@@ -1,4 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
+/**
+ * useWorkspaceData — lắng nghe workspace files/folders/rules từ extension qua postMessage.
+ *
+ *    Trả về: availableFiles, availableFolders, availableRules.
+ */
+
+import { useState, useEffect, useRef } from 'react';
+
+// TYPES
 import { Rule, WorkspaceItem } from '../../types/workspace';
 
 export const useWorkspaceData = () => {

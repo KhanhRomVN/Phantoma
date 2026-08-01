@@ -333,4 +333,113 @@ Pass 2 (Verify): No user message since the last turn. Must ask before continuing
   </q>
 </question>
 \`\`\`
+
+---
+
+## Ex 9: list_hosts — Get overview of all hosts ✅
+
+**User**: "What hosts are being called?"
+
+**Turn 1** — EXPLORE:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): User wants a list of all unique hosts. Call list_hosts.
+Pass 2 (Verify): No assumptions — run list_hosts and STOP.
+</thinking>
+<list_hosts />
+\`\`\`
+
+**Turn 2** — REPORT:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Host list returned. Report findings.
+Pass 2 (Verify): No more tools needed. Output markdown summary.
+</thinking>
+<markdown>
+Found **5 unique hosts** in captured traffic:
+- \`api.example.com\` (45 requests)
+- \`cdn.example.com\` (120 requests)
+- \`auth.example.com\` (12 requests)
+- \`analytics.example.com\` (30 requests)
+- \`static.example.com\` (80 requests)
+</markdown>
+\`\`\`
+
+---
+
+## Ex 10: list_sources + get_source_detail — Inspect a JS file ✅
+
+**User**: "Show me the main app.js source code from cdn.example.com"
+
+**Turn 1** — EXPLORE:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Filter sources by host cdn.example.com, type js.
+Pass 2 (Verify): No assumptions — run list_sources with filter.
+</thinking>
+<list_sources>
+  <filter>
+    <host>cdn.example.com</host>
+    <type>js</type>
+  </filter>
+</list_sources>
+\`\`\`
+
+**Turn 2** — Results show \`app.87321ce.js\` at stt=3 → READ:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Found app.87321ce.js at stt=3. Get its source.
+Pass 2 (Verify): stt=3 from list_sources result — valid per SOURCE-BEFORE-DETAIL.
+</thinking>
+<get_source_detail><index>3</index></get_source_detail>
+\`\`\`
+
+**Turn 3** — REPORT:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Source code retrieved. Report findings.
+Pass 2 (Verify): No more tools. Output markdown with code excerpt.
+</thinking>
+<markdown>
+File \`app.87321ce.js\` (245 KB, unpacked):
+
+The file appears to be the main application bundle. Key observations:
+- Uses React 18 with concurrent features enabled
+- API base URL hardcoded: \`https://api.example.com/v1\`
+- Contains an unused admin route \`/admin/debug\`
+
+<code language="javascript">
+const API_BASE = "https://api.example.com/v1";
+// ... (245 KB total, showing first 50 lines)
+</code>
+</markdown>
+\`\`\`
+
+---
+
+## Ex 11: Combined — Filter requests then inspect source ✅
+
+**User**: "Find POST xhr requests with errors, then check the related JS source"
+
+**Turn 1** — EXPLORE (batch):
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Two independent calls: filter requests and list sources. Batch them.
+Pass 2 (Verify): Both calls independent — batch per BATCH rule.
+</thinking>
+<list_https>
+  <filter>
+    <method>POST</method>
+    <type>xhr</type>
+  </filter>
+</list_https>
+<list_sources>
+  <filter>
+    <type>js</type>
+  </filter>
+</list_sources>
+\`\`\`
+
+*(Continue with get_https_detail for error requests, then get_source_detail for related JS files...)*
+\`\`\`
 `;

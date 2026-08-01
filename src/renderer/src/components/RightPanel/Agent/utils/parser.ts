@@ -1,5 +1,12 @@
 // ─── AI Response Parser ─────────────────────────────────────────────────────
 
+/**
+ * parser — parse AI response thành thinking text + display text + tool actions.
+ *
+ *    parseAIMessage() : Tách [THINKING]...[/THINKING] + text content + <tool> blocks từ AI response.
+ */
+
+// TYPES
 import { ParsedMessage, ToolAction } from '../types'
 
 /**

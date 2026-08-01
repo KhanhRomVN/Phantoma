@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 
+/**
+ * useModelAccount — hook tập trung cho state model + account selection, persist qua localStorage theo workspace.
+ *
+ *    getKey() : Tạo cache key scoped theo folderPath.
+ */
+
+import { useState, useEffect, useCallback } from 'react';
+
 function getKey(base: string, folderPath: string | null | undefined): string {
   return `${base}:${folderPath || "global"}`;
 }

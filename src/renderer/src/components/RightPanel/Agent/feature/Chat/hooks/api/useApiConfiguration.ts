@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import { extensionService } from "../../../../services/ExtensionService";
+import { useState, useEffect } from 'react';
+import { extensionService } from '../../../../services/ExtensionService';
 
 /**
  * Hook to manage API URL and providers configuration
  */
 export const useApiConfiguration = () => {
-  const [apiUrl, setApiUrl] = useState("http://localhost:8888");
+  const [apiUrl, setApiUrl] = useState('http://localhost:8888');
   const [isApiUrlReady, setIsApiUrlReady] = useState(false);
   const [providers, setProviders] = useState<any[]>([]);
 
@@ -13,21 +13,16 @@ export const useApiConfiguration = () => {
   useEffect(() => {
     const storage = extensionService.getStorage();
     storage
-      .get("backend-api-url")
+      .get('backend-api-url')
       .then((res: any) => {
-        if (res?.value?.startsWith("http")) {
-          const url = res.value.endsWith("/")
-            ? res.value.slice(0, -1)
-            : res.value;
+        if (res?.value?.startsWith('http')) {
+          const url = res.value.endsWith('/') ? res.value.slice(0, -1) : res.value;
           setApiUrl(url);
         }
         setIsApiUrlReady(true);
       })
       .catch((err: any) => {
-        console.warn(
-          "[Zen] ChatPanel failed to load apiUrl from storage:",
-          err,
-        );
+        console.warn('[Zen] ChatPanel failed to load apiUrl from storage:', err);
         setIsApiUrlReady(true);
       });
   }, []);

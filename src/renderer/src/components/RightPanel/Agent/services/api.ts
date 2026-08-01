@@ -1,6 +1,20 @@
 // ─── AIWeb2API Client ───────────────────────────────────────────────────────
 
-import { ChatRequest, ChatStreamChunk, Provider, Account, Model } from '../types'
+/**
+ * AgentAPI — client giao tiếp với backend Agent server (checkStatus, chat, stream, providers, accounts, models).
+ *
+ *    checkStatus()          : Kiểm tra server online.
+ *    chat()                 : Gửi chat request (non-streaming).
+ *    chatStream()           : Gửi chat request (SSE streaming).
+ *    getProviders()         : Lấy danh sách providers.
+ *    getAccounts()          : Lấy danh sách accounts.
+ *    getModels()            : Lấy danh sách models.
+ */
+
+// TYPES
+import { ChatRequest, ChatStreamChunk, Provider, Account } from '../types'
+
+// CONSTANTS
 import { MOCK_PROVIDERS, MOCK_ACCOUNTS } from '../constants'
 
 export class AgentAPI {

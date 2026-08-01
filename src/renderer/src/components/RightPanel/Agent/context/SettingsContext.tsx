@@ -1,4 +1,13 @@
+/**
+ * SettingsContext — quản lý toàn bộ settings của Agent (API URL, permission mode, tool permissions, ngôn ngữ...).
+ *
+ *    SettingsProvider : Provider bọc ngoài, persist settings qua extensionService storage.
+ *    useSettings()    : Hook trả về toàn bộ settings + setters.
+ */
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
+
+// SERVICES
 import { extensionService } from '../services/ExtensionService';
 
 export type PermissionMode = 'fullAccess' | 'approval';

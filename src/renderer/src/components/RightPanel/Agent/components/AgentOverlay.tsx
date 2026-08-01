@@ -1,5 +1,13 @@
+/**
+ * AgentOverlay — overlay hiển thị khi Agent không khả dụng (module không hỗ trợ hoặc chưa chọn target).
+ *
+ *    Hiển thị icon + title + description với hiệu ứng fade-in.
+ */
+
 import React, { useEffect, useState } from 'react';
-import { Bot, ShieldAlert } from 'lucide-react';
+
+// UTILS (icons)
+import { ShieldAlert } from 'lucide-react';
 
 interface AgentOverlayProps {
   featureName?: string;

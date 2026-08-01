@@ -1,4 +1,15 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+/**
+ * useMessagePagination — phân trang messages, chỉ hiển thị N messages gần nhất, có nút Load More.
+ *
+ *    loadMore()  : Hiển thị thêm 1 trang.
+ *    loadAll()   : Hiển thị tất cả messages.
+ *    reset()     : Reset về trạng thái phân trang ban đầu.
+ */
+
+import { useState, useCallback, useRef, useEffect } from 'react';
+
+// TYPES
 import { Message } from '../../types/message';
 
 interface UseMessagePaginationProps {

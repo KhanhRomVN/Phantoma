@@ -1,5 +1,16 @@
 // ─── Chat Storage ────────────────────────────────────────────────────────────
 
+/**
+ * storage — helpers lưu/đọc messages + sessions từ localStorage.
+ *
+ *    saveMessages()        : Lưu messages cho 1 conversation.
+ *    loadMessages()        : Load messages từ localStorage.
+ *    deleteMessages()      : Xóa messages của 1 conversation.
+ *    saveSessions()        : Lưu danh sách sessions.
+ *    loadSessions()        : Load danh sách sessions.
+ */
+
+// TYPES
 import { Message, ChatSession, STORAGE_KEYS } from '../types'
 
 /**

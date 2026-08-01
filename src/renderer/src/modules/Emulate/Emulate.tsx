@@ -9,7 +9,8 @@ import { EmulateController } from '../../controller/EmulateController';
 // Components
 import { RequestTable, RequestDetails, initialFilterState } from './components/Home';
 import { ResourcesPanel } from './components/Resources';
-import { PayloadPanel } from './components/Repeater';
+import { PayloadPanel, getRepeaterIds } from './components/Repeater';
+import { IntruderPanel } from './components/Intruder';
 import { SourcesPanel } from './components/Source';
 import { LogViewer } from './components/Log';
 import { DevicePanel } from './components/Device';
@@ -29,7 +30,7 @@ import { NetworkRequest } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 import { ToolType, TOOLS, DEFAULT_TOOL } from './constants/tools';
 import { useTheme } from '@renderer/theme';
-import useNetworkEvents from './hooks/useNetworkEvents';
+import { useNetworkStore } from '../../stores/networkStore';
 import TargetSidebar from './components/TargetSidebar';
 import { useTimerStore } from '../../stores/timerStore';
 
@@ -39,6 +40,7 @@ export default React.memo(function Emulate({
   activeAppId = '',
   onStopSession = async () => {},
 }: EmulateProps) {
+  console.log('[DEBUG] Emulate render at', performance.now());
   const { currentPreset } = useTheme();
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
   const { getColorByIndex } = useAccentColors();
@@ -81,6 +83,18 @@ export default React.memo(function Emulate({
   const [, setLoadedFromIPC] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [fuzzerTargetId, setFuzzerTargetId] = useState<string | null>(null);
+
+  // Badge counts for tab bar
+  const [repeaterCount, setRepeaterCount] = useState(0);
+  const [resourceCount, setResourceCount] = useState(0);
+
+  // Listen for Repeater changes to update badge
+  useEffect(() => {
+    const updateCount = () => setRepeaterCount(getRepeaterIds(activeTargetId).size);
+    updateCount();
+    window.addEventListener('repeater-updated', updateCount);
+    return () => window.removeEventListener('repeater-updated', updateCount);
+  }, [activeTargetId]);
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -258,18 +272,29 @@ export default React.memo(function Emulate({
     [targetStates],
   );
 
-  const { requests, clearRequests, unpackedScripts } = useNetworkEvents({
-    targetId: activeTargetId || undefined,
-    initialRequests: savedRequests,
-    onRequestsChange: (newRequests) => {
-      setState((prev) => ({ ...prev, requests: newRequests }));
-    },
-  });
+  // Read requests from app-level networkStore (survives route changes)
+  const requests = useNetworkStore((s) => s.requests);
+  const clearRequests = useNetworkStore((s) => s.clearRequests);
+  const unpackedScripts = useNetworkStore((s) => s.unpackedScripts);
 
-  // Sync requests to EmulateController
+  // Sync requests to moduleState + EmulateController
   useEffect(() => {
+    setState((prev) => ({ ...prev, requests }));
     EmulateController.getInstance().setRequests(requests);
   }, [requests]);
+
+  // Sync unpackedScripts to EmulateController
+  useEffect(() => {
+    EmulateController.getInstance().setUnpackedScripts(unpackedScripts);
+  }, [unpackedScripts]);
+
+  // Clear requests when switching to a non-active target
+  useEffect(() => {
+    if (activeTargetId && !isTargetActive(activeTargetId)) {
+      clearRequests();
+      setState((prev) => ({ ...prev, requests: [], selectedId: null }));
+    }
+  }, [activeTargetId]);
 
   // Update timer badge every second for running targets
   const updateTimerFn = useTimerStore((s) => s.updateTimer);
@@ -419,13 +444,31 @@ export default React.memo(function Emulate({
 
   const handleSendToRepeater = useCallback(
     (req: NetworkRequest) => {
+      // [DEBUG] Xóa sau khi fix — log params gửi sang Repeater
+      console.log('[DEBUG] handleSendToRepeater called:', {
+        requestId: req.id,
+        activeTargetId,
+        requestMethod: req.method,
+        requestUrl: req.url,
+      });
       import('./components/Repeater').then(({ addToRepeater }) => {
-        addToRepeater(req.id);
+        console.log('[DEBUG] addToRepeater dynamic import resolved, calling with:', { requestId: req.id, targetId: activeTargetId });
+        addToRepeater(req.id, activeTargetId);
       });
       setFuzzerTargetId(req.id);
       handleSetSelectedTool('repeater');
     },
-    [handleSetSelectedTool],
+    [handleSetSelectedTool, activeTargetId],
+  );
+
+  const handleSendToIntruder = useCallback(
+    (req: NetworkRequest) => {
+      import('./components/Intruder').then(({ addToIntruder }) => {
+        addToIntruder(req.id, activeTargetId);
+      });
+      handleSetSelectedTool('intruder');
+    },
+    [handleSetSelectedTool, activeTargetId],
   );
 
   const handleStopSession = useCallback(
@@ -461,6 +504,12 @@ export default React.memo(function Emulate({
   const memoizedTargetTabs = useMemo(() => targetTabs, [targetTabs]);
   const memoizedTargetStates = useMemo(() => targetStates, [targetStates]);
 
+  // Badge counts for each tool
+  const badgeCounts: Partial<Record<ToolType, number>> = {
+    repeater: repeaterCount,
+    resource: resourceCount,
+  };
+
   // TabBar
   const TabBar = useMemo(() => {
     return (
@@ -468,6 +517,7 @@ export default React.memo(function Emulate({
         {Object.values(TOOLS).map((tool) => {
           const tabColor = getColorByIndex(tool.accentIndex);
           const isActive = selectedTool === tool.id;
+          const badge = badgeCounts[tool.id];
           return (
             <button
               key={tool.id}
@@ -486,12 +536,24 @@ export default React.memo(function Emulate({
                 {React.createElement(tool.icon, { size: 14, strokeWidth: 1.5 })}
               </span>
               <span>{tool.label}</span>
+              {badge != null && badge > 0 && (
+                <span
+                  className={cn(
+                    'min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center leading-none',
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : 'bg-text-secondary/15 text-text-secondary',
+                  )}
+                >
+                  {badge}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
     );
-  }, [selectedTool, getColorByIndex, handleSetSelectedTool]);
+  }, [selectedTool, getColorByIndex, handleSetSelectedTool, repeaterCount, resourceCount]);
 
   return (
     <div className="flex h-full bg-background">
@@ -544,10 +606,8 @@ export default React.memo(function Emulate({
                     onDrop={() => {}}
                     onDelete={() => {}}
                     appId="emulate-app"
-                    onSetCompare1={() => {}}
-                    onSetCompare2={() => {}}
-                    onAnalyzeRequest={() => {}}
                     onSendToRepeater={handleSendToRepeater}
+                    onSendToIntruder={handleSendToIntruder}
                     onLaunchTarget={handleLaunchTarget}
                     onClearRequests={handleClearRequests}
                     currentTargetAppId={activeTargetId || undefined}
@@ -580,18 +640,18 @@ export default React.memo(function Emulate({
               </>
             )}
             {selectedTool === 'intruder' && (
-              <div className="flex-1 flex items-center justify-center text-text-secondary">
-                Intruder Content - Under Development
+              <div className="flex-1 overflow-hidden">
+                <IntruderPanel requests={requests} targetId={activeTargetId} />
               </div>
             )}
             {selectedTool === 'repeater' && (
               <div className="flex-1 overflow-hidden">
-                <PayloadPanel requests={requests} selectedRequestId={fuzzerTargetId} />
+                <PayloadPanel requests={requests} selectedRequestId={fuzzerTargetId} targetId={activeTargetId} />
               </div>
             )}
             {selectedTool === 'resource' && (
               <div className="flex-1 overflow-hidden">
-                <ResourcesPanel requests={requests} />
+                <ResourcesPanel requests={requests} onCountChange={setResourceCount} />
               </div>
             )}
             {selectedTool === 'source' && (

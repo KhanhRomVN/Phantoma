@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import StatsGrid from './components/StatsGrid';
 import RecentActivity from './components/RecentActivity';
 import ModelDistributionCard from './components/ModelDistributionCard';
@@ -210,11 +210,13 @@ const HomePanel: React.FC<HomePanelProps> = ({
     };
   }, []);
 
-  const sortedConversations = [...conversations].sort((a, b) => {
-    const timeA = new Date(a.lastModified || a.timestamp || a.createdAt || 0).getTime();
-    const timeB = new Date(b.lastModified || b.timestamp || b.createdAt || 0).getTime();
-    return timeB - timeA;
-  });
+  const sortedConversations = useMemo(() => {
+    return [...conversations].sort((a, b) => {
+      const timeA = new Date(a.lastModified || a.timestamp || a.createdAt || 0).getTime();
+      const timeB = new Date(b.lastModified || b.timestamp || b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [conversations]);
 
   const handleSend = (model: any, account: any) => {
     if (message.trim() || uploadedFiles.length > 0) {

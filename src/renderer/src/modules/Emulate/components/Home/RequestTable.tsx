@@ -30,6 +30,7 @@ import {
   Target,
   Trash2,
   Zap,
+  Crosshair,
   CaseSensitive,
   Type,
   Regex,
@@ -63,10 +64,8 @@ interface RequestTableProps {
   onDrop?: (id: string) => void;
   onDelete?: (id: string) => void;
   appId: string;
-  onSetCompare1: (req: NetworkRequest) => void;
-  onSetCompare2: (req: NetworkRequest) => void;
-  onAnalyzeRequest?: (req: NetworkRequest) => void;
   onSendToRepeater?: (req: NetworkRequest) => void;
+  onSendToIntruder?: (req: NetworkRequest) => void;
   onSelectionChange?: (selectedIds: string[]) => void;
   onLaunchTarget?: (
     appId: string,
@@ -98,10 +97,8 @@ export function RequestTable({
   onDrop,
   onDelete,
   appId: _appId,
-  onSetCompare1,
-  onSetCompare2,
-  onAnalyzeRequest,
   onSendToRepeater,
+  onSendToIntruder,
   onSelectionChange,
   onLaunchTarget,
   onClearRequests,
@@ -139,21 +136,13 @@ export function RequestTable({
     y: number;
     request: NetworkRequest;
   } | null>(null);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close context menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
-        setContextMenu(null);
-      }
-    };
-    if (contextMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-    return undefined;
-  }, [contextMenu]);
+  // Note: DO NOT add a mousedown click-outside handler here.
+  // Dropdown uses strategy="fixed" with createPortal to document.body,
+  // so DropdownContent lives outside any wrapper div. The Dropdown component
+  // handles click-outside internally and will call onOpenChange(false),
+  // which triggers setContextMenu(null). Adding a wrapper-based handler
+  // would close the menu on mousedown before the click reaches DropdownItem.
 
   // Close context menu on scroll
   useEffect(() => {
@@ -1028,89 +1017,6 @@ export function RequestTable({
                     </div>
                   );
                 })}
-                {/* Dropdown menu button */}
-                <div className="shrink-0 px-2">
-                  <Dropdown>
-                    <DropdownTrigger asChild>
-                      <button
-                        className="p-1 rounded hover:bg-dropdown-item-hover transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-3.5 h-3.5 text-text-secondary"
-                        >
-                          <circle cx="12" cy="12" r="1" />
-                          <circle cx="19" cy="12" r="1" />
-                          <circle cx="5" cy="12" r="1" />
-                        </svg>
-                      </button>
-                    </DropdownTrigger>
-                    <DropdownContent className="w-56">
-                      <>
-                        <DropdownItem onClick={() => handleCopySingleAsMarkdown(row.original)}>
-                          <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
-                          <span>Copy as Markdown</span>
-                        </DropdownItem>
-                        <DropdownItem onClick={() => handleCopySingleAsJson(row.original)}>
-                          <Copy className="mr-2 h-3.5 w-3.5 text-blue" />
-                          <span>Copy as JSON</span>
-                        </DropdownItem>
-
-                        <DropdownSeparator />
-
-                        <DropdownItem onClick={() => onSetCompare1(row.original)}>
-                          <ArrowLeftRight className="mr-2 h-3.5 w-3.5 text-emerald-400" />
-                          <span>Set as Compare 1</span>
-                        </DropdownItem>
-                        <DropdownItem onClick={() => onSetCompare2(row.original)}>
-                          <ArrowLeftRight className="mr-2 h-3.5 w-3.5 text-emerald-400" />
-                          <span>Set as Compare 2</span>
-                        </DropdownItem>
-
-                        <DropdownSeparator />
-
-                        <DropdownItem onClick={() => onAnalyzeRequest?.(row.original)}>
-                          <BookmarkPlus className="mr-2 h-3.5 w-3.5 text-indigo-400" />
-                          <span>Analyze Request</span>
-                        </DropdownItem>
-
-                        <DropdownItem onClick={() => onSendToRepeater?.(row.original)}>
-                          <Zap className="mr-2 h-3.5 w-3.5 text-amber-400" />
-                          <span>Send to Repeater</span>
-                        </DropdownItem>
-
-                        <DropdownItem onClick={() => toggleHighlight(row.original.id)}>
-                          <Star
-                            className={cn(
-                              'mr-2 h-3.5 w-3.5',
-                              isHighlighted ? 'fill-warning text-warning' : 'text-yellow-400',
-                            )}
-                          />
-                          <span>{isHighlighted ? 'Unhighlight' : 'Highlight'}</span>
-                        </DropdownItem>
-
-                        <DropdownSeparator />
-
-                        <DropdownItem
-                          onClick={() => onDelete?.(row.original.id)}
-                          className="text-error focus:text-error focus:bg-error/10"
-                        >
-                          <Trash2 className="mr-2 h-3.5 w-3.5" />
-                          <span>Delete</span>
-                        </DropdownItem>
-                      </>
-                    </DropdownContent>
-                  </Dropdown>
-                </div>
               </div>
             );
           })}
@@ -1123,7 +1029,7 @@ export function RequestTable({
         )}
       </div>
       {Object.keys(rowSelection).length > 0 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background border border-border/80 rounded-full shadow-2xl px-4 py-2 flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background border border-dashed border-primary rounded-lg shadow-2xl px-4 py-2 flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <span className="text-xs font-medium text-text-secondary">
             {String(Object.keys(rowSelection).length)} selected
           </span>
@@ -1291,7 +1197,6 @@ export function RequestTable({
       {/* Right-click context menu */}
       {contextMenu && (
         <div
-          ref={contextMenuRef}
           className="fixed z-[9999]"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
@@ -1319,36 +1224,6 @@ export function RequestTable({
                 Copy as JSON
               </DropdownItem>
               <DropdownSeparator />
-              <DropdownItem
-                icon={<ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />}
-                onClick={() => {
-                  onSetCompare1(contextMenu.request);
-                  setContextMenu(null);
-                }}
-              >
-                Set as Compare 1
-              </DropdownItem>
-              <DropdownItem
-                icon={<ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />}
-                onClick={() => {
-                  onSetCompare2(contextMenu.request);
-                  setContextMenu(null);
-                }}
-              >
-                Set as Compare 2
-              </DropdownItem>
-              <DropdownSeparator />
-              {onAnalyzeRequest && (
-                <DropdownItem
-                  icon={<BookmarkPlus className="w-3.5 h-3.5 text-indigo-400" />}
-                  onClick={() => {
-                    onAnalyzeRequest(contextMenu.request);
-                    setContextMenu(null);
-                  }}
-                >
-                  Analyze Request
-                </DropdownItem>
-              )}
               {onSendToRepeater && (
                 <DropdownItem
                   icon={<Zap className="w-3.5 h-3.5 text-amber-400" />}
@@ -1360,6 +1235,18 @@ export function RequestTable({
                   Send to Repeater
                 </DropdownItem>
               )}
+              {onSendToIntruder && (
+                <DropdownItem
+                  icon={<Crosshair className="w-3.5 h-3.5 text-purple" />}
+                  onClick={() => {
+                    onSendToIntruder(contextMenu.request);
+                    setContextMenu(null);
+                  }}
+                >
+                  Send to Intruder
+                </DropdownItem>
+              )}
+              <DropdownSeparator />
               <DropdownItem
                 icon={
                   <Star
@@ -1398,7 +1285,7 @@ export function RequestTable({
       {showScrollToSelected && (
         <button
           onClick={scrollToSelected}
-          className="absolute bottom-4 right-4 z-40 w-8 h-8 rounded-full bg-primary text-zinc-950 flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+          className="absolute bottom-4 right-4 z-40 w-8 h-8 rounded-xl bg-primary text-zinc-950 flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
           title="Scroll to focused request"
         >
           <Target className="w-4 h-4" />

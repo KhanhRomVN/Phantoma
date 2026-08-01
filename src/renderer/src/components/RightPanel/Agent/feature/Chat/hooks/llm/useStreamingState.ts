@@ -1,6 +1,14 @@
 import { useReducer, useRef, useCallback } from "react";
 
-// Streaming state combined into single object to reduce re-renders
+/**
+ * useStreamingState — reducer quản lý trạng thái streaming (processing/streaming/continuing) gộp chung để giảm re-render.
+ *
+ *    streamingReducer() : Reducer xử lý SET_PROCESSING, SET_STREAMING, SET_CONTINUING, RESET_STREAMING, STOP_ALL.
+ */
+
+import { useReducer, useCallback } from 'react';
+
+// TYPES
 export interface StreamingState {
   isProcessing: boolean;
   isStreaming: boolean;

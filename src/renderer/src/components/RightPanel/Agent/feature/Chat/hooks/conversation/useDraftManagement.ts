@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { extensionService } from "../../../../services/ExtensionService";
+import { useState, useRef, useEffect } from 'react';
+import { extensionService } from '../../../../services/ExtensionService';
 
 /**
  * Manages the draft message state for the chat footer, including:
@@ -19,7 +19,7 @@ export const useDraftManagement = (
 
   renderCountRef.current += 1;
 
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
   const storage = extensionService.getStorage();
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDraftRestoredRef = useRef(false);
@@ -50,7 +50,7 @@ export const useDraftManagement = (
         isDraftRestoredRef.current = true;
       })
       .catch((err: unknown) => {
-        console.error("[useDraftManagement] ❌ Error restoring draft:", err);
+        console.error('[useDraftManagement] ❌ Error restoring draft:', err);
         isDraftRestoredRef.current = true;
       });
   }, [conversationId]);
@@ -76,14 +76,14 @@ export const useDraftManagement = (
           .set(draftKey, message)
           .then(() => {})
           .catch((err: unknown) => {
-            console.error("[useDraftManagement] ❌ Error saving draft:", err);
+            console.error('[useDraftManagement] ❌ Error saving draft:', err);
           });
       } else {
         storage
           .delete(draftKey)
           .then(() => {})
           .catch((err: unknown) => {
-            console.error("[useDraftManagement] ❌ Error deleting draft:", err);
+            console.error('[useDraftManagement] ❌ Error deleting draft:', err);
           });
       }
     }, 500);
@@ -95,7 +95,7 @@ export const useDraftManagement = (
   // Apply revert input (when user reverts a conversation)
   useEffect(() => {
     if (revertInput?.value !== undefined) {
-      setMessage(revertInput.value || "");
+      setMessage(revertInput.value || '');
       undoStackRef.current = revertInput.value ? [revertInput.value] : [];
       undoIndexRef.current = revertInput.value ? 0 : -1;
     }
@@ -108,7 +108,7 @@ export const useDraftManagement = (
         .delete(draftKey)
         .then(() => {})
         .catch((err: unknown) => {
-          console.error("[useDraftManagement] ❌ Error clearing draft:", err);
+          console.error('[useDraftManagement] ❌ Error clearing draft:', err);
         });
     }
     undoStackRef.current = [];
@@ -130,10 +130,10 @@ export const useDraftManagement = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
     checkMentions: (v: string) => void,
   ) => {
-    const isUndo = (e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey;
+    const isUndo = (e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey;
     const isRedo =
-      ((e.ctrlKey || e.metaKey) && e.key === "y") ||
-      ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "z");
+      ((e.ctrlKey || e.metaKey) && e.key === 'y') ||
+      ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z');
 
     if (isUndo) {
       e.preventDefault();
@@ -149,8 +149,8 @@ export const useDraftManagement = (
       } else if (undoIndexRef.current === 0) {
         isUndoingRef.current = true;
         undoIndexRef.current = -1;
-        setMessage("");
-        checkMentions("");
+        setMessage('');
+        checkMentions('');
         isUndoingRef.current = false;
       }
       return;

@@ -1,5 +1,14 @@
 import { useState, useEffect, useRef, RefObject, useCallback } from "react";
 
+/**
+ * useScrollBehavior — quản lý auto-scroll xuống cuối khi có message mới, pause khi user scroll lên.
+ *
+ *    Tự động scroll khi isProcessing hoặc message cuối thay đổi nội dung.
+ *    Nếu user scroll lên quá 100px → pause auto-scroll.
+ */
+
+import { useEffect, useRef, useCallback, RefObject } from 'react';
+
 export const useScrollBehavior = (
   messagesEndRef: RefObject<HTMLDivElement>,
   scrollContainerRef: RefObject<HTMLDivElement>,
