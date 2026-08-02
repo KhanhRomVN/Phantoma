@@ -154,6 +154,20 @@ export function getExecutor(actionType: string): ToolExecutor | null {
           return executeGetSourceDetail(action.params || {});
         },
       };
+    case 'get_https_detail':
+      return {
+        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeGetHttpsDetail } = await import('./emulate/GetHttpsDetailExecutor');
+          return executeGetHttpsDetail(action.params || {});
+        },
+      };
+    case 'apply_filter':
+      return {
+        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeApplyFilter } = await import('./emulate/ApplyFilterExecutor');
+          return executeApplyFilter(action.params || {});
+        },
+      };
     case 'git_status':
     case 'commit_message':
       return null;

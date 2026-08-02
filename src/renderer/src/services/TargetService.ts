@@ -3,7 +3,7 @@
  * Uses ApiClient as the base HTTP client.
  */
 
-import type { TargetDTO, CreateTargetDTO, UpdateTargetDTO } from '@app/api/types';
+import type { TargetDTO, CreateTargetDTO, UpdateTargetDTO } from '@renderer/types/api';
 import { apiClient } from './ApiClient';
 
 class TargetService {
@@ -44,6 +44,54 @@ class TargetService {
     );
     return result?.success ?? false;
   }
+
+  // ─── Filter ───
+
+  async getFilter(targetId: string): Promise<TargetFilterDTO | null> {
+    try {
+      return await apiClient.request<TargetFilterDTO>(
+        `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/filter`,
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  async saveFilter(targetId: string, input: CreateTargetFilterDTO): Promise<TargetFilterDTO> {
+    return apiClient.request<TargetFilterDTO>(
+      `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/filter`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      },
+    );
+  }
+
+  async deleteFilter(targetId: string): Promise<boolean> {
+    const result = await apiClient.request<{ deleted: boolean }>(
+      `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/filter`,
+      { method: 'DELETE' },
+    );
+    return result?.deleted ?? false;
+  }
+}
+
+// Types for filter API
+export interface TargetFilterDTO {
+  id: string;
+  emulate_target_id: string;
+  method: string;
+  host: string;
+  status: string;
+  type: string;
+}
+
+export interface CreateTargetFilterDTO {
+  emulate_target_id: string;
+  method: string;
+  host: string;
+  status: string;
+  type: string;
 }
 
 // Singleton

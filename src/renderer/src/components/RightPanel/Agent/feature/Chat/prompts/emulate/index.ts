@@ -15,6 +15,7 @@ export { CONSTRAINTS } from './constraints';
 export { EMULATE_TOOLS_REFERENCE } from './tools-reference';
 export { buildTrafficContext, buildEmptyTrafficContext } from './traffic-context';
 export type { TrafficSummary } from './traffic-context';
+export { buildFilterContext, buildEmptyFilterContext } from './filter-context';
 
 interface PromptConfig {
   language: string;

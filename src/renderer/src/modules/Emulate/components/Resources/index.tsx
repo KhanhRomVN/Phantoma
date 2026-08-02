@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { detectWasmModules } from '../../../../utils/detectors';
+import { useNetworkStore } from '../../../../stores/networkStore';
 import { NetworkRequest } from '../Home/Filter';
 import { ResourceItem, ResourceType, getFileType, formatSize } from './types';
 import { ResourceList } from './ResourceList';
 import { ResourcePreview } from './ResourcePreview';
 
 interface ResourcesPanelProps {
-  requests?: NetworkRequest[];
   onClose?: () => void;
   onCountChange?: (count: number) => void;
 }
 
-export function ResourcesPanel({ requests = [], onCountChange }: ResourcesPanelProps) {
+export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
+  const requests = useNetworkStore((s) => s.requests);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<ResourceType>>(

@@ -1,29 +1,23 @@
 export const EXAMPLES = `# REFERENCE EXAMPLES
 
-## Ex 1: Clear Request — Filter and view details ✅
+## Ex 1: Clear Request — List and view details ✅
 
 **User**: "View details of the POST request to api.example.com that returned 500"
 
 **Turn 1** — EXPLORE:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): The user wants to see a specific request. I need to filter list_https by method, host, and status.
+Pass 1 (Plan): The user wants to see a specific request. I need to list_https first to find it.
 Assumptions: None — I will run list_https and STOP.
 Pass 2 (Verify): I must not assume the result. I will only call list_https and STOP.
 </thinking>
-<list_https>
-  <filter>
-    <method>POST</method>
-    <host>api.example.com</host>
-    <status>500</status>
-  </filter>
-</list_https>
+<list_https><limit>50</limit></list_https>
 \`\`\`
 
-**Turn 2** — Result returns a single request (stt=7) → READ:
+**Turn 2** — Result returns a list; inspect the matching request (stt=7 is POST to api.example.com with 500):
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Only one request matched (stt=7). I will get its detail.
+Pass 1 (Plan): Found stt=7 — POST to api.example.com with 500 status. I will get its detail.
 Pass 2 (Verify): stt=7 came from the list_https result — valid to call get_https_detail.
 </thinking>
 <get_https_detail><index>7</index></get_https_detail>
@@ -51,20 +45,16 @@ Request header missing \`Idempotency-Key\` — may be related to race conditions
 **Turn 1** — EXPLORE:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Search for requests with "/upload" in the path.
+Pass 1 (Plan): List all requests to find upload-related ones.
 Pass 2 (Verify): No assumptions — run list_https and STOP.
 </thinking>
-<list_https>
-  <filter>
-    <path>/upload</path>
-  </filter>
-</list_https>
+<list_https><limit>50</limit></list_https>
 \`\`\`
 
-**Turn 2** — Results show multiple matches → CLARIFY:
+**Turn 2** — Results show multiple upload-related requests → CLARIFY:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): 4 requests match. Need to ask the user which ones to inspect.
+Pass 1 (Plan): 4 requests related to /upload found. Need to ask the user which ones to inspect.
 Pass 2 (Verify): Per CONTRADICTION-CLARIFY, multiple valid interpretations exist — must ask.
 </thinking>
 <markdown>
@@ -93,37 +83,29 @@ Found **4 requests** related to \`/upload\`:
 **Turn 1** — EXPLORE:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Filter by host payment-gateway.internal.
+Pass 1 (Plan): List all requests to find payment-gateway.internal.
 Pass 2 (Verify): No assumptions — run list_https and STOP.
 </thinking>
-<list_https>
-  <filter>
-    <host>payment-gateway.internal</host>
-  </filter>
-</list_https>
+<list_https />
 \`\`\`
 
-**Turn 2** — No results, try broader filter:
+**Turn 2** — No matching host found, try with a limit to double-check:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): First filter returned nothing. Try partial match "payment".
+Pass 1 (Plan): First call returned nothing matching payment-gateway. Try again with a larger set.
 Pass 2 (Verify): This is the second attempt — if it fails, I must stop and ask per MAX-2-FILTER.
 </thinking>
-<list_https>
-  <filter>
-    <host>payment</host>
-  </filter>
-</list_https>
+<list_https><limit>100</limit></list_https>
 \`\`\`
 
-**Turn 3** — Still no results after 2 filters → stop and ask:
+**Turn 3** — Still no results after 2 attempts → stop and ask:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Two filters failed. Per MAX-2-FILTER, must ask the user.
+Pass 1 (Plan): Two list_https calls and no payment-gateway.internal found. Per MAX-2-FILTER, must ask the user.
 Pass 2 (Verify): No more tool attempts. Output question.
 </thinking>
 <markdown>
-Tried filtering by host \`payment-gateway.internal\` and \`payment\` — no matching requests found in captured data.
+Checked all captured requests — no requests to host \`payment-gateway.internal\` found.
 </markdown>
 <question>
   <q id="1" type="text" label="Can you confirm the exact host/domain, or describe the request (method, approximate path)?" />
@@ -182,19 +164,10 @@ Found **3 requests** related to auth:
 **Turn 1** — Explore scope:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): User wants full checkout flow. Need to find all related requests via list_https with multiple filters. Two independent filters — batch them.
-Pass 2 (Verify): Batch in one message per BATCH rule.
+Pass 1 (Plan): User wants full checkout flow. Need to list all requests first to find checkout and payment related ones.
+Pass 2 (Verify): One list_https call — batch with other independent calls if any.
 </thinking>
-<list_https>
-  <filter>
-    <path>/checkout</path>
-  </filter>
-</list_https>
-<list_https>
-  <filter>
-    <path>/payment</path>
-  </filter>
-</list_https>
+<list_https />
 \`\`\`
 
 **Turn 2** — IMPACT-CONFIRM because >4 requests across multiple steps:
@@ -239,21 +212,16 @@ Pass 2 (Verify): TOOL-BATCH-LIMIT — max 3 get_https_detail per turn.
 **Turn 1** — EXPLORE:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Find login requests.
+Pass 1 (Plan): List all requests to find login-related ones.
 Pass 2 (Verify): No assumptions — run list_https and STOP.
 </thinking>
-<list_https>
-  <filter>
-    <path>/login</path>
-    <method>POST</method>
-  </filter>
-</list_https>
+<list_https><limit>50</limit></list_https>
 \`\`\`
 
-**Turn 2** — READ:
+**Turn 2** — Found stt=4 (POST /api/login) → READ:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): One request matched (stt=4). Get its detail.
+Pass 1 (Plan): Found POST /api/login at stt=4. Get its detail.
 Pass 2 (Verify): stt=4 is valid from list_https result.
 </thinking>
 <get_https_detail><index>4</index></get_https_detail>
@@ -322,7 +290,7 @@ Pass 2 (Verify): No user message since the last turn. Must ask before continuing
 2. ✅ \`get_https_detail\` stt=3 — retrieved POST /api/auth/login details
 3. ✅ \`get_https_detail\` stt=5 — retrieved POST /api/auth/2fa details
 4. ✅ \`get_https_detail\` stt=8 — retrieved POST /api/auth/refresh details
-5. ✅ \`list_https\` — filtered for \`/api/user\` requests
+5. ✅ \`list_https\` — listed all requests for \`/api/user\` review
 6. ✅ \`get_https_detail\` stt=12 — retrieved GET /api/user/profile details
 </markdown>
 <question>
@@ -417,22 +385,17 @@ const API_BASE = "https://api.example.com/v1";
 
 ---
 
-## Ex 11: Combined — Filter requests then inspect source ✅
+## Ex 11: Combined — List requests then inspect source ✅
 
 **User**: "Find POST xhr requests with errors, then check the related JS source"
 
 **Turn 1** — EXPLORE (batch):
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Two independent calls: filter requests and list sources. Batch them.
+Pass 1 (Plan): Two independent calls: list all requests and list sources. Batch them.
 Pass 2 (Verify): Both calls independent — batch per BATCH rule.
 </thinking>
-<list_https>
-  <filter>
-    <method>POST</method>
-    <type>xhr</type>
-  </filter>
-</list_https>
+<list_https />
 <list_sources>
   <filter>
     <type>js</type>

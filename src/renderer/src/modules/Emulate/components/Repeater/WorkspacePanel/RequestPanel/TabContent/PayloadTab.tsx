@@ -1,15 +1,8 @@
 import { useState, useRef } from 'react';
 import { Check, Plus, Edit } from 'lucide-react';
-import { cn } from '../../../../shared/lib/utils';
-import { PayloadValueModal } from './PayloadValueModal';
-
-interface PayloadItem {
-  id: string;
-  name: string;
-  description: string;
-  values: string[];
-  enabled: boolean;
-}
+import { cn } from '../../../../../../../shared/lib/utils';
+import { PayloadValueModal } from '../modal/PayloadValueModal';
+import type { PayloadItem } from '../types';
 
 interface PayloadTemplate {
   id: string;
@@ -112,7 +105,7 @@ const payloadTemplates: PayloadTemplate[] = [
   },
 ];
 
-interface PayloadTableProps {
+interface PayloadTabProps {
   payloads: PayloadItem[];
   onChange: (payloads: PayloadItem[]) => void;
   onUpload?: (file: File) => void;
@@ -120,12 +113,10 @@ interface PayloadTableProps {
   targetId?: string | null;
 }
 
-export function PayloadTable({ payloads, onChange, targetId }: PayloadTableProps) {
+export function PayloadTab({ payloads, onChange, targetId }: PayloadTabProps) {
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [modalPayload, setModalPayload] = useState<PayloadItem | null>(null);
   const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
-
-  // Debug log removed to prevent spam
 
   // Auto-resize textarea
   const resizeTextarea = (el: HTMLTextAreaElement) => {

@@ -1,4 +1,4 @@
-package repository
+package emulate
 
 import (
 	"database/sql"
@@ -6,30 +6,30 @@ import (
 	"time"
 
 	"github.com/phantoma/server/internal/database"
-	domainemulatetargets "github.com/phantoma/server/internal/domain/emulatetargets"
+	domainemulate "github.com/phantoma/server/internal/domain/emulate"
 	"github.com/phantoma/server/pkg/logger"
 )
 
-// EmulateTargetRepository defines the interface for emulate target data access.
-type EmulateTargetRepository interface {
-	GetAll() ([]domainemulatetargets.Target, error)
-	GetByID(id string) (*domainemulatetargets.Target, error)
-	Create(input domainemulatetargets.CreateTargetInput, now int64) (*domainemulatetargets.Target, error)
-	Update(id string, input domainemulatetargets.UpdateTargetInput, now int64) (*domainemulatetargets.Target, error)
+// TargetRepository defines the interface for emulate target data access.
+type TargetRepository interface {
+	GetAll() ([]domainemulate.Target, error)
+	GetByID(id string) (*domainemulate.Target, error)
+	Create(input domainemulate.CreateTargetInput, now int64) (*domainemulate.Target, error)
+	Update(id string, input domainemulate.UpdateTargetInput, now int64) (*domainemulate.Target, error)
 	Delete(id string) (bool, error)
 	UpdateLastUsed(id string, timestamp int64) error
 }
 
-// SQLiteEmulateTargetRepository implements EmulateTargetRepository using SQLite.
-type SQLiteEmulateTargetRepository struct{}
+// SQLiteTargetRepository implements TargetRepository using SQLite.
+type SQLiteTargetRepository struct{}
 
-// NewEmulateTargetRepository creates a new repository instance.
-func NewEmulateTargetRepository() EmulateTargetRepository {
-	return &SQLiteEmulateTargetRepository{}
+// NewTargetRepository creates a new repository instance.
+func NewTargetRepository() TargetRepository {
+	return &SQLiteTargetRepository{}
 }
 
 // GetAll returns all emulate targets sorted by updated_at DESC.
-func (r *SQLiteEmulateTargetRepository) GetAll() ([]domainemulatetargets.Target, error) {
+func (r *SQLiteTargetRepository) GetAll() ([]domainemulate.Target, error) {
 	rows, err := database.DB.Query(
 		`SELECT id, title, url, icon, platform, last_used_at,
 		        executable_path, startup_args, environment,
@@ -41,9 +41,9 @@ func (r *SQLiteEmulateTargetRepository) GetAll() ([]domainemulatetargets.Target,
 	}
 	defer rows.Close()
 
-	var targets []domainemulatetargets.Target
+	var targets []domainemulate.Target
 	for rows.Next() {
-		var t domainemulatetargets.Target
+		var t domainemulate.Target
 		if err := rows.Scan(
 			&t.ID, &t.Title, &t.URL, &t.Icon, &t.Platform, &t.LastUsedAt,
 			&t.ExecutablePath, &t.StartupArgs, &t.Environment,
@@ -55,14 +55,14 @@ func (r *SQLiteEmulateTargetRepository) GetAll() ([]domainemulatetargets.Target,
 	}
 
 	if targets == nil {
-		targets = []domainemulatetargets.Target{}
+		targets = []domainemulate.Target{}
 	}
 	return targets, rows.Err()
 }
 
 // GetByID returns a target by ID.
-func (r *SQLiteEmulateTargetRepository) GetByID(id string) (*domainemulatetargets.Target, error) {
-	var t domainemulatetargets.Target
+func (r *SQLiteTargetRepository) GetByID(id string) (*domainemulate.Target, error) {
+	var t domainemulate.Target
 	err := database.DB.QueryRow(
 		`SELECT id, title, url, icon, platform, last_used_at,
 		        executable_path, startup_args, environment,
@@ -83,7 +83,7 @@ func (r *SQLiteEmulateTargetRepository) GetByID(id string) (*domainemulatetarget
 }
 
 // Create creates a new target.
-func (r *SQLiteEmulateTargetRepository) Create(input domainemulatetargets.CreateTargetInput, now int64) (*domainemulatetargets.Target, error) {
+func (r *SQLiteTargetRepository) Create(input domainemulate.CreateTargetInput, now int64) (*domainemulate.Target, error) {
 	id := input.ID
 	if id == nil || *id == "" {
 		uid := generateID()
@@ -98,36 +98,7 @@ func (r *SQLiteEmulateTargetRepository) Create(input domainemulatetargets.Create
 		logger.F("executable_path", input.ExecutablePath),
 	)
 
-	// Check if table exists
-	var tableExists int
-	err := database.DB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='emulate_targets'").Scan(&tableExists)
-	if err != nil {
-		logger.Error("[Repository] Failed to check table existence",
-			logger.F("error", err),
-		)
-	} else {
-		logger.Info("[Repository] Table check",
-			logger.F("exists", tableExists > 0),
-		)
-		if tableExists == 0 {
-			// Log all tables
-			rows, err := database.DB.Query("SELECT name FROM sqlite_master WHERE type='table'")
-			if err == nil {
-				defer rows.Close()
-				var tables []string
-				for rows.Next() {
-					var name string
-					rows.Scan(&name)
-					tables = append(tables, name)
-				}
-				logger.Info("[Repository] Existing tables",
-					logger.F("tables", tables),
-				)
-			}
-		}
-	}
-
-	_, err = database.DB.Exec(
+	_, err := database.DB.Exec(
 		`INSERT INTO emulate_targets (id, title, url, icon, platform,
 		                      executable_path, startup_args, environment,
 		                      created_at, updated_at)
@@ -149,8 +120,7 @@ func (r *SQLiteEmulateTargetRepository) Create(input domainemulatetargets.Create
 }
 
 // Update updates a target by ID.
-func (r *SQLiteEmulateTargetRepository) Update(id string, input domainemulatetargets.UpdateTargetInput, now int64) (*domainemulatetargets.Target, error) {
-	// Build dynamic UPDATE query
+func (r *SQLiteTargetRepository) Update(id string, input domainemulate.UpdateTargetInput, now int64) (*domainemulate.Target, error) {
 	query := "UPDATE emulate_targets SET updated_at = ?"
 	args := []interface{}{now}
 
@@ -204,7 +174,7 @@ func (r *SQLiteEmulateTargetRepository) Update(id string, input domainemulatetar
 }
 
 // Delete deletes a target by ID.
-func (r *SQLiteEmulateTargetRepository) Delete(id string) (bool, error) {
+func (r *SQLiteTargetRepository) Delete(id string) (bool, error) {
 	result, err := database.DB.Exec("DELETE FROM emulate_targets WHERE id = ?", id)
 	if err != nil {
 		return false, fmt.Errorf("delete target: %w", err)
@@ -214,7 +184,7 @@ func (r *SQLiteEmulateTargetRepository) Delete(id string) (bool, error) {
 }
 
 // UpdateLastUsed updates only the last_used_at field for a target.
-func (r *SQLiteEmulateTargetRepository) UpdateLastUsed(id string, timestamp int64) error {
+func (r *SQLiteTargetRepository) UpdateLastUsed(id string, timestamp int64) error {
 	result, err := database.DB.Exec(
 		"UPDATE emulate_targets SET last_used_at = ?, updated_at = ? WHERE id = ?",
 		timestamp, timestamp, id,

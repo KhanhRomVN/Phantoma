@@ -272,21 +272,28 @@ export default React.memo(function Emulate({
     [targetStates],
   );
 
-  // Read requests from app-level networkStore (survives route changes)
-  const requests = useNetworkStore((s) => s.requests);
+  // Child components subscribe to requests directly — Emulate only needs actions
   const clearRequests = useNetworkStore((s) => s.clearRequests);
   const unpackedScripts = useNetworkStore((s) => s.unpackedScripts);
-
-  // Sync requests to moduleState + EmulateController
-  useEffect(() => {
-    setState((prev) => ({ ...prev, requests }));
-    EmulateController.getInstance().setRequests(requests);
-  }, [requests]);
 
   // Sync unpackedScripts to EmulateController
   useEffect(() => {
     EmulateController.getInstance().setUnpackedScripts(unpackedScripts);
   }, [unpackedScripts]);
+
+  // Keep EmulateController in sync WITHOUT causing Emulate re-renders
+  useEffect(() => {
+    let prevRequests = useNetworkStore.getState().requests;
+    // Initial sync
+    EmulateController.getInstance().setRequests(prevRequests);
+    const unsub = useNetworkStore.subscribe((state) => {
+      if (state.requests !== prevRequests) {
+        prevRequests = state.requests;
+        EmulateController.getInstance().setRequests(state.requests);
+      }
+    });
+    return unsub;
+  }, []);
 
   // Clear requests when switching to a non-active target
   useEffect(() => {
@@ -316,10 +323,54 @@ export default React.memo(function Emulate({
     return () => clearInterval(interval);
   }, [targetStates, updateTimerFn, clearTimerFn]);
 
-  const { filter, searchTerm, setSearchTerm, updateFilter, filterRequests } = useRequestFilter();
+  const { filter, searchTerm, setSearchTerm, updateFilter, filterRequests } = useRequestFilter({
+    onFilterChange: (newFilter) => {
+      EmulateController.getInstance().setFilter(newFilter);
+    },
+  });
 
+  // Sync initial filter to EmulateController on mount
+  useEffect(() => {
+    EmulateController.getInstance().setFilter(filter);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load filter from API when target changes (so filter applies even before FilterUI opens)
+  useEffect(() => {
+    if (!activeTargetId) return;
+    targetService.getFilter(activeTargetId).then((data) => {
+      if (!data) return;
+      try {
+        const methods = data.method ? JSON.parse(data.method) : {};
+        const host = data.host ? JSON.parse(data.host) : {};
+        const status = data.status ? JSON.parse(data.status) : {};
+        const type = data.type ? JSON.parse(data.type) : {};
+        updateFilter((prev) => ({
+          ...prev,
+          methods: { ...initialFilterState.methods, ...methods },
+          host: { ...initialFilterState.host, ...host },
+          status: { ...initialFilterState.status, ...status },
+          type: { ...initialFilterState.type, ...type },
+        }));
+      } catch (e) {
+        console.error('[Emulate] Failed to parse filter from API:', e);
+      }
+    }).catch((err) => {
+      console.error('[Emulate] Failed to load filter:', err);
+    });
+  }, [activeTargetId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync filter from EmulateController back to UI (when AI changes filter via apply_filter)
+  const updateFilterRef = useRef(updateFilter);
+  updateFilterRef.current = updateFilter;
+  useEffect(() => {
+    EmulateController.getInstance().setOnFilterChanged((newFilter) => {
+      updateFilterRef.current(newFilter);
+    });
+    return () => {
+      EmulateController.getInstance().setOnFilterChanged(null);
+    };
+  }, []);
   // Derived state
-  const filteredRequests = useMemo(() => filterRequests(requests), [filterRequests, requests]);
   const currentTargetUrl = targetTabs.find((tab) => tab.id === activeTargetId)?.url;
 
   useEffect(() => {
@@ -595,7 +646,7 @@ export default React.memo(function Emulate({
               <>
                 <div className="flex-1 min-h-0 border-b border-border">
                   <RequestTable
-                    requests={filteredRequests}
+                    filter={filter}
                     selectedId={selectedId}
                     onSelect={handleSetSelectedId}
                     searchTerm={searchTerm}
@@ -622,11 +673,10 @@ export default React.memo(function Emulate({
                 </div>
                 <div className="flex-1 min-h-0">
                   <RequestDetails
-                    request={requests.find((r) => r.id === selectedId) || null}
+                    selectedId={selectedId}
                     searchTerm={searchTerm}
                     filter={filter}
                     onFilterChange={handleSetFilter}
-                    requests={requests}
                     onSearchTermChange={setSearchTerm}
                     onSelectRequest={handleSetSelectedId}
                     onSetCompare1={() => {}}
@@ -641,22 +691,22 @@ export default React.memo(function Emulate({
             )}
             {selectedTool === 'intruder' && (
               <div className="flex-1 overflow-hidden">
-                <IntruderPanel requests={requests} targetId={activeTargetId} />
+                <IntruderPanel targetId={activeTargetId} />
               </div>
             )}
             {selectedTool === 'repeater' && (
               <div className="flex-1 overflow-hidden">
-                <PayloadPanel requests={requests} selectedRequestId={fuzzerTargetId} targetId={activeTargetId} />
+                <PayloadPanel selectedRequestId={fuzzerTargetId} targetId={activeTargetId} />
               </div>
             )}
             {selectedTool === 'resource' && (
               <div className="flex-1 overflow-hidden">
-                <ResourcesPanel requests={requests} onCountChange={setResourceCount} />
+                <ResourcesPanel onCountChange={setResourceCount} />
               </div>
             )}
             {selectedTool === 'source' && (
               <div className="flex-1 overflow-hidden">
-                <SourcesPanel requests={requests} unpackedScripts={unpackedScripts} />
+                <SourcesPanel />
               </div>
             )}
             {selectedTool === 'log' && (

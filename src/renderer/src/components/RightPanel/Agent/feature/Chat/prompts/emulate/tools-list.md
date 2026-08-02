@@ -1,28 +1,17 @@
 # Công Cụ Emulate
 
 ## 1. `list_https`
-Liệt kê các request HTTPS đã được bắt giữ, có thể lọc tùy chọn.
+Liệt kê các request HTTPS đã được bắt giữ.
 
 | Tham số | Bắt buộc | Mô tả |
 |-----------|----------|-------------|
 | `limit` | Không | Số lượng request tối đa trả về |
-| `filter.method` | Không | Lọc theo HTTP method (GET, POST, PUT, DELETE...) — khớp chính xác, không phân biệt hoa thường |
-| `filter.host` | Không | Lọc theo host (vd: "api.example.com") — khớp một phần, không phân biệt hoa thường |
-| `filter.path` | Không | Lọc theo đường dẫn (vd: "/api/users") — khớp một phần, không phân biệt hoa thường |
-| `filter.status` | Không | Lọc theo mã trạng thái HTTP (vd: 200, 404, 500) — khớp chính xác |
-| `filter.type` | Không | Lọc theo loại tài nguyên: `xhr`, `js`, `css`, `img`, `doc`, `fetch`, `media`, `font`, `ws`, `manifest`, `other` |
 
 Trả về bảng danh sách request với các cột `stt` (số thứ tự), `method`, `status`, `type`, `host`, `path`.
 
 **Ví dụ:**
-```
-<list_https>
-  <limit>5</limit>
-  <filter>
-    <method>GET</method>
-    <host>api.example.com</host>
-  </filter>
-</list_https>
+
+<list_https><limit>5</limit></list_https>
 ```
 
 **Kết quả:**
@@ -229,4 +218,35 @@ const Utils = (() => {
   }
 
   return { formatCurrency, debounce, parseJWT, deepClone };
+
+
+---
+
+## 6. `apply_filter`
+Show/hide methods, statuses, types; add/remove host/path whitelist; set size/time range.
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `method` | Không | Method với action: `hide` hoặc `show`. VD: `<method action="hide">OPTIONS</method>` |
+| `status` | Không | Status code với action: `hide` hoặc `show`. VD: `<status action="hide">404</status>` |
+| `type` | Không | Resource type với action: `hide` hoặc `show`. VD: `<type action="hide">css</type>` |
+| `host` | Không | Host với action: `add` hoặc `remove`. VD: `<host action="add">api.example.com</host>` |
+| `path` | Không | Path với action: `add` hoặc `remove`. VD: `<path action="add">/api/v2</path>` |
+| `size` | Không | Khoảng size: `<size min="100" max="5000" />` |
+| `time` | Không | Khoảng time: `<time min="0.5" max="3.0" />` |
+
+Có thể gửi nhiều tham số trong cùng 1 lần gọi. Các tham số được áp dụng đồng thời.
+
+**Ví dụ:**
+
+<apply_filter>
+  <method action="hide">OPTIONS</method>
+  <type action="hide">css</type>
+  <host action="add">api.example.com</host>
+</apply_filter>
+
+
+**Kết quả:**
+
+[apply_filter] Applied: Methods: OPTIONS(hide); Types: css(hide); Hosts: api.example.com(add)
 })();

@@ -1,32 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
-import { cn } from '../../../../shared/lib/utils';
-import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
+import { cn } from '../../../../../../../shared/lib/utils';
+import { useAccentColors } from '../../../../../../../shared/hooks/useAccentColors';
+import type { ParamItem, PayloadItem } from '../types';
 
-interface ParamItem {
-  id: string;
-  key: string;
-  value: string;
-  enabled: boolean;
-}
-
-interface ParamTableProps {
+interface ParamTabProps {
   params: ParamItem[];
   onChange: (params: ParamItem[]) => void;
   placeholderKey?: string;
   placeholderValue?: string;
-  payloads?: Array<{ id: string; name: string; values: string[]; enabled: boolean }>;
+  payloads?: PayloadItem[];
   onSwitchToPayload?: () => void;
 }
 
-export function ParamTable({
+export function ParamTab({
   params,
   onChange,
   placeholderKey = 'Key',
   placeholderValue = 'Value',
   payloads = [],
   onSwitchToPayload,
-}: ParamTableProps) {
+}: ParamTabProps) {
   const [isFinalRowEditing, setIsFinalRowEditing] = useState(false);
   const [finalKey, setFinalKey] = useState('');
   const [finalValue, setFinalValue] = useState('');

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Plus, Play, Copy, FileText, Trash2 } from 'lucide-react';
-import { cn } from '../../../../shared/lib/utils';
-import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock';
+import { cn } from '../../../../../../../shared/lib/utils';
+import { CodeBlock, CodeBlockRef } from '../../../../../../../components/common/CodeBlock';
 
 interface PayloadValueModalProps {
   isOpen: boolean;

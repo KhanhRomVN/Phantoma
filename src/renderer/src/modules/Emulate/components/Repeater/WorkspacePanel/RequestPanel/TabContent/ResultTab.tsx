@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react';
-import { cn } from '../../../../shared/lib/utils';
-
-interface PayloadItem {
-  id: string;
-  name: string;
-  values: string[];
-  enabled: boolean;
-}
+import { cn } from '../../../../../../../shared/lib/utils';
+import type { PayloadItem } from '../types';
 
 interface ResultTabProps {
   payloads: PayloadItem[];

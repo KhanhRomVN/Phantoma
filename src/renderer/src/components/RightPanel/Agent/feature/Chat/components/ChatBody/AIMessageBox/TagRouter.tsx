@@ -49,6 +49,8 @@ import {
   ListHostsRenderer,
   ListSourcesRenderer,
   GetSourceDetailRenderer,
+  GetHttpsDetailRenderer,
+  ApplyFilterRenderer,
 } from './renderers';
 import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
@@ -699,6 +701,45 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
         actionIndex={toolGroup[0].index}
         messageId={messageId}
         isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'get_https_detail') {
+    return (
+      <GetHttpsDetailRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(messageId + '-action-' + toolGroup[0].index)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'apply_filter') {
+    const actionId1 = messageId + '-action-' + toolGroup[0].index;
+    return (
+      <ApplyFilterRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(actionId1)}
         isActiveGroup={isActiveGroup}
         isLastMessage={isLastMessage}
         isLastItemInList={isLastItemInList}

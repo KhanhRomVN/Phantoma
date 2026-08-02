@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import { cn } from '../../../../shared/lib/utils';
-import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock';
-import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
+import { cn } from '../../../../../../shared/lib/utils';
+import { CodeBlock, CodeBlockRef } from '../../../../../../components/common/CodeBlock';
+import { useAccentColors } from '../../../../../../shared/hooks/useAccentColors';
 
-interface ResponseViewerProps {
+interface ResponsePanelProps {
   headers?: Record<string, string>;
   body?: string;
   status?: number;
@@ -12,14 +12,14 @@ interface ResponseViewerProps {
   onHeightChange?: (newHeight: number) => void;
 }
 
-export function ResponseViewer({
+export function ResponsePanel({
   headers,
   body,
   status,
   contentType,
   className,
   onHeightChange,
-}: ResponseViewerProps) {
+}: ResponsePanelProps) {
   const [activeTab, setActiveTab] = useState<'headers' | 'body'>('headers');
   const [isHovering, setIsHovering] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -35,7 +35,7 @@ export function ResponseViewer({
     e.stopPropagation();
     setIsDragging(true);
     dragStartY.current = e.clientY;
-    
+
     // Get actual computed height
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -120,13 +120,13 @@ export function ResponseViewer({
   const language = detectLanguage(contentType, body);
 
   // Apply height override if dragging has set a custom height
-  const containerStyle: React.CSSProperties = height !== null 
+  const containerStyle: React.CSSProperties = height !== null
     ? { height: `${height}px`, flexGrow: 0, flexShrink: 0 }
     : {};
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className={cn('flex flex-col overflow-hidden bg-background flex-1 relative', className)}
       style={containerStyle}
     >
@@ -143,7 +143,7 @@ export function ResponseViewer({
         onMouseLeave={() => !isDragging && setIsHovering(false)}
         onMouseDown={handleMouseDown}
       />
-      
+
       {/* Header bar with tabs and status */}
       <div className="flex items-center justify-between border-b border-border shrink-0 bg-table-headerBg/50 overflow-x-auto">
         {/* Left: Tabs */}

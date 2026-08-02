@@ -18,63 +18,40 @@ export interface TrafficSummary {
  * Kết quả được bọc trong <traffic_context> XML tag.
  */
 export const buildTrafficContext = (data: TrafficSummary): string => {
+  // [DEBUG] Log khi build traffic context có dữ liệu — xoá sau khi fix xong
+  console.log('[buildTrafficContext] called with data:', {
+    hostsCount: data.hosts.length,
+    methodsCount: data.methods.length,
+    statusesCount: data.statuses.length,
+    typesCount: data.types.length,
+  });
+
   const lines: string[] = [];
 
   lines.push('<traffic_context>');
-  lines.push('## Traffic Overview');
-  lines.push('_Dữ liệu bên dưới phản ánh toàn bộ giá trị distinct hiện có trong session. Dùng để biết phạm vi filter khả dụng khi gọi list_https hoặc list_sources._');
-  lines.push('');
+  lines.push(`Captured traffic summary (${data.hosts.length} hosts, ${data.methods.length} methods, ${data.statuses.length} statuses, ${data.types.length} types):`);
 
   // Hosts
   if (data.hosts.length > 0) {
-    lines.push('### Hosts');
-    lines.push('| host | count |');
-    lines.push('|------|-------|');
-    for (const h of data.hosts) {
-      lines.push(`| ${h.value} | ${h.count} |`);
-    }
-    lines.push('');
+    lines.push('Hosts: ' + data.hosts.map(h => `${h.value}(${h.count})`).join(', '));
   }
 
   // Methods
   if (data.methods.length > 0) {
-    lines.push('### Methods');
-    lines.push('| method | count |');
-    lines.push('|--------|-------|');
-    for (const m of data.methods) {
-      lines.push(`| ${m.value} | ${m.count} |`);
-    }
-    lines.push('');
+    lines.push('Methods: ' + data.methods.map(m => `${m.value}(${m.count})`).join(', '));
   }
 
-  // Statuses (chỉ liệt kê các status hiện có, không bao gồm error nếu không tồn tại)
+  // Statuses
   if (data.statuses.length > 0) {
-    lines.push('### Status Codes');
-    lines.push('| status | count |');
-    lines.push('|--------|-------|');
-    for (const s of data.statuses) {
-      lines.push(`| ${s.value} | ${s.count} |`);
-    }
-    lines.push('');
+    lines.push('Statuses: ' + data.statuses.map(s => `${s.value}(${s.count})`).join(', '));
   }
 
   // Types
   if (data.types.length > 0) {
-    lines.push('### Resource Types');
-    lines.push('| type | count |');
-    lines.push('|------|-------|');
-    for (const t of data.types) {
-      lines.push(`| ${t.value} | ${t.count} |`);
-    }
-    lines.push('');
+    lines.push('Types: ' + data.types.map(t => `${t.value}(${t.count})`).join(', '));
   }
 
-  // Ghi chú quan trọng
-  lines.push('### Lưu ý');
-  lines.push('- Chỉ các giá trị được liệt kê ở trên mới tồn tại trong session hiện tại.');
-  lines.push('- Khi dùng `filter` trong `list_https` hoặc `list_sources`, chỉ filter theo những giá trị có trong bảng trên.');
-  lines.push('- Nếu một status code không có trong bảng Status Codes (vd: 404, 500), điều đó có nghĩa không có request nào trả về status đó — đừng giả định nó tồn tại.');
-  lines.push('- Bảng này được cập nhật theo thời gian thực — giá trị có thể thay đổi giữa các request.');
+  lines.push('Note: only values listed above exist in this session. Use them when filtering list_https or list_sources. Data updates in real-time.');
   lines.push('</traffic_context>');
 
   return lines.join('\n');
@@ -84,22 +61,12 @@ export const buildTrafficContext = (data: TrafficSummary): string => {
  * Build empty traffic context (khi chưa có dữ liệu traffic nào).
  */
 export const buildEmptyTrafficContext = (): string => {
+  // [DEBUG] Log khi build empty traffic context — xoá sau khi fix xong
+  console.log('[buildEmptyTrafficContext] called — no traffic data available');
+
   return [
     '<traffic_context>',
-    '## Traffic Overview',
-    '_Chưa có dữ liệu traffic nào được capture. Hãy đợi traffic xuất hiện trước khi phân tích._',
-    '',
-    '### Hosts',
-    '_Chưa có host nào._',
-    '',
-    '### Methods',
-    '_Chưa có method nào._',
-    '',
-    '### Status Codes',
-    '_Chưa có status code nào._',
-    '',
-    '### Resource Types',
-    '_Chưa có resource type nào._',
+    'No traffic captured yet. Wait for network activity before analyzing.',
     '</traffic_context>',
   ].join('\n');
 };

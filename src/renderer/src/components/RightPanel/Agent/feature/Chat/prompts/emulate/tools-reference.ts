@@ -2,15 +2,6 @@ export const EMULATE_TOOLS_REFERENCE = `# TOOLS
 
 Use XML tags for all tool calls:
 <list_https><limit>50</limit></list_https>
-<list_https>
-  <filter>
-    <method>GET</method>
-    <host>api.example.com</host>
-    <path>/users</path>
-    <status>200</status>
-    <type>xhr</type>
-  </filter>
-</list_https>
 <get_https_detail><index>1</index></get_https_detail>
 <list_hosts />
 <list_sources />
@@ -21,20 +12,15 @@ Use XML tags for all tool calls:
   </filter>
 </list_sources>
 <get_source_detail><index>1</index></get_source_detail>
-**list_https**: List captured HTTPS requests with optional filters.
+<apply_filter>
+  <method action="hide">OPTIONS</method>
+  <type action="hide">css</type>
+  <host action="add">api.example.com</host>
+</apply_filter>
+**list_https**: List captured HTTPS requests.
 - \`limit\`: (optional) Max number of requests to return. If omitted, returns all captured requests up to a default limit.
-- \`filter\`: (optional) Filter requests by attributes. All filter conditions are AND-ed together (must ALL match). Available filter attributes:
-  - \`method\`: HTTP method (GET, POST, PUT, DELETE, etc.) — case-insensitive exact match
-  - \`host\`: Request host (e.g., "api.example.com") — case-insensitive partial match
-  - \`path\`: Request path (e.g., "/api/users") — case-insensitive partial match
-  - \`status\`: HTTP response status code (e.g., "200", "404", "500") — exact match
-  - \`type\`: Resource type — exact match. Values: \`xhr\`, \`js\`, \`css\`, \`img\`, \`doc\`, \`fetch\`, \`media\`, \`font\`, \`ws\`, \`manifest\`, \`other\`
-- Returns: A numbered list of matching requests with \`stt\` (index), \`method\`, \`host\`, \`path\`, \`status\`, \`type\`, and optional summary.
-- Examples:
-  - \`<list_https><limit>20</limit></list_https>\` — list up to 20 most recent requests
-  - \`<list_https><filter><host>api.example.com</host></filter></list_https>\` — filter by host
-  - \`<list_https><filter><method>POST</method><status>500</status></filter></list_https>\` — filter POST requests with 500 status
-  - \`<list_https><filter><type>js</type></filter></list_https>\` — filter only JavaScript files
+- Returns: A numbered list of requests with \`stt\` (index), \`method\`, \`host\`, \`path\`, \`status\`, \`type\`, and optional summary.
+- Example: \`<list_https><limit>20</limit></list_https>\` — list up to 20 most recent requests
 **get_https_detail**: Get full request/response detail for a specific captured HTTPS request.
 - \`index\`: The \`stt\` (index) of the request from a previous \`list_https\` result (required).
 - Returns: Full detail including request method, URL, headers, body, response status, response headers, and response body.
@@ -59,6 +45,20 @@ Use XML tags for all tool calls:
 - Returns: The file URL, size, and the source code (prettified if minified). If the file has an unpacked version (from debugger), returns the unpacked source instead.
 - Example: \`<get_source_detail><index>5</index></get_source_detail>\` — get source for file stt=5
 - ⚠ SOURCE-BEFORE-DETAIL: Always call \`list_sources\` before \`get_source_detail\`. The index must come from a \`list_sources\` result.
+**apply_filter**: Modify the current request table filter. Check <filter_context> for current state first.
+- Child tags with action attribute:
+  - \`<method action="hide|show">METHOD</method>\` — hide or show a method
+  - \`<status action="hide|show">CODE</status>\` — hide or show a status code
+  - \`<type action="hide|show">TYPE</type>\` — hide or show a resource type
+  - \`<host action="add|remove">HOST</host>\` — add or remove host whitelist
+  - \`<path action="add|remove">PATH</path>\` — add or remove path whitelist
+  - \`<size min="N" max="N" />\` — set size range filter
+  - \`<time min="N" max="N" />\` — set time range filter
+- Multiple tags can be combined in one call.
+- Examples:
+  - \`<apply_filter><method action="hide">OPTIONS</method><type action="hide">css</type></apply_filter>\` — hide OPTIONS method and CSS types
+  - \`<apply_filter><host action="add">api.example.com</host></apply_filter>\` — add host to whitelist
+  - \`<apply_filter><status action="show">404</status></apply_filter>\` — show previously hidden 404
 
 # RESPONSE TAGS
 <thinking>your private two-pass (or three-pass, see WORKFLOW) reasoning and planning</thinking>

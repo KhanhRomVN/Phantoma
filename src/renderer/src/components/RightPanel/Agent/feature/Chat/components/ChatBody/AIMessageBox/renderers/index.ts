@@ -23,6 +23,8 @@ export { ListHttpsRenderer } from './emulate/ListHttpsRenderer';
 export { ListHostsRenderer } from './emulate/ListHostsRenderer';
 export { ListSourcesRenderer } from './emulate/ListSourcesRenderer';
 export { GetSourceDetailRenderer } from './emulate/GetSourceDetailRenderer';
+export { ApplyFilterRenderer } from './emulate/ApplyFilterRenderer';
+export { GetHttpsDetailRenderer } from './emulate/GetHttpsDetailRenderer';
 
 // Shared types and utilities
 export type {

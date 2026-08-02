@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Zap, X, Search, Send } from 'lucide-react';
-import { cn } from '../../../../shared/lib/utils';
-import { NetworkRequest } from '../Home/Filter';
+import { Search, Send } from 'lucide-react';
+import { useNetworkStore } from '../../../../stores/networkStore';
 import { RequestList } from './RequestList';
-import { PayloadConfigPanel } from './PayloadConfigPanel';
+import { RequestPanel } from './WorkspacePanel/RequestPanel';
+import { HeaderBar } from './WorkspacePanel/HeaderBar';
 
 // Storage utilities with target support
 const getStorageKey = (targetId: string | null, type: string): string => {
@@ -11,11 +11,11 @@ const getStorageKey = (targetId: string | null, type: string): string => {
   return `${base}-${type}`;
 };
 
-// Load request IDs that have been sent to Repeater
+// Load request IDs that have been sent to Repeater (session-based — mất khi tắt app)
 const loadRepeaterIds = (targetId?: string | null): Set<string> => {
   try {
     const key = getStorageKey(targetId || null, 'request-ids');
-    const data = localStorage.getItem(key);
+    const data = sessionStorage.getItem(key);
     if (data) {
       const arr = JSON.parse(data);
       return new Set(arr);
@@ -24,26 +24,20 @@ const loadRepeaterIds = (targetId?: string | null): Set<string> => {
   return new Set();
 };
 
-// Save request IDs to localStorage
+// Save request IDs to sessionStorage (mất khi tắt app)
 const saveRepeaterIds = (ids: Set<string>, targetId?: string | null) => {
   try {
     const key = getStorageKey(targetId || null, 'request-ids');
-    localStorage.setItem(key, JSON.stringify([...ids]));
+    sessionStorage.setItem(key, JSON.stringify([...ids]));
   } catch {}
 };
 
 // Add a request to Repeater
 export const addToRepeater = (requestId: string, targetId?: string | null) => {
-  // [DEBUG] Xóa sau khi fix — log trạng thái trước khi lưu
-  console.log('[DEBUG] addToRepeater called:', { requestId, targetId });
   const ids = loadRepeaterIds(targetId);
-  console.log('[DEBUG] loadRepeaterIds returned:', { targetId, existingIds: [...ids], count: ids.size });
   ids.add(requestId);
-  console.log('[DEBUG] after add, ids:', { targetId, updatedIds: [...ids], count: ids.size });
   saveRepeaterIds(ids, targetId);
-  // Dispatch event to notify components
   window.dispatchEvent(new CustomEvent('repeater-updated'));
-  console.log('[DEBUG] repeater-updated event dispatched');
 };
 
 // Check if a request is in Repeater
@@ -72,22 +66,14 @@ export const clearRepeater = (targetId?: string | null) => {
 };
 
 interface PayloadPanelProps {
-  requests?: NetworkRequest[];
   isTargetRunning?: boolean;
   onClose?: () => void;
   selectedRequestId?: string | null;
   targetId?: string | null;
 }
 
-export function PayloadPanel({
-  requests = [],
-  onClose,
-  selectedRequestId,
-  targetId,
-}: PayloadPanelProps) {
-  // [DEBUG] Xóa sau khi fix
-  console.log('[DEBUG] PayloadPanel mounted/rendered with:', { targetId, requestsCount: requests.length });
-
+export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPanelProps) {
+  const requests = useNetworkStore((s) => s.requests);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds(targetId));
@@ -166,47 +152,13 @@ export function PayloadPanel({
 
       {/* Right Panel - Payload Configuration */}
       <div className="flex-1 flex flex-col min-w-0 bg-muted/5">
-        <div className="px-4 h-[45px] border-b border-border shrink-0 flex items-center justify-between bg-muted/5">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-medium text-text-primary">Payload Configuration</span>
-            {selectedRequest && (
-              <span className="text-xs text-text-secondary ml-2 truncate max-w-[200px]">
-                {selectedRequest.path || selectedRequest.url}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {lastRunTimestamp && (
-              <button
-                onClick={() => {
-                  setSaveToHistory(!saveToHistory);
-                }}
-                className={cn(
-                  'text-[10px] font-medium transition-colors',
-                  saveToHistory
-                    ? 'text-text-secondary hover:text-primary'
-                    : 'text-text-secondary hover:text-primary',
-                )}
-                title={saveToHistory ? 'Save to history' : "Don't save to history"}
-              >
-                Do you want to save this session{' '}
-                <span className="text-primary">
-                  {new Date(lastRunTimestamp).toLocaleTimeString()}
-                </span>
-                ? Click to save!
-              </button>
-            )}
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded text-text-secondary hover:text-red-400 hover:bg-red-500/10"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
+        <HeaderBar
+          selectedRequest={selectedRequest}
+          lastRunTimestamp={lastRunTimestamp}
+          saveToHistory={saveToHistory}
+          onSaveToggle={() => setSaveToHistory(!saveToHistory)}
+          onClose={onClose}
+        />
 
         {!selectedRequest ? (
           <div className="flex-1 flex flex-col items-center justify-center text-text-secondary">
@@ -217,7 +169,7 @@ export function PayloadPanel({
             </p>
           </div>
         ) : (
-          <PayloadConfigPanel
+          <RequestPanel
             request={selectedRequest}
             lastRunTimestamp={lastRunTimestamp}
             saveToHistory={saveToHistory}

@@ -207,8 +207,8 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
 
         {/* Content */}
         <div className="flex-1 min-h-0 overflow-hidden relative">
-          {view === 'agent' && agentSubView === null && (
-            <div className="h-full">
+          {view === 'agent' && (
+            <div className={cn('h-full', agentSubView !== null && 'hidden')}>
               <AgentPanel key={agentPanelKey} />
             </div>
           )}

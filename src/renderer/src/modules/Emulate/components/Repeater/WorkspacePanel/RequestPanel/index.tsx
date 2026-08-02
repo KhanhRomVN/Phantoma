@@ -1,46 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { Square, Send, X } from 'lucide-react';
-import { cn } from '../../../../shared/lib/utils';
-import { NetworkRequest } from '../Home/Filter';
-import { CodeBlock, CodeBlockRef } from '../../../../components/common/CodeBlock';
-import { ParamTable } from './ParamTable';
-import { HeaderTable } from './HeaderTable';
-import { PayloadTable } from './PayloadTable';
-import { HistoryList } from './HistoryList';
-import { ResponseViewer } from './ResponseViewer';
-import { ResultTab } from './ResultTab';
-import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
+import { X } from 'lucide-react';
+import { cn } from '../../../../../../shared/lib/utils';
+import { NetworkRequest } from '../../../Home/Filter';
+import { CodeBlockRef } from '../../../../../../components/common/CodeBlock';
+import { ParamTab } from './TabContent/ParamTab';
+import { HeaderTab } from './TabContent/HeaderTab';
+import { BodyTab } from './TabContent/BodyTab';
+import { PayloadTab } from './TabContent/PayloadTab';
+import { HistoryTab } from './TabContent/HistoryTab';
+import { ResultTab } from './TabContent/ResultTab';
+import { ResponsePanel } from '../ResponsePanel';
+import { RequestBar } from './RequestBar';
+import { useAccentColors } from '../../../../../../shared/hooks/useAccentColors';
+import type { ParamItem, PayloadItem, HistoryEntry, TabType } from './types';
 
-interface ParamItem {
-  id: string;
-  key: string;
-  value: string;
-  enabled: boolean;
-}
-
-interface PayloadItem {
-  id: string;
-  name: string;
-  description: string;
-  values: string[];
-  enabled: boolean;
-}
-
-interface HistoryEntry {
-  id: string;
-  method: string;
-  url: string;
-  status: number;
-  timestamp: number;
-  duration: number;
-  payload: string;
-  requestHeaders?: Record<string, string>;
-  requestBody?: string;
-  responseHeaders?: Record<string, string>;
-  responseBody?: string;
-}
-
-interface PayloadConfigPanelProps {
+interface RequestPanelProps {
   request: NetworkRequest | null;
   lastRunTimestamp?: number | null;
   saveToHistory?: boolean;
@@ -51,9 +25,7 @@ interface PayloadConfigPanelProps {
   targetId?: string | null;
 }
 
-type TabType = 'params' | 'headers' | 'body' | 'payload' | 'history' | 'result';
-
-export function PayloadConfigPanel({
+export function RequestPanel({
   request,
   lastRunTimestamp: externalLastRunTimestamp,
   saveToHistory: externalSaveToHistory,
@@ -61,7 +33,7 @@ export function PayloadConfigPanel({
   onSwitchTab,
   payloads: externalPayloads,
   targetId,
-}: PayloadConfigPanelProps) {
+}: RequestPanelProps) {
   const { getColorByIndex } = useAccentColors();
   // Request config
   const [method, setMethod] = useState('GET');
@@ -531,77 +503,18 @@ export function PayloadConfigPanel({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Section 1: Toolbar */}
-      <div className="flex items-center border-b border-border shrink-0 bg-muted/5">
-        <div className="relative shrink-0" ref={methodDropdownRef}>
-          <button
-            onClick={() => setIsMethodDropdownOpen(!isMethodDropdownOpen)}
-            className="flex items-center gap-2 h-9 bg-input-background border border-input-border-default px-3 pr-7 text-sm font-mono outline-none hover:border-primary/50 transition-colors"
-          >
-            {method}
-            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </button>
-          {isMethodDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 min-w-[120px] bg-background border border-border rounded-lg shadow-xl z-50 py-1">
-              {methods.map((m, index) => {
-                const color = getColorByIndex(index % 10);
-                return (
-                  <button
-                    key={m}
-                    onClick={() => {
-                      setMethod(m);
-                      setIsMethodDropdownOpen(false);
-                    }}
-                    className={cn(
-                      'w-full text-left px-3 py-1.5 text-sm font-mono transition-colors',
-                      m === method ? 'bg-primary/10' : 'hover:bg-dropdown-item-hover',
-                    )}
-                    style={m === method ? { color: color } : undefined}
-                  >
-                    {m}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Enter URL..."
-          className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono"
-        />
-
-        <button
-          onClick={handleSend}
-          disabled={isExecuting || !url}
-          className={cn(
-            'flex items-center gap-1.5 px-4 h-9 text-sm font-medium transition-all shrink-0',
-            isExecuting || !url
-              ? 'bg-error/20 text-error cursor-not-allowed'
-              : 'bg-primary/20 text-primary hover:bg-primary/30',
-          )}
-        >
-          {isExecuting ? (
-            <>
-              <Square className="w-4 h-4" /> Sending...
-            </>
-          ) : (
-            <>
-              <Send className="w-4 h-4" /> Send
-            </>
-          )}
-        </button>
-      </div>
+      <RequestBar
+        method={method}
+        url={url}
+        isExecuting={isExecuting}
+        methods={methods}
+        isMethodDropdownOpen={isMethodDropdownOpen}
+        methodDropdownRef={methodDropdownRef}
+        onMethodChange={setMethod}
+        onUrlChange={setUrl}
+        onToggleDropdown={() => setIsMethodDropdownOpen(!isMethodDropdownOpen)}
+        onSend={handleSend}
+      />
 
       {/* Section 2: Tabs */}
       <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/50 overflow-x-auto">
@@ -629,7 +542,7 @@ export function PayloadConfigPanel({
       {/* Section 2 Content */}
       <div className="flex-1 min-h-0 overflow-hidden">
         {activeTab === 'params' && (
-          <ParamTable
+          <ParamTab
             params={params}
             onChange={setParams}
             placeholderKey="Parameter name"
@@ -639,7 +552,7 @@ export function PayloadConfigPanel({
           />
         )}
         {activeTab === 'headers' && (
-          <HeaderTable
+          <HeaderTab
             headers={headers}
             onChange={setHeaders}
             payloads={payloads}
@@ -647,26 +560,10 @@ export function PayloadConfigPanel({
           />
         )}
         {activeTab === 'body' && (
-          <div className="h-full p-2 flex flex-col">
-            <div className="flex-1 min-h-0">
-              <CodeBlock
-                ref={bodyCodeBlockRef}
-                code={body}
-                onChange={(newBody) => {
-                  setBody(newBody);
-                  // Auto-format on change using the CodeBlock's format method
-                  setTimeout(() => bodyCodeBlockRef.current?.format(), 100);
-                }}
-                language="json"
-                className="h-full"
-                showLineNumbers
-                wordWrap="on"
-              />
-            </div>
-          </div>
+          <BodyTab code={body} onChange={setBody} codeBlockRef={bodyCodeBlockRef} />
         )}
         {activeTab === 'payload' && (
-          <PayloadTable
+          <PayloadTab
             payloads={payloads}
             onChange={setPayloads}
             onUpload={handleUploadPayloads}
@@ -675,7 +572,7 @@ export function PayloadConfigPanel({
           />
         )}
         {activeTab === 'history' && (
-          <HistoryList
+          <HistoryTab
             entries={history}
             onSelect={handleSelectHistory}
             onClear={handleClearHistory}
@@ -691,7 +588,7 @@ export function PayloadConfigPanel({
 
       {/* Section 3: Response Viewer */}
       <div className="min-h-[180px] border-t border-border shrink-0">
-        <ResponseViewer
+        <ResponsePanel
           headers={response?.headers}
           body={response?.body}
           status={response?.status}

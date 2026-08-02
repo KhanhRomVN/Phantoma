@@ -1,4 +1,5 @@
 import { Zap, X } from 'lucide-react';
+import { useNetworkStore } from '../../../../stores/networkStore';
 import { NetworkRequest } from '../Home/Filter';
 
 // Storage utilities with target support
@@ -62,16 +63,16 @@ export const clearIntruder = (targetId?: string | null) => {
 };
 
 interface IntruderPanelProps {
-  requests?: NetworkRequest[];
   onClose?: () => void;
   targetId?: string | null;
 }
 
 export function IntruderPanel({
-  requests = [],
   onClose,
   targetId,
 }: IntruderPanelProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _requests = useNetworkStore((s) => s.requests);
   return (
     <div className="h-full flex flex-col bg-background">
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">

@@ -59,6 +59,7 @@ interface IpReconProps {
 }
 
 export default function IpRecon({ initialIp = '104.18.32.11' }: IpReconProps) {
+  console.log('[DEBUG] IpRecon render at', performance.now());
   // Session management
   const [sessions, setSessions] = useState<IpSession[]>(DEFAULT_SESSIONS);
   const [showAddForm, setShowAddForm] = useState(false);

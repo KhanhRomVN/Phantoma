@@ -56,4 +56,15 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
       fullAccess: "allow",
     },
   },
+
+  apply_filter: {
+    id: "apply_filter",
+    title: "APPLY FILTER",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
 };

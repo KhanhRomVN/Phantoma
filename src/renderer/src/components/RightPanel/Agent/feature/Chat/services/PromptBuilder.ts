@@ -22,6 +22,8 @@ export interface PromptBuilderOptions {
   feature?: AgentFeature;
   /** Traffic context string (đã bọc sẵn <traffic_context> tag) — inject vào mọi request */
   trafficContext?: string;
+  /** Filter context string (đã bọc sẵn <filter_context> tag) — inject vào mọi request */
+  filterContext?: string;
 }
 
 export const getShallowTree = (tree: string): string => {
@@ -70,12 +72,14 @@ export class PromptBuilder {
       userRequestCount,
       feature,
       trafficContext,
+      filterContext,
     } = options;
 
     let systemPrompt = '';
     let projectContextStr = '';
     let attachedContextStr = '';
     const trafficContextStr = trafficContext ? `\n\n${trafficContext}` : '';
+    const filterContextStr = filterContext ? `\n\n${filterContext}` : '';
 
     // Build system prompt for first request
     if (isReq1) {
@@ -95,8 +99,8 @@ export class PromptBuilder {
 
     // Combine all parts
     const promptPayload = isReq1
-      ? `${systemPrompt}${projectContextStr}${attachedContextStr}${trafficContextStr}\n\n${fullContent}`
-      : `${attachedContextStr}${trafficContextStr}\n\n${fullContent}`;
+      ? `${systemPrompt}${projectContextStr}${attachedContextStr}${trafficContextStr}${filterContextStr}\n\n${fullContent}`
+      : `${attachedContextStr}${trafficContextStr}${filterContextStr}\n\n${fullContent}`;
 
     return promptPayload;
   }

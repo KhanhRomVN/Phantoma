@@ -5,6 +5,7 @@ import { cn } from '../../../../shared/lib/utils';
 import { getRequestCategory } from '../../utils/requestHelpers';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 import { NetworkRequest } from '../../types/inspector';
+import { targetService } from '../../../../services/TargetService';
 
 // Re-export NetworkRequest from inspector types to maintain single source of truth
 export type { NetworkRequest };
@@ -275,51 +276,75 @@ function ListFilterSection({
 
 export function NetworkFilter({ filter, onChange, requests = [], targetId }: NetworkFilterProps) {
   const { getColorByIndex, toRgba } = useAccentColors();
+  const [loaded, setLoaded] = useState(false);
+  const filterRef = useRef(filter);
+  filterRef.current = filter;
 
-  // Storage key for filter data
-  const getStorageKey = () => {
-    const base = targetId ? `repeater-${targetId}` : 'repeater-default';
-    return `${base}-filter`;
-  };
-
-  // Load filter from storage on mount
+  // Load filter from API on mount
   useEffect(() => {
     if (!targetId) return;
-    try {
-      const key = getStorageKey();
-      const data = localStorage.getItem(key);
-      if (data) {
-        const savedFilter = JSON.parse(data);
-        // Merge with current filter to preserve structure
+    let cancelled = false;
+    setLoaded(false);
+    console.log('[DEBUG Filter] Load start, targetId:', targetId);
+    (async () => {
+      try {
+        const data = await targetService.getFilter(targetId);
+        console.log('[DEBUG Filter] API response:', JSON.stringify(data));
+        if (cancelled || !data) {
+          console.log('[DEBUG Filter] Load skipped — cancelled:', cancelled, 'data:', data);
+          setLoaded(true);
+          return;
+        }
+        const currentFilter = filterRef.current;
+        console.log('[DEBUG Filter] currentFilter.methods:', JSON.stringify(currentFilter.methods));
+        // Parse từng field, merge với initialFilterState để đảm bảo đầy đủ keys
+        let methods = currentFilter.methods;
+        let host = currentFilter.host;
+        let status = currentFilter.status;
+        let type = currentFilter.type;
+        try { if (data.method) methods = JSON.parse(data.method); } catch (e) { console.log('[DEBUG Filter] parse method failed:', e); }
+        try { if (data.host) host = JSON.parse(data.host); } catch (e) { console.log('[DEBUG Filter] parse host failed:', e); }
+        try { if (data.status) status = JSON.parse(data.status); } catch (e) { console.log('[DEBUG Filter] parse status failed:', e); }
+        try { if (data.type) type = JSON.parse(data.type); } catch (e) { console.log('[DEBUG Filter] parse type failed:', e); }
+        console.log('[DEBUG Filter] parsed methods:', JSON.stringify(methods));
+        console.log('[DEBUG Filter] merged methods:', JSON.stringify({ ...initialFilterState.methods, ...methods }));
         onChange({
-          ...filter,
-          methods: savedFilter.methods || filter.methods,
-          host: savedFilter.host || filter.host,
-          status: savedFilter.status || filter.status,
-          type: savedFilter.type || filter.type,
+          ...currentFilter,
+          methods: { ...initialFilterState.methods, ...methods },
+          host: { ...initialFilterState.host, ...host },
+          status: { ...initialFilterState.status, ...status },
+          type: { ...initialFilterState.type, ...type },
         });
+        console.log('[DEBUG Filter] onChange called, loaded=true');
+        setLoaded(true);
+      } catch (err) {
+        console.log('[DEBUG Filter] Load error:', err);
+        setLoaded(true);
       }
-    } catch {
-      // Ignore errors
-    }
+    })();
+    return () => { cancelled = true; };
   }, [targetId]);
 
-  // Save filter to storage whenever it changes
+  // Save filter to API whenever it changes (debounced 300ms, skip before load)
   useEffect(() => {
-    if (!targetId) return;
-    try {
-      const key = getStorageKey();
-      const dataToSave = {
-        methods: filter.methods,
-        host: filter.host,
-        status: filter.status,
-        type: filter.type,
-      };
-      localStorage.setItem(key, JSON.stringify(dataToSave));
-    } catch {
-      // Ignore errors
-    }
-  }, [filter, targetId]);
+    if (!targetId || !loaded) return;
+    const timer = setTimeout(async () => {
+      try {
+        console.log('[DEBUG Filter] Save filter.methods:', JSON.stringify(filter.methods));
+        await targetService.saveFilter(targetId, {
+          emulate_target_id: targetId,
+          method: JSON.stringify(filter.methods),
+          host: JSON.stringify(filter.host),
+          status: JSON.stringify(filter.status),
+          type: JSON.stringify(filter.type),
+        });
+        console.log('[DEBUG Filter] Save OK');
+      } catch (err) {
+        console.log('[DEBUG Filter] Save error:', err);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filter, targetId, loaded]);
 
   const allHosts = Array.from(new Set(requests.map((r) => r.host).filter(Boolean)));
 
@@ -334,6 +359,8 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
   const availableMethods = Array.from(
     new Set(requests.map((r) => r.method?.toUpperCase()).filter(Boolean)),
   ).sort();
+
+  console.log('[DEBUG Filter] availableMethods:', availableMethods, 'filter.methods keys:', Object.keys(filter.methods));
 
   const availableTypes = Array.from(
     new Set(requests.map((r) => getRequestCategory(r)).filter(Boolean)),

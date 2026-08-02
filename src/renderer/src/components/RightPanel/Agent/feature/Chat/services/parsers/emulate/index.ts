@@ -3,3 +3,4 @@ export { parseGetHttpsDetail } from './GetHttpsDetailParser';
 export { parseListHosts } from './ListHostsParser';
 export { parseListSources } from './ListSourcesParser';
 export { parseGetSourceDetail } from './GetSourceDetailParser';
+export { parseApplyFilter } from './ApplyFilterParser';

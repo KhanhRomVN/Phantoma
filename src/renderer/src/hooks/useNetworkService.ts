@@ -189,6 +189,9 @@ export function useNetworkService() {
 
   const handleCdpResponse = useCallback((_event: any, data: any) => {
     try {
+      // Guard: skip if status already set (prevents infinite update loop)
+      const existing = requestMapRef.current.get(data.id);
+      if (existing && existing.status !== 0) return;
       updateRequest(data.id, { status: data.statusCode || 200, responseHeaders: data.headers || {} });
     } catch (error) {
       console.error('[NetworkService] cdp:response error:', error);

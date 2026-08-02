@@ -41,6 +41,9 @@ import {
 import { useDebounce } from 'use-debounce';
 
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
+import { useNetworkStore } from '../../../../stores/networkStore';
+import { filterRequestsByConfig } from '../../hooks/useRequestFilter';
+import { InspectorFilter } from '../../types/filter.types';
 
 import { NetworkRequest } from './Filter';
 
@@ -53,7 +56,7 @@ import {
 } from '../../../../components/ui/Dropdown';
 
 interface RequestTableProps {
-  requests: NetworkRequest[];
+  filter?: InspectorFilter;
   selectedId: string | null;
   onSelect: (id: string) => void;
   searchTerm: string;
@@ -86,7 +89,7 @@ interface RequestTableProps {
 }
 
 export function RequestTable({
-  requests,
+  filter,
   selectedId,
   onSelect,
   searchTerm,
@@ -111,6 +114,13 @@ export function RequestTable({
   onStopTarget,
   onStartTarget,
 }: RequestTableProps) {
+  console.log('[DEBUG] RequestTable render at', performance.now());
+  // Subscribe to network store directly — Emulate no longer passes requests as props
+  const storeRequests = useNetworkStore((s) => s.requests);
+  const requests = filter
+    ? filterRequestsByConfig(storeRequests, filter, searchTerm)
+    : storeRequests;
+
   // Use props as source of truth for UI state (more reliable than store)
   // Store is only used for persistence, not for real-time UI updates
   const isTargetActive = propsIsTargetActive;

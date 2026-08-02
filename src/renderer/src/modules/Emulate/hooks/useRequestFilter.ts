@@ -1,8 +1,50 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { InspectorFilter } from '../types/filter.types';
 import { DEFAULT_FILTER_STATE } from '../constants/defaults';
 import { NetworkRequest } from '../types/inspector';
 import { getRequestCategory } from '../utils/requestHelpers';
+
+/**
+ * Pure function: filter requests by filter config + search term.
+ * Exported separately so child components can subscribe to store directly.
+ */
+export function filterRequestsByConfig(
+  requests: NetworkRequest[],
+  filter: InspectorFilter,
+  searchTerm: string,
+): NetworkRequest[] {
+  return requests.filter((req) => {
+    const method = req.method?.toUpperCase() || '';
+    const methodKey = method as keyof typeof filter.methods;
+    if (method && filter.methods[methodKey] === false) return false;
+
+    if (filter.host.whitelist.length > 0) {
+      const hostMatch = filter.host.whitelist.some((h) =>
+        req.host?.toLowerCase().includes(h.toLowerCase()),
+      );
+      if (!hostMatch) return false;
+    }
+
+    const status = req.status;
+    if (status && filter.status[status] === false) return false;
+
+    const type = getRequestCategory(req);
+    if (filter.type[type as keyof typeof filter.type] === false) return false;
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const searchable = [
+        req.id, req.method, req.host, req.path, req.url,
+        req.type, req.status?.toString(), req.size, req.time,
+      ]
+        .filter(Boolean)
+        .map((s) => String(s).toLowerCase());
+      if (!searchable.some((s) => s.includes(term))) return false;
+    }
+
+    return true;
+  });
+}
 
 interface UseRequestFilterOptions {
   initialFilter?: InspectorFilter;
@@ -28,58 +70,7 @@ export function useRequestFilter(options: UseRequestFilterOptions = {}) {
 
   const filterRequests = useCallback(
     (requests: NetworkRequest[]): NetworkRequest[] => {
-      return requests.filter((req) => {
-        // Method filter
-        const method = req.method?.toUpperCase() || '';
-        const methodKey = method as keyof typeof filter.methods;
-        if (method && filter.methods[methodKey] === false) {
-          return false;
-        }
-
-        // Host filter (whitelist)
-        if (filter.host.whitelist.length > 0) {
-          const hostMatch = filter.host.whitelist.some((h) =>
-            req.host?.toLowerCase().includes(h.toLowerCase()),
-          );
-          if (!hostMatch) return false;
-        }
-
-        // Status filter
-        const status = req.status;
-        if (status && filter.status[status] === false) {
-          return false;
-        }
-
-        // Type filter
-        const type = getRequestCategory(req);
-        if (filter.type[type as keyof typeof filter.type] === false) {
-          return false;
-        }
-
-        // Search term filter (global)
-        if (searchTerm) {
-          const term = searchTerm.toLowerCase();
-          const searchable = [
-            req.id,
-            req.method,
-            req.host,
-            req.path,
-            req.url,
-            req.type,
-            req.status?.toString(),
-            req.size,
-            req.time,
-          ]
-            .filter(Boolean)
-            .map((s) => String(s).toLowerCase());
-
-          if (!searchable.some((s) => s.includes(term))) {
-            return false;
-          }
-        }
-
-        return true;
-      });
+      return filterRequestsByConfig(requests, filter, searchTerm);
     },
     [filter, searchTerm],
   );
@@ -93,10 +84,7 @@ export function useRequestFilter(options: UseRequestFilterOptions = {}) {
     (method: keyof InspectorFilter['methods']) => {
       updateFilter((prev) => ({
         ...prev,
-        methods: {
-          ...prev.methods,
-          [method]: !prev.methods[method],
-        },
+        methods: { ...prev.methods, [method]: !prev.methods[method] },
       }));
     },
     [updateFilter],
@@ -106,10 +94,7 @@ export function useRequestFilter(options: UseRequestFilterOptions = {}) {
     (status: number) => {
       updateFilter((prev) => ({
         ...prev,
-        status: {
-          ...prev.status,
-          [status]: !prev.status[status],
-        },
+        status: { ...prev.status, [status]: !prev.status[status] },
       }));
     },
     [updateFilter],
@@ -119,10 +104,7 @@ export function useRequestFilter(options: UseRequestFilterOptions = {}) {
     (type: keyof InspectorFilter['type']) => {
       updateFilter((prev) => ({
         ...prev,
-        type: {
-          ...prev.type,
-          [type]: !prev.type[type],
-        },
+        type: { ...prev.type, [type]: !prev.type[type] },
       }));
     },
     [updateFilter],
@@ -133,9 +115,7 @@ export function useRequestFilter(options: UseRequestFilterOptions = {}) {
       if (!host.trim()) return;
       updateFilter((prev) => ({
         ...prev,
-        host: {
-          whitelist: [...prev.host.whitelist, host.trim()],
-        },
+        host: { whitelist: [...prev.host.whitelist, host.trim()] },
       }));
     },
     [updateFilter],
@@ -145,9 +125,7 @@ export function useRequestFilter(options: UseRequestFilterOptions = {}) {
     (host: string) => {
       updateFilter((prev) => ({
         ...prev,
-        host: {
-          whitelist: prev.host.whitelist.filter((h) => h !== host),
-        },
+        host: { whitelist: prev.host.whitelist.filter((h) => h !== host) },
       }));
     },
     [updateFilter],

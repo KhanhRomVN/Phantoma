@@ -19,6 +19,13 @@ import { StreamingService } from '../../services/StreamingService';
 import { TOOL_ACTION_TYPES } from '../../constants/constants';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 import { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
+import { EmulateController } from '@renderer/controller/EmulateController';
+import {
+  buildTrafficContext,
+  buildEmptyTrafficContext,
+  buildFilterContext,
+  buildEmptyFilterContext,
+} from '../../prompts/emulate';
 
 interface UseChatLLMProps {
   apiUrl: string;
@@ -258,6 +265,57 @@ export const useChatLLM = ({
         userRequestCountRef.current += 1;
       }
 
+      // Build traffic context for emulate feature
+      let trafficContext: string | undefined;
+      if (feature === 'emulate') {
+        try {
+          const summary = EmulateController.getInstance().getTrafficSummary();
+          const isEmpty =
+            summary.hosts.length === 0 &&
+            summary.methods.length === 0 &&
+            summary.statuses.length === 0 &&
+            summary.types.length === 0;
+
+          trafficContext = isEmpty
+            ? buildEmptyTrafficContext()
+            : buildTrafficContext(summary);
+
+          // [DEBUG] Log traffic context được inject vào request — xoá sau khi fix xong
+          console.log('[useChatLLM] trafficContext injected:', {
+            isEmpty,
+            contextLength: trafficContext.length,
+            contextPreview: trafficContext.substring(0, 200),
+          });
+        } catch (err) {
+          console.warn('[useChatLLM] Failed to build traffic context:', err);
+          trafficContext = undefined;
+        }
+      }
+
+      // Build filter context for emulate feature
+      let filterContext: string | undefined;
+      if (feature === 'emulate') {
+        try {
+          const ctrl = EmulateController.getInstance();
+          const filter = ctrl.getFilter();
+          if (filter) {
+            filterContext = buildFilterContext(ctrl.getFilterText());
+          } else {
+            filterContext = buildEmptyFilterContext();
+          }
+
+          // [DEBUG] Log filter context được inject vào request — xoá sau khi fix xong
+          console.log('[useChatLLM] filterContext injected:', {
+            hasFilter: !!filter,
+            contextLength: filterContext.length,
+            contextPreview: filterContext.substring(0, 200),
+          });
+        } catch (err) {
+          console.warn('[useChatLLM] Failed to build filter context:', err);
+          filterContext = undefined;
+        }
+      }
+
       // Build prompt using PromptBuilder
       const promptPayload = await PromptBuilder.buildPrompt({
         content,
@@ -270,6 +328,8 @@ export const useChatLLM = ({
         files,
         userRequestCount: userRequestCountRef.current,
         feature: feature as AgentFeature,
+        trafficContext,
+        filterContext,
       });
 
       const userMessage: Message = {

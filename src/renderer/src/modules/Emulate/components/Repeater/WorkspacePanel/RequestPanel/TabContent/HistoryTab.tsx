@@ -1,36 +1,21 @@
 import { useState } from 'react';
 import { Trash2, Clock } from 'lucide-react';
-import { cn } from '../../../../shared/lib/utils';
-import { StatusBadge } from '../common/StatusBadge';
+import { cn } from '../../../../../../../shared/lib/utils';
+import { StatusBadge } from '../../../../common/StatusBadge';
+import type { HistoryEntry, PayloadItem } from '../types';
 
-interface HistoryEntry {
-  id: string;
-  method: string;
-  url: string;
-  status: number;
-  timestamp: number;
-  endTime?: number;
-  duration: number;
-  payload: string;
-  payloadCount?: number;
-  requestHeaders?: Record<string, string>;
-  requestBody?: string;
-  responseHeaders?: Record<string, string>;
-  responseBody?: string;
-}
-
-interface HistoryListProps {
+interface HistoryTabProps {
   entries: HistoryEntry[];
   onSelect: (entry: HistoryEntry) => void;
   onClear: () => void;
   onDelete: (id: string) => void;
   selectedId?: string | null;
-  payloads?: Array<{ id: string; name: string; values: string[]; enabled: boolean }>;
+  payloads?: PayloadItem[];
   onSwitchToResult?: () => void;
   onViewResponse?: (entry: HistoryEntry) => void;
 }
 
-export function HistoryList({
+export function HistoryTab({
   entries,
   onSelect,
   onClear,
@@ -38,7 +23,7 @@ export function HistoryList({
   selectedId,
   onSwitchToResult,
   onViewResponse,
-}: HistoryListProps) {
+}: HistoryTabProps) {
   const [expandedIds] = useState<Set<string>>(new Set());
 
   const formatTime = (timestamp: number) => {

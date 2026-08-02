@@ -1,4 +1,4 @@
-package emulatetargets
+package emulate
 
 // Target đại diện cho một target trong hệ thống.
 type Target struct {

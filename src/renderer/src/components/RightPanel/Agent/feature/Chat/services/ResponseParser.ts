@@ -18,6 +18,7 @@ import { parseGetHttpsDetail } from './parsers/emulate/GetHttpsDetailParser';
 import { parseListHosts } from './parsers/emulate/ListHostsParser';
 import { parseListSources } from './parsers/emulate/ListSourcesParser';
 import { parseGetSourceDetail } from './parsers/emulate/GetSourceDetailParser';
+import { parseApplyFilter } from './parsers/emulate/ApplyFilterParser';
 import { parseMarkdown } from './parsers/other/MarkdownParser';
 
 import { extractThinkingBlocks } from './parsers/other/ThinkingParser';
@@ -585,6 +586,11 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'get_source_detail': {
               const params = parseGetSourceDetail(innerContent || '');
               action = { type: 'get_source_detail' as const, params, rawXml };
+              break;
+            }
+            case 'apply_filter': {
+              const params = parseApplyFilter(innerContent || '');
+              action = { type: 'apply_filter' as const, params, rawXml };
               break;
             }
             default:
