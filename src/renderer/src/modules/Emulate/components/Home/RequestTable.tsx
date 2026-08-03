@@ -88,7 +88,7 @@ interface RequestTableProps {
   onStartTarget: (targetId: string, mode: 'mitm' | 'cdp') => void;
 }
 
-export function RequestTable({
+export const RequestTable = React.memo(function RequestTable({
   filter,
   selectedId,
   onSelect,
@@ -114,12 +114,15 @@ export function RequestTable({
   onStopTarget,
   onStartTarget,
 }: RequestTableProps) {
-  console.log('[DEBUG] RequestTable render at', performance.now());
   // Subscribe to network store directly — Emulate no longer passes requests as props
   const storeRequests = useNetworkStore((s) => s.requests);
-  const requests = filter
-    ? filterRequestsByConfig(storeRequests, filter, searchTerm)
-    : storeRequests;
+  // Memoize filtered requests to avoid creating a new array every render,
+  // which would trigger useReactTable's _autoResetPageIndex infinite loop.
+  const requests = useMemo(() => {
+    return filter
+      ? filterRequestsByConfig(storeRequests, filter, searchTerm)
+      : storeRequests;
+  }, [storeRequests, filter, searchTerm]);
 
   // Use props as source of truth for UI state (more reliable than store)
   // Store is only used for persistence, not for real-time UI updates
@@ -1303,4 +1306,4 @@ export function RequestTable({
       )}
     </div>
   );
-}
+});

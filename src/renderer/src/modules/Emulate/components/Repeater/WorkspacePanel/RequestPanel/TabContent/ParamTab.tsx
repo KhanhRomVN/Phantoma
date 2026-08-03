@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '../../../../../../../shared/lib/utils';
 import { useAccentColors } from '../../../../../../../shared/hooks/useAccentColors';
 import type { ParamItem, PayloadItem } from '../types';
+import { useState, useRef, useEffect } from 'react';
 
 interface ParamTabProps {
   params: ParamItem[];
@@ -11,6 +11,7 @@ interface ParamTabProps {
   placeholderValue?: string;
   payloads?: PayloadItem[];
   onSwitchToPayload?: () => void;
+  readOnly?: boolean;
 }
 
 export function ParamTab({
@@ -20,6 +21,7 @@ export function ParamTab({
   placeholderValue = 'Value',
   payloads = [],
   onSwitchToPayload,
+  readOnly = false,
 }: ParamTabProps) {
   const [isFinalRowEditing, setIsFinalRowEditing] = useState(false);
   const [finalKey, setFinalKey] = useState('');
@@ -140,6 +142,7 @@ export function ParamTab({
   };
 
   const handleToggle = (id: string) => {
+    if (readOnly) return;
     onChange(params.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p)));
   };
 
@@ -186,6 +189,7 @@ export function ParamTab({
                           onClick={() => handleToggle(param.id)}
                           className={cn(
                             'w-4 h-4 rounded border flex items-center justify-center transition-all',
+                            readOnly && 'cursor-default',
                             param.enabled
                               ? 'bg-primary border-primary '
                               : 'border-border bg-background',
@@ -201,11 +205,13 @@ export function ParamTab({
                           type="text"
                           value={param.key}
                           onChange={(e) => {
+                            if (readOnly) return;
                             const updated = params.map((p) =>
                               p.id === param.id ? { ...p, key: e.target.value } : p,
                             );
                             onChange(updated);
                           }}
+                          readOnly={readOnly}
                           className="w-full bg-transparent px-1.5 py-1.5 text-xs text-text-primary outline-none font-mono"
                           placeholder={placeholderKey}
                         />
@@ -222,6 +228,7 @@ export function ParamTab({
                           }}
                           value={param.value}
                           onChange={(e) => {
+                            if (readOnly) return;
                             const updated = params.map((p) =>
                               p.id === param.id ? { ...p, value: e.target.value } : p,
                             );
@@ -233,11 +240,13 @@ export function ParamTab({
                             });
                           }}
                           onInput={(e) => {
+                            if (readOnly) return;
                             const target = e.target as HTMLTextAreaElement;
                             resizeTextarea(target);
                           }}
                           onMouseEnter={(e) => handleMouseEnter(param.value, e)}
                           onMouseLeave={handleMouseLeave}
+                          readOnly={readOnly}
                           className="w-full bg-transparent px-1.5 py-1.5 text-xs outline-none break-words resize-none font-mono leading-relaxed overflow-hidden"
                           style={{
                             color: getPayloadColor(param.value) || undefined,
@@ -249,79 +258,81 @@ export function ParamTab({
                   );
                 })}
             {/* Final row with placeholders - inline input style */}
-            <tr className="border-b border-border/40 hover:bg-dropdown-item-hover/30 transition-colors">
-              <td className="px-2 py-1.5"></td>
-              <td className="px-2 py-0">
-                <input
-                  type="text"
-                  value={isFinalRowEditing ? finalKey : ''}
-                  onChange={(e) => {
-                    setFinalKey(e.target.value);
-                    if (!isFinalRowEditing) setIsFinalRowEditing(true);
-                  }}
-                  onFocus={() => {
-                    if (!isFinalRowEditing) setIsFinalRowEditing(true);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (finalKey.trim() || finalValue.trim())) {
-                      handleAdd(finalKey, finalValue);
+            {!readOnly && (
+              <tr className="border-b border-border/40 hover:bg-dropdown-item-hover/30 transition-colors">
+                <td className="px-2 py-1.5"></td>
+                <td className="px-2 py-0">
+                  <input
+                    type="text"
+                    value={isFinalRowEditing ? finalKey : ''}
+                    onChange={(e) => {
+                      setFinalKey(e.target.value);
+                      if (!isFinalRowEditing) setIsFinalRowEditing(true);
+                    }}
+                    onFocus={() => {
+                      if (!isFinalRowEditing) setIsFinalRowEditing(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (finalKey.trim() || finalValue.trim())) {
+                        handleAdd(finalKey, finalValue);
+                        setFinalKey('');
+                        setFinalValue('');
+                        setIsFinalRowEditing(false);
+                      } else if (e.key === 'Escape') {
+                        setIsFinalRowEditing(false);
+                        setFinalKey('');
+                        setFinalValue('');
+                      }
+                    }}
+                    onBlur={() => {
+                      if (finalKey.trim() || finalValue.trim()) {
+                        handleAdd(finalKey, finalValue);
+                      }
                       setFinalKey('');
                       setFinalValue('');
                       setIsFinalRowEditing(false);
-                    } else if (e.key === 'Escape') {
-                      setIsFinalRowEditing(false);
+                    }}
+                    className="w-full bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-text-secondary italic py-1.5"
+                    placeholder="Key"
+                  />
+                </td>
+                <td className="px-2 py-0">
+                  <input
+                    type="text"
+                    value={isFinalRowEditing ? finalValue : ''}
+                    onChange={(e) => {
+                      setFinalValue(e.target.value);
+                      if (!isFinalRowEditing) setIsFinalRowEditing(true);
+                    }}
+                    onFocus={() => {
+                      if (!isFinalRowEditing) setIsFinalRowEditing(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && finalKey.trim() && finalValue.trim()) {
+                        handleAdd(finalKey, finalValue);
+                        setFinalKey('');
+                        setFinalValue('');
+                        setIsFinalRowEditing(false);
+                      } else if (e.key === 'Escape') {
+                        setIsFinalRowEditing(false);
+                        setFinalKey('');
+                        setFinalValue('');
+                      }
+                    }}
+                    onBlur={() => {
+                      if (finalKey.trim() && finalValue.trim()) {
+                        handleAdd(finalKey, finalValue);
+                      }
                       setFinalKey('');
                       setFinalValue('');
-                    }
-                  }}
-                  onBlur={() => {
-                    if (finalKey.trim() || finalValue.trim()) {
-                      handleAdd(finalKey, finalValue);
-                    }
-                    setFinalKey('');
-                    setFinalValue('');
-                    setIsFinalRowEditing(false);
-                  }}
-                  className="w-full bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-text-secondary italic py-1.5"
-                  placeholder="Key"
-                />
-              </td>
-              <td className="px-2 py-0">
-                <input
-                  type="text"
-                  value={isFinalRowEditing ? finalValue : ''}
-                  onChange={(e) => {
-                    setFinalValue(e.target.value);
-                    if (!isFinalRowEditing) setIsFinalRowEditing(true);
-                  }}
-                  onFocus={() => {
-                    if (!isFinalRowEditing) setIsFinalRowEditing(true);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && finalKey.trim() && finalValue.trim()) {
-                      handleAdd(finalKey, finalValue);
-                      setFinalKey('');
-                      setFinalValue('');
                       setIsFinalRowEditing(false);
-                    } else if (e.key === 'Escape') {
-                      setIsFinalRowEditing(false);
-                      setFinalKey('');
-                      setFinalValue('');
-                    }
-                  }}
-                  onBlur={() => {
-                    if (finalKey.trim() && finalValue.trim()) {
-                      handleAdd(finalKey, finalValue);
-                    }
-                    setFinalKey('');
-                    setFinalValue('');
-                    setIsFinalRowEditing(false);
-                  }}
-                  className="w-full bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-text-secondary italic py-1.5 break-words"
-                  placeholder="Value"
-                />
-              </td>
-            </tr>
+                    }}
+                    className="w-full bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-text-secondary italic py-1.5 break-words"
+                    placeholder="Value"
+                  />
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

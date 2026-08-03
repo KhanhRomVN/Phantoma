@@ -20,9 +20,13 @@ interface RequestPanelProps {
   saveToHistory?: boolean;
   onSaveToggle?: () => void;
   onRun?: () => void;
+  onSaveSession?: () => void;
   onSwitchTab?: (tab: TabType) => void;
   payloads?: PayloadItem[];
   targetId?: string | null;
+  viewHistoryEntry?: HistoryEntry | null;
+  onViewHistory?: (entry: HistoryEntry) => void;
+  onExitView?: () => void;
 }
 
 export function RequestPanel({
@@ -30,9 +34,13 @@ export function RequestPanel({
   lastRunTimestamp: externalLastRunTimestamp,
   saveToHistory: externalSaveToHistory,
   onRun,
+  onSaveSession,
   onSwitchTab,
   payloads: externalPayloads,
   targetId,
+  viewHistoryEntry = null,
+  onViewHistory,
+  onExitView,
 }: RequestPanelProps) {
   const { getColorByIndex } = useAccentColors();
   // Request config
@@ -41,6 +49,9 @@ export function RequestPanel({
   const [params, setParams] = useState<ParamItem[]>([]);
   const [headers, setHeaders] = useState<ParamItem[]>([]);
   const [body, setBody] = useState('');
+
+  // View history mode
+  const readOnly = viewHistoryEntry !== null;
 
   // Payload management - use external if provided
   const [internalPayloads, setInternalPayloads] = useState<PayloadItem[]>(() => {
@@ -121,16 +132,9 @@ export function RequestPanel({
     } catch {}
   };
 
-  // History
-  const [history, setHistory] = useState<HistoryEntry[]>(() => {
-    return loadFromStorage(getStorageKey('history'), []);
-  });
+  // History — RAM only, lost on restart
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [selectedHistory, setSelectedHistory] = useState<HistoryEntry | null>(null);
-
-  // Save history to storage whenever it changes
-  useEffect(() => {
-    saveToStorage(getStorageKey('history'), history);
-  }, [history, targetId]);
 
   // Execution state
   const [isExecuting, setIsExecuting] = useState(false);
@@ -141,6 +145,17 @@ export function RequestPanel({
     status?: number;
     contentType?: string;
   } | null>(null);
+
+  // Sync response when viewHistoryEntry changes
+  useEffect(() => {
+    if (viewHistoryEntry) {
+      setResponse({
+        headers: viewHistoryEntry.responseHeaders,
+        body: viewHistoryEntry.responseBody,
+        status: viewHistoryEntry.status,
+      });
+    }
+  }, [viewHistoryEntry]);
   const [isMethodDropdownOpen, setIsMethodDropdownOpen] = useState(false);
   const methodDropdownRef = useRef<HTMLDivElement>(null);
   const bodyCodeBlockRef = useRef<CodeBlockRef>(null);
@@ -383,11 +398,67 @@ export function RequestPanel({
     }
 
     // Run all combinations - skip history for Send button
+    const statusCounts: Record<number, number> = {};
+    let firstResult: any = null;
+    const allValues: string[] = [];
     for (const payload of enabledPayloads) {
       for (const value of payload.values) {
-        await executeRequest(value, true);
+        allValues.push(value);
+        try {
+          const result = await executeRequest(value, true);
+          const s = result.status || 0;
+          statusCounts[s] = (statusCounts[s] || 0) + 1;
+          if (!firstResult) firstResult = result;
+        } catch {
+          statusCounts[0] = (statusCounts[0] || 0) + 1;
+        }
       }
     }
+    const entry: HistoryEntry = {
+      id: crypto.randomUUID(),
+      method,
+      url,
+      status: firstResult?.status || 0,
+      statuses: statusCounts,
+      timestamp: Date.now(),
+      duration: 0,
+      payload: allValues.join(', '),
+      payloadCount: allValues.length,
+      requestHeaders: Object.fromEntries(headers.filter((h) => h.enabled && h.key).map((h) => [h.key, h.value])),
+      requestBody: method !== 'GET' ? body : undefined,
+      responseHeaders: firstResult?.headers,
+      responseBody: firstResult?.body,
+    };
+    setHistory((prev) => [entry, ...prev]);
+    setSelectedHistory(entry);
+  };
+
+  const handleSaveSession = () => {
+    if (!response || !url) return;
+    const entry: HistoryEntry = {
+      id: crypto.randomUUID(),
+      method,
+      url,
+      status: response.status || 0,
+      timestamp: Date.now(),
+      duration: 0,
+      payload: '',
+      requestHeaders: Object.fromEntries(headers.filter((h) => h.enabled && h.key).map((h) => [h.key, h.value])),
+      requestBody: method !== 'GET' ? body : undefined,
+      responseHeaders: response.headers,
+      responseBody: response.body,
+    };
+    setHistory((prev) => [entry, ...prev]);
+    setSelectedHistory(entry);
+    onSaveSession?.();
+  };
+
+  const handleViewHistory = (entry: HistoryEntry) => {
+    onViewHistory?.(entry);
+  };
+
+  const handleExitView = () => {
+    onExitView?.();
   };
 
   const handleSelectHistory = (entry: HistoryEntry) => {
@@ -482,7 +553,7 @@ export function RequestPanel({
     URL.revokeObjectURL(url);
   };
 
-  const tabs: { id: TabType; label: string; count?: number }[] = [
+  const tabs: { id: TabType; label: React.ReactNode; count?: number }[] = [
     { id: 'params', label: 'Params', count: params.filter((p) => p.enabled && p.key).length },
     { id: 'headers', label: 'Headers', count: headers.filter((h) => h.enabled && h.key).length },
     { id: 'body', label: 'Body' },
@@ -514,6 +585,7 @@ export function RequestPanel({
         onUrlChange={setUrl}
         onToggleDropdown={() => setIsMethodDropdownOpen(!isMethodDropdownOpen)}
         onSend={handleSend}
+        readOnly={readOnly}
       />
 
       {/* Section 2: Tabs */}
@@ -537,6 +609,25 @@ export function RequestPanel({
             )}
           </button>
         ))}
+        {viewHistoryEntry ? (
+          <span
+            className="ml-auto mr-3 text-[10px] text-text-secondary hover:text-primary transition-colors cursor-pointer shrink-0"
+            onClick={handleExitView}
+          >
+            Đang xem lịch sử — Click để thoát
+          </span>
+        ) : externalLastRunTimestamp && externalSaveToHistory ? (
+          <span
+            className="ml-auto mr-3 text-[10px] text-text-secondary hover:text-primary transition-colors cursor-pointer shrink-0"
+            onClick={handleSaveSession}
+          >
+            Do you want to save this session{' '}
+            <span className="text-primary">
+              {new Date(externalLastRunTimestamp).toLocaleTimeString()}
+            </span>
+            ? Click to save!
+          </span>
+        ) : null}
       </div>
 
       {/* Section 2 Content */}
@@ -547,6 +638,7 @@ export function RequestPanel({
             onChange={setParams}
             placeholderKey="Parameter name"
             placeholderValue="Parameter value"
+            readOnly={readOnly}
             payloads={payloads}
             onSwitchToPayload={() => setActiveTab('payload')}
           />
@@ -554,13 +646,14 @@ export function RequestPanel({
         {activeTab === 'headers' && (
           <HeaderTab
             headers={headers}
+            readOnly={readOnly}
             onChange={setHeaders}
             payloads={payloads}
             onSwitchToPayload={() => setActiveTab('payload')}
           />
         )}
         {activeTab === 'body' && (
-          <BodyTab code={body} onChange={setBody} codeBlockRef={bodyCodeBlockRef} />
+          <BodyTab code={body} onChange={setBody} codeBlockRef={bodyCodeBlockRef} readOnly={readOnly} />
         )}
         {activeTab === 'payload' && (
           <PayloadTab
@@ -581,6 +674,7 @@ export function RequestPanel({
             payloads={payloads}
             onSwitchToResult={handleSwitchToResult}
             onViewResponse={handleViewResponse}
+            onViewHistory={handleViewHistory}
           />
         )}
         {activeTab === 'result' && <ResultTab payloads={payloads} />}

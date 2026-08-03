@@ -34,13 +34,14 @@ import { useNetworkStore } from '../../stores/networkStore';
 import TargetSidebar from './components/TargetSidebar';
 import { useTimerStore } from '../../stores/timerStore';
 
-// Constants
+// Constants — stable references to avoid re-renders in child components
+const emptySet = new Set<string>();
+const noop = () => {};
 
 export default React.memo(function Emulate({
   activeAppId = '',
   onStopSession = async () => {},
 }: EmulateProps) {
-  console.log('[DEBUG] Emulate render at', performance.now());
   const { currentPreset } = useTheme();
   const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
   const { getColorByIndex } = useAccentColors();
@@ -651,11 +652,11 @@ export default React.memo(function Emulate({
                     onSelect={handleSetSelectedId}
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
-                    interceptedIds={new Set()}
-                    pendingActionIds={new Set()}
-                    onForward={() => {}}
-                    onDrop={() => {}}
-                    onDelete={() => {}}
+                    interceptedIds={emptySet}
+                    pendingActionIds={emptySet}
+                    onForward={noop}
+                    onDrop={noop}
+                    onDelete={noop}
                     appId="emulate-app"
                     onSendToRepeater={handleSendToRepeater}
                     onSendToIntruder={handleSendToIntruder}

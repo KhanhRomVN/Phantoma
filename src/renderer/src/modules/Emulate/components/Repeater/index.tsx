@@ -3,7 +3,7 @@ import { Search, Send } from 'lucide-react';
 import { useNetworkStore } from '../../../../stores/networkStore';
 import { RequestList } from './RequestList';
 import { RequestPanel } from './WorkspacePanel/RequestPanel';
-import { HeaderBar } from './WorkspacePanel/HeaderBar';
+import type { HistoryEntry } from './WorkspacePanel/RequestPanel/types';
 
 // Storage utilities with target support
 const getStorageKey = (targetId: string | null, type: string): string => {
@@ -83,6 +83,9 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
     Array<{ id: string; name: string; values: string[]; enabled: boolean; description: string }>
   >([]);
 
+  // View history state
+  const [viewHistoryEntry, setViewHistoryEntry] = useState<HistoryEntry | null>(null);
+
   // Listen for repeater updates
   useEffect(() => {
     const handleUpdate = () => {
@@ -120,8 +123,18 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
     }
   }, [repeaterRequests, selectedRequestId]);
 
-  const handleSwitchTab = (tab: string) => {
-    // Handle tab switching in PayloadConfigPanel if needed
+  // Auto-exit view mode when selecting a different request
+  const handleSelectRequest = (id: string) => {
+    setSelectedId(id);
+    setViewHistoryEntry(null);
+  };
+
+  const handleViewHistory = (entry: HistoryEntry) => {
+    setViewHistoryEntry(entry);
+  };
+
+  const handleExitView = () => {
+    setViewHistoryEntry(null);
   };
 
   return (
@@ -144,22 +157,15 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
         <RequestList
           requests={repeaterRequests}
           selectedId={selectedId}
-          onSelect={setSelectedId}
+          onSelect={handleSelectRequest}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          onRemoveRequest={(id) => removeFromRepeater(id, targetId)}
         />
       </div>
 
       {/* Right Panel - Payload Configuration */}
       <div className="flex-1 flex flex-col min-w-0 bg-muted/5">
-        <HeaderBar
-          selectedRequest={selectedRequest}
-          lastRunTimestamp={lastRunTimestamp}
-          saveToHistory={saveToHistory}
-          onSaveToggle={() => setSaveToHistory(!saveToHistory)}
-          onClose={onClose}
-        />
-
         {!selectedRequest ? (
           <div className="flex-1 flex flex-col items-center justify-center text-text-secondary">
             <Send className="w-12 h-12 mb-3 opacity-20" />
@@ -175,9 +181,13 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
             saveToHistory={saveToHistory}
             onSaveToggle={() => setSaveToHistory(!saveToHistory)}
             onRun={() => setLastRunTimestamp(Date.now())}
-            onSwitchTab={handleSwitchTab}
+            onSaveSession={() => setLastRunTimestamp(null)}
+            onSwitchTab={() => {}}
             payloads={payloads}
             targetId={targetId}
+            viewHistoryEntry={viewHistoryEntry}
+            onViewHistory={handleViewHistory}
+            onExitView={handleExitView}
           />
         )}
       </div>

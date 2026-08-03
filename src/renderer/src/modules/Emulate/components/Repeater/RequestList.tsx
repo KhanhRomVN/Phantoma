@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import { cn } from '../../../../shared/lib/utils';
 import { NetworkRequest } from '../Home/Filter';
-import { StatusBadge } from '../common/StatusBadge';
 
 interface RequestListProps {
   requests: NetworkRequest[];
@@ -9,9 +9,21 @@ interface RequestListProps {
   onSelect: (id: string) => void;
   searchTerm: string;
   onSearchChange: (term: string) => void;
+  onRemoveRequest?: (id: string) => void;
 }
 
-export function RequestList({ requests, selectedId, onSelect, searchTerm }: RequestListProps) {
+export function RequestList({ requests, selectedId, onSelect, searchTerm, onRemoveRequest }: RequestListProps) {
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; requestId: string } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handler = () => setContextMenu(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [contextMenu]);
+
   const filtered = useMemo(() => {
     if (!searchTerm) return requests;
     const term = searchTerm.toLowerCase();
@@ -41,18 +53,26 @@ export function RequestList({ requests, selectedId, onSelect, searchTerm }: Requ
           <div
             key={req.id}
             onClick={() => onSelect(req.id)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setContextMenu({ x: e.clientX, y: e.clientY, requestId: req.id });
+            }}
             className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all text-xs',
+              'flex flex-col px-3 py-2 rounded-md cursor-pointer transition-all text-xs',
               isSelected
                 ? 'bg-card-background border border-border'
                 : 'hover:bg-card-hover border border-transparent',
             )}
           >
-            <span className={cn('font-mono font-bold w-10 shrink-0', methodColor)}>
-              {req.method || 'GET'}
-            </span>
-            <span className="flex-1 truncate text-text-primary">{req.path || req.url}</span>
-            {req.status && <StatusBadge status={req.status} />}
+            <div className="flex items-center gap-1 min-w-0">
+              <span className={cn('font-mono font-bold w-10 shrink-0', methodColor)}>
+                {req.method || 'GET'}
+              </span>
+              <span className="text-text-primary truncate">{req.path || req.url}</span>
+            </div>
+            {req.host && (
+              <span className="text-[10px] text-text-secondary truncate mt-0.5">{req.host}</span>
+            )}
           </div>
         );
       })}
@@ -62,6 +82,26 @@ export function RequestList({ requests, selectedId, onSelect, searchTerm }: Requ
           <p className="text-xs mt-1 opacity-60">
             Right-click a request and select "Send to Repeater"
           </p>
+        </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && onRemoveRequest && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 bg-background border border-border rounded-lg shadow-xl py-1 min-w-[180px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            onClick={() => {
+              onRemoveRequest(contextMenu.requestId);
+              setContextMenu(null);
+            }}
+            className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs text-error hover:bg-error/10 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Remove from Repeater
+          </button>
         </div>
       )}
     </div>

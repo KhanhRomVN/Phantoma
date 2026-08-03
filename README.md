@@ -76,3 +76,5 @@ lưu ý: ngoại trừ folder prompts sẽ ko cần so sánh
 ta sẽ bắt đầu so sánh toàn bộ file trong folder src/renderer/src/components/RightPanel/Agent/feature/Chat/hooks với folder temp/Zen-webview-ui/src/features/chat/hooks xem có khác nhau về UI. ngoài so sánh UI thì so sánh logic, cấu trúc code, các hàm... thiếu gì, thừa gì, sai gì... thì đều liệt kê 
 
 trong code của các file trong folder src/renderer/src/components/RightPanel/Agent/feature/Chat thì đôi khi sẽ có style, CSS và --vscode... đó là bởi vì tôi đã copy toàn bộ nội dung của code trong temp/Zen-webview-ui/src/features/chat. vì vậy, bạn cần đọc file .styling-rules.md, tailwind.config.js và src/renderer/src/theme/themes/MidnightBlue.ts để hiễu rõ theme và color đang dùng của electron để sửa cùng lúc
+
+ở ParamTab và HeadeerTab. ví dụ đang có 1 text vakue có sẵn là "test". tôi thêm biến payload thành như này "test${var}" thì toàn bộ text "test${var}" có color thay vì chỉ "${var}" là có color và ở PayloadTable cũng ko có tạo thêm 1 dòng với value "var". gặp lỗi nào đó. thêm log để debuyg nếu cần 

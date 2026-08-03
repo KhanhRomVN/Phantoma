@@ -18,6 +18,7 @@ export interface HistoryEntry {
   method: string;
   url: string;
   status: number;
+  statuses?: Record<number, number>; // status code → count, for batched payload runs
   timestamp: number;
   endTime?: number;
   duration: number;

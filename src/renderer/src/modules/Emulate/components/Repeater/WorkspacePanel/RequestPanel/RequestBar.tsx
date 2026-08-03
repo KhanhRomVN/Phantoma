@@ -1,6 +1,17 @@
 import { Square, Send } from 'lucide-react';
 import { cn } from '../../../../../../shared/lib/utils';
-import { useAccentColors } from '../../../../../../shared/hooks/useAccentColors';
+
+const METHOD_COLORS: Record<string, string> = {
+  GET: 'text-emerald-400',
+  POST: 'text-blue-400',
+  PUT: 'text-amber-400',
+  DELETE: 'text-red-400',
+  PATCH: 'text-purple-400',
+  HEAD: 'text-gray-400',
+  OPTIONS: 'text-cyan-400',
+  TRACE: 'text-pink-400',
+  CONNECT: 'text-orange-400',
+};
 
 interface RequestBarProps {
   method: string;
@@ -13,6 +24,7 @@ interface RequestBarProps {
   onUrlChange: (url: string) => void;
   onToggleDropdown: () => void;
   onSend: () => void;
+  readOnly?: boolean;
 }
 
 export function RequestBar({
@@ -26,15 +38,22 @@ export function RequestBar({
   onUrlChange,
   onToggleDropdown,
   onSend,
+  readOnly = false,
 }: RequestBarProps) {
-  const { getColorByIndex } = useAccentColors();
+  const activeColor = METHOD_COLORS[method?.toUpperCase()] || 'text-text-primary';
+  // [DEBUG] — xóa sau khi xác nhận màu đã hiển thị đúng
+  console.log('[RequestBar DEBUG] method:', method, '→ uppercased:', method?.toUpperCase(), '→ color class:', activeColor, '→ found in map:', method?.toUpperCase() in METHOD_COLORS);
 
   return (
     <div className="flex items-center border-b border-border shrink-0 bg-muted/5">
       <div className="relative shrink-0" ref={methodDropdownRef}>
         <button
-          onClick={onToggleDropdown}
-          className="flex items-center gap-2 h-9 bg-input-background border border-input-border-default px-3 pr-7 text-sm font-mono outline-none hover:border-primary/50 transition-colors"
+          onClick={() => !readOnly && onToggleDropdown()}
+          disabled={readOnly}
+          className={cn(
+            'flex items-center gap-2 h-9 bg-input-background border border-input-border-default px-3 pr-7 text-sm font-mono outline-none hover:border-primary/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed',
+            activeColor,
+          )}
         >
           {method}
           <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
@@ -48,10 +67,10 @@ export function RequestBar({
             </svg>
           </div>
         </button>
-        {isMethodDropdownOpen && (
+        {isMethodDropdownOpen && !readOnly && (
           <div className="absolute top-full left-0 mt-1 min-w-[120px] bg-background border border-border rounded-lg shadow-xl z-50 py-1">
-            {methods.map((m, index) => {
-              const color = getColorByIndex(index % 10);
+            {methods.map((m) => {
+              const color = METHOD_COLORS[m?.toUpperCase()] || 'text-text-primary';
               return (
                 <button
                   key={m}
@@ -61,9 +80,9 @@ export function RequestBar({
                   }}
                   className={cn(
                     'w-full text-left px-3 py-1.5 text-sm font-mono transition-colors',
+                    color,
                     m === method ? 'bg-primary/10' : 'hover:bg-dropdown-item-hover',
                   )}
-                  style={m === method ? { color: color } : undefined}
                 >
                   {m}
                 </button>
@@ -76,16 +95,17 @@ export function RequestBar({
       <input
         value={url}
         onChange={(e) => onUrlChange(e.target.value)}
+        readOnly={readOnly}
         placeholder="Enter URL..."
-        className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono"
+        className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono read-only:opacity-60"
       />
 
       <button
         onClick={onSend}
-        disabled={isExecuting || !url}
+        disabled={isExecuting || !url || readOnly}
         className={cn(
           'flex items-center gap-1.5 px-4 h-9 text-sm font-medium transition-all shrink-0',
-          isExecuting || !url
+          isExecuting || !url || readOnly
             ? 'bg-error/20 text-error cursor-not-allowed'
             : 'bg-primary/20 text-primary hover:bg-primary/30',
         )}
