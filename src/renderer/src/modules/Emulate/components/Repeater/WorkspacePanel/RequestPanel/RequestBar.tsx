@@ -41,9 +41,6 @@ export function RequestBar({
   readOnly = false,
 }: RequestBarProps) {
   const activeColor = METHOD_COLORS[method?.toUpperCase()] || 'text-text-primary';
-  // [DEBUG] — xóa sau khi xác nhận màu đã hiển thị đúng
-  console.log('[RequestBar DEBUG] method:', method, '→ uppercased:', method?.toUpperCase(), '→ color class:', activeColor, '→ found in map:', method?.toUpperCase() in METHOD_COLORS);
-
   return (
     <div className="flex items-center border-b border-border shrink-0 bg-muted/5">
       <div className="relative shrink-0" ref={methodDropdownRef}>

@@ -79,9 +79,6 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
   const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds(targetId));
   const [lastRunTimestamp, setLastRunTimestamp] = useState<number | null>(null);
   const [saveToHistory, setSaveToHistory] = useState(true);
-  const [payloads] = useState<
-    Array<{ id: string; name: string; values: string[]; enabled: boolean; description: string }>
-  >([]);
 
   // View history state
   const [viewHistoryEntry, setViewHistoryEntry] = useState<HistoryEntry | null>(null);
@@ -183,7 +180,6 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
             onRun={() => setLastRunTimestamp(Date.now())}
             onSaveSession={() => setLastRunTimestamp(null)}
             onSwitchTab={() => {}}
-            payloads={payloads}
             targetId={targetId}
             viewHistoryEntry={viewHistoryEntry}
             onViewHistory={handleViewHistory}

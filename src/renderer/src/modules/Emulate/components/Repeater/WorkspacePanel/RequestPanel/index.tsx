@@ -11,7 +11,6 @@ import { HistoryTab } from './TabContent/HistoryTab';
 import { ResultTab } from './TabContent/ResultTab';
 import { ResponsePanel } from '../ResponsePanel';
 import { RequestBar } from './RequestBar';
-import { useAccentColors } from '../../../../../../shared/hooks/useAccentColors';
 import type { ParamItem, PayloadItem, HistoryEntry, TabType } from './types';
 
 interface RequestPanelProps {
@@ -42,7 +41,6 @@ export function RequestPanel({
   onViewHistory,
   onExitView,
 }: RequestPanelProps) {
-  const { getColorByIndex } = useAccentColors();
   // Request config
   const [method, setMethod] = useState('GET');
   const [url, setUrl] = useState('');
@@ -53,10 +51,10 @@ export function RequestPanel({
   // View history mode
   const readOnly = viewHistoryEntry !== null;
 
-  // Payload management - use external if provided
+  // Payload management - use external if provided, otherwise internal
   const [internalPayloads, setInternalPayloads] = useState<PayloadItem[]>(() => {
     if (externalPayloads !== undefined) return externalPayloads;
-    return loadFromStorage(getStorageKey('payloads'), []);
+    return [];
   });
   const payloads = externalPayloads !== undefined ? externalPayloads : internalPayloads;
   const setPayloads = (newPayloads: PayloadItem[] | ((prev: PayloadItem[]) => PayloadItem[])) => {
@@ -68,69 +66,53 @@ export function RequestPanel({
       result = newPayloads;
     }
 
-    if (externalPayloads !== undefined) {
-      setInternalPayloads(result);
-    } else {
-      setInternalPayloads(result);
-    }
-    // Save to storage
-    saveToStorage(getStorageKey('payloads'), result);
+    setInternalPayloads(result);
   };
 
-  // Auto-detect and create payloads from ${name} patterns
+  // Auto-detect and sync payloads from ${name} patterns in params/headers/body
   useEffect(() => {
     const allValues = [...params.map((p) => p.value), ...headers.map((h) => h.value), body].join(
       ' ',
     );
 
-    // Extract all ${name} patterns
-    const matches = allValues.matchAll(/\$\{([^}]+)\}/g);
+    const RE_VAR = /\$\{([^}]+)\}/g;
     const detectedNames = new Set<string>();
-
-    for (const match of matches) {
+    let match: RegExpExecArray | null;
+    while ((match = RE_VAR.exec(allValues)) !== null) {
       detectedNames.add(match[1]);
     }
 
-    // Create missing payloads
+    // Tạo payloads mới cho những detectedNames chưa có
     const newPayloads: PayloadItem[] = [];
     detectedNames.forEach((name) => {
       if (!payloads.some((p) => p.name === name)) {
         newPayloads.push({
           id: crypto.randomUUID(),
           name,
-          description: `Auto-created from \${${name}}`,
+          description: 'Auto-created from ${' + name + '}',
           values: [],
           enabled: true,
         });
       }
     });
 
-    if (newPayloads.length > 0) {
-      setPayloads((prev) => [...prev, ...newPayloads]);
+    // Chỉ cập nhật nếu có thay đổi (thêm mới hoặc cần xóa auto-created cũ)
+    const needsCleanup = payloads.some(
+      (p) =>
+        p.description?.startsWith('Auto-created from') && !detectedNames.has(p.name),
+    );
+
+    if (newPayloads.length > 0 || needsCleanup) {
+      setPayloads((prev) => {
+        // Giữ payloads thủ công + auto-created vẫn còn trong detectedNames
+        const kept = prev.filter((p) => {
+          if (!p.description?.startsWith('Auto-created from')) return true;
+          return detectedNames.has(p.name);
+        });
+        return [...kept, ...newPayloads];
+      });
     }
   }, [params, headers, body]);
-
-  // Storage utilities
-  const getStorageKey = (type: string): string => {
-    const base = targetId ? `repeater-${targetId}` : 'repeater-default';
-    return `${base}-${type}`;
-  };
-
-  const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
-    try {
-      const data = localStorage.getItem(key);
-      if (data) {
-        return JSON.parse(data);
-      }
-    } catch {}
-    return defaultValue;
-  };
-
-  const saveToStorage = <T,>(key: string, data: T) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch {}
-  };
 
   // History — RAM only, lost on restart
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -175,6 +157,10 @@ export function RequestPanel({
   // Auto-fill from selected request
   useEffect(() => {
     if (request) {
+      // Reset payloads when a new request is loaded — payloads are auto-detected
+      // from ${name} patterns, not persisted globally
+      setInternalPayloads([]);
+
       const requestUrl = request.url || '';
       setUrl(requestUrl);
       setMethod(request.method || 'GET');
@@ -243,7 +229,7 @@ export function RequestPanel({
     let finalUrl = url;
     if (Object.keys(paramsObj).length > 0) {
       const queryString = Object.entries(paramsObj)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+        .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
         .join('&');
       finalUrl += (finalUrl.includes('?') ? '&' : '?') + queryString;
     }
@@ -265,31 +251,20 @@ export function RequestPanel({
     if (payload) {
       const activePayload = payloads.find((p) => p.enabled && p.values.includes(payload));
       if (activePayload) {
-        const placeholder = `\${${activePayload.name}}`;
+        const escapedName = activePayload.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp('\\$\\{' + escapedName + '\\}', 'g');
 
         // Substitute in body
-        if (finalBody.includes(placeholder)) {
-          finalBody = finalBody.replace(new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'), payload);
-        }
+        finalBody = finalBody.replace(regex, payload);
 
         // Substitute in headers
         Object.keys(finalHeaders).forEach((key) => {
-          if (finalHeaders[key].includes(placeholder)) {
-            finalHeaders[key] = finalHeaders[key].replace(
-              new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'),
-              payload,
-            );
-          }
+          finalHeaders[key] = finalHeaders[key].replace(regex, payload);
         });
 
         // Substitute in params
         Object.keys(finalParams).forEach((key) => {
-          if (finalParams[key].includes(placeholder)) {
-            finalParams[key] = finalParams[key].replace(
-              new RegExp(`\\$\\{${activePayload.name}\\}`, 'g'),
-              payload,
-            );
-          }
+          finalParams[key] = finalParams[key].replace(regex, payload);
         });
       }
     }
@@ -298,7 +273,7 @@ export function RequestPanel({
     let executionUrl = url;
     if (Object.keys(finalParams).length > 0) {
       const queryString = Object.entries(finalParams)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v as string)}`)
+        .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v as string))
         .join('&');
       executionUrl += (executionUrl.includes('?') ? '&' : '?') + queryString;
     }
@@ -378,7 +353,7 @@ export function RequestPanel({
 
     setTotalRequests(total);
     setModalMessage(
-      `This will send ${total} request${total > 1 ? 's' : ''} with all payload combinations. Continue?`,
+      'This will send ' + total + ' request' + (total > 1 ? 's' : '') + ' with all payload combinations. Continue?',
     );
     setShowRunModal(true);
   };
@@ -525,7 +500,7 @@ export function RequestPanel({
         // Fallback: treat as just values
         return {
           id: crypto.randomUUID(),
-          name: `Payload ${payloads.length + 1}`,
+          name: 'Payload ' + (payloads.length + 1),
           description: '',
           values: line
             .split(',')
