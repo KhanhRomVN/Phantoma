@@ -24,9 +24,10 @@ import {
 } from '../../utils/sourceTree';
 import type { CdpScriptUnpackedData } from '../../hooks/useNetworkEvents';
 import { prettifyCode, isMinified } from '../../utils/prettify';
-import { useNetworkStore } from '@renderer/stores/networkStore';
 
 interface SourcesPanelProps {
+  requests?: NetworkRequest[];
+  unpackedScripts?: Map<string, CdpScriptUnpackedData>;
   onClose?: () => void;
 }
 
@@ -404,10 +405,7 @@ function SourceView({
 
 const STORAGE_KEY = 'phantoma-source-state';
 
-export function SourcesPanel(_props: SourcesPanelProps) {
-  console.log('[DEBUG] SourcesPanel render at', performance.now());
-  const requests = useNetworkStore((s) => s.requests);
-  const unpackedScripts = useNetworkStore((s) => s.unpackedScripts);
+export function SourcesPanel({ requests = [], unpackedScripts }: SourcesPanelProps) {
   const [selectedContent, setSelectedContent] = useLocalStorage<{
     content: string;
     fileName: string;

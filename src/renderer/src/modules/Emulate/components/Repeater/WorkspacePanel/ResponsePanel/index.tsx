@@ -8,6 +8,7 @@ interface ResponsePanelProps {
   body?: string;
   status?: number;
   contentType?: string;
+  duration?: number;
   className?: string;
   onHeightChange?: (newHeight: number) => void;
 }
@@ -17,6 +18,7 @@ export function ResponsePanel({
   body,
   status,
   contentType,
+  duration,
   className,
   onHeightChange,
 }: ResponsePanelProps) {
@@ -200,6 +202,12 @@ export function ResponsePanel({
             <>
               <span className="w-px h-4 bg-border" />
               <span className="text-xs text-text-secondary">{new Blob([body]).size} bytes</span>
+            </>
+          )}
+          {duration != null && (
+            <>
+              <span className="w-px h-4 bg-border" />
+              <span className="text-xs text-text-secondary">{duration}ms</span>
             </>
           )}
         </div>

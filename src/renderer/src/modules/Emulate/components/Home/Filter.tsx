@@ -5,7 +5,6 @@ import { cn } from '../../../../shared/lib/utils';
 import { getRequestCategory } from '../../utils/requestHelpers';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
 import { NetworkRequest } from '../../types/inspector';
-import { targetService } from '../../../../services/TargetService';
 
 // Re-export NetworkRequest from inspector types to maintain single source of truth
 export type { NetworkRequest };
@@ -242,11 +241,15 @@ function ListFilterSection({
                 <span
                   key={item}
                   className={cn(
-                    'inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-default',
+                    'inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs border cursor-default',
                   )}
                   style={
                     color
-                      ? { color: color }
+                      ? {
+                          color: color,
+                          borderColor: color,
+                          backgroundColor: `${color}20`,
+                        }
                       : undefined
                   }
                 >
@@ -275,76 +278,52 @@ function ListFilterSection({
 }
 
 export function NetworkFilter({ filter, onChange, requests = [], targetId }: NetworkFilterProps) {
-  const { getColorByIndex, toRgba } = useAccentColors();
-  const [loaded, setLoaded] = useState(false);
-  const filterRef = useRef(filter);
-  filterRef.current = filter;
+  const { getColorByIndex } = useAccentColors();
 
-  // Load filter from API on mount
+  // Storage key for filter data
+  const getStorageKey = () => {
+    const base = targetId ? `repeater-${targetId}` : 'repeater-default';
+    return `${base}-filter`;
+  };
+
+  // Load filter from storage on mount
   useEffect(() => {
     if (!targetId) return;
-    let cancelled = false;
-    setLoaded(false);
-    console.log('[DEBUG Filter] Load start, targetId:', targetId);
-    (async () => {
-      try {
-        const data = await targetService.getFilter(targetId);
-        console.log('[DEBUG Filter] API response:', JSON.stringify(data));
-        if (cancelled || !data) {
-          console.log('[DEBUG Filter] Load skipped — cancelled:', cancelled, 'data:', data);
-          setLoaded(true);
-          return;
-        }
-        const currentFilter = filterRef.current;
-        console.log('[DEBUG Filter] currentFilter.methods:', JSON.stringify(currentFilter.methods));
-        // Parse từng field, merge với initialFilterState để đảm bảo đầy đủ keys
-        let methods = currentFilter.methods;
-        let host = currentFilter.host;
-        let status = currentFilter.status;
-        let type = currentFilter.type;
-        try { if (data.method) methods = JSON.parse(data.method); } catch (e) { console.log('[DEBUG Filter] parse method failed:', e); }
-        try { if (data.host) host = JSON.parse(data.host); } catch (e) { console.log('[DEBUG Filter] parse host failed:', e); }
-        try { if (data.status) status = JSON.parse(data.status); } catch (e) { console.log('[DEBUG Filter] parse status failed:', e); }
-        try { if (data.type) type = JSON.parse(data.type); } catch (e) { console.log('[DEBUG Filter] parse type failed:', e); }
-        console.log('[DEBUG Filter] parsed methods:', JSON.stringify(methods));
-        console.log('[DEBUG Filter] merged methods:', JSON.stringify({ ...initialFilterState.methods, ...methods }));
+    try {
+      const key = getStorageKey();
+      const data = localStorage.getItem(key);
+      if (data) {
+        const savedFilter = JSON.parse(data);
+        // Merge with current filter to preserve structure
         onChange({
-          ...currentFilter,
-          methods: { ...initialFilterState.methods, ...methods },
-          host: { ...initialFilterState.host, ...host },
-          status: { ...initialFilterState.status, ...status },
-          type: { ...initialFilterState.type, ...type },
+          ...filter,
+          methods: savedFilter.methods || filter.methods,
+          host: savedFilter.host || filter.host,
+          status: savedFilter.status || filter.status,
+          type: savedFilter.type || filter.type,
         });
-        console.log('[DEBUG Filter] onChange called, loaded=true');
-        setLoaded(true);
-      } catch (err) {
-        console.log('[DEBUG Filter] Load error:', err);
-        setLoaded(true);
       }
-    })();
-    return () => { cancelled = true; };
+    } catch {
+      // Ignore errors
+    }
   }, [targetId]);
 
-  // Save filter to API whenever it changes (debounced 300ms, skip before load)
+  // Save filter to storage whenever it changes
   useEffect(() => {
-    if (!targetId || !loaded) return;
-    const timer = setTimeout(async () => {
-      try {
-        console.log('[DEBUG Filter] Save filter.methods:', JSON.stringify(filter.methods));
-        await targetService.saveFilter(targetId, {
-          emulate_target_id: targetId,
-          method: JSON.stringify(filter.methods),
-          host: JSON.stringify(filter.host),
-          status: JSON.stringify(filter.status),
-          type: JSON.stringify(filter.type),
-        });
-        console.log('[DEBUG Filter] Save OK');
-      } catch (err) {
-        console.log('[DEBUG Filter] Save error:', err);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [filter, targetId, loaded]);
+    if (!targetId) return;
+    try {
+      const key = getStorageKey();
+      const dataToSave = {
+        methods: filter.methods,
+        host: filter.host,
+        status: filter.status,
+        type: filter.type,
+      };
+      localStorage.setItem(key, JSON.stringify(dataToSave));
+    } catch {
+      // Ignore errors
+    }
+  }, [filter, targetId]);
 
   const allHosts = Array.from(new Set(requests.map((r) => r.host).filter(Boolean)));
 
@@ -359,8 +338,6 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
   const availableMethods = Array.from(
     new Set(requests.map((r) => r.method?.toUpperCase()).filter(Boolean)),
   ).sort();
-
-  console.log('[DEBUG Filter] availableMethods:', availableMethods, 'filter.methods keys:', Object.keys(filter.methods));
 
   const availableTypes = Array.from(
     new Set(requests.map((r) => getRequestCategory(r)).filter(Boolean)),
@@ -482,15 +459,18 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                       })
                     }
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium transition-all',
+                      'px-3 py-1 rounded text-xs font-medium border transition-all',
                       isVisible
                         ? 'text-text-primary'
-                        : 'text-muted-foreground border-border bg-transparent hover:bg-white/10',
+                        : 'text-muted-foreground border-border bg-transparent opacity-50',
                     )}
                     style={
                       isVisible
-                        ? { color: color.color }
-                        : { color: toRgba(color.color, 0.5) }
+                        ? {
+                            color: color.color,
+                            borderColor: color.color,
+                          }
+                        : undefined
                     }
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >
@@ -527,18 +507,12 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
             <div className="flex flex-wrap gap-2">
               {availableStatuses.map((code) => {
                 const safeCode = typeof code === 'number' ? code : 0;
-                let statusColor = '';
-                if (safeCode >= 200 && safeCode < 300) statusColor = '#22c55e';
-                else if (safeCode >= 300 && safeCode < 400) statusColor = '#eab308';
-                else if (safeCode >= 400 && safeCode < 500) statusColor = '#ef4444';
-                else if (safeCode >= 500) statusColor = '#fb7185';
-
-                const hexToRgba = (hex: string, alpha: number) => {
-                  const r = parseInt(hex.slice(1, 3), 16);
-                  const g = parseInt(hex.slice(3, 5), 16);
-                  const b = parseInt(hex.slice(5, 7), 16);
-                  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-                };
+                let colorClass = 'text-text-secondary border-border';
+                if (safeCode >= 200 && safeCode < 300) colorClass = 'text-green border-green/30';
+                else if (safeCode >= 300 && safeCode < 400)
+                  colorClass = 'text-yellow border-yellow/30';
+                else if (safeCode >= 400 && safeCode < 500) colorClass = 'text-red border-red/30';
+                else if (safeCode >= 500) colorClass = 'text-rose-400 border-rose-400/30';
 
                 const isVisible = filter.status[safeCode] !== false;
 
@@ -555,18 +529,11 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                       })
                     }
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap',
+                      'px-3 py-1 rounded text-xs font-medium border transition-all whitespace-nowrap',
                       isVisible
-                        ? ''
-                        : 'text-muted-foreground bg-transparent hover:bg-white/10',
+                        ? colorClass
+                        : 'text-muted-foreground border-border bg-transparent opacity-50',
                     )}
-                    style={
-                      isVisible
-                        ? { color: statusColor }
-                        : statusColor
-                          ? { color: hexToRgba(statusColor, 0.5) }
-                          : undefined
-                    }
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >
                     {safeCode}
@@ -604,15 +571,18 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                       })
                     }
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium transition-all',
+                      'px-3 py-1 rounded text-xs font-medium border transition-all',
                       isVisible
                         ? 'text-text-primary'
-                        : 'text-muted-foreground border-border bg-transparent hover:bg-white/10',
+                        : 'text-muted-foreground border-border bg-transparent opacity-50',
                     )}
                     style={
                       isVisible
-                        ? { color: config.color }
-                        : { color: toRgba(config.color, 0.5) }
+                        ? {
+                            color: config.color,
+                            borderColor: config.color,
+                          }
+                        : undefined
                     }
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >

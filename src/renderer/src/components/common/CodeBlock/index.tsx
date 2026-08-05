@@ -358,6 +358,16 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
       }
     }, [code]);
 
+    // Update language when prop changes
+    useEffect(() => {
+      if (editorInstance.current && window.monaco) {
+        const model = editorInstance.current.getModel();
+        if (model) {
+          window.monaco.editor.setModelLanguage(model, language);
+        }
+      }
+    }, [language]);
+
     // Update word wrap dynamically
     useEffect(() => {
       if (editorInstance.current) {

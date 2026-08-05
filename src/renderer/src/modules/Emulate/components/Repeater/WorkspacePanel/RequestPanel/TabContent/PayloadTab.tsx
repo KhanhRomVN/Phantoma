@@ -67,9 +67,6 @@ export function PayloadTab({
               <th className="min-w-[120px] px-2 py-1.5 text-left text-text-secondary font-medium">
                 Name
               </th>
-              <th className="min-w-[150px] px-2 py-1.5 text-left text-text-secondary font-medium">
-                Description
-              </th>
               <th className="px-2 py-1.5 text-left text-text-secondary font-medium">Values</th>
               <th className="w-16 px-2 py-1.5 text-center text-text-secondary font-medium">
                 Actions
@@ -80,7 +77,7 @@ export function PayloadTab({
             {payloads.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={4}
                   className="px-2 py-8 text-center text-xs text-text-secondary italic"
                 >
                   No payloads yet. Use <code className="bg-background px-1 rounded">{'${name}'}</code>{' '}
@@ -149,31 +146,6 @@ export function PayloadTab({
                           </div>
                         )}
                       </div>
-                    </td>
-                    <td className="px-2 py-0">
-                      <textarea
-                        ref={(el) => {
-                          if (el) {
-                            textareaRefs.current.set(`${payload.id}-desc`, el);
-                            resizeTextarea(el);
-                          }
-                        }}
-                        value={payload.description}
-                        onChange={(e) => {
-                          onChange(
-                            payloads.map((p) =>
-                              p.id === payload.id ? { ...p, description: e.target.value } : p,
-                            ),
-                          );
-                          setTimeout(() => {
-                            const el = textareaRefs.current.get(`${payload.id}-desc`);
-                            if (el) resizeTextarea(el);
-                          }, 0);
-                        }}
-                        className="w-full bg-transparent px-1.5 py-1.5 text-xs text-text-secondary outline-none resize-none overflow-hidden"
-                        placeholder="Description..."
-                        rows={1}
-                      />
                     </td>
                     <td className="px-2 py-1.5">
                       <button

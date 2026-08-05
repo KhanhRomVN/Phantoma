@@ -218,7 +218,6 @@ export function ComparePanel({
   onClearComparison,
   onCompareRequests,
 }: ComparePanelProps) {
-  console.log('[DEBUG] ComparePanel render at', performance.now());
   const [savedCompares, setSavedCompares] = useState<SavedCompare[]>(loadSavedCompares);
   const [savedSearchTerm, setSavedSearchTerm] = useState('');
   const [selectedCompareId, setSelectedCompareId] = useState<string | null>(null);

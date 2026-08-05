@@ -25,6 +25,7 @@ interface RequestBarProps {
   onToggleDropdown: () => void;
   onSend: () => void;
   readOnly?: boolean;
+  hasEmptyPayload?: boolean;
 }
 
 export function RequestBar({
@@ -39,6 +40,7 @@ export function RequestBar({
   onToggleDropdown,
   onSend,
   readOnly = false,
+  hasEmptyPayload = false,
 }: RequestBarProps) {
   const activeColor = METHOD_COLORS[method?.toUpperCase()] || 'text-text-primary';
   return (
@@ -99,10 +101,11 @@ export function RequestBar({
 
       <button
         onClick={onSend}
-        disabled={isExecuting || !url || readOnly}
+        disabled={isExecuting || !url || readOnly || hasEmptyPayload}
+        title={hasEmptyPayload ? 'Some enabled payloads have no values' : undefined}
         className={cn(
           'flex items-center gap-1.5 px-4 h-9 text-sm font-medium transition-all shrink-0',
-          isExecuting || !url || readOnly
+          isExecuting || !url || readOnly || hasEmptyPayload
             ? 'bg-error/20 text-error cursor-not-allowed'
             : 'bg-primary/20 text-primary hover:bg-primary/30',
         )}

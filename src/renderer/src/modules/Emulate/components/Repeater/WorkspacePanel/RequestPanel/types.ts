@@ -30,4 +30,18 @@ export interface HistoryEntry {
   responseBody?: string;
 }
 
+export interface RunResult {
+  payloadName: string;
+  value: string;
+  status: number;
+  duration: number;
+  method: string;
+  url: string;
+  params: Record<string, string>;
+  requestHeaders: Record<string, string>;
+  requestBody: string;
+  responseHeaders: Record<string, string>;
+  responseBody: string;
+}
+
 export type TabType = 'params' | 'headers' | 'body' | 'payload' | 'history' | 'result';

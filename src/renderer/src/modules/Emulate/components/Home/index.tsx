@@ -25,7 +25,6 @@ import { RequestTable } from './RequestTable';
 
 import { ResizableSplit } from '../../../../components/ui/ResizableSplit/ResizableSplit';
 import { useAccentColors } from '../../../../shared/hooks/useAccentColors';
-import { useNetworkStore } from '../../../../stores/networkStore';
 import { $ } from '@renderer/utils/color';
 
 function Badge({ count, className }: { count: number; className?: string }) {
@@ -42,7 +41,7 @@ function Badge({ count, className }: { count: number; className?: string }) {
   );
 }
 interface NetworkDetailsProps {
-  selectedId: string | null;
+  request: NetworkRequest | null;
   searchTerm: string;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
@@ -127,7 +126,7 @@ function TextSelectionMenu({
 
 export { RequestTable, initialFilterState };
 export const RequestDetails = React.memo(function RequestDetails({
-  selectedId,
+  request,
   searchTerm,
   activeTab: propsActiveTab,
   onTabChange,
@@ -135,18 +134,13 @@ export const RequestDetails = React.memo(function RequestDetails({
   isFilterOpen,
   filter,
   onFilterChange,
-  requests: _propRequests,
+  requests = [],
   onSearchTermChange,
   onJumpToValue: _onJumpToValue,
   onCompareRequests: _onCompareRequests,
   showComposerTab = false,
   targetId,
 }: NetworkDetailsProps) {
-  console.log('[DEBUG] RequestDetails render at', performance.now());
-  // Subscribe to store directly — find selected request + get requests for NetworkFilter
-  const requests = useNetworkStore((s) => s.requests);
-  const request = requests.find((r) => r.id === selectedId) || null;
-
   const [internalActiveTab, setInternalActiveTab] = useState('headers');
   const [isRawMode, setIsRawMode] = useState(false);
 

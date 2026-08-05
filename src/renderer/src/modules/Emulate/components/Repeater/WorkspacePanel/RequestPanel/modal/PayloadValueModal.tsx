@@ -155,13 +155,18 @@ export function PayloadValueModal({
       // Get file path (works in Electron)
       const filePath = (file as any).path || undefined;
 
+      // Detect language from file extension
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      const detectedLang: 'javascript' | 'text' =
+        ext === 'js' || ext === 'mjs' || ext === 'cjs' ? 'javascript' : 'text';
+
       const newFile: SourceFile = {
         id: crypto.randomUUID(),
         name: file.name,
         type: 'file',
         content,
         filePath,
-        language: 'text',
+        language: detectedLang,
       };
       setFiles((prev) => [...prev, newFile]);
       setSelectedSource({ type: 'file', id: newFile.id });

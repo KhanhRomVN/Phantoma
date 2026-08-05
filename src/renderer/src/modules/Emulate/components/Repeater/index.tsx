@@ -1,38 +1,34 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Send } from 'lucide-react';
-import { useNetworkStore } from '../../../../stores/networkStore';
-import { RequestList } from './RequestList';
+import { Search } from 'lucide-react';
 import { RequestPanel } from './WorkspacePanel/RequestPanel';
 import type { HistoryEntry } from './WorkspacePanel/RequestPanel/types';
+import { RequestList } from './RequestList';
+import { useNetworkStore } from '@renderer/stores/networkStore';
+import type { NetworkRequest } from '../Home/Filter';
+import repeaterApi, { RepeaterRequest } from '../../services/repeater-api.service';
 
-// Storage utilities with target support
 const getStorageKey = (targetId: string | null, type: string): string => {
   const base = targetId ? `repeater-${targetId}` : 'repeater-default';
   return `${base}-${type}`;
 };
 
-// Load request IDs that have been sent to Repeater (session-based — mất khi tắt app)
 const loadRepeaterIds = (targetId?: string | null): Set<string> => {
   try {
     const key = getStorageKey(targetId || null, 'request-ids');
-    const data = sessionStorage.getItem(key);
-    if (data) {
-      const arr = JSON.parse(data);
-      return new Set(arr);
-    }
-  } catch {}
-  return new Set();
+    const raw = localStorage.getItem(key);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
 };
 
-// Save request IDs to sessionStorage (mất khi tắt app)
 const saveRepeaterIds = (ids: Set<string>, targetId?: string | null) => {
-  try {
-    const key = getStorageKey(targetId || null, 'request-ids');
-    sessionStorage.setItem(key, JSON.stringify([...ids]));
-  } catch {}
+  const key = getStorageKey(targetId || null, 'request-ids');
+  localStorage.setItem(key, JSON.stringify([...ids]));
 };
 
-// Add a request to Repeater
 export const addToRepeater = (requestId: string, targetId?: string | null) => {
   const ids = loadRepeaterIds(targetId);
   ids.add(requestId);
@@ -40,18 +36,15 @@ export const addToRepeater = (requestId: string, targetId?: string | null) => {
   window.dispatchEvent(new CustomEvent('repeater-updated'));
 };
 
-// Check if a request is in Repeater
 export const isInRepeater = (requestId: string, targetId?: string | null): boolean => {
   const ids = loadRepeaterIds(targetId);
   return ids.has(requestId);
 };
 
-// Get all request IDs in Repeater
 export const getRepeaterIds = (targetId?: string | null): Set<string> => {
   return loadRepeaterIds(targetId);
 };
 
-// Remove a request from Repeater
 export const removeFromRepeater = (requestId: string, targetId?: string | null) => {
   const ids = loadRepeaterIds(targetId);
   ids.delete(requestId);
@@ -59,10 +52,31 @@ export const removeFromRepeater = (requestId: string, targetId?: string | null) 
   window.dispatchEvent(new CustomEvent('repeater-updated'));
 };
 
-// Clear all requests from Repeater
 export const clearRepeater = (targetId?: string | null) => {
   saveRepeaterIds(new Set(), targetId);
   window.dispatchEvent(new CustomEvent('repeater-updated'));
+};
+
+// Map API RepeaterRequest to NetworkRequest for RequestList display
+const mapDbToNetworkRequest = (r: RepeaterRequest): NetworkRequest => {
+  let host = '';
+  let path = '';
+  try {
+    host = new URL(r.url).host;
+  } catch {}
+  try {
+    path = new URL(r.url).pathname + new URL(r.url).search;
+  } catch {}
+  return {
+    id: r.id,
+    method: r.method,
+    url: r.url,
+    host,
+    path,
+    protocol: '',
+    type: '',
+    timestamp: r.created_at * 1000,
+  } as NetworkRequest;
 };
 
 interface PayloadPanelProps {
@@ -79,64 +93,89 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
   const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds(targetId));
   const [lastRunTimestamp, setLastRunTimestamp] = useState<number | null>(null);
   const [saveToHistory, setSaveToHistory] = useState(true);
-
-  // View history state
   const [viewHistoryEntry, setViewHistoryEntry] = useState<HistoryEntry | null>(null);
+  const [dbRequests, setDbRequests] = useState<NetworkRequest[]>([]);
 
-  // Listen for repeater updates
   useEffect(() => {
-    const handleUpdate = () => {
-      setRepeaterIds(loadRepeaterIds(targetId));
-    };
+    if (!targetId) {
+      setDbRequests([]);
+      return;
+    }
+    console.log('[Repeater] Fetching DB requests for target:', targetId);
+    repeaterApi.listRequests(targetId).then((res) => {
+      if (res.success && res.data) {
+        const mapped = res.data.map(mapDbToNetworkRequest);
+        console.log('[Repeater] DB requests loaded:', mapped.length);
+        setDbRequests(mapped);
+        if (mapped.length > 0 && !selectedId) {
+          setSelectedId(mapped[0].id);
+        }
+      }
+    });
+  }, [targetId]);
+
+  console.log(
+    '[Repeater] PayloadPanel render — targetId:',
+    targetId,
+    'dbRequests:',
+    dbRequests.length,
+  );
+
+  useEffect(() => {
+    const handleUpdate = () => setRepeaterIds(loadRepeaterIds(targetId));
     window.addEventListener('repeater-updated', handleUpdate);
     return () => window.removeEventListener('repeater-updated', handleUpdate);
   }, [targetId]);
 
-  // Filter requests to only show those in Repeater
-  const repeaterRequests = useMemo(() => {
-    return requests.filter((req) => repeaterIds.has(req.id));
-  }, [requests, repeaterIds]);
+  useEffect(() => {
+    const currentIds = loadRepeaterIds(targetId);
+    if (currentIds.size === 0) return;
+    const validIds = new Set(requests.map((r) => r.id));
+    const staleIds = [...currentIds].filter((id) => !validIds.has(id));
+    if (staleIds.length > 0) {
+      const newIds = new Set(currentIds);
+      staleIds.forEach((id) => newIds.delete(id));
+      saveRepeaterIds(newIds, targetId);
+      setRepeaterIds(newIds);
+      window.dispatchEvent(new CustomEvent('repeater-updated'));
+    }
+  }, [requests, targetId]);
 
-  // Get selected request
+  const allRequests = useMemo(() => {
+    const networkReqs = requests.filter((req) => repeaterIds.has(req.id));
+    const networkIds = new Set(networkReqs.map((r) => r.id));
+    const dbOnly = dbRequests.filter((r) => !networkIds.has(r.id));
+    return [...networkReqs, ...dbOnly];
+  }, [requests, repeaterIds, dbRequests]);
+
   const selectedRequest = useMemo(() => {
     if (!selectedId) return null;
-    return repeaterRequests.find((r) => r.id === selectedId) || null;
-  }, [repeaterRequests, selectedId]);
+    return allRequests.find((r) => r.id === selectedId) || null;
+  }, [allRequests, selectedId]);
 
-  // Auto-select: first try selectedRequestId from props, then fallback to first request
   useEffect(() => {
-    if (repeaterRequests.length === 0) {
+    if (allRequests.length === 0) {
       setSelectedId(null);
       return;
     }
-
-    if (selectedRequestId && repeaterRequests.some((r) => r.id === selectedRequestId)) {
+    if (selectedRequestId && allRequests.some((r) => r.id === selectedRequestId)) {
       setSelectedId(selectedRequestId);
       return;
     }
-
-    if (!selectedId || !repeaterRequests.some((r) => r.id === selectedId)) {
-      setSelectedId(repeaterRequests[0].id);
+    if (!selectedId || !allRequests.some((r) => r.id === selectedId)) {
+      setSelectedId(allRequests[0].id);
     }
-  }, [repeaterRequests, selectedRequestId]);
+  }, [allRequests, selectedRequestId]);
 
-  // Auto-exit view mode when selecting a different request
   const handleSelectRequest = (id: string) => {
     setSelectedId(id);
     setViewHistoryEntry(null);
   };
-
-  const handleViewHistory = (entry: HistoryEntry) => {
-    setViewHistoryEntry(entry);
-  };
-
-  const handleExitView = () => {
-    setViewHistoryEntry(null);
-  };
+  const handleViewHistory = (entry: HistoryEntry) => setViewHistoryEntry(entry);
+  const handleExitView = () => setViewHistoryEntry(null);
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Left Panel - Request List */}
       <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background">
         <div className="px-3 py-1.5 border-b border-border shrink-0">
           <div className="relative">
@@ -150,9 +189,8 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
             />
           </div>
         </div>
-
         <RequestList
-          requests={repeaterRequests}
+          requests={allRequests}
           selectedId={selectedId}
           onSelect={handleSelectRequest}
           searchTerm={searchTerm}
@@ -160,32 +198,20 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
           onRemoveRequest={(id) => removeFromRepeater(id, targetId)}
         />
       </div>
-
-      {/* Right Panel - Payload Configuration */}
       <div className="flex-1 flex flex-col min-w-0 bg-muted/5">
-        {!selectedRequest ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-text-secondary">
-            <Send className="w-12 h-12 mb-3 opacity-20" />
-            <p className="text-sm">Select a request to configure payload</p>
-            <p className="text-xs mt-1 opacity-60">
-              Right-click a request and select "Send to Repeater"
-            </p>
-          </div>
-        ) : (
-          <RequestPanel
-            request={selectedRequest}
-            lastRunTimestamp={lastRunTimestamp}
-            saveToHistory={saveToHistory}
-            onSaveToggle={() => setSaveToHistory(!saveToHistory)}
-            onRun={() => setLastRunTimestamp(Date.now())}
-            onSaveSession={() => setLastRunTimestamp(null)}
-            onSwitchTab={() => {}}
-            targetId={targetId}
-            viewHistoryEntry={viewHistoryEntry}
-            onViewHistory={handleViewHistory}
-            onExitView={handleExitView}
-          />
-        )}
+        <RequestPanel
+          request={selectedRequest}
+          lastRunTimestamp={lastRunTimestamp}
+          saveToHistory={saveToHistory}
+          onSaveToggle={() => setSaveToHistory(!saveToHistory)}
+          onRun={() => setLastRunTimestamp(Date.now())}
+          onSaveSession={() => setLastRunTimestamp(null)}
+          onSwitchTab={() => {}}
+          targetId={targetId}
+          viewHistoryEntry={viewHistoryEntry}
+          onViewHistory={handleViewHistory}
+          onExitView={handleExitView}
+        />
       </div>
     </div>
   );

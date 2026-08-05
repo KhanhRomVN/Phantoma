@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
 import { cn } from '../../../../../../shared/lib/utils';
 import { NetworkRequest } from '../../../Home/Filter';
 import { CodeBlockRef } from '../../../../../../components/common/CodeBlock';
@@ -8,10 +7,12 @@ import { HeaderTab } from './TabContent/HeaderTab';
 import { BodyTab } from './TabContent/BodyTab';
 import { PayloadTab } from './TabContent/PayloadTab';
 import { HistoryTab } from './TabContent/HistoryTab';
-import { ResultTab } from './TabContent/ResultTab';
 import { ResponsePanel } from '../ResponsePanel';
+import { RunModal } from './modal/RunModal';
+import { PayloadResultModal } from '../ResponsePanel/modal/PayloadResultModal';
 import { RequestBar } from './RequestBar';
-import type { ParamItem, PayloadItem, HistoryEntry, TabType } from './types';
+import { useRepeaterPersistence } from '../../hooks/useRepeaterPersistence';
+import type { ParamItem, PayloadItem, HistoryEntry, TabType, RunResult } from './types';
 
 interface RequestPanelProps {
   request: NetworkRequest | null;
@@ -82,7 +83,6 @@ export function RequestPanel({
       detectedNames.add(match[1]);
     }
 
-    // Tạo payloads mới cho những detectedNames chưa có
     const newPayloads: PayloadItem[] = [];
     detectedNames.forEach((name) => {
       if (!payloads.some((p) => p.name === name)) {
@@ -96,15 +96,12 @@ export function RequestPanel({
       }
     });
 
-    // Chỉ cập nhật nếu có thay đổi (thêm mới hoặc cần xóa auto-created cũ)
     const needsCleanup = payloads.some(
-      (p) =>
-        p.description?.startsWith('Auto-created from') && !detectedNames.has(p.name),
+      (p) => p.description?.startsWith('Auto-created from') && !detectedNames.has(p.name),
     );
 
     if (newPayloads.length > 0 || needsCleanup) {
       setPayloads((prev) => {
-        // Giữ payloads thủ công + auto-created vẫn còn trong detectedNames
         const kept = prev.filter((p) => {
           if (!p.description?.startsWith('Auto-created from')) return true;
           return detectedNames.has(p.name);
@@ -114,7 +111,7 @@ export function RequestPanel({
     }
   }, [params, headers, body]);
 
-  // History — RAM only, lost on restart
+  // History
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [selectedHistory, setSelectedHistory] = useState<HistoryEntry | null>(null);
 
@@ -126,6 +123,7 @@ export function RequestPanel({
     body?: string;
     status?: number;
     contentType?: string;
+    duration?: number;
   } | null>(null);
 
   // Sync response when viewHistoryEntry changes
@@ -135,6 +133,7 @@ export function RequestPanel({
         headers: viewHistoryEntry.responseHeaders,
         body: viewHistoryEntry.responseBody,
         status: viewHistoryEntry.status,
+        duration: viewHistoryEntry.duration,
       });
     }
   }, [viewHistoryEntry]);
@@ -142,30 +141,57 @@ export function RequestPanel({
   const methodDropdownRef = useRef<HTMLDivElement>(null);
   const bodyCodeBlockRef = useRef<CodeBlockRef>(null);
 
-  // Timestamp and history save - use external state if provided
   const [, setInternalLastRunTimestamp] = useState<number | null>(null);
   const [internalSaveToHistory] = useState(true);
 
   const saveToHistory =
     externalSaveToHistory !== undefined ? externalSaveToHistory : internalSaveToHistory;
 
-  // Modal state
-  const [showRunModal, setShowRunModal] = useState(false);
-  const [totalRequests, setTotalRequests] = useState(0);
-  const [modalMessage, setModalMessage] = useState('');
+  // Run modal state
+  const [isRunModalOpen, setIsRunModalOpen] = useState(false);
+  const [runTotalRequests, setRunTotalRequests] = useState(0);
+  const [runEnabledPayloads, setRunEnabledPayloads] = useState<PayloadItem[]>([]);
+  const [payloadResultData, setPayloadResultData] = useState<RunResult[] | null>(null);
 
-  // Auto-fill from selected request
+  // ── Repeater persistence: auto load/save to backend SQLite ────────────────
+  const persistence = useRepeaterPersistence({
+    targetId: targetId || null,
+    method,
+    url,
+    body,
+    params,
+    headers,
+    payloads,
+    onLoadRequest: (req) => {
+      console.log('[RequestPanel] onLoadRequest — filling form from DB');
+      setMethod(req.method);
+      setUrl(req.url);
+      setBody(req.body);
+      setParams(req.params);
+      setHeaders(req.headers);
+      setInternalPayloads(req.payloads);
+    },
+  });
+
+  // Auto-save payloads khi có thay đổi (debounce 1s)
+  useEffect(() => {
+    if (!targetId) return;
+    const timer = setTimeout(() => {
+      persistence.savePayloads();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [payloads, targetId]);
+
+  // Auto-fill from selected request (Send to Repeater)
   useEffect(() => {
     if (request) {
-      // Reset payloads when a new request is loaded — payloads are auto-detected
-      // from ${name} patterns, not persisted globally
+      console.log('[RequestPanel] Auto-fill from selected request:', request.method, request.url);
       setInternalPayloads([]);
 
       const requestUrl = request.url || '';
       setUrl(requestUrl);
       setMethod(request.method || 'GET');
 
-      // Parse URL query params
       try {
         const urlObj = new URL(requestUrl);
         const paramItems: ParamItem[] = [];
@@ -178,14 +204,11 @@ export function RequestPanel({
           });
         });
         setParams(paramItems);
-        // Set clean URL without query params
         setUrl(requestUrl.split('?')[0]);
       } catch (error) {
-        // If URL parsing fails, leave params empty
         setParams([]);
       }
 
-      // Parse headers
       if (request.requestHeaders) {
         const headerItems: ParamItem[] = Object.entries(request.requestHeaders).map(
           ([key, value]) => ({
@@ -225,7 +248,6 @@ export function RequestPanel({
         paramsObj[p.key] = p.value;
       });
 
-    // Build URL with query params
     let finalUrl = url;
     if (Object.keys(paramsObj).length > 0) {
       const queryString = Object.entries(paramsObj)
@@ -247,29 +269,24 @@ export function RequestPanel({
         .reduce((acc, p) => ({ ...acc, [p.key]: p.value }), {}),
     };
 
-    // If payload is provided, substitute ${payload_name} in body, headers, and params
     if (payload) {
       const activePayload = payloads.find((p) => p.enabled && p.values.includes(payload));
       if (activePayload) {
         const escapedName = activePayload.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp('\\$\\{' + escapedName + '\\}', 'g');
 
-        // Substitute in body
         finalBody = finalBody.replace(regex, payload);
 
-        // Substitute in headers
         Object.keys(finalHeaders).forEach((key) => {
           finalHeaders[key] = finalHeaders[key].replace(regex, payload);
         });
 
-        // Substitute in params
         Object.keys(finalParams).forEach((key) => {
           finalParams[key] = finalParams[key].replace(regex, payload);
         });
       }
     }
 
-    // Rebuild URL with substituted params
     let executionUrl = url;
     if (Object.keys(finalParams).length > 0) {
       const queryString = Object.entries(finalParams)
@@ -313,6 +330,7 @@ export function RequestPanel({
         body: result.body,
         status: result.status,
         contentType: result.headers?.['content-type'] || result.headers?.['Content-Type'],
+        duration,
       });
       setSelectedHistory(entry);
       setIsExecuting(false);
@@ -341,25 +359,25 @@ export function RequestPanel({
     }
   };
 
-  const handleSend = async () => {
+  const handleSend = () => {
     if (!url) return;
-
-    // Calculate total requests from payloads
     const enabledPayloads = payloads.filter((p) => p.enabled && p.values.length > 0);
-    let total = 1; // Default: 1 request (no payloads)
-    if (enabledPayloads.length > 0) {
-      total = enabledPayloads.reduce((acc, p) => acc * p.values.length, 1);
+    if (enabledPayloads.length === 0) {
+      executeRequest(undefined, true);
+      return;
     }
-
-    setTotalRequests(total);
-    setModalMessage(
-      'This will send ' + total + ' request' + (total > 1 ? 's' : '') + ' with all payload combinations. Continue?',
-    );
-    setShowRunModal(true);
+    const total = enabledPayloads.reduce((acc, p) => acc * p.values.length, 1);
+    setRunTotalRequests(total);
+    setRunEnabledPayloads(enabledPayloads);
+    setIsRunModalOpen(true);
   };
 
-  const handleConfirmSend = async () => {
-    setShowRunModal(false);
+  // Called by RunModal when user clicks Start
+  const handleRunStart = async (
+    onProgress: (item: RunResult) => void,
+    cancelledRef: React.MutableRefObject<boolean>,
+  ): Promise<RunResult[]> => {
+    console.log('[DEBUG] handleRunStart begin');
     const timestamp = Date.now();
     if (externalLastRunTimestamp === undefined) {
       setInternalLastRunTimestamp(timestamp);
@@ -367,45 +385,110 @@ export function RequestPanel({
     if (onRun) onRun();
 
     const enabledPayloads = payloads.filter((p) => p.enabled && p.values.length > 0);
+    const results: RunResult[] = [];
+
     if (enabledPayloads.length === 0) {
-      await executeRequest(undefined, true); // Skip history for Send button
-      return;
+      const reqStart = Date.now();
+      try {
+        const result = await executeRequest(undefined, true);
+        const s = result.status || 0;
+        const d = Date.now() - reqStart;
+        const item: RunResult = {
+          payloadName: '',
+          value: '',
+          status: s,
+          duration: d,
+          method,
+          url,
+          params: {},
+          requestHeaders: {},
+          requestBody: '',
+          responseHeaders: result.headers || {},
+          responseBody: result.body || '',
+        };
+        results.push(item);
+        onProgress(item);
+      } catch {
+        results.push({
+          payloadName: '',
+          value: '',
+          status: 0,
+          duration: Date.now() - reqStart,
+          method,
+          url,
+          params: {},
+          requestHeaders: {},
+          requestBody: '',
+          responseHeaders: {},
+          responseBody: '',
+        });
+      }
+      console.log('[DEBUG] handleRunStart done (no payloads), results:', results.length);
+      return results;
     }
 
-    // Run all combinations - skip history for Send button
     const statusCounts: Record<number, number> = {};
     let firstResult: any = null;
     const allValues: string[] = [];
+
     for (const payload of enabledPayloads) {
       for (const value of payload.values) {
+        if (cancelledRef.current) break;
         allValues.push(value);
+        const reqStart = Date.now();
         try {
           const result = await executeRequest(value, true);
           const s = result.status || 0;
+          const d = Date.now() - reqStart;
           statusCounts[s] = (statusCounts[s] || 0) + 1;
           if (!firstResult) firstResult = result;
+          const item: RunResult = {
+            payloadName: payload.name,
+            value,
+            status: s,
+            duration: d,
+            method,
+            url,
+            params: Object.fromEntries(
+              params.filter((p) => p.enabled && p.key).map((p) => [p.key, p.value]),
+            ),
+            requestHeaders: Object.fromEntries(
+              headers.filter((h) => h.enabled && h.key).map((h) => [h.key, h.value]),
+            ),
+            requestBody: method !== 'GET' ? body : '',
+            responseHeaders: result.headers || {},
+            responseBody: result.body || '',
+          };
+          results.push(item);
+          onProgress(item);
         } catch {
           statusCounts[0] = (statusCounts[0] || 0) + 1;
+          const item: RunResult = {
+            payloadName: payload.name,
+            value,
+            status: 0,
+            duration: Date.now() - reqStart,
+            method,
+            url,
+            params: Object.fromEntries(
+              params.filter((p) => p.enabled && p.key).map((p) => [p.key, p.value]),
+            ),
+            requestHeaders: Object.fromEntries(
+              headers.filter((h) => h.enabled && h.key).map((h) => [h.key, h.value]),
+            ),
+            requestBody: method !== 'GET' ? body : '',
+            responseHeaders: {},
+            responseBody: '',
+          };
+          results.push(item);
+          onProgress(item);
         }
       }
+      if (cancelledRef.current) break;
     }
-    const entry: HistoryEntry = {
-      id: crypto.randomUUID(),
-      method,
-      url,
-      status: firstResult?.status || 0,
-      statuses: statusCounts,
-      timestamp: Date.now(),
-      duration: 0,
-      payload: allValues.join(', '),
-      payloadCount: allValues.length,
-      requestHeaders: Object.fromEntries(headers.filter((h) => h.enabled && h.key).map((h) => [h.key, h.value])),
-      requestBody: method !== 'GET' ? body : undefined,
-      responseHeaders: firstResult?.headers,
-      responseBody: firstResult?.body,
-    };
-    setHistory((prev) => [entry, ...prev]);
-    setSelectedHistory(entry);
+
+    console.log('[DEBUG] handleRunStart done, results:', results.length);
+    return results;
   };
 
   const handleSaveSession = () => {
@@ -418,7 +501,9 @@ export function RequestPanel({
       timestamp: Date.now(),
       duration: 0,
       payload: '',
-      requestHeaders: Object.fromEntries(headers.filter((h) => h.enabled && h.key).map((h) => [h.key, h.value])),
+      requestHeaders: Object.fromEntries(
+        headers.filter((h) => h.enabled && h.key).map((h) => [h.key, h.value]),
+      ),
       requestBody: method !== 'GET' ? body : undefined,
       responseHeaders: response.headers,
       responseBody: response.body,
@@ -426,6 +511,41 @@ export function RequestPanel({
     setHistory((prev) => [entry, ...prev]);
     setSelectedHistory(entry);
     onSaveSession?.();
+  };
+
+  const handleSavePayloadResults = () => {
+    console.log('[DEBUG] handleSavePayloadResults called, count:', payloadResultData?.length);
+    if (!payloadResultData || payloadResultData.length === 0) return;
+    const first = payloadResultData[0];
+    const statusCounts: Record<number, number> = {};
+    const allValues: string[] = [];
+    payloadResultData.forEach((r) => {
+      statusCounts[r.status] = (statusCounts[r.status] || 0) + 1;
+      if (r.value) allValues.push(r.value);
+    });
+    const entry: HistoryEntry = {
+      id: crypto.randomUUID(),
+      method,
+      url,
+      status: first.status || 0,
+      statuses: statusCounts,
+      timestamp: Date.now(),
+      duration: 0,
+      payload: allValues.join(', '),
+      payloadCount: allValues.length,
+      requestHeaders: Object.fromEntries(
+        headers.filter((h) => h.enabled && h.key).map((h) => [h.key, h.value]),
+      ),
+      requestBody: method !== 'GET' ? body : undefined,
+      responseHeaders: first.responseHeaders,
+      responseBody: first.responseBody,
+    };
+    // Save to backend via persistence hook, then update local state
+    persistence.saveHistory(entry, payloadResultData);
+    setHistory((prev) => [entry, ...prev]);
+    setSelectedHistory(entry);
+    console.log('[DEBUG] HistoryEntry saved, id:', entry.id);
+    setPayloadResultData(null);
   };
 
   const handleViewHistory = (entry: HistoryEntry) => {
@@ -442,12 +562,8 @@ export function RequestPanel({
       headers: entry.responseHeaders,
       body: entry.responseBody,
       status: entry.status,
+      duration: entry.duration,
     });
-  };
-
-  const handleSwitchToResult = () => {
-    setActiveTab('result');
-    if (onSwitchTab) onSwitchTab('result');
   };
 
   const handleViewResponse = (entry: HistoryEntry) => {
@@ -456,6 +572,7 @@ export function RequestPanel({
       headers: entry.responseHeaders,
       body: entry.responseBody,
       status: entry.status,
+      duration: entry.duration,
     });
   };
 
@@ -483,7 +600,6 @@ export function RequestPanel({
         .filter((line) => line);
 
       const newPayloads: PayloadItem[] = lines.map((line) => {
-        // Try to parse as CSV with name,description,values
         const parts = line.split('\t');
         if (parts.length >= 3) {
           return {
@@ -497,7 +613,6 @@ export function RequestPanel({
             enabled: true,
           };
         }
-        // Fallback: treat as just values
         return {
           id: crypto.randomUUID(),
           name: 'Payload ' + (payloads.length + 1),
@@ -533,22 +648,11 @@ export function RequestPanel({
     { id: 'headers', label: 'Headers', count: headers.filter((h) => h.enabled && h.key).length },
     { id: 'body', label: 'Body' },
     { id: 'payload', label: 'Payload', count: payloads.filter((p) => p.enabled).length },
-    {
-      id: 'result',
-      label: 'Result',
-      count: (() => {
-        const enabled = payloads.filter((p) => p.enabled && p.values.length > 0);
-        return enabled.length > 0
-          ? enabled.reduce((acc, p) => acc * p.values.length, 1)
-          : undefined;
-      })(),
-    },
     { id: 'history', label: 'History', count: history.length },
   ];
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Section 1: Toolbar */}
       <RequestBar
         method={method}
         url={url}
@@ -561,9 +665,9 @@ export function RequestPanel({
         onToggleDropdown={() => setIsMethodDropdownOpen(!isMethodDropdownOpen)}
         onSend={handleSend}
         readOnly={readOnly}
+        hasEmptyPayload={payloads.some((p) => p.enabled && p.values.length === 0)}
       />
 
-      {/* Section 2: Tabs */}
       <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/50 overflow-x-auto">
         {tabs.map((tab) => (
           <button
@@ -591,21 +695,9 @@ export function RequestPanel({
           >
             Đang xem lịch sử — Click để thoát
           </span>
-        ) : externalLastRunTimestamp && externalSaveToHistory ? (
-          <span
-            className="ml-auto mr-3 text-[10px] text-text-secondary hover:text-primary transition-colors cursor-pointer shrink-0"
-            onClick={handleSaveSession}
-          >
-            Do you want to save this session{' '}
-            <span className="text-primary">
-              {new Date(externalLastRunTimestamp).toLocaleTimeString()}
-            </span>
-            ? Click to save!
-          </span>
         ) : null}
       </div>
 
-      {/* Section 2 Content */}
       <div className="flex-1 min-h-0 overflow-hidden">
         {activeTab === 'params' && (
           <ParamTab
@@ -628,7 +720,12 @@ export function RequestPanel({
           />
         )}
         {activeTab === 'body' && (
-          <BodyTab code={body} onChange={setBody} codeBlockRef={bodyCodeBlockRef} readOnly={readOnly} />
+          <BodyTab
+            code={body}
+            onChange={setBody}
+            codeBlockRef={bodyCodeBlockRef}
+            readOnly={readOnly}
+          />
         )}
         {activeTab === 'payload' && (
           <PayloadTab
@@ -647,70 +744,42 @@ export function RequestPanel({
             onDelete={handleDeleteHistory}
             selectedId={selectedHistory?.id}
             payloads={payloads}
-            onSwitchToResult={handleSwitchToResult}
+            onSwitchToResult={() => {}}
             onViewResponse={handleViewResponse}
             onViewHistory={handleViewHistory}
           />
         )}
-        {activeTab === 'result' && <ResultTab payloads={payloads} />}
       </div>
 
-      {/* Section 3: Response Viewer */}
       <div className="min-h-[180px] border-t border-border shrink-0">
         <ResponsePanel
           headers={response?.headers}
           body={response?.body}
           status={response?.status}
           contentType={response?.contentType}
+          duration={response?.duration}
         />
       </div>
 
-      {/* Run confirmation modal */}
-      {showRunModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-background border border-border rounded-lg shadow-2xl max-w-md w-full">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-medium text-text-primary">Confirm Execution</h3>
-              <button
-                onClick={() => setShowRunModal(false)}
-                className="p-1 rounded hover:bg-dropdown-item-hover"
-              >
-                <X className="w-4 h-4 text-text-secondary" />
-              </button>
-            </div>
-            <div className="px-4 py-6">
-              <div className="text-center">
-                <div className="text-4xl mb-3">🚀</div>
-                <p className="text-sm text-text-primary mb-2">{modalMessage}</p>
-                <p className="text-xs text-text-secondary">
-                  {totalRequests > 1 ? (
-                    <>
-                      Total requests:{' '}
-                      <span className="font-bold text-primary text-base">{totalRequests}</span>
-                    </>
-                  ) : (
-                    'Single request (no active payloads)'
-                  )}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
-              <button
-                onClick={() => setShowRunModal(false)}
-                className="px-3 py-1.5 rounded text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmSend}
-                className="px-3 py-1.5 rounded text-xs font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
-              >
-                Run Now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RunModal
+        isOpen={isRunModalOpen}
+        totalRequests={runTotalRequests}
+        enabledPayloads={runEnabledPayloads}
+        onRun={handleRunStart}
+        onClose={() => setIsRunModalOpen(false)}
+        onViewResults={(results) => {
+          console.log('[DEBUG] RunModal onViewResults, count:', results.length);
+          setIsRunModalOpen(false);
+          setPayloadResultData(results);
+        }}
+      />
+
+      <PayloadResultModal
+        isOpen={payloadResultData !== null}
+        results={payloadResultData || []}
+        onClose={() => setPayloadResultData(null)}
+        onSave={handleSavePayloadResults}
+      />
     </div>
   );
 }
