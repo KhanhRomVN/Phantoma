@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { DrawerFooterProps } from './type';
 
 export const DrawerFooter: React.FC<DrawerFooterProps> = ({ children, className }) => {

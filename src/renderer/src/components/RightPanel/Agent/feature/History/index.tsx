@@ -4,7 +4,7 @@ import { FolderOpen, Loader2, Search } from 'lucide-react';
 import { useConversationHistory } from './hooks/useConversationHistory';
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 interface HistoryPanelProps {
@@ -146,7 +146,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
       <DrawerBody className="p-3">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-[160px] gap-2 text-text-secondary">
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: $('--accent-text') || 'currentColor' }} />
+            <Loader2
+              className="w-6 h-6 animate-spin"
+              style={{ color: $('--accent-text') || 'currentColor' }}
+            />
             <span className="text-xs">Loading...</span>
           </div>
         ) : conversations.length === 0 ? (

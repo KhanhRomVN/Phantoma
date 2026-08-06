@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 export interface KbdProps {
   children: React.ReactNode;

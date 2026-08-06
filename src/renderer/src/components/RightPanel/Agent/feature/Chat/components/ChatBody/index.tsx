@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { parseAIResponse, ParsedResponse, ToolAction } from '../../services/ResponseParser';
 import { Message } from '../../types/message';
 import { EXECUTION_STATUS, TOOL_ACTION_TYPES, TERMINAL_STATUS } from '../../constants/constants';

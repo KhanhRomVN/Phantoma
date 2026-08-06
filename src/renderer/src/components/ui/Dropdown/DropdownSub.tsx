@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, createContext, useContext } from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface DropdownSubContextType {
   open: boolean;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import type { ReconData } from '../../types/domain/recon-data';
 
 interface MatchResult {

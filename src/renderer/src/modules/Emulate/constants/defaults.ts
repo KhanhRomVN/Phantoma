@@ -1,6 +1,5 @@
 // Default values used across Emulate feature
-import { HttpMethod, HTTP_METHODS } from './methods';
-import { DEFAULT_STATUS_FILTER } from './statusCodes';
+import { HttpMethod } from './methods';
 import { DEFAULT_TOOL, ToolType } from './tools';
 import { AppPlatform } from './platforms';
 
@@ -41,7 +40,7 @@ export const DEFAULT_FILTER_STATE: DefaultFilterState = {
   },
   host: { whitelist: [] },
   path: { whitelist: [] },
-  status: DEFAULT_STATUS_FILTER,
+  status: {},
   type: {
     xhr: true,
     js: true,
@@ -186,3 +185,22 @@ export const POLLING_INTERVAL = 1000;
 
 // Timer update interval (ms)
 export const TIMER_INTERVAL = 1000;
+
+// Default empty fuzzer job (used by Repeater)
+export const EMPTY_FUZZER_JOB = {
+  name: '',
+  description: '',
+  method: 'GET',
+  urlTemplate: 'https://example.com/api/user/§id§',
+  headersTemplate: 'Content-Type: application/json',
+  bodyTemplate: '',
+  payloadType: 'numbers' as const,
+  payloadList: '',
+  numberFrom: 1,
+  numberTo: 100,
+  numberStep: 1,
+  bruteChars: 'abcdefghijklmnopqrstuvwxyz0123456789',
+  bruteLen: 4,
+  concurrency: 5,
+  requestId: undefined,
+};

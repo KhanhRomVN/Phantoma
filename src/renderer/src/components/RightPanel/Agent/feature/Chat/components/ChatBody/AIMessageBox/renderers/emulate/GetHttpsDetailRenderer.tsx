@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '../../../../../constants/constants';
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
@@ -19,7 +19,7 @@ export const GetHttpsDetailRenderer: React.FC<BaseRendererProps> = ({
   const actionId = `${messageId}-action-${actionIndex}`;
   const output = toolOutputs?.[actionId]?.output;
   const isError = !!toolOutputs?.[actionId]?.isError;
-  const errorMessage = isError ? (output || '') : '';
+  const errorMessage = isError ? output || '' : '';
 
   const isCompleted = Boolean(isActionClicked || isError || (output && output.trim().length > 0));
 
@@ -37,13 +37,9 @@ export const GetHttpsDetailRenderer: React.FC<BaseRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
-            <span className="font-semibold opacity-80">
-              {getToolLabel('get_https_detail')}
-            </span>
+            <span className="font-semibold opacity-80">{getToolLabel('get_https_detail')}</span>
             {isCompleted && !isError && requestIndex && (
-              <span className="opacity-50 text-[10px] text-text-secondary">
-                {requestIndex}
-              </span>
+              <span className="opacity-50 text-[10px] text-text-secondary">{requestIndex}</span>
             )}
             {!isCompleted && (
               <span className="text-[10px] opacity-60 italic ml-1 flex items-center gap-1">

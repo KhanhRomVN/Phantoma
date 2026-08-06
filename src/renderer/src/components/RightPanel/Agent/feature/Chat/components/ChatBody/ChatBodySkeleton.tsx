@@ -1,13 +1,10 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 const ChatBodySkeleton: React.FC = () => {
   return (
     <div
-      className={cn(
-        'flex-1 overflow-hidden flex flex-col gap-4 text-sm',
-        'p-6 pl-3 pb-[200px]'
-      )}
+      className={cn('flex-1 overflow-hidden flex flex-col gap-4 text-sm', 'p-6 pl-3 pb-[200px]')}
     >
       {/* User Message Skeleton */}
       {[1, 2, 3, 4, 5].map((i) => (

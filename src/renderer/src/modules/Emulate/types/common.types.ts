@@ -1,10 +1,9 @@
 // Common types shared across Emulate feature
-import { AppPlatform } from '../constants/platforms';
 import { ToolType } from '../constants/tools';
 import { HttpMethod } from '../constants/methods';
 
 // Re-export from constants for convenience
-export type { AppPlatform, ToolType, HttpMethod };
+export type { ToolType, HttpMethod };
 
 // Generic result type for operations
 export interface OperationResult<T = void> {

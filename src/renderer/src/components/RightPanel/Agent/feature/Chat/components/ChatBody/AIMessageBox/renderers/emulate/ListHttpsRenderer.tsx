@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 // CONSTANTS
 import { getToolLabel } from '../../../../../constants/constants';
@@ -44,13 +44,9 @@ export const ListHttpsRenderer: React.FC<BaseRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
-            <span className="font-semibold opacity-80">
-              {getToolLabel('list_https')}
-            </span>
+            <span className="font-semibold opacity-80">{getToolLabel('list_https')}</span>
             {isCompleted && !isError && requestCount > 0 && (
-              <span className="opacity-50 text-[10px] text-text-secondary">
-                {summaryText}
-              </span>
+              <span className="opacity-50 text-[10px] text-text-secondary">{summaryText}</span>
             )}
             {!isCompleted && (
               <span className="text-[10px] opacity-60 italic ml-1 flex items-center gap-1">
@@ -77,9 +73,7 @@ export const ListHttpsRenderer: React.FC<BaseRendererProps> = ({
         <ErrorBlock content={errorMessage} compact={true} maxHeight="300px" />
       )}
 
-      {output && !isError && !isCollapsed && (
-        <ListHttpsBlock content={output} maxHeight="400px" />
-      )}
+      {output && !isError && !isCollapsed && <ListHttpsBlock content={output} maxHeight="400px" />}
     </div>
   );
 };

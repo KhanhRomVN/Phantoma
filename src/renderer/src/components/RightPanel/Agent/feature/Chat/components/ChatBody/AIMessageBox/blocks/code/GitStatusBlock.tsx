@@ -2,7 +2,7 @@ import React from 'react';
 import { Check, X, Pencil, Trash2, Plus, Move, HelpCircle, FolderOpen } from 'lucide-react';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { $ } from '@renderer/utils/color';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 export interface GitStatusItem {
   status: string;
@@ -48,7 +48,17 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
       '?': <HelpCircle size={14} strokeWidth={2} />,
       '!': <FolderOpen size={14} strokeWidth={2} />,
       U: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M12 19V5" />
           <path d="M5 12l7-7 7 7" />
         </svg>
@@ -149,19 +159,21 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
             </div>
           )}
 
-          {stagedItems.length === 0 && unstagedItems.length === 0 && unpushedCommits.length === 0 && (
-            <div className="px-3.5 py-4 text-center text-secondary text-[13px]">
-              <div className="text-2xl mb-2">📂</div>
-              <div className="font-semibold mb-1 text-warn">⚠️ Chưa có file nào được staged</div>
-              <div className="text-xs opacity-80">
-                Hãy chạy{' '}
-                <code className="bg-background px-1.5 py-0.5 rounded font-mono">
-                  git add {'<file>'}
-                </code>{' '}
-                để thêm file vào staging area
+          {stagedItems.length === 0 &&
+            unstagedItems.length === 0 &&
+            unpushedCommits.length === 0 && (
+              <div className="px-3.5 py-4 text-center text-secondary text-[13px]">
+                <div className="text-2xl mb-2">📂</div>
+                <div className="font-semibold mb-1 text-warn">⚠️ Chưa có file nào được staged</div>
+                <div className="text-xs opacity-80">
+                  Hãy chạy{' '}
+                  <code className="bg-background px-1.5 py-0.5 rounded font-mono">
+                    git add {'<file>'}
+                  </code>{' '}
+                  để thêm file vào staging area
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {unstagedItems.length > 0 && (
             <div className="py-1">
@@ -186,9 +198,7 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
           <button
             className={cn(
               'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all duration-200 inline-flex items-center gap-1.5 h-6 border border-transparent',
-              stagedItems.length === 0
-                ? 'opacity-50 cursor-not-allowed'
-                : 'cursor-pointer'
+              stagedItems.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
             )}
             onClick={() => {
               onConfirm();
@@ -227,10 +237,12 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
             }}
             disabled={isProcessing}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'color-mix(in srgb, rgb(255, 45, 85) 25%, transparent)';
+              e.currentTarget.style.background =
+                'color-mix(in srgb, rgb(255, 45, 85) 25%, transparent)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'color-mix(in srgb, rgb(255, 45, 85) 15%, transparent)';
+              e.currentTarget.style.background =
+                'color-mix(in srgb, rgb(255, 45, 85) 15%, transparent)';
             }}
           >
             <X size={14} strokeWidth={2.5} />

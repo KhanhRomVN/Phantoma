@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 // CONSTANTS
 import { getToolLabel } from '../../../../../constants/constants';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 // HOOKS
 import { useSettings } from '../../../../../../../context/SettingsContext';

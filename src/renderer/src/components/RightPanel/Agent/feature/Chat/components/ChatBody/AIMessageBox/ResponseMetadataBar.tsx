@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { Message } from '../../../types/message';
 import { CodeBlock } from '@renderer/components/common/CodeBlock';
 import RevertConfirmModal from '@renderer/components/common/RevertConfirmModal';
@@ -169,15 +169,13 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
             onClick={() => setRequestChecked(!requestChecked)}
             className={cn(
               'inline-flex items-center gap-1.5 cursor-pointer transition-opacity duration-200',
-              requestChecked ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-80'
+              requestChecked
+                ? 'underline underline-offset-[3px] opacity-100'
+                : 'no-underline opacity-80',
             )}
           >
-            <span className="text-success inline-flex items-center">
-              {RequestIcon}
-            </span>
-            <span className="text-text-primary font-semibold">
-              {reqTokens.toLocaleString()}
-            </span>
+            <span className="text-success inline-flex items-center">{RequestIcon}</span>
+            <span className="text-text-primary font-semibold">{reqTokens.toLocaleString()}</span>
           </div>
 
           {/* Retry Icon */}
@@ -188,7 +186,9 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
               onMouseLeave={() => setIsRetryHovered(false)}
               className={cn(
                 'inline-flex items-center cursor-pointer text-warn transition-opacity duration-200',
-                isRetryHovered ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-70'
+                isRetryHovered
+                  ? 'underline underline-offset-[3px] opacity-100'
+                  : 'no-underline opacity-70',
               )}
               title="Retry this request"
             >
@@ -204,7 +204,9 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
               onMouseLeave={() => setIsRevertHovered(false)}
               className={cn(
                 'inline-flex items-center cursor-pointer text-warn transition-opacity duration-200',
-                isRevertHovered ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-70'
+                isRevertHovered
+                  ? 'underline underline-offset-[3px] opacity-100'
+                  : 'no-underline opacity-70',
               )}
               title="Revert conversation to this point"
             >
@@ -219,15 +221,13 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
             onClick={() => setResponseChecked(!responseChecked)}
             className={cn(
               'inline-flex items-center gap-1.5 cursor-pointer transition-opacity duration-200',
-              responseChecked ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-80'
+              responseChecked
+                ? 'underline underline-offset-[3px] opacity-100'
+                : 'no-underline opacity-80',
             )}
           >
-            <span className="text-error inline-flex items-center">
-              {ResponseIcon}
-            </span>
-            <span className="text-text-primary font-semibold">
-              {resTokens.toLocaleString()}
-            </span>
+            <span className="text-error inline-flex items-center">{ResponseIcon}</span>
+            <span className="text-text-primary font-semibold">{resTokens.toLocaleString()}</span>
           </div>
         </div>
 
@@ -238,12 +238,14 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
               onClick={() => setParseDebugChecked(!parseDebugChecked)}
               className={cn(
                 'inline-flex items-center gap-1.5 cursor-pointer transition-opacity duration-200 py-0.5 px-1.5 rounded-[3px]',
-                parseDebugChecked ? 'underline underline-offset-[3px] opacity-100' : 'no-underline opacity-80',
+                parseDebugChecked
+                  ? 'underline underline-offset-[3px] opacity-100'
+                  : 'no-underline opacity-80',
                 message.parseDebugInfo.failedActions > 0
                   ? 'bg-error/20'
                   : message.parseDebugInfo.parseError
                     ? 'bg-warn/20'
-                    : 'bg-transparent'
+                    : 'bg-transparent',
               )}
               title={
                 message.parseDebugInfo.parseError
@@ -258,7 +260,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
                     ? 'text-error'
                     : message.parseDebugInfo.parseError
                       ? 'text-warn'
-                      : 'text-info'
+                      : 'text-info',
                 )}
               >
                 {DebugIcon}
@@ -273,9 +275,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
         )}
 
         {/* Response Number */}
-        <span className="text-text-secondary text-[11px] font-semibold">
-          [{responseNumber}]
-        </span>
+        <span className="text-text-secondary text-[11px] font-semibold">[{responseNumber}]</span>
       </div>
 
       {showRaw && (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface ModalFooterProps {
   children: React.ReactNode;
@@ -8,7 +8,9 @@ interface ModalFooterProps {
 
 export const ModalFooter: React.FC<ModalFooterProps> = ({ children, className }) => {
   return (
-    <div className={cn('px-5 py-4 border-t border-divider shrink-0 flex justify-end gap-3', className)}>
+    <div
+      className={cn('px-5 py-4 border-t border-divider shrink-0 flex justify-end gap-3', className)}
+    >
       {children}
     </div>
   );

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { getFileIconPath } from '@renderer/utils/fileIconMapper';
 import { $ } from '@renderer/utils/color';
 import ErrorBlock from '../other/ErrorBlock';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 interface GrepBlockProps {
   action: any;
@@ -132,8 +132,6 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
   const searchTerm = action.params.search_term || action.params.searchTerm || '';
-  const folderPath = action.params.folder_path || action.params.folderPath || '';
-  const filePath = action.params.file_path || action.params.filePath || '';
 
   // Check for validation error from parser
   const validationError = action.params._validationError;

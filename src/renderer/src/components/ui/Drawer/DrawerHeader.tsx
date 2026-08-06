@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface DrawerHeaderProps {
   title?: string;

@@ -1,24 +1,24 @@
-import { useCodeStore } from "../../hooks/useCodeStore";
-import { cn } from "../../../../shared/lib/utils";
+import { useCodeStore } from '../../hooks/useCodeStore';
+import { cn } from '@renderer/shared/utils/cn';
 
 const TYPE_ICONS: Record<string, string> = {
-  website: "🌐",
-  app: "📱",
-  device: "📲",
-  database: "🗄️",
-  api: "🔌",
-  design: "🎨",
-  table: "📊",
+  website: '🌐',
+  app: '📱',
+  device: '📲',
+  database: '🗄️',
+  api: '🔌',
+  design: '🎨',
+  table: '📊',
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  website: "text-cyan",
-  app: "text-purple",
-  device: "text-green",
-  database: "text-blue",
-  api: "text-yellow",
-  design: "text-pink",
-  table: "text-teal",
+  website: 'text-cyan',
+  app: 'text-purple',
+  device: 'text-green',
+  database: 'text-blue',
+  api: 'text-yellow',
+  design: 'text-pink',
+  table: 'text-teal',
 };
 
 export function ServiceTabBar() {
@@ -37,27 +37,29 @@ export function ServiceTabBar() {
     <div className="flex items-center h-9 bg-sidebar-background border-b border-divider px-2 overflow-x-auto flex-shrink-0 gap-0.5">
       {project.services.map((service) => {
         const isActive = service.id === currentServiceId;
-        const colorClass = TYPE_COLORS[service.type] || "text-text-secondary";
+        const colorClass = TYPE_COLORS[service.type] || 'text-text-secondary';
         return (
           <button
             key={service.id}
             onClick={() => setCurrentService(service.id)}
             className={cn(
-              "flex items-center gap-1.5 px-3 h-full text-xs font-medium whitespace-nowrap border-b-2 transition-colors",
+              'flex items-center gap-1.5 px-3 h-full text-xs font-medium whitespace-nowrap border-b-2 transition-colors',
               isActive
-                ? "text-text-primary border-primary"
-                : "text-text-secondary/60 border-transparent hover:text-text-secondary hover:border-divider"
+                ? 'text-text-primary border-primary'
+                : 'text-text-secondary/60 border-transparent hover:text-text-secondary hover:border-divider',
             )}
           >
-            <span className={cn("text-sm", colorClass)}>{TYPE_ICONS[service.type] || "📄"}</span>
+            <span className={cn('text-sm', colorClass)}>{TYPE_ICONS[service.type] || '📄'}</span>
             {service.name}
-            <span className={cn(
-              "w-1.5 h-1.5 rounded-full flex-shrink-0",
-              service.status === "running" && "bg-success",
-              service.status === "stopped" && "bg-text-secondary/30",
-              service.status === "building" && "bg-warn animate-pulse",
-              service.status === "error" && "bg-error"
-            )} />
+            <span
+              className={cn(
+                'w-1.5 h-1.5 rounded-full flex-shrink-0',
+                service.status === 'running' && 'bg-success',
+                service.status === 'stopped' && 'bg-text-secondary/30',
+                service.status === 'building' && 'bg-warn animate-pulse',
+                service.status === 'error' && 'bg-error',
+              )}
+            />
             <span className="text-[9px] text-text-secondary/40">{service.meta}</span>
           </button>
         );

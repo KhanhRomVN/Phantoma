@@ -1,36 +1,32 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAccentColors } from '../../shared/hooks/useAccentColors';
-import { cn } from '../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { targetService } from '../../services/TargetService';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 import { EmulateController } from '../../controller/EmulateController';
+import { apiService } from '../../services/api.service';
 
 // Components
-import { RequestTable, RequestDetails, initialFilterState } from './components/Home';
-import { ResourcesPanel } from './components/Resources';
-import { PayloadPanel } from './components/Repeater';
-import { SourcesPanel } from './components/Source';
-import { LogViewer } from './components/Log';
-import { DevicePanel } from './components/Device';
-import {
-  WebModal,
-  PcModal,
-  AndroidModal,
-  CliModal,
-} from './components/TargetSidebar/AddTargetModal';
+import { RequestTable, RequestDetails, initialFilterState } from './components/WorkspacePanel/Home';
+import { ResourcesPanel } from './components/WorkspacePanel/Resources';
+import { PayloadPanel } from './components/WorkspacePanel/Repeater';
+import { SourcesPanel } from './components/WorkspacePanel/Source';
+import { LogViewer } from './components/WorkspacePanel/Log';
+import { DevicePanel } from './components/WorkspacePanel/Device';
+import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
 
 // Hooks
 import useTargetData from '../../hooks/useTargetData';
-import { useRequestFilter } from './hooks/useRequestFilter';
+import { useRequestFilter } from './hooks/network/useRequestFilter';
 
 // Types
 import { NetworkRequest } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 import { ToolType, TOOLS, DEFAULT_TOOL } from './constants/tools';
 import { useTheme } from '@renderer/theme';
-import useNetworkEvents from './hooks/useNetworkEvents';
-import TargetSidebar from './components/TargetSidebar';
+import useNetworkEvents from './hooks/network/useNetworkEvents';
+import TargetSidebar from './components/TargetListPanel';
 import { useTimerStore } from '../../stores/timerStore';
 
 // Constants
@@ -139,7 +135,9 @@ export default React.memo(function Emulate({
         setEditingApp(null);
       } catch (error) {
         console.error('[Emulate] Add target failed:', error);
-        alert('Failed to add target: ' + (error instanceof Error ? error.message : 'Unknown error'));
+        alert(
+          'Failed to add target: ' + (error instanceof Error ? error.message : 'Unknown error'),
+        );
       }
     },
     [createTarget, refreshTargets, setState],
@@ -349,11 +347,11 @@ export default React.memo(function Emulate({
 
     const mode = targetStatesRef.current[targetId]?.mode;
     if (mode === 'cdp') {
-      await window.api.invoke('cdp:disconnect');
-      await window.api.invoke('app:terminate');
+      await apiService.disconnectCdp();
+      await apiService.terminateApp();
     } else if (mode === 'mitm' || mode === 'frida') {
-      await window.api.invoke('proxy:destroy-session', 'default');
-      await window.api.invoke('app:terminate');
+      await apiService.destroyProxySession('default');
+      await apiService.terminateApp();
     }
 
     stopTarget(targetId);
@@ -392,16 +390,14 @@ export default React.memo(function Emulate({
         const target = targetTabs.find((t) => t.id === appId);
         const launchTarget = target?.executablePath || appId;
 
-        const result = await window.api.invoke(
-          'app:launch',
+        const result = await apiService.launchApp(
           launchTarget,
           proxyUrl,
           customUrl,
           mode,
           useEnvInject,
         );
-
-        if (result) {
+        if (result.success && result.data) {
           const newTab: TargetTab = {
             id: appId,
             title: customUrl ? new URL(customUrl).hostname : appId,
@@ -419,7 +415,7 @@ export default React.memo(function Emulate({
 
   const handleSendToRepeater = useCallback(
     (req: NetworkRequest) => {
-      import('./components/Repeater').then(({ addToRepeater }) => {
+      import('./components/WorkspacePanel/Repeater').then(({ addToRepeater }) => {
         addToRepeater(req.id);
       });
       setFuzzerTargetId(req.id);
@@ -443,19 +439,22 @@ export default React.memo(function Emulate({
     setIsAddModalOpen(true);
   }, []);
 
-  const handleEditTarget = useCallback((id: string) => {
-    const target = targetTabs.find((t) => t.id === id);
-    if (target) {
-      setEditingApp({
-        id: target.id,
-        name: target.title,
-        url: target.url,
-        executablePath: target.executablePath,
-      });
-      setAddModalPlatform((target.platform as 'web' | 'pc' | 'android' | 'cli') || 'web');
-      setIsAddModalOpen(true);
-    }
-  }, [targetTabs]);
+  const handleEditTarget = useCallback(
+    (id: string) => {
+      const target = targetTabs.find((t) => t.id === id);
+      if (target) {
+        setEditingApp({
+          id: target.id,
+          name: target.title,
+          url: target.url,
+          executablePath: target.executablePath,
+        });
+        setAddModalPlatform((target.platform as 'web' | 'pc' | 'android' | 'cli') || 'web');
+        setIsAddModalOpen(true);
+      }
+    },
+    [targetTabs],
+  );
 
   // Memoize props
   const memoizedTargetTabs = useMemo(() => targetTabs, [targetTabs]);
@@ -465,13 +464,14 @@ export default React.memo(function Emulate({
   const TabBar = useMemo(() => {
     return (
       <div className="flex h-10 border-b border-border shrink-0 overflow-x-auto gap-0.5 px-2">
-        {Object.values(TOOLS).map((tool) => {
+        {(Object.keys(TOOLS) as ToolType[]).map((id) => {
+          const tool = TOOLS[id];
           const tabColor = getColorByIndex(tool.accentIndex);
-          const isActive = selectedTool === tool.id;
+          const isActive = selectedTool === id;
           return (
             <button
-              key={tool.id}
-              onClick={() => handleSetSelectedTool(tool.id)}
+              key={id}
+              onClick={() => handleSetSelectedTool(id)}
               className={cn(
                 'flex items-center gap-1.5 px-3 h-full text-sm font-medium whitespace-nowrap cursor-pointer transition-all border-b-2',
                 isActive
@@ -533,7 +533,6 @@ export default React.memo(function Emulate({
               <>
                 <div className="flex-1 min-h-0 border-b border-border">
                   <RequestTable
-                    requests={filteredRequests}
                     selectedId={selectedId}
                     onSelect={handleSetSelectedId}
                     searchTerm={searchTerm}
@@ -544,9 +543,6 @@ export default React.memo(function Emulate({
                     onDrop={() => {}}
                     onDelete={() => {}}
                     appId="emulate-app"
-                    onSetCompare1={() => {}}
-                    onSetCompare2={() => {}}
-                    onAnalyzeRequest={() => {}}
                     onSendToRepeater={handleSendToRepeater}
                     onLaunchTarget={handleLaunchTarget}
                     onClearRequests={handleClearRequests}
@@ -609,48 +605,10 @@ export default React.memo(function Emulate({
       </div>
 
       {/* Modals */}
-      {addModalPlatform === 'web' && (
-        <WebModal
+      {addModalPlatform && (
+        <AddTargetModal
           isOpen={isAddModalOpen}
-          onClose={() => {
-            setIsAddModalOpen(false);
-            setEditingApp(null);
-          }}
-          onAdd={handleAddApp}
-          existingApps={targetTabs}
-          editApp={editingApp}
-          onEdit={() => {}}
-        />
-      )}
-      {addModalPlatform === 'pc' && (
-        <PcModal
-          isOpen={isAddModalOpen}
-          onClose={() => {
-            setIsAddModalOpen(false);
-            setEditingApp(null);
-          }}
-          onAdd={handleAddApp}
-          existingApps={targetTabs}
-          editApp={editingApp}
-          onEdit={() => {}}
-        />
-      )}
-      {addModalPlatform === 'android' && (
-        <AndroidModal
-          isOpen={isAddModalOpen}
-          onClose={() => {
-            setIsAddModalOpen(false);
-            setEditingApp(null);
-          }}
-          onAdd={handleAddApp}
-          existingApps={targetTabs}
-          editApp={editingApp}
-          onEdit={() => {}}
-        />
-      )}
-      {addModalPlatform === 'cli' && (
-        <CliModal
-          isOpen={isAddModalOpen}
+          platform={addModalPlatform}
           onClose={() => {
             setIsAddModalOpen(false);
             setEditingApp(null);

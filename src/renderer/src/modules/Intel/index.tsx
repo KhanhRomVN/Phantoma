@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { cn } from '../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { useDomainRecon } from './hooks/useDomainRecon';
 import { SearchProvider } from './context/SearchContext';
 import { SourcesPanel } from './components/shared/SourcesPanel';
@@ -189,9 +189,12 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
     setShowAddForm(false);
   }, [newDomain, sessions]);
 
-  const removeDomain = useCallback((id: string) => {
-    updateReconState({ sessions: sessions.filter((s) => s.id !== id) });
-  }, [sessions]);
+  const removeDomain = useCallback(
+    (id: string) => {
+      updateReconState({ sessions: sessions.filter((s) => s.id !== id) });
+    },
+    [sessions],
+  );
 
   const handleContextMenu = (e: React.MouseEvent, sessionId: string) => {
     e.preventDefault();
@@ -565,7 +568,7 @@ function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
                     <span
                       className={cn(
                         'text-[12px] font-mono font-semibold truncate flex-1 min-w-0 leading-tight',
-                        isActive ? 'text-text-primary' : 'text-text-secondary'
+                        isActive ? 'text-text-primary' : 'text-text-secondary',
                       )}
                     >
                       {sess.domain}

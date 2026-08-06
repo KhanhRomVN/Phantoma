@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 import { X, Zap, ShieldCheck, PlusIcon, SendIcon } from 'lucide-react';
 import { GitPullRequestArrow } from 'lucide-react';
@@ -278,7 +278,7 @@ const GlobalPermissionButton: React.FC = () => {
       icon: <ShieldCheck size={11} />,
       color: $('--info') || '#3b82f6',
     },
-    };
+  };
 
   const handleItemMouseEnter = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
     if (!e.currentTarget.parentElement) return;
@@ -312,9 +312,7 @@ const GlobalPermissionButton: React.FC = () => {
         className={cn(
           'flex items-center gap-1 px-2 h-[22px] box-border rounded cursor-pointer text-[11px] font-semibold tracking-[0.3px] transition-all duration-200 leading-none align-middle',
           isHovered ? 'opacity-100' : 'opacity-90',
-          permissionMode === 'fullAccess'
-            ? 'text-warn'
-            : 'text-info',
+          permissionMode === 'fullAccess' ? 'text-warn' : 'text-info',
         )}
         style={{
           border: `1px solid ${metadata.color}40`,

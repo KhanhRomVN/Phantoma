@@ -7,9 +7,15 @@
  *
  * Ưu tiên unpacked source nếu có, fallback về responseBody.
  */
+
+// TYPE
 import { NetworkRequest } from '../types/inspector';
+
+// UTIL
 import { buildSourceTree, type SourceNode } from '../utils/sourceTree';
-import type { CdpScriptUnpackedData } from '../hooks/useNetworkEvents';
+
+// HOOK
+import type { CdpScriptUnpackedData } from '../hooks/network/useNetworkEvents';
 
 export interface GetSourceDetailResult {
   text: string;
@@ -23,9 +29,7 @@ export class GetSourceDetailHandler {
     index: number,
   ): GetSourceDetailResult {
     // Build flat file list từ source tree
-    const tree = buildSourceTree(
-      requests.filter((r) => r.url && r.url.length > 0) as any,
-    );
+    const tree = buildSourceTree(requests.filter((r) => r.url && r.url.length > 0) as any);
     const flatFiles: SourceNode[] = [];
 
     const flatten = (nodes: SourceNode[]) => {
@@ -65,9 +69,10 @@ export class GetSourceDetailHandler {
     }
 
     if (!source && request?.responseBody) {
-      source = typeof request.responseBody === 'string'
-        ? request.responseBody
-        : JSON.stringify(request.responseBody);
+      source =
+        typeof request.responseBody === 'string'
+          ? request.responseBody
+          : JSON.stringify(request.responseBody);
       sourceLabel = 'original source';
     }
 
@@ -93,7 +98,9 @@ export class GetSourceDetailHandler {
       truncated ? `Note: Source truncated at ${maxLen} characters.` : '',
       ``,
       source,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     return {
       text,

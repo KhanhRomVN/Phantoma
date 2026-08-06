@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import type { ReconData } from '../../types/person/recon-data';
 
 export function Log({ data }: { data: ReconData }) {

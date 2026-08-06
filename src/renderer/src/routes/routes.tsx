@@ -3,12 +3,12 @@ import MainLayout from '../layouts/MainLayout';
 import InspectorPage from '../modules/Tool';
 import { Dashboard } from '../modules/Dashboard';
 import Scan from '../modules/Scan';
-import Emulate from '../modules/Emulate';
 import { Wireless } from '../modules/Wireless';
 import Setting from '../modules/Setting';
 import { Recon } from '../modules/Intel';
 import TestPage from '../modules/Test';
 import Code from '../modules/Code/Code';
+import Emulate from '@renderer/modules/Emulate/Emulate';
 export const routes: RouteObject[] = [
   {
     path: '/',

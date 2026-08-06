@@ -8,6 +8,8 @@
  * Filter hỗ trợ: method, host, path, status
  * Kết quả trả về dạng text table để LLM dễ đọc.
  */
+
+// TYPE
 import { NetworkRequest } from '../types/inspector';
 
 export interface ListHttpFilter {

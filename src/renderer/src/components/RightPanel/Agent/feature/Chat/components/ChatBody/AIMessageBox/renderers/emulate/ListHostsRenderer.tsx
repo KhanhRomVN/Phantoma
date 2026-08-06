@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '../../../../../constants/constants';
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
@@ -36,13 +36,9 @@ export const ListHostsRenderer: React.FC<BaseRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
-            <span className="font-semibold opacity-80">
-              {getToolLabel('list_hosts')}
-            </span>
+            <span className="font-semibold opacity-80">{getToolLabel('list_hosts')}</span>
             {isCompleted && !isError && hostCount > 0 && (
-              <span className="opacity-50 text-[10px] text-text-secondary">
-                {hostCount} hosts
-              </span>
+              <span className="opacity-50 text-[10px] text-text-secondary">{hostCount} hosts</span>
             )}
             {!isCompleted && (
               <span className="text-[10px] opacity-60 italic ml-1 flex items-center gap-1">
@@ -66,9 +62,7 @@ export const ListHostsRenderer: React.FC<BaseRendererProps> = ({
         <ErrorBlock content={errorMessage} compact={true} maxHeight="300px" />
       )}
 
-      {output && !isError && !isCollapsed && (
-        <ListHostsBlock content={output} maxHeight="400px" />
-      )}
+      {output && !isError && !isCollapsed && <ListHostsBlock content={output} maxHeight="400px" />}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { FileIcon as FileIconLucide, Terminal, Loader2 } from 'lucide-react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 import FileIcon from '@renderer/components/common/FileIcon';
 

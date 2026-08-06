@@ -14,7 +14,6 @@ import {
 import { useActiveModule } from '../modules/Tool/hooks/useActiveModule';
 import { useActiveTarget } from '../modules/Tool/hooks/useActiveTarget';
 import { RightPanel } from '../components/RightPanel';
-import { FooterBar } from '../components/FooterBar';
 import { HeaderBar } from '../components/HeaderBar';
 import { QuickNavModal } from '../components/QuickNavModal';
 import { PhantomModule } from '../modules/Tool/types/types';
@@ -23,12 +22,8 @@ import {
   FeatureProvider,
   useAgentFeature,
 } from '../components/RightPanel/Agent/context/FeatureContext';
-import { useNetworkService } from '../hooks/useNetworkService';
 
 const MainLayoutContent = () => {
-  // NetworkService: IPC listeners survive route changes
-  useNetworkService();
-
   const navigate = useNavigate();
   const location = useLocation();
   const { activeModule, setActiveModule } = useActiveModule('recon');
@@ -202,7 +197,6 @@ const MainLayoutContent = () => {
           </div>
         </div>
       </div>
-      <FooterBar />
       <QuickNavModal
         isOpen={isQuickNavOpen}
         onClose={() => setIsQuickNavOpen(false)}

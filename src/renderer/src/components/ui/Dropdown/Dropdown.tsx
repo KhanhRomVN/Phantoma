@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, createContext, useContext } from 'react';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { DropdownProps } from './type';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 type Position = { top: number; left: number };
 

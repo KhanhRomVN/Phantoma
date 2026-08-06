@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 export interface CheckboxProps {
   checked?: boolean;
@@ -44,7 +44,13 @@ export function Checkbox({
   const isChecked = checked !== undefined ? checked : defaultChecked;
 
   return (
-    <label className={cn('inline-flex items-center cursor-pointer', disabled && 'cursor-not-allowed', className)}>
+    <label
+      className={cn(
+        'inline-flex items-center cursor-pointer',
+        disabled && 'cursor-not-allowed',
+        className,
+      )}
+    >
       <input
         type="checkbox"
         id={id}
@@ -60,7 +66,8 @@ export function Checkbox({
           'flex items-center justify-center rounded border transition-colors',
           'border-border bg-card-background',
           'hover:border-border-hover focus-within:ring-2 focus-within:ring-primary/30 focus-within:outline-none',
-          isChecked && 'bg-button-solid-background border-button-solid-background hover:bg-button-solid-background/90',
+          isChecked &&
+            'bg-button-solid-background border-button-solid-background hover:bg-button-solid-background/90',
           disabled && 'opacity-50 cursor-not-allowed hover:border-border',
           sizeClasses[size],
           inputClassName,
@@ -68,10 +75,7 @@ export function Checkbox({
       >
         {isChecked && (
           <Check
-            className={cn(
-              'text-button-solid-text transition-opacity',
-              iconSizeClasses[size],
-            )}
+            className={cn('text-button-solid-text transition-opacity', iconSizeClasses[size])}
             strokeWidth={2.5}
           />
         )}

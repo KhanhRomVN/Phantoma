@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface ModalBodyProps {
   children?: React.ReactNode;
@@ -7,11 +7,7 @@ interface ModalBodyProps {
 }
 
 export const ModalBody: React.FC<ModalBodyProps> = ({ children, className }) => {
-  return (
-    <div className={cn('px-5 py-3 flex-1 overflow-y-auto', className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn('px-5 py-3 flex-1 overflow-y-auto', className)}>{children}</div>;
 };
 
 export default ModalBody;

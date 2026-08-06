@@ -1,77 +1,27 @@
-// HTTP methods configuration
-export const HTTP_METHODS = [
-  'GET',
-  'POST',
-  'PUT',
-  'DELETE',
-  'PATCH',
-  'HEAD',
-  'OPTIONS',
-  'TRACE',
-  'CONNECT',
-] as const;
+/**
+ * Cấu hình HTTP methods — nguồn dữ liệu duy nhất.
+ *
+ * Mỗi method có:
+ * - title: tên hiển thị (vd: "GET")
+ * - color: tên màu Tailwind, dùng để sinh class text/bg/border trong UI
+ *   Cách dùng: text-{color}-400, bg-{color}-500/15, border-{color}-500/20
+ *
+ * Type HttpMethod được suy ra từ keyof typeof HTTP_METHODS.
+ * Duyệt danh sách method qua Object.keys(HTTP_METHODS).
+ */
 
-export type HttpMethod = (typeof HTTP_METHODS)[number];
+export const HTTP_METHODS = {
+  GET: { title: 'GET', color: 'emerald' },
+  POST: { title: 'POST', color: 'blue' },
+  PUT: { title: 'PUT', color: 'amber' },
+  DELETE: { title: 'DELETE', color: 'red' },
+  PATCH: { title: 'PATCH', color: 'purple' },
+  HEAD: { title: 'HEAD', color: 'indigo' },
+  OPTIONS: { title: 'OPTIONS', color: 'teal' },
+  TRACE: { title: 'TRACE', color: 'pink' },
+  CONNECT: { title: 'CONNECT', color: 'violet' },
+} as const;
 
-export const METHOD_COLORS: Record<HttpMethod, string> = {
-  GET: 'text-emerald-400',
-  POST: 'text-blue-400',
-  PUT: 'text-amber-400',
-  DELETE: 'text-red-400',
-  PATCH: 'text-purple-400',
-  HEAD: 'text-indigo-400',
-  OPTIONS: 'text-teal-400',
-  TRACE: 'text-pink-400',
-  CONNECT: 'text-violet-400',
-};
+export type HttpMethod = keyof typeof HTTP_METHODS;
 
-export const METHOD_BADGE_COLORS: Record<HttpMethod, { text: string; bg: string; border: string }> =
-  {
-    GET: {
-      text: 'text-emerald-400',
-      bg: 'bg-emerald-500/15',
-      border: 'border-emerald-500/20',
-    },
-    POST: {
-      text: 'text-blue-400',
-      bg: 'bg-blue-500/15',
-      border: 'border-blue-500/20',
-    },
-    PUT: {
-      text: 'text-amber-400',
-      bg: 'bg-amber-500/15',
-      border: 'border-amber-500/20',
-    },
-    DELETE: {
-      text: 'text-red-400',
-      bg: 'bg-red-500/15',
-      border: 'border-red-500/20',
-    },
-    PATCH: {
-      text: 'text-purple-400',
-      bg: 'bg-purple-500/15',
-      border: 'border-purple-500/20',
-    },
-    HEAD: {
-      text: 'text-indigo-400',
-      bg: 'bg-indigo-500/15',
-      border: 'border-indigo-500/20',
-    },
-    OPTIONS: {
-      text: 'text-teal-400',
-      bg: 'bg-teal-500/15',
-      border: 'border-teal-500/20',
-    },
-    TRACE: {
-      text: 'text-pink-400',
-      bg: 'bg-pink-500/15',
-      border: 'border-pink-500/20',
-    },
-    CONNECT: {
-      text: 'text-violet-400',
-      bg: 'bg-violet-500/15',
-      border: 'border-violet-500/20',
-    },
-  };
-
-export const DEFAULT_METHOD = 'GET';
+export const DEFAULT_METHOD: HttpMethod = 'GET';

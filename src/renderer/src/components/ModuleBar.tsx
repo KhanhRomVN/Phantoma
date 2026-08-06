@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { cn } from '../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { NavModuleConfig, PhantomModule, SubMenuItem } from '../modules/Tool/types/types';
 import {
   Settings as SettingsIcon,

@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import { useCodeStore } from '../../hooks/useCodeStore';
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface ProjectTabBarProps {
   onOpenManager: () => void;
@@ -22,7 +22,7 @@ export function ProjectTabBar({ onOpenManager }: ProjectTabBarProps) {
               'flex items-center gap-2 px-3 h-full text-xs font-medium whitespace-nowrap border-b-2 transition-colors',
               isActive
                 ? 'text-text-primary border-primary'
-                : 'text-text-secondary/60 border-transparent hover:text-text-secondary hover:border-divider'
+                : 'text-text-secondary/60 border-transparent hover:text-text-secondary hover:border-divider',
             )}
           >
             <span

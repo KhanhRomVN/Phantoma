@@ -1,21 +1,20 @@
-// Tool configuration for Emulate main tabs
+/**
+ * Cấu hình công cụ (tool) cho tab bar — nguồn dữ liệu duy nhất.
+ *
+ * Mỗi tool có:
+ * - icon:        Lucide icon component
+ * - label:       tên hiển thị (vd: "Home")
+ * - color:       tên màu Tailwind
+ * - accentIndex: thứ tự màu accent trong theme
+ * - description: mô tả ngắn
+ *
+ * Type ToolType được suy ra từ keyof typeof TOOLS.
+ * Duyệt danh sách tool qua Object.keys(TOOLS) hoặc Object.values(TOOLS).
+ */
 import { LayoutPanelLeft, Package, Code, ScrollText, FolderOpen, Smartphone } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 
-export type ToolType = 'home' | 'intruder' | 'repeater' | 'resource' | 'source' | 'log' | 'device';
-
-export interface ToolConfig {
-  id: ToolType;
-  icon: LucideIcon;
-  label: string;
-  color: string;
-  accentIndex: number;
-  description: string;
-}
-
-export const TOOLS: Record<ToolType, ToolConfig> = {
+export const TOOLS = {
   home: {
-    id: 'home',
     icon: LayoutPanelLeft,
     label: 'Home',
     color: 'blue',
@@ -23,7 +22,6 @@ export const TOOLS: Record<ToolType, ToolConfig> = {
     description: 'Request inspector and interceptor',
   },
   intruder: {
-    id: 'intruder',
     icon: LayoutPanelLeft,
     label: 'Intruder',
     color: 'purple',
@@ -31,7 +29,6 @@ export const TOOLS: Record<ToolType, ToolConfig> = {
     description: 'Automated attack and fuzzing',
   },
   repeater: {
-    id: 'repeater',
     icon: Package,
     label: 'Repeater',
     color: 'orange',
@@ -39,7 +36,6 @@ export const TOOLS: Record<ToolType, ToolConfig> = {
     description: 'Manual request replay with payloads',
   },
   resource: {
-    id: 'resource',
     icon: FolderOpen,
     label: 'Resource',
     color: 'teal',
@@ -47,7 +43,6 @@ export const TOOLS: Record<ToolType, ToolConfig> = {
     description: 'View and manage page resources',
   },
   source: {
-    id: 'source',
     icon: Code,
     label: 'Source',
     color: 'yellow',
@@ -55,7 +50,6 @@ export const TOOLS: Record<ToolType, ToolConfig> = {
     description: 'Source code viewer',
   },
   log: {
-    id: 'log',
     icon: ScrollText,
     label: 'Log',
     color: 'red',
@@ -63,27 +57,14 @@ export const TOOLS: Record<ToolType, ToolConfig> = {
     description: 'Android logcat viewer',
   },
   device: {
-    id: 'device',
     icon: Smartphone,
     label: 'Device',
     color: 'emerald',
     accentIndex: 6,
     description: 'Android device management',
   },
-};
+} as const;
 
-export const TOOL_LIST: ToolType[] = ['home', 'intruder', 'repeater', 'resource', 'source', 'log', 'device'];
-
-export function getToolConfig(tool: ToolType): ToolConfig {
-  return TOOLS[tool];
-}
-
-export function getToolLabel(tool: ToolType): string {
-  return TOOLS[tool].label;
-}
-
-export function getToolColor(tool: ToolType): string {
-  return TOOLS[tool].color;
-}
+export type ToolType = keyof typeof TOOLS;
 
 export const DEFAULT_TOOL: ToolType = 'home';

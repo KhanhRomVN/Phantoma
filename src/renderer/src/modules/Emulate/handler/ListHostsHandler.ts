@@ -7,6 +7,8 @@
  *
  * Kết quả trả về dạng text table với stt, host, count.
  */
+
+// TYPE
 import { NetworkRequest } from '../types/inspector';
 
 export interface ListHostsResult {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 // CONSTANTS
 import {
@@ -211,7 +211,9 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
         message.isError && 'is-error',
         hasNextAssistantMessage === false && message.role === 'assistant' && 'is-last-assistant',
         'flex flex-col mb-1 pl-0 relative transition-all duration-300 bg-transparent rounded-md border-none p-0',
-        message.isCancelled ? 'opacity-40 grayscale blur-[0.5px] pointer-events-none' : 'opacity-100 pointer-events-auto'
+        message.isCancelled
+          ? 'opacity-40 grayscale blur-[0.5px] pointer-events-none'
+          : 'opacity-100 pointer-events-auto',
       )}
     >
       {(() => {

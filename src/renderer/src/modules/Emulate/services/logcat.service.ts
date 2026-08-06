@@ -8,7 +8,7 @@ export interface LogcatOptions {
 }
 
 export class LogcatService {
-  private listeners: Map<string, (data: string) => void> = new Map();
+  private listeners: Map<string, (event: unknown, data: string) => void> = new Map();
   private isRunning: boolean = false;
 
   async start(serial: string): Promise<void> {
@@ -32,7 +32,7 @@ export class LogcatService {
   }
 
   subscribe(serial: string, callback: (entry: LogEntry) => void): () => void {
-    const handler = (event: unknown, data: string) => {
+    const handler = (_event: unknown, data: string) => {
       const entry = this.parseLogLine(data);
       if (entry) callback(entry);
     };

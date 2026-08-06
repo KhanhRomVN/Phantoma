@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { DrawerProps } from './type';
 
 export const Drawer: React.FC<DrawerProps> = ({

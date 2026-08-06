@@ -1,4 +1,4 @@
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '../../../../utils/color';
 
 interface DataPointRowProps {
@@ -17,7 +17,11 @@ function ConfidenceBadge({ value }: { value: number }) {
   const pct = Math.round(value * 100);
   const color = pct >= 70 ? $('--success') : pct >= 40 ? $('--warning') : $('--error');
   const bgColor =
-    pct >= 70 ? ($('--success') || '#10b981') + '15' : pct >= 40 ? ($('--warning') || '#f59e0b') + '15' : ($('--error') || '#ef4444') + '15';
+    pct >= 70
+      ? ($('--success') || '#10b981') + '15'
+      : pct >= 40
+        ? ($('--warning') || '#f59e0b') + '15'
+        : ($('--error') || '#ef4444') + '15';
   return (
     <span
       className="text-[9px] font-mono px-1 py-0.5 rounded border ml-1 shrink-0"
@@ -50,7 +54,10 @@ export function DataPointRow({ dataPoint }: DataPointRowProps) {
             className="text-[9px] font-mono px-1 rounded"
             style={{
               color: riskScore >= 75 ? $('--error') : $('--warning'),
-              backgroundColor: riskScore >= 75 ? ($('--error') || '#ef4444') + '15' : ($('--warning') || '#f59e0b') + '15',
+              backgroundColor:
+                riskScore >= 75
+                  ? ($('--error') || '#ef4444') + '15'
+                  : ($('--warning') || '#f59e0b') + '15',
             }}
           >
             R{riskScore}

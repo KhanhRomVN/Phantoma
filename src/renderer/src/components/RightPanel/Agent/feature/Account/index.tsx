@@ -19,7 +19,7 @@ import { getFaviconUrl } from './utils';
 import { extensionService } from '../../services/ExtensionService';
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 interface AccountPanelProps {

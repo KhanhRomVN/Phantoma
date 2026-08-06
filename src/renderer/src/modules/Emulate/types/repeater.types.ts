@@ -1,4 +1,11 @@
 // Repeater/Payload types
+export interface ParamItem {
+  id: string;
+  key: string;
+  value: string;
+  enabled: boolean;
+}
+
 export interface PayloadItem {
   id: string;
   name: string;
@@ -12,20 +19,30 @@ export interface HistoryEntry {
   method: string;
   url: string;
   status: number;
+  statuses?: Record<number, number>;
   timestamp: number;
+  endTime?: number;
   duration: number;
   payload: string;
+  payloadCount?: number;
   requestHeaders?: Record<string, string>;
   requestBody?: string;
   responseHeaders?: Record<string, string>;
   responseBody?: string;
 }
 
-export interface ParamItem {
-  id: string;
-  key: string;
+export interface RunResult {
+  payloadName: string;
   value: string;
-  enabled: boolean;
+  status: number;
+  duration: number;
+  method: string;
+  url: string;
+  params: Record<string, string>;
+  requestHeaders: Record<string, string>;
+  requestBody: string;
+  responseHeaders: Record<string, string>;
+  responseBody: string;
 }
 
 export type PayloadType = 'list' | 'numbers' | 'brute';
@@ -76,3 +93,6 @@ export interface RepeaterState {
 }
 
 export type RepeaterTab = 'params' | 'headers' | 'body' | 'payload' | 'history' | 'result';
+
+/** @deprecated Use RepeaterTab instead */
+export type TabType = RepeaterTab;

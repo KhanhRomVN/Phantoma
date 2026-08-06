@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface DropdownSubContentProps {
   children: React.ReactNode;
@@ -8,10 +8,7 @@ interface DropdownSubContentProps {
 
 export function DropdownSubContent({ children, className }: DropdownSubContentProps) {
   return (
-    <div
-      className={cn('flex flex-col', className)}
-      onClick={(e) => e.stopPropagation()}
-    >
+    <div className={cn('flex flex-col', className)} onClick={(e) => e.stopPropagation()}>
       {children}
     </div>
   );

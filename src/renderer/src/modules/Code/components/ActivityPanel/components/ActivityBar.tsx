@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { $ } from '@renderer/utils/color';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
 interface TabItem {

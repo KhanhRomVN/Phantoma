@@ -30,10 +30,10 @@ import { GetFilterHandler } from '../modules/Emulate/handler/GetFilterHandler';
 import { ApplyFilterHandler } from '../modules/Emulate/handler/ApplyFilterHandler';
 import { NetworkRequest } from '../modules/Emulate/types/inspector';
 import { InspectorFilter } from '../modules/Emulate/types/filter.types';
-import { filterRequestsByConfig } from '../modules/Emulate/hooks/useRequestFilter';
 import type { ApplyFilterParams } from '../components/RightPanel/Agent/feature/Chat/services/parsers/emulate/ApplyFilterParser';
-import type { CdpScriptUnpackedData } from '../modules/Emulate/hooks/useNetworkEvents';
 import type { TrafficSummary } from '../components/RightPanel/Agent/feature/Chat/prompts/emulate';
+import { filterRequestsByConfig } from '@renderer/modules/Emulate/hooks/network/useRequestFilter';
+import { CdpScriptUnpackedData } from '@renderer/stores/networkStore';
 
 export class EmulateController {
   private static instance: EmulateController;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import RevertConfirmModal from '@renderer/components/common/RevertConfirmModal';
 import FilesPreviews from '../../../../components/common/MessageInput/FilesPreviews';
 import { Message } from '../../types/message';
@@ -46,24 +46,18 @@ interface UserMessageBoxProps {
   onRevertConversation?: (messageId: string, timestamp: number) => void;
 }
 
-const UserMessageBox: React.FC<UserMessageBoxProps> = ({
-  message,
-  onRevertConversation,
-}) => {
+const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConversation }) => {
   const [showRevertModal, setShowRevertModal] = React.useState(false);
   const [isCopied, setIsCopied] = React.useState(false);
 
-  const userMsgRegex =
-    /## User Message\n<zen-user-content>\n([\s\S]*?)\n<\/zen-user-content>/;
+  const userMsgRegex = /## User Message\n<zen-user-content>\n([\s\S]*?)\n<\/zen-user-content>/;
   const match = message.content.match(userMsgRegex);
 
   if (!match && !message.content.includes('## User Message')) {
     return null;
   }
 
-  let displayContent = match
-    ? match[1]
-    : message.content.replace(/^[\s\S]*?## User Message\n/, '');
+  let displayContent = match ? match[1] : message.content.replace(/^[\s\S]*?## User Message\n/, '');
 
   // Fallback cleanup if it didn't match the full block regex but has the header
   if (!match) {
@@ -99,7 +93,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
         'flex flex-col gap-0 mb-4 relative z-[1] transition-all duration-300',
         message.isCancelled
           ? 'opacity-40 grayscale blur-[0.5px] pointer-events-none'
-          : 'opacity-100 pointer-events-auto'
+          : 'opacity-100 pointer-events-auto',
       )}
     >
       {/* Files Preview - Show at top if there are files */}
@@ -137,12 +131,10 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
                 const questionNumber = qId.replace('q', '');
                 return (
                   <div key={qId} className="text-xs leading-relaxed text-text-primary">
-                    <span className="font-semibold mr-1.5 text-primary">
-                      {questionNumber}.
-                    </span>
+                    <span className="font-semibold mr-1.5 text-primary">{questionNumber}.</span>
                     <span
                       className={cn(
-                        answer === '(no answer)' ? 'opacity-50 italic' : 'opacity-100 not-italic'
+                        answer === '(no answer)' ? 'opacity-50 italic' : 'opacity-100 not-italic',
                       )}
                     >
                       {answer}
@@ -167,7 +159,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
           title="Copy content"
           className={cn(
             'bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200',
-            isCopied ? 'text-success' : 'text-text-secondary'
+            isCopied ? 'text-success' : 'text-text-secondary',
           )}
         >
           {isCopied ? (

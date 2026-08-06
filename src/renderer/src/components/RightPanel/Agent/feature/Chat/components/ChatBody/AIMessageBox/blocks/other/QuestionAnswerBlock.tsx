@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Question, QuestionAnswer, QuestionType } from '../../../../../types/message';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 import { TagHeader } from '../../TagHeader';
 

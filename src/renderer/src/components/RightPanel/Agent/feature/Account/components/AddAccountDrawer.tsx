@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
-import ReactDOM from "react-dom";
-import { Loader2, X, AlertCircle, ShieldCheck } from "lucide-react";
-import { useSettings } from "../../../context/SettingsContext";
-import { getFaviconUrl } from "../utils";
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { Loader2, X, AlertCircle, ShieldCheck } from 'lucide-react';
+import { useSettings } from '../../../context/SettingsContext';
+import { getFaviconUrl } from '../utils';
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 interface Provider {
@@ -29,7 +29,7 @@ interface AddAccountDrawerProps {
 // List row card
 const ProviderRow: React.FC<{
   provider: Provider;
-  onSelect: (method: "basic" | "cdp") => void;
+  onSelect: (method: 'basic' | 'cdp') => void;
   onContextMenu: (e: React.MouseEvent, provider: Provider) => void;
   loading: boolean;
 }> = ({ provider, onSelect, onContextMenu, loading }) => {
@@ -38,26 +38,19 @@ const ProviderRow: React.FC<{
   const iconUrl = getFaviconUrl(provider.website);
   const disabled = provider.is_enabled === false || loading;
 
-  const connectionType = provider.connection_type || "https";
-  const platform = provider.platform || "web";
+  const connectionType = provider.connection_type || 'https';
+  const platform = provider.platform || 'web';
   const authMethod =
     provider.auth_method ||
-    (provider.auth_methods && provider.auth_methods.length > 0
-      ? provider.auth_methods[0]
-      : null);
+    (provider.auth_methods && provider.auth_methods.length > 0 ? provider.auth_methods[0] : null);
 
   const connectionBadgeBg =
-    connectionType === "browser"
-      ? "bg-[rgba(251,146,60,0.12)]"
-      : "bg-[rgba(34,197,94,0.1)]";
-  const connectionBadgeText =
-    connectionType === "browser"
-      ? "text-warn"
-      : "text-success";
+    connectionType === 'browser' ? 'bg-[rgba(251,146,60,0.12)]' : 'bg-[rgba(34,197,94,0.1)]';
+  const connectionBadgeText = connectionType === 'browser' ? 'text-warn' : 'text-success';
 
   const handleClick = () => {
     if (disabled) return;
-    onSelect("basic");
+    onSelect('basic');
   };
 
   const handleRightClick = (e: React.MouseEvent) => {
@@ -75,12 +68,8 @@ const ProviderRow: React.FC<{
       onMouseLeave={() => setHovered(false)}
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-all duration-[0.13s] ease-in-out border border-border',
-        hovered && !disabled
-          ? 'bg-card-hover cursor-pointer opacity-100'
-          : '',
-        disabled
-          ? 'cursor-not-allowed opacity-45'
-          : 'cursor-pointer opacity-100'
+        hovered && !disabled ? 'bg-card-hover cursor-pointer opacity-100' : '',
+        disabled ? 'cursor-not-allowed opacity-45' : 'cursor-pointer opacity-100',
       )}
       style={!hovered || disabled ? { backgroundColor: $('--secondary-bg') } : undefined}
     >
@@ -104,7 +93,13 @@ const ProviderRow: React.FC<{
           <span className="text-[13px] font-semibold overflow-hidden text-ellipsis whitespace-nowrap text-text-primary">
             {provider.provider_name}
           </span>
-          <span className={cn('text-[9px] font-semibold px-[7px] py-0.5 rounded-[5px] shrink-0 uppercase tracking-[0.04em]', connectionBadgeBg, connectionBadgeText)}>
+          <span
+            className={cn(
+              'text-[9px] font-semibold px-[7px] py-0.5 rounded-[5px] shrink-0 uppercase tracking-[0.04em]',
+              connectionBadgeBg,
+              connectionBadgeText,
+            )}
+          >
             {connectionType}
           </span>
         </div>
@@ -117,13 +112,26 @@ const ProviderRow: React.FC<{
             </>
           )}
           {provider.is_enabled === false && (
-            <span className="text-[9px] px-[5px] py-px rounded ml-0.5 bg-[rgba(128,128,128,0.15)] text-text-secondary">Soon</span>
+            <span className="text-[9px] px-[5px] py-px rounded ml-0.5 bg-[rgba(128,128,128,0.15)] text-text-secondary">
+              Soon
+            </span>
           )}
         </div>
       </div>
 
       {!disabled && (
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 shrink-0 text-text-secondary">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="opacity-40 shrink-0 text-text-secondary"
+        >
           <path d="m9 18 6-6-6-6" />
         </svg>
       )}
@@ -136,23 +144,27 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProviders, setLoadingProviders] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingAccount, setPendingAccount] = useState<any>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const [showEmailDrawer, setShowEmailDrawer] = useState(false);
-  const [emailInput, setEmailInput] = useState("");
+  const [emailInput, setEmailInput] = useState('');
   const [pendingBrowserProvider, setPendingBrowserProvider] = useState<Provider | null>(null);
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [tempSessionId, setTempSessionId] = useState<string | null>(null);
 
-  const [contextMenu, setContextMenu] = useState<{ provider: Provider; x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    provider: Provider;
+    x: number;
+    y: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!open) {
-      setError("");
+      setError('');
       setShowConfirm(false);
       setPendingAccount(null);
       return;
@@ -173,7 +185,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         setProviders(sorted);
       }
     } catch {
-      setError("Failed to load providers");
+      setError('Failed to load providers');
     } finally {
       setLoadingProviders(false);
     }
@@ -182,19 +194,19 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
   useEffect(() => {
     if (!contextMenu) return;
     const closeMenu = () => setContextMenu(null);
-    document.addEventListener("click", closeMenu);
-    return () => document.removeEventListener("click", closeMenu);
+    document.addEventListener('click', closeMenu);
+    return () => document.removeEventListener('click', closeMenu);
   }, [contextMenu]);
 
-  const handleLogin = async (provider: Provider, loginMethod: "basic" | "cdp" = "basic") => {
+  const handleLogin = async (provider: Provider, loginMethod: 'basic' | 'cdp' = 'basic') => {
     if (!provider || provider.is_enabled === false) return;
     setLoading(true);
-    setError("");
+    setError('');
     setContextMenu(null);
     try {
       const response = await fetch(`${apiUrl}/v1/accounts/login/${provider.provider_id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ method: loginMethod }),
       });
       const data = await response.json();
@@ -203,14 +215,14 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
           setPendingBrowserProvider(provider);
           setTempSessionId(data.account.tempSessionId);
           setShowEmailDrawer(true);
-        } else if (provider.connection_type === "browser" && data.account.credential) {
+        } else if (provider.connection_type === 'browser' && data.account.credential) {
           const saveResponse = await fetch(`${apiUrl}/v1/accounts`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               id: data.account.id || crypto.randomUUID(),
               provider_id: data.account.provider_id,
-              email: data.account.email || "",
+              email: data.account.email || '',
               credential: data.account.credential,
             }),
           });
@@ -219,21 +231,21 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             onSuccess();
             onOpenChange(false);
           } else {
-            setError(saveData.message || "Failed to save account");
+            setError(saveData.message || 'Failed to save account');
           }
         } else {
           setPendingAccount(data.account);
           setShowConfirm(true);
         }
       } else {
-        setError(data.message || "Login failed");
+        setError(data.message || 'Login failed');
       }
     } catch (err: any) {
-      if (provider.connection_type === "browser") {
+      if (provider.connection_type === 'browser') {
         setPendingBrowserProvider(provider);
         setShowEmailDrawer(true);
       } else {
-        setError(err.message || "An error occurred");
+        setError(err.message || 'An error occurred');
       }
     } finally {
       setLoading(false);
@@ -245,8 +257,8 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
     setConfirmLoading(true);
     try {
       const response = await fetch(`${apiUrl}/v1/accounts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: pendingAccount.id || crypto.randomUUID(),
           provider_id: pendingAccount.provider_id,
@@ -259,10 +271,10 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         onSuccess();
         onOpenChange(false);
       } else {
-        setError(data.message || "Failed to save account");
+        setError(data.message || 'Failed to save account');
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred");
+      setError(err.message || 'An error occurred');
     } finally {
       setConfirmLoading(false);
     }
@@ -275,25 +287,28 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
       let response;
       if (tempSessionId) {
         response = await fetch(`${apiUrl}/v1/browser-sessions/complete/${tempSessionId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: emailInput.trim() }),
         });
       } else {
-        const loginResponse = await fetch(`${apiUrl}/v1/accounts/login/${pendingBrowserProvider.provider_id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ method: "basic" }),
-        });
+        const loginResponse = await fetch(
+          `${apiUrl}/v1/accounts/login/${pendingBrowserProvider.provider_id}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ method: 'basic' }),
+          },
+        );
         const loginData = await loginResponse.json();
         response = await fetch(`${apiUrl}/v1/accounts`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: crypto.randomUUID(),
             provider_id: pendingBrowserProvider.provider_id,
             email: emailInput.trim(),
-            credential: loginData.success && loginData.account ? loginData.account.credential : "",
+            credential: loginData.success && loginData.account ? loginData.account.credential : '',
           }),
         });
       }
@@ -302,15 +317,15 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         onSuccess();
         onOpenChange(false);
       } else {
-        setError(data.message || "Failed to save account");
+        setError(data.message || 'Failed to save account');
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred");
+      setError(err.message || 'An error occurred');
     } finally {
       setEmailSubmitting(false);
       setShowEmailDrawer(false);
       setPendingBrowserProvider(null);
-      setEmailInput("");
+      setEmailInput('');
       setTempSessionId(null);
     }
   };
@@ -325,12 +340,14 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
           onClose={() => {
             setShowEmailDrawer(false);
             setPendingBrowserProvider(null);
-            setEmailInput("");
+            setEmailInput('');
           }}
         />
         <DrawerBody>
           <div>
-            <label className="text-[11px] font-medium block mb-[5px] text-text-secondary">Email Address</label>
+            <label className="text-[11px] font-medium block mb-[5px] text-text-secondary">
+              Email Address
+            </label>
             <input
               type="email"
               value={emailInput}
@@ -348,12 +365,29 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
           )}
         </DrawerBody>
         <DrawerFooter>
-          <Button variant="outline" size="sm" fullWidth onClick={() => { setShowEmailDrawer(false); setPendingBrowserProvider(null); setEmailInput(""); }}>
+          <Button
+            variant="outline"
+            size="sm"
+            fullWidth
+            onClick={() => {
+              setShowEmailDrawer(false);
+              setPendingBrowserProvider(null);
+              setEmailInput('');
+            }}
+          >
             Cancel
           </Button>
-          <Button variant="solid" size="sm" className="flex-[2]" disabled={emailSubmitting || !emailInput.trim()} onClick={handleEmailSubmit}>
-            {emailSubmitting && <Loader2 size={13} style={{ animation: "aaSpin 1s linear infinite" }} />}
-            {emailSubmitting ? "Saving…" : "Save Account"}
+          <Button
+            variant="solid"
+            size="sm"
+            className="flex-[2]"
+            disabled={emailSubmitting || !emailInput.trim()}
+            onClick={handleEmailSubmit}
+          >
+            {emailSubmitting && (
+              <Loader2 size={13} style={{ animation: 'aaSpin 1s linear infinite' }} />
+            )}
+            {emailSubmitting ? 'Saving…' : 'Save Account'}
           </Button>
         </DrawerFooter>
       </Drawer>
@@ -367,24 +401,35 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         <DrawerHeader
           title="Confirm Account"
           description="Review captured details"
-          onClose={() => { setShowConfirm(false); setPendingAccount(null); }}
+          onClose={() => {
+            setShowConfirm(false);
+            setPendingAccount(null);
+          }}
         />
         <DrawerBody>
           <div className="flex flex-col gap-3">
             <div>
-              <label className="text-[11px] font-medium block mb-[5px] text-text-secondary">Email / Identifier</label>
+              <label className="text-[11px] font-medium block mb-[5px] text-text-secondary">
+                Email / Identifier
+              </label>
               <input
                 type="email"
-                value={pendingAccount.email || ""}
+                value={pendingAccount.email || ''}
                 onChange={(e) => setPendingAccount({ ...pendingAccount, email: e.target.value })}
                 className="w-full px-[11px] py-[9px] rounded-[9px] text-[13px] outline-none box-border bg-input-background border border-border text-text-primary"
               />
             </div>
             <div>
-              <label className="text-[11px] font-medium block mb-[5px] text-text-secondary">Credential / Token</label>
+              <label className="text-[11px] font-medium block mb-[5px] text-text-secondary">
+                Credential / Token
+              </label>
               <input
                 type="text"
-                value={pendingAccount.credential ? `${pendingAccount.credential.substring(0, 10)}...${pendingAccount.credential.slice(-5)}` : "N/A"}
+                value={
+                  pendingAccount.credential
+                    ? `${pendingAccount.credential.substring(0, 10)}...${pendingAccount.credential.slice(-5)}`
+                    : 'N/A'
+                }
                 readOnly
                 className="w-full px-[11px] py-[9px] rounded-[9px] text-xs font-mono outline-none box-border bg-input-background border border-border text-text-secondary"
               />
@@ -398,12 +443,28 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
           </div>
         </DrawerBody>
         <DrawerFooter>
-          <Button variant="outline" size="sm" fullWidth onClick={() => { setShowConfirm(false); setPendingAccount(null); }}>
+          <Button
+            variant="outline"
+            size="sm"
+            fullWidth
+            onClick={() => {
+              setShowConfirm(false);
+              setPendingAccount(null);
+            }}
+          >
             Back
           </Button>
-          <Button variant="solid" size="sm" className="flex-[2]" disabled={confirmLoading || !pendingAccount.email} onClick={handleConfirmAccount}>
-            {confirmLoading && <Loader2 size={13} style={{ animation: "aaSpin 1s linear infinite" }} />}
-            {confirmLoading ? "Adding…" : "Confirm & Add"}
+          <Button
+            variant="solid"
+            size="sm"
+            className="flex-[2]"
+            disabled={confirmLoading || !pendingAccount.email}
+            onClick={handleConfirmAccount}
+          >
+            {confirmLoading && (
+              <Loader2 size={13} style={{ animation: 'aaSpin 1s linear infinite' }} />
+            )}
+            {confirmLoading ? 'Adding…' : 'Confirm & Add'}
           </Button>
         </DrawerFooter>
       </Drawer>
@@ -421,7 +482,11 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
       <DrawerBody>
         {loadingProviders ? (
           <div className="h-[120px] flex flex-col items-center justify-center gap-2.5 text-text-secondary">
-            <Loader2 size={24} className="text-text-primary" style={{ animation: "aaSpin 1s linear infinite" }} />
+            <Loader2
+              size={24}
+              className="text-text-primary"
+              style={{ animation: 'aaSpin 1s linear infinite' }}
+            />
             <span className="text-xs">Loading providers…</span>
           </div>
         ) : (
@@ -431,37 +496,51 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 key={p.provider_id}
                 provider={p}
                 onSelect={(method) => handleLogin(p, method)}
-                onContextMenu={(e, provider) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ provider, x: e.clientX, y: e.clientY }); }}
+                onContextMenu={(e, provider) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setContextMenu({ provider, x: e.clientX, y: e.clientY });
+                }}
                 loading={loading}
               />
             ))}
           </div>
         )}
 
-        {contextMenu && ReactDOM.createPortal(
-          <div className="fixed rounded-[10px] overflow-hidden z-[99999] min-w-[200px] bg-card-background border border-border shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button onClick={() => handleLogin(contextMenu.provider, "basic")}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary border-b border-border"
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+        {contextMenu &&
+          ReactDOM.createPortal(
+            <div
+              className="fixed rounded-[10px] overflow-hidden z-[99999] min-w-[200px] bg-card-background border border-border shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
+              style={{ top: contextMenu.y, left: contextMenu.x }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <span className="text-sm">🌐</span>
-              <div><div className="font-semibold">MITM Login</div><div className="text-[10px] opacity-60">Dễ bị ban, nhanh hơn</div></div>
-            </button>
-            <button onClick={() => handleLogin(contextMenu.provider, "cdp")}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary"
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-            >
-              <span className="text-sm">🛡️</span>
-              <div><div className="font-semibold">CDP Login</div><div className="text-[10px] opacity-60">Khó bị ban, chậm hơn</div></div>
-            </button>
-          </div>,
-          document.body,
-        )}
+              <button
+                onClick={() => handleLogin(contextMenu.provider, 'basic')}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary border-b border-border"
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <span className="text-sm">🌐</span>
+                <div>
+                  <div className="font-semibold">MITM Login</div>
+                  <div className="text-[10px] opacity-60">Dễ bị ban, nhanh hơn</div>
+                </div>
+              </button>
+              <button
+                onClick={() => handleLogin(contextMenu.provider, 'cdp')}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-xs cursor-pointer text-left text-text-primary"
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <span className="text-sm">🛡️</span>
+                <div>
+                  <div className="font-semibold">CDP Login</div>
+                  <div className="text-[10px] opacity-60">Khó bị ban, chậm hơn</div>
+                </div>
+              </button>
+            </div>,
+            document.body,
+          )}
 
         {error && (
           <div className="mt-2.5 rounded-lg px-2.5 py-2 text-xs flex items-center gap-1.5 bg-error/10 text-error">
@@ -473,7 +552,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
 
       {loading && (
         <div className="flex items-center justify-center gap-2 px-4 pt-2.5 pb-4 text-xs shrink-0 text-text-secondary">
-          <Loader2 size={14} style={{ animation: "aaSpin 1s linear infinite" }} />
+          <Loader2 size={14} style={{ animation: 'aaSpin 1s linear infinite' }} />
           Logging in…
         </div>
       )}

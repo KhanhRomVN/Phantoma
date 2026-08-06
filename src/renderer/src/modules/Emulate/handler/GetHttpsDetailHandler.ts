@@ -5,6 +5,8 @@
  *   const handler = new GetHttpsDetailHandler();
  *   const result = handler.handle(requests, 3);
  */
+
+// TYPE
 import { NetworkRequest } from '../types/inspector';
 
 export interface GetHttpsDetailResult {
@@ -13,10 +15,7 @@ export interface GetHttpsDetailResult {
 }
 
 export class GetHttpsDetailHandler {
-  public handle(
-    requests: NetworkRequest[],
-    index: number,
-  ): GetHttpsDetailResult {
+  public handle(requests: NetworkRequest[], index: number): GetHttpsDetailResult {
     if (index < 0 || index >= requests.length) {
       return {
         text: `[get_https_detail] Error: index ${index} out of range (0-${requests.length - 1})`,
@@ -43,9 +42,10 @@ export class GetHttpsDetailHandler {
     let reqBody = '(empty)';
     if (req.requestBody) {
       try {
-        reqBody = typeof req.requestBody === 'string'
-          ? req.requestBody
-          : JSON.stringify(req.requestBody, null, 2);
+        reqBody =
+          typeof req.requestBody === 'string'
+            ? req.requestBody
+            : JSON.stringify(req.requestBody, null, 2);
       } catch {
         reqBody = String(req.requestBody);
       }
@@ -65,9 +65,10 @@ export class GetHttpsDetailHandler {
     let resBody = '(empty)';
     if (req.responseBody) {
       try {
-        resBody = typeof req.responseBody === 'string'
-          ? req.responseBody
-          : JSON.stringify(req.responseBody, null, 2);
+        resBody =
+          typeof req.responseBody === 'string'
+            ? req.responseBody
+            : JSON.stringify(req.responseBody, null, 2);
       } catch {
         resBody = String(req.responseBody);
       }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface ChatHeaderProps {
   displayedModel: any;
@@ -89,7 +89,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               'cursor-pointer p-[3px_4px] flex items-center justify-center rounded transition-all duration-150',
               isSearchOpen
                 ? 'bg-primary/15 border border-primary/40 text-primary opacity-100'
-                : 'bg-transparent border border-transparent text-text-secondary opacity-65'
+                : 'bg-transparent border border-transparent text-text-secondary opacity-65',
             )}
             onMouseEnter={(e) => {
               if (!isSearchOpen) e.currentTarget.style.opacity = '1';

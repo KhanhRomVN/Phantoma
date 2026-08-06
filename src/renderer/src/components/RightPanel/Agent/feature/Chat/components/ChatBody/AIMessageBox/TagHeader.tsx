@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState, useEffect } from "react";
-import { cn } from '@renderer/shared/lib/utils';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 interface TagHeaderProps {
@@ -51,13 +51,13 @@ interface TagHeaderProps {
 
 // Smart path truncation: dynamically truncate middle folders based on available width
 const truncatePath = (fullPath: string, maxLength: number = 35): string => {
-  if (!fullPath) return "";
+  if (!fullPath) return '';
 
   if (fullPath.length <= maxLength) {
     return fullPath;
   }
 
-  const parts = fullPath.split("/");
+  const parts = fullPath.split('/');
 
   if (parts.length <= 2) {
     return fullPath;
@@ -78,7 +78,7 @@ const truncatePath = (fullPath: string, maxLength: number = 35): string => {
 
   while (rightIndex > 0) {
     const folderToTest = parts[rightIndex];
-    const testResult = `${rootFolder}/.../${[...foldersToAdd, folderToTest].reverse().join("/")}/${fileName}`;
+    const testResult = `${rootFolder}/.../${[...foldersToAdd, folderToTest].reverse().join('/')}/${fileName}`;
 
     if (testResult.length <= maxLength) {
       foldersToAdd.push(folderToTest);
@@ -123,9 +123,9 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
   const [pathSpanWidth, setPathSpanWidth] = useState<number>(0);
 
   useEffect(() => {
-    const styleId = "circle-ring-spin-animation";
+    const styleId = 'circle-ring-spin-animation';
     if (!document.getElementById(styleId)) {
-      const style = document.createElement("style");
+      const style = document.createElement('style');
       style.id = styleId;
       style.textContent = `
         @keyframes circle-ring-spin {
@@ -171,9 +171,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
     }
 
     const availableWidth =
-      pathContainerWidth > 0
-        ? pathContainerWidth - 24
-        : Math.max(containerWidth - 80, 100);
+      pathContainerWidth > 0 ? pathContainerWidth - 24 : Math.max(containerWidth - 80, 100);
 
     const chars = Math.floor(availableWidth / 6.5);
     const result = Math.max(chars, 30);
@@ -182,7 +180,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
   }, [containerWidth, pathContainerWidth]);
 
   const displayPath = useMemo(() => {
-    if (!path) return "";
+    if (!path) return '';
     const truncated = truncatePath(path, maxLength);
     return truncated;
   }, [path, maxLength]);
@@ -216,8 +214,8 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
       return { errors: 0, warnings: 0 };
     }
 
-    const errors = diagnostics.filter((d) => d.severity === "Error").length;
-    const warnings = diagnostics.filter((d) => d.severity === "Warning").length;
+    const errors = diagnostics.filter((d) => d.severity === 'Error').length;
+    const warnings = diagnostics.filter((d) => d.severity === 'Warning').length;
 
     const countsChanged =
       prevDiagnosticCountsRef.current.total !== diagnostics.length ||
@@ -248,84 +246,81 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
   const getStatusTooltip = useMemo(() => {
     if (statusTooltip) return statusTooltip;
 
-    if (isError) return "Error - Action failed";
-    if (isPartial) return "In progress...";
-    if (isWaitingApproval) return "Waiting for approval";
+    if (isError) return 'Error - Action failed';
+    if (isPartial) return 'In progress...';
+    if (isWaitingApproval) return 'Waiting for approval';
 
     const isCompleted =
-      statusColor?.includes("gitDecoration-addedResourceForeground") ||
-      statusColor?.includes("#3fb950");
+      statusColor?.includes('gitDecoration-addedResourceForeground') ||
+      statusColor?.includes('#3fb950');
 
     if (isCompleted && toolType) {
       switch (toolType) {
-        case "write_to_file":
+        case 'write_to_file':
           if (tooltipMeta?.lineCount) {
             return `✓ File created (+${tooltipMeta.lineCount} lines)`;
           }
-          return "✓ File created successfully";
+          return '✓ File created successfully';
 
-        case "replace_in_file":
+        case 'replace_in_file':
           if (diffStats) {
             return `✓ File updated (+${diffStats.added} -${diffStats.removed} lines)`;
           }
-          return "✓ File updated successfully";
+          return '✓ File updated successfully';
 
-        case "read_file":
+        case 'read_file':
           if (tooltipMeta?.lineRange) {
             return `✓ Read lines ${tooltipMeta.lineRange}`;
           }
-          return "✓ File read successfully";
+          return '✓ File read successfully';
 
-        case "list_files":
+        case 'list_files':
           if (tooltipMeta?.fileCount) {
-            return `✓ Listed ${tooltipMeta.fileCount} ${tooltipMeta.fileCount === 1 ? "item" : "items"}`;
+            return `✓ Listed ${tooltipMeta.fileCount} ${tooltipMeta.fileCount === 1 ? 'item' : 'items'}`;
           }
-          return "✓ Directory listed successfully";
+          return '✓ Directory listed successfully';
 
-        case "grep":
-          if (
-            tooltipMeta?.matchCount !== undefined &&
-            tooltipMeta?.fileCount !== undefined
-          ) {
-            return `✓ Found ${tooltipMeta.matchCount} ${tooltipMeta.matchCount === 1 ? "match" : "matches"} in ${tooltipMeta.fileCount} ${tooltipMeta.fileCount === 1 ? "file" : "files"}`;
+        case 'grep':
+          if (tooltipMeta?.matchCount !== undefined && tooltipMeta?.fileCount !== undefined) {
+            return `✓ Found ${tooltipMeta.matchCount} ${tooltipMeta.matchCount === 1 ? 'match' : 'matches'} in ${tooltipMeta.fileCount} ${tooltipMeta.fileCount === 1 ? 'file' : 'files'}`;
           }
-          return "✓ Search completed";
+          return '✓ Search completed';
 
-        case "delete_file":
-          return "✓ File deleted successfully";
+        case 'delete_file':
+          return '✓ File deleted successfully';
 
-        case "move_file":
-          return "✓ File moved successfully";
+        case 'move_file':
+          return '✓ File moved successfully';
 
-        case "view_replace_history":
+        case 'view_replace_history':
           if (tooltipMeta?.fileCount) {
-            return `✓ Found ${tooltipMeta.fileCount} ${tooltipMeta.fileCount === 1 ? "version" : "versions"}`;
+            return `✓ Found ${tooltipMeta.fileCount} ${tooltipMeta.fileCount === 1 ? 'version' : 'versions'}`;
           }
-          return "✓ History loaded successfully";
+          return '✓ History loaded successfully';
 
-        case "run_command":
-          return "✓ Command executed successfully";
+        case 'run_command':
+          return '✓ Command executed successfully';
 
-        case "git_status":
-          return "✓ Git status retrieved";
+        case 'git_status':
+          return '✓ Git status retrieved';
 
-        case "commit_message":
-          return "✓ Commit created successfully";
+        case 'commit_message':
+          return '✓ Commit created successfully';
 
         default:
-          return "✓ Completed successfully";
+          return '✓ Completed successfully';
       }
     }
 
     if (isCompleted) {
-      return "✓ Completed successfully";
+      return '✓ Completed successfully';
     }
 
-    if (statusColor?.includes("descriptionForeground")) {
-      return isWaitingApproval ? "Waiting for approval" : "Not started yet";
+    if (statusColor?.includes('descriptionForeground')) {
+      return isWaitingApproval ? 'Waiting for approval' : 'Not started yet';
     }
 
-    return "Status";
+    return 'Status';
   }, [
     statusTooltip,
     isError,
@@ -342,7 +337,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
       ref={containerRef}
       className={cn(
         'pt-1 flex items-start justify-between w-full',
-        onClick || onToggleCollapse ? 'cursor-pointer' : 'cursor-default'
+        onClick || onToggleCollapse ? 'cursor-pointer' : 'cursor-default',
       )}
       onClick={onClick || onToggleCollapse}
     >
@@ -355,7 +350,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                 <div
                   className={cn(
                     'relative w-4 h-4 shrink-0 flex items-center justify-center mt-0.5',
-                    onDotClick ? 'cursor-pointer' : 'cursor-default'
+                    onDotClick ? 'cursor-pointer' : 'cursor-default',
                   )}
                   title={getStatusTooltip}
                   onClick={(e) => {
@@ -368,31 +363,28 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                   {/* CircleRing */}
                   <div
                     style={{
-                      position: "absolute",
-                      width: "16px",
-                      height: "16px",
-                      borderRadius: "50%",
+                      position: 'absolute',
+                      width: '16px',
+                      height: '16px',
+                      borderRadius: '50%',
                       ...(!isPartial && {
                         border: `2px solid ${statusColor}`,
                         opacity: 0.4,
                       }),
                       ...(isPartial && {
-                        borderWidth: "2px",
-                        borderStyle: "solid",
+                        borderWidth: '2px',
+                        borderStyle: 'solid',
                         borderRightColor: statusColor,
                         borderBottomColor: statusColor,
                         borderLeftColor: statusColor,
-                        borderTopColor: "transparent",
-                        animation: "circle-ring-spin 1s linear infinite",
+                        borderTopColor: 'transparent',
+                        animation: 'circle-ring-spin 1s linear infinite',
                         opacity: 0.8,
                       }),
                     }}
                   />
                   {/* CircleDot */}
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: statusColor }}
-                  />
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColor }} />
                 </div>
               )}
 
@@ -401,20 +393,14 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {onToggleCollapse && (
                     <span
-                      className={`collapse-icon codicon codicon-chevron-${isCollapsed ? "right" : "down"} text-xs mr-1`}
+                      className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'} text-xs mr-1`}
                     />
                   )}
-                  {icon && (
-                    <span className="flex items-center">
-                      {icon}
-                    </span>
-                  )}
-                  {typeof title === "string" ? (
+                  {icon && <span className="flex items-center">{icon}</span>}
+                  {typeof title === 'string' ? (
                     <span>{title}</span>
                   ) : (
-                    <div className="contents">
-                      {title}
-                    </div>
+                    <div className="contents">{title}</div>
                   )}
                 </div>
 
@@ -437,20 +423,19 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                         }
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.textDecoration = "underline";
+                        e.currentTarget.style.textDecoration = 'underline';
                         e.currentTarget.style.textDecorationColor = $('--primary');
-                        e.currentTarget.style.textUnderlineOffset = "2px";
-                        e.currentTarget.style.cursor = "pointer";
+                        e.currentTarget.style.textUnderlineOffset = '2px';
+                        e.currentTarget.style.cursor = 'pointer';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.textDecoration = "none";
-                        e.currentTarget.style.cursor = "default";
+                        e.currentTarget.style.textDecoration = 'none';
+                        e.currentTarget.style.cursor = 'default';
                       }}
                     >
                       {displayPath}
                     </span>
-                    {(diagnosticCounts.warnings > 0 ||
-                      diagnosticCounts.errors > 0) && (
+                    {(diagnosticCounts.warnings > 0 || diagnosticCounts.errors > 0) && (
                       <span className="flex items-center gap-1 shrink-0 text-[10px] font-semibold text-text-secondary opacity-60">
                         [
                         {diagnosticCounts.warnings > 0 && (
@@ -474,9 +459,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                             {diagnosticCounts.warnings}
                           </span>
                         )}
-                        {diagnosticCounts.warnings > 0 &&
-                          diagnosticCounts.errors > 0 &&
-                          " "}
+                        {diagnosticCounts.warnings > 0 && diagnosticCounts.errors > 0 && ' '}
                         {diagnosticCounts.errors > 0 && (
                           <span className="flex items-center gap-0.5">
                             <svg
@@ -516,18 +499,12 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
           </div>
         </div>
         {(subTitle || diffStats) && (
-          <div
-            className={subTitleClassName || ""}
-          >
+          <div className={subTitleClassName || ''}>
             {diffStats ? (
               <>
                 <span className="flex gap-1.5 items-center">
-                  <span className="text-success">
-                    +{diffStats.added}
-                  </span>
-                  <span className="text-error">
-                    -{diffStats.removed}
-                  </span>
+                  <span className="text-success">+{diffStats.added}</span>
+                  <span className="text-error">-{diffStats.removed}</span>
                   <span>lines</span>
                 </span>
               </>
@@ -537,10 +514,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
           </div>
         )}
       </div>
-      <div
-        className="shrink-0 ml-2"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
         {headerActions}
       </div>
     </div>

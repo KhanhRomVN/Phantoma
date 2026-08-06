@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useSearch } from '../../context/SearchContext';
-import { cn } from '../../../../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface HighlightedTextProps {
   text: string;

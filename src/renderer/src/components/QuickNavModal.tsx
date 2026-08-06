@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, memo } from 'react';
 import { Search, ArrowUp, ArrowDown, CornerDownLeft } from 'lucide-react';
 import { Modal, ModalBody, ModalFooter } from './ui/Modal';
 import { Kbd } from './ui/Kbd';
-import { cn } from '../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface QuickNavItem {
   id: string;

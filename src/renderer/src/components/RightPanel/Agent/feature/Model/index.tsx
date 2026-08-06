@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Search, CheckCircle, AlertCircle } from 'lucide-react';
 import { Provider } from '../../types';
 import { getAgentAPI } from '../../services/api';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { useAgentStore } from '../../components/store';
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
 

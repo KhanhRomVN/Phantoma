@@ -8,7 +8,11 @@
  * Filter hỗ trợ: host, type
  * Kết quả trả về dạng text tree view để LLM dễ đọc.
  */
+
+// TYPE
 import { NetworkRequest } from '../types/inspector';
+
+// UTIL
 import { buildSourceTree, type SourceNode } from '../utils/sourceTree';
 
 export interface ListSourcesFilter {
@@ -22,10 +26,7 @@ export interface ListSourcesResult {
 }
 
 export class ListSourcesHandler {
-  public handle(
-    requests: NetworkRequest[],
-    filter: ListSourcesFilter = {},
-  ): ListSourcesResult {
+  public handle(requests: NetworkRequest[], filter: ListSourcesFilter = {}): ListSourcesResult {
     // Lọc requests có URL (chỉ source files mới có URL)
     let filtered = requests.filter((r) => r.url && r.url.length > 0);
 
@@ -80,10 +81,7 @@ export class ListSourcesHandler {
       renderNode(root, 0, '');
     }
 
-    const text = [
-      `[list_sources] Total source files: ${index}`,
-      ...lines,
-    ].join('\n');
+    const text = [`[list_sources] Total source files: ${index}`, ...lines].join('\n');
 
     return {
       total: index,

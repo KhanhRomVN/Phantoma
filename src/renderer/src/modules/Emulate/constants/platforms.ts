@@ -1,28 +1,26 @@
-// Platform configuration
+/**
+ * Cấu hình nền tảng (platform) — nguồn dữ liệu duy nhất.
+ *
+ * Mỗi platform có:
+ * - id:   mã định danh (vd: "web")
+ * - label: tên hiển thị (vd: "Website")
+ * - icon:  Lucide icon component
+ * - color: tên màu Tailwind, dùng để sinh class text/bg/border trong UI
+ *   Cách dùng: text-{color}-400, bg-{color}-500/15, border-{color}-500/20
+ * - description: mô tả ngắn
+ * - placeholder: gợi ý khi nhập URL/path
+ *
+ * Type AppPlatform được suy ra từ keyof typeof PLATFORMS.
+ * Duyệt danh sách platform qua Object.keys(PLATFORMS).
+ */
 import { Globe, Monitor, Smartphone, Terminal } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 
-export type AppPlatform = 'web' | 'pc' | 'android' | 'cli';
-
-export interface PlatformConfig {
-  id: AppPlatform;
-  label: string;
-  icon: LucideIcon;
-  color: string;
-  colorClass: string;
-  bgClass: string;
-  description: string;
-  placeholder: string;
-}
-
-export const PLATFORMS: Record<AppPlatform, PlatformConfig> = {
+export const PLATFORMS = {
   web: {
     id: 'web',
     label: 'Website',
     icon: Globe,
-    color: '#38bdf8',
-    colorClass: 'text-sky-400',
-    bgClass: 'bg-sky-500/15',
+    color: 'sky',
     description: 'Web application or website',
     placeholder: 'https://example.com',
   },
@@ -30,9 +28,7 @@ export const PLATFORMS: Record<AppPlatform, PlatformConfig> = {
     id: 'pc',
     label: 'PC App',
     icon: Monitor,
-    color: '#a78bfa',
-    colorClass: 'text-violet-400',
-    bgClass: 'bg-violet-500/15',
+    color: 'violet',
     description: 'Desktop application',
     placeholder: '/path/to/app',
   },
@@ -40,9 +36,7 @@ export const PLATFORMS: Record<AppPlatform, PlatformConfig> = {
     id: 'android',
     label: 'Mobile',
     icon: Smartphone,
-    color: '#34d399',
-    colorClass: 'text-emerald-400',
-    bgClass: 'bg-emerald-500/15',
+    color: 'emerald',
     description: 'Android mobile app',
     placeholder: 'com.example.app',
   },
@@ -50,32 +44,10 @@ export const PLATFORMS: Record<AppPlatform, PlatformConfig> = {
     id: 'cli',
     label: 'CLI',
     icon: Terminal,
-    color: '#fbbf24',
-    colorClass: 'text-amber-400',
-    bgClass: 'bg-amber-500/15',
+    color: 'amber',
     description: 'Command-line interface tool',
     placeholder: 'command --arg',
   },
-};
+} as const;
 
-export const PLATFORM_LIST: AppPlatform[] = ['web', 'pc', 'android', 'cli'];
-
-export function getPlatformConfig(platform: AppPlatform): PlatformConfig {
-  return PLATFORMS[platform];
-}
-
-export function getPlatformLabel(platform: AppPlatform): string {
-  return PLATFORMS[platform].label;
-}
-
-export function getPlatformColor(platform: AppPlatform): string {
-  return PLATFORMS[platform].color;
-}
-
-export function getPlatformColorClass(platform: AppPlatform): string {
-  return PLATFORMS[platform].colorClass;
-}
-
-export function getPlatformIcon(platform: AppPlatform): LucideIcon {
-  return PLATFORMS[platform].icon;
-}
+export type AppPlatform = keyof typeof PLATFORMS;

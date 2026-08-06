@@ -1,6 +1,6 @@
 // Resource panel types
 import { WasmItem } from '../../../utils/detectors';
-import { ResourceType } from '../constants/resourceTypes';
+import { ResourceType } from '../constants/resource';
 
 export { ResourceType };
 

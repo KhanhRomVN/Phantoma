@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface ModalHeaderProps {
   title?: string;
@@ -18,7 +18,12 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   className,
 }) => {
   return (
-    <div className={cn('px-5 pt-5 pb-2 border-b border-divider shrink-0 flex items-center gap-3', className)}>
+    <div
+      className={cn(
+        'px-5 pt-5 pb-2 border-b border-divider shrink-0 flex items-center gap-3',
+        className,
+      )}
+    >
       <div className="flex-1 min-w-0">
         {title && <h3 className="text-base font-bold text-text-primary">{title}</h3>}
         {description && (
@@ -29,7 +34,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
         <button
           onClick={onClose}
           className={cn(
-            'p-1.5 rounded-lg border border-border text-text-secondary hover:border-error hover:text-error hover:bg-error/10 transition-all shrink-0'
+            'p-1.5 rounded-lg border border-border text-text-secondary hover:border-error hover:text-error hover:bg-error/10 transition-all shrink-0',
           )}
         >
           <X className="w-4 h-4" />

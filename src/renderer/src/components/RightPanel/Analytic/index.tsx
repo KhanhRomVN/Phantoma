@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { Activity, BarChart3, PieChart, TrendingUp, Clock, Zap } from 'lucide-react';
 
 interface AnalyticData {
@@ -113,9 +113,7 @@ export function Analytic() {
                 <Icon className={cn('w-3.5 h-3.5', stat.color)} />
                 <span className="text-[10px] text-text-secondary font-medium">{stat.label}</span>
               </div>
-              <div className={cn('text-sm font-bold', stat.color)}>
-                {stat.value}
-              </div>
+              <div className={cn('text-sm font-bold', stat.color)}>{stat.value}</div>
             </div>
           );
         })}
@@ -137,7 +135,7 @@ export function Analytic() {
                 style={{
                   height: `${height}%`,
                   background: `hsl(210, 100%, ${50 + (height / 100) * 30}%)`,
-                  opacity: 0.6 + (height / 200),
+                  opacity: 0.6 + height / 200,
                 }}
               />
             );

@@ -1,4 +1,4 @@
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import React, { useState, useEffect, useRef } from 'react';
 import { $ } from '@renderer/utils/color';
 
@@ -104,7 +104,10 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 className="flex items-center justify-between px-3 py-2 text-sm cursor-pointer"
                 style={{
                   color: $('--text-primary'),
-                  backgroundColor: value === lang.code ? ($('--hover-bg') || 'rgba(128,128,128,0.1)') : 'transparent',
+                  backgroundColor:
+                    value === lang.code
+                      ? $('--hover-bg') || 'rgba(128,128,128,0.1)'
+                      : 'transparent',
                 }}
                 onClick={() => {
                   onChange(lang.code);
@@ -112,7 +115,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   if (value !== lang.code) {
-                    e.currentTarget.style.backgroundColor = $('--hover-bg') || 'rgba(128,128,128,0.1)';
+                    e.currentTarget.style.backgroundColor =
+                      $('--hover-bg') || 'rgba(128,128,128,0.1)';
                   }
                 }}
                 onMouseLeave={(e) => {

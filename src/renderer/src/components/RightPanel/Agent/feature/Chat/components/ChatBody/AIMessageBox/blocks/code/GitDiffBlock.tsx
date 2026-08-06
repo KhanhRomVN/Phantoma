@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { $ } from '@renderer/utils/color';
 import { TagHeader } from '../../TagHeader';

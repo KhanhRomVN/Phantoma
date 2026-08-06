@@ -1,4 +1,6 @@
-export type PayloadType = 'list' | 'numbers' | 'brute';
+import { PayloadType } from '../types/repeater.types';
+
+export type { PayloadType };
 
 export function getRequestCategory(req: {
   type?: string;

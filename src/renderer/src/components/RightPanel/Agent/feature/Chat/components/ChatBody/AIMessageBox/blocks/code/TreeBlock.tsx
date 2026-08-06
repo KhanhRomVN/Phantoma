@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/fileIconMapper';
 import ErrorBlock from '../other/ErrorBlock';
+import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 interface FileNode {
   name: string;

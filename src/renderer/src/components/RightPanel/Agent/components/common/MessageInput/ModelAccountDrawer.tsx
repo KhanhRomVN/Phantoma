@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Search, ChevronRight, ChevronLeft } from "lucide-react";
-import { Drawer, DrawerHeader } from "@renderer/components/ui/Drawer";
-import { Tooltip } from "@renderer/components/ui/Tooltip";
-import { Input } from "@renderer/components/ui/Input";
-import { Button } from "@renderer/components/ui/Button";
-import { cn } from "@renderer/shared/lib/utils";
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Drawer, DrawerHeader } from '@renderer/components/ui/Drawer';
+import { Tooltip } from '@renderer/components/ui/Tooltip';
+import { Input } from '@renderer/components/ui/Input';
+import { Button } from '@renderer/components/ui/Button';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface Provider {
   provider_id: string;
@@ -72,9 +72,7 @@ const ModelTooltipContent: React.FC<{ model: any }> = ({ model }) => {
 
   return (
     <div className="w-[210px]">
-      <div className="font-bold mb-1.5 text-xs border-b border-divider pb-[5px]">
-        {model.name}
-      </div>
+      <div className="font-bold mb-1.5 text-xs border-b border-divider pb-[5px]">{model.name}</div>
       {model.description && (
         <div className="mb-2 pb-1.5 border-b border-divider text-[10.5px] opacity-85 italic leading-relaxed max-h-[60px] overflow-hidden line-clamp-3">
           {model.description}
@@ -311,7 +309,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                               'flex items-center justify-between px-3 py-[7px] rounded transition-colors duration-150',
                               isDisabled
                                 ? 'cursor-not-allowed opacity-45'
-                                : 'cursor-pointer opacity-100 hover:bg-card-hover'
+                                : 'cursor-pointer opacity-100 hover:bg-card-hover',
                             )}
                           >
                             <div className="flex items-center gap-2 w-full">
@@ -326,7 +324,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                                       ? 'text-[#4ade80]'
                                       : model.success_rate >= 50
                                         ? 'text-[#facc15]'
-                                        : 'text-[#f87171]'
+                                        : 'text-[#f87171]',
                                   )}
                                 >
                                   {model.success_rate.toFixed(1)}% success
@@ -334,10 +332,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                               )}
                             </div>
                             {!isDisabled && (
-                              <ChevronRight
-                                size={13}
-                                className="opacity-50 text-text-secondary"
-                              />
+                              <ChevronRight size={13} className="opacity-50 text-text-secondary" />
                             )}
                           </div>
                         </Tooltip>
@@ -348,9 +343,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
             })}
 
             {filteredProviders.length === 0 && (
-              <div className="text-center p-5 text-xs text-text-secondary">
-                No models found
-              </div>
+              <div className="text-center p-5 text-xs text-text-secondary">No models found</div>
             )}
           </div>
         </div>
@@ -369,9 +362,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
 
           <div className="custom-scrollbar flex-1 overflow-y-auto min-h-0">
             {isLoadingAccounts ? (
-              <div className="text-center p-5 text-xs text-text-secondary">
-                Loading accounts...
-              </div>
+              <div className="text-center p-5 text-xs text-text-secondary">Loading accounts...</div>
             ) : providerAccounts.length > 0 ? (
               (() => {
                 const filtered = providerAccounts.filter((acc) =>
@@ -406,10 +397,10 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                         className={cn(
                           'text-[11px] px-1.5 py-0.5 rounded font-medium',
                           acc.usage.includes('5/5') ||
-                          acc.usage.toLowerCase().includes('limit') ||
-                          acc.usage.toLowerCase().includes('unknown')
+                            acc.usage.toLowerCase().includes('limit') ||
+                            acc.usage.toLowerCase().includes('unknown')
                             ? 'bg-[rgba(239,68,68,0.12)] text-[#f87171] border border-[rgba(239,68,68,0.2)]'
-                            : 'bg-[rgba(34,197,94,0.12)] text-[#4ade80] border border-[rgba(34,197,94,0.2)]'
+                            : 'bg-[rgba(34,197,94,0.12)] text-[#4ade80] border border-[rgba(34,197,94,0.2)]',
                         )}
                       >
                         {acc.usage}

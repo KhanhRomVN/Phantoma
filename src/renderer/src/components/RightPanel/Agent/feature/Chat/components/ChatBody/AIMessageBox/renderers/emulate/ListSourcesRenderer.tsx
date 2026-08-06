@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '../../../../../constants/constants';
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
@@ -36,13 +36,9 @@ export const ListSourcesRenderer: React.FC<BaseRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
-            <span className="font-semibold opacity-80">
-              {getToolLabel('list_sources')}
-            </span>
+            <span className="font-semibold opacity-80">{getToolLabel('list_sources')}</span>
             {isCompleted && !isError && fileCount > 0 && (
-              <span className="opacity-50 text-[10px] text-text-secondary">
-                {fileCount} files
-              </span>
+              <span className="opacity-50 text-[10px] text-text-secondary">{fileCount} files</span>
             )}
             {!isCompleted && (
               <span className="text-[10px] opacity-60 italic ml-1 flex items-center gap-1">

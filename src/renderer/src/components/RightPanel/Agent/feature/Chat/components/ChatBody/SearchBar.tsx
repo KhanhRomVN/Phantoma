@@ -1,10 +1,5 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { cn } from '@renderer/shared/utils/cn';
 
 export interface SearchBarProps {
   searchQuery: string;
@@ -23,9 +18,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [localQuery, setLocalQuery] = useState(initialQuery || '');
-  const [flags, setFlags] = useState<Set<SearchFlag>>(
-    new Set<SearchFlag>(['regex']),
-  );
+  const [flags, setFlags] = useState<Set<SearchFlag>>(new Set<SearchFlag>(['regex']));
   const [matchCount, setMatchCount] = useState(0);
   const [currentIdx, setCurrentIdx] = useState(0);
 
@@ -87,12 +80,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         const p = node.parentElement;
         if (!p) return NodeFilter.FILTER_REJECT;
         const tag = p.tagName.toLowerCase();
-        if (
-          tag === 'input' ||
-          tag === 'textarea' ||
-          tag === 'script' ||
-          tag === 'style'
-        )
+        if (tag === 'input' || tag === 'textarea' || tag === 'script' || tag === 'style')
           return NodeFilter.FILTER_REJECT;
         if (p.closest('mark.zen-search-hl')) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
@@ -114,8 +102,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       let m: RegExpExecArray | null;
       regex.lastIndex = 0;
       while ((m = regex.exec(text)) !== null) {
-        if (m.index > last)
-          frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
         const mark = document.createElement('mark');
         mark.className = 'zen-search-hl';
         mark.dataset.matchIdx = String(total++);
@@ -126,8 +113,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         last = m.index + m[0].length;
         if (m[0].length === 0) regex.lastIndex++;
       }
-      if (last < text.length)
-        frag.appendChild(document.createTextNode(text.slice(last)));
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
       parent.replaceChild(frag, textNode);
     });
     setMatchCount(total);
@@ -166,7 +152,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         'flex items-center justify-center p-0.5 rounded-[3px] shrink-0 transition-all duration-[0.12s]',
         active
           ? 'bg-primary/20 border border-primary/45 text-primary opacity-100'
-          : 'bg-transparent border border-transparent text-text-secondary opacity-60'
+          : 'bg-transparent border border-transparent text-text-secondary opacity-60',
       )}
       onMouseEnter={(e) => {
         if (!active) e.currentTarget.style.opacity = '1';
@@ -184,7 +170,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       className={cn(
         'sticky top-0 z-[100] self-end inline-flex items-center gap-1',
         'shadow-[0_2px_10px_rgba(0,0,0,0.32)] mb-1.5',
-        'bg-dropdown-background border border-border rounded-md py-[3px] px-1'
+        'bg-dropdown-background border border-border rounded-md py-[3px] px-1',
       )}
     >
       <div className="flex items-stretch overflow-hidden bg-input-background rounded-[3px]">
@@ -214,7 +200,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
             flags.has('wholeWord'),
             'Match Whole Word (Alt+W)',
             () => toggleFlag('wholeWord'),
-            <span className="text-[10px] font-bold font-mono tracking-[-0.5px] leading-none">ab</span>,
+            <span className="text-[10px] font-bold font-mono tracking-[-0.5px] leading-none">
+              ab
+            </span>,
           )}
           {iconBtn(
             flags.has('regex'),
@@ -239,12 +227,26 @@ const SearchBar: React.FC<SearchBarProps> = ({
         disabled={matchCount === 0}
         className={cn(
           'bg-transparent border-none flex items-center py-0.5 px-[3px] text-text-secondary',
-          matchCount > 0 ? 'opacity-70 cursor-pointer' : 'opacity-30 cursor-default'
+          matchCount > 0 ? 'opacity-70 cursor-pointer' : 'opacity-30 cursor-default',
         )}
-        onMouseEnter={(e) => { if (matchCount > 0) e.currentTarget.style.opacity = '1'; }}
-        onMouseLeave={(e) => { if (matchCount > 0) e.currentTarget.style.opacity = '0.7'; }}
+        onMouseEnter={(e) => {
+          if (matchCount > 0) e.currentTarget.style.opacity = '1';
+        }}
+        onMouseLeave={(e) => {
+          if (matchCount > 0) e.currentTarget.style.opacity = '0.7';
+        }}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="m18 15-6-6-6 6" />
         </svg>
       </button>
@@ -255,24 +257,55 @@ const SearchBar: React.FC<SearchBarProps> = ({
         disabled={matchCount === 0}
         className={cn(
           'bg-transparent border-none flex items-center py-0.5 px-[3px] text-text-secondary',
-          matchCount > 0 ? 'opacity-70 cursor-pointer' : 'opacity-30 cursor-default'
+          matchCount > 0 ? 'opacity-70 cursor-pointer' : 'opacity-30 cursor-default',
         )}
-        onMouseEnter={(e) => { if (matchCount > 0) e.currentTarget.style.opacity = '1'; }}
-        onMouseLeave={(e) => { if (matchCount > 0) e.currentTarget.style.opacity = '0.7'; }}
+        onMouseEnter={(e) => {
+          if (matchCount > 0) e.currentTarget.style.opacity = '1';
+        }}
+        onMouseLeave={(e) => {
+          if (matchCount > 0) e.currentTarget.style.opacity = '0.7';
+        }}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
 
       <button
         title="Close (Esc)"
-        onClick={() => { handleQueryChange(''); onCloseSearch?.(); }}
+        onClick={() => {
+          handleQueryChange('');
+          onCloseSearch?.();
+        }}
         className="bg-transparent border-none cursor-pointer flex items-center py-0.5 px-[3px] text-text-secondary opacity-55 transition-opacity duration-[0.12s]"
-        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.55'; }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '1';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = '0.55';
+        }}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M18 6 6 18" />
           <path d="m6 6 12 12" />
         </svg>

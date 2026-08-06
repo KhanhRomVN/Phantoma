@@ -1,4 +1,4 @@
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface BadgeProps {
   count: number;

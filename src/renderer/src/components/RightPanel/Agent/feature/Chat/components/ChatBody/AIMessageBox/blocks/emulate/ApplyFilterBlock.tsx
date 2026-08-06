@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface ApplyFilterBlockProps {
   content: string;
@@ -21,17 +21,26 @@ function parseFilterOutput(content: string): FilterChange[] {
   if (!body) return [];
 
   const changes: FilterChange[] = [];
-  const groups = body.split(';').map((s) => s.trim()).filter(Boolean);
+  const groups = body
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   for (const group of groups) {
     const colonIdx = group.indexOf(':');
     if (colonIdx === -1) continue;
     const category = group.substring(0, colonIdx).trim();
     const valuesStr = group.substring(colonIdx + 1).trim();
-    const items = valuesStr.split(',').map((v) => v.trim()).filter(Boolean).map((v) => {
-      const match = v.match(/^(.+)\((\w+)\)$/);
-      return match ? { value: match[1].trim(), action: match[2].trim() } : { value: v, action: '' };
-    });
+    const items = valuesStr
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean)
+      .map((v) => {
+        const match = v.match(/^(.+)\((\w+)\)$/);
+        return match
+          ? { value: match[1].trim(), action: match[2].trim() }
+          : { value: v, action: '' };
+      });
     if (items.length > 0) {
       changes.push({ category, items });
     }
@@ -64,7 +73,10 @@ export const ApplyFilterBlock: React.FC<ApplyFilterBlockProps> = ({
   if (changes.length === 0) {
     return (
       <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]">
-        <pre className="p-3 text-[12px] font-mono text-text-primary whitespace-pre-wrap overflow-auto" style={{ maxHeight }}>
+        <pre
+          className="p-3 text-[12px] font-mono text-text-primary whitespace-pre-wrap overflow-auto"
+          style={{ maxHeight }}
+        >
           {content}
         </pre>
       </div>
@@ -72,7 +84,10 @@ export const ApplyFilterBlock: React.FC<ApplyFilterBlockProps> = ({
   }
 
   return (
-    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]" style={{ maxHeight }}>
+    <div
+      className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]"
+      style={{ maxHeight }}
+    >
       <div className="px-3 py-2 text-[11px] text-text-secondary border-b border-border bg-card-background">
         Filter updated
       </div>

@@ -1,6 +1,6 @@
-import { X } from "lucide-react";
-import { useCodeStore } from "../../hooks/useCodeStore";
-import { cn } from "../../../../shared/lib/utils";
+import { X } from 'lucide-react';
+import { useCodeStore } from '../../hooks/useCodeStore';
+import { cn } from '@renderer/shared/utils/cn';
 
 export function FileTabBar() {
   const { openFiles, activeFileTabId, setActiveFileTab, closeFile } = useCodeStore();
@@ -16,10 +16,10 @@ export function FileTabBar() {
           key={fileId}
           onClick={() => setActiveFileTab(fileId)}
           className={cn(
-            "flex items-center gap-1.5 px-3 h-full text-xs whitespace-nowrap border-b-2 transition-colors group",
+            'flex items-center gap-1.5 px-3 h-full text-xs whitespace-nowrap border-b-2 transition-colors group',
             activeFileTabId === fileId
-              ? "text-text-primary border-primary"
-              : "text-text-secondary/60 border-transparent hover:text-text-secondary hover:border-divider"
+              ? 'text-text-primary border-primary'
+              : 'text-text-secondary/60 border-transparent hover:text-text-secondary hover:border-divider',
           )}
         >
           <span>📄</span>

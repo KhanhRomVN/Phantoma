@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { useDomainScan } from './hooks/useDomainScan';
 
 import { SectionHeader } from './components/shared/SectionHeader';
@@ -148,9 +148,7 @@ export default function DomainScan({ initialDomain = 'phantoma.com' }: DomainSca
 
   const handleStartScan = (sessionId: string) => {
     setSessions((prev) =>
-      prev.map((s) =>
-        s.id === sessionId ? { ...s, status: 'scanning', progress: 0 } : s,
-      ),
+      prev.map((s) => (s.id === sessionId ? { ...s, status: 'scanning', progress: 0 } : s)),
     );
     setContextMenu(null);
     // Simulate scan progress
@@ -163,7 +161,12 @@ export default function DomainScan({ initialDomain = 'phantoma.com' }: DomainSca
         setSessions((prev) =>
           prev.map((s) =>
             s.id === sessionId
-              ? { ...s, status: 'done', progress: 100, riskScore: Math.floor(Math.random() * 40 + 40) }
+              ? {
+                  ...s,
+                  status: 'done',
+                  progress: 100,
+                  riskScore: Math.floor(Math.random() * 40 + 40),
+                }
               : s,
           ),
         );
@@ -201,9 +204,7 @@ export default function DomainScan({ initialDomain = 'phantoma.com' }: DomainSca
       return (
         <div className="flex-1 flex items-center justify-center flex-col gap-3">
           <div className="text-[24px] animate-pulse">⏳</div>
-          <div className="text-[12px] font-mono text-[#c8d6f0]">
-            Processing active scan data...
-          </div>
+          <div className="text-[12px] font-mono text-[#c8d6f0]">Processing active scan data...</div>
         </div>
       );
     }
@@ -260,9 +261,7 @@ export default function DomainScan({ initialDomain = 'phantoma.com' }: DomainSca
       case 'sources':
         return (
           <div className="flex-1 overflow-y-auto p-3">
-            <SectionHeader accent="#6a7a9a">
-              Data Sources ({result.sources.length})
-            </SectionHeader>
+            <SectionHeader accent="#6a7a9a">Data Sources ({result.sources.length})</SectionHeader>
             <div className="space-y-1">
               {result.sources.map((src) => (
                 <div
@@ -427,7 +426,7 @@ export default function DomainScan({ initialDomain = 'phantoma.com' }: DomainSca
                   <span
                     className={cn(
                       'text-[12px] font-mono font-semibold truncate flex-1 min-w-0 leading-tight',
-                      isActive ? 'text-text-primary' : 'text-text-secondary'
+                      isActive ? 'text-text-primary' : 'text-text-secondary',
                     )}
                   >
                     {sess.domain}

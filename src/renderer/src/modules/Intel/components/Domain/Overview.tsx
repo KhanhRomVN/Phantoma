@@ -1,7 +1,7 @@
 import type { ReconResult } from '../../types/domain/recon-result';
 import { StatBox } from '../shared/StatBox';
 import { SectionHeader } from '../shared/SectionHeader';
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface OverviewProps {
   result: ReconResult;
@@ -24,8 +24,18 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
           sub="processed"
           accent={$('--primary') || '#3686ff'}
         />
-        <StatBox label="Entities" value={entityCount} sub="identified" accent={$('--success') || '#10b981'} />
-        <StatBox label="Sources" value={sourceCount} sub="integrated" accent={$('--warning') || '#f59e0b'} />
+        <StatBox
+          label="Entities"
+          value={entityCount}
+          sub="identified"
+          accent={$('--success') || '#10b981'}
+        />
+        <StatBox
+          label="Sources"
+          value={sourceCount}
+          sub="integrated"
+          accent={$('--warning') || '#f59e0b'}
+        />
         <StatBox
           label="High Risk"
           value={highRiskEntities}
@@ -148,7 +158,9 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
       {/* Warnings */}
       {result.warnings.length > 0 && (
         <div className="bg-card-background border border-border rounded p-3">
-          <SectionHeader accent={$('--warning') || '#f59e0b'}>Warnings ({result.warnings.length})</SectionHeader>
+          <SectionHeader accent={$('--warning') || '#f59e0b'}>
+            Warnings ({result.warnings.length})
+          </SectionHeader>
           <div className="space-y-1">
             {result.warnings.slice(0, 5).map((w, i) => (
               <div key={i} className="text-[11px] font-mono text-warning py-0.5">

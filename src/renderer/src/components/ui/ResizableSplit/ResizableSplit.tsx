@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface ResizableSplitProps {
   children: [React.ReactNode, React.ReactNode];
@@ -80,13 +80,13 @@ export const ResizableSplit = ({
       className="flex w-full h-full overflow-hidden"
       style={{ flexDirection: isHorizontal ? 'row' : 'column' }}
     >
-      <div 
-        style={{ 
-          flexBasis: `${splitSize}%`, 
-          flexGrow: 0, 
-          flexShrink: 0, 
+      <div
+        style={{
+          flexBasis: `${splitSize}%`,
+          flexGrow: 0,
+          flexShrink: 0,
           overflow: 'auto',
-          ...(isHorizontal ? { height: '100%' } : { width: '100%' })
+          ...(isHorizontal ? { height: '100%' } : { width: '100%' }),
         }}
       >
         {firstChild}
@@ -94,7 +94,9 @@ export const ResizableSplit = ({
       <div
         className={cn(
           'bg-divider hover:bg-info transition-colors shrink-0',
-          isHorizontal ? 'cursor-col-resize w-px hover:w-0.5' : 'cursor-row-resize h-px hover:h-0.5',
+          isHorizontal
+            ? 'cursor-col-resize w-px hover:w-0.5'
+            : 'cursor-row-resize h-px hover:h-0.5',
         )}
         style={isHorizontal ? { width: '1px', height: '100%' } : { height: '1px', width: '100%' }}
         onMouseDown={handleMouseDown}

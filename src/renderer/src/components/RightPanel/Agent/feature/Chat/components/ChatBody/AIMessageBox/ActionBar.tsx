@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 // CONSTANTS
 import { TOOL_ACTION_TYPES } from '../../../constants/constants';
@@ -103,7 +103,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
         disabled={true}
         className={cn(
           'flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold h-6 transition-all duration-200 cursor-wait',
-          toolColor ? '' : 'bg-primary/12 text-primary border border-primary/25'
+          toolColor ? '' : 'bg-primary/12 text-primary border border-primary/25',
         )}
         style={
           toolColor
@@ -131,7 +131,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
         className={cn(
           'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
           isLoading ? 'cursor-wait' : 'cursor-pointer',
-          toolColor ? '' : 'bg-primary/4 text-primary border border-primary/20'
+          toolColor ? '' : 'bg-primary/4 text-primary border border-primary/20',
         )}
         style={
           toolColor

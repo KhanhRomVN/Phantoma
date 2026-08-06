@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface GetHttpsDetailBlockProps {
   content: string;
@@ -40,22 +40,51 @@ function parseContent(content: string): ParsedDetail {
   let subSection: string = '';
 
   for (const line of lines) {
-    if (line.startsWith('--- Request ---')) { section = 'req'; subSection = ''; continue; }
-    if (line.startsWith('--- Response ---')) { section = 'res'; subSection = ''; continue; }
+    if (line.startsWith('--- Request ---')) {
+      section = 'req';
+      subSection = '';
+      continue;
+    }
+    if (line.startsWith('--- Response ---')) {
+      section = 'res';
+      subSection = '';
+      continue;
+    }
 
     if (section === 'req') {
-      if (line.startsWith('Method:')) { result.method = line.replace('Method:', '').trim(); continue; }
-      if (line.startsWith('URL:')) { result.url = line.replace('URL:', '').trim(); continue; }
-      if (line.startsWith('Headers:')) { subSection = 'reqHeaders'; continue; }
-      if (line.startsWith('Body:')) { subSection = 'reqBody'; continue; }
+      if (line.startsWith('Method:')) {
+        result.method = line.replace('Method:', '').trim();
+        continue;
+      }
+      if (line.startsWith('URL:')) {
+        result.url = line.replace('URL:', '').trim();
+        continue;
+      }
+      if (line.startsWith('Headers:')) {
+        subSection = 'reqHeaders';
+        continue;
+      }
+      if (line.startsWith('Body:')) {
+        subSection = 'reqBody';
+        continue;
+      }
       if (subSection === 'reqHeaders') result.reqHeaders += line + '\n';
       else if (subSection === 'reqBody') result.reqBody += line + '\n';
     }
 
     if (section === 'res') {
-      if (line.startsWith('Status:')) { result.status = line.replace('Status:', '').trim(); continue; }
-      if (line.startsWith('Headers:')) { subSection = 'resHeaders'; continue; }
-      if (line.startsWith('Body:')) { subSection = 'resBody'; continue; }
+      if (line.startsWith('Status:')) {
+        result.status = line.replace('Status:', '').trim();
+        continue;
+      }
+      if (line.startsWith('Headers:')) {
+        subSection = 'resHeaders';
+        continue;
+      }
+      if (line.startsWith('Body:')) {
+        subSection = 'resBody';
+        continue;
+      }
       if (subSection === 'resHeaders') result.resHeaders += line + '\n';
       else if (subSection === 'resBody') result.resBody += line + '\n';
     }
@@ -109,7 +138,10 @@ function CollapsibleSection({
         </span>
         {open && (
           <button
-            onClick={(e) => { e.stopPropagation(); handleCopy(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCopy();
+            }}
             className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] hover:bg-sidebar-item-hover transition-colors"
             title="Copy"
           >
@@ -135,11 +167,7 @@ function StatusBadge({ status }: { status: string }) {
   else if (code >= 300 && code < 400) color = 'text-warn';
   else if (code >= 400) color = 'text-error';
 
-  return (
-    <span className={cn('text-[11px] font-bold font-mono', color)}>
-      {status || 'N/A'}
-    </span>
-  );
+  return <span className={cn('text-[11px] font-bold font-mono', color)}>{status || 'N/A'}</span>;
 }
 
 function MethodBadge({ method }: { method: string }) {
@@ -153,7 +181,12 @@ function MethodBadge({ method }: { method: string }) {
     HEAD: 'text-text-secondary',
   };
   return (
-    <span className={cn('text-[11px] font-bold font-mono', colors[method.toUpperCase()] || 'text-text-primary')}>
+    <span
+      className={cn(
+        'text-[11px] font-bold font-mono',
+        colors[method.toUpperCase()] || 'text-text-primary',
+      )}
+    >
       {method.toUpperCase()}
     </span>
   );
@@ -180,7 +213,10 @@ export const GetHttpsDetailBlock: React.FC<GetHttpsDetailBlockProps> = ({ conten
           #{parsed.requestIndex}
         </span>
         <MethodBadge method={parsed.method} />
-        <span className="text-[11px] text-text-primary font-mono truncate max-w-[400px]" title={parsed.url}>
+        <span
+          className="text-[11px] text-text-primary font-mono truncate max-w-[400px]"
+          title={parsed.url}
+        >
           {parsed.url}
         </span>
         {parsed.status && (

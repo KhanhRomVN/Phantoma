@@ -7,6 +7,8 @@
  *
  * Kết quả trả về TrafficSummary với hosts, methods, statuses, types (distinct + count).
  */
+
+// TYPE
 import { NetworkRequest } from '../types/inspector';
 import type { TrafficSummary } from '@renderer/components/RightPanel/Agent/feature/Chat/prompts/emulate';
 
@@ -41,9 +43,7 @@ export class GetTrafficSummaryHandler {
 
     // Sắp xếp theo count giảm dần
     const sortByCountDesc = <T>(map: Map<T, number>) =>
-      [...map.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .map(([value, count]) => ({ value, count }));
+      [...map.entries()].sort((a, b) => b[1] - a[1]).map(([value, count]) => ({ value, count }));
 
     const summary: TrafficSummary = {
       hosts: sortByCountDesc(hostMap),

@@ -1,5 +1,5 @@
 import type { DataSource } from '../../types/data-point';
-import { cn } from '../../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 
 export function SourcesPanel({ sources }: SourcesPanelProps) {
   return (

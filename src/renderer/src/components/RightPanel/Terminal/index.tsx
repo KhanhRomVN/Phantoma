@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { Send, Terminal as TerminalIcon, X } from 'lucide-react';
 
 interface LogEntry {
@@ -155,10 +155,12 @@ Uptime: ${Math.floor((Date.now() - 1700000000000) / 1000)}s`;
           <TerminalIcon className="w-3.5 h-3.5 text-text-secondary" />
           <span className="text-[10px] font-medium text-text-secondary">Terminal</span>
           <span className="flex items-center gap-1">
-            <span className={cn(
-              'w-1.5 h-1.5 rounded-full',
-              isConnected ? 'bg-green-400' : 'bg-red-400'
-            )} />
+            <span
+              className={cn(
+                'w-1.5 h-1.5 rounded-full',
+                isConnected ? 'bg-green-400' : 'bg-red-400',
+              )}
+            />
             <span className="text-[9px] text-text-secondary/70">
               {isConnected ? 'Connected' : 'Disconnected'}
             </span>
@@ -178,16 +180,17 @@ Uptime: ${Math.floor((Date.now() - 1700000000000) / 1000)}s`;
       {/* Logs Area */}
       <div className="flex-1 overflow-y-auto p-2 font-mono text-xs">
         {logs.map((log) => (
-          <div key={log.id} className="flex items-start gap-2 py-0.5 hover:bg-dropdown-item-hover/20 rounded px-1">
+          <div
+            key={log.id}
+            className="flex items-start gap-2 py-0.5 hover:bg-dropdown-item-hover/20 rounded px-1"
+          >
             <span className="text-text-secondary/50 shrink-0 text-[10px] select-none">
               {formatTime(log.timestamp)}
             </span>
             <span className={cn('shrink-0 select-none', getTypeColor(log.type))}>
               {getTypePrefix(log.type)}
             </span>
-            <span className={cn('break-all', getTypeColor(log.type))}>
-              {log.message}
-            </span>
+            <span className={cn('break-all', getTypeColor(log.type))}>{log.message}</span>
           </div>
         ))}
         <div ref={logsEndRef} />
@@ -214,7 +217,7 @@ Uptime: ${Math.floor((Date.now() - 1700000000000) / 1000)}s`;
               'p-1 rounded transition-colors',
               input.trim()
                 ? 'text-primary hover:bg-primary/10'
-                : 'text-text-secondary/30 cursor-not-allowed'
+                : 'text-text-secondary/30 cursor-not-allowed',
             )}
           >
             <Send className="w-3.5 h-3.5" />

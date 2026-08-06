@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '../../../../../constants/constants';
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
@@ -19,7 +19,7 @@ export const GetSourceDetailRenderer: React.FC<BaseRendererProps> = ({
   const actionId = `${messageId}-action-${actionIndex}`;
   const output = toolOutputs?.[actionId]?.output;
   const isError = !!toolOutputs?.[actionId]?.isError;
-  const errorMessage = isError ? (output || '') : '';
+  const errorMessage = isError ? output || '' : '';
 
   const isCompleted = Boolean(isActionClicked || isError || (output && output.trim().length > 0));
 
@@ -36,9 +36,7 @@ export const GetSourceDetailRenderer: React.FC<BaseRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
-            <span className="font-semibold opacity-80">
-              {getToolLabel('get_source_detail')}
-            </span>
+            <span className="font-semibold opacity-80">{getToolLabel('get_source_detail')}</span>
             {isCompleted && !isError && fileName && (
               <span className="opacity-50 text-[10px] text-text-secondary truncate max-w-[200px]">
                 {fileName}

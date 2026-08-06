@@ -1,8 +1,11 @@
 import React from 'react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import { DropdownContentProps } from './type';
 
-export const DropdownContent = React.memo(function DropdownContent({ children, className }: DropdownContentProps) {
+export const DropdownContent = React.memo(function DropdownContent({
+  children,
+  className,
+}: DropdownContentProps) {
   return (
     <div
       className={cn(

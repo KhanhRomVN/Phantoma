@@ -30,7 +30,7 @@ import type { SubTarget } from '../../modules/Tool/types/types';
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/Dropdown';
 
 // UTILS
-import { cn } from '../../shared/lib/utils';
+import { cn } from '@renderer/shared/utils/cn';
 import {
   ChevronDown,
   BarChart3,
