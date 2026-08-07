@@ -4,6 +4,7 @@ import { proxyManager } from './shared/proxy-state';
 import { closeAllGenericWebWindows } from './features/generic-web';
 import { execSync } from 'child_process';
 import { appState, clearActiveState } from './shared/state';
+import { stopAllLSPServers } from './ipc/lsp-handlers';
 
 // Fix EAI_AGAIN DNS errors by preferring IPv4
 try {
@@ -33,6 +34,7 @@ app.on('certificate-error', (event, _webContents, _url, _error, _certificate, ca
 export async function cleanup() {
   await proxyManager.stopAll();
   closeAllGenericWebWindows();
+  stopAllLSPServers(); // Stop all language servers
   if (appState.activeChildProcess) {
     appState.activeChildProcess.kill();
     appState.activeChildProcess = null;

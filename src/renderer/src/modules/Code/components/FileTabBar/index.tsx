@@ -1,40 +1,110 @@
-import { X } from 'lucide-react';
+import { X, CircleDot, Plus } from 'lucide-react';
 import { useCodeStore } from '../../hooks/useCodeStore';
+import { useDiagnosticsStore } from '../../stores/diagnosticsStore';
 import { cn } from '@renderer/shared/utils/cn';
+import { getFileIconPath, getFolderIconName } from '@renderer/shared/utils/fileIconMapper';
 
 export function FileTabBar() {
-  const { openFiles, activeFileTabId, setActiveFileTab, closeFile } = useCodeStore();
+  const projects = useCodeStore((s) => s.projects);
+  const currentProjectId = useCodeStore((s) => s.currentProjectId);
+  const setActiveFileTab = useCodeStore((s) => s.setActiveFileTab);
+  const closeFile = useCodeStore((s) => s.closeFile);
+  const executeWithSaveCheck = useCodeStore((s) => s.executeWithSaveCheck);
 
-  if (openFiles.length === 0) {
+  // Subscribe directly to _statsCache so tab re-renders when diagnostics change
+  const diagnosticsMap = useDiagnosticsStore((s) => s._statsCache);
+
+  const project = projects.find((p) => p.id === currentProjectId);
+  if (!project || project.openFiles.length === 0) {
     return null;
   }
 
+  const { openFiles, fileDisplayNames, activeFileTabId, fileNodeMap, unsavedFiles } = project;
+
   return (
-    <div className="flex items-center h-8 bg-sidebar-background border-b border-divider px-2 overflow-x-auto flex-shrink-0 gap-0.5">
-      {openFiles.map((fileId) => (
-        <button
-          key={fileId}
-          onClick={() => setActiveFileTab(fileId)}
-          className={cn(
-            'flex items-center gap-1.5 px-3 h-full text-xs whitespace-nowrap border-b-2 transition-colors group',
-            activeFileTabId === fileId
-              ? 'text-text-primary border-primary'
-              : 'text-text-secondary/60 border-transparent hover:text-text-secondary hover:border-divider',
-          )}
-        >
-          <span>📄</span>
-          {fileId}
+    <div className="flex items-center h-9 bg-sidebar-background border-b border-divider px-1 overflow-x-auto flex-shrink-0 gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {openFiles.map((fileId) => {
+        const displayName = fileDisplayNames[fileId] || fileId;
+        const isActive = activeFileTabId === fileId;
+        const isUnsaved = unsavedFiles.has(fileId);
+        const node = fileNodeMap[fileId];
+        const filePath = node?.path || '';
+
+        // Get diagnostics stats from store
+        const stats = diagnosticsMap.get(filePath);
+
+        return (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              closeFile(fileId);
-            }}
-            className="p-0.5 rounded hover:bg-sidebar-item-hover text-text-secondary/30 hover:text-text-secondary transition-colors opacity-0 group-hover:opacity-100"
+            key={fileId}
+            onClick={() => setActiveFileTab(fileId)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 h-full text-[13px] whitespace-nowrap transition-colors group',
+              'border-t-2',
+              isActive
+                ? 'text-text-primary border-t-primary bg-background'
+                : 'text-text-secondary border-t-transparent hover:text-text-secondary hover:border-t-divider hover:bg-sidebar-item-hover/30',
+              // Add red text color if there are errors
+              stats && stats.errors > 0 && !isActive ? 'text-[#f87171]' : '',
+            )}
           >
-            <X className="w-3 h-3" strokeWidth={1.5} />
+            <img
+              src={getFileIconPath(displayName)}
+              alt=""
+              className="w-4 h-4 shrink-0"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            <span>{displayName}</span>
+
+            {/* Diagnostics badge */}
+            {stats && (stats.errors > 0 || stats.warnings > 0) && (
+              <span className="flex items-center gap-1 text-[11px] font-mono">
+                {stats.errors > 0 && <span className="text-[#f87171]">{stats.errors}</span>}
+                {stats.warnings > 0 && <span className="text-[#fbbf24]">{stats.warnings}</span>}
+              </span>
+            )}
+
+            {/* Unsaved indicator / Close button */}
+            {isUnsaved ? (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  executeWithSaveCheck(() => closeFile(fileId));
+                }}
+                className={cn(
+                  'p-0.5 rounded text-warning hover:text-error transition-colors ml-0.5 group/close',
+                  isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                )}
+                title="File has unsaved changes"
+              >
+                <CircleDot
+                  className="w-3 h-3 group-hover/close:hidden"
+                  strokeWidth={2}
+                  fill="currentColor"
+                />
+                <Plus
+                  className="w-3 h-3 hidden group-hover/close:block rotate-45"
+                  strokeWidth={2.5}
+                />
+              </span>
+            ) : (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeFile(fileId);
+                }}
+                className={cn(
+                  'p-0.5 rounded text-text-primary hover:text-error transition-colors ml-0.5',
+                  isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                )}
+              >
+                <X className="w-3 h-3" strokeWidth={1.5} />
+              </span>
+            )}
           </button>
-        </button>
-      ))}
+        );
+      })}
     </div>
   );
 }

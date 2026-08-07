@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { $ } from '@renderer/utils/color';
-import { cn } from '@renderer/shared/utils/cn';
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { cn } from '@renderer/shared/utils/cn';
 
 interface TabItem {
   id: string;
@@ -72,7 +72,7 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                'relative w-9 h-9 px-0 rounded-md justify-center mx-auto transition-all duration-200',
+                'relative w-9 h-9 px-0 rounded-md flex items-center justify-center mx-auto transition-all duration-200',
                 !isActive &&
                   'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
                 isActive && 'text-[--tab-color] bg-[--tab-color-bg]',
@@ -89,15 +89,6 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
               title={tab.label}
             >
               <div className="flex items-center justify-center shrink-0 w-4 h-4">{tab.icon}</div>
-              {isActive && (
-                <div
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] rounded-r"
-                  style={{
-                    height: '50%',
-                    backgroundColor: tabColor?.base || $('--text-primary'),
-                  }}
-                />
-              )}
             </button>
           );
         })}

@@ -6,6 +6,7 @@ import { appAPI } from './api';
 const api = {
   app: appAPI,
   invoke: (channel: string, ...args: any[]) => electronAPI.ipcRenderer.invoke(channel, ...args),
+  send: (channel: string, ...args: any[]) => electronAPI.ipcRenderer.send(channel, ...args),
   on: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) => {
     electronAPI.ipcRenderer.on(channel, listener);
   },

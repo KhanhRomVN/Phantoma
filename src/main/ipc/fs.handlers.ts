@@ -3,7 +3,62 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec as execCallback } from 'child_process';
 import { promisify } from 'util';
+import chokidar, { FSWatcher } from 'chokidar';
 const exec = promisify(execCallback);
+
+// ─── Watcher Manager ─────────────────────────────────────────────────────────
+const watchers = new Map<string, FSWatcher>();
+
+function startWatching(
+  projectPath: string,
+  sender: Electron.WebContents,
+): void {
+  if (watchers.has(projectPath)) return; // already watching
+
+  // Debounce: gộp các event trong 300ms thành 1 lần gửi
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  const changedDirs = new Set<string>();
+
+  const flush = () => {
+    changedDirs.forEach((dirPath) => {
+      sender.send('fs:dir-changed', { dirPath, projectPath });
+    });
+    changedDirs.clear();
+  };
+
+  const watcher = chokidar.watch(projectPath, {
+    ignored: [
+      /(^|[\/\\])\../,           // dotfiles
+      '**/node_modules/**',
+      '**/.git/**',
+    ],
+    persistent: true,
+    ignoreInitial: true,
+    depth: 99,                   // đủ sâu cho mọi project
+  });
+
+  watcher.on('all', (_eventName, filePath) => {
+    const dir = path.dirname(filePath);
+    changedDirs.add(dir);
+
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(flush, 300);
+  });
+
+  watcher.on('error', (err) => {
+    console.error(`[fs:watcher] Error watching ${projectPath}:`, err.message);
+  });
+
+  watchers.set(projectPath, watcher);
+}
+
+function stopWatching(projectPath: string): void {
+  const watcher = watchers.get(projectPath);
+  if (watcher) {
+    watcher.close();
+    watchers.delete(projectPath);
+  }
+}
 
 // Certificate installation state
 let certInstalled = false;
@@ -70,6 +125,15 @@ export function setupFSHandlers() {
     }
   });
 
+  ipcMain.handle('fs:mkdir', async (_, dirPath: string) => {
+    try {
+      fs.mkdirSync(dirPath, { recursive: true });
+      return true;
+    } catch (e: any) {
+      throw new Error(`Failed to create directory: ${e.message}`);
+    }
+  });
+
   ipcMain.handle('fs:list-dir', async (_, dirPath: string) => {
     try {
       const files = fs.readdirSync(dirPath);
@@ -87,6 +151,20 @@ export function setupFSHandlers() {
     } catch (e: any) {
       throw new Error(`Failed to list directory: ${e.message}`);
     }
+  });
+
+  ipcMain.handle('fs:watch-dir', async (event, projectPath: string) => {
+    try {
+      startWatching(projectPath, event.sender);
+      return true;
+    } catch (e: any) {
+      throw new Error(`Failed to watch directory: ${e.message}`);
+    }
+  });
+
+  ipcMain.handle('fs:unwatch-dir', async (_, projectPath: string) => {
+    stopWatching(projectPath);
+    return true;
   });
 
   ipcMain.handle('fs:delete', async (_, targetPath: string) => {

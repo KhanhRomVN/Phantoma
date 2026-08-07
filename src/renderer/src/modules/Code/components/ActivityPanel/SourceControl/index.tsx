@@ -1,4 +1,4 @@
-import { GitBranch, GitCommit, GitPullRequest } from "lucide-react";
+import { GitBranch, GitCommit, GitPullRequest } from 'lucide-react';
 
 export function SourceControl() {
   return (

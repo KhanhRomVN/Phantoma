@@ -1,5 +1,5 @@
-import { useCodeStore } from '../../hooks/useCodeStore';
 import { cn } from '@renderer/shared/utils/cn';
+import { useCodeStore } from '../../hooks/useCodeStore';
 
 const TYPE_ICONS: Record<string, string> = {
   website: '🌐',
@@ -22,19 +22,23 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export function ServiceTabBar() {
-  const { projects, currentProjectId, currentServiceId, setCurrentService } = useCodeStore();
+  const projects = useCodeStore((s) => s.projects);
+  const currentProjectId = useCodeStore((s) => s.currentProjectId);
+  const setCurrentService = useCodeStore((s) => s.setCurrentService);
   const project = projects.find((p) => p.id === currentProjectId);
 
   if (!project || project.services.length === 0) {
     return (
-      <div className="flex items-center h-9 bg-sidebar-background border-b border-divider px-3 text-xs text-text-secondary/40">
+      <div className="flex items-center h-10 bg-sidebar-background border-b border-divider px-3 text-xs text-text-secondary/40">
         No services docked
       </div>
     );
   }
 
+  const currentServiceId = project.currentServiceId;
+
   return (
-    <div className="flex items-center h-9 bg-sidebar-background border-b border-divider px-2 overflow-x-auto flex-shrink-0 gap-0.5">
+    <div className="flex items-center h-10 bg-sidebar-background border-b border-divider px-2 overflow-x-auto flex-shrink-0 gap-0.5">
       {project.services.map((service) => {
         const isActive = service.id === currentServiceId;
         const colorClass = TYPE_COLORS[service.type] || 'text-text-secondary';

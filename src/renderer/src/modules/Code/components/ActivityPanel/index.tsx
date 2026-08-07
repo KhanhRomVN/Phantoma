@@ -1,17 +1,17 @@
 import { useRef, useState } from 'react';
 import { useCodeStore } from '../../hooks/useCodeStore';
-import { ActivityBar } from './components/ActivityBar';
-import { FileExplore } from './components/FileExplore';
-import { Search } from './components/Search';
-import { SourceControl } from './components/SourceControl';
+import { ActivityBar } from './ActivityBar';
+import { FileExplore } from './FileExplore';
+import { Search } from './Search';
+import { SourceControl } from './SourceControl';
 import { Folder, Search as SearchIcon, GitBranch } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 const TABS = [
-  { id: 'explore', icon: <Folder className="w-4 h-4" strokeWidth={1.3} />, label: 'File Explorer' },
-  { id: 'search', icon: <SearchIcon className="w-4 h-4" strokeWidth={1.3} />, label: 'Search' },
+  { id: 'explore', icon: <Folder className="w-4 h-4" />, label: 'File Explorer' },
+  { id: 'search', icon: <SearchIcon className="w-4 h-4" />, label: 'Search' },
   {
     id: 'source',
-    icon: <GitBranch className="w-4 h-4" strokeWidth={1.3} />,
+    icon: <GitBranch className="w-4 h-4" />,
     label: 'Source Control',
   },
 ];

@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Search as SearchIcon } from "lucide-react";
+import { useState } from 'react';
+import { Search as SearchIcon } from 'lucide-react';
 
 export function Search() {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
 
   return (
     <div className="flex-1 overflow-y-auto p-3">
@@ -16,9 +16,7 @@ export function Search() {
           className="flex-1 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-secondary/40"
         />
       </div>
-      {query && (
-        <div className="mt-3 text-xs text-text-secondary/40">No results found</div>
-      )}
+      {query && <div className="mt-3 text-xs text-text-secondary/40">No results found</div>}
     </div>
   );
 }

@@ -37,7 +37,12 @@ import {
   setupMobileHandlers,
   setupConversationHandlers,
   setupWindowHandlers,
+  setupTerminalHandlers,
 } from './ipc';
+
+// Import LSP handlers
+import './ipc/lsp-handlers';
+import { stopAllLSPServers } from './ipc/lsp-handlers';
 
 // Import app launcher
 import { launchApp } from './app-launcher';
@@ -98,6 +103,7 @@ app.whenReady().then(async () => {
   setupMobileHandlers();
   setupConversationHandlers();
   setupWindowHandlers();
+  setupTerminalHandlers();
 
   // Auto-install certificate when proxy session is created
   const originalCreateSession = proxyManager.createSession.bind(proxyManager);

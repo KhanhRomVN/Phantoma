@@ -844,6 +844,28 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
       }
     }
 
+    case 'showSaveDialog': {
+      try {
+        const payloadData: any = payload;
+        const defaultPath: string = payloadData?.defaultPath || '';
+        const win = getMainWindow();
+        if (!win) return { success: false, canceled: true, error: 'No window' };
+
+        const result = await dialog.showSaveDialog(win, {
+          title: 'Save File As',
+          defaultPath: defaultPath || undefined,
+          properties: ['createDirectory'],
+        });
+        if (!result.canceled && result.filePath) {
+          return { success: true, filePath: result.filePath };
+        }
+        return { success: false, canceled: true };
+      } catch (e: any) {
+        console.error('[RendererHandler] showSaveDialog error:', e);
+        return { success: false, error: e.message };
+      }
+    }
+
     // ─── Snapshot / Diff ────────────────────────────────────────────
     case 'getSnapshot': {
       sendToRenderer('messageResponse', {
@@ -965,6 +987,7 @@ export function setupRendererHandlers() {
     'openFolder',
     'selectFile',
     'selectFolder',
+    'showSaveDialog',
     // Snapshot
     'getSnapshot',
     'openSnapshotDiff',

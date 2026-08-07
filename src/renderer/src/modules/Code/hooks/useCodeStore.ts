@@ -1,15 +1,30 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface Project {
   id: string;
   name: string;
+  path: string;
   color: string;
   template: string;
   services: Service[];
   files: FileNode[];
+  // ── Per-project state ──
+  expandedFolderIds: string[];
+  openFiles: string[];
+  fileDisplayNames: Record<string, string>;
+  fileNodeMap: Record<string, FileNode>;
+  activeFileTabId: string | null;
+  currentServiceId: string | null;
+  currentFileId: string | null;
+  // ── Unsaved changes tracking ──
+  unsavedFiles: Set<string>; // Set of fileIds with unsaved changes
+  originalContents: Record<string, string>; // Original file contents for comparison
+  // ── File watcher invalidation ──
+  dirVersions: Record<string, number>; // dirPath → version, increment to trigger TreeNode reload
 }
 
-export type ProjectInput = Omit<Project, 'id' | 'services' | 'files'>;
+export type ProjectInput = Omit<Project, 'id' | 'services' | 'files' | 'expandedFolderIds' | 'openFiles' | 'fileDisplayNames' | 'fileNodeMap' | 'activeFileTabId' | 'currentServiceId' | 'currentFileId' | 'unsavedFiles' | 'originalContents' | 'dirVersions'>;
 
 export interface Service {
   id: string;
@@ -32,18 +47,34 @@ export interface FileNode {
   path?: string;
 }
 
+function createDefaultPerProject() {
+  return {
+    expandedFolderIds: [] as string[],
+    openFiles: [] as string[],
+    fileDisplayNames: {} as Record<string, string>,
+    fileNodeMap: {} as Record<string, FileNode>,
+    activeFileTabId: null as string | null,
+    currentServiceId: null as string | null,
+    currentFileId: null as string | null,
+    unsavedFiles: new Set<string>(),
+    originalContents: {} as Record<string, string>,
+    dirVersions: {} as Record<string, number>,
+  };
+}
+
 interface CodeState {
   projects: Project[];
   currentProjectId: string | null;
-  currentServiceId: string | null;
-  currentFileId: string | null;
-  openFiles: string[];
-  activeFileTabId: string | null;
-  bottomPanelTab: 'terminal' | 'problems' | 'output' | 'debug';
+  bottomPanelTab: 'output' | 'terminal' | 'port' | 'performance' | 'problems';
   activityPanelTab: 'explore' | 'search' | 'source' | 'extension';
   isBottomPanelOpen: boolean;
   isProjectManagerOpen: boolean;
+  isNewProjectOpen: boolean;
   activityPanelWidth: number;
+  forceShowLSPOverlay: boolean;
+  // ── Save confirmation modal ──
+  pendingAction: (() => void) | null; // Action to execute after save confirmation
+  isSaveConfirmModalOpen: boolean;
 
   // Actions
   addProject: (project: ProjectInput) => void;
@@ -54,140 +85,405 @@ interface CodeState {
   removeService: (projectId: string, serviceId: string) => void;
   updateServiceStatus: (projectId: string, serviceId: string, status: Service['status']) => void;
   setCurrentService: (serviceId: string) => void;
-  openFile: (projectId: string, fileId: string) => void;
+  openFile: (projectId: string, fileId: string, displayName?: string, fileNode?: FileNode) => void;
   closeFile: (fileId: string) => void;
   setActiveFileTab: (fileId: string) => void;
   setBottomPanelTab: (tab: CodeState['bottomPanelTab']) => void;
   toggleBottomPanel: () => void;
   setActivityPanelTab: (tab: CodeState['activityPanelTab']) => void;
   setProjectManagerOpen: (open: boolean) => void;
+  setNewProjectOpen: (open: boolean) => void;
+  setProjectFiles: (projectId: string, files: FileNode[]) => void;
   setActivityPanelWidth: (width: number) => void;
+  setForceShowLSPOverlay: (show: boolean) => void;
+  toggleFolderExpand: (projectId: string, folderId: string) => void;
+  collapseAllFolders: (projectId: string) => void;
+  invalidateDir: (projectId: string, dirPath: string) => void;
+  hydrateProjectFiles: (projectId: string, files: FileNode[]) => void;
+  // ── Unsaved changes management ──
+  markFileAsUnsaved: (fileId: string, content: string) => void;
+  markFileAsSaved: (fileId: string) => void;
+  setOriginalContent: (fileId: string, content: string) => void;
+  hasUnsavedChanges: () => boolean;
+  getUnsavedFiles: () => string[];
+  saveAllFiles: () => Promise<void>;
+  saveFile: (fileId: string) => Promise<void>;
+  // ── Modal control ──
+  setPendingAction: (action: (() => void) | null) => void;
+  setSaveConfirmModalOpen: (open: boolean) => void;
+  executeWithSaveCheck: (action: () => void) => void;
 }
 
-export const useCodeStore = create<CodeState>()((set, get) => ({
-  projects: [],
-  currentProjectId: null,
-  currentServiceId: null,
-  currentFileId: null,
-  openFiles: [],
-  activeFileTabId: null,
-  bottomPanelTab: 'terminal',
-  activityPanelTab: 'explore',
-  isBottomPanelOpen: true,
-  isProjectManagerOpen: false,
-  activityPanelWidth: 280,
+export const useCodeStore = create<CodeState>()(
+  persist(
+    (set, get) => {
+      const getCurrentProject = (): Project | undefined => {
+        const state = get();
+        return state.projects.find((p) => p.id === state.currentProjectId);
+      };
 
-  addProject: (project) => {
-    const newProject: Project = {
-      ...project,
-      id: `project_${Date.now()}`,
-      services: [],
-      files: [],
-    };
-    set((state) => ({
-      projects: [...state.projects, newProject],
-      currentProjectId: newProject.id,
-    }));
-  },
+      const updateCurrentProject = (updater: (p: Project) => Project) => {
+        const state = get();
+        if (!state.currentProjectId) return;
+        set({
+          projects: state.projects.map((p) =>
+            p.id === state.currentProjectId ? updater(p) : p,
+          ),
+        });
+      };
 
-  removeProject: (id) => {
-    set((state) => ({
-      projects: state.projects.filter((p) => p.id !== id),
-      currentProjectId: state.currentProjectId === id ? state.projects[0]?.id || null : state.currentProjectId,
-    }));
-  },
+      return {
+        projects: [],
+        currentProjectId: null,
+        bottomPanelTab: 'output',
+        activityPanelTab: 'explore',
+        isBottomPanelOpen: true,
+        isProjectManagerOpen: false,
+        isNewProjectOpen: false,
+        activityPanelWidth: 320,
+        forceShowLSPOverlay: false,
+        pendingAction: null,
+        isSaveConfirmModalOpen: false,
 
-  updateProject: (id, data) => {
-    set((state) => ({
-      projects: state.projects.map((p) => (p.id === id ? { ...p, ...data } : p)),
-    }));
-  },
+        addProject: (project) => {
+          const newProject: Project = {
+            ...project,
+            id: `project_${Date.now()}`,
+            services: [],
+            files: [],
+            ...createDefaultPerProject(),
+          };
+          set((state) => ({
+            projects: [...state.projects, newProject],
+            currentProjectId: newProject.id,
+          }));
+        },
 
-  setCurrentProject: (id) => {
-    set({ currentProjectId: id });
-  },
+        removeProject: (id) => {
+          set((state) => {
+            const filtered = state.projects.filter((p) => p.id !== id);
+            return {
+              projects: filtered,
+              currentProjectId:
+                state.currentProjectId === id ? filtered[0]?.id || null : state.currentProjectId,
+            };
+          });
+        },
 
-  addService: (projectId, service) => {
-    const newService: Service = {
-      ...service,
-      id: `service_${Date.now()}`,
-      status: 'stopped',
-    };
-    set((state) => ({
-      projects: state.projects.map((p) =>
-        p.id === projectId ? { ...p, services: [...p.services, newService] } : p
-      ),
-    }));
-  },
+        updateProject: (id, data) => {
+          set((state) => ({
+            projects: state.projects.map((p) => (p.id === id ? { ...p, ...data } : p)),
+          }));
+        },
 
-  removeService: (projectId, serviceId) => {
-    set((state) => ({
-      projects: state.projects.map((p) =>
-        p.id === projectId ? { ...p, services: p.services.filter((s) => s.id !== serviceId) } : p
-      ),
-      currentServiceId: state.currentServiceId === serviceId ? null : state.currentServiceId,
-    }));
-  },
+        setCurrentProject: (id) => {
+          set({ currentProjectId: id });
+        },
 
-  updateServiceStatus: (projectId, serviceId, status) => {
-    set((state) => ({
-      projects: state.projects.map((p) =>
-        p.id === projectId
-          ? {
+        addService: (projectId, service) => {
+          const newService: Service = {
+            ...service,
+            id: `service_${Date.now()}`,
+            status: 'stopped',
+          };
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, services: [...p.services, newService] } : p,
+            ),
+          }));
+        },
+
+        removeService: (projectId, serviceId) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    services: p.services.filter((s) => s.id !== serviceId),
+                    currentServiceId:
+                      p.currentServiceId === serviceId ? null : p.currentServiceId,
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        updateServiceStatus: (projectId, serviceId, status) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    services: p.services.map((s) =>
+                      s.id === serviceId ? { ...s, status } : s,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        setCurrentService: (serviceId) => {
+          updateCurrentProject((p) => ({ ...p, currentServiceId: serviceId }));
+        },
+
+        openFile: (_projectId, fileId, displayName, fileNode) => {
+          const project = getCurrentProject();
+          if (!project) return;
+
+          if (!project.openFiles.includes(fileId)) {
+            updateCurrentProject((p) => {
+              const names = displayName
+                ? { ...p.fileDisplayNames, [fileId]: displayName }
+                : p.fileDisplayNames;
+              const nodeMap = fileNode
+                ? { ...p.fileNodeMap, [fileId]: fileNode }
+                : p.fileNodeMap;
+              return {
+                ...p,
+                openFiles: [...p.openFiles, fileId],
+                fileDisplayNames: names,
+                fileNodeMap: nodeMap,
+                activeFileTabId: fileId,
+              };
+            });
+          } else {
+            updateCurrentProject((p) => {
+              if (fileNode) {
+                return {
+                  ...p,
+                  activeFileTabId: fileId,
+                  fileNodeMap: { ...p.fileNodeMap, [fileId]: fileNode },
+                };
+              }
+              return { ...p, activeFileTabId: fileId };
+            });
+          }
+        },
+
+        closeFile: (fileId) => {
+          updateCurrentProject((p) => {
+            const newOpenFiles = p.openFiles.filter((id) => id !== fileId);
+            return {
               ...p,
-              services: p.services.map((s) => (s.id === serviceId ? { ...s, status } : s)),
+              openFiles: newOpenFiles,
+              activeFileTabId:
+                newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1] : null,
+            };
+          });
+        },
+
+        setActiveFileTab: (fileId) => {
+          updateCurrentProject((p) => ({ ...p, activeFileTabId: fileId }));
+        },
+
+        setBottomPanelTab: (tab) => {
+          set({ bottomPanelTab: tab });
+        },
+
+        toggleBottomPanel: () => {
+          set((state) => ({ isBottomPanelOpen: !state.isBottomPanelOpen }));
+        },
+
+        setActivityPanelTab: (tab) => {
+          set({ activityPanelTab: tab });
+        },
+
+        setProjectManagerOpen: (open) => {
+          set({ isProjectManagerOpen: open });
+        },
+
+        setNewProjectOpen: (open) => {
+          set({ isNewProjectOpen: open });
+        },
+
+        setProjectFiles: (projectId, files) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, files } : p,
+            ),
+          }));
+        },
+
+        setActivityPanelWidth: (width) => {
+          set({ activityPanelWidth: width });
+        },
+
+        setForceShowLSPOverlay: (show) => {
+          set({ forceShowLSPOverlay: show });
+        },
+
+        toggleFolderExpand: (projectId: string, folderId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) => {
+              if (p.id !== projectId) return p;
+              const isExpanded = p.expandedFolderIds.includes(folderId);
+              return {
+                ...p,
+                expandedFolderIds: isExpanded
+                  ? p.expandedFolderIds.filter((id) => id !== folderId)
+                  : [...p.expandedFolderIds, folderId],
+              };
+            }),
+          }));
+        },
+
+        collapseAllFolders: (projectId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, expandedFolderIds: [] } : p,
+            ),
+          }));
+        },
+
+        invalidateDir: (projectId: string, dirPath: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) => {
+              if (p.id !== projectId) return p;
+              return {
+                ...p,
+                dirVersions: {
+                  ...p.dirVersions,
+                  [dirPath]: (p.dirVersions[dirPath] || 0) + 1,
+                },
+              };
+            }),
+          }));
+        },
+
+        hydrateProjectFiles: (projectId, files) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, files } : p,
+            ),
+          }));
+        },
+
+        // ── Unsaved changes management ──
+        markFileAsUnsaved: (fileId: string, content: string) => {
+          const project = getCurrentProject();
+          if (!project) return;
+
+          // Sync latest content into fileNodeMap so save can read it
+          updateCurrentProject((p) => {
+            const node = p.fileNodeMap[fileId];
+            const updatedNodeMap = node
+              ? { ...p.fileNodeMap, [fileId]: { ...node, content } }
+              : p.fileNodeMap;
+            const original = p.originalContents[fileId];
+            let unsavedFiles = p.unsavedFiles;
+            if (original !== undefined && original !== content) {
+              unsavedFiles = new Set([...p.unsavedFiles, fileId]);
+            } else if (original === content) {
+              unsavedFiles = new Set(p.unsavedFiles);
+              unsavedFiles.delete(fileId);
             }
-          : p
-      ),
-    }));
-  },
+            return { ...p, fileNodeMap: updatedNodeMap, unsavedFiles };
+          });
+        },
 
-  setCurrentService: (serviceId) => {
-    set({ currentServiceId: serviceId });
-  },
+        markFileAsSaved: (fileId: string) => {
+          updateCurrentProject((p) => {
+            const newUnsaved = new Set(p.unsavedFiles);
+            newUnsaved.delete(fileId);
+            return { ...p, unsavedFiles: newUnsaved };
+          });
+        },
 
-  openFile: (_projectId, fileId) => {
-    const state = get();
-    if (!state.openFiles.includes(fileId)) {
-      set((state) => ({
-        openFiles: [...state.openFiles, fileId],
-        activeFileTabId: fileId,
-      }));
-    } else {
-      set({ activeFileTabId: fileId });
-    }
-  },
+        setOriginalContent: (fileId: string, content: string) => {
+          updateCurrentProject((p) => ({
+            ...p,
+            originalContents: { ...p.originalContents, [fileId]: content },
+          }));
+        },
 
-  closeFile: (fileId) => {
-    const state = get();
-    const newOpenFiles = state.openFiles.filter((id) => id !== fileId);
-    set({
-      openFiles: newOpenFiles,
-      activeFileTabId: newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1] : null,
-    });
-  },
+        hasUnsavedChanges: () => {
+          const project = getCurrentProject();
+          return project ? project.unsavedFiles.size > 0 : false;
+        },
 
-  setActiveFileTab: (fileId) => {
-    set({ activeFileTabId: fileId });
-  },
+        getUnsavedFiles: () => {
+          const project = getCurrentProject();
+          return project ? Array.from(project.unsavedFiles) : [];
+        },
 
-  setBottomPanelTab: (tab) => {
-    set({ bottomPanelTab: tab });
-  },
+        saveAllFiles: async () => {
+          const project = getCurrentProject();
+          if (!project) return;
 
-  toggleBottomPanel: () => {
-    set((state) => ({ isBottomPanelOpen: !state.isBottomPanelOpen }));
-  },
+          const unsavedFileIds = Array.from(project.unsavedFiles);
 
-  setActivityPanelTab: (tab) => {
-    set({ activityPanelTab: tab });
-  },
+          for (const fileId of unsavedFileIds) {
+            await get().saveFile(fileId);
+          }
+        },
 
-  setProjectManagerOpen: (open) => {
-    set({ isProjectManagerOpen: open });
-  },
+        saveFile: async (fileId: string) => {
+          const project = getCurrentProject();
+          if (!project) return;
 
-  setActivityPanelWidth: (width) => {
-    set({ activityPanelWidth: width });
-  },
-}));
+          const fileNode = project.fileNodeMap[fileId];
+          if (!fileNode || !fileNode.path || fileNode.content === undefined) return;
+
+          try {
+            await window.api.invoke('fs:write-file', fileNode.path, fileNode.content);
+            get().setOriginalContent(fileId, fileNode.content);
+            get().markFileAsSaved(fileId);
+          } catch (err) {
+            console.error('[CodeStore] Failed to save file ' + fileNode.path + ':', err);
+            throw err;
+          }
+        },
+
+        // ── Modal control ──
+        setPendingAction: (action: (() => void) | null) => {
+          set({ pendingAction: action });
+        },
+
+        setSaveConfirmModalOpen: (open: boolean) => {
+          set({ isSaveConfirmModalOpen: open });
+        },
+
+        executeWithSaveCheck: (action: () => void) => {
+          const hasUnsaved = get().hasUnsavedChanges();
+          if (hasUnsaved) {
+            set({ pendingAction: action, isSaveConfirmModalOpen: true });
+          } else {
+            action();
+          }
+        },
+      };
+    },
+    {
+      name: 'code-store',
+      partialize: (state) => ({
+        ...state,
+        projects: state.projects.map((p) => ({
+          ...p,
+          files: [],
+          // Convert Set to Array for serialization
+          unsavedFiles: Array.from(p.unsavedFiles),
+          // Keep openFiles + display names so tabs are restored on reload
+          // Keep expandedFolderIds so folder tree state is restored
+          // Reset volatile runtime data (currentFileId not needed across sessions)
+          currentFileId: null,
+        })),
+        isProjectManagerOpen: false,
+        isNewProjectOpen: false,
+        pendingAction: null,
+        isSaveConfirmModalOpen: false,
+      }),
+      // Custom merge function to convert Arrays back to Sets
+      merge: (persistedState: any, currentState: CodeState) => {
+        const merged = { ...currentState, ...persistedState };
+        if (merged.projects) {
+          merged.projects = merged.projects.map((p: any) => ({
+            ...p,
+            unsavedFiles: new Set(p.unsavedFiles || []),
+          }));
+        }
+        return merged;
+      },
+    },
+  ),
+);
