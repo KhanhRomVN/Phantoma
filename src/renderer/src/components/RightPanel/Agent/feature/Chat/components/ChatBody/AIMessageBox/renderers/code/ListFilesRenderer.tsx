@@ -1,20 +1,20 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// CONSTANTS
+// Constants
 import { getToolLabel } from '../../../../../constants/constants';
 
-// SERVICES
+// Services
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
-// UTILS
+// UtilsS
 import {
   collectConvFilePaths,
   getNextUserMessage,
   buildTreeFromPaths,
 } from '../../../../../utils/renderer-utils';
 
-// COMPONENTS
+// Components
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
 import FileIcon from '@renderer/components/common/FileIcon';

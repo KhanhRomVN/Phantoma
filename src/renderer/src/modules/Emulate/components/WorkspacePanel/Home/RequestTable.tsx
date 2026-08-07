@@ -29,27 +29,28 @@ import {
   Regex,
 } from 'lucide-react';
 import { useDebounce } from 'use-debounce';
+import type { SecurityIssue } from '../../../../Tool/utils/securityScanner';
 
-// COMPONENT
+// Components
 import {
   Dropdown,
   DropdownTrigger,
   DropdownContent,
   DropdownItem,
   DropdownSeparator,
-} from '../../../../../components/ui/Dropdown';
+} from '@renderer/components/ui/Dropdown';
 
-// HOOK
+// Hooks
 import { filterRequestsByConfig } from '../../../hooks/network/useRequestFilter';
-import { useAccentColors } from '../../../../../shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
 // STORE
 import { useNetworkStore } from '../../../../../stores/networkStore';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
-// TYPE
+// Types
 import { InspectorFilter } from '../../../types/filter.types';
 import { NetworkRequest } from './Filter';
 
@@ -316,11 +317,11 @@ export const RequestTable = React.memo(function RequestTable({
         }
         if (copySections.security) {
           md += '**Security Issues:**\n';
-          const issues = req.securityIssues || [];
+          const issues = (req.securityIssues || []) as SecurityIssue[];
           if (issues.length > 0) {
-            issues.forEach((issue) => {
+            for (const issue of issues) {
               md += `- **${issue.severity?.toUpperCase() || 'UNKNOWN'}**: ${issue.title || 'No title'} - ${issue.description || 'No description'}\n`;
-            });
+            }
           } else {
             md += '*(No security issues)*\n';
           }

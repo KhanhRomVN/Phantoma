@@ -1,5 +1,5 @@
-// TYPE
-import { NetworkRequest } from '../../../../../types/inspector';
+// Types
+import { NetworkRequest } from '../../../../../../types/inspector';
 
 interface CookieDetailsProps {
   request: NetworkRequest;

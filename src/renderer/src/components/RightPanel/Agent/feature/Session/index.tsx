@@ -9,11 +9,7 @@ interface SessionPanelProps {
 export default function SessionPanel({ isOpen = true, onClose }: SessionPanelProps) {
   return (
     <Drawer isOpen={isOpen} onClose={onClose || (() => {})} height="100%" strategy="absolute">
-      <DrawerHeader
-        title="Session"
-        description="Manage your active sessions"
-        onClose={onClose}
-      />
+      <DrawerHeader title="Session" description="Manage your active sessions" onClose={onClose} />
       <DrawerBody>
         <div className="flex items-center justify-center h-full text-text-secondary text-sm">
           Session Panel

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useAccentColors } from '../../shared/hooks/useAccentColors';
-import { cn } from '@renderer/shared/utils/cn';
+import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 import { targetService } from '../../services/TargetService';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
@@ -8,12 +7,8 @@ import { EmulateController } from '../../controller/EmulateController';
 import { apiService } from '../../services/api.service';
 
 // Components
-import { RequestTable, RequestDetails, initialFilterState } from './components/WorkspacePanel/Home';
-import { ResourcesPanel } from './components/WorkspacePanel/Resources';
-import { PayloadPanel } from './components/WorkspacePanel/Repeater';
-import { SourcesPanel } from './components/WorkspacePanel/Source';
-import { LogViewer } from './components/WorkspacePanel/Log';
-import { DevicePanel } from './components/WorkspacePanel/Device';
+import { initialFilterState } from './components/WorkspacePanel/Home';
+import WorkspacePanel from './components/WorkspacePanel';
 import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
 
 // Hooks
@@ -23,7 +18,7 @@ import { useRequestFilter } from './hooks/network/useRequestFilter';
 // Types
 import { NetworkRequest } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
-import { ToolType, TOOLS, DEFAULT_TOOL } from './constants/tools';
+import { ToolType, DEFAULT_TOOL } from './constants/tools';
 import { useTheme } from '@renderer/theme';
 import useNetworkEvents from './hooks/network/useNetworkEvents';
 import TargetSidebar from './components/TargetListPanel';
@@ -289,10 +284,9 @@ export default React.memo(function Emulate({
     return () => clearInterval(interval);
   }, [targetStates, updateTimerFn, clearTimerFn]);
 
-  const { filter, searchTerm, setSearchTerm, updateFilter, filterRequests } = useRequestFilter();
+  const { filter, searchTerm, setSearchTerm, updateFilter } = useRequestFilter();
 
   // Derived state
-  const filteredRequests = useMemo(() => filterRequests(requests), [filterRequests, requests]);
   const currentTargetUrl = targetTabs.find((tab) => tab.id === activeTargetId)?.url;
 
   useEffect(() => {
@@ -460,39 +454,6 @@ export default React.memo(function Emulate({
   const memoizedTargetTabs = useMemo(() => targetTabs, [targetTabs]);
   const memoizedTargetStates = useMemo(() => targetStates, [targetStates]);
 
-  // TabBar
-  const TabBar = useMemo(() => {
-    return (
-      <div className="flex h-10 border-b border-border shrink-0 overflow-x-auto gap-0.5 px-2">
-        {(Object.keys(TOOLS) as ToolType[]).map((id) => {
-          const tool = TOOLS[id];
-          const tabColor = getColorByIndex(tool.accentIndex);
-          const isActive = selectedTool === id;
-          return (
-            <button
-              key={id}
-              onClick={() => handleSetSelectedTool(id)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 h-full text-sm font-medium whitespace-nowrap cursor-pointer transition-all border-b-2',
-                isActive
-                  ? 'text-text-primary'
-                  : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-dropdown-item-hover',
-              )}
-              style={{
-                borderBottomColor: isActive ? tabColor : 'transparent',
-              }}
-            >
-              <span style={{ color: isActive ? tabColor : undefined }}>
-                {React.createElement(tool.icon, { size: 14, strokeWidth: 1.5 })}
-              </span>
-              <span>{tool.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    );
-  }, [selectedTool, getColorByIndex, handleSetSelectedTool]);
-
   return (
     <div className="flex h-full bg-background">
       {/* Target Sidebar */}
@@ -513,96 +474,32 @@ export default React.memo(function Emulate({
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {TabBar}
-
-        {selectedTool === 'device' ? (
-          <div className="flex-1 overflow-hidden">
-            <DevicePanel />
-          </div>
-        ) : !activeTargetId || activeTargetId === 'default' ? (
-          <div className="flex-1 flex items-center justify-center text-text-secondary">
-            <div className="text-center">
-              <div className="text-sm font-medium mb-1">No target selected</div>
-              <div className="text-xs text-text-secondary">Select a target from the left panel</div>
-            </div>
-          </div>
-        ) : (
-          <>
-            {selectedTool === 'home' && (
-              <>
-                <div className="flex-1 min-h-0 border-b border-border">
-                  <RequestTable
-                    selectedId={selectedId}
-                    onSelect={handleSetSelectedId}
-                    searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
-                    interceptedIds={new Set()}
-                    pendingActionIds={new Set()}
-                    onForward={() => {}}
-                    onDrop={() => {}}
-                    onDelete={() => {}}
-                    appId="emulate-app"
-                    onSendToRepeater={handleSendToRepeater}
-                    onLaunchTarget={handleLaunchTarget}
-                    onClearRequests={handleClearRequests}
-                    currentTargetAppId={activeTargetId || undefined}
-                    currentTargetUrl={currentTargetUrl}
-                    isTargetActive={isTargetActive(activeTargetId)}
-                    activeTargetMode={targetStates[activeTargetId]?.mode || null}
-                    isInterceptActive={targetStates[activeTargetId]?.isIntercepting || false}
-                    onToggleIntercept={handleToggleIntercept}
-                    onStopTarget={handleStopTarget}
-                    onStartTarget={handleStartTarget}
-                  />
-                </div>
-                <div className="flex-1 min-h-0">
-                  <RequestDetails
-                    request={requests.find((r) => r.id === selectedId) || null}
-                    searchTerm={searchTerm}
-                    filter={filter}
-                    onFilterChange={handleSetFilter}
-                    requests={requests}
-                    onSearchTermChange={setSearchTerm}
-                    onSelectRequest={handleSetSelectedId}
-                    onSetCompare1={() => {}}
-                    onSetCompare2={() => {}}
-                    appId="emulate-app"
-                    onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
-                    isFilterOpen={isFilterOpen}
-                    targetId={activeTargetId}
-                  />
-                </div>
-              </>
-            )}
-            {selectedTool === 'intruder' && (
-              <div className="flex-1 flex items-center justify-center text-text-secondary">
-                Intruder Content - Under Development
-              </div>
-            )}
-            {selectedTool === 'repeater' && (
-              <div className="flex-1 overflow-hidden">
-                <PayloadPanel selectedRequestId={fuzzerTargetId} />
-              </div>
-            )}
-            {selectedTool === 'resource' && (
-              <div className="flex-1 overflow-hidden">
-                <ResourcesPanel requests={requests} />
-              </div>
-            )}
-            {selectedTool === 'source' && (
-              <div className="flex-1 overflow-hidden">
-                <SourcesPanel requests={requests} unpackedScripts={unpackedScripts} />
-              </div>
-            )}
-            {selectedTool === 'log' && (
-              <div className="flex-1 overflow-hidden">
-                <LogViewer />
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      <WorkspacePanel
+        selectedTool={selectedTool}
+        activeTargetId={activeTargetId}
+        targetStates={targetStates}
+        selectedId={selectedId}
+        searchTerm={searchTerm}
+        requests={requests}
+        filter={filter}
+        isFilterOpen={isFilterOpen}
+        fuzzerTargetId={fuzzerTargetId}
+        unpackedScripts={unpackedScripts}
+        currentTargetUrl={currentTargetUrl}
+        getColorByIndex={getColorByIndex}
+        onSetSelectedTool={handleSetSelectedTool}
+        onSetSelectedId={handleSetSelectedId}
+        onSearchChange={setSearchTerm}
+        onFilterChange={handleSetFilter}
+        onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
+        onSendToRepeater={handleSendToRepeater}
+        onClearRequests={handleClearRequests}
+        onLaunchTarget={handleLaunchTarget}
+        onToggleIntercept={handleToggleIntercept}
+        onStopTarget={handleStopTarget}
+        onStartTarget={handleStartTarget}
+        isTargetActive={isTargetActive}
+      />
 
       {/* Modals */}
       {addModalPlatform && (

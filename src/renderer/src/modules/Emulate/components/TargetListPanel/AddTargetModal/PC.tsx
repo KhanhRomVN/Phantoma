@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Search, Loader2, Monitor, RefreshCw } from 'lucide-react';
 
-// TYPE
+// Types
 import type { DiscoveredApp } from '../../../../../types/apps';
 import type { BaseModalProps } from './index';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
-// SERVICE
+// Services
 import { apiService } from '../../../../../services/api.service';
 
 type PCBodyProps = Pick<BaseModalProps, 'isOpen' | 'onAdd' | 'existingApps'>;

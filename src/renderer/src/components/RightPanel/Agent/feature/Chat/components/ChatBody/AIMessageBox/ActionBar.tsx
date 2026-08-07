@@ -2,10 +2,10 @@ import React from 'react';
 import { Check, X } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// CONSTANTS
+// Constants
 import { TOOL_ACTION_TYPES } from '../../../constants/constants';
 
-// TYPES
+// Types
 import { ToolAction } from '../../../services/ResponseParser';
 
 export interface ActionBarProps {

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NmapScanParams, TooltipState } from '../types';
 import { buildCommand } from '../utils';
 import { SCAN_TYPES, TIMING_LABELS, COMMON_FLAGS } from '../constants';
-import { CodeBlock } from '../../../../../../components/common/CodeBlock';
+import { CodeBlock } from '@renderer/components/common/CodeBlock';
 import { Play, Save, Square } from 'lucide-react';
 
 // ─── Flag Accordion ────────────────────────────────────────────────────────────
@@ -88,8 +88,8 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
               }}
               className="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded text-xs font-semibold font-mono whitespace-nowrap transition-all duration-100"
               style={{
-                border: `1px solid ${active ? accentColor + '60' : ($('--input-border-default') || '')}`,
-                background: active ? ($('--primary-10') || '') : 'transparent',
+                border: `1px solid ${active ? accentColor + '60' : $('--input-border-default') || ''}`,
+                background: active ? $('--primary-10') || '' : 'transparent',
                 color: active ? accentColor : $('--text-secondary'),
               }}
             >
@@ -403,7 +403,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 }}
                 className="p-2 cursor-pointer text-[12px] transition-colors text-text-primary hover:bg-dropdown-item-hover"
                 style={{
-                  borderBottom: i < targetHistory.length - 1 ? '1px solid ' + ($('--border') || '') : 'none',
+                  borderBottom:
+                    i < targetHistory.length - 1 ? '1px solid ' + ($('--border') || '') : 'none',
                 }}
               >
                 {t}
@@ -467,7 +468,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                     : 'bg-input-background text-text-secondary border-input-border-default'
                 }`}
                 style={{
-                  border: `1px solid ${params.timing === t ? ($('--primary') || '') : ($('--input-border-default') || '')}`,
+                  border: `1px solid ${params.timing === t ? $('--primary') || '' : $('--input-border-default') || ''}`,
                 }}
               >
                 {t}
@@ -501,11 +502,15 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 onClick={() => setParams({ ...params, scanType: st.value as any })}
                 onMouseEnter={(e) => {
                   showTooltip(st.note, e);
-                  if (!active) e.currentTarget.style.borderColor = $('--input-border-default') || 'rgba(128,128,128,0.2)';
+                  if (!active)
+                    e.currentTarget.style.borderColor =
+                      $('--input-border-default') || 'rgba(128,128,128,0.2)';
                 }}
                 onMouseLeave={(e) => {
                   onTooltipShow(null);
-                  if (!active) e.currentTarget.style.borderColor = $('--input-border-default') || 'rgba(128,128,128,0.2)';
+                  if (!active)
+                    e.currentTarget.style.borderColor =
+                      $('--input-border-default') || 'rgba(128,128,128,0.2)';
                 }}
                 className={`flex-1 py-2 px-2 rounded font-mono transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                   active
@@ -513,7 +518,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                     : 'bg-input-background text-text-secondary border-input-border-default'
                 }`}
                 style={{
-                  border: `1px solid ${active ? ($('--primary') || '') : ($('--input-border-default') || '')}`,
+                  border: `1px solid ${active ? $('--primary') || '' : $('--input-border-default') || ''}`,
                 }}
               >
                 <span className="text-[11px] font-bold">{st.flag}</span>
@@ -741,7 +746,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             disabled={scanning || !params.target.trim()}
             className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary text-text-foreground disabled:bg-input-background disabled:text-text-secondary disabled:cursor-not-allowed rounded"
             style={{
-border: `1px solid ${params.target ? accentColor + '50' : ($('--input-border-default') || '')}`,
+              border: `1px solid ${params.target ? accentColor + '50' : $('--input-border-default') || ''}`,
               boxShadow: scanning || !params.target.trim() ? 'none' : `0 0 18px ${glow}`,
             }}
           >

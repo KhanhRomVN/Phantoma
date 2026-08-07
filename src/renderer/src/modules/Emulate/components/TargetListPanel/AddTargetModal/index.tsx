@@ -1,14 +1,14 @@
 import React, { useRef, useCallback } from 'react';
 
-// COMPONENT
-import { Modal, ModalHeader, ModalBody, ModalFooter } from '../../../../../components/ui/Modal';
+// Components
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Website } from './Website';
 import { Android } from './Android';
 import { PC } from './PC';
 import { CLI } from './CLI';
 
-// TYPE
-import type { AppPlatform, AppMode } from '../../../../../types/apps';
+// Types
+import type { AppPlatform, AppMode } from '../../../../../../types/apps';
 
 export interface BaseModalProps {
   isOpen: boolean;

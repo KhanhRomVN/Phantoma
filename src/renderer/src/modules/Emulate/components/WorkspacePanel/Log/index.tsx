@@ -15,10 +15,10 @@ import {
 } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
-// SERVICE
+// Services
 import { logcatService } from '../../../services/logcat.service';
 
 interface LogEntry {

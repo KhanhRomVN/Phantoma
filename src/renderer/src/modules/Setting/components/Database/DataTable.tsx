@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import { flexRender, Table as TanStackTable } from '@tanstack/react-table';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableCell,
-} from '../../../../components/ui/Table';
+import { Table, TableHeader, TableBody, TableRow, TableCell } from '@renderer/components/ui/Table';
 
 import {
   Dropdown,
@@ -16,7 +10,7 @@ import {
   DropdownSub,
   DropdownSubTrigger,
   DropdownSubContent,
-} from '../../../../components/ui/Dropdown';
+} from '@renderer/components/ui/Dropdown';
 import { Copy, Trash2, FileJson, FileText, ChevronDown } from 'lucide-react';
 
 interface DataTableProps {

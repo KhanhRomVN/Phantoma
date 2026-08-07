@@ -1,9 +1,9 @@
 import React from 'react';
 
-// TYPES
+// Types
 import { Question, QuestionAnswer } from '../../../../../types/message';
 
-// COMPONENTS
+// Components
 import QuestionAnswerBlock from '../../blocks/other/QuestionAnswerBlock';
 
 interface QuestionRendererProps {

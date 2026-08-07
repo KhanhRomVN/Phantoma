@@ -7,7 +7,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 
-// TYPES
+// Types
 export type AgentFeature = 'emulate' | 'code' | null;
 
 export interface EmulateState {
@@ -30,10 +30,10 @@ const FeatureContext = createContext<FeatureContextValue>({
   setEmulateState: () => {},
 });
 
-// HOOKS
+// Hooks
 export const useAgentFeature = () => useContext(FeatureContext);
 
-// COMPONENTS
+// Components
 export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeFeature, setActiveFeature] = useState<AgentFeature>(null);
   const [emulateState, setEmulateState] = useState<EmulateState>({

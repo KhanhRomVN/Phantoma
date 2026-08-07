@@ -1,22 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
-// COMPONENT
+// Components
 import { ResourceList } from './ResourceList';
 import { ResourcePreview } from './ResourcePreview';
 
-// TYPE
+// Types
 import { NetworkRequest } from '../Home/Filter';
 import { ResourceItem, ResourceType } from '../../../types/resource.types';
 
-// CONSTANT
+// Constants
 import { detectResourceType } from '../../../constants/resource';
 
-// UTIL
+// Utils
 import { formatSize } from '../../../utils/sourceTree';
-
-// UTIL
 import { detectWasmModules } from '../../../../../utils/detectors';
 
-// SERVICE
+// Services
 import { apiService } from '../../../../../services/api.service';
 
 interface ResourcesPanelProps {

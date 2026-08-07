@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Search } from 'lucide-react';
 
-// COMPONENT
+// Components
 import { RequestPanel } from './WorkspacePanel/RequestPanel';
 import { RequestList } from './RequestList';
 
-// TYPE
+// Types
 import type { HistoryEntry } from '../../../types/repeater.types';
 import type { NetworkRequest } from '../Home/Filter';
 
-// SERVICE
+// Services
 import repeaterApi, { RepeaterRequest } from '../../../services/repeater-api.service';
 
 // STORE

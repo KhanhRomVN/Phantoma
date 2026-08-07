@@ -1,14 +1,14 @@
 import { ChevronRight, ChevronDown, FolderOpen, Search } from 'lucide-react';
-// COMPONENT
+// Components
 import FileIcon from '../../../../../components/common/FileIcon';
 
-// TYPE
+// Types
 import { ResourceItem, ResourceType } from '../../../types/resource.types';
 
-// CONSTANT
+// Constants
 import { RESOURCE_TYPES } from '../../../constants/resource';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
 interface ResourceListProps {

@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
-// HOOKS
+// Hooks
 import { useProject } from '../../../../../context/ProjectContext';
 
-// SERVICES
+// Services
 import { extensionService } from '../../../../../services/ExtensionService';
 
-// CONSTANTS
+// Constants
 import {
   shouldShowFileStats,
   shouldValidateFuzzyMatch,
@@ -19,15 +19,15 @@ import {
   TAG_REGISTRY,
 } from '../../../constants/constants';
 
-// TYPES
+// Types
 import { ToolAction } from '../../../services/ResponseParser';
 import { Message } from '../../../types/message';
 import { GroupType } from '../../../types/renderer-types';
 
-// UTILS
+// UtilsS
 import { formatActionForDisplay } from '../../../services/ResponseParser';
 
-// COMPONENTS
+// Components
 import {
   CommitMessageRenderer,
   DeleteFileRenderer,

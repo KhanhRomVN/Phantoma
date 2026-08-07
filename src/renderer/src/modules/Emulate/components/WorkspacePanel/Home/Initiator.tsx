@@ -1,11 +1,10 @@
-import { NetworkRequest } from '../../../../../types/inspector';
 import { GitBranch, FileCode } from 'lucide-react';
 
-// HOOK
-import { useTheme } from '../../../../../theme/ThemeProvider';
-
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
+
+// Types
+import { NetworkRequest } from '../../../../../types/inspector';
 
 interface InitiatorDetailsProps {
   request: NetworkRequest;
@@ -36,12 +35,10 @@ interface StackFrame {
 function StackFrameLine({
   frame,
   index,
-  accentColor,
   onNavigateToSource,
 }: {
   frame: StackFrame;
   index: number;
-  accentColor: string;
   onNavigateToSource?: (url: string, line: number, col: number, functionName: string) => void;
 }) {
   const functionName = frame.functionName || '(anonymous)';
@@ -81,10 +78,9 @@ function StackFrameLine({
       </span>
       <span
         className={cn(
-          'truncate max-w-[280px] shrink-0 font-medium',
-          url ? 'text-primary hover:underline' : '',
+          'truncate max-w-[280px] shrink-0 font-medium text-primary',
+          url && 'hover:underline',
         )}
-        style={url ? {} : { color: accentColor }}
       >
         {functionName}
       </span>
@@ -104,9 +100,6 @@ function InitiatorInfoDisplay({
   initiator: InitiatorInfo | null;
   onNavigateToSource?: (url: string, line: number, col: number, functionName: string) => void;
 }) {
-  const { currentPreset } = useTheme();
-  const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
-
   if (!initiator) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-text-secondary py-12">
@@ -136,9 +129,7 @@ function InitiatorInfoDisplay({
             {initiator.functionName && (
               <span className="text-[11px] text-text-secondary shrink-0">
                 <span className="opacity-50">in</span>{' '}
-                <span className="font-mono font-medium" style={{ color: accentColor }}>
-                  {initiator.functionName}
-                </span>
+                <span className="font-mono font-medium text-primary">{initiator.functionName}</span>
               </span>
             )}
           </div>
@@ -152,7 +143,6 @@ function InitiatorInfoDisplay({
               key={index}
               frame={frame}
               index={index}
-              accentColor={accentColor}
               onNavigateToSource={onNavigateToSource}
             />
           ))}

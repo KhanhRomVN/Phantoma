@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { AmassScanParams, TooltipState } from '../types';
 import { buildCommand } from '../utils';
 import { MODES, OUTPUT_FORMATS, COMMON_FLAGS, DATA_SOURCES } from '../constants';
-import { CodeBlock } from '../../../../../../components/common/CodeBlock';
+import { CodeBlock } from '@renderer/components/common/CodeBlock';
 import { Play, Save } from 'lucide-react';
 
 interface FlagCategory {
@@ -86,8 +86,8 @@ const FlagAccordion: React.FC<FlagAccordionProps> = ({
               }}
               className="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded text-xs font-semibold font-mono whitespace-nowrap transition-all duration-100"
               style={{
-                border: `1px solid ${active ? accentColor + '60' : ($('--input-border-default') || '')}`,
-                background: active ? ($('--primary-10') || '') : 'transparent',
+                border: `1px solid ${active ? accentColor + '60' : $('--input-border-default') || ''}`,
+                background: active ? $('--primary-10') || '' : 'transparent',
                 color: active ? accentColor : $('--text-secondary'),
               }}
             >
@@ -221,7 +221,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
           placeholder="example.com  ·  sub.example.com  ·  example.org"
           className="w-full box-border p-2.5 rounded text-[13px] font-inherit outline-none transition-colors bg-input-background text-text-primary placeholder:text-text-secondary"
           style={{
-            border: `1px solid ${params.target ? accentColor + '50' : ($('--input-border-default') || '')}`,
+            border: `1px solid ${params.target ? accentColor + '50' : $('--input-border-default') || ''}`,
             boxShadow: params.target ? `0 0 10px ${glow}` : 'none',
           }}
         />
@@ -245,7 +245,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   cursor: 'pointer',
                   fontSize: 12,
                   color: $('--text-primary'),
-                  borderBottom: i < targetHistory.length - 1 ? '1px solid ' + ($('--border') || '') : 'none',
+                  borderBottom:
+                    i < targetHistory.length - 1 ? '1px solid ' + ($('--border') || '') : 'none',
                   transition: 'background 0.12s',
                 }}
                 onMouseEnter={(e) =>
@@ -286,7 +287,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                   onClick={() => setParams({ ...params, mode: mode.value as any })}
                   className={`flex-1 py-2.5 px-2 rounded font-mono transition-all text-center ${active ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
                   style={{
-                    border: `1px solid ${active ? accentColor + '60' : ($('--input-border-default') || '')}`,
+                    border: `1px solid ${active ? accentColor + '60' : $('--input-border-default') || ''}`,
                     background: active ? glow : undefined,
                   }}
                 >
@@ -373,7 +374,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               onClick={() => setParams({ ...params, passiveOnly: true, activeEnabled: false })}
               className={`flex-1 py-2 px-3 rounded text-[11px] font-semibold font-inherit transition-all ${params.passiveOnly && !params.activeEnabled ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
               style={{
-                border: `1px solid ${params.passiveOnly && !params.activeEnabled ? accentColor + '60' : ($('--input-border-default') || '')}`,
+                border: `1px solid ${params.passiveOnly && !params.activeEnabled ? accentColor + '60' : $('--input-border-default') || ''}`,
                 background: params.passiveOnly && !params.activeEnabled ? glow : undefined,
                 color: params.passiveOnly && !params.activeEnabled ? accentColor : undefined,
               }}
@@ -384,7 +385,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               onClick={() => setParams({ ...params, passiveOnly: false, activeEnabled: true })}
               className={`flex-1 py-2 px-3 rounded text-[11px] font-semibold font-inherit transition-all ${params.activeEnabled && !params.passiveOnly ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
               style={{
-                border: `1px solid ${params.activeEnabled && !params.passiveOnly ? accentColor + '60' : ($('--input-border-default') || '')}`,
+                border: `1px solid ${params.activeEnabled && !params.passiveOnly ? accentColor + '60' : $('--input-border-default') || ''}`,
                 background: params.activeEnabled && !params.passiveOnly ? glow : undefined,
                 color: params.activeEnabled && !params.passiveOnly ? accentColor : undefined,
               }}
@@ -395,7 +396,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
               onClick={() => setParams({ ...params, bruteForce: !params.bruteForce })}
               className={`flex-1 py-2 px-3 rounded text-[11px] font-semibold font-inherit transition-all ${params.bruteForce ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
               style={{
-                border: `1px solid ${params.bruteForce ? accentColor + '60' : ($('--input-border-default') || '')}`,
+                border: `1px solid ${params.bruteForce ? accentColor + '60' : $('--input-border-default') || ''}`,
                 background: params.bruteForce ? glow : undefined,
                 color: params.bruteForce ? accentColor : undefined,
               }}
@@ -417,7 +418,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                 onClick={() => setParams({ ...params, outputFormat: fmt.value as any })}
                 className={`flex-1 py-2 px-3 rounded text-[11px] font-semibold font-inherit transition-all ${params.outputFormat === fmt.value ? 'bg-primary/10 text-primary border-primary' : 'bg-input-background text-text-secondary border-input-border-default'}`}
                 style={{
-                  border: `1px solid ${params.outputFormat === fmt.value ? accentColor + '60' : ($('--input-border-default') || '')}`,
+                  border: `1px solid ${params.outputFormat === fmt.value ? accentColor + '60' : $('--input-border-default') || ''}`,
                   background: params.outputFormat === fmt.value ? glow : undefined,
                 }}
               >
@@ -486,7 +487,9 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                         setSourceInputValue('');
                       }}
                       className="p-1.5 cursor-pointer text-[11px] transition-colors text-text-primary hover:bg-dropdown-item-hover"
-                      style={{ borderBottom: i < 9 ? '1px solid ' + ($('--border') || '') : 'none' }}
+                      style={{
+                        borderBottom: i < 9 ? '1px solid ' + ($('--border') || '') : 'none',
+                      }}
                     >
                       {src}
                     </div>
@@ -569,7 +572,9 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
                         setShowFlagSuggestions(false);
                       }}
                       className="p-1.5 cursor-pointer text-[11px] transition-colors text-text-primary hover:bg-dropdown-item-hover flex justify-between items-center"
-                      style={{ borderBottom: i < 9 ? '1px solid ' + ($('--border') || '') : 'none' }}
+                      style={{
+                        borderBottom: i < 9 ? '1px solid ' + ($('--border') || '') : 'none',
+                      }}
                     >
                       <span className="font-mono">{flag.label}</span>
                       <span className="text-[9px] text-text-secondary">{flag.desc}</span>
@@ -640,7 +645,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
             disabled={scanning || !params.target.trim()}
             className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold tracking-wide font-inherit transition-all bg-primary text-text-foreground disabled:bg-input-background disabled:text-text-secondary disabled:cursor-not-allowed rounded"
             style={{
-              border: `1px solid ${scanning || !params.target.trim() ? ($('--input-border-default') || '') : 'transparent'}`,
+              border: `1px solid ${scanning || !params.target.trim() ? $('--input-border-default') || '' : 'transparent'}`,
               boxShadow: scanning || !params.target.trim() ? 'none' : `0 0 18px ${glow}`,
             }}
           >

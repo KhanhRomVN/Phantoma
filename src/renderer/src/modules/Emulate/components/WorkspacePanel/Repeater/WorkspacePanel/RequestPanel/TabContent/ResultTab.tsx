@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 
-// TYPE
+// Types
 import type { PayloadItem } from '../../../../../../types/repeater.types';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
 interface ResultTabProps {

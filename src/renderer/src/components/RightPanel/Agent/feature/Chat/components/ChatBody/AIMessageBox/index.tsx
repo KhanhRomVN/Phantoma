@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// CONSTANTS
+// Constants
 import {
   EXECUTION_STATUS,
   TOOL_ACTION_TYPES,
@@ -9,12 +9,12 @@ import {
   type TerminalStatus,
 } from '../../../constants/constants';
 
-// TYPES
+// Types
 import { Message } from '../../../types/message';
 import { ParsedResponse } from '../../../services/ResponseParser';
 import { GroupType } from '../../../types/renderer-types';
 
-// COMPONENTS
+// Components
 import TagRouter from './TagRouter';
 import ResponseMetadataBar from './ResponseMetadataBar';
 

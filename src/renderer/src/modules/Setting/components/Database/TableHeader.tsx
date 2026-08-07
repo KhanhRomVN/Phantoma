@@ -23,9 +23,9 @@ import {
   DropdownContent,
   DropdownItem,
   DropdownSeparator,
-} from '../../../../components/ui/Dropdown';
-import { Checkbox } from '../../../../components/ui/Checkbox';
-import { Button } from '../../../../components/ui/Button';
+} from '@renderer/components/ui/Dropdown';
+import { Checkbox } from '@renderer/components/ui/Checkbox';
+import { Button } from '@renderer/components/ui/Button';
 import { SortingState } from '@tanstack/react-table';
 
 interface TableHeaderProps {

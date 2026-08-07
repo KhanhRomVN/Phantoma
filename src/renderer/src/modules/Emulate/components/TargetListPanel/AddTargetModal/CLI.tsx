@@ -1,9 +1,9 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 
-// TYPE
+// Types
 import type { BaseModalProps } from './index';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
 type CLIBodyProps = Pick<

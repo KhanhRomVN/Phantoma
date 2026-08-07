@@ -1,7 +1,7 @@
-// COMPONENT
+// Components
 import { ParamTab } from './ParamTab';
 
-// TYPE
+// Types
 import type { ParamItem, PayloadItem } from '../../../../../../types/repeater.types';
 
 interface HeaderTabProps {

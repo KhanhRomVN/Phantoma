@@ -1,10 +1,10 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Bug } from 'lucide-react';
 
-// TYPE
+// Types
 import type { BaseModalProps } from './index';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
 type WebsiteBodyProps = Pick<

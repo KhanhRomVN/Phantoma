@@ -1,7 +1,7 @@
 import React from 'react';
 import { $ } from '@renderer/utils/color';
 
-// COMPONENTS
+// Components
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 import { TagHeader } from '../../TagHeader';
 

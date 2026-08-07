@@ -7,7 +7,7 @@ import {
   Crosshair as CrosshairIcon,
   Wrench as WrenchIcon,
 } from 'lucide-react';
-import { useAccentColors } from '../shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 import { $ } from '@renderer/utils/color';
 
 // ─── Color Helper ──────────────────────────────────────────────────────────

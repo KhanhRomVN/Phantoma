@@ -8,9 +8,9 @@ import {
   ColumnSizingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { Checkbox } from '../../../../components/ui/Checkbox';
-import { Button } from '../../../../components/ui/Button';
-import { Modal, ModalHeader, ModalBody, ModalFooter } from '../../../../components/ui/Modal';
+import { Checkbox } from '@renderer/components/ui/Checkbox';
+import { Button } from '@renderer/components/ui/Button';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { useDatabase } from '../../hooks/useDatabase';
 import { TableList } from './TableList';
 import { TableHeader } from './TableHeader';
@@ -250,85 +250,43 @@ const DatabaseViewer: React.FC = () => {
     }
   }, [selectedRowIds, deleteRecords]);
 
-  const handleDeleteSingleRecord = useCallback(async (rowId: number) => {
-    try {
-      await deleteRecords([rowId]);
-      setRowSelection({});
-    } catch (err) {
-      console.error('Delete failed:', err);
-      alert(`Failed to delete record: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-  }, [deleteRecords]);
+  const handleDeleteSingleRecord = useCallback(
+    async (rowId: number) => {
+      try {
+        await deleteRecords([rowId]);
+        setRowSelection({});
+      } catch (err) {
+        console.error('Delete failed:', err);
+        alert(`Failed to delete record: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    },
+    [deleteRecords],
+  );
 
-  const handleCopyAsJson = useCallback((row: any) => {
-    try {
-      const data = {
-        table: selectedTable,
-        row: row,
-      };
-      const jsonString = JSON.stringify(data, null, 2);
-      navigator.clipboard.writeText(jsonString);
-    } catch (err) {
-      console.error('Copy failed:', err);
-      alert('Failed to copy as JSON');
-    }
-  }, [selectedTable]);
+  const handleCopyAsJson = useCallback(
+    (row: any) => {
+      try {
+        const data = {
+          table: selectedTable,
+          row: row,
+        };
+        const jsonString = JSON.stringify(data, null, 2);
+        navigator.clipboard.writeText(jsonString);
+      } catch (err) {
+        console.error('Copy failed:', err);
+        alert('Failed to copy as JSON');
+      }
+    },
+    [selectedTable],
+  );
 
-  const handleCopyAsMarkdown = useCallback((row: any) => {
-    try {
-      if (!tableData) return;
-      const columns = tableData.columns;
-      const rows: string[] = [`**Table:** ${selectedTable}`, ''];
-      columns.forEach(col => {
-        const val = row[col];
-        let displayValue: string;
-        if (val === null || val === undefined) {
-          displayValue = 'null';
-        } else if (typeof val === 'string') {
-          displayValue = val;
-        } else if (typeof val === 'object') {
-          displayValue = JSON.stringify(val);
-        } else {
-          displayValue = String(val);
-        }
-        rows.push(`- **${col}**: ${displayValue}`);
-      });
-      const markdownContent = rows.join('\n');
-      navigator.clipboard.writeText(markdownContent);
-    } catch (err) {
-      console.error('Copy failed:', err);
-      alert('Failed to copy as Markdown');
-    }
-  }, [tableData, selectedTable]);
-
-  const handleBulkDelete = useCallback(() => {
-    if (selectedCount === 0 || !selectedTable) return;
-    setShowDeleteModal(true);
-  }, [selectedCount, selectedTable]);
-
-  const handleBulkCopyAsJson = useCallback((rows: any[]) => {
-    try {
-      const data = {
-        table: selectedTable,
-        rows: rows,
-      };
-      const jsonString = JSON.stringify(data, null, 2);
-      navigator.clipboard.writeText(jsonString);
-    } catch (err) {
-      console.error('Copy failed:', err);
-      alert('Failed to copy selected records as JSON');
-    }
-  }, [selectedTable]);
-
-  const handleBulkCopyAsMarkdown = useCallback((rows: any[]) => {
-    try {
-      if (!tableData || rows.length === 0) return;
-      const columns = tableData.columns;
-      const output: string[] = [`**Table:** ${selectedTable}`, ''];
-      rows.forEach((row, index) => {
-        if (index > 0) output.push('');
-        output.push(`### Record ${index + 1}`);
-        columns.forEach(col => {
+  const handleCopyAsMarkdown = useCallback(
+    (row: any) => {
+      try {
+        if (!tableData) return;
+        const columns = tableData.columns;
+        const rows: string[] = [`**Table:** ${selectedTable}`, ''];
+        columns.forEach((col) => {
           const val = row[col];
           let displayValue: string;
           if (val === null || val === undefined) {
@@ -340,16 +298,73 @@ const DatabaseViewer: React.FC = () => {
           } else {
             displayValue = String(val);
           }
-          output.push(`- **${col}**: ${displayValue}`);
+          rows.push(`- **${col}**: ${displayValue}`);
         });
-      });
-      const markdownContent = output.join('\n');
-      navigator.clipboard.writeText(markdownContent);
-    } catch (err) {
-      console.error('Copy failed:', err);
-      alert('Failed to copy selected records as Markdown');
-    }
-  }, [tableData, selectedTable]);
+        const markdownContent = rows.join('\n');
+        navigator.clipboard.writeText(markdownContent);
+      } catch (err) {
+        console.error('Copy failed:', err);
+        alert('Failed to copy as Markdown');
+      }
+    },
+    [tableData, selectedTable],
+  );
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedCount === 0 || !selectedTable) return;
+    setShowDeleteModal(true);
+  }, [selectedCount, selectedTable]);
+
+  const handleBulkCopyAsJson = useCallback(
+    (rows: any[]) => {
+      try {
+        const data = {
+          table: selectedTable,
+          rows: rows,
+        };
+        const jsonString = JSON.stringify(data, null, 2);
+        navigator.clipboard.writeText(jsonString);
+      } catch (err) {
+        console.error('Copy failed:', err);
+        alert('Failed to copy selected records as JSON');
+      }
+    },
+    [selectedTable],
+  );
+
+  const handleBulkCopyAsMarkdown = useCallback(
+    (rows: any[]) => {
+      try {
+        if (!tableData || rows.length === 0) return;
+        const columns = tableData.columns;
+        const output: string[] = [`**Table:** ${selectedTable}`, ''];
+        rows.forEach((row, index) => {
+          if (index > 0) output.push('');
+          output.push(`### Record ${index + 1}`);
+          columns.forEach((col) => {
+            const val = row[col];
+            let displayValue: string;
+            if (val === null || val === undefined) {
+              displayValue = 'null';
+            } else if (typeof val === 'string') {
+              displayValue = val;
+            } else if (typeof val === 'object') {
+              displayValue = JSON.stringify(val);
+            } else {
+              displayValue = String(val);
+            }
+            output.push(`- **${col}**: ${displayValue}`);
+          });
+        });
+        const markdownContent = output.join('\n');
+        navigator.clipboard.writeText(markdownContent);
+      } catch (err) {
+        console.error('Copy failed:', err);
+        alert('Failed to copy selected records as Markdown');
+      }
+    },
+    [tableData, selectedTable],
+  );
 
   return (
     <div className="flex h-full">
@@ -438,7 +453,9 @@ const DatabaseViewer: React.FC = () => {
         <ModalBody>
           <div className="space-y-2">
             <p className="text-sm text-text-primary">
-              You are about to delete <strong>{selectedCount}</strong> selected record{selectedCount > 1 ? 's' : ''} from <strong className="font-mono">{selectedTable}</strong>.
+              You are about to delete <strong>{selectedCount}</strong> selected record
+              {selectedCount > 1 ? 's' : ''} from{' '}
+              <strong className="font-mono">{selectedTable}</strong>.
             </p>
             <p className="text-xs text-error/80 flex items-center gap-1.5">
               <span className="inline-block w-1 h-1 rounded-full bg-error/60" />

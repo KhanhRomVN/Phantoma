@@ -1,27 +1,27 @@
 import React, { useState, useCallback, memo } from 'react';
 import { Plus, Play, Square, Trash2, Pencil } from 'lucide-react';
 
-// COMPONENT
+// Components
 import {
   Dropdown,
   DropdownContent,
   DropdownItem,
   DropdownTrigger,
-} from '../../../../components/ui/Dropdown';
-import { Button } from '../../../../components/ui/Button';
+} from '@renderer/components/ui/Dropdown';
+import { Button } from '@renderer/components/ui/Button';
 import { RunningOptionTargetModal } from './RunningOptionTargetModal';
 
-// TYPE
+// Types
 import { TargetTab } from '../../types/target.types';
 
-// CONSTANT
+// Constants
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 import { getTargetPlatform, getTargetFavicon } from '.';
 
-// SERVICE
+// Services
 import { apiService } from '../../../../services/api.service';
 
 // STORE

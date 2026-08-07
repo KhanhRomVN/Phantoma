@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Download, Cpu, FolderOpen, File } from 'lucide-react';
 
-// COMPONENT
+// Components
 import { CodeBlock } from '@renderer/components/common/CodeBlock';
 
-// TYPE
-import { ResourceItem } from '../../../types/resource.types';
+// Types
+import { ResourceItem } from '../../../../types/resource.types';
 
 // Simple hex viewer for binary files like WASM
 function HexView({ data, filename }: { data: string; filename: string }) {

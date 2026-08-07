@@ -1,13 +1,13 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { X, Globe } from 'lucide-react';
 
-// TYPE
+// Types
 import { NetworkRequest } from '../../../types/inspector';
 
-// HOOK
-import { useAccentColors } from '../../../../../shared/hooks/useAccentColors';
+// Hooks
+import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 import { getRequestCategory } from '../../../utils/requestHelpers';
 

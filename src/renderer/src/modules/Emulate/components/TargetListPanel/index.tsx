@@ -1,17 +1,17 @@
 import React, { useState, useCallback, useMemo } from 'react';
-// COMPONENT
+// Components
 import TargetList from './TargetList';
 
-// TYPE
+// Types
 import { TargetTab } from '../../types/target.types';
 
-// CONSTANT
+// Constants
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
-// SERVICE
+// Services
 import { logcatService } from '../../services/logcat.service';
 
-// UTIL
+// Utils
 import { getFaviconUrl } from '../../../../shared/utils/faviconUtils';
 
 export function getTargetPlatform(tab: TargetTab): AppPlatform {
@@ -80,10 +80,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   const [targetSearchQuery, setTargetSearchQuery] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const allTargets = useMemo(
-    () => targetTabs.filter((tab) => tab.id !== 'default'),
-    [targetTabs],
-  );
+  const allTargets = useMemo(() => targetTabs.filter((tab) => tab.id !== 'default'), [targetTabs]);
 
   const searchedTargets = useMemo(
     () =>

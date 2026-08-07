@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
-// TYPE
-import { NetworkRequest } from '../../../../../types/inspector';
+// Types
+import { NetworkRequest } from '../../../../../../types/inspector';
 
 interface HeadersDetailsProps {
   request: NetworkRequest;

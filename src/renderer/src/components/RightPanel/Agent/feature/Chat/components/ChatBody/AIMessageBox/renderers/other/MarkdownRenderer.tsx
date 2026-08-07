@@ -1,6 +1,6 @@
 import React from 'react';
 
-// COMPONENTS
+// Components
 import MarkdownBlock from '../../blocks/other/MarkdownBlock';
 
 interface MarkdownRendererProps {

@@ -8,7 +8,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-// COMPONENTS
+// Components
 import { AgentPanel } from './Agent';
 import { Analytic } from './Analytic';
 import { Terminal } from './Terminal';
@@ -23,13 +23,13 @@ import SettingsPanel from './Agent/feature/Setting';
 // CONTEXT
 import { SettingsProvider } from './Agent/context/SettingsContext';
 
-// TYPES
+// Types
 import type { SubTarget } from '../../modules/Tool/types/types';
 
 // UI
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/Dropdown';
 
-// UTILS
+// UtilsS
 import { cn } from '@renderer/shared/utils/cn';
 import {
   ChevronDown,

@@ -1,22 +1,22 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// CONSTANTS
+// Constants
 import { getToolLabel } from '../../../../../constants/constants';
 
-// SERVICES
+// Services
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
-// TYPES
+// Types
 import { BaseRendererProps } from '../../../../../types/renderer-types';
 
-// UTILS
+// UtilsS
 import { getNextUserMessage, buildTreeFromPaths } from '../../../../../utils/renderer-utils';
 
 // ICONS
 import FileIcon from '@renderer/components/common/FileIcon';
 
-// COMPONENTS
+// Components
 import { TagHeader } from '../../TagHeader';
 import { TreeBlock } from '../../blocks/code/TreeBlock';
 import ErrorBlock from '../../blocks/other/ErrorBlock';

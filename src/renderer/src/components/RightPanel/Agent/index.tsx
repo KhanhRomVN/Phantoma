@@ -10,7 +10,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-// COMPONENTS
+// Components
 import HomePanel from './feature/Home';
 import ChatPanel from './feature/Chat';
 import AgentOverlay from './components/AgentOverlay';
@@ -19,10 +19,10 @@ import AgentOverlay from './components/AgentOverlay';
 import { ProjectProvider } from './context/ProjectContext';
 import { useAgentFeature } from './context/FeatureContext';
 
-// TYPES
+// Types
 import { ChatSession } from './feature/Chat/types/chat';
 
-// UTILS (icons)
+// UtilsS (icons)
 import { MousePointer } from 'lucide-react';
 
 // ─── AgentPanel ────────────────────────────────────────────────────────────
@@ -152,7 +152,9 @@ export function AgentPanel() {
 
   const handleBack = useCallback((contentToReturn?: string) => {
     setCurrentChat(null);
-    setHomeInitialValue(typeof contentToReturn === 'string' && contentToReturn.trim() ? contentToReturn : '');
+    setHomeInitialValue(
+      typeof contentToReturn === 'string' && contentToReturn.trim() ? contentToReturn : '',
+    );
   }, []);
 
   const handleLoadConversation = useCallback(
@@ -186,32 +188,32 @@ export function AgentPanel() {
   return (
     <ProjectProvider>
       <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
-          {activeFeature !== 'emulate' && <AgentOverlay featureName={activeFeature || undefined} />}
-          {activeFeature === 'emulate' && shouldShowOverlay() && renderEmulateOverlay()}
+        {activeFeature !== 'emulate' && <AgentOverlay featureName={activeFeature || undefined} />}
+        {activeFeature === 'emulate' && shouldShowOverlay() && renderEmulateOverlay()}
 
-          {!shouldShowOverlay() && (
-            <>
-              <div className="flex-1 overflow-hidden bg-background flex flex-col">
-                {currentChat ? (
-                  <ChatPanel
-                    currentChat={currentChat}
-                    onBack={handleBack}
-                    feature={activeFeature}
-                    onLoadConversation={handleLoadConversation}
-                    initialMessageData={initialMessageData}
-                    onClearInitialData={() => setInitialMessageData(null)}
-                  />
-                ) : (
-                  <HomePanel
-                    onSendMessage={handleHomeSendMessage}
-                    onLoadConversation={handleLoadConversation}
-                    initialValue={homeInitialValue}
-                  />
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </ProjectProvider>
+        {!shouldShowOverlay() && (
+          <>
+            <div className="flex-1 overflow-hidden bg-background flex flex-col">
+              {currentChat ? (
+                <ChatPanel
+                  currentChat={currentChat}
+                  onBack={handleBack}
+                  feature={activeFeature}
+                  onLoadConversation={handleLoadConversation}
+                  initialMessageData={initialMessageData}
+                  onClearInitialData={() => setInitialMessageData(null)}
+                />
+              ) : (
+                <HomePanel
+                  onSendMessage={handleHomeSendMessage}
+                  onLoadConversation={handleLoadConversation}
+                  initialValue={homeInitialValue}
+                />
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </ProjectProvider>
   );
 }

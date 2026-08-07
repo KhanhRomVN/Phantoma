@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Square, Play } from 'lucide-react';
 
-// TYPE
+// Types
 import type { PayloadItem, RunResult } from '../../../../../../types/repeater.types';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
 interface RunModalProps {

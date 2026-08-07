@@ -12,16 +12,16 @@ import {
   Loader2,
 } from 'lucide-react';
 
-// COMPONENT
-import { ResizableSplit } from '../../../../../components/ui/ResizableSplit/ResizableSplit';
+// Components
+import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 import { CodeBlock, CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
-// TYPE
+// Types
 import { NetworkRequest } from '../Home/Filter';
 import type { SourceNode, SourceTreeData } from '../../../utils/sourceTree';
 import type { CdpScriptUnpackedData } from '../../../hooks/network/useNetworkEvents';
 
-// UTIL
+// Utils
 
 import { buildSourceTree, formatSize } from '../../../utils/sourceTree';
 import { prettifyCode, isMinified } from '../../../utils/prettify';

@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Globe } from 'lucide-react';
 
-// TYPE
-import type { SourceNode } from '../../../utils/sourceTree';
+// Types
 
-// UTIL
+// Utils
+import type { SourceNode } from '../../../utils/sourceTree';
 import { formatSize } from '../../../utils/sourceTree';
 
 interface SourceTreeViewProps {

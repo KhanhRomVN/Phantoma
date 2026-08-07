@@ -1,19 +1,19 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// HOOKS
+// Hooks
 import { useSettings } from '../../../../../../../context/SettingsContext';
 
-// SERVICES
+// Services
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
-// CONSTANTS
+// Constants
 import { getToolLabel } from '../../../../../constants/constants';
 
-// TYPES
+// Types
 import { MergedRendererProps, Diagnostic } from '../../../../../types/renderer-types';
 
-// UTILS
+// UtilsS
 import { collectConvFilePaths, getNextUserMessage } from '../../../../../utils/renderer-utils';
 import { getPermissionDecision } from '../../../../../utils/permissionUtils';
 import { parseDiff, DiffHighlight } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
@@ -21,7 +21,7 @@ import { parseDiff, DiffHighlight } from '@renderer/components/RightPanel/Agent/
 // ICONS
 import FileIcon from '@renderer/components/common/FileIcon';
 
-// COMPONENTS
+// Components
 import { TagHeader } from '../../TagHeader';
 import ActionBar from '../../ActionBar';
 import ErrorBlock from '../../blocks/other/ErrorBlock';

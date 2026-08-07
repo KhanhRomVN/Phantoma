@@ -1,13 +1,13 @@
 import { useState, useRef } from 'react';
 import { Check, Edit, Trash2, Navigation } from 'lucide-react';
 
-// COMPONENT
+// Components
 import { PayloadValueModal } from '../modal/PayloadValueModal';
 
-// TYPE
+// Types
 import type { PayloadItem } from '../../../../../../types/repeater.types';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
 interface PayloadTabProps {

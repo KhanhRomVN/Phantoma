@@ -7,7 +7,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// SERVICES
+// Services
 import { extensionService } from '../services/ExtensionService';
 
 interface ProjectContextType {

@@ -14,22 +14,22 @@ import {
   GitBranch,
 } from 'lucide-react';
 
-// COMPONENT
+// Components
 import { HeadersDetails } from './Headers';
 import { BodyDetails, BodyDetailsRef } from './Body';
-import { CodeBlock } from '../../../../../components/common/CodeBlock';
+import { CodeBlock } from '@renderer/components/common/CodeBlock';
 import { CookieDetails } from './Cookie';
 import { InitiatorDetails } from './Initiator';
 import { RequestTable } from './RequestTable';
-import { ResizableSplit } from '../../../../../components/ui/ResizableSplit/ResizableSplit';
+import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 
-// TYPE
+// Types
 import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } from './Filter';
 
-// HOOK
-import { useAccentColors } from '../../../../../shared/hooks/useAccentColors';
+// Hooks
+import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 

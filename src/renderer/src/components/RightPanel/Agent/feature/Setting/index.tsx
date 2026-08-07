@@ -64,9 +64,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
       <DrawerBody className="p-5 flex flex-col gap-6">
         {/* API URL */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-text-primary">
-            Backend API URL
-          </label>
+          <label className="text-sm font-semibold text-text-primary">Backend API URL</label>
           <input
             type="text"
             value={apiUrl}
@@ -78,9 +76,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
 
         {/* AI Response Language */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-text-primary">
-            AI Response Language
-          </label>
+          <label className="text-sm font-semibold text-text-primary">AI Response Language</label>
           <Dropdown
             open={openAiLang}
             onOpenChange={setOpenAiLang}
@@ -120,11 +116,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   style={{
                     color: $('--text-primary'),
                     backgroundColor:
-                      aiLanguage === lang.code ? $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)' : 'transparent',
+                      aiLanguage === lang.code
+                        ? $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)'
+                        : 'transparent',
                   }}
                   onMouseEnter={(e) => {
                     if (aiLanguage !== lang.code) {
-                      e.currentTarget.style.backgroundColor = $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)';
+                      e.currentTarget.style.backgroundColor =
+                        $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)';
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -146,9 +145,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
 
         {/* Commit Message Language */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-text-primary">
-            Commit Message Language
-          </label>
+          <label className="text-sm font-semibold text-text-primary">Commit Message Language</label>
           <Dropdown
             open={openCommitLang}
             onOpenChange={setOpenCommitLang}
@@ -194,7 +191,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   }}
                   onMouseEnter={(e) => {
                     if (commitMessageLanguage !== lang.code) {
-                      e.currentTarget.style.backgroundColor = $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)';
+                      e.currentTarget.style.backgroundColor =
+                        $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)';
                     }
                   }}
                   onMouseLeave={(e) => {

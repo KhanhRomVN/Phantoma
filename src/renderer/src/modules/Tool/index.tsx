@@ -4,7 +4,7 @@ import { TOOLS_LIST } from './data/toolsList';
 import { ToolIcon } from './utils/iconHelpers';
 import { useToolManager } from './hooks/useToolManager';
 import { ServerConfigProvider } from './context/ServerConfigContext';
-import { useAccentColors } from '../../shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
 interface ToolManagerProps {
   activeToolId?: string;

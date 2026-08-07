@@ -1,17 +1,17 @@
 import React, { useMemo } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// CONSTANTS
+// Constants
 import { TOOL_ACTION_TYPES, getToolLabel } from '../../../../../constants/constants';
 
-// TYPES
+// Types
 import { ToolAction } from '../../../../../services/ResponseParser';
 import { GitStatusItem } from '../../../../../types/tool-types';
 
-// UTILS
+// UtilsS
 import { parseGitStatusOutput } from '../../../../../utils/gitUtils';
 
-// COMPONENTS
+// Components
 import { TagHeader } from '../../TagHeader';
 import GitStatusBlock from '../../blocks/code/GitStatusBlock';
 

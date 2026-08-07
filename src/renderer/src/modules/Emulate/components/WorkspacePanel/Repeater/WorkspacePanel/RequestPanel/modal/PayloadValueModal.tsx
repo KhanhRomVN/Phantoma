@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Plus, Play, Copy, FileText, Trash2 } from 'lucide-react';
 
-// COMPONENT
+// Components
 import { CodeBlock, CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
 interface PayloadValueModalProps {

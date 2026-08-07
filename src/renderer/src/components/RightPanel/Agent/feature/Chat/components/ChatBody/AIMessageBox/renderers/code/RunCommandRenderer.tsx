@@ -1,13 +1,13 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// HOOKS
+// Hooks
 import { useSettings } from '../../../../../../../context/SettingsContext';
 
-// SERVICES
+// Services
 import { extensionService } from '../../../../../../../services/ExtensionService';
 
-// CONSTANTS
+// Constants
 import {
   TOOL_ACTION_TYPES,
   TERMINAL_STATUS,
@@ -15,14 +15,14 @@ import {
   getToolLabel,
 } from '../../../../../constants/constants';
 
-// TYPES
+// Types
 import { ToolAction } from '../../../../../services/ResponseParser';
 import { Message } from '../../../../../types/message';
 
 // ICONS
 import FileIcon from '@renderer/components/common/FileIcon';
 
-// COMPONENTS
+// Components
 import { TagHeader } from '../../TagHeader';
 import ActionBar from '../../ActionBar';
 import ErrorBlock from '../../blocks/other/ErrorBlock';

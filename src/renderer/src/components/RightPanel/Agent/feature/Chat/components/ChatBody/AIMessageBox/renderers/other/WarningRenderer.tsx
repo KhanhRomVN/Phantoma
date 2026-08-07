@@ -1,7 +1,7 @@
 import React from 'react';
 import { $ } from '@renderer/utils/color';
 
-// COMPONENTS
+// Components
 import WarningBlock from '../../blocks/other/WarningBlock';
 import { TagHeader } from '../../TagHeader';
 

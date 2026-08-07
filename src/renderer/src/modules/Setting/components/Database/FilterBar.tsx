@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Button } from '../../../../components/ui/Button';
+import { Button } from '@renderer/components/ui/Button';
 import {
   Dropdown,
   DropdownTrigger,
   DropdownContent,
   DropdownItem,
-} from '../../../../components/ui/Dropdown';
+} from '@renderer/components/ui/Dropdown';
 
-import { Tooltip } from '../../../../components/ui/Tooltip';
-import { Input } from '../../../../components/ui/Input';
+import { Tooltip } from '@renderer/components/ui/Tooltip';
+import { Input } from '@renderer/components/ui/Input';
 import { X, ChevronDown } from 'lucide-react';
 import { OPERATORS } from '../../constants/database';
 import { FilterCondition, Operator } from '../../types/database';

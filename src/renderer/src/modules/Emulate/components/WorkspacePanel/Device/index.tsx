@@ -13,10 +13,10 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
-// SERVICE
+// Services
 import { apiService } from '../../../../../services/api.service';
 import { logcatService } from '../../../services/logcat.service';
 

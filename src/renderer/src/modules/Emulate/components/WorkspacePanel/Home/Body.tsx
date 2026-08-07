@@ -2,14 +2,14 @@ import { AlignLeft } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useRef, useState, useMemo } from 'react';
 import hljs from 'highlight.js';
 
-// COMPONENT
+// Components
 import { CodeBlock, CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
-// UTIL
+// Utils
 import { cn } from '@renderer/shared/utils/cn';
 
-// TYPE
-import { NetworkRequest } from '../../../types/inspector';
+// Types
+import { NetworkRequest } from '../../../../types/inspector';
 
 interface BodyDetailsProps {
   request: NetworkRequest;

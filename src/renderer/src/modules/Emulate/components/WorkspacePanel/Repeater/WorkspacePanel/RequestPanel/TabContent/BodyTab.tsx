@@ -1,4 +1,4 @@
-// COMPONENT
+// Components
 import { CodeBlock, CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 interface BodyTabProps {

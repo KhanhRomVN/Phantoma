@@ -1,23 +1,23 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// HOOKS
+// Hooks
 import { useSettings } from '../../../../../../../context/SettingsContext';
 
-// SERVICES
+// Services
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
-// CONSTANTS
+// Constants
 import { getToolLabel } from '../../../../../constants/constants';
 
-// UTILS
+// UtilsS
 import { collectConvFilePaths, getNextUserMessage } from '../../../../../utils/renderer-utils';
 import { getPermissionDecision } from '../../../../../utils/permissionUtils';
 
 // ICONS
 import FileIcon from '@renderer/components/common/FileIcon';
 
-// COMPONENTS
+// Components
 import { TagHeader } from '../../TagHeader';
 import ActionBar from '../../ActionBar';
 import ErrorBlock from '../../blocks/other/ErrorBlock';

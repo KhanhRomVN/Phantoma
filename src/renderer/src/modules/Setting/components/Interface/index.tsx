@@ -7,8 +7,8 @@ import {
   DropdownTrigger,
   DropdownContent,
   DropdownItem,
-} from '../../../../components/ui/Dropdown';
-import { Button } from '../../../../components/ui/Button';
+} from '@renderer/components/ui/Dropdown';
+import { Button } from '@renderer/components/ui/Button';
 import { ChevronDown } from 'lucide-react';
 
 const Interface: React.FC = () => {
