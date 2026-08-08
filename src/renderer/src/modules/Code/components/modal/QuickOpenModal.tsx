@@ -41,11 +41,6 @@ function flattenFiles(
         modified: unsavedFiles.has(node.id),
         node,
       });
-
-      // Log Code.tsx if found
-      if (node.name === 'Code.tsx') {
-        console.log('[flattenFiles] Found Code.tsx at depth', depth, 'path:', fullPath);
-      }
     }
 
     if (node.children && node.children.length > 0) {
@@ -55,9 +50,6 @@ function flattenFiles(
 
   // Log depth info for debugging
   if (depth === 0) {
-    console.log('[flattenFiles] Root level nodes:', nodes.length);
-    console.log('[flattenFiles] Total flattened files:', result.length);
-
     // Count nodes by depth
     const depthCounts: Record<number, number> = {};
     const countDepth = (n: FileNode[], d: number) => {
@@ -67,7 +59,6 @@ function flattenFiles(
       });
     };
     countDepth(nodes, 0);
-    console.log('[flattenFiles] Nodes by depth:', depthCounts);
   }
 
   return result;
@@ -148,12 +139,10 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
   useEffect(() => {
     if (isOpen && project?.path) {
       setIsScanning(true);
-      console.log('[QuickOpenModal] Starting full directory scan for:', project.path);
 
       import('../ProjectTabBar/OpenProjectModal').then(({ scanDirectory }) => {
         scanDirectory(project.path).then((fileNodes) => {
           const files = flattenFiles(fileNodes, project.unsavedFiles);
-          console.log('[QuickOpenModal] Scan complete, found', files.length, 'files');
           setScannedFiles(files);
           setIsScanning(false);
         });
@@ -163,7 +152,6 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
 
   const allFiles = useMemo<FlatFileEntry[]>(() => {
     if (!project) {
-      console.log('[QuickOpenModal] No project found');
       return [];
     }
 
@@ -174,23 +162,18 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     let files: FlatFileEntry[] = [];
 
     if (scannedFiles.length > 0) {
-      console.log('[QuickOpenModal] Using scanned files:', scannedFiles.length);
       files = scannedFiles;
     } else {
       // Start with project.files
       files = flattenFiles(project.files, project.unsavedFiles);
-      console.log('[QuickOpenModal] Files from project.files:', files.length);
 
       // Add opened files that might not be in project.files (lazy-loaded)
       const fileNodeMapEntries = Object.entries(project.fileNodeMap);
-      console.log('[QuickOpenModal] Files in fileNodeMap:', fileNodeMapEntries.length);
 
       let addedCount = 0;
       for (const [fileId, node] of fileNodeMapEntries) {
         if (node.type === 'file') {
           const exists = files.some((f) => f.node.id === fileId);
-          console.log(`[QuickOpenModal] Checking ${node.name} (${fileId}): exists=${exists}`);
-
           if (!exists) {
             const parts = node.name.split('.');
             const ext = parts.length > 1 ? parts.pop()!.toLowerCase() : '';
@@ -202,32 +185,9 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
               node,
             });
             addedCount++;
-            console.log(`[QuickOpenModal] Added ${node.name} from fileNodeMap`);
           }
         }
       }
-      console.log('[QuickOpenModal] Added', addedCount, 'files from fileNodeMap');
-    }
-
-    console.log('[QuickOpenModal] Total files found:', files.length);
-    console.log(
-      '[QuickOpenModal] Sample files:',
-      files.slice(0, 5).map((f) => ({ name: f.name, path: f.path })),
-    );
-
-    // Look for all files with "Code" in the name
-    const codeFiles = files.filter((f) => f.name.toLowerCase().includes('code'));
-    console.log(
-      '[QuickOpenModal] Files with "Code" in name:',
-      codeFiles.map((f) => ({ name: f.name, path: f.path })),
-    );
-
-    // Specifically look for Code.tsx
-    const codeTsx = files.find((f) => f.name === 'Code.tsx');
-    if (codeTsx) {
-      console.log('[QuickOpenModal] ✓ Found Code.tsx:', codeTsx);
-    } else {
-      console.log('[QuickOpenModal] ✗ Code.tsx NOT FOUND in allFiles');
     }
 
     return files;
@@ -254,20 +214,10 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
       return [...recent, ...rest];
     }
 
-    console.log('[QuickOpenModal] Searching for:', search);
     const results = allFiles
       .map((file) => {
         const searchTarget = file.name + ' ' + file.path;
         const result = fuzzyMatch(search, searchTarget);
-        if (file.name.toLowerCase().includes(search.toLowerCase())) {
-          console.log('[QuickOpenModal] Matched file:', {
-            name: file.name,
-            path: file.path,
-            searchTarget,
-            matched: result.matched,
-            score: result.score,
-          });
-        }
         return { file, result };
       })
       .filter((x) => x.result.matched)
@@ -276,8 +226,6 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
         file: x.file,
         indices: x.result.indices.filter((i) => i < x.file.name.length),
       }));
-
-    console.log('[QuickOpenModal] Filtered results:', results.length);
     return results;
   }, [allFiles, search, recentSet]);
 
@@ -376,9 +324,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
             </div>
           ) : filteredFiles.length === 0 ? (
             <div className="text-center py-8 text-text-secondary/50 text-xs">
-              {search.trim()
-                ? `No files matching "${search}"`
-                : 'No files in project'}
+              {search.trim() ? `No files matching "${search}"` : 'No files in project'}
             </div>
           ) : (
             <>
@@ -424,11 +370,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
                       }}
                     >
                       {/* File icon */}
-                      <img
-                        src={iconPath}
-                        alt=""
-                        className="w-[21px] h-[21px] shrink-0"
-                      />
+                      <img src={iconPath} alt="" className="w-[21px] h-[21px] shrink-0" />
 
                       {/* File name + path */}
                       <div className="flex-1 min-w-0 flex items-center gap-0">

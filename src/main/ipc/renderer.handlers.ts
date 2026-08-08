@@ -210,8 +210,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
                 const data = await storage.getConversation(moduleId, convId);
                 if (!data) continue;
 
-                const title =
-                  data.messages?.[0]?.content?.substring(0, 50) || 'New Conversation';
+                const title = data.messages?.[0]?.content?.substring(0, 50) || 'New Conversation';
 
                 allConversations.push({
                   id: convId,
@@ -219,8 +218,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
                   lastModified: data.lastModified || data.createdAt || Date.now(),
                   createdAt: data.createdAt || Date.now(),
                   messageCount: data.messages?.length || 0,
-                  totalRequests:
-                    data.messages?.filter((m: any) => m.role === 'user').length || 0,
+                  totalRequests: data.messages?.filter((m: any) => m.role === 'user').length || 0,
                   totalTokenUsage: 0,
                   sessionId: parseInt(moduleId) || 0,
                   folderPath: null,
@@ -594,8 +592,6 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
     // ─── Conversation ───────────────────────────────────────────────
     case 'getConversation': {
       const { conversationId } = payload;
-      console.log('[Main] getConversation request:', { conversationId, requestId });
-
       (async () => {
         try {
           const storage = new ConversationStorage();
@@ -616,11 +612,6 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
 
               const data = await storage.getConversation(moduleId, conversationId);
               if (data) {
-                console.log('[Main] getConversation found:', {
-                  moduleId,
-                  conversationId,
-                  messageCount: data.messages?.length || 0,
-                });
                 foundData = {
                   messages: data.messages || [],
                   toolOutputs: data.toolOutputs || {},

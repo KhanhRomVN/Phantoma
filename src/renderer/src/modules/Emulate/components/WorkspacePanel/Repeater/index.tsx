@@ -109,11 +109,9 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
       setDbRequests([]);
       return;
     }
-    console.log('[Repeater] Fetching DB requests for target:', targetId);
     repeaterApi.listRequests(targetId).then((res) => {
       if (res.success && res.data) {
         const mapped = res.data.map(mapDbToNetworkRequest);
-        console.log('[Repeater] DB requests loaded:', mapped.length);
         setDbRequests(mapped);
         if (mapped.length > 0 && !selectedId) {
           setSelectedId(mapped[0].id);
@@ -121,13 +119,6 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
       }
     });
   }, [targetId]);
-
-  console.log(
-    '[Repeater] PayloadPanel render — targetId:',
-    targetId,
-    'dbRequests:',
-    dbRequests.length,
-  );
 
   useEffect(() => {
     const handleUpdate = () => setRepeaterIds(loadRepeaterIds(targetId));

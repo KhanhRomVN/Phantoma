@@ -47,21 +47,10 @@ export function Code() {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
 
-    console.log('[Code] Hydrating projects:', projects.length);
     projects.forEach((project) => {
-      console.log(
-        '[Code] Project:',
-        project.name,
-        'files:',
-        project.files.length,
-        'path:',
-        project.path,
-      );
       if (project.path && project.files.length === 0) {
-        console.log('[Code] Scanning directory for project:', project.name);
         scanDirectory(project.path)
           .then((files) => {
-            console.log('[Code] Scanned files for project:', project.name, 'count:', files.length);
             hydrateProjectFiles(project.id, files);
           })
           .catch((err) => {

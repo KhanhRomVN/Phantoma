@@ -18,7 +18,9 @@ function buildProxyRequest(data: any): NetworkRequest {
       path = url.pathname;
       protocol = url.protocol.replace(':', '');
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   let type = 'other';
   const pathLower = path.toLowerCase();
@@ -27,8 +29,15 @@ function buildProxyRequest(data: any): NetworkRequest {
   else if (pathLower.endsWith('.html') || pathLower.endsWith('.htm')) type = 'doc';
   else if (/\.(png|jpg|jpeg|gif|svg|webp)$/i.test(pathLower)) type = 'img';
   else if (pathLower.endsWith('.json')) type = 'xhr';
-  else if (data.method === 'POST' || data.method === 'PUT' || data.method === 'DELETE' || data.method === 'PATCH') type = 'xhr';
-  else if (data.method === 'GET' && (data.url?.includes('api') || data.url?.includes('graphql'))) type = 'xhr';
+  else if (
+    data.method === 'POST' ||
+    data.method === 'PUT' ||
+    data.method === 'DELETE' ||
+    data.method === 'PATCH'
+  )
+    type = 'xhr';
+  else if (data.method === 'GET' && (data.url?.includes('api') || data.url?.includes('graphql')))
+    type = 'xhr';
 
   return {
     id: data.id || 'proxy-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
@@ -61,12 +70,22 @@ function buildCdpRequest(data: any): NetworkRequest {
       path = url.pathname;
       protocol = url.protocol.replace(':', '');
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   const resourceTypeMap: Record<string, string> = {
-    Document: 'doc', XHR: 'xhr', Fetch: 'fetch', Script: 'js',
-    Stylesheet: 'css', Image: 'img', Media: 'media', Font: 'font',
-    WebSocket: 'ws', Manifest: 'manifest', Other: 'other',
+    Document: 'doc',
+    XHR: 'xhr',
+    Fetch: 'fetch',
+    Script: 'js',
+    Stylesheet: 'css',
+    Image: 'img',
+    Media: 'media',
+    Font: 'font',
+    WebSocket: 'ws',
+    Manifest: 'manifest',
+    Other: 'other',
   };
   const type = resourceTypeMap[data.resourceType] || 'other';
 
@@ -115,112 +134,146 @@ export function useNetworkService() {
   const requestMapRef = useRef<Map<string, NetworkRequest>>(new Map());
   const timestampMapRef = useRef<Map<string, number>>(new Map());
 
-  const handleProxyRequest = useCallback((_event: any, data: any) => {
-    try {
-      const req = buildProxyRequest(data);
-      requestMapRef.current.set(req.id, req);
-      timestampMapRef.current.set(req.id, data.timestamp || Date.now());
-      addRequest(req);
-    } catch (error) {
-      console.error('[NetworkService] proxy:request error:', error);
-    }
-  }, [addRequest]);
-
-  const handleProxyResponse = useCallback((_event: any, data: any) => {
-    try {
-      const existing = requestMapRef.current.get(data.id);
-      if (existing) {
-        const updated = { ...existing, status: data.statusCode || 200, responseHeaders: data.headers || {} };
-        requestMapRef.current.set(data.id, updated);
-        updateRequest(data.id, { status: data.statusCode || 200, responseHeaders: data.headers || {} });
+  const handleProxyRequest = useCallback(
+    (_event: any, data: any) => {
+      try {
+        const req = buildProxyRequest(data);
+        requestMapRef.current.set(req.id, req);
+        timestampMapRef.current.set(req.id, data.timestamp || Date.now());
+        addRequest(req);
+      } catch (error) {
+        console.error('[NetworkService] proxy:request error:', error);
       }
-    } catch (error) {
-      console.error('[NetworkService] proxy:response error:', error);
-    }
-  }, [updateRequest]);
+    },
+    [addRequest],
+  );
 
-  const handleProxyResponseBody = useCallback((_event: any, data: any) => {
-    try {
-      const requestTimestamp = timestampMapRef.current.get(data.id);
-      let timeMs = 0;
-      if (requestTimestamp) {
-        timeMs = (data.timestamp || Date.now()) - requestTimestamp;
-        timestampMapRef.current.delete(data.id);
-      }
-      const timeStr = timeMs >= 1000 ? (timeMs / 1000).toFixed(2) + 's' : timeMs + 'ms';
-
-      let sizeBytes = 0;
-      if (typeof data.size === 'string') {
-        const match = data.size.match(/([\d.]+)\s*(KB|B)/);
-        if (match) {
-          sizeBytes = match[2] === 'KB' ? parseFloat(match[1]) * 1024 : parseFloat(match[1]);
+  const handleProxyResponse = useCallback(
+    (_event: any, data: any) => {
+      try {
+        const existing = requestMapRef.current.get(data.id);
+        if (existing) {
+          const updated = {
+            ...existing,
+            status: data.statusCode || 200,
+            responseHeaders: data.headers || {},
+          };
+          requestMapRef.current.set(data.id, updated);
+          updateRequest(data.id, {
+            status: data.statusCode || 200,
+            responseHeaders: data.headers || {},
+          });
         }
-      } else if (typeof data.size === 'number') {
-        sizeBytes = data.size;
+      } catch (error) {
+        console.error('[NetworkService] proxy:response error:', error);
       }
-      const sizeStr = sizeBytes > 0 ? (sizeBytes / 1024).toFixed(1) + ' KB' : '0 B';
-      const body = decodeBody(data.body || '', data.isBinary);
+    },
+    [updateRequest],
+  );
 
-      updateRequest(data.id, { responseBody: body, size: sizeStr, time: timeStr });
-    } catch (error) {
-      console.error('[NetworkService] proxy:response-body error:', error);
-    }
-  }, [updateRequest]);
+  const handleProxyResponseBody = useCallback(
+    (_event: any, data: any) => {
+      try {
+        const requestTimestamp = timestampMapRef.current.get(data.id);
+        let timeMs = 0;
+        if (requestTimestamp) {
+          timeMs = (data.timestamp || Date.now()) - requestTimestamp;
+          timestampMapRef.current.delete(data.id);
+        }
+        const timeStr = timeMs >= 1000 ? (timeMs / 1000).toFixed(2) + 's' : timeMs + 'ms';
 
-  const handleProxyRequestBody = useCallback((_event: any, data: any) => {
-    try {
-      const body = decodeBody(data.body || '', data.isBinary);
-      updateRequest(data.id, { requestBody: body });
-    } catch (error) {
-      console.error('[NetworkService] proxy:request-body error:', error);
-    }
-  }, [updateRequest]);
+        let sizeBytes = 0;
+        if (typeof data.size === 'string') {
+          const match = data.size.match(/([\d.]+)\s*(KB|B)/);
+          if (match) {
+            sizeBytes = match[2] === 'KB' ? parseFloat(match[1]) * 1024 : parseFloat(match[1]);
+          }
+        } else if (typeof data.size === 'number') {
+          sizeBytes = data.size;
+        }
+        const sizeStr = sizeBytes > 0 ? (sizeBytes / 1024).toFixed(1) + ' KB' : '0 B';
+        const body = decodeBody(data.body || '', data.isBinary);
 
-  const handleCdpRequest = useCallback((_event: any, data: any) => {
-    try {
-      const req = buildCdpRequest(data);
-      requestMapRef.current.set(req.id, req);
-      timestampMapRef.current.set(req.id, data.timestamp || Date.now());
-      addRequest(req);
-    } catch (error) {
-      console.error('[NetworkService] cdp:request error:', error);
-    }
-  }, [addRequest]);
-
-  const handleCdpResponse = useCallback((_event: any, data: any) => {
-    try {
-      // Guard: skip if status already set (prevents infinite update loop)
-      const existing = requestMapRef.current.get(data.id);
-      if (existing && existing.status !== 0) return;
-      updateRequest(data.id, { status: data.statusCode || 200, responseHeaders: data.headers || {} });
-    } catch (error) {
-      console.error('[NetworkService] cdp:response error:', error);
-    }
-  }, [updateRequest]);
-
-  const handleCdpResponseBody = useCallback((_event: any, data: any) => {
-    try {
-      const requestTimestamp = timestampMapRef.current.get(data.id);
-      let timeMs = 0;
-      if (requestTimestamp) {
-        timeMs = (data.timestamp || Date.now()) - requestTimestamp;
-        timestampMapRef.current.delete(data.id);
+        updateRequest(data.id, { responseBody: body, size: sizeStr, time: timeStr });
+      } catch (error) {
+        console.error('[NetworkService] proxy:response-body error:', error);
       }
-      const timeStr = timeMs >= 1000 ? (timeMs / 1000).toFixed(2) + 's' : timeMs + 'ms';
-      const sizeStr = data.size ? (data.size / 1024).toFixed(1) + ' KB' : '0 B';
-      const body = data.isUnpacked
-        ? '/* UNPACKED SOURCE FROM DEBUGGER API */\n' + (data.body || '')
-        : data.body || '';
+    },
+    [updateRequest],
+  );
 
-      updateRequest(data.id, { responseBody: body, size: sizeStr, time: timeStr });
-    } catch (error) {
-      console.error('[NetworkService] cdp:response-body error:', error);
-    }
-  }, [updateRequest]);
+  const handleProxyRequestBody = useCallback(
+    (_event: any, data: any) => {
+      try {
+        const body = decodeBody(data.body || '', data.isBinary);
+        updateRequest(data.id, { requestBody: body });
+      } catch (error) {
+        console.error('[NetworkService] proxy:request-body error:', error);
+      }
+    },
+    [updateRequest],
+  );
 
-  const handleScriptUnpacked = useCallback((_event: any, data: CdpScriptUnpackedData) => {
-    setUnpackedScript(data.requestId, data);
-  }, [setUnpackedScript]);
+  const handleCdpRequest = useCallback(
+    (_event: any, data: any) => {
+      try {
+        const req = buildCdpRequest(data);
+        requestMapRef.current.set(req.id, req);
+        timestampMapRef.current.set(req.id, data.timestamp || Date.now());
+        addRequest(req);
+      } catch (error) {
+        console.error('[NetworkService] cdp:request error:', error);
+      }
+    },
+    [addRequest],
+  );
+
+  const handleCdpResponse = useCallback(
+    (_event: any, data: any) => {
+      try {
+        // Guard: skip if status already set (prevents infinite update loop)
+        const existing = requestMapRef.current.get(data.id);
+        if (existing && existing.status !== 0) return;
+        updateRequest(data.id, {
+          status: data.statusCode || 200,
+          responseHeaders: data.headers || {},
+        });
+      } catch (error) {
+        console.error('[NetworkService] cdp:response error:', error);
+      }
+    },
+    [updateRequest],
+  );
+
+  const handleCdpResponseBody = useCallback(
+    (_event: any, data: any) => {
+      try {
+        const requestTimestamp = timestampMapRef.current.get(data.id);
+        let timeMs = 0;
+        if (requestTimestamp) {
+          timeMs = (data.timestamp || Date.now()) - requestTimestamp;
+          timestampMapRef.current.delete(data.id);
+        }
+        const timeStr = timeMs >= 1000 ? (timeMs / 1000).toFixed(2) + 's' : timeMs + 'ms';
+        const sizeStr = data.size ? (data.size / 1024).toFixed(1) + ' KB' : '0 B';
+        const body = data.isUnpacked
+          ? '/* UNPACKED SOURCE FROM DEBUGGER API */\n' + (data.body || '')
+          : data.body || '';
+
+        updateRequest(data.id, { responseBody: body, size: sizeStr, time: timeStr });
+      } catch (error) {
+        console.error('[NetworkService] cdp:response-body error:', error);
+      }
+    },
+    [updateRequest],
+  );
+
+  const handleScriptUnpacked = useCallback(
+    (_event: any, data: CdpScriptUnpackedData) => {
+      setUnpackedScript(data.requestId, data);
+    },
+    [setUnpackedScript],
+  );
 
   useEffect(() => {
     if (isServiceStarted) return;
@@ -230,8 +283,6 @@ export function useNetworkService() {
       console.warn('[NetworkService] window.api.on not available');
       return;
     }
-
-    console.log('[NetworkService] Starting IPC listeners');
 
     window.api.on('proxy:request', handleProxyRequest);
     window.api.on('proxy:response', handleProxyResponse);

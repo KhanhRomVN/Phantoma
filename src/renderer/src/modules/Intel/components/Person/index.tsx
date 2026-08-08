@@ -58,7 +58,6 @@ interface PersonReconProps {
 }
 
 export default function PersonRecon({ initialEmail = 'phantoma@gmail.com' }: PersonReconProps) {
-  console.log('[DEBUG] PersonRecon render at', performance.now());
   // Session management
   const [sessions, setSessions] = useState<PersonSession[]>(DEFAULT_SESSIONS);
   const [showAddForm, setShowAddForm] = useState(false);

@@ -80,7 +80,6 @@ const dirEntryToFileNode = (entry: DirEntry): FileNode => ({
 
 export const scanDirectory = async (dirPath: string, depth: number = 0): Promise<FileNode[]> => {
   if (depth >= MAX_SCAN_DEPTH) {
-    console.log(`[scanDirectory] Max depth ${MAX_SCAN_DEPTH} reached at: ${dirPath}`);
     return [];
   }
 
@@ -96,26 +95,11 @@ export const scanDirectory = async (dirPath: string, depth: number = 0): Promise
       return a.name.localeCompare(b.name);
     });
 
-    if (depth === 0) {
-      console.log(`[scanDirectory] Root dir: ${dirPath}, entries:`, sorted.length);
-    }
-
-    // Log when we encounter "Code" directory or file
-    const codeEntries = filtered.filter((e) => e.name.toLowerCase().includes('code'));
-    if (codeEntries.length > 0) {
-      console.log(
-        `[scanDirectory] Found entries with "Code" at depth ${depth}:`,
-        codeEntries.map((e) => ({ name: e.name, isDir: e.isDirectory, path: e.path })),
-      );
-    }
-
     const nodes: FileNode[] = [];
     for (const entry of sorted) {
       const node = dirEntryToFileNode(entry);
       if (entry.isDirectory) {
         node.children = await scanDirectory(entry.path, depth + 1);
-      } else if (entry.name === 'Code.tsx') {
-        console.log(`[scanDirectory] ✓ Found Code.tsx at depth ${depth}: ${entry.path}`);
       }
       nodes.push(node);
     }

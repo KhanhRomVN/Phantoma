@@ -276,16 +276,7 @@ export const useChatLLM = ({
             summary.statuses.length === 0 &&
             summary.types.length === 0;
 
-          trafficContext = isEmpty
-            ? buildEmptyTrafficContext()
-            : buildTrafficContext(summary);
-
-          // [DEBUG] Log traffic context được inject vào request — xoá sau khi fix xong
-          console.log('[useChatLLM] trafficContext injected:', {
-            isEmpty,
-            contextLength: trafficContext.length,
-            contextPreview: trafficContext.substring(0, 200),
-          });
+          trafficContext = isEmpty ? buildEmptyTrafficContext() : buildTrafficContext(summary);
         } catch (err) {
           console.warn('[useChatLLM] Failed to build traffic context:', err);
           trafficContext = undefined;
@@ -303,13 +294,6 @@ export const useChatLLM = ({
           } else {
             filterContext = buildEmptyFilterContext();
           }
-
-          // [DEBUG] Log filter context được inject vào request — xoá sau khi fix xong
-          console.log('[useChatLLM] filterContext injected:', {
-            hasFilter: !!filter,
-            contextLength: filterContext.length,
-            contextPreview: filterContext.substring(0, 200),
-          });
         } catch (err) {
           console.warn('[useChatLLM] Failed to build filter context:', err);
           filterContext = undefined;
@@ -650,9 +634,6 @@ export const useChatLLM = ({
             })
             .filter(Boolean)
             .join(' ');
-
-          console.log(`[Stream Complete] Parsed blocks: ${toolSequence || 'none'}`);
-          console.log('[Raw Content]:', assistantMessage.content);
         } catch (parseError) {
           hasParsingError = true;
           console.error('[Zen] Response parsing failed:', parseError);

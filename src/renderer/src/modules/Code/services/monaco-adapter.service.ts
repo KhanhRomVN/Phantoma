@@ -1,9 +1,9 @@
 /**
  * Monaco Adapter Service
- * 
+ *
  * Decoupled adapter layer between diagnostics data and Monaco Editor.
  * Responsible ONLY for syncing markers to Monaco for inline display.
- * 
+ *
  * Separation of concerns:
  * - DiagnosticsStore: Single source of truth
  * - MonacoAdapter: View layer sync (this file)
@@ -25,7 +25,7 @@ class MonacoAdapter {
 
     try {
       const model = window.monaco.editor.getModel(window.monaco.Uri.parse(uri));
-      
+
       if (!model) {
         console.warn(`[MonacoAdapter] Model not found for ${uri}, skipping marker sync`);
         return;
@@ -44,8 +44,6 @@ class MonacoAdapter {
 
       // Use 'lsp' as owner (not language-specific) to avoid conflicts
       window.monaco.editor.setModelMarkers(model, 'lsp', monacoMarkers);
-      
-      console.log(`[MonacoAdapter] ✅ Synced ${monacoMarkers.length} marker(s) to Monaco`);
     } catch (error) {
       console.error('[MonacoAdapter] ❌ Failed to sync markers:', error);
     }
@@ -61,7 +59,6 @@ class MonacoAdapter {
       const model = window.monaco.editor.getModel(window.monaco.Uri.parse(uri));
       if (model) {
         window.monaco.editor.setModelMarkers(model, 'lsp', []);
-        console.log(`[MonacoAdapter] 🗑️  Cleared markers for ${uri}`);
       }
     } catch (error) {
       console.error('[MonacoAdapter] ❌ Failed to clear markers:', error);
@@ -75,7 +72,7 @@ class MonacoAdapter {
     if (!window.monaco) return 8; // Error as default
 
     const MarkerSeverity = window.monaco.MarkerSeverity;
-    
+
     switch (severity) {
       case 1:
         return MarkerSeverity.Error;

@@ -23,14 +23,12 @@ const HistoryCard: React.FC<HistoryCardProps> = ({ item, onClick, onDelete }) =>
 
   const handleCopyContent = () => {
     const requestId = `copy-${Date.now()}`;
-    console.log('[HistoryCard] requesting conversation for copy:', { conversationId: item.id, requestId });
     extensionService.postMessage({
       command: 'getConversation',
       conversationId: item.id,
       requestId,
     });
     const handler = (data: any) => {
-      console.log('[HistoryCard] messageResponse for copy:', { command: data.command, requestId: data.requestId });
       if (data.command === 'getConversation' && data.requestId === requestId) {
         unsubscribe();
         if (data.data?.messages) {

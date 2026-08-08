@@ -281,12 +281,6 @@ export function ContentPanel() {
 
       switch (category) {
         case 'text':
-          console.log('[ContentPanel] Rendering CodeBlock:', {
-            codeLength: (loadedContent || '').length,
-            filePath: fileNode?.path,
-            fileId: activeFileTabId,
-            loading,
-          });
           return (
             <CodeBlock
               code={loadedContent || ''}

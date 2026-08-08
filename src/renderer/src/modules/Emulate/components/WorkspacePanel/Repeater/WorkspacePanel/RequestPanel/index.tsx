@@ -184,7 +184,6 @@ export function RequestPanel({
     headers,
     payloads,
     onLoadRequest: (req) => {
-      console.log('[RequestPanel] onLoadRequest — filling form from DB');
       setMethod(req.method);
       setUrl(req.url);
       setBody(req.body);
@@ -206,7 +205,6 @@ export function RequestPanel({
   // Auto-fill from selected request (Send to Repeater)
   useEffect(() => {
     if (request) {
-      console.log('[RequestPanel] Auto-fill from selected request:', request.method, request.url);
       setInternalPayloads([]);
 
       const requestUrl = request.url || '';
@@ -401,7 +399,6 @@ export function RequestPanel({
     onProgress: (item: RunResult) => void,
     cancelledRef: React.MutableRefObject<boolean>,
   ): Promise<RunResult[]> => {
-    console.log('[DEBUG] handleRunStart begin');
     const timestamp = Date.now();
     if (externalLastRunTimestamp === undefined) {
       setInternalLastRunTimestamp(timestamp);
@@ -447,7 +444,6 @@ export function RequestPanel({
           responseBody: '',
         });
       }
-      console.log('[DEBUG] handleRunStart done (no payloads), results:', results.length);
       return results;
     }
 
@@ -510,13 +506,10 @@ export function RequestPanel({
       }
       if (cancelledRef.current) break;
     }
-
-    console.log('[DEBUG] handleRunStart done, results:', results.length);
     return results;
   };
 
   const handleSavePayloadResults = () => {
-    console.log('[DEBUG] handleSavePayloadResults called, count:', payloadResultData?.length);
     if (!payloadResultData || payloadResultData.length === 0) return;
     const first = payloadResultData[0];
     const statusCounts: Record<number, number> = {};
@@ -546,7 +539,6 @@ export function RequestPanel({
     persistence.saveHistory(entry, payloadResultData);
     setHistory((prev) => [entry, ...prev]);
     setSelectedHistory(entry);
-    console.log('[DEBUG] HistoryEntry saved, id:', entry.id);
     setPayloadResultData(null);
   };
 
@@ -770,7 +762,6 @@ export function RequestPanel({
         onRun={handleRunStart}
         onClose={() => setIsRunModalOpen(false)}
         onViewResults={(results) => {
-          console.log('[DEBUG] RunModal onViewResults, count:', results.length);
           setIsRunModalOpen(false);
           setPayloadResultData(results);
         }}

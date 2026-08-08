@@ -32,14 +32,10 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
   actionIndex,
   messageId,
   isActionClicked,
-  isActiveGroup,
-  isLastMessage,
   isLastItemInList,
   toolOutputs,
   allMessages,
-  fileStatsMap,
   onToolClick,
-  conversationId,
 }) => {
   const actionId = `${messageId}-action-${actionIndex}`;
 
@@ -84,18 +80,6 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
     : isCompleted
       ? 'rgb(255, 159, 10)'
       : 'rgb(10, 132, 255)';
-
-  React.useEffect(() => {
-    if (hasValidationError) {
-      console.log('[RevertFileRenderer] Validation error detected:', {
-        actionId,
-        filePath: rawPath,
-        errorCode: action.errorCode,
-        errorMessage: action.errorMessage,
-        actionParams: action.params,
-      });
-    }
-  }, [hasValidationError, actionId, rawPath, action.errorCode, action.errorMessage]);
 
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>

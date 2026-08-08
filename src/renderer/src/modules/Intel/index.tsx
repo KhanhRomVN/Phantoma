@@ -77,7 +77,6 @@ interface DomainReconProps {
 }
 
 function DomainRecon({ initialDomain = 'phantoma.com' }: DomainReconProps) {
-  console.log('[DEBUG] DomainRecon render at', performance.now());
   // Persistence state
   const [state, setState] = useModulePersistence<DomainReconState>('recon', {
     sessions: DEFAULT_SESSIONS,
@@ -897,7 +896,6 @@ interface ReconState {
 }
 
 export function Recon({ activeSubItem: propSubItem }: ReconProps) {
-  console.log('[DEBUG] Recon render at', performance.now());
   const [state, setState] = useModulePersistence<ReconState>('recon', {
     activeSubItem: propSubItem || 'recon-domain',
   });

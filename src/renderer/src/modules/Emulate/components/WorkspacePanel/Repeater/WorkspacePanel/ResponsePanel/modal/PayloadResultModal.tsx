@@ -60,8 +60,6 @@ export function PayloadResultModal({ isOpen, results, onClose, onSave }: Payload
   const requestBodyRef = useRef<CodeBlockRef>(null);
   const responseBodyRef = useRef<CodeBlockRef>(null);
 
-  console.log('[DEBUG] PayloadResultModal render, results:', results.length, 'isOpen:', isOpen);
-
   // Reset selection when results change
   useEffect(() => {
     setSelectedIndex(0);
@@ -339,7 +337,6 @@ export function PayloadResultModal({ isOpen, results, onClose, onSave }: Payload
           </button>
           <button
             onClick={() => {
-              console.log('[DEBUG] Save button clicked in PayloadResultModal');
               onSave();
             }}
             className="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"

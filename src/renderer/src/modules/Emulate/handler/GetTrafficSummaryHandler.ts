@@ -14,9 +14,6 @@ import type { TrafficSummary } from '@renderer/components/RightPanel/Agent/featu
 
 export class GetTrafficSummaryHandler {
   public handle(requests: NetworkRequest[]): TrafficSummary {
-    // [DEBUG] Log khi handler được gọi — xoá sau khi fix xong
-    console.log('[GetTrafficSummaryHandler] handle called, requests count:', requests.length);
-
     const hostMap = new Map<string, number>();
     const methodMap = new Map<string, number>();
     const statusMap = new Map<number, number>();
@@ -51,19 +48,6 @@ export class GetTrafficSummaryHandler {
       statuses: sortByCountDesc(statusMap) as { value: number; count: number }[],
       types: sortByCountDesc(typeMap),
     };
-
-    // [DEBUG] Log kết quả summary — xoá sau khi fix xong
-    console.log('[GetTrafficSummaryHandler] summary result:', {
-      hostsCount: summary.hosts.length,
-      methodsCount: summary.methods.length,
-      statusesCount: summary.statuses.length,
-      typesCount: summary.types.length,
-      isEmpty:
-        summary.hosts.length === 0 &&
-        summary.methods.length === 0 &&
-        summary.statuses.length === 0 &&
-        summary.types.length === 0,
-    });
 
     return summary;
   }

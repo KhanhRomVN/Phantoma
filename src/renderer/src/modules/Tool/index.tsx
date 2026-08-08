@@ -12,7 +12,6 @@ interface ToolManagerProps {
 }
 
 const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onToolChange }) => {
-  console.log('[DEBUG] ToolManager render at', performance.now());
   const {
     selectedTool,
     searchQuery,

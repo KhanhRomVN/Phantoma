@@ -63,34 +63,6 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
 
   const hasValidationError = !!action.isError;
 
-  const permissionDecision = getPermissionDecision(permissionMode, 'write_to_file');
-  const shouldShowExecuteButton =
-    !shouldHideContent &&
-    !isCompleted &&
-    !isPartial &&
-    !hasValidationError &&
-    permissionDecision === 'confirm';
-
-  React.useEffect(() => {
-    if (hasValidationError) {
-      console.log('[WriteToFileRenderer] Validation error detected:', {
-        actionId,
-        filePath: rawPath,
-        errorCode: action.errorCode,
-        errorMessage: action.errorMessage,
-        shouldShowExecuteButton,
-        actionParams: action.params,
-      });
-    }
-  }, [
-    hasValidationError,
-    actionId,
-    rawPath,
-    action.errorCode,
-    action.errorMessage,
-    shouldShowExecuteButton,
-  ]);
-
   const handleToolClickWithLog = React.useCallback(
     (e: React.MouseEvent, type: any) => {
       onToolClick(action, messageId, actionIndex, type);

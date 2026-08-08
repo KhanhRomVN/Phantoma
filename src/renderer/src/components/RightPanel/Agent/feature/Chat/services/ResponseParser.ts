@@ -58,13 +58,6 @@ const DEBUG_PARSER =
 export const parseAIResponse = (content: string): ParsedResponse => {
   const _parseStartTime = performance.now();
 
-  if (DEBUG_PARSER) {
-    console.log('[Zen][Parser] 🚀 Starting parse', {
-      contentLength: content.length,
-      contentPreview: content.substring(0, 200) + (content.length > 200 ? '...' : ''),
-    });
-  }
-
   // Track parsing sequence for debugging
   const parsingSequence: { index: number; tag: string; subTags?: string[] }[] = [];
   let sequenceCounter = 0;
@@ -88,14 +81,6 @@ export const parseAIResponse = (content: string): ParsedResponse => {
   // inside a thinking block are never mistaken for real tool calls.
   const { remainingContent: contentAfterThinking, thinkingBlocks } =
     extractThinkingBlocks(remainingContent);
-
-  if (DEBUG_PARSER && thinkingBlocks.length > 0) {
-    console.log('[Zen][Parser] 💭 Extracted thinking blocks', {
-      count: thinkingBlocks.length,
-      totalThinkingChars: thinkingBlocks.reduce((sum, b) => sum + b.length, 0),
-      remainingContentLength: contentAfterThinking.length,
-    });
-  }
 
   remainingContent = contentAfterThinking;
 
@@ -134,9 +119,6 @@ export const parseAIResponse = (content: string): ParsedResponse => {
   const toolNamesPattern = toolPatterns.join('|');
   const missingBracketRegex = new RegExp(`^([ \t]*(?:•[ \t]*)?)(${toolNamesPattern})>`);
   if (missingBracketRegex.test(remainingContent)) {
-    if (DEBUG_PARSER) {
-      console.log('[Zen][Parser] 🔧 Fixed missing opening bracket');
-    }
     remainingContent = remainingContent.replace(missingBracketRegex, '$1<$2>');
   }
 
@@ -149,7 +131,6 @@ export const parseAIResponse = (content: string): ParsedResponse => {
     // 1. Try to find complete (closed) tags first using backtick-aware search
     for (const toolName of toolPatterns) {
       // Find opening tag
-      const openTag = `<${toolName}`;
       const openRegex = new RegExp(`<${toolName}(?:\\s+[^>]*)?>`, 'i');
       const openMatch = openRegex.exec(str);
 
@@ -288,14 +269,6 @@ export const parseAIResponse = (content: string): ParsedResponse => {
           tag: toolName,
           ...(subTags.length > 0 ? { subTags } : {}),
         });
-
-        if (DEBUG_PARSER) {
-          const subTagInfo = subTags.length > 0 ? ` (${subTags.join(', ')})` : '';
-          console.log(`[Zen][Parser] 📦 Parsing closed tag: <${toolName}>${subTagInfo}`, {
-            innerContentLength: (innerContent || '').length,
-            rawXmlLength: rawXml.length,
-          });
-        }
 
         if (toolName === 'markdown') {
           // Explicit <markdown> tag - use MarkdownParser
@@ -705,16 +678,6 @@ export const parseAIResponse = (content: string): ParsedResponse => {
   if (DEBUG_PARSER) {
     const parseTime = performance.now() - _parseStartTime;
     const errorActions = result.actions.filter((a) => a.isError);
-    console.log('[Zen][Parser] ✅ Parse complete', {
-      parseTimeMs: parseTime.toFixed(2),
-      totalActions: result.actions.length,
-      errorActions: errorActions.length,
-      validActions: result.actions.length - errorActions.length,
-      contentBlocks: result.contentBlocks.length,
-      thinkingBlocks: thinkingBlocks.length,
-      onlyThinkingDetected: result.onlyThinkingDetected || false,
-      parsingSequence: parsingSequence.length > 0 ? parsingSequence : undefined,
-    });
 
     if (errorActions.length > 0) {
       console.warn(

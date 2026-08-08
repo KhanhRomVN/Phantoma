@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useTheme } from '../../../theme/ThemeProvider';
+import {
+  lspClientManager,
+  autoStartLanguageServer,
+} from '../../../modules/Code/services/lsp-client.service';
+import { useCodeStore } from '../../../modules/Code/hooks/useCodeStore';
+import { lspManager } from '../../../modules/Code/services/lsp-manager.service';
 
 // Define Window interface to include require for AMD loader
 declare global {
@@ -7,6 +13,7 @@ declare global {
     require: any;
     monaco: any;
     monacoLoadingPromise?: Promise<void>;
+    __monacoTsDefaultsConfigured?: boolean;
   }
 }
 
@@ -33,8 +40,8 @@ export interface CodeBlockRef {
 export interface HighlightRange {
   startLine: number;
   endLine: number;
-  color?: string; // Optional custom color, defaults to a standard highlight
-  label?: string; // e.g., 'Added', 'Removed'
+  color?: string;
+  label?: string;
 }
 
 interface CodeBlockProps {
@@ -49,6 +56,14 @@ interface CodeBlockProps {
   onEditorMounted?: (editor: any) => void;
   editorOptions?: any;
   onChange?: (value: string) => void;
+  /** Đường dẫn ảo của file, giúp TS worker resolve import tương đối đúng */
+  filePath?: string;
+  /** File ID for tracking unsaved changes */
+  fileId?: string;
+  /** Bật LSP integration (diagnostics, auto-complete, go-to-definition). Mặc định: false */
+  enableLSP?: boolean;
+  /** Project root path for LSP workspace. If not provided, will try to extract from filePath */
+  projectRoot?: string;
 }
 
 // Helper to convert theme to Monaco format
@@ -69,6 +84,63 @@ const convertThemeToMonaco = (theme: any) => {
   };
 };
 
+/**
+ * Đồng bộ TypeScript compiler options với tsconfig.json của project.
+ * Chỉ chạy một lần duy nhất khi Monaco được load.
+ */
+function configureTypeScriptDefaults() {
+  if (!window.monaco || window.__monacoTsDefaultsConfigured) return;
+  window.__monacoTsDefaultsConfigured = true;
+
+  const ts = window.monaco.languages.typescript;
+  const ModuleResolutionKind = ts.ModuleResolutionKind;
+  const ScriptTarget = ts.ScriptTarget;
+  const JsxEmit = ts.JsxEmit;
+  const ModuleKind = ts.ModuleKind;
+
+  const compilerOptions: any = {
+    target: ScriptTarget.ESNext,
+    module: ModuleKind.ESNext,
+    moduleResolution: ModuleResolutionKind.Bundler,
+    jsx: JsxEmit.ReactJSX,
+    allowNonTsExtensions: true,
+    allowSyntheticDefaultImports: true,
+    resolveJsonModule: true,
+    strict: true,
+    noImplicitAny: true,
+    strictNullChecks: true,
+    skipLibCheck: true,
+    // Giảm false positives cho các file không nằm trong project
+    noSemanticValidation: false,
+    noSyntaxValidation: false,
+  };
+
+  ts.typescriptDefaults.setCompilerOptions(compilerOptions);
+  ts.javascriptDefaults.setCompilerOptions(compilerOptions);
+
+  // Disable Monaco's built-in TypeScript diagnostics completely
+  // We use LSP diagnostics exclusively for accurate tsconfig.json support
+  ts.typescriptDefaults.setDiagnosticsOptions({
+    noSemanticValidation: true, // Disable module resolution checks (use LSP instead)
+    noSyntaxValidation: false, // Keep syntax validation (fast, no false positives)
+    diagnosticCodesToIgnore: [],
+  });
+
+  // Disable Monaco's built-in JavaScript diagnostics too
+  ts.javascriptDefaults.setDiagnosticsOptions({
+    noSemanticValidation: true, // Disable module resolution checks (use LSP instead)
+    noSyntaxValidation: false, // Keep syntax validation (fast, no false positives)
+    diagnosticCodesToIgnore: [],
+  });
+
+  console.log('[CodeBlock] TypeScript compiler options configured:', {
+    moduleResolution: 'Bundler',
+    jsx: 'ReactJSX',
+    target: 'ESNext',
+    diagnostics: 'LSP only (Monaco built-in semantic disabled)',
+  });
+}
+
 const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
   (
     {
@@ -83,16 +155,29 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
       onEditorMounted,
       editorOptions,
       onChange,
+      filePath,
+      fileId,
+      enableLSP = false,
+      projectRoot,
     },
     ref,
   ) => {
     const { currentPreset } = useTheme();
+    const markFileAsUnsaved = useCodeStore((s) => s.markFileAsUnsaved);
+    const markFileAsSaved = useCodeStore((s) => s.markFileAsSaved);
+    const setOriginalContent = useCodeStore((s) => s.setOriginalContent);
     const editorRef = useRef<HTMLDivElement>(null);
     const editorInstance = useRef<any>(null);
+    const modelRef = useRef<any>(null);
+    const isModelOwnerRef = useRef<boolean>(false); // Track if we created the model (true) or reused it (false)
     const decorationsRef = useRef<string[]>([]);
     const lineDecorationsRef = useRef<string[]>([]);
     const rangeDecorationsRef = useRef<string[]>([]);
     const [isEditorReady, setIsEditorReady] = React.useState(false);
+
+    // Memoize themeConfig to prevent unnecessary re-renders
+    const themeConfigStr = JSON.stringify(themeConfig);
+    const stableThemeConfig = React.useMemo(() => themeConfig, [themeConfigStr]);
 
     useImperativeHandle(ref, () => ({
       getMatchCount: () => {
@@ -191,9 +276,25 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
         if (!editorRef.current) return;
 
         try {
+          console.log('[CodeBlock] 🔧 initMonaco called', {
+            hasEditor: !!editorInstance.current,
+            hasModel: !!modelRef.current,
+            codeLength: code.length,
+            filePath,
+          });
+
+          // Dispose old editor instance (but keep model alive)
           if (editorInstance.current) {
+            console.log('[CodeBlock] 🗑️  Disposing old editor instance');
             editorInstance.current.dispose();
+            editorInstance.current = null;
           }
+
+          // ⚠️ DO NOT dispose model here - it should be reused
+          // Model disposal logic is handled in cleanup only when truly needed
+
+          // Cấu hình TS compiler options một lần duy nhất
+          configureTypeScriptDefaults();
 
           // Get the active theme from the theme system
           const activeThemeName = 'systema-active-theme';
@@ -232,7 +333,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
 
           // Apply custom overrides from themeConfig
           const customRules =
-            themeConfig?.rules?.map((r) => ({
+            stableThemeConfig?.rules?.map((r) => ({
               token: r.token,
               foreground: r.foreground?.replace('#', ''),
               background: r.background?.replace('#', ''),
@@ -245,17 +346,200 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             rules: [...monacoTheme.rules, ...customRules],
             colors: {
               ...monacoTheme.colors,
-              ...(themeConfig?.background ? { 'editor.background': themeConfig.background } : {}),
-              ...(themeConfig?.foreground ? { 'editor.foreground': themeConfig.foreground } : {}),
+              ...(stableThemeConfig?.background
+                ? { 'editor.background': stableThemeConfig.background }
+                : {}),
+              ...(stableThemeConfig?.foreground
+                ? { 'editor.foreground': stableThemeConfig.foreground }
+                : {}),
             },
           };
 
           // Register the theme
           window.monaco.editor.defineTheme(activeThemeName, finalTheme);
 
+          const languageId = language;
+
+          // Determine if we need LSP integration
+          const needsLSP = enableLSP && filePath && window.monaco.Uri;
+
+          if (needsLSP) {
+            console.log('[CodeBlock] 🔍 Initializing LSP integration...');
+            console.log('[CodeBlock] Language:', languageId);
+            console.log('[CodeBlock] FilePath:', filePath);
+
+            const uri = window.monaco.Uri.file(filePath);
+            console.log('[CodeBlock] 📄 Checking for existing Monaco model:', uri.toString());
+
+            // Always check Monaco's global model registry first
+            const existingModel = window.monaco.editor.getModel(uri);
+
+            if (existingModel) {
+              console.log('[CodeBlock] ♻️  Model already exists, reusing...');
+
+              const existingValue = existingModel.getValue();
+              const existingLength = existingValue.length;
+              const newLength = code.length;
+
+              console.log('[CodeBlock] Model content comparison:', {
+                existingLength,
+                newLength,
+                shouldUpdate: existingValue !== code && newLength > 0,
+              });
+
+              // Only update if:
+              // 1. Content is different, AND
+              // 2. New content is not empty (prevents race condition with async file loading)
+              if (existingValue !== code && newLength > 0) {
+                console.log('[CodeBlock] 📝 Updating existing model value');
+                existingModel.setValue(code);
+              } else if (newLength === 0 && existingLength > 0) {
+                console.log(
+                  '[CodeBlock] ⚠️  Skipping setValue - new content is empty but model has content (async race condition)',
+                );
+              }
+
+              modelRef.current = existingModel;
+              // Check if we're the owner by looking at our ref (not reset in cleanup anymore)
+              if (!isModelOwnerRef.current) {
+                // We didn't create it originally, so we're not the owner
+                isModelOwnerRef.current = false;
+              }
+            } else {
+              console.log('[CodeBlock] 🆕 Creating new model...');
+              modelRef.current = window.monaco.editor.createModel(code, languageId, uri);
+              isModelOwnerRef.current = true; // We created this model, we own it
+              console.log('[CodeBlock] ✅ New model created, we are the owner');
+            }
+
+            // Auto-start language server for this file
+            // Extract project root from filePath if not provided
+            const getProjectRoot = (): string => {
+              if (projectRoot) return projectRoot;
+
+              // Try to extract from filePath (assume project is the parent of src/ or root)
+              if (filePath) {
+                // Find /Documents/Coding/ProjectName/ pattern
+                const match = filePath.match(/^(\/[^/]+\/[^/]+\/[^/]+\/[^/]+)/);
+                if (match) return match[1];
+
+                // Fallback: use directory containing the file
+                const lastSlash = filePath.lastIndexOf('/');
+                if (lastSlash > 0) return filePath.substring(0, lastSlash);
+              }
+
+              // Ultimate fallback
+              return '/home/khanhromvn/Documents/Coding/Phantoma_code';
+            };
+
+            const workspaceRoot = getProjectRoot();
+            const isNewModel = isModelOwnerRef.current; // New model = we own it
+
+            console.log('[CodeBlock] 🚀 Auto-starting language server...');
+            console.log('[CodeBlock] Project root:', workspaceRoot);
+
+            // Initialize LSP client with Monaco
+            lspClientManager.initialize(window.monaco);
+            console.log('[CodeBlock] ✅ LSP Client Manager initialized');
+
+            autoStartLanguageServer(languageId, workspaceRoot)
+              .then(async () => {
+                console.log('[CodeBlock] ✅ Language server started successfully');
+
+                // Subscribe to diagnostics via LSP Manager
+                if (filePath) {
+                  const uri = window.monaco.Uri.file(filePath).toString();
+                  const unsubscribe = lspManager.subscribeToDiagnostics(uri, (event) => {
+                    console.log('[CodeBlock] 🔔 Received diagnostics via LSP Manager:', {
+                      uri: event.uri,
+                      count: event.diagnostics.length,
+                      timestamp: new Date(event.timestamp).toLocaleTimeString(),
+                    });
+
+                    // Diagnostics are already applied to Monaco by lsp-client.service
+                    // This is just for additional processing if needed
+                  });
+
+                  // Store unsubscribe function in ref to call on cleanup
+                  // TODO: Need to add ref for this
+                  console.log('[CodeBlock] ✅ Subscribed to LSP Manager for', uri);
+                }
+
+                // Only notify didOpen for NEW models (not reused ones)
+                if (isNewModel && modelRef.current && filePath) {
+                  const uri = window.monaco.Uri.file(filePath).toString();
+                  const text = modelRef.current.getValue();
+                  console.log(
+                    '[CodeBlock] 📂 Notifying language server: document opened (new model)',
+                  );
+
+                  try {
+                    // Wait for didOpen to complete (this returns a Promise)
+                    await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
+                    console.log('[CodeBlock] ✅ didOpen completed successfully');
+
+                    // ✨ FIX: Immediately trigger didChange after didOpen completes
+                    // This ensures diagnostics are requested right away
+                    // The debouncing in notifyDocumentChanged will handle rapid changes
+                    if (modelRef.current) {
+                      console.log('[CodeBlock] ✏️  Triggering initial didChange for diagnostics');
+                      lspClientManager.notifyDocumentChanged(
+                        languageId,
+                        uri,
+                        modelRef.current.getValue(),
+                        2,
+                      );
+                    }
+                  } catch (err) {
+                    console.error('[CodeBlock] ❌ Failed to notify document opened:', err);
+                  }
+                } else if (!isNewModel) {
+                  console.log('[CodeBlock] ⏭️  Model reused, skipping didOpen notification');
+
+                  // For reused models, just trigger didChange to refresh diagnostics
+                  if (modelRef.current && filePath) {
+                    const uri = window.monaco.Uri.file(filePath).toString();
+                    console.log('[CodeBlock] ✏️  Triggering didChange for reused model');
+                    lspClientManager.notifyDocumentChanged(
+                      languageId,
+                      uri,
+                      modelRef.current.getValue(),
+                      2,
+                    );
+                  }
+                }
+              })
+              .catch((err) => {
+                console.error('[CodeBlock] ❌ Failed to auto-start language server:', err);
+              });
+          } else {
+            // No LSP integration - create simple model without URI
+            console.log('[CodeBlock] 📝 Creating model without LSP integration');
+
+            // For non-LSP mode, always create a fresh model on each init
+            // (no URI means no global registry lookup possible)
+            if (!modelRef.current) {
+              modelRef.current = window.monaco.editor.createModel(code, languageId);
+              isModelOwnerRef.current = true;
+              console.log('[CodeBlock] ✅ Created simple model');
+            } else {
+              // Update existing model value if different
+              if (modelRef.current.getValue() !== code) {
+                console.log('[CodeBlock] 📝 Updating simple model value');
+                modelRef.current.setValue(code);
+              }
+            }
+          }
+
+          // Create editor instance with the model
+          console.log('[CodeBlock] 🖥️  Creating editor instance...');
+          console.log('[CodeBlock] Model exists:', !!modelRef.current);
+          console.log('[CodeBlock] Model value length:', modelRef.current?.getValue()?.length || 0);
+
           editorInstance.current = window.monaco.editor.create(editorRef.current, {
-            value: code,
-            language: language,
+            model: modelRef.current || undefined,
+            value: modelRef.current ? undefined : code, // Fallback to value if no model
+            language: modelRef.current ? undefined : languageId,
             theme: activeThemeName,
             readOnly: editorOptions?.readOnly ?? false,
             minimap: { enabled: false },
@@ -269,15 +553,99 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             ...editorOptions,
           });
 
-          // Handle content changes
+          console.log('[CodeBlock] ✅ Editor instance created');
+          console.log(
+            '[CodeBlock] Editor model:',
+            editorInstance.current.getModel()?.uri?.toString() || 'no URI',
+          );
+          console.log('[CodeBlock] Editor DOM element:', {
+            width: editorRef.current?.offsetWidth,
+            height: editorRef.current?.offsetHeight,
+            display: window.getComputedStyle(editorRef.current || document.body).display,
+          });
+
+          // Add Ctrl+S / Cmd+S handler for Save
+          editorInstance.current.addCommand(
+            window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS,
+            () => {
+              console.log('[CodeBlock] 💾 Save triggered (Ctrl/Cmd+S)');
+
+              // Notify LSP server
+              if (enableLSP && filePath && modelRef.current) {
+                const uri = window.monaco.Uri.file(filePath).toString();
+                const text = modelRef.current.getValue();
+                lspClientManager.notifyDocumentSaved(languageId, uri, text);
+              }
+
+              // Save file to disk
+              if (fileId && filePath) {
+                const content = editorInstance.current.getValue();
+                window.api
+                  .invoke('fs:write-file', filePath, content)
+                  .then(() => {
+                    console.log('[CodeBlock] ✅ File saved to disk');
+                    // Clear unsaved marker
+                    markFileAsSaved(fileId);
+                  })
+                  .catch((err: Error) => {
+                    console.error('[CodeBlock] ❌ Failed to save file:', err);
+                  });
+              }
+            },
+          );
+
+          // Handle content changes with LSP notification
+          let changeVersion = 2; // Start from 2 (version 1 was didOpen)
           editorInstance.current.onDidChangeModelContent(() => {
+            const newContent = editorInstance.current.getValue();
+
             if (onChange) {
-              onChange(editorInstance.current.getValue());
+              onChange(newContent);
+            }
+
+            // Track unsaved changes
+            if (fileId) {
+              markFileAsUnsaved(fileId, newContent);
+            }
+
+            // Notify LSP server about content changes (debounced automatically)
+            if (enableLSP && filePath && modelRef.current) {
+              const uri = window.monaco.Uri.file(filePath).toString();
+              const text = modelRef.current.getValue();
+              changeVersion++;
+              lspClientManager.notifyDocumentChanged(languageId, uri, text, changeVersion);
             }
           });
 
           if (mounted) {
             setIsEditorReady(true);
+
+            // Force layout after a short delay to ensure DOM is ready
+            setTimeout(() => {
+              if (editorInstance.current) {
+                console.log('[CodeBlock] 🔄 Forcing editor layout');
+                editorInstance.current.layout();
+
+                // Debug: Check if model is still attached
+                const currentModel = editorInstance.current.getModel();
+                console.log('[CodeBlock] 📊 Post-layout check:', {
+                  hasModel: !!currentModel,
+                  modelValue: currentModel?.getValue()?.slice(0, 50),
+                  modelUri: currentModel?.uri?.toString(),
+                  editorValue: editorInstance.current.getValue()?.slice(0, 50),
+                });
+
+                // Force a second layout if needed
+                if (currentModel && currentModel.getValue().length > 0) {
+                  setTimeout(() => {
+                    if (editorInstance.current) {
+                      editorInstance.current.layout();
+                      console.log('[CodeBlock] 🔄 Second layout forced');
+                    }
+                  }, 200);
+                }
+              }
+            }, 150);
           }
 
           // Expose editor instance
@@ -344,29 +712,54 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
 
       return () => {
         mounted = false;
+
+        console.log(`[CodeBlock] 🧹 Cleanup called for ${filePath}`, {
+          hasModel: !!modelRef.current,
+          isOwner: isModelOwnerRef.current,
+          enableLSP,
+          reason: 'useEffect re-run (deps changed or unmount)',
+        });
+
+        // ⚠️ CRITICAL: Only dispose editor, NEVER dispose model
+        // Model is shared across tab switches and must persist
+        // Model will be reused when switching back to this file
+
+        // Always dispose editor instance (but keep the model alive)
         if (editorInstance.current) {
           editorInstance.current.dispose();
+          editorInstance.current = null;
+          console.log('[CodeBlock] ✅ Editor instance disposed');
         }
+
+        // ⚠️ DO NOT set modelRef.current = null - this breaks model reuse
+        // ⚠️ DO NOT set isModelOwnerRef.current = false - we need to track ownership
+        // Model reference persists so initMonaco can find and reuse it
+        // Model will be cleaned up by Monaco when the URI is no longer referenced
       };
-      // Use JSON.stringify for deep comparison of themeConfig to avoid re-init on every render if object reference changes but content doesn't
-    }, [JSON.stringify(themeConfig), wordWrap]); // Re-init if config/wrap changes
+
+      console.log('[CodeBlock] 📦 useEffect triggered', {
+        wordWrap,
+        codeLength: code.length,
+        filePath,
+        enableLSP,
+      });
+    }, [wordWrap, filePath, enableLSP, language]); // Re-init only when these critical props change
+
+    // Set original content when code first loads (for unsaved changes tracking)
+    useEffect(() => {
+      if (fileId && code) {
+        setOriginalContent(fileId, code);
+      }
+    }, [fileId]); // Only run when fileId changes
 
     // Update value
     useEffect(() => {
-      if (editorInstance.current && editorInstance.current.getValue() !== code) {
-        editorInstance.current.setValue(code);
-      }
+      // No-op: Value updates are handled in initMonaco
+      // This effect is kept for reference but does nothing
+      // Model value is updated when:
+      // 1. Tab switches (existingModel.setValue in initMonaco)
+      // 2. Content changes (onDidChangeModelContent handler)
     }, [code]);
-
-    // Update language when prop changes
-    useEffect(() => {
-      if (editorInstance.current && window.monaco) {
-        const model = editorInstance.current.getModel();
-        if (model) {
-          window.monaco.editor.setModelLanguage(model, language);
-        }
-      }
-    }, [language]);
 
     // Update word wrap dynamically
     useEffect(() => {
@@ -374,6 +767,57 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
         editorInstance.current.updateOptions({ wordWrap });
       }
     }, [wordWrap]);
+
+    // Update theme dynamically without re-initializing editor
+    useEffect(() => {
+      if (!isEditorReady || !editorInstance.current || !window.monaco) return;
+
+      const updateTheme = async () => {
+        const activeThemeName = 'systema-active-theme';
+
+        let monacoTheme: any;
+        if (currentPreset && currentPreset.monaco) {
+          monacoTheme = convertThemeToMonaco(currentPreset);
+        } else {
+          try {
+            const { MidnightBlue } = await import('../../../theme/themes/MidnightBlue');
+            monacoTheme = convertThemeToMonaco(MidnightBlue);
+          } catch (e) {
+            console.warn('Failed to load MidnightBlue theme:', e);
+            return;
+          }
+        }
+
+        // Apply custom overrides from themeConfig
+        const customRules =
+          stableThemeConfig?.rules?.map((r) => ({
+            token: r.token,
+            foreground: r.foreground?.replace('#', ''),
+            background: r.background?.replace('#', ''),
+            fontStyle: r.fontStyle,
+          })) || [];
+
+        const finalTheme = {
+          ...monacoTheme,
+          rules: [...monacoTheme.rules, ...customRules],
+          colors: {
+            ...monacoTheme.colors,
+            ...(stableThemeConfig?.background
+              ? { 'editor.background': stableThemeConfig.background }
+              : {}),
+            ...(stableThemeConfig?.foreground
+              ? { 'editor.foreground': stableThemeConfig.foreground }
+              : {}),
+          },
+        };
+
+        window.monaco.editor.defineTheme(activeThemeName, finalTheme);
+        window.monaco.editor.setTheme(activeThemeName);
+        console.log('[CodeBlock] 🎨 Theme updated dynamically');
+      };
+
+      updateTheme();
+    }, [themeConfigStr, currentPreset, stableThemeConfig, isEditorReady]);
 
     // Handle search highlighting
     useEffect(() => {
@@ -485,9 +929,9 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
       if (
         editorInstance.current &&
         showLineNumbers &&
-        typeof themeConfig?.highlightLine === 'number'
+        typeof stableThemeConfig?.highlightLine === 'number'
       ) {
-        const line = themeConfig.highlightLine;
+        const line = stableThemeConfig.highlightLine;
         const editor = editorInstance.current;
 
         // Clear previous decorations/collections if we stored them (simple version: just overwrite)
@@ -504,7 +948,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
 
         editor.revealLineInCenter(line);
       }
-    }, [themeConfig?.highlightLine, showLineNumbers]);
+    }, [stableThemeConfig?.highlightLine, showLineNumbers]);
 
     return <div ref={editorRef} className={`w-full h-full min-h-[200px] ${className || ''}`} />;
   },
