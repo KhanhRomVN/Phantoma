@@ -1,21 +1,18 @@
-import { extensionService } from '../../../../../services/ExtensionService';
+import { CodeController } from '@renderer/controller/CodeController';
 import type { RunCommandParams } from '../../../types/tool-types';
 
-export const executeRunCommand = (
+export const executeRunCommand = async (
   params: RunCommandParams,
   actionId: string,
 ): Promise<string | null> => {
-  return new Promise((resolve) => {
-    extensionService.postMessage({
-      command: 'runCommand',
-      commandText: params.command,
-      actionId: actionId,
-    });
+  const result = await CodeController.executeTool('run_command', {
+    commandText: params.command,
+    folderPath: (params as any).folder_path || (params as any).folderPath,
+  }, { actionId });
 
-    // The result is handled by the global commandExecuted listener in useToolExecution
-    // Store the resolver to be called when commandExecuted arrives
-    (window as any).__pendingRunCommandResolvers =
-      (window as any).__pendingRunCommandResolvers || {};
-    (window as any).__pendingRunCommandResolvers[actionId] = resolve;
-  });
+  if (!result.success) {
+    return '[run_command] Result: Error - ' + (result.error || '');
+  }
+  // run_command là fire-and-forget, kết quả đến qua listener
+  return '[run_command] Result: Command sent to terminal';
 };

@@ -1,14 +1,16 @@
 /**
  * AgentPanel — panel chính của Agent, quản lý chuyển đổi giữa Home và Chat view.
  *
+ *    Keep-alive: mỗi target/project có một AgentView riêng, được giữ mounted
+ *    nhưng ẩn/hiện bằng CSS. Khi chuyển qua lại, toàn bộ state (chat, messages,
+ *    streaming, tools) được bảo toàn.
+ *
  *    handleHomeSendMessage()   : Nhận message từ Home, tạo ChatSession mới.
  *    handleBack()              : Quay về Home từ Chat, giữ lại nội dung dang dở.
  *    handleLoadConversation()  : Load conversation từ history vào Chat view.
- *    saveCurrentState()        : Lưu state hiện tại vào Map theo targetId.
- *    restoreStateForTarget()   : Khôi phục state đã lưu khi quay lại target.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
 // Components
 import HomePanel from './feature/Home';
@@ -25,31 +27,15 @@ import { ChatSession } from './feature/Chat/types/chat';
 // UtilsS (icons)
 import { MousePointer } from 'lucide-react';
 
-// ─── AgentPanel ────────────────────────────────────────────────────────────
+// ─── AgentView (keep-alive unit) ───────────────────────────────────────────
 
-interface AgentState {
-  currentChat: ChatSession | null;
-  initialMessageData: {
-    content: string;
-    files: any[];
-    model: any;
-    account: any;
-  } | null;
-  homeInitialValue: string;
+interface AgentViewProps {
+  feature: string;
+  isVisible: boolean;
 }
 
-export function AgentPanel() {
-  const { activeFeature, emulateState } = useAgentFeature();
-  const { activeTargetId, targetStates } = emulateState;
-  const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
-  const isTargetActive = currentTargetState?.isActive || false;
-
-  // Lưu state theo targetId để restore khi quay lại
-  const targetStatesMap = useRef<Map<string, AgentState>>(new Map());
-  const [currentTargetId, setCurrentTargetId] = useState<string | null>(null);
-  const currentTargetIdRef = useRef<string | null>(null);
-
-  // State hiện tại
+/** Một instance Agent cho một target/project cụ thể — luôn mounted, ẩn/hiện bằng CSS */
+function AgentView({ feature, isVisible }: AgentViewProps) {
   const [currentChat, setCurrentChat] = useState<ChatSession | null>(null);
   const [initialMessageData, setInitialMessageData] = useState<{
     content: string;
@@ -58,82 +44,6 @@ export function AgentPanel() {
     account: any;
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
-
-  // Ref để giữ giá trị mới nhất
-  const currentChatRef = useRef(currentChat);
-  const initialMessageDataRef = useRef(initialMessageData);
-  const homeInitialValueRef = useRef(homeInitialValue);
-  currentChatRef.current = currentChat;
-  initialMessageDataRef.current = initialMessageData;
-  homeInitialValueRef.current = homeInitialValue;
-
-  // Cập nhật ref khi currentTargetId thay đổi
-  useEffect(() => {
-    currentTargetIdRef.current = currentTargetId;
-  }, [currentTargetId]);
-
-  // Kiểm tra overlay
-  const shouldShowOverlay = () => {
-    if (activeFeature === 'emulate') {
-      return !activeTargetId || !isTargetActive;
-    }
-    return false;
-  };
-
-  // Lưu state hiện tại vào Map — dùng ref
-  const saveCurrentState = useCallback(() => {
-    const targetId = currentTargetIdRef.current;
-    if (targetId) {
-      targetStatesMap.current.set(targetId, {
-        currentChat: currentChatRef.current,
-        initialMessageData: initialMessageDataRef.current,
-        homeInitialValue: homeInitialValueRef.current,
-      });
-    }
-  }, []);
-
-  // Restore state từ Map
-  const restoreStateForTarget = useCallback((targetId: string) => {
-    const savedState = targetStatesMap.current.get(targetId);
-    if (savedState) {
-      setCurrentChat(savedState.currentChat);
-      setInitialMessageData(savedState.initialMessageData);
-      setHomeInitialValue(savedState.homeInitialValue);
-    } else {
-      setCurrentChat(null);
-      setInitialMessageData(null);
-      setHomeInitialValue('');
-    }
-    setCurrentTargetId(targetId);
-  }, []);
-
-  // Khi activeTargetId hoặc activeFeature thay đổi
-  useEffect(() => {
-    if (activeFeature === 'emulate') {
-      saveCurrentState();
-
-      if (activeTargetId && isTargetActive) {
-        restoreStateForTarget(activeTargetId);
-      } else {
-        setCurrentTargetId(null);
-        setCurrentChat(null);
-        setInitialMessageData(null);
-        setHomeInitialValue('');
-      }
-    }
-  }, [activeTargetId, isTargetActive, activeFeature, saveCurrentState, restoreStateForTarget]);
-
-  // Lưu state khi có thay đổi — dùng ref cho targetId
-  useEffect(() => {
-    const targetId = currentTargetIdRef.current;
-    if (targetId && activeFeature === 'emulate') {
-      targetStatesMap.current.set(targetId, {
-        currentChat,
-        initialMessageData,
-        homeInitialValue,
-      });
-    }
-  }, [currentChat, initialMessageData, homeInitialValue, activeFeature]);
 
   const handleHomeSendMessage = useCallback(
     (content: string, files: any[], model: any, account: any) => {
@@ -170,6 +80,87 @@ export function AgentPanel() {
     [],
   );
 
+  return (
+    <div
+      className="flex-1 overflow-hidden bg-background flex flex-col"
+      style={{ display: isVisible ? 'flex' : 'none' }}
+    >
+      {currentChat ? (
+        <ChatPanel
+          currentChat={currentChat}
+          onBack={handleBack}
+          feature={feature}
+          onLoadConversation={handleLoadConversation}
+          initialMessageData={initialMessageData}
+          onClearInitialData={() => setInitialMessageData(null)}
+        />
+      ) : (
+        <HomePanel
+          onSendMessage={handleHomeSendMessage}
+          onLoadConversation={handleLoadConversation}
+          initialValue={homeInitialValue}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── AgentPanel ────────────────────────────────────────────────────────────
+
+export function AgentPanel() {
+  const { activeFeature, emulateState, codeState } = useAgentFeature();
+  const { activeTargetId, targetStates } = emulateState;
+  const { currentProjectId } = codeState;
+  const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
+  const isTargetActive = currentTargetState?.isActive || false;
+
+  // Tập hợp các view đã từng mở (keep-alive)
+  const openedKeysRef = useRef<Set<string>>(new Set());
+  const [, forceUpdate] = useState(0);
+
+  // Xác định active key dựa trên feature
+  const activeKey = useMemo(() => {
+    if (activeFeature === 'emulate' && activeTargetId && isTargetActive) {
+      return `emulate:${activeTargetId}`;
+    }
+    if (activeFeature === 'code' && currentProjectId) {
+      return `code:${currentProjectId}`;
+    }
+    return null;
+  }, [activeFeature, activeTargetId, isTargetActive, currentProjectId]);
+
+  // Khi activeKey thay đổi, thêm vào openedKeys
+  useEffect(() => {
+    if (activeKey && !openedKeysRef.current.has(activeKey)) {
+      openedKeysRef.current.add(activeKey);
+      forceUpdate((n) => n + 1);
+    }
+  }, [activeKey]);
+
+  // Cleanup keys không còn hợp lệ (target/project đã bị xóa)
+  useEffect(() => {
+    const keys = Array.from(openedKeysRef.current);
+    let changed = false;
+    for (const key of keys) {
+      if (key.startsWith('emulate:')) {
+        const targetId = key.slice('emulate:'.length);
+        if (!targetStates[targetId]) {
+          openedKeysRef.current.delete(key);
+          changed = true;
+        }
+      }
+      // code keys được giữ vĩnh viễn — project có thể bị xóa nhưng state vẫn trong memory
+      // upgrade path: cleanup code keys khi project bị remove khỏi useCodeStore
+    }
+    if (changed) {
+      forceUpdate((n) => n + 1);
+    }
+  }, [targetStates]);
+
+  // Overlay checks
+  const showGenericOverlay = activeFeature !== 'emulate' && activeFeature !== 'code';
+  const showEmulateOverlay = activeFeature === 'emulate' && (!activeTargetId || !isTargetActive);
+
   const renderEmulateOverlay = () => {
     const hasTarget = !!activeTargetId;
     return (
@@ -188,30 +179,26 @@ export function AgentPanel() {
   return (
     <ProjectProvider>
       <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
-        {activeFeature !== 'emulate' && <AgentOverlay featureName={activeFeature || undefined} />}
-        {activeFeature === 'emulate' && shouldShowOverlay() && renderEmulateOverlay()}
+        {/* Overlay cho feature không hỗ trợ */}
+        {showGenericOverlay && <AgentOverlay featureName={activeFeature || undefined} />}
 
-        {!shouldShowOverlay() && (
-          <>
-            <div className="flex-1 overflow-hidden bg-background flex flex-col">
-              {currentChat ? (
-                <ChatPanel
-                  currentChat={currentChat}
-                  onBack={handleBack}
-                  feature={activeFeature}
-                  onLoadConversation={handleLoadConversation}
-                  initialMessageData={initialMessageData}
-                  onClearInitialData={() => setInitialMessageData(null)}
+        {/* Overlay cho emulate khi chưa có target */}
+        {showEmulateOverlay && renderEmulateOverlay()}
+
+        {/* Keep-alive views — tất cả đều mounted, chỉ activeKey hiển thị */}
+        {!showGenericOverlay && !showEmulateOverlay && (
+          <div className="flex-1 overflow-hidden bg-background flex flex-col">
+            {Array.from(openedKeysRef.current).map((key) => {
+              const feature = key.startsWith('emulate:') ? 'emulate' : 'code';
+              return (
+                <AgentView
+                  key={key}
+                  feature={feature}
+                  isVisible={key === activeKey}
                 />
-              ) : (
-                <HomePanel
-                  onSendMessage={handleHomeSendMessage}
-                  onLoadConversation={handleLoadConversation}
-                  initialValue={homeInitialValue}
-                />
-              )}
-            </div>
-          </>
+              );
+            })}
+          </div>
         )}
       </div>
     </ProjectProvider>

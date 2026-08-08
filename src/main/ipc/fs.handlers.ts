@@ -2,20 +2,27 @@ import { ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec as execCallback } from 'child_process';
-import { promisify } from 'util';
 import chokidar, { FSWatcher } from 'chokidar';
-const exec = promisify(execCallback);
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Simple glob pattern matching */
+function matchPattern(name: string, pattern: string): boolean {
+  const regexStr = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.');
+  try {
+    return new RegExp('^' + regexStr + '$', 'i').test(name);
+  } catch {
+    return name.includes(pattern);
+  }
+}
 
 // ─── Watcher Manager ─────────────────────────────────────────────────────────
+
 const watchers = new Map<string, FSWatcher>();
 
-function startWatching(
-  projectPath: string,
-  sender: Electron.WebContents,
-): void {
-  if (watchers.has(projectPath)) return; // already watching
+function startWatching(projectPath: string, sender: Electron.WebContents): void {
+  if (watchers.has(projectPath)) return;
 
-  // Debounce: gộp các event trong 300ms thành 1 lần gửi
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   const changedDirs = new Set<string>();
 
@@ -27,26 +34,21 @@ function startWatching(
   };
 
   const watcher = chokidar.watch(projectPath, {
-    ignored: [
-      /(^|[\/\\])\../,           // dotfiles
-      '**/node_modules/**',
-      '**/.git/**',
-    ],
+    ignored: [/(^|[\/\\])\../, '**/node_modules/**', '**/.git/**'],
     persistent: true,
     ignoreInitial: true,
-    depth: 99,                   // đủ sâu cho mọi project
+    depth: 99,
   });
 
   watcher.on('all', (_eventName, filePath) => {
     const dir = path.dirname(filePath);
     changedDirs.add(dir);
-
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(flush, 300);
   });
 
   watcher.on('error', (err) => {
-    console.error(`[fs:watcher] Error watching ${projectPath}:`, err.message);
+    console.error('[fs:watcher] Error watching ' + projectPath + ':', err.message);
   });
 
   watchers.set(projectPath, watcher);
@@ -60,106 +62,237 @@ function stopWatching(projectPath: string): void {
   }
 }
 
-// Certificate installation state
-let certInstalled = false;
+// ─── Certificate ────────────────────────────────────────────────────────────
 
 export async function installSystemCA(): Promise<boolean> {
   try {
     const caPath = path.join(process.cwd(), '.http-mitm-proxy', 'certs', 'ca.pem');
     const destPath = '/usr/local/share/ca-certificates/phantoma.crt';
+    if (!fs.existsSync(caPath)) return false;
+    if (fs.existsSync(destPath)) return true;
 
-    if (!fs.existsSync(caPath)) {
-      return false;
-    }
-
-    // Check if certificate is already installed
-    if (fs.existsSync(destPath)) {
-      return true;
-    }
-
-    // Use pkexec or sudo with timeout
-    const command = `pkexec sh -c "cp '${caPath}' '${destPath}' && update-ca-certificates"`;
-
+    const command =
+      'pkexec sh -c "cp \'' + caPath + "' '" + destPath + '\' && update-ca-certificates"';
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
-        console.warn('[Cert] Installation timed out after 30s');
         resolve(false);
       }, 30000);
-
-      execCallback(command, (error: any, stdout: any, stderr: any) => {
+      execCallback(command, (error: any, _stdout: any, stderr: any) => {
         clearTimeout(timeout);
         if (error) {
-          console.error('[Cert] Installation failed:', error.message);
-          console.error('[Cert] stderr:', stderr);
+          console.error('[Cert] Failed:', error.message, stderr);
           resolve(false);
           return;
         }
-        certInstalled = true;
         resolve(true);
       });
     });
   } catch (e: any) {
-    console.error('[Cert] Error installing CA:', e);
+    console.error('[Cert] Error:', e);
     return false;
   }
 }
 
+// ─── Setup ───────────────────────────────────────────────────────────────────
+
 export function setupFSHandlers() {
-  // ===== File System & Shell IPC Handlers =====
+  // File read/write
   ipcMain.handle('fs:read-file', async (_, filePath: string) => {
-    try {
-      if (!fs.existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
-      return fs.readFileSync(filePath, 'utf-8');
-    } catch (e: any) {
-      throw new Error(`Failed to read file: ${e.message}`);
-    }
+    if (!fs.existsSync(filePath)) throw new Error('File not found: ' + filePath);
+    return fs.readFileSync(filePath, 'utf-8');
   });
 
   ipcMain.handle('fs:write-file', async (_, filePath: string, content: string) => {
-    try {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, content, 'utf-8');
-      return true;
-    } catch (e: any) {
-      throw new Error(`Failed to write file: ${e.message}`);
-    }
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content, 'utf-8');
+    return true;
   });
 
   ipcMain.handle('fs:mkdir', async (_, dirPath: string) => {
-    try {
-      fs.mkdirSync(dirPath, { recursive: true });
-      return true;
-    } catch (e: any) {
-      throw new Error(`Failed to create directory: ${e.message}`);
-    }
+    fs.mkdirSync(dirPath, { recursive: true });
+    return true;
   });
 
+  // Directory listing (original)
   ipcMain.handle('fs:list-dir', async (_, dirPath: string) => {
-    try {
-      const files = fs.readdirSync(dirPath);
-      return files.map((file) => {
-        const fullPath = path.join(dirPath, file);
-        const stats = fs.statSync(fullPath);
-        return {
-          name: file,
-          path: fullPath,
-          isDirectory: stats.isDirectory(),
-          size: stats.size,
-          mtime: stats.mtimeMs,
-        };
-      });
-    } catch (e: any) {
-      throw new Error(`Failed to list directory: ${e.message}`);
-    }
+    const files = fs.readdirSync(dirPath);
+    return files.map((file) => {
+      const fullPath = path.join(dirPath, file);
+      const stats = fs.statSync(fullPath);
+      return {
+        name: file,
+        path: fullPath,
+        isDirectory: stats.isDirectory(),
+        size: stats.size,
+        mtime: stats.mtimeMs,
+      };
+    });
   });
 
-  ipcMain.handle('fs:watch-dir', async (event, projectPath: string) => {
-    try {
-      startWatching(projectPath, event.sender);
-      return true;
-    } catch (e: any) {
-      throw new Error(`Failed to watch directory: ${e.message}`);
+  ipcMain.handle('fs:read-dir', async (_, dirPath: string) => {
+    const files = fs.readdirSync(dirPath);
+    return files.map((file) => {
+      const fullPath = path.join(dirPath, file);
+      let type: 'file' | 'folder' = 'file';
+      let size: number | undefined;
+      try {
+        const stats = fs.statSync(fullPath);
+        type = stats.isDirectory() ? 'folder' : 'file';
+        size = stats.size;
+      } catch {
+        /* keep defaults */
+      }
+      return { name: file, type, size };
+    });
+  });
+
+  // File stat
+  ipcMain.handle('fs:stat', async (_, filePath: string) => {
+    if (!fs.existsSync(filePath)) throw new Error('File not found: ' + filePath);
+    const stats = fs.statSync(filePath);
+    return {
+      size: stats.size,
+      isDirectory: stats.isDirectory(),
+      isFile: stats.isFile(),
+      mtime: stats.mtimeMs,
+      ctime: stats.ctimeMs,
+    };
+  });
+
+  // Delete file
+  ipcMain.handle('fs:delete-file', async (_, filePath: string) => {
+    if (!fs.existsSync(filePath)) throw new Error('File not found: ' + filePath);
+    fs.unlinkSync(filePath);
+    return true;
+  });
+
+  // Delete folder (recursive)
+  ipcMain.handle('fs:remove-dir', async (_, dirPath: string) => {
+    if (!fs.existsSync(dirPath)) throw new Error('Directory not found: ' + dirPath);
+    fs.rmSync(dirPath, { recursive: true, force: true });
+    return true;
+  });
+
+  // Rename file/folder
+  ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
+    if (!fs.existsSync(oldPath)) throw new Error('File not found: ' + oldPath);
+    fs.mkdirSync(path.dirname(newPath), { recursive: true });
+    fs.renameSync(oldPath, newPath);
+    return true;
+  });
+
+  // Delete file/folder (original)
+  ipcMain.handle('fs:delete', async (_, targetPath: string) => {
+    if (!fs.existsSync(targetPath)) return false;
+    const stat = fs.statSync(targetPath);
+    if (stat.isDirectory()) fs.rmSync(targetPath, { recursive: true, force: true });
+    else fs.unlinkSync(targetPath);
+    return true;
+  });
+
+  // Find files by pattern
+  ipcMain.handle('fs:find-files', async (_, dirPath: string, pattern: string) => {
+    const results: string[] = [];
+    const walk = (currentDir: string, depth: number) => {
+      if (depth > 10) return;
+      try {
+        const entries = fs.readdirSync(currentDir);
+        for (const entry of entries) {
+          if (entry.startsWith('.') || entry === 'node_modules') continue;
+          const fullPath = path.join(currentDir, entry);
+          try {
+            const stat = fs.statSync(fullPath);
+            if (stat.isDirectory()) walk(fullPath, depth + 1);
+            else if (matchPattern(entry, pattern)) results.push(fullPath);
+          } catch {
+            /* skip */
+          }
+        }
+      } catch {
+        /* skip */
+      }
+    };
+    walk(dirPath, 0);
+    return results.map((p) => ({ path: p }));
+  });
+
+  // Grep / regex search
+  ipcMain.handle('fs:grep', async (_, targetPath: string, searchTerm: string) => {
+    const regex = new RegExp(searchTerm, 'i');
+    const results: Record<string, { matches: Array<{ lineNumber: number; lineContent: string }> }> =
+      {};
+    const MAX_FILE_SIZE = 1024 * 1024;
+
+    const searchInFile = (filePath: string) => {
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.size > MAX_FILE_SIZE) return;
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const lines = content.split(/\r?\n/);
+        const matches: Array<{ lineNumber: number; lineContent: string }> = [];
+        for (let i = 0; i < lines.length; i++) {
+          if (regex.test(lines[i]))
+            matches.push({ lineNumber: i + 1, lineContent: lines[i].trim() });
+        }
+        if (matches.length > 0) results[filePath] = { matches };
+      } catch {
+        /* skip */
+      }
+    };
+
+    const stat = fs.statSync(targetPath);
+    if (stat.isFile()) {
+      searchInFile(targetPath);
+    } else if (stat.isDirectory()) {
+      const walk = (dir: string, depth: number) => {
+        if (depth > 10) return;
+        try {
+          for (const entry of fs.readdirSync(dir)) {
+            if (entry.startsWith('.') || entry === 'node_modules') continue;
+            const fullPath = path.join(dir, entry);
+            try {
+              const s = fs.statSync(fullPath);
+              if (s.isDirectory()) walk(fullPath, depth + 1);
+              else if (s.isFile()) searchInFile(fullPath);
+            } catch {
+              /* skip */
+            }
+          }
+        } catch {
+          /* skip */
+        }
+      };
+      walk(targetPath, 0);
     }
+
+    const totalMatches = Object.values(results).reduce((sum, r) => sum + r.matches.length, 0);
+    return { results, totalFilesSearched: Object.keys(results).length, totalMatches };
+  });
+
+  // Shell: open path in OS file manager
+  ipcMain.handle('shell:open-path', async (_, targetPath: string) => {
+    const { shell } = await import('electron');
+    return shell.openPath(targetPath);
+  });
+
+  // Shell: exec command
+  ipcMain.handle('shell:exec', async (_, command: string, cwd?: string) => {
+    return new Promise((resolve) => {
+      execCallback(
+        command,
+        { cwd: cwd || process.cwd() },
+        (error: any, stdout: any, stderr: any) => {
+          if (error) resolve({ success: false, error: error.message, stderr, stdout });
+          else resolve({ success: true, stdout, stderr });
+        },
+      );
+    });
+  });
+
+  // File watcher
+  ipcMain.handle('fs:watch-dir', async (event, projectPath: string) => {
+    startWatching(projectPath, event.sender);
+    return true;
   });
 
   ipcMain.handle('fs:unwatch-dir', async (_, projectPath: string) => {
@@ -167,34 +300,7 @@ export function setupFSHandlers() {
     return true;
   });
 
-  ipcMain.handle('fs:delete', async (_, targetPath: string) => {
-    try {
-      if (!fs.existsSync(targetPath)) return false;
-      const stat = fs.statSync(targetPath);
-      if (stat.isDirectory()) {
-        fs.rmSync(targetPath, { recursive: true, force: true });
-      } else {
-        fs.unlinkSync(targetPath);
-      }
-      return true;
-    } catch (e: any) {
-      throw new Error(`Failed to delete: ${e.message}`);
-    }
-  });
-
-  ipcMain.handle('shell:exec', async (_, command: string, cwd?: string) => {
-    return new Promise((resolve) => {
-      execCallback(command, { cwd: cwd || process.cwd() }, (error: any, stdout: any, stderr: any) => {
-        if (error) {
-          resolve({ success: false, error: error.message, stderr, stdout });
-        } else {
-          resolve({ success: true, stdout, stderr });
-        }
-      });
-    });
-  });
-
-  // Certificate Installation IPC
+  // Certificate
   ipcMain.handle('cert:install-system-ca', async () => {
     return await installSystemCA();
   });

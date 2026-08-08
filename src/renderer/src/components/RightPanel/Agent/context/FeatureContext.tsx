@@ -15,11 +15,17 @@ export interface EmulateState {
   targetStates: Record<string, { isActive: boolean; mode?: 'mitm' | 'cdp' | 'frida' }>;
 }
 
+export interface CodeState {
+  currentProjectId: string | null;
+}
+
 interface FeatureContextValue {
   activeFeature: AgentFeature;
   setActiveFeature: (feature: AgentFeature) => void;
   emulateState: EmulateState;
   setEmulateState: (state: EmulateState) => void;
+  codeState: CodeState;
+  setCodeState: (state: CodeState) => void;
 }
 
 // CONTEXT
@@ -28,6 +34,8 @@ const FeatureContext = createContext<FeatureContextValue>({
   setActiveFeature: () => {},
   emulateState: { activeTargetId: null, targetStates: {} },
   setEmulateState: () => {},
+  codeState: { currentProjectId: null },
+  setCodeState: () => {},
 });
 
 // Hooks
@@ -40,10 +48,13 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     activeTargetId: null,
     targetStates: {},
   });
+  const [codeState, setCodeState] = useState<CodeState>({
+    currentProjectId: null,
+  });
 
   return (
     <FeatureContext.Provider
-      value={{ activeFeature, setActiveFeature, emulateState, setEmulateState }}
+      value={{ activeFeature, setActiveFeature, emulateState, setEmulateState, codeState, setCodeState }}
     >
       {children}
     </FeatureContext.Provider>

@@ -4,25 +4,15 @@
  * ?Usage:
  *   // Từ Emulate component: cập nhật requests
  *   EmulateController.getInstance().setRequests(requests);
- *   EmulateController.getInstance().setUnpackedScripts(unpackedScripts);
  *
- *   const result = EmulateController.getInstance().listHttpsText({ method: 'GET' }, 20);
- *   const hosts = EmulateController.getInstance().listHostsText();
- *   const sources = EmulateController.getInstance().listSourcesText({ type: 'js' });
- *   const source = EmulateController.getInstance().getSourceDetailText(3);
- *   const detail = EmulateController.getInstance().getHttpsDetailText(0);
- *   const summary = EmulateController.getInstance().getTrafficSummary();
+ *   // Từ tool-executors (qua static executeTool):
+ *   const result = await EmulateController.executeTool('list_https', { filter: {...}, limit: 50 });
  */
 import {
-  ListHttpHandler,
-  ListHttpFilter,
-  ListHttpResult,
+  ListHttpHandler, ListHttpFilter, ListHttpResult,
 } from '../modules/Emulate/handler/ListHttpHandler';
 import { ListHostsHandler } from '../modules/Emulate/handler/ListHostsHandler';
-import {
-  ListSourcesHandler,
-  ListSourcesFilter,
-} from '../modules/Emulate/handler/ListSourcesHandler';
+import { ListSourcesHandler, ListSourcesFilter } from '../modules/Emulate/handler/ListSourcesHandler';
 import { GetSourceDetailHandler } from '../modules/Emulate/handler/GetSourceDetailHandler';
 import { GetHttpsDetailHandler } from '../modules/Emulate/handler/GetHttpsDetailHandler';
 import { GetTrafficSummaryHandler } from '../modules/Emulate/handler/GetTrafficSummaryHandler';
@@ -63,6 +53,8 @@ export class EmulateController {
     this.applyFilterHandler = new ApplyFilterHandler();
   }
 
+  // ── Singleton ─────────────────────────────────────────────────────
+
   public static getInstance(): EmulateController {
     if (!EmulateController.instance) {
       EmulateController.instance = new EmulateController();
@@ -70,100 +62,87 @@ export class EmulateController {
     return EmulateController.instance;
   }
 
-  /** Cập nhật danh sách requests hiện tại (gọi từ Emulate component) */
-  public setRequests(requests: NetworkRequest[]): void {
-    this.requests = requests;
+  // ── Static: execute tool (giống CodeController pattern) ──────────
+
+  /** Thực thi emulate tool, trả về Promise. Dùng bởi tool-executors/emulate. */
+  public static async executeTool(
+    toolName: string,
+    params: Record<string, any> = {},
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    const ctrl = EmulateController.getInstance();
+
+    try {
+      switch (toolName) {
+        case 'list_https': {
+          const text = ctrl.listHttpsText(params.filter || {}, params.limit || 50);
+          return { success: true, data: { output: text } };
+        }
+        case 'list_hosts': {
+          return { success: true, data: { output: ctrl.listHostsText() } };
+        }
+        case 'list_sources': {
+          return { success: true, data: { output: ctrl.listSourcesText(params.filter || {}) } };
+        }
+        case 'get_source_detail': {
+          if (params.index === undefined) return { success: false, error: 'index is required' };
+          return { success: true, data: { output: ctrl.getSourceDetailText(params.index) } };
+        }
+        case 'get_https_detail': {
+          if (params.index === undefined) return { success: false, error: 'index is required' };
+          return { success: true, data: { output: ctrl.getHttpsDetailText(params.index) } };
+        }
+        case 'apply_filter': {
+          const currentFilter = ctrl.getFilter();
+          if (!currentFilter) return { success: false, error: 'No current filter to modify' };
+          ctrl.applyFilterChanges(params as any);
+
+          const changes: string[] = [];
+          if (params.methods) changes.push('Methods: ' + params.methods.map((m: any) => m.value + '(' + m.action + ')').join(', '));
+          if (params.statuses) changes.push('Statuses: ' + params.statuses.map((s: any) => s.value + '(' + s.action + ')').join(', '));
+          if (params.types) changes.push('Types: ' + params.types.map((t: any) => t.value + '(' + t.action + ')').join(', '));
+          if (params.hosts) changes.push('Hosts: ' + params.hosts.map((h: any) => h.value + '(' + h.action + ')').join(', '));
+          if (params.paths) changes.push('Paths: ' + params.paths.map((p: any) => p.value + '(' + p.action + ')').join(', '));
+          if (params.size) changes.push('Size: ' + (params.size.min || '0') + '-' + (params.size.max || 'inf'));
+          if (params.time) changes.push('Time: ' + (params.time.min || '0') + '-' + (params.time.max || 'inf'));
+
+          return { success: true, data: { output: '[apply_filter] Applied: ' + (changes.join('; ') || 'no changes') } };
+        }
+        default:
+          return { success: false, error: 'Unknown emulate tool: ' + toolName };
+      }
+    } catch (e: any) {
+      return { success: false, error: e.message || String(e) };
+    }
   }
 
-  /** Cập nhật unpacked scripts (gọi từ Emulate component) */
-  public setUnpackedScripts(scripts: Map<string, CdpScriptUnpackedData> | undefined): void {
-    this.unpackedScripts = scripts;
-  }
+  // ── Instance methods ──────────────────────────────────────────────
 
-  // ─── list_https ───
+  public setRequests(requests: NetworkRequest[]): void { this.requests = requests; }
+  public setUnpackedScripts(scripts: Map<string, CdpScriptUnpackedData> | undefined): void { this.unpackedScripts = scripts; }
 
-  /** Lọc danh sách HTTPS requests (có merge với InspectorFilter từ apply_filter) */
   public listHttps(filter: ListHttpFilter = {}, limit: number = 50): ListHttpResult {
     let requests = this.requests;
-    if (this.filter) {
-      requests = filterRequestsByConfig(requests, this.filter, '');
-    }
+    if (this.filter) requests = filterRequestsByConfig(requests, this.filter, '');
     return this.listHttpHandler.handle(requests, filter, limit);
   }
-
-  /** Lấy text table kết quả (format phù hợp cho LLM) */
-  public listHttpsText(filter: ListHttpFilter = {}, limit: number = 50): string {
-    return this.listHttps(filter, limit).text;
-  }
-
-  // ─── list_hosts ───
-
-  /** Lấy danh sách unique hosts */
-  public listHostsText(): string {
-    return this.listHostsHandler.handle(this.requests).text;
-  }
-
-  // ─── list_sources ───
-
-  /** Lấy danh sách source files dạng cây */
-  public listSourcesText(filter: ListSourcesFilter = {}): string {
-    return this.listSourcesHandler.handle(this.requests, filter).text;
-  }
-
-  // ─── get_source_detail ───
-
-  /** Lấy nội dung source code của 1 file */
-  public getSourceDetailText(index: number): string {
-    return this.getSourceDetailHandler.handle(this.requests, this.unpackedScripts, index).text;
-  }
-
-  // ─── get_https_detail ───
-
-  /** Lấy chi tiết request/response của 1 HTTPS request */
-  public getHttpsDetailText(index: number): string {
-    return this.getHttpsDetailHandler.handle(this.requests, index).text;
-  }
-
-  // ─── traffic_summary ───
-
-  /** Lấy tổng quan distinct values của traffic hiện tại (hosts, methods, statuses, types) */
-  public getTrafficSummary(): TrafficSummary {
-    return this.getTrafficSummaryHandler.handle(this.requests);
-  }
-
-  // ─── filter ───
-
-  /** Cập nhật filter hiện tại (gọi từ Emulate component khi filter thay đổi) */
-  public setFilter(filter: InspectorFilter): void {
-    this.filter = filter;
-  }
-
-  /** Lấy filter hiện tại */
-  public getFilter(): InspectorFilter | undefined {
-    return this.filter;
-  }
-
-  /** Lấy text mô tả filter hiện tại (dùng cho LLM context) */
+  public listHttpsText(filter: ListHttpFilter = {}, limit: number = 50): string { return this.listHttps(filter, limit).text; }
+  public listHostsText(): string { return this.listHostsHandler.handle(this.requests).text; }
+  public listSourcesText(filter: ListSourcesFilter = {}): string { return this.listSourcesHandler.handle(this.requests, filter).text; }
+  public getSourceDetailText(index: number): string { return this.getSourceDetailHandler.handle(this.requests, this.unpackedScripts, index).text; }
+  public getHttpsDetailText(index: number): string { return this.getHttpsDetailHandler.handle(this.requests, index).text; }
+  public getTrafficSummary(): TrafficSummary { return this.getTrafficSummaryHandler.handle(this.requests); }
+  public setFilter(filter: InspectorFilter): void { this.filter = filter; }
+  public getFilter(): InspectorFilter | undefined { return this.filter; }
   public getFilterText(): string {
-    if (!this.filter) {
-      return this.getFilterHandler.handle({} as InspectorFilter, this.requests);
-    }
+    if (!this.filter) return this.getFilterHandler.handle({} as InspectorFilter, this.requests);
     return this.getFilterHandler.handle(this.filter, this.requests);
   }
-
-  /** Đăng ký callback khi filter bị thay đổi bởi AI (để sync UI) */
-  public setOnFilterChanged(cb: ((filter: InspectorFilter) => void) | null): void {
-    this.onFilterChanged = cb;
-  }
-
-  /** Áp dụng thay đổi filter từ AI request, trả về filter mới */
+  public setOnFilterChanged(cb: ((filter: InspectorFilter) => void) | null): void { this.onFilterChanged = cb; }
   public applyFilterChanges(params: ApplyFilterParams): InspectorFilter {
     const current = this.filter || ({} as InspectorFilter);
     const updated = this.applyFilterHandler.apply(current, params);
     this.filter = updated;
-    if (this.onFilterChanged) {
-      this.onFilterChanged(updated);
-    }
+    if (this.onFilterChanged) this.onFilterChanged(updated);
     return updated;
   }
 }

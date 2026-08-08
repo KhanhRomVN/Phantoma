@@ -1,19 +1,15 @@
-import { EmulateController } from '../../../../../../../../controller/EmulateController';
+import { EmulateController } from '@renderer/controller/EmulateController';
 
 export interface GetSourceDetailParams {
   index: number;
 }
 
-/**
- * Execute get_source_detail tool — lấy nội dung source code của 1 file.
- */
+/** Execute get_source_detail tool — gọi EmulateController.executeTool() */
 export async function executeGetSourceDetail(params: GetSourceDetailParams): Promise<string | null> {
-  const { index } = params;
+  const result = await EmulateController.executeTool('get_source_detail', { index: params.index });
 
-  try {
-    const text = EmulateController.getInstance().getSourceDetailText(index);
-    return text;
-  } catch (e: any) {
-    return `[get_source_detail] Result: Error - ${e.message || 'Unknown error'}`;
+  if (!result.success) {
+    return '[get_source_detail] Result: Error - ' + (result.error || '');
   }
+  return (result.data as any)?.output || null;
 }

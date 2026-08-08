@@ -1,30 +1,168 @@
 /**
  * File Extension to Icon Mapper
- * Maps file extensions and filenames to vscode-icons SVG files
- * using vscode-icons-js package
+ * Maps file extensions to SVG icon files in public/images/icon/
  */
-import {
-  getIconForFile,
-  DEFAULT_FILE,
-  DEFAULT_FOLDER,
-  DEFAULT_FOLDER_OPENED,
-} from 'vscode-icons-js';
+import { DEFAULT_FOLDER, DEFAULT_FOLDER_OPENED } from 'vscode-icons-js';
 
-/**
- * Get icon filename for a given file
- * @param filename - The filename (with or without path)
- * @returns SVG icon filename
- */
-export function getFileIcon(filename: string): string {
-  const name = filename.split('/').pop() || filename;
-  const icon = getIconForFile(name);
-  return icon || DEFAULT_FILE;
-}
+// ─── Extension → Icon Map ─────────────────────────────────────────────────
+// Maps file extensions directly to our icon filenames (without .svg).
+// Fallback: "file" for unknown types.
+const EXT_ICON_MAP: Record<string, string> = {
+  // JavaScript family
+  js: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  jsx: 'react',
+  ts: 'typescript',
+  tsx: 'react_ts',
+  // Web
+  html: 'html',
+  htm: 'html',
+  css: 'css',
+  scss: 'sass',
+  sass: 'sass',
+  less: 'less',
+  vue: 'vue',
+  svelte: 'svelte',
+  astro: 'astro',
+  // Data
+  json: 'json',
+  yaml: 'yaml',
+  yml: 'yaml',
+  xml: 'xml',
+  svg: 'svg',
+  toml: 'toml',
+  // Docs
+  md: 'markdown',
+  mdx: 'markdown',
+  txt: 'document',
+  log: 'log',
+  // Scripts
+  sh: 'shellcheck',
+  bash: 'shellcheck',
+  zsh: 'shellcheck',
+  fish: 'shellcheck',
+  ps1: 'powershell',
+  bat: 'bat',
+  cmd: 'bat',
+  // Backend
+  py: 'python',
+  rb: 'ruby',
+  php: 'php',
+  java: 'java',
+  class: 'javaclass',
+  jar: 'jar',
+  go: 'go',
+  rs: 'rust',
+  swift: 'swift',
+  kt: 'kotlin',
+  dart: 'dart',
+  lua: 'lua',
+  r: 'r',
+  scala: 'scala',
+  clj: 'clojure',
+  cljs: 'clojure',
+  ex: 'elixir',
+  exs: 'elixir',
+  hs: 'haskell',
+  lhs: 'haskell',
+  // C family
+  c: 'c',
+  h: 'h',
+  cpp: 'cpp',
+  hpp: 'hpp',
+  cc: 'cpp',
+  cxx: 'cpp',
+  cs: 'csharp',
+  // Config
+  env: 'settings',
+  cfg: 'settings',
+  conf: 'settings',
+  ini: 'settings',
+  editorconfig: 'editorconfig',
+  gitignore: 'git',
+  gitattributes: 'git',
+  dockerfile: 'docker',
+  makefile: 'makefile',
+  license: 'license',
+  // Database
+  sql: 'database',
+  prisma: 'prisma',
+  graphql: 'graphql',
+  gql: 'graphql',
+  // Other
+  pdf: 'pdf',
+  zip: 'zip',
+  gz: 'zip',
+  tar: 'zip',
+  exe: 'exe',
+  dll: 'dll',
+  wasm: 'webassembly',
+  // Tests
+  'test.js': 'test-js',
+  'test.jsx': 'test-jsx',
+  'test.ts': 'test-ts',
+  'test.tsx': 'test-ts',
+  spec: 'test-js',
+  // Lock files
+  'package-lock.json': 'npm',
+  'yarn.lock': 'yarn',
+  'pnpm-lock.yaml': 'pnpm',
+  // Config files (exact match)
+  'package.json': 'npm',
+  'tsconfig.json': 'tsconfig',
+  'jsconfig.json': 'jsconfig',
+  'eslint.config.js': 'eslint',
+  'eslint.config.mjs': 'eslint',
+  '.eslintrc': 'eslint',
+  '.eslintrc.json': 'eslint',
+  '.prettierrc': 'prettier',
+  'vite.config.ts': 'vite',
+  'vite.config.js': 'vite',
+  'webpack.config.js': 'webpack',
+  'webpack.config.ts': 'webpack',
+  'tailwind.config.js': 'tailwindcss',
+  'tailwind.config.ts': 'tailwindcss',
+  'postcss.config.js': 'postcss',
+  'postcss.config.mjs': 'postcss',
+  'README.md': 'readme',
+  'CHANGELOG.md': 'changelog',
+  LICENSE: 'license',
+  '.gitignore': 'git',
+};
 
 declare global {
   interface Window {
     __zenImagesUri?: string;
   }
+}
+
+/**
+ * Get icon filename for a given file based on extension
+ * @param filename - The filename (with or without path)
+ * @returns SVG icon filename (e.g. "javascript.svg")
+ */
+export function getFileIcon(filename: string): string {
+  const name = filename.split('/').pop() || filename;
+  const lower = name.toLowerCase();
+
+  // 1. Exact filename match (e.g. "package.json", "README.md")
+  if (EXT_ICON_MAP[lower]) return `${EXT_ICON_MAP[lower]}.svg`;
+
+  // 2. Extension match
+  const ext = lower.includes('.') ? lower.split('.').pop()! : '';
+  if (EXT_ICON_MAP[ext]) return `${EXT_ICON_MAP[ext]}.svg`;
+
+  // 3. Special pattern: test.*.ext → test icon
+  if (/^test\./.test(lower)) {
+    const testExt = lower.split('.').pop()!;
+    if (testExt === 'ts' || testExt === 'tsx') return 'test-ts.svg';
+    if (testExt === 'jsx') return 'test-jsx.svg';
+    return 'test-js.svg';
+  }
+
+  // 4. Fallback
+  return 'file.svg';
 }
 
 /**
@@ -34,13 +172,9 @@ declare global {
  */
 export function getFileIconPath(filename: string): string {
   const iconName = getFileIcon(filename);
-  // vscode-icons-js returns names like "file_type_markdown.svg" but our
-  // icon set uses simple names like "markdown.svg" — strip the prefix.
-  const cleanName = iconName.replace(/^file_type_/, '').replace(/^default_file\.svg$/, 'file.svg');
   const baseUri = window.__zenImagesUri || '/images/icon';
-  const path = `${baseUri}/${cleanName}`;
-  const finalPath = path.replace(/([^:]\/)\/+/g, '$1');
-  return finalPath;
+  const path = `${baseUri}/${iconName}`;
+  return path.replace(/([^:]\/)\/+/g, '$1');
 }
 
 // ─── Folder Icon Mapping ──────────────────────────────────────────────────
@@ -204,9 +338,6 @@ const FOLDER_ICON_MAP: Record<string, string> = {
 
 /**
  * Get folder icon name based on folder name
- * @param folderName - The folder name
- * @param isOpen - Whether folder is open
- * @returns SVG icon filename (e.g. "folder-src.svg" or "folder-src-open.svg")
  */
 export function getFolderIconName(folderName: string, isOpen: boolean = false): string {
   const key = folderName.toLowerCase();
@@ -219,8 +350,6 @@ export function getFolderIconName(folderName: string, isOpen: boolean = false): 
 
 /**
  * Get folder icon (backward compatible)
- * @param isOpen - Whether folder is open
- * @returns SVG icon filename
  */
 export function getFolderIcon(isOpen: boolean = false): string {
   return isOpen ? DEFAULT_FOLDER_OPENED : DEFAULT_FOLDER;
@@ -228,9 +357,6 @@ export function getFolderIcon(isOpen: boolean = false): string {
 
 /**
  * Get full folder icon path
- * @param folderName - Optional folder name for specialized icon
- * @param isOpen - Whether folder is open
- * @returns Full path to folder icon SVG
  */
 export function getFolderIconPath(folderName?: string, isOpen: boolean = false): string {
   const iconName = folderName ? getFolderIconName(folderName, isOpen) : getFolderIcon(isOpen);
@@ -241,14 +367,10 @@ export function getFolderIconPath(folderName?: string, isOpen: boolean = false):
 
 /**
  * Get provider icon path
- * @param provider - The provider name (e.g. openai, anthropic, google)
- * @returns Full path to provider icon SVG
  */
 export function getProviderIconPath(provider: string): string {
   const normalized = provider.toLowerCase();
-
   let iconName = 'openai.svg';
-
   if (normalized.includes('claude') || normalized.includes('anthropic')) {
     iconName = 'claude.svg';
   } else if (normalized.includes('gemini') || normalized.includes('google')) {
@@ -260,7 +382,6 @@ export function getProviderIconPath(provider: string): string {
   } else if (normalized.includes('openai') || normalized.includes('gpt')) {
     iconName = 'openai.svg';
   }
-
   const baseUri = window.__zenImagesUri || '/images/icon';
   const path = `${baseUri}/provider_icons/${iconName}`;
   return path.replace(/([^:]\/)\/+/g, '$1');

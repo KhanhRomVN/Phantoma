@@ -1,54 +1,20 @@
-import {
-  extensionService,
-  messageDispatcher,
-} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { getToolTimeout } from '../../../constants/constants';
+import { CodeController } from '@renderer/controller/CodeController';
 import { RevertFileParams } from '../../../types/tool-types';
 
-/**
- * Execute revert_file tool
- * Reverts (undoes) the last change made to a file using VSCode's undo functionality
- */
 export async function executeRevertFile(
   params: RevertFileParams,
-  bypassIgnore: boolean = false,
+  _bypassIgnore: boolean = false,
   conversationId?: string,
   actionId?: string,
 ): Promise<string | null> {
-  return new Promise((resolve) => {
-    const requestId = `revert-${Date.now()}-${Math.random()}`;
-    const filePath = params.path || params.file_path || '';
+  const filePath = params.path || params.file_path || '';
+  const result = await CodeController.executeTool('revert_file', {
+    file_path: filePath,
+    version: (params as any).version,
+  }, { conversationId, actionId });
 
-    extensionService.postMessage({
-      command: 'revertFile',
-      path: filePath,
-      requestId,
-      bypassIgnore,
-      conversationId,
-      actionId,
-    });
-
-    messageDispatcher.register(
-      requestId,
-      (msg) => {
-        if (msg.error) {
-          console.error(`[revert_file] Error response`, {
-            requestId,
-            filePath,
-            error: msg.error,
-          });
-          resolve(`[revert_file for '${filePath}'] Result: Error - ${msg.error}`);
-        } else {
-          resolve(
-            `[revert_file for '${filePath}'] Result: File reverted successfully (undo applied)`,
-          );
-        }
-      },
-      getToolTimeout('revert_file'),
-      () => {
-        console.warn(`[revert_file] Timeout`, { requestId, filePath });
-        resolve(null);
-      },
-    );
-  });
+  if (!result.success) {
+    return "[revert_file for '" + filePath + "'] Result: Error - " + (result.error || '');
+  }
+  return "[revert_file for '" + filePath + "'] Result: File reverted successfully";
 }

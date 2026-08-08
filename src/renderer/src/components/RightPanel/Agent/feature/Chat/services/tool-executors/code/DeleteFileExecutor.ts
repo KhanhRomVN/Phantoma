@@ -1,32 +1,12 @@
-import {
-  extensionService,
-  messageDispatcher,
-} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { getToolTimeout } from '../../../constants/constants';
+import { CodeController } from '@renderer/controller/CodeController';
 import { DeleteFileParams } from '../../../types/tool-types';
 
-export const executeDeleteFile = (params: DeleteFileParams): Promise<string | null> => {
-  return new Promise((resolve) => {
-    const requestId = `delete-file-${Date.now()}-${Math.random()}`;
-    const filePath = params.file_path;
+export const executeDeleteFile = async (params: DeleteFileParams): Promise<string | null> => {
+  const filePath = params.file_path;
+  const result = await CodeController.executeTool('delete_file', { file_path: filePath });
 
-    extensionService.postMessage({
-      command: 'deleteFile',
-      file_path: filePath,
-      requestId,
-    });
-
-    messageDispatcher.register(
-      requestId,
-      (msg) => {
-        if (msg.error) {
-          resolve(`[delete_file for '${filePath}'] Result: Error - ${msg.error}`);
-          return;
-        }
-        resolve(`[delete_file for '${filePath}'] Result: File deleted successfully`);
-      },
-      getToolTimeout('delete_file'),
-      () => resolve(null),
-    );
-  });
+  if (!result.success) {
+    return "[delete_file for '" + filePath + "'] Result: Error - " + (result.error || '');
+  }
+  return "[delete_file for '" + filePath + "'] Result: File deleted successfully";
 };

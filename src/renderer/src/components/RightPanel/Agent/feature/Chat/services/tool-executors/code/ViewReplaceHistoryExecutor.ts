@@ -1,8 +1,4 @@
-import {
-  extensionService,
-  messageDispatcher,
-} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { getToolTimeout } from '../../../constants/constants';
+import { CodeController } from '@renderer/controller/CodeController';
 
 export interface ViewReplaceHistoryParams {
   file_path?: string;
@@ -10,65 +6,32 @@ export interface ViewReplaceHistoryParams {
   path?: string;
 }
 
-/**
- * Execute view_replace_history tool
- * Xem lịch sử replace_in_file của một file
- */
 export async function executeViewReplaceHistory(
   params: ViewReplaceHistoryParams,
-  conversationId?: string,
+  _conversationId?: string,
 ): Promise<string | null> {
-  return new Promise((resolve) => {
-    const requestId = `view-history-${Date.now()}-${Math.random()}`;
-    const filePath = params.path || params.file_path || params.filePath || '';
+  const filePath = params.path || params.file_path || params.filePath || '';
+  const result = await CodeController.executeTool('view_replace_history', { filePath });
 
-    extensionService.postMessage({
-      command: 'viewReplaceHistory',
-      filePath,
-      conversationId,
-      requestId,
-    });
+  if (!result.success) {
+    return "[view_replace_history for '" + filePath + "'] Result: Error - " + (result.error || '');
+  }
 
-    messageDispatcher.register(
-      requestId,
-      (msg) => {
-        if (msg.error) {
-          console.error(`[view_replace_history] Error response`, {
-            requestId,
-            filePath,
-            error: msg.error,
-          });
-          resolve(`[view_replace_history for '${filePath}'] Result: Error - ${msg.error}`);
-        } else {
-          const histories = msg.histories || [];
+  const data = result.data || {};
+  const histories = data.history || [];
 
-          if (histories.length === 0) {
-            resolve(
-              `[view_replace_history for '${filePath}'] Result: No replace_in_file history found for this file.`,
-            );
-            return;
-          }
+  if (histories.length === 0) {
+    return "[view_replace_history for '" + filePath + "'] Result: No replace_in_file history found.";
+  }
 
-          let result = `[view_replace_history for '${filePath}'] Found ${histories.length} version(s):\n\n`;
-
-          histories.forEach((h: any, index: number) => {
-            const date = new Date(h.timestamp).toLocaleString();
-            result += `**Version ${h.version}**\n`;
-            result += `- Errors: ${h.errorCount}, Warnings: ${h.warningCount}\n`;
-            result += `- Date: ${date}\n`;
-            if (index < histories.length - 1) {
-              result += `\n`;
-            }
-          });
-
-          resolve(result);
-        }
-      },
-      getToolTimeout('view_replace_history'),
-      () => {
-        console.warn(`[view_replace_history] Timeout`, { requestId, filePath });
-        resolve(null);
-      },
-    );
+  let output = "[view_replace_history for '" + filePath + "'] Found " + histories.length + " version(s):\n\n";
+  histories.forEach((h: any, index: number) => {
+    const date = new Date(h.timestamp).toLocaleString();
+    output += '**Version ' + h.version + '**\n';
+    output += '- Errors: ' + h.errorCount + ', Warnings: ' + h.warningCount + '\n';
+    output += '- Date: ' + date + '\n';
+    if (index < histories.length - 1) output += '\n';
   });
+
+  return output;
 }

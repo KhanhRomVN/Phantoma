@@ -1,58 +1,21 @@
-import {
-  extensionService,
-  messageDispatcher,
-} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { getToolTimeout } from '../../../constants/constants';
+import { CodeController } from '@renderer/controller/CodeController';
 import { WriteToFileParams } from '../../../types/tool-types';
 
-/**
- * Execute write_to_file tool
- * Writes content to a file via the extension
- */
 export async function executeWriteToFile(
   params: WriteToFileParams,
   skipDiagnostics: boolean = false,
-  bypassIgnore: boolean = false,
+  _bypassIgnore: boolean = false,
   conversationId?: string,
   actionId?: string,
 ): Promise<string | null> {
-  return new Promise((resolve) => {
-    const requestId = `write-${Date.now()}-${Math.random()}`;
-    const filePath = params.path || params.file_path || '';
+  const filePath = params.path || params.file_path || '';
+  const result = await CodeController.executeTool('write_to_file', {
+    path: filePath,
+    content: params.content || '',
+  }, { skipDiagnostics, conversationId, actionId });
 
-    extensionService.postMessage({
-      command: 'writeFile',
-      path: filePath,
-      content: params.content || '',
-      requestId,
-      skipDiagnostics,
-      bypassIgnore,
-      conversationId,
-      actionId,
-    });
-
-    messageDispatcher.register(
-      requestId,
-      (msg) => {
-        if (msg.error) {
-          console.error(`[write_to_file] Error response`, {
-            requestId,
-            filePath,
-            error: msg.error,
-          });
-          resolve(`[write_to_file for '${filePath}'] Result: Error - ${msg.error}`);
-        } else {
-          let result = `[write_to_file for '${filePath}'] Result: File written successfully`;
-          if (msg.diagnostics?.length > 0)
-            result += `\n\n⚠️ **Diagnostics Found:**\n${msg.diagnostics.join('\n')}`;
-          resolve(result);
-        }
-      },
-      getToolTimeout('write_to_file'),
-      () => {
-        console.warn(`[write_to_file] Timeout`, { requestId, filePath });
-        resolve(null);
-      },
-    );
-  });
+  if (!result.success) {
+    return "[write_to_file for '" + filePath + "'] Result: Error - " + (result.error || '');
+  }
+  return "[write_to_file for '" + filePath + "'] Result: File written successfully";
 }

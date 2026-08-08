@@ -67,9 +67,11 @@ const MainLayoutContent = () => {
   // Sync activeFeature with URL path
   useEffect(() => {
     const currentPath = location.pathname.slice(1) || 'recon';
-    // Map route to feature: only 'emulate' is currently supported
+    // Map route to feature
     if (currentPath === 'emulate') {
       setActiveFeature('emulate');
+    } else if (currentPath === 'code') {
+      setActiveFeature('code');
     } else {
       setActiveFeature(null);
     }

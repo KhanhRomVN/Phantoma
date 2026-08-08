@@ -1,103 +1,46 @@
-import {
-  extensionService,
-  messageDispatcher,
-} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { getToolTimeout } from '../../../constants/constants';
+import { CodeController } from '@renderer/controller/CodeController';
 import { ReadFileParams } from '../../../types/tool-types';
 
 /**
- * Execute read_file tool
- * Reads file content from the extension
+ * Execute read_file tool — gọi CodeController.executeTool().
  */
 export async function executeReadFile(
   params: ReadFileParams,
-  bypassIgnore: boolean = false,
-): Promise<{
-  output: string;
-  diagnostics?: Array<{
-    severity: string;
-    message: string;
-    line: number;
-    column: number;
-    source?: string;
-    code?: string | number;
-  }>;
-} | null> {
-  return new Promise((resolve) => {
-    const requestId = `read-${Date.now()}-${Math.random()}`;
-    const filePath = params.path || params.file_path || '';
-
-    extensionService.postMessage({
-      command: 'readFile',
-      path: filePath,
-      start_line: params.start_line,
-      end_line: params.end_line,
-      requestId,
-      bypassIgnore,
-    });
-
-    messageDispatcher.register(
-      requestId,
-      (msg) => {
-        if (msg.error) {
-          resolve({
-            output: `[read_file for '${filePath}'] Result: Error - ${msg.error}`,
-          });
-        } else {
-          const content = msg.content || '';
-          let output = `[read_file for '${filePath}'] Result:\n\`\`\`\n${content}`;
-
-          // Add diagnostics section if there are any warnings or errors
-          if (msg.diagnostics && msg.diagnostics.length > 0) {
-            const errorCount = msg.diagnostics.filter((d: any) => d.severity === 'error').length;
-            const warningCount = msg.diagnostics.filter(
-              (d: any) => d.severity === 'warning',
-            ).length;
-
-            // Add diagnostics inside the code block
-            output += `\n\n**Summary:** ${errorCount} error(s), ${warningCount} warning(s)\n\n`;
-
-            // Get file content lines for context
-            const contentLines = content.split('\n');
-
-            // Group by severity
-            const errors = msg.diagnostics.filter((d: any) => d.severity === 'error');
-            const warnings = msg.diagnostics.filter((d: any) => d.severity === 'warning');
-
-            if (errors.length > 0) {
-              output += `### Errors (${errors.length})\n`;
-              errors.forEach((d: any, index: number) => {
-                const lineContent = contentLines[d.line - 1] || '';
-                const trimmedLine = lineContent.trim();
-                output += `${index + 1}.  \`${trimmedLine}\` **Line ${d.line}**${d.source ? ` [${d.source}${d.code ? `:${d.code}` : ''}]` : ''}: ${d.message}\n`;
-              });
-              output += '\n';
-            }
-
-            if (warnings.length > 0) {
-              output += `### Warnings (${warnings.length})\n`;
-              warnings.forEach((d: any, index: number) => {
-                const lineContent = contentLines[d.line - 1] || '';
-                const trimmedLine = lineContent.trim();
-                output += `${index + 1}.  \`${trimmedLine}\` **Line ${d.line}**${d.source ? ` [${d.source}${d.code ? `:${d.code}` : ''}]` : ''}: ${d.message}\n`;
-              });
-            }
-          }
-
-          // Close the code block
-          output += `\`\`\``;
-
-          resolve({
-            output,
-            diagnostics: msg.diagnostics || undefined,
-          });
-        }
-      },
-      getToolTimeout('read_file'),
-      () => {
-        console.warn(`[read_file] Timeout`, { requestId, filePath });
-        resolve(null);
-      },
-    );
+  _bypassIgnore: boolean = false,
+): Promise<{ output: string; diagnostics?: any[] } | null> {
+  const filePath = params.path || params.file_path || '';
+  const result = await CodeController.executeTool('read_file', {
+    path: filePath,
+    start_line: params.start_line,
+    end_line: params.end_line,
   });
+
+  if (!result.success) {
+    return { output: "[read_file for '" + filePath + "'] Result: Error - " + (result.error || '') };
+  }
+
+  const data = result.data || {};
+  const content = data.content || '';
+  let output = "[read_file for '" + filePath + "'] Result:\n```\n" + content;
+
+  if (data.diagnostics && data.diagnostics.length > 0) {
+    const errors = data.diagnostics.filter((d: any) => d.severity === 'Error');
+    const warnings = data.diagnostics.filter((d: any) => d.severity === 'Warning');
+    output += '\n\n**Summary:** ' + errors.length + ' error(s), ' + warnings.length + ' warning(s)\n\n';
+    if (errors.length > 0) {
+      output += '### Errors (' + errors.length + ')\n';
+      errors.forEach((d: any, i: number) => {
+        output += (i + 1) + '. `' + (d.message || '') + '` **Line ' + (d.line || 0) + '**: ' + (d.message || '') + '\n';
+      });
+    }
+    if (warnings.length > 0) {
+      output += '### Warnings (' + warnings.length + ')\n';
+      warnings.forEach((d: any, i: number) => {
+        output += (i + 1) + '. `' + (d.message || '') + '` **Line ' + (d.line || 0) + '**: ' + (d.message || '') + '\n';
+      });
+    }
+  }
+
+  output += '\n```';
+  return { output, diagnostics: data.diagnostics };
 }

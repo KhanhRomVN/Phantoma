@@ -1,4 +1,6 @@
-// Re-export all executors
+// ═══════════════════════════════════════════════════════════════════════
+// Re-export — Code tools
+// ═══════════════════════════════════════════════════════════════════════
 export { executeReadFile } from './code/ReadFileExecutor';
 export { executeWriteToFile } from './code/WriteToFileExecutor';
 export { executeReplaceInFile } from './code/ReplaceInFileExecutor';
@@ -12,7 +14,23 @@ export { executeGrep } from './code/GrepExecutor';
 export { executeGitDiff } from './code/GitDiffExecutor';
 export { executeMoveFile } from './code/MoveFileExecutor';
 
+// ═══════════════════════════════════════════════════════════════════════
+// Re-export — Emulate tools
+// ═══════════════════════════════════════════════════════════════════════
+export { executeListHttps } from './emulate/ListHttpsExecutor';
+export { executeListHosts } from './emulate/ListHostsExecutor';
+export { executeListSources } from './emulate/ListSourcesExecutor';
+export { executeGetSourceDetail } from './emulate/GetSourceDetailExecutor';
+export { executeGetHttpsDetail } from './emulate/GetHttpsDetailExecutor';
+export { executeApplyFilter } from './emulate/ApplyFilterExecutor';
+
+// ═══════════════════════════════════════════════════════════════════════
+// Imports
+// ═══════════════════════════════════════════════════════════════════════
+
 import type { ExecutorContext, ExecutorOptions, ToolExecutor } from '../../types/executor-types';
+
+// ── Code tool executors ──────────────────────────────────────────────
 import { executeReadFile } from './code/ReadFileExecutor';
 import { executeWriteToFile } from './code/WriteToFileExecutor';
 import { executeReplaceInFile } from './code/ReplaceInFileExecutor';
@@ -26,153 +44,151 @@ import { executeGrep } from './code/GrepExecutor';
 import { executeGitDiff } from './code/GitDiffExecutor';
 import { executeMoveFile } from './code/MoveFileExecutor';
 
+// ═══════════════════════════════════════════════════════════════════════
+// Factory
+// ═══════════════════════════════════════════════════════════════════════
+
 /**
- * Factory function to get the appropriate executor for a given action type.
- * Wraps function-based executors into a unified ToolExecutor interface.
+ * Factory function — mỗi case gọi executor function tương ứng.
+ * Tất cả executor đã được refactor để gọi Controller.executeTool() thay vì IPC.
  */
 export function getExecutor(actionType: string): ToolExecutor | null {
   switch (actionType) {
+    // ── Code tools ──────────────────────────────────────────────
     case 'read_file':
       return {
-        execute: async (action: any, _context: ExecutorContext, options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, options?: ExecutorOptions) => {
           const result = await executeReadFile(action.params, options?.bypassIgnore ?? false);
-          if (!result) return null;
-          const content = result.output || '';
-          const filePath = action.params.path || action.params.file_path || '';
-          return `[read_file for '${filePath}'] Result:\n\`\`\`\n${content}\n\`\`\``;
+          return result?.output || null;
         },
       };
     case 'write_to_file':
       return {
-        execute: async (action: any, context: ExecutorContext, options?: ExecutorOptions) => {
-          return executeWriteToFile(
-            action.params,
-            options?.skipDiagnostics ?? false,
-            options?.bypassIgnore ?? false,
-            context.conversationIdRef?.current,
-            (action as any).actionId,
-          );
+        execute: async (action: any, ctx: ExecutorContext, options?: ExecutorOptions) => {
+          return executeWriteToFile(action.params,
+            options?.skipDiagnostics ?? false, options?.bypassIgnore ?? false,
+            ctx.conversationIdRef?.current, (action as any).actionId);
         },
       };
     case 'replace_in_file':
       return {
-        execute: async (action: any, context: ExecutorContext, options?: ExecutorOptions) => {
-          return executeReplaceInFile(
-            action.params,
-            options?.skipDiagnostics ?? false,
-            options?.bypassIgnore ?? false,
-            context.conversationIdRef?.current,
-            (action as any).actionId,
-          );
+        execute: async (action: any, ctx: ExecutorContext, options?: ExecutorOptions) => {
+          return executeReplaceInFile(action.params,
+            options?.skipDiagnostics ?? false, options?.bypassIgnore ?? false,
+            ctx.conversationIdRef?.current, (action as any).actionId);
         },
       };
     case 'revert_file':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeRevertFile(action.params);
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeRevertFile(action.params, false, ctx.conversationIdRef?.current, (action as any).actionId);
         },
       };
     case 'view_replace_history':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           return executeViewReplaceHistory(action.params);
         },
       };
     case 'list_files':
       return {
-        execute: async (action: any, _context: ExecutorContext, options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, options?: ExecutorOptions) => {
           return executeListFiles(action.params, options?.bypassIgnore ?? false);
         },
       };
     case 'find_files':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const result = await executeFindFiles(action.params);
-          if (!result) return null;
-          return result.output || '';
+          return result?.output || null;
         },
       };
     case 'run_command':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeRunCommand(action.params, (action as any).actionId || `cmd-${Date.now()}`);
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const cmdId = (action as any).actionId || 'cmd-' + Date.now();
+          return executeRunCommand(action.params, cmdId);
         },
       };
     case 'delete_file':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           return executeDeleteFile(action.params);
         },
       };
     case 'grep':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           return executeGrep(action.params);
         },
       };
     case 'git_diff':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
-          const filePath =
-            typeof action.params === 'string'
-              ? action.params
-              : action.params?.path || action.params?.file_path || '';
-          return executeGitDiff(filePath, (action as any).actionId || `git-diff-${Date.now()}`);
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const filePath = typeof action.params === 'string'
+            ? action.params : action.params?.path || action.params?.file_path || '';
+          const diffId = (action as any).actionId || 'git-diff-' + Date.now();
+          return executeGitDiff(filePath, diffId);
         },
       };
     case 'move_file':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           return executeMoveFile(action.params);
         },
       };
+
+    // ── Emulate tools ────────────────────────────────────────────
     case 'list_https':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const { executeListHttps } = await import('./emulate/ListHttpsExecutor');
           return executeListHttps(action.params || {});
         },
       };
     case 'list_hosts':
       return {
-        execute: async (_action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (_action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const { executeListHosts } = await import('./emulate/ListHostsExecutor');
           return executeListHosts();
         },
       };
     case 'list_sources':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const { executeListSources } = await import('./emulate/ListSourcesExecutor');
           return executeListSources(action.params || {});
         },
       };
     case 'get_source_detail':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const { executeGetSourceDetail } = await import('./emulate/GetSourceDetailExecutor');
           return executeGetSourceDetail(action.params || {});
         },
       };
     case 'get_https_detail':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const { executeGetHttpsDetail } = await import('./emulate/GetHttpsDetailExecutor');
           return executeGetHttpsDetail(action.params || {});
         },
       };
     case 'apply_filter':
       return {
-        execute: async (action: any, _context: ExecutorContext, _options?: ExecutorOptions) => {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const { executeApplyFilter } = await import('./emulate/ApplyFilterExecutor');
           return executeApplyFilter(action.params || {});
         },
       };
+
+    // ── Display-only (không cần execute) ─────────────────────────
     case 'git_status':
     case 'commit_message':
       return null;
+
     default:
-      console.warn(`[Zen][tool] No executor found for action type: "${actionType}"`);
+      console.warn('[tool] No executor found for: "' + actionType + '"');
       return null;
   }
 }

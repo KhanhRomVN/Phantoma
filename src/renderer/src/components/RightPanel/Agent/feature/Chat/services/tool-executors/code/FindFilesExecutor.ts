@@ -1,8 +1,4 @@
-import {
-  extensionService,
-  messageDispatcher,
-} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { getToolTimeout } from '../../../constants/constants';
+import { CodeController } from '@renderer/controller/CodeController';
 import { FindFilesParams } from '../../parsers/code/FindFilesParser';
 
 export interface FindFilesResult {
@@ -10,65 +6,36 @@ export interface FindFilesResult {
   matches: string[];
 }
 
-/**
- * Execute find_files tool
- * Searches for files by name across the workspace
- */
 export async function executeFindFiles(params: FindFilesParams): Promise<{
   output: string;
   results?: FindFilesResult[];
   totalMatches?: number;
 } | null> {
-  return new Promise((resolve) => {
-    const requestId = `find-${Date.now()}-${Math.random()}`;
-    const fileNames = params.file_names || [];
+  const fileNames = params.file_names || [];
+  const fileName = fileNames.length > 0 ? fileNames[0] : (params as any).fileName || (params as any).file_name || '';
+  const folderPath = (params as any).folderPath || (params as any).folder_path;
 
-    extensionService.postMessage({
-      command: 'findFiles',
-      fileNames,
-      requestId,
-    });
-
-    messageDispatcher.register(
-      requestId,
-      (msg) => {
-        if (msg.error) {
-          resolve({
-            output: `[find_files] Result: Error - ${msg.error}`,
-          });
-        } else {
-          const results: FindFilesResult[] = msg.results || [];
-          const totalMatches = msg.totalMatches || 0;
-
-          // Format output
-          let output = `[find_files] Found ${totalMatches} file(s)\n\n`;
-
-          if (totalMatches === 0) {
-            output += 'No files found matching the search criteria.';
-          } else {
-            results.forEach((result) => {
-              if (result.matches.length > 0) {
-                output += `### ${result.fileName} (${result.matches.length} match${result.matches.length === 1 ? '' : 'es'})\n`;
-                result.matches.forEach((match) => {
-                  output += `- ${match}\n`;
-                });
-                output += '\n';
-              }
-            });
-          }
-
-          resolve({
-            output,
-            results,
-            totalMatches,
-          });
-        }
-      },
-      getToolTimeout('find_files'),
-      () => {
-        console.warn(`[find_files] Timeout`, { requestId, fileNames });
-        resolve(null);
-      },
-    );
+  const result = await CodeController.executeTool('find_files', {
+    fileName,
+    folderPath,
   });
+
+  if (!result.success) {
+    return { output: '[find_files] Result: Error - ' + (result.error || '') };
+  }
+
+  const data = result.data || {};
+  const matches = data.matches || [];
+  const totalMatches = data.totalMatches || matches.length;
+
+  let output = '[find_files] Found ' + totalMatches + ' file(s)\n\n';
+  if (totalMatches === 0) {
+    output += 'No files found.';
+  } else {
+    matches.forEach((m: any) => {
+      output += '- ' + (m.path || m) + '\n';
+    });
+  }
+
+  return { output, totalMatches };
 }

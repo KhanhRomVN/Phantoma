@@ -1,22 +1,17 @@
-import { EmulateController } from '../../../../../../../../controller/EmulateController';
+import { EmulateController } from '@renderer/controller/EmulateController';
 
 export interface ListSourcesParams {
-  filter?: {
-    host?: string;
-    type?: string;
-  };
+  filter?: { host?: string; type?: string };
 }
 
-/**
- * Execute list_sources tool — lấy danh sách source files dạng cây.
- */
+/** Execute list_sources tool — gọi EmulateController.executeTool() */
 export async function executeListSources(params: ListSourcesParams): Promise<string | null> {
-  const filter = params.filter || {};
+  const result = await EmulateController.executeTool('list_sources', {
+    filter: params.filter || {},
+  });
 
-  try {
-    const text = EmulateController.getInstance().listSourcesText(filter);
-    return text;
-  } catch (e: any) {
-    return `[list_sources] Result: Error - ${e.message || 'Unknown error'}`;
+  if (!result.success) {
+    return '[list_sources] Result: Error - ' + (result.error || '');
   }
+  return (result.data as any)?.output || null;
 }

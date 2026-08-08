@@ -1,63 +1,46 @@
-import {
-  extensionService,
-  messageDispatcher,
-} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { formatGrepResultCompact } from '../../../utils/grepFormatter';
-import { getToolTimeout } from '../../../constants/constants';
+import { CodeController } from '@renderer/controller/CodeController';
 import { GrepParams } from '../../../types/tool-types';
 
-/**
- * Execute grep tool
- * Searches for a term in files
- */
 export async function executeGrep(params: GrepParams): Promise<string | null> {
-  return new Promise((resolve) => {
-    const searchTerm = params.search_term || params.searchTerm || '';
-    const filePath = params.file_path || params.filePath;
-    const folderPath = params.folder_path || params.folderPath;
-    const targetDesc = filePath || folderPath || 'unknown';
+  const searchTerm = params.search_term || params.searchTerm || '';
+  const filePath = params.file_path || params.filePath;
+  const folderPath = params.folder_path || params.folderPath;
+  const targetDesc = filePath || folderPath || 'unknown';
 
-    // Check for validation error from parser
-    if (params._validationError) {
-      const errMsg = params._validationError;
-      resolve(`[grep for '${searchTerm}' in '${targetDesc}'] Result: Error - ${errMsg}`);
-      return;
-    }
+  if ((params as any)._validationError) {
+    return "[grep for '" + searchTerm + "' in '" + targetDesc + "'] Result: Error - " + (params as any)._validationError;
+  }
 
-    const requestId = `grep-${Date.now()}-${Math.random()}`;
-
-    extensionService.postMessage({
-      command: 'executeAgentAction',
-      action: {
-        type: 'grep',
-        search_term: searchTerm,
-        file_path: filePath,
-        folder_path: folderPath,
-        requestId,
-        timestamp: Date.now(),
-      },
-    });
-
-    messageDispatcher.register(
-      requestId,
-      (msg) => {
-        if (msg.result?.success) {
-          const data = msg.result.data;
-          const resultText = formatGrepResultCompact(data);
-          resolve(`[grep for '${searchTerm}' in '${targetDesc}'] Result:\n${resultText}`);
-        } else {
-          const errMsg = msg.result?.error || 'Unknown error';
-          console.warn(`[Zen][grep] Error | requestId=${requestId} | error="${errMsg}"`);
-          resolve(`[grep for '${searchTerm}' in '${targetDesc}'] Result: Error - ${errMsg}`);
-        }
-      },
-      getToolTimeout('grep'),
-      () => {
-        console.warn(
-          `[Zen][grep] Timeout | requestId=${requestId} | search_term="${searchTerm}" | target="${targetDesc}"`,
-        );
-        resolve(null);
-      },
-    );
+  const result = await CodeController.executeTool('grep', {
+    action: {
+      search_term: searchTerm,
+      file_path: filePath,
+      folder_path: folderPath,
+    },
   });
+
+  if (!result.success) {
+    return "[grep for '" + searchTerm + "' in '" + targetDesc + "'] Result: Error - " + (result.error || '');
+  }
+
+  const data = result.data || {};
+  const grepData = data.result?.data || data;
+  const results = grepData.results || {};
+  const totalMatches = grepData.totalMatches || 0;
+  const totalFiles = grepData.totalFilesSearched || 0;
+
+  let output = "[grep for '" + searchTerm + "' in '" + targetDesc + "'] Result:\n";
+  output += 'Found ' + totalMatches + ' match(es) in ' + totalFiles + ' file(s)\n';
+
+  for (const [fp, fileResult] of Object.entries(results)) {
+    const matches = (fileResult as any).matches || [];
+    if (matches.length > 0) {
+      output += '\n**' + fp + '** (' + matches.length + ' match(es))\n';
+      matches.forEach((m: any) => {
+        output += '  L' + m.lineNumber + ': ' + m.lineContent + '\n';
+      });
+    }
+  }
+
+  return output;
 }

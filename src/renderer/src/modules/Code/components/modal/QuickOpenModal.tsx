@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, ArrowUp, ArrowDown, CornerDownLeft } from 'lucide-react';
+import { Search, ArrowUp, ArrowDown, CornerDownLeft, Loader } from 'lucide-react';
 import { Modal, ModalBody, ModalFooter } from '../../../../components/ui/Modal';
+import { Kbd } from '../../../../components/ui/Kbd';
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 import { cn } from '@renderer/shared/utils/cn';
-import { Kbd } from '@renderer/components/ui/Kbd';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface FlatFileEntry {
@@ -24,10 +25,12 @@ function flattenFiles(
   nodes: FileNode[],
   unsavedFiles: Set<string>,
   parentPath = '',
+  depth = 0,
 ): FlatFileEntry[] {
   const result: FlatFileEntry[] = [];
   for (const node of nodes) {
     const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+
     if (node.type === 'file') {
       const parts = node.name.split('.');
       const ext = parts.length > 1 ? parts.pop()!.toLowerCase() : '';
@@ -38,11 +41,35 @@ function flattenFiles(
         modified: unsavedFiles.has(node.id),
         node,
       });
+
+      // Log Code.tsx if found
+      if (node.name === 'Code.tsx') {
+        console.log('[flattenFiles] Found Code.tsx at depth', depth, 'path:', fullPath);
+      }
     }
-    if (node.children) {
-      result.push(...flattenFiles(node.children, unsavedFiles, fullPath));
+
+    if (node.children && node.children.length > 0) {
+      result.push(...flattenFiles(node.children, unsavedFiles, fullPath, depth + 1));
     }
   }
+
+  // Log depth info for debugging
+  if (depth === 0) {
+    console.log('[flattenFiles] Root level nodes:', nodes.length);
+    console.log('[flattenFiles] Total flattened files:', result.length);
+
+    // Count nodes by depth
+    const depthCounts: Record<number, number> = {};
+    const countDepth = (n: FileNode[], d: number) => {
+      depthCounts[d] = (depthCounts[d] || 0) + n.length;
+      n.forEach((node) => {
+        if (node.children) countDepth(node.children, d + 1);
+      });
+    };
+    countDepth(nodes, 0);
+    console.log('[flattenFiles] Nodes by depth:', depthCounts);
+  }
+
   return result;
 }
 
@@ -94,28 +121,6 @@ function highlightText(text: string, indices: number[]): React.ReactNode {
   return result;
 }
 
-// ─── Badge color map ─────────────────────────────────────────────────────────
-const extColorMap: Record<string, string> = {
-  tsx: 'bg-gradient-to-br from-[#7ea6ff] to-[#5c8ef2]',
-  ts: 'bg-gradient-to-br from-[#7ea6ff] to-[#5c8ef2]',
-  js: 'bg-gradient-to-br from-[#f3e08a] to-[#d9c14a]',
-  jsx: 'bg-gradient-to-br from-[#f3e08a] to-[#d9c14a]',
-  css: 'bg-gradient-to-br from-[#d78bea] to-[#b25fd1]',
-  scss: 'bg-gradient-to-br from-[#d78bea] to-[#b25fd1]',
-  json: 'bg-gradient-to-br from-[#f0d27a] to-[#d9ac4a]',
-  md: 'bg-gradient-to-br from-[#b7bfcf] to-[#8b93a6]',
-  html: 'bg-gradient-to-br from-[#e88a6e] to-[#d96f4a]',
-};
-
-function getExtBadge(ext: string): { color: string; label: string } {
-  if (ext === 'json') return { color: extColorMap.json, label: '{}' };
-  if (ext === 'md') return { color: extColorMap.md, label: 'MD' };
-  return {
-    color: extColorMap[ext] || 'bg-gradient-to-br from-[#b7bfcf] to-[#8b93a6]',
-    label: ext.toUpperCase(),
-  };
-}
-
 // ─── Component ───────────────────────────────────────────────────────────────
 interface QuickOpenModalProps {
   isOpen: boolean;
@@ -126,6 +131,8 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isKeyboardNav, setIsKeyboardNav] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannedFiles, setScannedFiles] = useState<FlatFileEntry[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const keyboardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -137,10 +144,94 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
   const openFile = useCodeStore((s) => s.openFile);
   const setActiveFileTab = useCodeStore((s) => s.setActiveFileTab);
 
+  // Scan all files when modal opens
+  useEffect(() => {
+    if (isOpen && project?.path) {
+      setIsScanning(true);
+      console.log('[QuickOpenModal] Starting full directory scan for:', project.path);
+
+      import('../ProjectTabBar/OpenProjectModal').then(({ scanDirectory }) => {
+        scanDirectory(project.path).then((fileNodes) => {
+          const files = flattenFiles(fileNodes, project.unsavedFiles);
+          console.log('[QuickOpenModal] Scan complete, found', files.length, 'files');
+          setScannedFiles(files);
+          setIsScanning(false);
+        });
+      });
+    }
+  }, [isOpen, project?.path, project?.unsavedFiles]);
+
   const allFiles = useMemo<FlatFileEntry[]>(() => {
-    if (!project) return [];
-    return flattenFiles(project.files, project.unsavedFiles);
-  }, [project]);
+    if (!project) {
+      console.log('[QuickOpenModal] No project found');
+      return [];
+    }
+
+    // Combine files from:
+    // 1. Scanned files (if available)
+    // 2. project.files (initial scan)
+    // 3. project.fileNodeMap (all opened files, including lazy-loaded ones)
+    let files: FlatFileEntry[] = [];
+
+    if (scannedFiles.length > 0) {
+      console.log('[QuickOpenModal] Using scanned files:', scannedFiles.length);
+      files = scannedFiles;
+    } else {
+      // Start with project.files
+      files = flattenFiles(project.files, project.unsavedFiles);
+      console.log('[QuickOpenModal] Files from project.files:', files.length);
+
+      // Add opened files that might not be in project.files (lazy-loaded)
+      const fileNodeMapEntries = Object.entries(project.fileNodeMap);
+      console.log('[QuickOpenModal] Files in fileNodeMap:', fileNodeMapEntries.length);
+
+      let addedCount = 0;
+      for (const [fileId, node] of fileNodeMapEntries) {
+        if (node.type === 'file') {
+          const exists = files.some((f) => f.node.id === fileId);
+          console.log(`[QuickOpenModal] Checking ${node.name} (${fileId}): exists=${exists}`);
+
+          if (!exists) {
+            const parts = node.name.split('.');
+            const ext = parts.length > 1 ? parts.pop()!.toLowerCase() : '';
+            files.push({
+              name: node.name,
+              path: node.path || node.name,
+              ext,
+              modified: project.unsavedFiles.has(fileId),
+              node,
+            });
+            addedCount++;
+            console.log(`[QuickOpenModal] Added ${node.name} from fileNodeMap`);
+          }
+        }
+      }
+      console.log('[QuickOpenModal] Added', addedCount, 'files from fileNodeMap');
+    }
+
+    console.log('[QuickOpenModal] Total files found:', files.length);
+    console.log(
+      '[QuickOpenModal] Sample files:',
+      files.slice(0, 5).map((f) => ({ name: f.name, path: f.path })),
+    );
+
+    // Look for all files with "Code" in the name
+    const codeFiles = files.filter((f) => f.name.toLowerCase().includes('code'));
+    console.log(
+      '[QuickOpenModal] Files with "Code" in name:',
+      codeFiles.map((f) => ({ name: f.name, path: f.path })),
+    );
+
+    // Specifically look for Code.tsx
+    const codeTsx = files.find((f) => f.name === 'Code.tsx');
+    if (codeTsx) {
+      console.log('[QuickOpenModal] ✓ Found Code.tsx:', codeTsx);
+    } else {
+      console.log('[QuickOpenModal] ✗ Code.tsx NOT FOUND in allFiles');
+    }
+
+    return files;
+  }, [project, scannedFiles]);
 
   // Build lookup for recently opened files
   const openFileIds = project?.openFiles ?? [];
@@ -162,29 +253,51 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
       rest.sort((a, b) => a.file.name.localeCompare(b.file.name));
       return [...recent, ...rest];
     }
-    return allFiles
-      .map((file) => ({ file, result: fuzzyMatch(search, file.name + ' ' + file.path) }))
+
+    console.log('[QuickOpenModal] Searching for:', search);
+    const results = allFiles
+      .map((file) => {
+        const searchTarget = file.name + ' ' + file.path;
+        const result = fuzzyMatch(search, searchTarget);
+        if (file.name.toLowerCase().includes(search.toLowerCase())) {
+          console.log('[QuickOpenModal] Matched file:', {
+            name: file.name,
+            path: file.path,
+            searchTarget,
+            matched: result.matched,
+            score: result.score,
+          });
+        }
+        return { file, result };
+      })
       .filter((x) => x.result.matched)
       .sort((a, b) => b.result.score - a.result.score)
       .map((x) => ({
         file: x.file,
         indices: x.result.indices.filter((i) => i < x.file.name.length),
       }));
+
+    console.log('[QuickOpenModal] Filtered results:', results.length);
+    return results;
   }, [allFiles, search, recentSet]);
 
-  // Reset selected index khi kết quả thay đổi
+  // Reset selected index when results change
   useEffect(() => {
     if (selectedIndex >= filteredFiles.length) {
       setSelectedIndex(Math.max(0, filteredFiles.length - 1));
     }
   }, [filteredFiles, selectedIndex]);
 
-  // Focus input khi modal mở
+  // Focus input when modal opens
   useEffect(() => {
     if (isOpen) {
       setSearch('');
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 80);
+    } else {
+      // Reset scanned files when modal closes
+      setScannedFiles([]);
+      setIsScanning(false);
     }
   }, [isOpen]);
 
@@ -216,7 +329,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     onClose();
   };
 
-  // Scroll item được chọn vào view
+  // Scroll selected item into view
   useEffect(() => {
     if (listRef.current) {
       const el = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
@@ -224,7 +337,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     }
   }, [selectedIndex]);
 
-  // Vị trí bắt đầu group "Recently opened" (chỉ khi không có search)
+  // Start position of "Recently opened" group (only when no search)
   const recentCount = search.trim()
     ? 0
     : filteredFiles.filter((item) => recentSet.has(item.file.node.id)).length;
@@ -237,7 +350,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
         <input
           ref={inputRef}
           type="text"
-          placeholder="Nhập tên file để tìm..."
+          placeholder="Type filename to search..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -256,24 +369,29 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
       {/* Results */}
       <ModalBody className="p-0 max-h-[336px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/50">
         <div ref={listRef} className="py-1.5">
-          {filteredFiles.length === 0 ? (
+          {isScanning ? (
+            <div className="text-center py-8 text-text-secondary/50 text-xs flex flex-col items-center gap-2">
+              <Loader className="w-5 h-5 animate-spin" />
+              <span>Scanning directory...</span>
+            </div>
+          ) : filteredFiles.length === 0 ? (
             <div className="text-center py-8 text-text-secondary/50 text-xs">
               {search.trim()
-                ? `Không tìm thấy file khớp với "${search}"`
-                : 'Chưa có file nào trong project'}
+                ? `No files matching "${search}"`
+                : 'No files in project'}
             </div>
           ) : (
             <>
               {filteredFiles.map((item, index) => {
-                const badge = getExtBadge(item.file.ext);
+                const iconPath = getFileIconPath(item.file.name);
                 const dirPath = item.file.path.includes('/')
                   ? item.file.path.substring(0, item.file.path.lastIndexOf('/') + 1)
                   : '';
 
-                // Group label "Recently opened" trước item đầu tiên (khi chưa search)
+                // Group label "Recently opened" before first item (when no search)
                 const showRecentLabel = !search.trim() && index === 0 && recentCount > 0;
 
-                // Group label "Other files" sau recently opened
+                // Group label "Other files" after recently opened
                 const showOtherLabel =
                   !search.trim() &&
                   index === recentCount &&
@@ -305,15 +423,12 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
                         if (!isKeyboardNav) setSelectedIndex(index);
                       }}
                     >
-                      {/* Extension badge */}
-                      <div
-                        className={cn(
-                          'w-[21px] h-[21px] rounded-md font-mono text-[8px] font-bold text-[#0b0c10] flex items-center justify-center shrink-0',
-                          badge.color,
-                        )}
-                      >
-                        {badge.label}
-                      </div>
+                      {/* File icon */}
+                      <img
+                        src={iconPath}
+                        alt=""
+                        className="w-[21px] h-[21px] shrink-0"
+                      />
 
                       {/* File name + path */}
                       <div className="flex-1 min-w-0 flex items-center gap-0">
@@ -331,7 +446,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
                       {item.file.modified && (
                         <span
                           className="w-1.5 h-1.5 rounded-full bg-[#5fd9a4] shrink-0"
-                          title="Có thay đổi chưa lưu"
+                          title="Unsaved changes"
                         />
                       )}
                     </div>
@@ -352,7 +467,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
                 <CornerDownLeft className="w-3 h-3" strokeWidth={1.5} />
               </Kbd>
             </div>
-            <span className="text-text-primary">Mở file</span>
+            <span className="text-text-primary">Open file</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="flex items-center justify-center bg-sidebar-item-hover/70 rounded p-1">
@@ -361,14 +476,14 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
                 <ArrowDown className="w-3 h-3" strokeWidth={1.5} />
               </Kbd>
             </div>
-            <span className="text-text-primary">Di chuyển</span>
+            <span className="text-text-primary">Navigate</span>
           </div>
           <div className="flex items-center gap-1">
             <Kbd>ESC</Kbd>
-            <span className="text-text-primary">Đóng</span>
+            <span className="text-text-primary">Close</span>
           </div>
         </div>
-        <span className="text-text-secondary/50">{filteredFiles.length} kết quả</span>
+        <span className="text-text-secondary/50">{filteredFiles.length} results</span>
       </ModalFooter>
     </Modal>
   );

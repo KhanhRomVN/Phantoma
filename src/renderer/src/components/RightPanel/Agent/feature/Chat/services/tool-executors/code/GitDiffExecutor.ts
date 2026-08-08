@@ -1,46 +1,25 @@
-import {
-  extensionService,
-  messageDispatcher,
-} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { getToolTimeout } from '../../../constants/constants';
+import { CodeController } from '@renderer/controller/CodeController';
 
-/**
- * Execute git_diff tool
- * Requests git diff for a specific file from the extension
- */
-export async function executeGitDiff(filePath: string, requestId: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    extensionService.postMessage({
-      command: 'gitDiff',
-      file_path: filePath,
-      requestId,
-    });
+export async function executeGitDiff(filePath: string, _requestId: string): Promise<string | null> {
+  const result = await CodeController.executeTool('git_diff', { filePath });
 
-    messageDispatcher.register(
-      requestId,
-      (msg) => {
-        if (msg.error) {
-          resolve(`[git_diff for '${filePath}'] Result: Error - ${msg.error}`);
-        } else {
-          let diffContent = msg.diff || '';
-          // Clean diff content: remove metadata lines that are not useful for AI
-          const cleanLines = diffContent.split('\n').filter((line: string) => {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('diff')) return false;
-            if (trimmed.startsWith('index ')) return false;
-            if (trimmed.startsWith('new file mode')) return false;
-            if (trimmed.startsWith('deleted file mode')) return false;
-            if (trimmed.includes('No newline at end of file')) return false;
-            return true;
-          });
-          diffContent = cleanLines.join('\n');
-          resolve(`[git_diff for '${filePath}'] Result:\n\`\`\`diff\n${diffContent}\n\`\`\``);
-        }
-      },
-      getToolTimeout('git_diff'),
-      () => {
-        resolve(null);
-      },
-    );
+  if (!result.success) {
+    return "[git_diff for '" + filePath + "'] Result: Error - " + (result.error || '');
+  }
+
+  const data = result.data || {};
+  const diffContent = data.output || data.diff || '';
+
+  // Clean metadata lines
+  const cleanLines = diffContent.split('\n').filter((line: string) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('diff')) return false;
+    if (trimmed.startsWith('index ')) return false;
+    if (trimmed.startsWith('new file mode')) return false;
+    if (trimmed.startsWith('deleted file mode')) return false;
+    if (trimmed.includes('No newline at end of file')) return false;
+    return true;
   });
+
+  return "[git_diff for '" + filePath + "'] Result:\n```diff\n" + cleanLines.join('\n') + '\n```';
 }
