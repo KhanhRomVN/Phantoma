@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useServerConfig } from '../../../context/ServerConfigContext';
 import { useAlienvaultScan } from './hooks/useAlienvaultScan';
 import { useHistory } from './hooks/useHistory';
-import MarkdownBlock from '../../common/MarkdownBlock';
 import ExecutionTab from './tabs/ExecutionTab';
 import HistoryTab from './tabs/HistoryTab';
 import Tooltip from '../../common/Tooltip';
 import { TooltipState, ContextMenuState } from './types';
 import { ALIENVAULT_DOC } from './constants';
+import MarkdownBlock from '@renderer/components/common/MarkdownBlock';
 
 interface AlienvaultToolProps {
   accentColor?: string;

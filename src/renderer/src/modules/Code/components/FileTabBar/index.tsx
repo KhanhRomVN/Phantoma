@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { X, CircleDot, Copy, Plus } from 'lucide-react';
 import { useCodeStore } from '../../hooks/useCodeStore';
-import { useDiagnosticsStore } from '../../stores/diagnosticsStore';
 import { cn } from '@renderer/shared/utils/cn';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import {
@@ -18,8 +17,6 @@ export function FileTabBar() {
   const setActiveFileTab = useCodeStore((s) => s.setActiveFileTab);
   const closeFile = useCodeStore((s) => s.closeFile);
   const executeWithSaveCheck = useCodeStore((s) => s.executeWithSaveCheck);
-
-  const diagnosticsMap = useDiagnosticsStore((s) => s._statsCache);
 
   const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
 
@@ -103,8 +100,6 @@ export function FileTabBar() {
         const node = fileNodeMap[fileId];
         const filePath = node?.path || '';
 
-        const stats = diagnosticsMap.get(filePath);
-
         return (
           <Dropdown
             key={fileId}
@@ -121,7 +116,6 @@ export function FileTabBar() {
                   isActive
                     ? 'text-text-primary border-t-primary bg-background'
                     : 'text-text-secondary border-t-transparent hover:text-text-secondary hover:border-t-divider hover:bg-sidebar-item-hover/30',
-                  stats && stats.errors > 0 && !isActive ? 'text-[#f87171]' : '',
                 )}
               >
                 <img
@@ -133,13 +127,6 @@ export function FileTabBar() {
                   }}
                 />
                 <span>{displayName}</span>
-
-                {stats && (stats.errors > 0 || stats.warnings > 0) && (
-                  <span className="flex items-center gap-1 text-[11px] font-mono">
-                    {stats.errors > 0 && <span className="text-[#f87171]">{stats.errors}</span>}
-                    {stats.warnings > 0 && <span className="text-[#fbbf24]">{stats.warnings}</span>}
-                  </span>
-                )}
 
                 {/* Unsaved indicator / Close button */}
                 {isUnsaved ? (

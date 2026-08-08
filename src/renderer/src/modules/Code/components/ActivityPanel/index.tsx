@@ -4,7 +4,8 @@ import { ActivityBar } from './ActivityBar';
 import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { SourceControl } from './SourceControl';
-import { Folder, Search as SearchIcon, GitBranch } from 'lucide-react';
+import { ExtensionsPanel } from './Extensions';
+import { Folder, Search as SearchIcon, GitBranch, Package } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 const TABS = [
   { id: 'explore', icon: <Folder className="w-4 h-4" />, label: 'File Explorer' },
@@ -14,14 +15,22 @@ const TABS = [
     icon: <GitBranch className="w-4 h-4" />,
     label: 'Source Control',
   },
+  {
+    id: 'extensions',
+    icon: <Package className="w-4 h-4" />,
+    label: 'Extensions',
+  },
 ];
 
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 600;
 
 export function ActivityPanel() {
-  const { activityPanelTab, setActivityPanelTab, activityPanelWidth, setActivityPanelWidth } =
-    useCodeStore();
+  const project = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId));
+  const setActivityPanelTab = useCodeStore((s) => s.setActivityPanelTab);
+  const activityPanelWidth = useCodeStore((s) => s.activityPanelWidth);
+  const setActivityPanelWidth = useCodeStore((s) => s.setActivityPanelWidth);
+  const activityPanelTab = project?.activityPanelTab ?? 'explore';
   const [isResizing, setIsResizing] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
@@ -56,6 +65,8 @@ export function ActivityPanel() {
         return <Search />;
       case 'source':
         return <SourceControl />;
+      case 'extensions':
+        return <ExtensionsPanel />;
       default:
         return null;
     }
@@ -73,7 +84,6 @@ export function ActivityPanel() {
       />
       <div className="flex-1 overflow-hidden flex flex-col min-w-0">{renderContent()}</div>
 
-      {/* Resize handle */}
       <div
         className={cn(
           'absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-primary/30',

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Plus, HelpCircle } from 'lucide-react';
 import { useCodeStore } from '../../hooks/useCodeStore';
 import {
@@ -36,8 +36,16 @@ const MAX_HEIGHT = 600;
 const DEFAULT_HEIGHT = 320;
 
 export function BottomPanel() {
-  const { bottomPanelTab, setBottomPanelTab, isBottomPanelOpen, toggleBottomPanel } =
-    useCodeStore();
+  const currentProjectId = useCodeStore((s) => s.currentProjectId);
+  const project = useCodeStore((s) =>
+    s.projects.find((p) => p.id === s.currentProjectId)
+  );
+  const setBottomPanelTab = useCodeStore((s) => s.setBottomPanelTab);
+  const toggleBottomPanel = useCodeStore((s) => s.toggleBottomPanel);
+
+  const bottomPanelTab = project?.bottomPanelTab ?? 'output';
+  const isBottomPanelOpen = project?.isBottomPanelOpen ?? true;
+
   const [visibleTabIds, setVisibleTabIds] = useState<string[]>(
     ALL_TABS.filter((t) => t.defaultVisible).map((t) => t.id),
   );
@@ -46,6 +54,18 @@ export function BottomPanel() {
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
 
+  // Listen for add-bottom-tab event from keyboard shortcut
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tabId = (e as CustomEvent).detail;
+      if (tabId && !visibleTabIds.includes(tabId)) {
+        setVisibleTabIds((prev) => [...prev, tabId]);
+      }
+    };
+    window.addEventListener('add-bottom-tab', handler);
+    return () => window.removeEventListener('add-bottom-tab', handler);
+  }, [visibleTabIds]);
+
   const handleResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -53,7 +73,7 @@ export function BottomPanel() {
     startHeightRef.current = height;
 
     const handleMouseMove = (ev: MouseEvent) => {
-      const delta = startYRef.current - ev.clientY; // kéo lên → tăng height
+      const delta = startYRef.current - ev.clientY;
       const newHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startHeightRef.current + delta));
       setHeight(newHeight);
     };
@@ -103,7 +123,6 @@ export function BottomPanel() {
       className="flex flex-col bg-sidebar-background border-t border-divider flex-shrink-0 relative"
       style={{ height }}
     >
-      {/* ── Resize handle (top edge) ──────────────────────────────────── */}
       <div
         className={cn(
           'absolute top-0 left-0 w-full h-1 cursor-row-resize transition-colors hover:bg-primary/30',
@@ -115,7 +134,6 @@ export function BottomPanel() {
 
       {/* Tab bar */}
       <div className="flex items-center h-8 px-1 border-b border-divider flex-shrink-0 gap-0">
-        {/* Tabs - left */}
         {visibleTabs.map((tab) => {
           const isActive = tab.id === bottomPanelTab;
           return (
@@ -138,7 +156,6 @@ export function BottomPanel() {
 
         {/* Right actions */}
         <div className="flex items-center gap-0.5 pr-1">
-          {/* Shortcut help */}
           <Tooltip
             side="top"
             align="end"
@@ -147,6 +164,14 @@ export function BottomPanel() {
               <div className="flex flex-col gap-1.5 py-0.5">
                 <div className="text-[11px] font-semibold text-text-primary mb-0.5">
                   Phím tắt Terminal
+                </div>
+                <div className="flex justify-between gap-6 text-[11px]">
+                  <span className="text-text-secondary/70">Ctrl+`</span>
+                  <span className="text-text-primary">Đóng/Mở Panel</span>
+                </div>
+                <div className="flex justify-between gap-6 text-[11px]">
+                  <span className="text-text-secondary/70">Ctrl+Shift+`</span>
+                  <span className="text-text-primary">Thêm Terminal</span>
                 </div>
                 <div className="flex justify-between gap-6 text-[11px]">
                   <span className="text-text-secondary/70">Ctrl+C</span>
@@ -188,7 +213,6 @@ export function BottomPanel() {
             </button>
           </Tooltip>
 
-          {/* Add tab dropdown */}
           {hiddenTabs.length > 0 && (
             <Dropdown trigger="click" align="end" side="top" sideOffset={4}>
               <DropdownTrigger>
@@ -206,7 +230,6 @@ export function BottomPanel() {
             </Dropdown>
           )}
 
-          {/* Close panel */}
           <button
             onClick={toggleBottomPanel}
             className="p-1 rounded hover:bg-sidebar-item-hover text-text-secondary/40 hover:text-error transition-colors"
@@ -217,7 +240,6 @@ export function BottomPanel() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-hidden flex flex-col">{renderContent()}</div>
     </div>
   );

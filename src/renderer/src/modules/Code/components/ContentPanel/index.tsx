@@ -1,8 +1,22 @@
 import { useState, useEffect } from 'react';
-import { FileWarning, ExternalLink, Music } from 'lucide-react';
+import {
+  FileWarning,
+  ExternalLink,
+  Music,
+  Globe,
+  Smartphone,
+  Monitor,
+  Database,
+  Plug,
+  Palette,
+  Table,
+  Puzzle,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 import { FileTabBar } from '../FileTabBar';
 import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import { ExtensionContent } from './ExtensionContent';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -214,6 +228,10 @@ export function ContentPanel() {
   const [loadedContent, setLoadedContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Determine what to show: service takes priority if selected, then active file
+  const showService = currentServiceId !== null;
+  const showFile = !showService && activeFileTabId !== null;
+
   // Resolve fileNode: tìm trong project.files trước, fallback vào fileNodeMap
   const resolveFileNode = (id: string): FileNode | null => {
     if (!project) return null;
@@ -221,7 +239,8 @@ export function ContentPanel() {
   };
 
   useEffect(() => {
-    if (!activeFileTabId || !project) {
+    // Only load file content when showing file (not service)
+    if (!showFile || !activeFileTabId || !project) {
       setLoadedContent(null);
       return;
     }
@@ -261,10 +280,66 @@ export function ContentPanel() {
       setLoadedContent('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFileTabId]); // ✅ Only depend on activeFileTabId - don't trigger on every state change
+  }, [showFile, activeFileTabId]); // ✅ Depend on showFile and activeFileTabId
+
+  // ── Service selected (priority over file) ──────────────────────────────
+  if (showService && service) {
+    // Check if it's an extension service
+    if (service.type === 'extension') {
+      // Debug logging
+      console.log('[ContentPanel] Extension service:', {
+        serviceId: service.id,
+        extensionId: service.extensionId,
+        fullService: service,
+      });
+
+      // Use stored extensionId if available, otherwise fallback to parsing from service.id
+      const extensionId =
+        service.extensionId ||
+        (() => {
+          // Fallback: extract from service ID
+          // service.id format: "ext_namespace_name" where original was "namespace.name"
+          const withoutPrefix = service.id.replace('ext_', '');
+          const lastUnderscoreIndex = withoutPrefix.lastIndexOf('_');
+
+          if (lastUnderscoreIndex !== -1) {
+            const namespace = withoutPrefix.substring(0, lastUnderscoreIndex);
+            const name = withoutPrefix.substring(lastUnderscoreIndex + 1);
+            const parsed = `${namespace}.${name}`;
+            console.log('[ContentPanel] Parsed extensionId from serviceId:', parsed);
+            return parsed;
+          }
+          const parsed = withoutPrefix.replace(/_/g, '.');
+          console.log('[ContentPanel] Fallback parsed extensionId:', parsed);
+          return parsed;
+        })();
+
+      console.log('[ContentPanel] Final extensionId:', extensionId);
+
+      return (
+        <div className="flex-1 flex flex-col min-h-0 bg-background">
+          <ExtensionContent extensionId={extensionId} />
+        </div>
+      );
+    }
+
+    // Regular service (non-extension)
+    return (
+      <div className="flex-1 flex flex-col min-h-0 bg-background">
+        <div className="flex-1 flex items-center justify-center text-text-secondary/60">
+          <div className="text-center">
+            <div className="text-4xl mb-3">{TYPE_ICONS[service.type] || '📄'}</div>
+            <div className="text-sm font-medium text-text-primary">{service.name}</div>
+            <div className="text-xs text-text-secondary/40 mt-1">Service content area</div>
+            <div className="text-xs text-text-secondary/30 mt-2">Status: {service.status}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Active file ─────────────────────────────────────────────────────────
-  if (activeFileTabId && openFiles.length > 0 && project) {
+  if (showFile && activeFileTabId && openFiles.length > 0 && project) {
     const fileNode = resolveFileNode(activeFileTabId);
     const displayName = fileDisplayNames[activeFileTabId] || activeFileTabId;
     const category = fileNode ? getFileCategory(fileNode.name) : 'text';
@@ -315,20 +390,6 @@ export function ContentPanel() {
     );
   }
 
-  // ── Service selected ────────────────────────────────────────────────────
-  if (service) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-background text-text-secondary/60">
-        <div className="text-center">
-          <div className="text-4xl mb-3">{TYPE_ICONS[service.type] || '📄'}</div>
-          <div className="text-sm font-medium text-text-primary">{service.name}</div>
-          <div className="text-xs text-text-secondary/40 mt-1">Service is ready</div>
-          <div className="text-xs text-text-secondary/30 mt-2">Status: {service.status}</div>
-        </div>
-      </div>
-    );
-  }
-
   // ── Empty state ─────────────────────────────────────────────────────────
   return (
     <div className="flex-1 flex items-center justify-center bg-background text-text-secondary/40">
@@ -341,12 +402,13 @@ export function ContentPanel() {
   );
 }
 
-const TYPE_ICONS: Record<string, string> = {
-  website: '🌐',
-  app: '📱',
-  device: '📲',
-  database: '🗄️',
-  api: '🔌',
-  design: '🎨',
-  table: '📊',
+const TYPE_ICONS: Record<string, ReactNode> = {
+  website: <Globe className="w-3.5 h-3.5" />,
+  app: <Smartphone className="w-3.5 h-3.5" />,
+  device: <Monitor className="w-3.5 h-3.5" />,
+  database: <Database className="w-3.5 h-3.5" />,
+  api: <Plug className="w-3.5 h-3.5" />,
+  design: <Palette className="w-3.5 h-3.5" />,
+  table: <Table className="w-3.5 h-3.5" />,
+  extension: <Puzzle className="w-3.5 h-3.5" />,
 };

@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useServerConfig } from '../../../context/ServerConfigContext';
 import { useAmassScan } from './hooks/useAmassScan';
 import { useHistory } from './hooks/useHistory';
-import MarkdownBlock from '../../common/MarkdownBlock';
 import ExecutionTab from './tabs/ExecutionTab';
 import HistoryTab from './tabs/HistoryTab';
 import Tooltip from './components/Tooltip';
 import { TooltipState, ContextMenuState } from './types';
 import { AMASS_DOC } from './constants';
+import MarkdownBlock from '@renderer/components/common/MarkdownBlock';
 
 interface AmassToolProps {
   accentColor?: string;
@@ -74,7 +74,9 @@ const AmassTool: React.FC<AmassToolProps> = ({
         position: 'relative',
       }}
     >
-      {activeTab === 'information' && <MarkdownBlock content={AMASS_DOC} accentColor={accentColor} />}
+      {activeTab === 'information' && (
+        <MarkdownBlock content={AMASS_DOC} accentColor={accentColor} />
+      )}
 
       {activeTab === 'execution' && (
         <ExecutionTab

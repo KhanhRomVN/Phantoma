@@ -9,7 +9,6 @@ import { ActivityPanel } from './components/ActivityPanel';
 import { BottomPanel } from './components/BottomPanel';
 import { ToastContainer } from './components/common/ToastContainer';
 import { FooterBar } from './components/FooterBar';
-import { useLSPNotifier } from './hooks/useLSPNotifier';
 import { SaveConfirmModal } from './components/modal/SaveConfirmModal';
 import { QuickOpenModal } from './components/modal/QuickOpenModal';
 
@@ -26,15 +25,12 @@ export function Code() {
   const hydratedRef = useRef(false);
   const [isQuickOpenOpen, setQuickOpenOpen] = useState(false);
 
-  useLSPNotifier();
-
   // Prevent closing app with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges()) {
         e.preventDefault();
         e.returnValue = '';
-        return '';
       }
     };
 
@@ -93,7 +89,6 @@ export function Code() {
         e.preventDefault();
         if (!activeFileId || !fileNode) return;
         try {
-          // Sync content from Monaco editor before saving
           const monaco = (window as any).monaco;
           if (monaco && fileNode.path) {
             const uri = monaco.Uri.parse('file://' + fileNode.path);
@@ -124,7 +119,6 @@ export function Code() {
               content = model.getValue();
             }
           }
-          // Default path: same folder as current file, with name derived from current file
           const currentPath = fileNode.path || '';
           const dir = currentPath.includes('/')
             ? currentPath.substring(0, currentPath.lastIndexOf('/'))
@@ -152,6 +146,26 @@ export function Code() {
         if (activeFileId) {
           state.closeFile(activeFileId);
         }
+        return;
+      }
+
+      // Ctrl+Backquote: Toggle bottom panel
+      if (e.ctrlKey && !e.shiftKey && e.code === 'Backquote') {
+        e.preventDefault();
+        useCodeStore.getState().toggleBottomPanel();
+        return;
+      }
+
+      // Ctrl+Shift+Backquote: Add terminal + open bottom panel
+      if (e.ctrlKey && e.shiftKey && e.code === 'Backquote') {
+        e.preventDefault();
+        const store = useCodeStore.getState();
+        const proj = store.projects.find((p) => p.id === store.currentProjectId);
+        if (proj && !proj.isBottomPanelOpen) {
+          store.toggleBottomPanel();
+        }
+        store.setBottomPanelTab('terminal');
+        window.dispatchEvent(new CustomEvent('add-bottom-tab', { detail: 'terminal' }));
         return;
       }
     };

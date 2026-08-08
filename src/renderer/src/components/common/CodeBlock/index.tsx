@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useTheme } from '../../../theme/ThemeProvider';
 import {
-  lspClientManager,
-  autoStartLanguageServer,
-} from '../../../modules/Code/services/lsp-client.service';
+  vscodeClientManager,
+  autoStartVSCodeLanguageClient,
+} from '../../../modules/Code/services/vscode-lsp-client.service';
 import { useCodeStore } from '../../../modules/Code/hooks/useCodeStore';
-import { lspManager } from '../../../modules/Code/services/lsp-manager.service';
 
 // Define Window interface to include require for AMD loader
 declare global {
@@ -435,82 +434,28 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             const workspaceRoot = getProjectRoot();
             const isNewModel = isModelOwnerRef.current; // New model = we own it
 
-            console.log('[CodeBlock] 🚀 Auto-starting language server...');
+            console.log('[CodeBlock] 🚀 Auto-starting VS Code language client...');
             console.log('[CodeBlock] Project root:', workspaceRoot);
 
-            // Initialize LSP client with Monaco
-            lspClientManager.initialize(window.monaco);
-            console.log('[CodeBlock] ✅ LSP Client Manager initialized');
+            // Initialize VS Code LSP client with Monaco
+            vscodeClientManager.initialize(window.monaco);
+            console.log('[CodeBlock] ✅ VS Code LSP Client Manager initialized');
 
-            autoStartLanguageServer(languageId, workspaceRoot)
-              .then(async () => {
-                console.log('[CodeBlock] ✅ Language server started successfully');
-
-                // Subscribe to diagnostics via LSP Manager
-                if (filePath) {
-                  const uri = window.monaco.Uri.file(filePath).toString();
-                  const unsubscribe = lspManager.subscribeToDiagnostics(uri, (event) => {
-                    console.log('[CodeBlock] 🔔 Received diagnostics via LSP Manager:', {
-                      uri: event.uri,
-                      count: event.diagnostics.length,
-                      timestamp: new Date(event.timestamp).toLocaleTimeString(),
-                    });
-
-                    // Diagnostics are already applied to Monaco by lsp-client.service
-                    // This is just for additional processing if needed
-                  });
-
-                  // Store unsubscribe function in ref to call on cleanup
-                  // TODO: Need to add ref for this
-                  console.log('[CodeBlock] ✅ Subscribed to LSP Manager for', uri);
-                }
-
-                // Only notify didOpen for NEW models (not reused ones)
-                if (isNewModel && modelRef.current && filePath) {
-                  const uri = window.monaco.Uri.file(filePath).toString();
-                  const text = modelRef.current.getValue();
-                  console.log(
-                    '[CodeBlock] 📂 Notifying language server: document opened (new model)',
-                  );
-
-                  try {
-                    // Wait for didOpen to complete (this returns a Promise)
-                    await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
-                    console.log('[CodeBlock] ✅ didOpen completed successfully');
-
-                    // ✨ FIX: Immediately trigger didChange after didOpen completes
-                    // This ensures diagnostics are requested right away
-                    // The debouncing in notifyDocumentChanged will handle rapid changes
-                    if (modelRef.current) {
-                      console.log('[CodeBlock] ✏️  Triggering initial didChange for diagnostics');
-                      lspClientManager.notifyDocumentChanged(
-                        languageId,
-                        uri,
-                        modelRef.current.getValue(),
-                        2,
-                      );
-                    }
-                  } catch (err) {
-                    console.error('[CodeBlock] ❌ Failed to notify document opened:', err);
-                  }
-                } else if (!isNewModel) {
-                  console.log('[CodeBlock] ⏭️  Model reused, skipping didOpen notification');
-
-                  // For reused models, just trigger didChange to refresh diagnostics
-                  if (modelRef.current && filePath) {
-                    const uri = window.monaco.Uri.file(filePath).toString();
-                    console.log('[CodeBlock] ✏️  Triggering didChange for reused model');
-                    lspClientManager.notifyDocumentChanged(
-                      languageId,
-                      uri,
-                      modelRef.current.getValue(),
-                      2,
-                    );
-                  }
-                }
+            autoStartVSCodeLanguageClient(languageId, workspaceRoot)
+              .then(() => {
+                console.log('[CodeBlock] ✅ VS Code language client started successfully');
+                
+                // monaco-languageclient automatically handles:
+                // - textDocument/didOpen
+                // - textDocument/didChange 
+                // - textDocument/didSave
+                // - textDocument/didClose
+                // - Diagnostics are automatically synced to Monaco markers
+                
+                console.log('[CodeBlock] ✅ Document lifecycle managed by monaco-languageclient');
               })
               .catch((err) => {
-                console.error('[CodeBlock] ❌ Failed to auto-start language server:', err);
+                console.error('[CodeBlock] ❌ Failed to auto-start VS Code client:', err);
               });
           } else {
             // No LSP integration - create simple model without URI
@@ -570,12 +515,8 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             () => {
               console.log('[CodeBlock] 💾 Save triggered (Ctrl/Cmd+S)');
 
-              // Notify LSP server
-              if (enableLSP && filePath && modelRef.current) {
-                const uri = window.monaco.Uri.file(filePath).toString();
-                const text = modelRef.current.getValue();
-                lspClientManager.notifyDocumentSaved(languageId, uri, text);
-              }
+              // monaco-languageclient automatically sends textDocument/didSave
+              // We only need to save to disk
 
               // Save file to disk
               if (fileId && filePath) {
@@ -594,8 +535,8 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             },
           );
 
-          // Handle content changes with LSP notification
-          let changeVersion = 2; // Start from 2 (version 1 was didOpen)
+          // Handle content changes
+          // monaco-languageclient automatically sends textDocument/didChange
           editorInstance.current.onDidChangeModelContent(() => {
             const newContent = editorInstance.current.getValue();
 
@@ -607,14 +548,8 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             if (fileId) {
               markFileAsUnsaved(fileId, newContent);
             }
-
-            // Notify LSP server about content changes (debounced automatically)
-            if (enableLSP && filePath && modelRef.current) {
-              const uri = window.monaco.Uri.file(filePath).toString();
-              const text = modelRef.current.getValue();
-              changeVersion++;
-              lspClientManager.notifyDocumentChanged(languageId, uri, text, changeVersion);
-            }
+            
+            // No need to manually notify LSP - monaco-languageclient handles it
           });
 
           if (mounted) {

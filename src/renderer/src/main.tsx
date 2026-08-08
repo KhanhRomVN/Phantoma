@@ -39,11 +39,6 @@ if (import.meta.env.PROD) {
 import { ThemeProvider } from './theme/ThemeProvider';
 import { FontProvider } from './fonts';
 
-// Initialize LSP Manager early
-import { lspManager } from './modules/Code/services/lsp-manager.service';
-lspManager.initialize();
-console.log('[App] ✅ LSP Manager initialized');
-
 const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

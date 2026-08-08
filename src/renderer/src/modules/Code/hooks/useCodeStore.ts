@@ -17,25 +17,31 @@ export interface Project {
   activeFileTabId: string | null;
   currentServiceId: string | null;
   currentFileId: string | null;
+  // ── Bottom panel per-project ──
+  bottomPanelTab: 'output' | 'terminal' | 'port' | 'performance' | 'problems';
+  isBottomPanelOpen: boolean;
+  // ── Activity panel per-project ──
+  activityPanelTab: 'explore' | 'search' | 'source' | 'extension';
   // ── Unsaved changes tracking ──
-  unsavedFiles: Set<string>; // Set of fileIds with unsaved changes
-  originalContents: Record<string, string>; // Original file contents for comparison
+  unsavedFiles: Set<string>;
+  originalContents: Record<string, string>;
   // ── File watcher invalidation ──
-  dirVersions: Record<string, number>; // dirPath → version, increment to trigger TreeNode reload
+  dirVersions: Record<string, number>;
 }
 
-export type ProjectInput = Omit<Project, 'id' | 'services' | 'files' | 'expandedFolderIds' | 'openFiles' | 'fileDisplayNames' | 'fileNodeMap' | 'activeFileTabId' | 'currentServiceId' | 'currentFileId' | 'unsavedFiles' | 'originalContents' | 'dirVersions'>;
+export type ProjectInput = Omit<Project, 'id' | 'services' | 'files' | 'expandedFolderIds' | 'openFiles' | 'fileDisplayNames' | 'fileNodeMap' | 'activeFileTabId' | 'currentServiceId' | 'currentFileId' | 'bottomPanelTab' | 'isBottomPanelOpen' | 'activityPanelTab' | 'unsavedFiles' | 'originalContents' | 'dirVersions'>;
 
 export interface Service {
   id: string;
   name: string;
-  type: 'website' | 'app' | 'device' | 'database' | 'api' | 'design' | 'table';
+  type: 'website' | 'app' | 'device' | 'database' | 'api' | 'design' | 'table' | 'extension';
   status: 'running' | 'stopped' | 'building' | 'error';
   meta: string;
   tabId?: string;
+  extensionId?: string;
 }
 
-export type ServiceInput = Omit<Service, 'id' | 'status'>;
+export type ServiceInput = Omit<Service, 'status'> | Omit<Service, 'id' | 'status'>;
 
 export interface FileNode {
   id: string;
@@ -56,6 +62,9 @@ function createDefaultPerProject() {
     activeFileTabId: null as string | null,
     currentServiceId: null as string | null,
     currentFileId: null as string | null,
+    bottomPanelTab: 'output' as const,
+    isBottomPanelOpen: true,
+    activityPanelTab: 'explore' as const,
     unsavedFiles: new Set<string>(),
     originalContents: {} as Record<string, string>,
     dirVersions: {} as Record<string, number>,
@@ -65,15 +74,11 @@ function createDefaultPerProject() {
 interface CodeState {
   projects: Project[];
   currentProjectId: string | null;
-  bottomPanelTab: 'output' | 'terminal' | 'port' | 'performance' | 'problems';
-  activityPanelTab: 'explore' | 'search' | 'source' | 'extension';
-  isBottomPanelOpen: boolean;
   isProjectManagerOpen: boolean;
   isNewProjectOpen: boolean;
   activityPanelWidth: number;
   forceShowLSPOverlay: boolean;
-  // ── Save confirmation modal ──
-  pendingAction: (() => void) | null; // Action to execute after save confirmation
+  pendingAction: (() => void) | null;
   isSaveConfirmModalOpen: boolean;
 
   // Actions
@@ -88,9 +93,9 @@ interface CodeState {
   openFile: (projectId: string, fileId: string, displayName?: string, fileNode?: FileNode) => void;
   closeFile: (fileId: string) => void;
   setActiveFileTab: (fileId: string) => void;
-  setBottomPanelTab: (tab: CodeState['bottomPanelTab']) => void;
+  setBottomPanelTab: (tab: 'output' | 'terminal' | 'port' | 'performance' | 'problems') => void;
   toggleBottomPanel: () => void;
-  setActivityPanelTab: (tab: CodeState['activityPanelTab']) => void;
+  setActivityPanelTab: (tab: 'explore' | 'search' | 'source' | 'extension') => void;
   setProjectManagerOpen: (open: boolean) => void;
   setNewProjectOpen: (open: boolean) => void;
   setProjectFiles: (projectId: string, files: FileNode[]) => void;
@@ -100,7 +105,6 @@ interface CodeState {
   collapseAllFolders: (projectId: string) => void;
   invalidateDir: (projectId: string, dirPath: string) => void;
   hydrateProjectFiles: (projectId: string, files: FileNode[]) => void;
-  // ── Unsaved changes management ──
   markFileAsUnsaved: (fileId: string, content: string) => void;
   markFileAsSaved: (fileId: string) => void;
   setOriginalContent: (fileId: string, content: string) => void;
@@ -108,7 +112,6 @@ interface CodeState {
   getUnsavedFiles: () => string[];
   saveAllFiles: () => Promise<void>;
   saveFile: (fileId: string) => Promise<void>;
-  // ── Modal control ──
   setPendingAction: (action: (() => void) | null) => void;
   setSaveConfirmModalOpen: (open: boolean) => void;
   executeWithSaveCheck: (action: () => void) => void;
@@ -132,12 +135,58 @@ export const useCodeStore = create<CodeState>()(
         });
       };
 
+      // Migration: Remove old extension services without extensionId
+      const migrateOldExtensionServices = () => {
+        const state = get();
+        const migratedProjects = state.projects.map((project) => {
+          const validServices = project.services.filter((service) => {
+            if (service.type === 'extension' && !service.extensionId) {
+              console.log('[Migration] Removing old extension service:', service.id);
+              return false;
+            }
+            return true;
+          });
+
+          return {
+            ...project,
+            services: validServices,
+            currentServiceId: validServices.find(s => s.id === project.currentServiceId) 
+              ? project.currentServiceId 
+              : null,
+          };
+        });
+
+        set({ projects: migratedProjects });
+      };
+
+      // Migration: Add per-project panel state to old projects
+      const migratePerProjectPanelState = () => {
+        const state = get();
+        const migratedProjects = state.projects.map((project) => {
+          if (project.bottomPanelTab === undefined) {
+            return {
+              ...project,
+              bottomPanelTab: 'output' as const,
+              isBottomPanelOpen: true,
+              activityPanelTab: 'explore' as const,
+            };
+          }
+          return project;
+        });
+
+        if (migratedProjects.some((p, i) => p !== state.projects[i])) {
+          set({ projects: migratedProjects });
+        }
+      };
+
+      setTimeout(() => {
+        migrateOldExtensionServices();
+        migratePerProjectPanelState();
+      }, 100);
+
       return {
         projects: [],
         currentProjectId: null,
-        bottomPanelTab: 'output',
-        activityPanelTab: 'explore',
-        isBottomPanelOpen: true,
         isProjectManagerOpen: false,
         isNewProjectOpen: false,
         activityPanelWidth: 320,
@@ -183,7 +232,7 @@ export const useCodeStore = create<CodeState>()(
         addService: (projectId, service) => {
           const newService: Service = {
             ...service,
-            id: `service_${Date.now()}`,
+            id: 'id' in service ? service.id : `service_${Date.now()}`,
             status: 'stopped',
           };
           set((state) => ({
@@ -224,7 +273,11 @@ export const useCodeStore = create<CodeState>()(
         },
 
         setCurrentService: (serviceId) => {
-          updateCurrentProject((p) => ({ ...p, currentServiceId: serviceId }));
+          updateCurrentProject((p) => ({ 
+            ...p, 
+            currentServiceId: serviceId,
+            activeFileTabId: null,
+          }));
         },
 
         openFile: (_projectId, fileId, displayName, fileNode) => {
@@ -274,19 +327,23 @@ export const useCodeStore = create<CodeState>()(
         },
 
         setActiveFileTab: (fileId) => {
-          updateCurrentProject((p) => ({ ...p, activeFileTabId: fileId }));
+          updateCurrentProject((p) => ({ 
+            ...p, 
+            activeFileTabId: fileId,
+            currentServiceId: null,
+          }));
         },
 
         setBottomPanelTab: (tab) => {
-          set({ bottomPanelTab: tab });
+          updateCurrentProject((p) => ({ ...p, bottomPanelTab: tab }));
         },
 
         toggleBottomPanel: () => {
-          set((state) => ({ isBottomPanelOpen: !state.isBottomPanelOpen }));
+          updateCurrentProject((p) => ({ ...p, isBottomPanelOpen: !p.isBottomPanelOpen }));
         },
 
         setActivityPanelTab: (tab) => {
-          set({ activityPanelTab: tab });
+          updateCurrentProject((p) => ({ ...p, activityPanelTab: tab }));
         },
 
         setProjectManagerOpen: (open) => {
@@ -359,12 +416,10 @@ export const useCodeStore = create<CodeState>()(
           }));
         },
 
-        // ── Unsaved changes management ──
         markFileAsUnsaved: (fileId: string, content: string) => {
           const project = getCurrentProject();
           if (!project) return;
 
-          // Sync latest content into fileNodeMap so save can read it
           updateCurrentProject((p) => {
             const node = p.fileNodeMap[fileId];
             const updatedNodeMap = node
@@ -435,7 +490,6 @@ export const useCodeStore = create<CodeState>()(
           }
         },
 
-        // ── Modal control ──
         setPendingAction: (action: (() => void) | null) => {
           set({ pendingAction: action });
         },
@@ -461,11 +515,7 @@ export const useCodeStore = create<CodeState>()(
         projects: state.projects.map((p) => ({
           ...p,
           files: [],
-          // Convert Set to Array for serialization
           unsavedFiles: Array.from(p.unsavedFiles),
-          // Keep openFiles + display names so tabs are restored on reload
-          // Keep expandedFolderIds so folder tree state is restored
-          // Reset volatile runtime data (currentFileId not needed across sessions)
           currentFileId: null,
         })),
         isProjectManagerOpen: false,
@@ -473,7 +523,6 @@ export const useCodeStore = create<CodeState>()(
         pendingAction: null,
         isSaveConfirmModalOpen: false,
       }),
-      // Custom merge function to convert Arrays back to Sets
       merge: (persistedState: any, currentState: CodeState) => {
         const merged = { ...currentState, ...persistedState };
         if (merged.projects) {

@@ -102,12 +102,29 @@ export function useLSPNotifier() {
         variant: 'primary' | 'secondary' | 'ghost';
       }> = [];
 
-      // Nút Install
-      actions.push({ label: 'Install', onClick: () => handleInstall(), variant: 'primary' });
+      // Nút Extensions - Ưu tiên install qua Extensions panel
+      actions.push({
+        label: 'Browse Extensions',
+        onClick: () => {
+          // Navigate to Extensions panel
+          const state = useCodeStore.getState();
+          state.setActivityPanelTab('extensions');
+          toastService.dismiss(LSP_TOAST_ID);
+          setForceShowLSPOverlay(false);
+        },
+        variant: 'primary',
+      });
+
+      // Nút Install (raw LSP server - fallback)
+      actions.push({ 
+        label: 'Quick Install', 
+        onClick: () => handleInstall(), 
+        variant: 'secondary' 
+      });
 
       // Nút Cancel
       actions.push({
-        label: 'Cancel',
+        label: 'Dismiss',
         onClick: () => {
           dismissLSP(server.id);
           toastService.dismiss(LSP_TOAST_ID);
@@ -116,21 +133,12 @@ export function useLSPNotifier() {
         variant: 'ghost',
       });
 
-      // Nút Homepage (nếu có)
-      if (server.homepage) {
-        actions.push({
-          label: 'Homepage',
-          onClick: () => window.api.invoke('openFolder', { path: server.homepage }),
-          variant: 'ghost',
-        });
-      }
-
       toastService.show({
         id: LSP_TOAST_ID,
-        title: server.name,
-        description: server.description,
+        title: `${server.name} not installed`,
+        description: `Want IntelliSense for ${server.language}? Install via Extensions or quick install the LSP server.`,
         variant: 'info',
-        source: 'npm registry',
+        source: 'Language Support',
         actions: actions.slice(0, 3),
         onClose: () => setForceShowLSPOverlay(false),
       });

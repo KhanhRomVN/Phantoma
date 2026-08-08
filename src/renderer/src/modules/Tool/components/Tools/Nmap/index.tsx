@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useServerConfig } from '../../../context/ServerConfigContext';
 import { useNmapScan } from './hooks/useNmapScan';
 import { useHistory } from './hooks/useHistory';
-import MarkdownBlock from '../../common/MarkdownBlock';
 import ExecutionTab from './tabs/ExecutionTab';
 import HistoryTab from './tabs/HistoryTab';
 import ProfilesTab from './tabs/ProfilesTab';
@@ -10,6 +9,7 @@ import Tooltip from '../../common/Tooltip';
 import { TooltipState, ContextMenuState } from './types';
 import { NMAP_DOC } from './constants';
 import { $ } from '@renderer/utils/color';
+import MarkdownBlock from '@renderer/components/common/MarkdownBlock';
 
 interface NmapToolProps {
   accentColor?: string;
@@ -80,7 +80,9 @@ const NmapTool: React.FC<NmapToolProps> = ({
 
   return (
     <div className="flex flex-col gap-3 relative font-mono">
-      {activeTab === 'information' && <MarkdownBlock content={NMAP_DOC} accentColor={accentColor} />}
+      {activeTab === 'information' && (
+        <MarkdownBlock content={NMAP_DOC} accentColor={accentColor} />
+      )}
 
       {activeTab === 'execution' && (
         <ExecutionTab

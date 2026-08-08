@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -17,10 +17,85 @@ import {
   DropdownContent,
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
-import { useDiagnosticsStore, type Diagnostic } from '../../stores/diagnosticsStore';
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface Diagnostic {
+  uri: string;
+  severity: number; // 1=Error, 2=Warning, 3=Info, 4=Hint
+  message: string;
+  source?: string;
+  code?: string | number;
+  range: {
+    start: { line: number; character: number };
+    end: { line: number; character: number };
+  };
+}
+// ─── Monaco Diagnostics Hook ─────────────────────────────────────────────────
+
+/**
+ * Hook to get diagnostics from Monaco Editor
+ * Replaces the deprecated useDiagnosticsStore
+ */
+function useMonacoDiagnostics(): Record<string, Diagnostic[]> {
+  const [diagnostics, setDiagnostics] = useState<Record<string, Diagnostic[]>>({});
+
+  useEffect(() => {
+    const monaco = (window as any).monaco;
+    if (!monaco) return;
+
+    // Function to collect diagnostics from all models
+    const collectDiagnostics = () => {
+      const models = monaco.editor.getModels();
+      const result: Record<string, Diagnostic[]> = {};
+
+      models.forEach((model: any) => {
+        const uri = model.uri.toString();
+        const markers = monaco.editor.getModelMarkers({ resource: model.uri });
+
+        if (markers.length > 0) {
+          result[uri] = markers.map((marker: any) => ({
+            uri,
+            severity: marker.severity,
+            message: marker.message,
+            source: marker.source || marker.owner,
+            code: marker.code?.value || marker.code,
+            range: {
+              start: {
+                line: marker.startLineNumber - 1,
+                character: marker.startColumn - 1,
+              },
+              end: {
+                line: marker.endLineNumber - 1,
+                character: marker.endColumn - 1,
+              },
+            },
+          }));
+        }
+      });
+
+      setDiagnostics(result);
+    };
+
+    // Initial collection
+    collectDiagnostics();
+
+    // Listen for marker changes
+    const disposable = monaco.editor.onDidChangeMarkers(() => {
+      collectDiagnostics();
+    });
+
+    return () => {
+      disposable.dispose();
+    };
+  }, []);
+
+  return diagnostics;
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 type SeverityKey = 'error' | 'warning' | 'info' | 'hint';
 
@@ -214,7 +289,7 @@ interface ContextMenuState {
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export function Problems() {
-  const diagnostics = useDiagnosticsStore((state) => state.diagnostics);
+  const diagnostics = useMonacoDiagnostics();
 
   const [severities, setSeverities] = useState<Record<SeverityKey, boolean>>({
     error: true,
