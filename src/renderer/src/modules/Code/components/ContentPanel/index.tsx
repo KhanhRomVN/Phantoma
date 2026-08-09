@@ -213,13 +213,9 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
 // ─── ContentPanel ───────────────────────────────────────────────────────────
 
 export const ContentPanel = memo(function ContentPanel() {
-  console.log('[ContentPanel] 🎬 RENDER');
-
   // 🚀 ULTRA-OPTIMIZED: Chỉ subscribe vào những fields thực sự cần thiết
-  // Tránh re-render khi các fields khác trong project thay đổi
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   
-  // ✨ CRITICAL FIX: Tách riêng các selectors để tránh re-render không cần thiết
   const currentServiceId = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === currentProjectId);
     return project?.currentServiceId ?? null;
@@ -240,7 +236,7 @@ export const ContentPanel = memo(function ContentPanel() {
     return project?.path;
   });
 
-  // Lookup helpers - chỉ chạy khi cần
+  // Lookup helpers
   const getDisplayName = (fileId: string) => {
     const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
     return project?.fileDisplayNames[fileId] || fileId;
@@ -306,44 +302,30 @@ export const ContentPanel = memo(function ContentPanel() {
     } else {
       setLoadedContent('');
     }
-  }, [showFile, activeFileTabId, openFiles.length]); // ✅ OPTIMIZED: Only depend on length, not entire array
+  }, [showFile, activeFileTabId, openFiles.length]);
 
-  // ── Service selected (priority over file) ──────────────────────────────
+  // ── Service selected ────────────────────────────────────────────────────
   if (showService && currentServiceId) {
     const service = getService(currentServiceId);
     if (!service) return null;
     
     // Check if it's an extension service
     if (service.type === 'extension') {
-      // Debug logging
-      console.log('[ContentPanel] Extension service:', {
-        serviceId: service.id,
-        extensionId: service.extensionId,
-        fullService: service,
-      });
-
-      // Use stored extensionId if available, otherwise fallback to parsing from service.id
+      // Use stored extensionId if available
       const extensionId =
         service.extensionId ||
         (() => {
           // Fallback: extract from service ID
-          // service.id format: "ext_namespace_name" where original was "namespace.name"
           const withoutPrefix = service.id.replace('ext_', '');
           const lastUnderscoreIndex = withoutPrefix.lastIndexOf('_');
 
           if (lastUnderscoreIndex !== -1) {
             const namespace = withoutPrefix.substring(0, lastUnderscoreIndex);
             const name = withoutPrefix.substring(lastUnderscoreIndex + 1);
-            const parsed = `${namespace}.${name}`;
-            console.log('[ContentPanel] Parsed extensionId from serviceId:', parsed);
-            return parsed;
+            return `${namespace}.${name}`;
           }
-          const parsed = withoutPrefix.replace(/_/g, '.');
-          console.log('[ContentPanel] Fallback parsed extensionId:', parsed);
-          return parsed;
+          return withoutPrefix.replace(/_/g, '.');
         })();
-
-      console.log('[ContentPanel] Final extensionId:', extensionId);
 
       return <div className="flex-1 flex flex-col min-h-0 bg-background"></div>;
     }
@@ -370,17 +352,7 @@ export const ContentPanel = memo(function ContentPanel() {
     const category = fileNode ? getFileCategory(fileNode.name) : 'text';
     const filePath = fileNode?.path || '';
 
-    // 🚀 OPTIMIZED: Memoize CodeBlock props để tránh re-create object mỗi render
-    const codeBlockProps = {
-      code: loadedContent || '',
-      language: fileNode ? getLanguage(fileNode.name) : 'plaintext',
-      filePath: fileNode?.path || undefined,
-      fileId: activeFileTabId || undefined,
-      projectRoot: projectPath || undefined,
-      showLineNumbers: true,
-      wordWrap: 'off' as const,
-      enableLSP: true,
-    };
+    const codeBlockKey = `${activeFileTabId}-${filePath}`;
 
     const renderPreview = () => {
       if (loading) {
@@ -393,7 +365,19 @@ export const ContentPanel = memo(function ContentPanel() {
 
       switch (category) {
         case 'text':
-          return <CodeBlock {...codeBlockProps} />;
+          return (
+            <CodeBlock
+              key={codeBlockKey}
+              code={loadedContent || ''}
+              language={fileNode ? getLanguage(fileNode.name) : 'plaintext'}
+              filePath={fileNode?.path || undefined}
+              fileId={activeFileTabId || undefined}
+              projectRoot={projectPath || undefined}
+              showLineNumbers={true}
+              wordWrap="off"
+              enableLSP={true}
+            />
+          );
         case 'image':
           return <ImagePreview path={filePath} name={displayName} />;
         case 'pdf':
@@ -428,7 +412,6 @@ export const ContentPanel = memo(function ContentPanel() {
   );
 });
 
-// Custom equality - ContentPanel không cần re-render nếu displayName thay đổi
 ContentPanel.displayName = 'ContentPanel';
 
 const TYPE_ICONS: Record<string, ReactNode> = {

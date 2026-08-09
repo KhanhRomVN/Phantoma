@@ -11,6 +11,7 @@ export interface LSPServer {
   npmPackage: string;
   description: string;
   homepage?: string;
+  icon?: string;
 }
 
 const LSP_SERVERS: Record<string, LSPServer> = {

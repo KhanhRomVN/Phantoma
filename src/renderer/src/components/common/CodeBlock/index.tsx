@@ -213,14 +213,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     projectRoot,
   } = props;
 
-  // 🔍 PERFORMANCE: Track component render count
-  const renderCountRef = useRef(0);
-  renderCountRef.current++;
-  console.log(`[CodeBlock] 🎬 RENDER #${renderCountRef.current} for ${filePath || 'unnamed'}`, {
-    codeLength: code.length,
-    enableLSP,
-    timestamp: performance.now(),
-  });
+
 
   const { currentPreset } = useTheme();
   const markFileAsUnsaved = useCodeStore((s) => s.markFileAsUnsaved);
@@ -234,11 +227,17 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
   const lineDecorationsRef = useRef<string[]>([]);
   const rangeDecorationsRef = useRef<string[]>([]);
   const [isEditorReady, setIsEditorReady] = React.useState(false);
+  
+  // ✅ FIX: Track if component is mounting/unmounting vs re-rendering
+  // This helps distinguish between:
+  // 1. Tab switch (filePath changes) - should NOT send didClose
+  // 2. Real unmount (component destroyed) - should send didClose
+  const isMountedRef = useRef(true);
+  const previousFilePathRef = useRef(filePath);
 
   // Memoize themeConfig to prevent unnecessary re-renders
   const themeConfigStr = JSON.stringify(themeConfig);
   const stableThemeConfig = React.useMemo(() => {
-    console.log('[CodeBlock] 🎨 MEMO: themeConfig recalculated', { filePath });
     return themeConfig;
   }, [themeConfigStr]);
 
@@ -334,49 +333,19 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
   useEffect(() => {
     let mounted = true;
-    const effectStartTime = performance.now();
-    console.log('[CodeBlock] ⚡ EFFECT STARTED', {
-      filePath,
-      timestamp: effectStartTime,
-      deps: { code: code.substring(0, 50), language, filePath, enableLSP },
-    });
 
     const initMonaco = async () => {
-      const initStartTime = performance.now();
-      console.log('[CodeBlock] 🏁 initMonaco START', {
-        filePath,
-        timestamp: initStartTime,
-        elapsedSinceEffect: initStartTime - effectStartTime,
-      });
-
       if (!editorRef.current) return;
 
       try {
-        console.log('[CodeBlock] 🔧 initMonaco called', {
-          hasEditor: !!editorInstance.current,
-          hasModel: !!modelRef.current,
-          codeLength: code.length,
-          filePath,
-        });
-
         // Dispose old editor instance (but keep model alive)
         if (editorInstance.current) {
-          console.log('[CodeBlock] 🗑️  Disposing old editor instance');
           editorInstance.current.dispose();
           editorInstance.current = null;
         }
 
-        // ⚠️ DO NOT dispose model here - it should be reused
-        // Model disposal logic is handled in cleanup only when truly needed
-
         // Cấu hình TS compiler options một lần duy nhất
-        const tsConfigStart = performance.now();
         configureTypeScriptDefaults();
-        console.log(
-          '[CodeBlock] ⏱️  TypeScript config took:',
-          performance.now() - tsConfigStart,
-          'ms',
-        );
 
         // Get the active theme from the theme system
         const activeThemeName = 'systema-active-theme';
@@ -385,15 +354,12 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         let monacoTheme: any;
 
         // TEMPORARY FIX: Use pure VS Dark theme to test syntax highlighting
-        // This bypasses all custom themes to isolate the tokenization issue
         monacoTheme = {
           base: 'vs-dark',
           inherit: true,
           rules: [],
           colors: {},
         };
-
-        console.log('[CodeBlock] 🎨 Using pure VS Dark theme for testing');
 
         // Apply custom overrides from themeConfig
         const customRules =
@@ -420,20 +386,12 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         };
 
         // Register the theme
-        const themeRegisterStart = performance.now();
         window.monaco.editor.defineTheme(activeThemeName, finalTheme);
-        console.log(
-          '[CodeBlock] ⏱️  Theme registration took:',
-          performance.now() - themeRegisterStart,
-          'ms',
-        );
 
         // Detect correct language ID based on file extension
-        // Monaco and LSP require specific language IDs for JSX/TSX files
         const languageId = detectLanguageId(filePath, language);
 
-        // CRITICAL FIX: Monaco doesn't have 'typescriptreact' or 'javascriptreact' languages
-        // Map these to their base languages for Monaco tokenization
+        // Map to Monaco language ID
         const monacoLanguageId =
           languageId === 'typescriptreact'
             ? 'typescript'
@@ -441,86 +399,41 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
               ? 'javascript'
               : languageId;
 
-        console.log('[CodeBlock] 🔤 Language mapping:', {
-          detected: languageId,
-          forMonaco: monacoLanguageId,
-          filePath,
-        });
-
         // Determine if we need LSP integration
         const needsLSP = enableLSP && filePath && window.monaco.Uri;
 
         if (needsLSP) {
-          const lspInitStart = performance.now();
-          console.log('[CodeBlock] 🔍 Initializing LSP integration...');
-          console.log('[CodeBlock] Language:', languageId);
-          console.log('[CodeBlock] FilePath:', filePath);
+          console.log('[CodeBlock] 🔍 LSP Init:', { languageId, filePath });
 
           const uri = window.monaco.Uri.file(filePath);
-          console.log('[CodeBlock] 📄 Checking for existing Monaco model:', uri.toString());
 
-          // Always check Monaco's global model registry first
-          const modelLookupStart = performance.now();
+          // Check for existing model
           const existingModel = window.monaco.editor.getModel(uri);
-          console.log(
-            '[CodeBlock] ⏱️  Model lookup took:',
-            performance.now() - modelLookupStart,
-            'ms',
-          );
 
           if (existingModel) {
-            console.log('[CodeBlock] ♻️  Model already exists, reusing...');
+            console.log('[CodeBlock] ♻️  Reusing existing model');
 
             const existingValue = existingModel.getValue();
-            const existingLength = existingValue.length;
-            const newLength = code.length;
             const existingLanguage = existingModel.getLanguageId();
-
-            console.log('[CodeBlock] Model content comparison:', {
-              existingLength,
-              newLength,
-              existingLanguage,
-              newLanguage: languageId,
-              shouldUpdate: existingValue !== code && newLength > 0,
-            });
 
             // Update language if different
             if (existingLanguage !== monacoLanguageId) {
-              console.log(
-                `[CodeBlock] 🔄 Updating model language: ${existingLanguage} → ${monacoLanguageId}`,
-              );
               window.monaco.editor.setModelLanguage(existingModel, monacoLanguageId);
             }
 
-            // Only update if:
-            // 1. Content is different, AND
-            // 2. New content is not empty (prevents race condition with async file loading)
-            if (existingValue !== code && newLength > 0) {
-              console.log('[CodeBlock] 📝 Updating existing model value');
+            // Update content if different and not empty
+            if (existingValue !== code && code.length > 0) {
               existingModel.setValue(code);
-            } else if (newLength === 0 && existingLength > 0) {
-              console.log(
-                '[CodeBlock] ⚠️  Skipping setValue - new content is empty but model has content (async race condition)',
-              );
             }
 
             modelRef.current = existingModel;
-            // Check if we're the owner by looking at our ref (not reset in cleanup anymore)
             if (!isModelOwnerRef.current) {
-              // We didn't create it originally, so we're not the owner
               isModelOwnerRef.current = false;
             }
           } else {
-            const modelCreateStart = performance.now();
-            console.log('[CodeBlock] 🆕 Creating new model...');
+            console.log('[CodeBlock] 🆕 Creating new model');
             modelRef.current = window.monaco.editor.createModel(code, monacoLanguageId, uri);
-            isModelOwnerRef.current = true; // We created this model, we own it
-            console.log('[CodeBlock] ✅ New model created, we are the owner');
-            console.log(
-              '[CodeBlock] ⏱️  Model creation took:',
-              performance.now() - modelCreateStart,
-              'ms',
-            );
+            isModelOwnerRef.current = true;
           }
 
           // Auto-start language server for this file
@@ -544,131 +457,58 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           };
 
           const workspaceRoot = getProjectRoot();
-          const isNewModel = isModelOwnerRef.current; // New model = we own it
+          const isNewModel = isModelOwnerRef.current;
 
-          console.log('[CodeBlock] 🚀 Auto-starting language server...');
-          console.log('[CodeBlock] Project root:', workspaceRoot);
-
-          // Initialize LSP client with Monaco
-          const lspClientInitStart = performance.now();
+          // Initialize LSP client
           lspClientManager.initialize(window.monaco);
-          console.log('[CodeBlock] ✅ LSP Client Manager initialized');
-          console.log(
-            '[CodeBlock] ⏱️  LSP Client init took:',
-            performance.now() - lspClientInitStart,
-            'ms',
-          );
 
-          const lspServerStart = performance.now();
           autoStartLanguageServer(languageId, workspaceRoot)
             .then(async () => {
-              console.log('[CodeBlock] ✅ Language server started successfully');
-              console.log(
-                '[CodeBlock] ⏱️  LSP server start took:',
-                performance.now() - lspServerStart,
-                'ms',
-              );
-
               // Subscribe to diagnostics via LSP Manager
               if (filePath) {
-                const subscribeStart = performance.now();
                 const uri = window.monaco.Uri.file(filePath).toString();
-                // Subscribe to diagnostics updates (for future use)
-                // Currently we don't need to unsubscribe since Monaco handles cleanup
                 void lspManager.subscribeToDiagnostics(uri, (event) => {
-                  console.log('[CodeBlock] 🔔 Received diagnostics via LSP Manager:', {
+                  console.log('[CodeBlock] 🔔 Diagnostics received:', {
                     uri: event.uri,
                     count: event.diagnostics.length,
-                    timestamp: new Date(event.timestamp).toLocaleTimeString(),
                   });
-
-                  // Diagnostics are already applied to Monaco by lsp-client.service
-                  // This is just for additional processing if needed
                 });
-
-                console.log('[CodeBlock] ✅ Subscribed to LSP Manager for', uri);
-                console.log(
-                  '[CodeBlock] ⏱️  Subscription took:',
-                  performance.now() - subscribeStart,
-                  'ms',
-                );
               }
 
-              // Only notify didOpen for NEW models (not reused ones)
-              if (isNewModel && modelRef.current && filePath) {
-                const didOpenStart = performance.now();
+              // ✅ FIX: Always notify didOpen (even for reused models)
+              if (modelRef.current && filePath) {
                 const uri = window.monaco.Uri.file(filePath).toString();
                 const text = modelRef.current.getValue();
-                console.log(
-                  '[CodeBlock] 📂 Notifying language server: document opened (new model)',
-                );
+                
+                console.log('[CodeBlock] 📂 Sending didOpen:', { isNewModel, uri });
 
                 try {
-                  // Wait for didOpen to complete (this returns a Promise)
                   await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
-                  console.log('[CodeBlock] ✅ didOpen completed successfully');
-                  console.log(
-                    '[CodeBlock] ⏱️  didOpen took:',
-                    performance.now() - didOpenStart,
-                    'ms',
-                  );
-
-                  // ✨ OPTIMIZATION: Remove immediate didChange trigger
-                  // Let the debounced handler in onDidChangeModelContent trigger it naturally
-                  // This prevents double-triggering diagnostics analysis
+                  console.log('[CodeBlock] ✅ didOpen completed');
                 } catch (err) {
-                  console.error('[CodeBlock] ❌ Failed to notify document opened:', err);
-                  console.log(
-                    '[CodeBlock] ⏱️  didOpen failed after:',
-                    performance.now() - didOpenStart,
-                    'ms',
-                  );
+                  console.error('[CodeBlock] ❌ didOpen failed:', err);
                 }
-              } else if (!isNewModel) {
-                console.log('[CodeBlock] ⏭️  Model reused, skipping didOpen notification');
-
-                // ✨ OPTIMIZATION: For reused models, DON'T trigger didChange
-                // The model already exists and LSP server already knows about it
-                // Wait for user to make actual changes before notifying
               }
-
-              console.log(
-                '[CodeBlock] ⏱️  TOTAL LSP integration took:',
-                performance.now() - lspInitStart,
-                'ms',
-              );
             })
             .catch((err) => {
-              console.error('[CodeBlock] ❌ Failed to auto-start language server:', err);
+              console.error('[CodeBlock] ❌ LSP server start failed:', err);
             });
         } else {
-          // No LSP integration - create simple model without URI
-          console.log('[CodeBlock] 📝 Creating model without LSP integration');
-
-          // For non-LSP mode, always create a fresh model on each init
-          // (no URI means no global registry lookup possible)
+          // No LSP integration
           if (!modelRef.current) {
             modelRef.current = window.monaco.editor.createModel(code, monacoLanguageId);
             isModelOwnerRef.current = true;
-            console.log('[CodeBlock] ✅ Created simple model');
           } else {
-            // Update existing model value if different
             if (modelRef.current.getValue() !== code) {
-              console.log('[CodeBlock] 📝 Updating simple model value');
               modelRef.current.setValue(code);
             }
           }
         }
 
         // Create editor instance with the model
-        const editorCreateStart = performance.now();
-        console.log('[CodeBlock] 🖥️  Creating editor instance...');
-        console.log('[CodeBlock] Model exists:', !!modelRef.current);
-        console.log('[CodeBlock] Model value length:', modelRef.current?.getValue()?.length || 0);
-
         editorInstance.current = window.monaco.editor.create(editorRef.current, {
           model: modelRef.current || undefined,
-          value: modelRef.current ? undefined : code, // Fallback to value if no model
+          value: modelRef.current ? undefined : code,
           language: modelRef.current ? undefined : monacoLanguageId,
           theme: activeThemeName,
           readOnly: editorOptions?.readOnly ?? false,
@@ -683,28 +523,10 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           ...editorOptions,
         });
 
-        console.log('[CodeBlock] ✅ Editor instance created');
-        console.log(
-          '[CodeBlock] ⏱️  Editor creation took:',
-          performance.now() - editorCreateStart,
-          'ms',
-        );
-        console.log(
-          '[CodeBlock] Editor model:',
-          editorInstance.current.getModel()?.uri?.toString() || 'no URI',
-        );
-        console.log('[CodeBlock] Editor DOM element:', {
-          width: editorRef.current?.offsetWidth,
-          height: editorRef.current?.offsetHeight,
-          display: window.getComputedStyle(editorRef.current || document.body).display,
-        });
-
         // Add Ctrl+S / Cmd+S handler for Save
         editorInstance.current.addCommand(
           window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS,
           () => {
-            console.log('[CodeBlock] 💾 Save triggered (Ctrl/Cmd+S)');
-
             // Notify LSP server
             if (enableLSP && filePath && modelRef.current) {
               const uri = window.monaco.Uri.file(filePath).toString();
@@ -718,8 +540,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
               window.api
                 .invoke('fs:write-file', filePath, content)
                 .then(() => {
-                  console.log('[CodeBlock] ✅ File saved to disk');
-                  // Clear unsaved marker
                   markFileAsSaved(fileId);
                 })
                 .catch((err: Error) => {
@@ -757,28 +577,8 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
           // Force layout after a short delay to ensure DOM is ready
           setTimeout(() => {
-            const layoutStart = performance.now();
             if (editorInstance.current) {
-              console.log('[CodeBlock] 🔄 Forcing editor layout');
               editorInstance.current.layout();
-
-              // Debug: Check if model is still attached
-              const currentModel = editorInstance.current.getModel();
-              console.log('[CodeBlock] 📊 Post-layout check:', {
-                hasModel: !!currentModel,
-                modelValue: currentModel?.getValue()?.slice(0, 50),
-                modelUri: currentModel?.uri?.toString(),
-                editorValue: editorInstance.current.getValue()?.slice(0, 50),
-              });
-
-              console.log(
-                '[CodeBlock] ⏱️  First layout took:',
-                performance.now() - layoutStart,
-                'ms',
-              );
-
-              // ✨ OPTIMIZATION: Remove second layout - it's unnecessary
-              // Monaco's automaticLayout option handles resizing automatically
             }
           }, 150);
         }
@@ -787,30 +587,16 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         if (onEditorMounted) {
           onEditorMounted(editorInstance.current);
         }
-
-        const totalInitTime = performance.now() - initStartTime;
-        console.log('[CodeBlock] 🏁 initMonaco COMPLETED in:', totalInitTime, 'ms');
       } catch (error) {
-        console.error('Failed to create monaco editor instance:', error);
-        console.log(
-          '[CodeBlock] ⏱️  initMonaco FAILED after:',
-          performance.now() - initStartTime,
-          'ms',
-        );
+        console.error('[CodeBlock] ❌ Failed to create editor:', error);
       }
     };
 
     const loadMonaco = () => {
-      const loadStart = performance.now();
-      console.log('[CodeBlock] 📦 loadMonaco called', { filePath, timestamp: loadStart });
-
       if (window.monaco) {
-        console.log('[CodeBlock] ✅ Monaco already loaded, calling initMonaco');
         initMonaco();
         return;
       }
-
-      console.log('[CodeBlock] 🔄 Monaco not loaded, loading now...');
 
       // Check global loading state to prevent race conditions
       if (!window.monacoLoadingPromise) {
@@ -860,42 +646,31 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     loadMonaco();
 
     return () => {
-      const cleanupStart = performance.now();
       mounted = false;
 
-      console.log(`[CodeBlock] 🧹 Cleanup called for ${filePath}`, {
-        hasModel: !!modelRef.current,
-        isOwner: isModelOwnerRef.current,
-        enableLSP,
-        reason: 'useEffect re-run (deps changed or unmount)',
-        timestamp: cleanupStart,
-      });
-
-      // ✨ OPTIMIZATION: Only notify LSP document closed if this is a real unmount
-      // Don't notify on re-renders caused by prop changes
-      // The model will persist, so we don't want to close the document in LSP
-      if (enableLSP && filePath && modelRef.current && !editorRef.current) {
-        const uri = window.monaco.Uri.file(filePath).toString();
-        const languageId = detectLanguageId(filePath, language);
-        lspClientManager.notifyDocumentClosed(languageId, uri);
-        console.log('[CodeBlock] 📄 Document closed notification sent to LSP');
+      // ✅ FIX: Detect real unmount vs tab switch
+      const isTabSwitch = previousFilePathRef.current !== filePath && isMountedRef.current;
+      const previousFilePath = previousFilePathRef.current;
+      
+      // Update ref for next cleanup
+      previousFilePathRef.current = filePath;
+      
+      if (enableLSP && previousFilePath && modelRef.current) {
+        if (isTabSwitch) {
+          console.log('[CodeBlock] 🔄 Tab switch - keeping LSP document open');
+        } else {
+          const uri = window.monaco.Uri.file(previousFilePath).toString();
+          const languageId = detectLanguageId(previousFilePath, language);
+          lspClientManager.notifyDocumentClosed(languageId, uri);
+          console.log('[CodeBlock] 📄 didClose sent (effect re-run)');
+        }
       }
-
-      // ⚠️ CRITICAL: Only dispose editor, NEVER dispose model
-      // Model is shared across tab switches and must persist
-      // Model will be reused when switching back to this file
 
       // Always dispose editor instance (but keep the model alive)
       if (editorInstance.current) {
         editorInstance.current.dispose();
         editorInstance.current = null;
-        console.log('[CodeBlock] ✅ Editor instance disposed');
       }
-
-      // ⚠️ DO NOT set modelRef.current = null - this breaks model reuse
-      // ⚠️ DO NOT set isModelOwnerRef.current = false - we need to track ownership
-      // Model reference persists so initMonaco can find and reuse it
-      // Model will be cleaned up by Monaco when the URI is no longer referenced
     };
 
     console.log('[CodeBlock] 📦 useEffect triggered', {
@@ -906,23 +681,22 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     });
   }, [filePath, enableLSP]); // ✨ OPTIMIZATION: Removed wordWrap and language - they don't need re-init
 
-  // 🔍 PERFORMANCE: Track dependency changes that cause re-init
-  const prevDepsRef = useRef({ filePath, enableLSP });
+  // ✅ FIX: Final cleanup on component unmount
   useEffect(() => {
-    const prev = prevDepsRef.current;
-    const changed: string[] = [];
+    return () => {
+      console.log('[CodeBlock] 💀 Component unmount');
+      isMountedRef.current = false;
+      
+      if (enableLSP && filePath && modelRef.current) {
+        const uri = window.monaco.Uri.file(filePath).toString();
+        const languageId = detectLanguageId(filePath, language);
+        lspClientManager.notifyDocumentClosed(languageId, uri);
+        console.log('[CodeBlock] 📄 didClose sent (unmount)');
+      }
+    };
+  }, []);
 
-    if (prev.filePath !== filePath) changed.push(`filePath: ${prev.filePath} → ${filePath}`);
-    if (prev.enableLSP !== enableLSP) changed.push(`enableLSP: ${prev.enableLSP} → ${enableLSP}`);
-
-    if (changed.length > 0) {
-      console.log(`[CodeBlock] 🔄 DEPS CHANGED causing re-init:`, changed);
-    }
-
-    prevDepsRef.current = { filePath, enableLSP };
-  }, [filePath, enableLSP]);
-
-  // Set original content when code first loads (for unsaved changes tracking)
+  // Set original content when code first loads
   useEffect(() => {
     if (fileId && code) {
       setOriginalContent(fileId, code);

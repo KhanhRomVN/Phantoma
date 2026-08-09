@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { useCodeStore } from '../hooks/useCodeStore';
 import {
   getLSPServer,
@@ -13,12 +13,22 @@ interface FooterBarProps {
   className?: string;
 }
 
+interface LSPInitStatus {
+  isInitializing: boolean;
+  progress: number; // 0-100
+  currentFile: string | null;
+  language: string | null;
+}
+
 export function FooterBar({ className }: FooterBarProps) {
-  const timeRef = useRef<HTMLSpanElement>(null);
-  const [memoryUsage, setMemoryUsage] = useState<{ used: number; total: number } | null>(null);
-  const [requestCount, setRequestCount] = useState(0);
   const [activeLSP, setActiveLSP] = useState<LSPServer | null>(null);
   const [pendingLSP, setPendingLSP] = useState(false);
+  const [lspInitStatus, setLspInitStatus] = useState<LSPInitStatus>({
+    isInitializing: false,
+    progress: 0,
+    currentFile: null,
+    language: null,
+  });
 
   const projects = useCodeStore((s) => s.projects);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
@@ -28,7 +38,7 @@ export function FooterBar({ className }: FooterBarProps) {
   const activeFileTabId = project?.activeFileTabId ?? null;
   const fileDisplayNames = project?.fileDisplayNames ?? {};
 
-  // Kiểm tra LSP cho file đang mở
+  // Check LSP for currently opened file
   const checkLSP = useCallback(() => {
     if (!activeFileTabId) {
       setActiveLSP(null);
@@ -54,60 +64,52 @@ export function FooterBar({ className }: FooterBarProps) {
     return () => clearTimeout(timer);
   }, [checkLSP]);
 
-  // Cập nhật đồng hồ mỗi giây mà không gây re-render
+  // Listen for LSP initialization events
   useEffect(() => {
-    const updateClock = () => {
-      if (timeRef.current) {
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('vi-VN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
+    const handleLSPInitStart = (event: CustomEvent) => {
+      const { language, file } = event.detail || {};
+      setLspInitStatus({
+        isInitializing: true,
+        progress: 0,
+        currentFile: file || null,
+        language: language || null,
+      });
+    };
+
+    const handleLSPInitProgress = (event: CustomEvent) => {
+      const { progress } = event.detail || {};
+      setLspInitStatus((prev) => ({
+        ...prev,
+        progress: Math.min(progress || 0, 100),
+      }));
+    };
+
+    const handleLSPInitComplete = () => {
+      setLspInitStatus((prev) => ({
+        ...prev,
+        isInitializing: false,
+        progress: 100,
+      }));
+
+      // Hide progress bar after a short delay
+      setTimeout(() => {
+        setLspInitStatus({
+          isInitializing: false,
+          progress: 0,
+          currentFile: null,
+          language: null,
         });
-        const timeStr = now.toLocaleTimeString('vi-VN', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        });
-        timeRef.current.textContent = `${dateStr} ${timeStr}`;
-      }
+      }, 1000);
     };
 
-    updateClock();
-    const timer = setInterval(updateClock, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    window.addEventListener('lsp:init:start', handleLSPInitStart as EventListener);
+    window.addEventListener('lsp:init:progress', handleLSPInitProgress as EventListener);
+    window.addEventListener('lsp:init:complete', handleLSPInitComplete as EventListener);
 
-  useEffect(() => {
-    const getMemoryInfo = async () => {
-      try {
-        // @ts-ignore
-        if (performance.memory) {
-          // @ts-ignore
-          const mem = performance.memory;
-          setMemoryUsage({
-            used: Math.round(mem.usedJSHeapSize / (1024 * 1024)),
-            total: Math.round(mem.jsHeapSizeLimit / (1024 * 1024)),
-          });
-        }
-      } catch {
-        // Bỏ qua nếu không có memory API
-      }
-    };
-
-    getMemoryInfo();
-    const interval = setInterval(getMemoryInfo, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const handleRequestUpdate = (event: CustomEvent) => {
-      setRequestCount(event.detail?.count || 0);
-    };
-
-    window.addEventListener('request-count-update', handleRequestUpdate as EventListener);
     return () => {
-      window.removeEventListener('request-count-update', handleRequestUpdate as EventListener);
+      window.removeEventListener('lsp:init:start', handleLSPInitStart as EventListener);
+      window.removeEventListener('lsp:init:progress', handleLSPInitProgress as EventListener);
+      window.removeEventListener('lsp:init:complete', handleLSPInitComplete as EventListener);
     };
   }, []);
 
@@ -124,15 +126,15 @@ export function FooterBar({ className }: FooterBarProps) {
         className,
       )}
     >
-      <div className="flex items-center gap-4">
-        {/* Trạng thái LSP */}
+      <div className="flex items-center gap-4 flex-1">
+        {/* LSP Status */}
         {activeLSP && (
           <>
             {pendingLSP ? (
               <button
                 onClick={handleLSPClick}
                 className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition-colors cursor-pointer bg-transparent border-none p-0"
-                title={`Cài đặt ${activeLSP.name}`}
+                title={`Install ${activeLSP.name}`}
               >
                 <AlertTriangle className="w-3 h-3" strokeWidth={2} />
                 <span className="font-medium">{activeLSP.language}</span>
@@ -143,33 +145,27 @@ export function FooterBar({ className }: FooterBarProps) {
                 <span className="font-medium">{activeLSP.language}</span>
               </span>
             )}
-            <span className="text-border">|</span>
           </>
         )}
 
-        <span ref={timeRef} className="font-mono">
-          {/* Nội dung sẽ được cập nhật trực tiếp bởi useRef */}
-        </span>
-        <span className="text-border">|</span>
-        <span>
-          Requests: <span className="text-text-primary font-medium">{requestCount}</span>
-        </span>
-        {memoryUsage && (
-          <>
-            <span className="text-border">|</span>
-            <span>
-              Memory: <span className="text-text-primary font-mono">{memoryUsage.used}MB</span>
-              <span className="text-text-secondary/50"> / {memoryUsage.total}MB</span>
+        {/* LSP Initialization Progress */}
+        {lspInitStatus.isInitializing && (
+          <div className="flex items-center gap-2 ml-auto mr-4">
+            <Loader2 className="w-3 h-3 animate-spin text-blue-400" strokeWidth={2} />
+            <span className="text-text-secondary">
+              Initializing {lspInitStatus.language || 'LSP'}...
             </span>
-          </>
+            <div className="w-32 h-1.5 bg-border rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300 ease-out"
+                style={{ width: `${lspInitStatus.progress}%` }}
+              />
+            </div>
+            <span className="text-text-secondary/70 font-mono text-[9px] min-w-[2rem] text-right">
+              {Math.round(lspInitStatus.progress)}%
+            </span>
+          </div>
         )}
-      </div>
-      <div className="flex items-center gap-3">
-        <span className="text-text-secondary/50">v1.0.0</span>
-        <span className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-text-secondary/70">Ready</span>
-        </span>
       </div>
     </div>
   );

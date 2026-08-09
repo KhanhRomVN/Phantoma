@@ -4,7 +4,8 @@ import { ActivityBar } from './ActivityBar';
 import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { SourceControl } from './SourceControl';
-import { Folder, Search as SearchIcon, GitBranch } from 'lucide-react';
+import { LSPPanel } from './LSP';
+import { Folder, Search as SearchIcon, GitBranch, Code2 } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 const TABS = [
   { id: 'explore', icon: <Folder className="w-4 h-4" />, label: 'File Explorer' },
@@ -13,6 +14,11 @@ const TABS = [
     id: 'source',
     icon: <GitBranch className="w-4 h-4" />,
     label: 'Source Control',
+  },
+  {
+    id: 'lsp',
+    icon: <Code2 className="w-4 h-4" />,
+    label: 'Language Servers',
   }
 ];
 
@@ -59,6 +65,8 @@ export function ActivityPanel() {
         return <Search />;
       case 'source':
         return <SourceControl />;
+      case 'lsp':
+        return <LSPPanel />;
       default:
         return null;
     }

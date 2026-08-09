@@ -21,7 +21,7 @@ export interface Project {
   bottomPanelTab: 'output' | 'terminal' | 'port' | 'performance' | 'problems';
   isBottomPanelOpen: boolean;
   // ── Activity panel per-project ──
-  activityPanelTab: 'explore' | 'search' | 'source' | 'extension';
+  activityPanelTab: 'explore' | 'search' | 'source' | 'extension' | 'lsp';
   // ── Unsaved changes tracking ──
   unsavedFiles: Set<string>;
   originalContents: Record<string, string>;
@@ -95,7 +95,7 @@ interface CodeState {
   setActiveFileTab: (fileId: string) => void;
   setBottomPanelTab: (tab: 'output' | 'terminal' | 'port' | 'performance' | 'problems') => void;
   toggleBottomPanel: () => void;
-  setActivityPanelTab: (tab: 'explore' | 'search' | 'source' | 'extension') => void;
+  setActivityPanelTab: (tab: 'explore' | 'search' | 'source' | 'extension' | 'lsp') => void;
   setProjectManagerOpen: (open: boolean) => void;
   setNewProjectOpen: (open: boolean) => void;
   setProjectFiles: (projectId: string, files: FileNode[]) => void;

@@ -20,6 +20,71 @@ interface SearchResult {
   indices: number[];
 }
 
+// ─── Ignore Patterns (VSCode-style Ctrl+P filter) ────────────────────────────
+
+/** Directories to always exclude from Quick Open */
+const IGNORE_DIRS = new Set([
+  'node_modules',
+  '.git',
+  '.svn',
+  '.hg',
+  'dist',
+  'build',
+  'out',
+  '.next',
+  '.nuxt',
+  '.output',
+  'coverage',
+  '__pycache__',
+  '.cache',
+  '.parcel-cache',
+  '.turbo',
+  'vendor',
+  'bower_components',
+  '.idea',
+  '.vscode',
+  '.vs',
+  '.DS_Store',
+  'Thumbs.db',
+]);
+
+/** File extensions considered binary / non-text — excluded from Quick Open */
+const BINARY_EXTENSIONS = new Set([
+  'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'icns', 'webp', 'avif',
+  'woff', 'woff2', 'ttf', 'eot', 'otf',
+  'mp3', 'mp4', 'avi', 'mov', 'mkv', 'webm', 'ogg', 'wav', 'flac',
+  'zip', 'tar', 'gz', 'bz2', 'xz', '7z', 'rar',
+  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+  'wasm', 'bin', 'exe', 'dll', 'so', 'dylib',
+  'class', 'jar', 'war', 'ear',
+  'o', 'obj', 'a', 'lib',
+  'pyc', 'pyo', 'pyd',
+  'tsbuildinfo',
+]);
+
+/** File name patterns to exclude (checked against full filename) */
+const IGNORE_FILE_PATTERNS: RegExp[] = [
+  /\.min\.(js|css)$/i,
+  /\.(js|css|ts|mjs)\.map$/i,
+  /package-lock\.json$/i,
+  /yarn\.lock$/i,
+  /pnpm-lock\.yaml$/i,
+  /bun\.lockb?$/i,
+  /Cargo\.lock$/i,
+  /Gemfile\.lock$/i,
+  /composer\.lock$/i,
+  /poetry\.lock$/i,
+  /\.eslintcache$/i,
+  /tsconfig\.tsbuildinfo$/i,
+];
+
+function shouldIgnoreFile(name: string, isDirectory: boolean): boolean {
+  if (isDirectory) return IGNORE_DIRS.has(name);
+  const ext = name.includes('.') ? name.split('.').pop()!.toLowerCase() : '';
+  if (ext && BINARY_EXTENSIONS.has(ext)) return true;
+  return IGNORE_FILE_PATTERNS.some((re) => re.test(name));
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function flattenFiles(
   nodes: FileNode[],
@@ -29,9 +94,14 @@ function flattenFiles(
 ): FlatFileEntry[] {
   const result: FlatFileEntry[] = [];
   for (const node of nodes) {
+    // Skip ignored directories and files
+    if (shouldIgnoreFile(node.name, node.type !== 'file' || !!node.children?.length)) {
+      continue;
+    }
+
     const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
 
-    if (node.type === 'file') {
+    if (node.type === 'file' && !shouldIgnoreFile(node.name, false)) {
       const parts = node.name.split('.');
       const ext = parts.length > 1 ? parts.pop()!.toLowerCase() : '';
       result.push({
