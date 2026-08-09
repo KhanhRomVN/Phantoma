@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/main.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 // --- Performance Profiling Tools (Development Only) ---
 if (process.env.NODE_ENV === 'development') {
   // NOTE: why-did-you-render temporarily disabled due to hooks conflict with React Router v6 + React 19

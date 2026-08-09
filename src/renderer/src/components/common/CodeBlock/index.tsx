@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useTheme } from '../../../theme/ThemeProvider';
 import {
-  vscodeClientManager,
-  autoStartVSCodeLanguageClient,
-} from '../../../modules/Code/services/vscode-lsp-client.service';
+  lspClientManager,
+  autoStartLanguageServer,
+} from '../../../modules/Code/services/lsp-client.service';
 import { useCodeStore } from '../../../modules/Code/hooks/useCodeStore';
+import { lspManager } from '../../../modules/Code/services/lsp-manager.service';
 
 // Define Window interface to include require for AMD loader
 declare global {
@@ -138,6 +139,56 @@ function configureTypeScriptDefaults() {
     target: 'ESNext',
     diagnostics: 'LSP only (Monaco built-in semantic disabled)',
   });
+}
+
+/**
+ * Detect correct Monaco/LSP language ID based on file path
+ * Handles JSX/TSX special cases that require different language IDs
+ * 
+ * @param filePath - File path to detect language from
+ * @param fallbackLanguage - Fallback language if detection fails
+ * @returns Correct language ID for Monaco and LSP
+ */
+function detectLanguageId(filePath: string | undefined, fallbackLanguage: string = 'plaintext'): string {
+  if (!filePath) return fallbackLanguage;
+
+  const ext = filePath.toLowerCase().split('.').pop();
+
+  // Map file extensions to Monaco/LSP language IDs
+  const languageMap: Record<string, string> = {
+    // TypeScript/JavaScript with JSX
+    'tsx': 'typescriptreact',
+    'jsx': 'javascriptreact',
+    // TypeScript/JavaScript
+    'ts': 'typescript',
+    'js': 'javascript',
+    'mjs': 'javascript',
+    'cjs': 'javascript',
+    // Other languages
+    'json': 'json',
+    'html': 'html',
+    'css': 'css',
+    'scss': 'scss',
+    'less': 'less',
+    'md': 'markdown',
+    'py': 'python',
+    'java': 'java',
+    'cpp': 'cpp',
+    'c': 'c',
+    'cs': 'csharp',
+    'go': 'go',
+    'rs': 'rust',
+    'php': 'php',
+    'rb': 'ruby',
+    'xml': 'xml',
+    'yaml': 'yaml',
+    'yml': 'yaml',
+    'sh': 'shell',
+    'bash': 'shell',
+    'sql': 'sql',
+  };
+
+  return languageMap[ext || ''] || fallbackLanguage;
 }
 
 const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
@@ -316,15 +367,107 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
                 base: 'vs-dark',
                 inherit: true,
                 rules: [
+                  // JSON tokens
                   { token: 'string.key.json', foreground: 'e06c75' },
                   { token: 'string.value.json', foreground: '98c379' },
                   { token: 'number', foreground: 'd19a66' },
                   { token: 'keyword.json', foreground: '56b6c2' },
                   { token: 'delimiter', foreground: 'abb2bf' },
+                  
+                  // TypeScript/TSX - Keywords (purple)
+                  { token: 'keyword', foreground: 'c678dd' },
+                  { token: 'keyword.ts', foreground: 'c678dd' },
+                  { token: 'keyword.tsx', foreground: 'c678dd' },
+                  { token: 'keyword.control', foreground: 'c678dd' },
+                  { token: 'keyword.control.ts', foreground: 'c678dd' },
+                  { token: 'keyword.control.tsx', foreground: 'c678dd' },
+                  { token: 'keyword.operator', foreground: 'c678dd' },
+                  { token: 'keyword.operator.ts', foreground: 'c678dd' },
+                  { token: 'keyword.operator.tsx', foreground: 'c678dd' },
+                  
+                  // Strings (green)
+                  { token: 'string', foreground: '98c379' },
+                  { token: 'string.ts', foreground: '98c379' },
+                  { token: 'string.tsx', foreground: '98c379' },
+                  { token: 'string.quote', foreground: '98c379' },
+                  { token: 'string.template', foreground: '98c379' },
+                  
+                  // Numbers (orange)
+                  { token: 'number', foreground: 'd19a66' },
+                  { token: 'number.ts', foreground: 'd19a66' },
+                  { token: 'number.tsx', foreground: 'd19a66' },
+                  { token: 'number.hex', foreground: 'd19a66' },
+                  
+                  // Types (yellow)
+                  { token: 'type', foreground: 'e5c07b' },
+                  { token: 'type.ts', foreground: 'e5c07b' },
+                  { token: 'type.tsx', foreground: 'e5c07b' },
+                  { token: 'type.identifier', foreground: 'e5c07b' },
+                  { token: 'entity.name.type', foreground: 'e5c07b' },
+                  { token: 'entity.name.class', foreground: 'e5c07b' },
+                  { token: 'support.type', foreground: 'e5c07b' },
+                  { token: 'support.class', foreground: 'e5c07b' },
+                  
+                  // Functions (blue)
+                  { token: 'entity.name.function', foreground: '61afef' },
+                  { token: 'support.function', foreground: '61afef' },
+                  { token: 'function', foreground: '61afef' },
+                  
+                  // Variables/Identifiers (light gray)
+                  { token: 'identifier', foreground: 'abb2bf' },
+                  { token: 'identifier.ts', foreground: 'abb2bf' },
+                  { token: 'identifier.tsx', foreground: 'abb2bf' },
+                  { token: 'variable', foreground: 'abb2bf' },
+                  { token: 'variable.name', foreground: 'abb2bf' },
+                  
+                  // Delimiters (light gray)
+                  { token: 'delimiter', foreground: 'abb2bf' },
+                  { token: 'delimiter.ts', foreground: 'abb2bf' },
+                  { token: 'delimiter.tsx', foreground: 'abb2bf' },
+                  { token: 'delimiter.bracket', foreground: 'abb2bf' },
+                  { token: 'delimiter.parenthesis', foreground: 'abb2bf' },
+                  { token: 'delimiter.square', foreground: 'abb2bf' },
+                  { token: 'delimiter.curly', foreground: 'abb2bf' },
+                  
+                  // Comments (dark gray, italic)
+                  { token: 'comment', foreground: '5c6370', fontStyle: 'italic' },
+                  { token: 'comment.ts', foreground: '5c6370', fontStyle: 'italic' },
+                  { token: 'comment.tsx', foreground: '5c6370', fontStyle: 'italic' },
+                  { token: 'comment.line', foreground: '5c6370', fontStyle: 'italic' },
+                  { token: 'comment.block', foreground: '5c6370', fontStyle: 'italic' },
+                  
+                  // JSX/TSX Tags (red)
+                  { token: 'tag', foreground: 'e06c75' },
+                  { token: 'tag.tsx', foreground: 'e06c75' },
+                  { token: 'tag.ts', foreground: 'e06c75' },
+                  { token: 'metatag', foreground: 'e06c75' },
+                  { token: 'metatag.tsx', foreground: 'e06c75' },
+                  { token: 'metatag.ts', foreground: 'e06c75' },
+                  { token: 'tag.class', foreground: 'e06c75' },
+                  { token: 'tag.id', foreground: 'e06c75' },
+                  
+                  // JSX Attributes (orange)
+                  { token: 'attribute.name', foreground: 'd19a66' },
+                  { token: 'attribute.name.tsx', foreground: 'd19a66' },
+                  { token: 'attribute.name.ts', foreground: 'd19a66' },
+                  { token: 'entity.other.attribute-name', foreground: 'd19a66' },
+                  
+                  // JSX Attribute Values (green)
+                  { token: 'attribute.value', foreground: '98c379' },
+                  { token: 'attribute.value.tsx', foreground: '98c379' },
+                  { token: 'attribute.value.ts', foreground: '98c379' },
+                  
+                  // Operators (cyan)
+                  { token: 'operator', foreground: '56b6c2' },
+                  { token: 'operator.ts', foreground: '56b6c2' },
+                  { token: 'operator.tsx', foreground: '56b6c2' },
                 ],
                 colors: {
                   'editor.foreground': '#abb2bf',
                   'editor.background': '#1e1e1e',
+                  'editor.lineHighlightBackground': '#2c313c',
+                  'editor.selectionBackground': '#3e4451',
+                  'editorCursor.foreground': '#528bff',
                 },
               };
             }
@@ -357,7 +500,9 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
           // Register the theme
           window.monaco.editor.defineTheme(activeThemeName, finalTheme);
 
-          const languageId = language;
+          // Detect correct language ID based on file extension
+          // Monaco and LSP require specific language IDs for JSX/TSX files
+          const languageId = detectLanguageId(filePath, language);
 
           // Determine if we need LSP integration
           const needsLSP = enableLSP && filePath && window.monaco.Uri;
@@ -379,12 +524,21 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
               const existingValue = existingModel.getValue();
               const existingLength = existingValue.length;
               const newLength = code.length;
+              const existingLanguage = existingModel.getLanguageId();
 
               console.log('[CodeBlock] Model content comparison:', {
                 existingLength,
                 newLength,
+                existingLanguage,
+                newLanguage: languageId,
                 shouldUpdate: existingValue !== code && newLength > 0,
               });
+
+              // Update language if different
+              if (existingLanguage !== languageId) {
+                console.log(`[CodeBlock] 🔄 Updating model language: ${existingLanguage} → ${languageId}`);
+                window.monaco.editor.setModelLanguage(existingModel, languageId);
+              }
 
               // Only update if:
               // 1. Content is different, AND
@@ -434,28 +588,82 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             const workspaceRoot = getProjectRoot();
             const isNewModel = isModelOwnerRef.current; // New model = we own it
 
-            console.log('[CodeBlock] 🚀 Auto-starting VS Code language client...');
+            console.log('[CodeBlock] 🚀 Auto-starting language server...');
             console.log('[CodeBlock] Project root:', workspaceRoot);
 
-            // Initialize VS Code LSP client with Monaco
-            vscodeClientManager.initialize(window.monaco);
-            console.log('[CodeBlock] ✅ VS Code LSP Client Manager initialized');
+            // Initialize LSP client with Monaco
+            lspClientManager.initialize(window.monaco);
+            console.log('[CodeBlock] ✅ LSP Client Manager initialized');
 
-            autoStartVSCodeLanguageClient(languageId, workspaceRoot)
-              .then(() => {
-                console.log('[CodeBlock] ✅ VS Code language client started successfully');
-                
-                // monaco-languageclient automatically handles:
-                // - textDocument/didOpen
-                // - textDocument/didChange 
-                // - textDocument/didSave
-                // - textDocument/didClose
-                // - Diagnostics are automatically synced to Monaco markers
-                
-                console.log('[CodeBlock] ✅ Document lifecycle managed by monaco-languageclient');
+            autoStartLanguageServer(languageId, workspaceRoot)
+              .then(async () => {
+                console.log('[CodeBlock] ✅ Language server started successfully');
+
+                // Subscribe to diagnostics via LSP Manager
+                if (filePath) {
+                  const uri = window.monaco.Uri.file(filePath).toString();
+                  // Subscribe to diagnostics updates (for future use)
+                  // Currently we don't need to unsubscribe since Monaco handles cleanup
+                  void lspManager.subscribeToDiagnostics(uri, (event) => {
+                    console.log('[CodeBlock] 🔔 Received diagnostics via LSP Manager:', {
+                      uri: event.uri,
+                      count: event.diagnostics.length,
+                      timestamp: new Date(event.timestamp).toLocaleTimeString(),
+                    });
+
+                    // Diagnostics are already applied to Monaco by lsp-client.service
+                    // This is just for additional processing if needed
+                  });
+
+                  console.log('[CodeBlock] ✅ Subscribed to LSP Manager for', uri);
+                }
+
+                // Only notify didOpen for NEW models (not reused ones)
+                if (isNewModel && modelRef.current && filePath) {
+                  const uri = window.monaco.Uri.file(filePath).toString();
+                  const text = modelRef.current.getValue();
+                  console.log(
+                    '[CodeBlock] 📂 Notifying language server: document opened (new model)',
+                  );
+
+                  try {
+                    // Wait for didOpen to complete (this returns a Promise)
+                    await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
+                    console.log('[CodeBlock] ✅ didOpen completed successfully');
+
+                    // ✨ FIX: Immediately trigger didChange after didOpen completes
+                    // This ensures diagnostics are requested right away
+                    // The debouncing in notifyDocumentChanged will handle rapid changes
+                    if (modelRef.current) {
+                      console.log('[CodeBlock] ✏️  Triggering initial didChange for diagnostics');
+                      lspClientManager.notifyDocumentChanged(
+                        languageId,
+                        uri,
+                        modelRef.current.getValue(),
+                        2,
+                      );
+                    }
+                  } catch (err) {
+                    console.error('[CodeBlock] ❌ Failed to notify document opened:', err);
+                  }
+                } else if (!isNewModel) {
+                  console.log('[CodeBlock] ⏭️  Model reused, skipping didOpen notification');
+
+                  // For reused models, just trigger didChange to refresh diagnostics
+                  if (modelRef.current && filePath) {
+                    const uri = window.monaco.Uri.file(filePath).toString();
+                    console.log('[CodeBlock] ✏️  Triggering didChange for reused model');
+                    lspClientManager.notifyDocumentChanged(
+                      languageId,
+                      uri,
+                      modelRef.current.getValue(),
+                      2,
+                    );
+                  }
+                }
               })
               .catch((err) => {
-                console.error('[CodeBlock] ❌ Failed to auto-start VS Code client:', err);
+                console.error('[CodeBlock] ❌ Failed to auto-start language server:', err);
               });
           } else {
             // No LSP integration - create simple model without URI
@@ -515,8 +723,12 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             () => {
               console.log('[CodeBlock] 💾 Save triggered (Ctrl/Cmd+S)');
 
-              // monaco-languageclient automatically sends textDocument/didSave
-              // We only need to save to disk
+              // Notify LSP server
+              if (enableLSP && filePath && modelRef.current) {
+                const uri = window.monaco.Uri.file(filePath).toString();
+                const text = modelRef.current.getValue();
+                lspClientManager.notifyDocumentSaved(languageId, uri, text);
+              }
 
               // Save file to disk
               if (fileId && filePath) {
@@ -535,8 +747,8 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             },
           );
 
-          // Handle content changes
-          // monaco-languageclient automatically sends textDocument/didChange
+          // Handle content changes with LSP notification
+          let changeVersion = 2; // Start from 2 (version 1 was didOpen)
           editorInstance.current.onDidChangeModelContent(() => {
             const newContent = editorInstance.current.getValue();
 
@@ -548,8 +760,14 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             if (fileId) {
               markFileAsUnsaved(fileId, newContent);
             }
-            
-            // No need to manually notify LSP - monaco-languageclient handles it
+
+            // Notify LSP server about content changes (debounced automatically)
+            if (enableLSP && filePath && modelRef.current) {
+              const uri = window.monaco.Uri.file(filePath).toString();
+              const text = modelRef.current.getValue();
+              changeVersion++;
+              lspClientManager.notifyDocumentChanged(languageId, uri, text, changeVersion);
+            }
           });
 
           if (mounted) {
@@ -655,6 +873,13 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
           reason: 'useEffect re-run (deps changed or unmount)',
         });
 
+        // Notify LSP that document is being closed
+        if (enableLSP && filePath && modelRef.current) {
+          const uri = window.monaco.Uri.file(filePath).toString();
+          lspClientManager.notifyDocumentClosed(language, uri);
+          console.log('[CodeBlock] 📄 Document closed notification sent to LSP');
+        }
+
         // ⚠️ CRITICAL: Only dispose editor, NEVER dispose model
         // Model is shared across tab switches and must persist
         // Model will be reused when switching back to this file
@@ -749,6 +974,32 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
         window.monaco.editor.defineTheme(activeThemeName, finalTheme);
         window.monaco.editor.setTheme(activeThemeName);
         console.log('[CodeBlock] 🎨 Theme updated dynamically');
+        
+        // Debug: Check if tokenization is working
+        if (editorInstance.current && modelRef.current) {
+          const model = modelRef.current;
+          const languageId = model.getLanguageId();
+          console.log('[CodeBlock] 🔍 Tokenization Debug:', {
+            languageId,
+            lineCount: model.getLineCount(),
+            hasMonacoLanguages: !!window.monaco?.languages,
+            registeredLanguages: window.monaco?.languages?.getLanguages?.()?.map((l: any) => l.id) || [],
+          });
+          
+          // Try to tokenize first line
+          try {
+            const firstLine = model.getLineContent(1);
+            if (firstLine && window.monaco?.editor?.tokenize) {
+              const tokens = window.monaco.editor.tokenize(firstLine, languageId);
+              console.log('[CodeBlock] 🎨 First line tokens:', {
+                line: firstLine.substring(0, 50),
+                tokens: tokens[0]?.map((t: any) => ({ type: t.type, offset: t.offset })),
+              });
+            }
+          } catch (e) {
+            console.warn('[CodeBlock] ⚠️ Tokenization check failed:', e);
+          }
+        }
       };
 
       updateTheme();

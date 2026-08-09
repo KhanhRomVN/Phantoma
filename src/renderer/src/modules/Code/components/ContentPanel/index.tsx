@@ -16,7 +16,6 @@ import type { ReactNode } from 'react';
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 import { FileTabBar } from '../FileTabBar';
 import { CodeBlock } from '@renderer/components/common/CodeBlock';
-import { ExtensionContent } from './ExtensionContent';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -318,7 +317,6 @@ export function ContentPanel() {
 
       return (
         <div className="flex-1 flex flex-col min-h-0 bg-background">
-          <ExtensionContent extensionId={extensionId} />
         </div>
       );
     }
@@ -365,7 +363,7 @@ export function ContentPanel() {
               projectRoot={project?.path || undefined}
               showLineNumbers
               wordWrap="off"
-              enableLSP
+              enableLSP={true} // ✅ TEMPORARILY ENABLED FOR DEBUGGING - Test timing fix
             />
           );
         case 'image':

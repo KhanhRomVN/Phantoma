@@ -53,6 +53,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:frida": "tsx tests/frida-injection-test.ts",
+    "test:lsp": "tsx tests/lsp-diagnostics-test.ts",
+    "test:lang": "tsx tests/language-detection-test.ts",
     "postinstall": "electron-builder install-app-deps",
     "build:win": "npm run typecheck && electron-vite build && electron-builder --win",
     "build:mac": "npm run typecheck && electron-vite build && electron-builder --mac",

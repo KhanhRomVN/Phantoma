@@ -9,6 +9,7 @@ import { ActivityPanel } from './components/ActivityPanel';
 import { BottomPanel } from './components/BottomPanel';
 import { ToastContainer } from './components/common/ToastContainer';
 import { FooterBar } from './components/FooterBar';
+import { useLSPNotifier } from './hooks/useLSPNotifier';
 import { SaveConfirmModal } from './components/modal/SaveConfirmModal';
 import { QuickOpenModal } from './components/modal/QuickOpenModal';
 
@@ -24,6 +25,8 @@ export function Code() {
   } = useCodeStore();
   const hydratedRef = useRef(false);
   const [isQuickOpenOpen, setQuickOpenOpen] = useState(false);
+
+  useLSPNotifier();
 
   // Prevent closing app with unsaved changes
   useEffect(() => {

@@ -18,6 +18,7 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
+import { useDiagnostics } from '../../hooks/useDiagnostics';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { cn } from '@renderer/shared/utils/cn';
 
@@ -34,68 +35,6 @@ interface Diagnostic {
     end: { line: number; character: number };
   };
 }
-// ─── Monaco Diagnostics Hook ─────────────────────────────────────────────────
-
-/**
- * Hook to get diagnostics from Monaco Editor
- * Replaces the deprecated useDiagnosticsStore
- */
-function useMonacoDiagnostics(): Record<string, Diagnostic[]> {
-  const [diagnostics, setDiagnostics] = useState<Record<string, Diagnostic[]>>({});
-
-  useEffect(() => {
-    const monaco = (window as any).monaco;
-    if (!monaco) return;
-
-    // Function to collect diagnostics from all models
-    const collectDiagnostics = () => {
-      const models = monaco.editor.getModels();
-      const result: Record<string, Diagnostic[]> = {};
-
-      models.forEach((model: any) => {
-        const uri = model.uri.toString();
-        const markers = monaco.editor.getModelMarkers({ resource: model.uri });
-
-        if (markers.length > 0) {
-          result[uri] = markers.map((marker: any) => ({
-            uri,
-            severity: marker.severity,
-            message: marker.message,
-            source: marker.source || marker.owner,
-            code: marker.code?.value || marker.code,
-            range: {
-              start: {
-                line: marker.startLineNumber - 1,
-                character: marker.startColumn - 1,
-              },
-              end: {
-                line: marker.endLineNumber - 1,
-                character: marker.endColumn - 1,
-              },
-            },
-          }));
-        }
-      });
-
-      setDiagnostics(result);
-    };
-
-    // Initial collection
-    collectDiagnostics();
-
-    // Listen for marker changes
-    const disposable = monaco.editor.onDidChangeMarkers(() => {
-      collectDiagnostics();
-    });
-
-    return () => {
-      disposable.dispose();
-    };
-  }, []);
-
-  return diagnostics;
-}
-
 // ─── Constants ───────────────────────────────────────────────────────────────
 type SeverityKey = 'error' | 'warning' | 'info' | 'hint';
 
@@ -289,7 +228,22 @@ interface ContextMenuState {
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export function Problems() {
-  const diagnostics = useMonacoDiagnostics();
+  // Use custom diagnostics store
+  const { allDiagnostics: allDiagsFromStore, diagnosticsByFile } = useDiagnostics();
+  
+  // Convert store format to component format
+  const diagnostics = useMemo(() => {
+    const result: Record<string, Diagnostic[]> = {};
+    Object.entries(diagnosticsByFile).forEach(([uri, diags]) => {
+      if (diags.length > 0) {
+        result[uri] = diags.map(d => ({
+          ...d,
+          severity: d.severity as number,
+        }));
+      }
+    });
+    return result;
+  }, [diagnosticsByFile]);
 
   const [severities, setSeverities] = useState<Record<SeverityKey, boolean>>({
     error: true,
@@ -304,9 +258,11 @@ export function Problems() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   const { allDiagnostics, groups } = useMemo(() => {
-    const all = Object.entries(diagnostics).flatMap(([uri, diags]) =>
-      diags.map((d) => ({ ...d, uri })),
-    );
+    // Use diagnostics from store instead of recalculating
+    const all = allDiagsFromStore.map(d => ({
+      ...d,
+      severity: d.severity as number,
+    }));
 
     const q = query.trim().toLowerCase();
     const filtered = all.filter((d) => {
@@ -360,7 +316,7 @@ export function Problems() {
     );
 
     return { allDiagnostics: all, groups: groupsArr };
-  }, [diagnostics, severities, query, sortMode]);
+  }, [allDiagsFromStore, severities, query, sortMode]);
 
   const totalCounts = useMemo(() => {
     const counts: Record<SeverityKey, number> = { error: 0, warning: 0, info: 0, hint: 0 };
