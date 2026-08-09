@@ -41,9 +41,8 @@ interface ActiveServer {
 
 class LSPClientManager {
   private activeServers: Map<string, ActiveServer> = new Map();
-  private monaco: any = null; // Use any type for Monaco
+  private monaco: any = null;
   private diagnosticsEnabled = true;
-  private openedDocuments: Set<string> = new Set(); // Track opened documents
   private pendingChanges: Map<string, { timer: ReturnType<typeof setTimeout>; version: number }> =
     new Map();
   private readonly DEBOUNCE_DELAY = 300; // ms
@@ -488,11 +487,8 @@ class LSPClientManager {
   }
 
   /**
-   * Notify language server that a document was opened
-   * Returns a promise that resolves when didOpen completes
-   * 
-   * ✅ FIX: Always send didOpen regardless of tracking state
-   * The tracking is only for didChange/didClose validation, not for skipping didOpen
+   * Notify language server that a document was opened.
+   * Should be called by document manager only.
    */
   notifyDocumentOpened(
     language: string,
@@ -502,17 +498,8 @@ class LSPClientManager {
     version: number = 1,
   ): Promise<void> {
     const serverLanguage = getServerLanguage(language);
-    const docKey = `${language}:${uri}`;
 
-    // ✅ FIX: Always send didOpen (LSP servers handle duplicates gracefully)
-    const wasAlreadyOpen = this.openedDocuments.has(docKey);
-    if (wasAlreadyOpen) {
-      console.log(`[LSPClient] ♻️  Re-sending didOpen (tab re-opened)`, { uri });
-    } else {
-      console.log(`[LSPClient] 📂 Sending didOpen`, { uri });
-    }
-
-    this.openedDocuments.add(docKey);
+    console.log(`[LSPClient] 📂 Sending didOpen`, { uri });
 
     try {
       return window.api
@@ -523,36 +510,21 @@ class LSPClientManager {
           text,
           version,
         })
-        .then(() => {
-          // Success - no log needed
-        })
         .catch((err: Error) => {
           console.error(`[LSPClient] ❌ didOpen failed:`, err);
-          this.openedDocuments.delete(docKey);
           throw err;
         });
     } catch (error) {
       console.error(`[LSPClient] ❌ didOpen exception:`, error);
-      this.openedDocuments.delete(docKey);
       return Promise.reject(error);
     }
   }
 
   /**
-   * Notify language server that a document was changed
-   * This is essential for triggering diagnostics analysis
-   *
-   * ✨ OPTIMIZATION: Increased debounce delay to reduce LSP server load
+   * Notify language server that a document was changed.
    */
   notifyDocumentChanged(language: string, uri: string, text: string, version: number): void {
     const serverLanguage = getServerLanguage(language);
-    const docKey = `${language}:${uri}`;
-
-    // Only notify changes if document was opened
-    if (!this.openedDocuments.has(docKey)) {
-      return;
-    }
-
     const key = `${language}:${uri}`;
 
     // Cancel pending notification for this document
@@ -587,16 +559,10 @@ class LSPClientManager {
   }
 
   /**
-   * Notify language server that a document was saved
-   * Triggers diagnostics refresh for servers that only analyze on save
+   * Notify language server that a document was saved.
    */
   notifyDocumentSaved(language: string, uri: string, text: string): void {
     const serverLanguage = getServerLanguage(language);
-    const docKey = `${language}:${uri}`;
-
-    if (!this.openedDocuments.has(docKey)) {
-      return;
-    }
 
     try {
       window.api
@@ -614,16 +580,11 @@ class LSPClientManager {
   }
 
   /**
-   * Notify language server that a document was closed
+   * Notify language server that a document was closed.
+   * Should be called by document manager only.
    */
   notifyDocumentClosed(language: string, uri: string): void {
     const serverLanguage = getServerLanguage(language);
-    const docKey = `${language}:${uri}`;
-
-    // Only close if document was actually opened
-    if (!this.openedDocuments.has(docKey)) {
-      return;
-    }
 
     console.log('[LSPClient] 📄 Sending didClose', { uri });
 
@@ -632,9 +593,6 @@ class LSPClientManager {
         .invoke('lsp:didClose', {
           language: serverLanguage,
           uri,
-        })
-        .then(() => {
-          this.openedDocuments.delete(docKey);
         })
         .catch((err: Error) => {
           console.error(`[LSPClient] ❌ didClose failed:`, err);

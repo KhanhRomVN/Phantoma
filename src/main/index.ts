@@ -40,6 +40,7 @@ import {
   setupTerminalHandlers,
   setupGitHandlers,
   registerExtensionsHandlers,
+  setupLoggerHandlers,
 } from './ipc';
 
 // Import LSP handlers
@@ -95,6 +96,7 @@ app.whenReady().then(async () => {
   registerMediaProtocol();
 
   // Setup all IPC handlers
+  setupLoggerHandlers();
   setupProxyHandlers();
   setupCDPHandlers();
   setupAppHandlers();

@@ -6,6 +6,7 @@ import {
 } from '../../../modules/Code/services/lsp-client.service';
 import { useCodeStore } from '../../../modules/Code/hooks/useCodeStore';
 import { lspManager } from '../../../modules/Code/services/lsp-manager.service';
+import { documentManager } from '../../../modules/Code/services/document-manager.service';
 
 // Define Window interface to include require for AMD loader
 declare global {
@@ -222,18 +223,11 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const editorInstance = useRef<any>(null);
   const modelRef = useRef<any>(null);
-  const isModelOwnerRef = useRef<boolean>(false); // Track if we created the model (true) or reused it (false)
+  const isModelOwnerRef = useRef<boolean>(false);
   const decorationsRef = useRef<string[]>([]);
   const lineDecorationsRef = useRef<string[]>([]);
   const rangeDecorationsRef = useRef<string[]>([]);
   const [isEditorReady, setIsEditorReady] = React.useState(false);
-  
-  // ✅ FIX: Track if component is mounting/unmounting vs re-rendering
-  // This helps distinguish between:
-  // 1. Tab switch (filePath changes) - should NOT send didClose
-  // 2. Real unmount (component destroyed) - should send didClose
-  const isMountedRef = useRef(true);
-  const previousFilePathRef = useRef(filePath);
 
   // Memoize themeConfig to prevent unnecessary re-renders
   const themeConfigStr = JSON.stringify(themeConfig);
@@ -475,18 +469,30 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                 });
               }
 
-              // ✅ FIX: Always notify didOpen (even for reused models)
+              // ✅ Document Manager: Register reference to this document
               if (modelRef.current && filePath) {
                 const uri = window.monaco.Uri.file(filePath).toString();
                 const text = modelRef.current.getValue();
                 
-                console.log('[CodeBlock] 📂 Sending didOpen:', { isNewModel, uri });
+                // Check if we should send didOpen (first reference)
+                const shouldSendDidOpen = documentManager.addReference(
+                  uri,
+                  languageId,
+                  modelRef.current,
+                  text
+                );
 
-                try {
-                  await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
-                  console.log('[CodeBlock] ✅ didOpen completed');
-                } catch (err) {
-                  console.error('[CodeBlock] ❌ didOpen failed:', err);
+                if (shouldSendDidOpen) {
+                  console.log('[CodeBlock] 📂 Sending didOpen (first reference)');
+                  
+                  try {
+                    await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
+                    console.log('[CodeBlock] ✅ didOpen completed');
+                  } catch (err) {
+                    console.error('[CodeBlock] ❌ didOpen failed:', err);
+                  }
+                } else {
+                  console.log('[CodeBlock] ♻️  Document already open, reference added');
                 }
               }
             })
@@ -648,21 +654,19 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     return () => {
       mounted = false;
 
-      // ✅ FIX: Detect real unmount vs tab switch
-      const isTabSwitch = previousFilePathRef.current !== filePath && isMountedRef.current;
-      const previousFilePath = previousFilePathRef.current;
-      
-      // Update ref for next cleanup
-      previousFilePathRef.current = filePath;
-      
-      if (enableLSP && previousFilePath && modelRef.current) {
-        if (isTabSwitch) {
-          console.log('[CodeBlock] 🔄 Tab switch - keeping LSP document open');
-        } else {
-          const uri = window.monaco.Uri.file(previousFilePath).toString();
-          const languageId = detectLanguageId(previousFilePath, language);
+      // ✅ Document Manager: Unregister reference
+      if (enableLSP && filePath && modelRef.current) {
+        const uri = window.monaco.Uri.file(filePath).toString();
+        
+        // Check if we should send didClose (last reference)
+        const shouldSendDidClose = documentManager.removeReference(uri);
+        
+        if (shouldSendDidClose) {
+          console.log('[CodeBlock] 📄 Sending didClose (last reference removed)');
+          const languageId = detectLanguageId(filePath, language);
           lspClientManager.notifyDocumentClosed(languageId, uri);
-          console.log('[CodeBlock] 📄 didClose sent (effect re-run)');
+        } else {
+          console.log('[CodeBlock] ✅ Reference removed, document still open');
         }
       }
 
@@ -679,22 +683,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
       filePath,
       enableLSP,
     });
-  }, [filePath, enableLSP]); // ✨ OPTIMIZATION: Removed wordWrap and language - they don't need re-init
-
-  // ✅ FIX: Final cleanup on component unmount
-  useEffect(() => {
-    return () => {
-      console.log('[CodeBlock] 💀 Component unmount');
-      isMountedRef.current = false;
-      
-      if (enableLSP && filePath && modelRef.current) {
-        const uri = window.monaco.Uri.file(filePath).toString();
-        const languageId = detectLanguageId(filePath, language);
-        lspClientManager.notifyDocumentClosed(languageId, uri);
-        console.log('[CodeBlock] 📄 didClose sent (unmount)');
-      }
-    };
-  }, []);
+  }, [filePath, enableLSP]);
 
   // Set original content when code first loads
   useEffect(() => {

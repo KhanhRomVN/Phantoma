@@ -1,3 +1,7 @@
+// Setup renderer logger FIRST – must be before any other imports
+// that may trigger console calls (captures all console.* → IPC → log.log)
+import './utils/logger';
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
