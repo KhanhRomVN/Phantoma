@@ -352,126 +352,16 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
           // Build the theme from the current preset
           let monacoTheme: any;
 
-          if (currentPreset && currentPreset.monaco) {
-            // Convert the theme to Monaco format
-            monacoTheme = convertThemeToMonaco(currentPreset);
-          } else {
-            // Fallback: Use MidnightBlue theme as default
-            try {
-              const { MidnightBlue } = await import('../../../theme/themes/MidnightBlue');
-              monacoTheme = convertThemeToMonaco(MidnightBlue);
-            } catch (e) {
-              console.warn('Failed to load MidnightBlue theme, using fallback:', e);
-              // Hardcoded fallback
-              monacoTheme = {
-                base: 'vs-dark',
-                inherit: true,
-                rules: [
-                  // JSON tokens
-                  { token: 'string.key.json', foreground: 'e06c75' },
-                  { token: 'string.value.json', foreground: '98c379' },
-                  { token: 'number', foreground: 'd19a66' },
-                  { token: 'keyword.json', foreground: '56b6c2' },
-                  { token: 'delimiter', foreground: 'abb2bf' },
-                  
-                  // TypeScript/TSX - Keywords (purple)
-                  { token: 'keyword', foreground: 'c678dd' },
-                  { token: 'keyword.ts', foreground: 'c678dd' },
-                  { token: 'keyword.tsx', foreground: 'c678dd' },
-                  { token: 'keyword.control', foreground: 'c678dd' },
-                  { token: 'keyword.control.ts', foreground: 'c678dd' },
-                  { token: 'keyword.control.tsx', foreground: 'c678dd' },
-                  { token: 'keyword.operator', foreground: 'c678dd' },
-                  { token: 'keyword.operator.ts', foreground: 'c678dd' },
-                  { token: 'keyword.operator.tsx', foreground: 'c678dd' },
-                  
-                  // Strings (green)
-                  { token: 'string', foreground: '98c379' },
-                  { token: 'string.ts', foreground: '98c379' },
-                  { token: 'string.tsx', foreground: '98c379' },
-                  { token: 'string.quote', foreground: '98c379' },
-                  { token: 'string.template', foreground: '98c379' },
-                  
-                  // Numbers (orange)
-                  { token: 'number', foreground: 'd19a66' },
-                  { token: 'number.ts', foreground: 'd19a66' },
-                  { token: 'number.tsx', foreground: 'd19a66' },
-                  { token: 'number.hex', foreground: 'd19a66' },
-                  
-                  // Types (yellow)
-                  { token: 'type', foreground: 'e5c07b' },
-                  { token: 'type.ts', foreground: 'e5c07b' },
-                  { token: 'type.tsx', foreground: 'e5c07b' },
-                  { token: 'type.identifier', foreground: 'e5c07b' },
-                  { token: 'entity.name.type', foreground: 'e5c07b' },
-                  { token: 'entity.name.class', foreground: 'e5c07b' },
-                  { token: 'support.type', foreground: 'e5c07b' },
-                  { token: 'support.class', foreground: 'e5c07b' },
-                  
-                  // Functions (blue)
-                  { token: 'entity.name.function', foreground: '61afef' },
-                  { token: 'support.function', foreground: '61afef' },
-                  { token: 'function', foreground: '61afef' },
-                  
-                  // Variables/Identifiers (light gray)
-                  { token: 'identifier', foreground: 'abb2bf' },
-                  { token: 'identifier.ts', foreground: 'abb2bf' },
-                  { token: 'identifier.tsx', foreground: 'abb2bf' },
-                  { token: 'variable', foreground: 'abb2bf' },
-                  { token: 'variable.name', foreground: 'abb2bf' },
-                  
-                  // Delimiters (light gray)
-                  { token: 'delimiter', foreground: 'abb2bf' },
-                  { token: 'delimiter.ts', foreground: 'abb2bf' },
-                  { token: 'delimiter.tsx', foreground: 'abb2bf' },
-                  { token: 'delimiter.bracket', foreground: 'abb2bf' },
-                  { token: 'delimiter.parenthesis', foreground: 'abb2bf' },
-                  { token: 'delimiter.square', foreground: 'abb2bf' },
-                  { token: 'delimiter.curly', foreground: 'abb2bf' },
-                  
-                  // Comments (dark gray, italic)
-                  { token: 'comment', foreground: '5c6370', fontStyle: 'italic' },
-                  { token: 'comment.ts', foreground: '5c6370', fontStyle: 'italic' },
-                  { token: 'comment.tsx', foreground: '5c6370', fontStyle: 'italic' },
-                  { token: 'comment.line', foreground: '5c6370', fontStyle: 'italic' },
-                  { token: 'comment.block', foreground: '5c6370', fontStyle: 'italic' },
-                  
-                  // JSX/TSX Tags (red)
-                  { token: 'tag', foreground: 'e06c75' },
-                  { token: 'tag.tsx', foreground: 'e06c75' },
-                  { token: 'tag.ts', foreground: 'e06c75' },
-                  { token: 'metatag', foreground: 'e06c75' },
-                  { token: 'metatag.tsx', foreground: 'e06c75' },
-                  { token: 'metatag.ts', foreground: 'e06c75' },
-                  { token: 'tag.class', foreground: 'e06c75' },
-                  { token: 'tag.id', foreground: 'e06c75' },
-                  
-                  // JSX Attributes (orange)
-                  { token: 'attribute.name', foreground: 'd19a66' },
-                  { token: 'attribute.name.tsx', foreground: 'd19a66' },
-                  { token: 'attribute.name.ts', foreground: 'd19a66' },
-                  { token: 'entity.other.attribute-name', foreground: 'd19a66' },
-                  
-                  // JSX Attribute Values (green)
-                  { token: 'attribute.value', foreground: '98c379' },
-                  { token: 'attribute.value.tsx', foreground: '98c379' },
-                  { token: 'attribute.value.ts', foreground: '98c379' },
-                  
-                  // Operators (cyan)
-                  { token: 'operator', foreground: '56b6c2' },
-                  { token: 'operator.ts', foreground: '56b6c2' },
-                  { token: 'operator.tsx', foreground: '56b6c2' },
-                ],
-                colors: {
-                  'editor.foreground': '#abb2bf',
-                  'editor.background': '#1e1e1e',
-                  'editor.lineHighlightBackground': '#2c313c',
-                  'editor.selectionBackground': '#3e4451',
-                  'editorCursor.foreground': '#528bff',
-                },
-              };
-            }
-          }
+          // TEMPORARY FIX: Use pure VS Dark theme to test syntax highlighting
+          // This bypasses all custom themes to isolate the tokenization issue
+          monacoTheme = {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [],
+            colors: {},
+          };
+
+          console.log('[CodeBlock] 🎨 Using pure VS Dark theme for testing');
 
           // Apply custom overrides from themeConfig
           const customRules =
@@ -503,6 +393,18 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
           // Detect correct language ID based on file extension
           // Monaco and LSP require specific language IDs for JSX/TSX files
           const languageId = detectLanguageId(filePath, language);
+          
+          // CRITICAL FIX: Monaco doesn't have 'typescriptreact' or 'javascriptreact' languages
+          // Map these to their base languages for Monaco tokenization
+          const monacoLanguageId = languageId === 'typescriptreact' ? 'typescript' :
+                                   languageId === 'javascriptreact' ? 'javascript' :
+                                   languageId;
+          
+          console.log('[CodeBlock] 🔤 Language mapping:', {
+            detected: languageId,
+            forMonaco: monacoLanguageId,
+            filePath
+          });
 
           // Determine if we need LSP integration
           const needsLSP = enableLSP && filePath && window.monaco.Uri;
@@ -535,9 +437,9 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
               });
 
               // Update language if different
-              if (existingLanguage !== languageId) {
-                console.log(`[CodeBlock] 🔄 Updating model language: ${existingLanguage} → ${languageId}`);
-                window.monaco.editor.setModelLanguage(existingModel, languageId);
+              if (existingLanguage !== monacoLanguageId) {
+                console.log(`[CodeBlock] 🔄 Updating model language: ${existingLanguage} → ${monacoLanguageId}`);
+                window.monaco.editor.setModelLanguage(existingModel, monacoLanguageId);
               }
 
               // Only update if:
@@ -560,7 +462,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
               }
             } else {
               console.log('[CodeBlock] 🆕 Creating new model...');
-              modelRef.current = window.monaco.editor.createModel(code, languageId, uri);
+              modelRef.current = window.monaco.editor.createModel(code, monacoLanguageId, uri);
               isModelOwnerRef.current = true; // We created this model, we own it
               console.log('[CodeBlock] ✅ New model created, we are the owner');
             }
@@ -672,7 +574,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
             // For non-LSP mode, always create a fresh model on each init
             // (no URI means no global registry lookup possible)
             if (!modelRef.current) {
-              modelRef.current = window.monaco.editor.createModel(code, languageId);
+              modelRef.current = window.monaco.editor.createModel(code, monacoLanguageId);
               isModelOwnerRef.current = true;
               console.log('[CodeBlock] ✅ Created simple model');
             } else {
@@ -692,7 +594,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
           editorInstance.current = window.monaco.editor.create(editorRef.current, {
             model: modelRef.current || undefined,
             value: modelRef.current ? undefined : code, // Fallback to value if no model
-            language: modelRef.current ? undefined : languageId,
+            language: modelRef.current ? undefined : monacoLanguageId,
             theme: activeThemeName,
             readOnly: editorOptions?.readOnly ?? false,
             minimap: { enabled: false },
@@ -990,9 +892,11 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>(
           try {
             const firstLine = model.getLineContent(1);
             if (firstLine && window.monaco?.editor?.tokenize) {
-              const tokens = window.monaco.editor.tokenize(firstLine, languageId);
+              const monacoLang = model.getLanguageId();
+              const tokens = window.monaco.editor.tokenize(firstLine, monacoLang);
               console.log('[CodeBlock] 🎨 First line tokens:', {
                 line: firstLine.substring(0, 50),
+                monacoLanguage: monacoLang,
                 tokens: tokens[0]?.map((t: any) => ({ type: t.type, offset: t.offset })),
               });
             }
