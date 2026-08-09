@@ -146,6 +146,7 @@ class LSPManager {
    * This is called when LSP server sends publishDiagnostics
    */
   private handleDiagnosticsEvent(language: string, event: any) {
+    const handleStart = performance.now();
     const { uri, diagnostics } = event;
     
     console.log(`[LSPManager] 📊 Diagnostics received:`, {
@@ -154,6 +155,7 @@ class LSPManager {
       count: diagnostics.length,
       errors: diagnostics.filter((d: any) => d.severity === 1).length,
       warnings: diagnostics.filter((d: any) => d.severity === 2).length,
+      timestamp: handleStart,
     });
 
     // Create diagnostics event
@@ -164,13 +166,21 @@ class LSPManager {
     };
 
     // 1. Update store (single source of truth)
+    const storeStart = performance.now();
     useDiagnosticsStore.getState().setDiagnostics(uri, diagnostics);
+    console.log(`[LSPManager] ⏱️  Store update took:`, performance.now() - storeStart, 'ms');
 
     // 2. Sync to Monaco for inline display
+    const monacoSyncStart = performance.now();
     monacoAdapter.syncMarkers(uri, diagnostics);
+    console.log(`[LSPManager] ⏱️  Monaco sync took:`, performance.now() - monacoSyncStart, 'ms');
 
     // 3. Notify file-specific listeners (optional)
+    const notifyStart = performance.now();
     this.notifyListeners(uri, diagEvent);
+    console.log(`[LSPManager] ⏱️  Listener notification took:`, performance.now() - notifyStart, 'ms');
+
+    console.log(`[LSPManager] ⏱️  TOTAL handleDiagnostics took:`, performance.now() - handleStart, 'ms');
 
     // Log summary
     if (diagnostics.length > 0) {

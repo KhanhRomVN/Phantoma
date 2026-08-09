@@ -59,18 +59,29 @@ class LSPClientManager {
    * Start a language server for a specific language
    */
   async startLanguageServer(config: LSPClientConfig): Promise<void> {
+    const startTime = performance.now();
+    console.log(`[LSPClient] 🚀 startLanguageServer called for ${config.language}`, {
+      timestamp: startTime,
+    });
+
     if (this.activeServers.has(config.language)) {
+      console.log(`[LSPClient] ⏭️  Server already running for ${config.language}`);
       return;
     }
 
     try {
       // Request main process to start LSP server
+      const ipcStart = performance.now();
+      console.log(`[LSPClient] 📡 Sending IPC request to start server...`);
+      
       const result = await window.api.invoke('lsp:start-server', {
         language: config.language,
         command: config.serverCommand,
         args: config.serverArgs,
         workspaceRoot: config.workspaceRoot || process.cwd(),
       });
+
+      console.log(`[LSPClient] ⏱️  IPC call took:`, performance.now() - ipcStart, 'ms');
 
       if (result.success) {
         this.activeServers.set(config.language, {
@@ -79,13 +90,18 @@ class LSPClientManager {
           capabilities: result.capabilities || {},
         });
 
+        const setupStart = performance.now();
         this.setupLanguageFeatures(config.language, result.capabilities);
+        console.log(`[LSPClient] ⏱️  setupLanguageFeatures took:`, performance.now() - setupStart, 'ms');
+        
+        console.log(`[LSPClient] ⏱️  TOTAL startLanguageServer took:`, performance.now() - startTime, 'ms');
       } else {
         console.error(`[LSPClient] ❌ Failed to start server:`, result.error);
         throw new Error(`Failed to start language server: ${result.error}`);
       }
     } catch (error) {
       console.error(`[LSPClient] ❌ Exception starting server for ${config.language}:`, error);
+      console.log(`[LSPClient] ⏱️  Failed after:`, performance.now() - startTime, 'ms');
       if (error instanceof Error) {
         console.error('[LSPClient] Stack:', error.stack);
       }
@@ -466,6 +482,14 @@ class LSPClientManager {
     text: string,
     version: number = 1,
   ): Promise<void> {
+    const notifyStart = performance.now();
+    console.log(`[LSPClient] 📂 notifyDocumentOpened called`, {
+      language,
+      uri,
+      textLength: text.length,
+      timestamp: notifyStart,
+    });
+
     // Map to server language (typescriptreact → typescript, etc.)
     const serverLanguage = getServerLanguage(language);
     
@@ -473,6 +497,7 @@ class LSPClientManager {
     const docKey = `${language}:${uri}`;
 
     if (this.openedDocuments.has(docKey)) {
+      console.log(`[LSPClient] ⏭️  Document already opened, skipping`);
       return Promise.resolve();
     }
 
@@ -480,6 +505,7 @@ class LSPClientManager {
     this.openedDocuments.add(docKey);
 
     try {
+      const ipcStart = performance.now();
       return window.api
         .invoke('lsp:didOpen', {
           language: serverLanguage,  // Use server language for routing
@@ -488,9 +514,13 @@ class LSPClientManager {
           text,
           version,
         })
-        .then(() => {})
+        .then(() => {
+          console.log(`[LSPClient] ⏱️  didOpen IPC took:`, performance.now() - ipcStart, 'ms');
+          console.log(`[LSPClient] ⏱️  TOTAL notifyDocumentOpened took:`, performance.now() - notifyStart, 'ms');
+        })
         .catch((err: Error) => {
           console.error(`[LSPClient] ❌ Failed to notify document opened:`, err);
+          console.log(`[LSPClient] ⏱️  Failed after:`, performance.now() - notifyStart, 'ms');
           // Remove from opened set on error
           this.openedDocuments.delete(docKey);
           throw err;
@@ -509,6 +539,15 @@ class LSPClientManager {
    * OPTIMIZED: Debounced to prevent duplicate notifications
    */
   notifyDocumentChanged(language: string, uri: string, text: string, version: number): void {
+    const notifyStart = performance.now();
+    console.log(`[LSPClient] ✏️  notifyDocumentChanged called`, {
+      language,
+      uri,
+      textLength: text.length,
+      version,
+      timestamp: notifyStart,
+    });
+
     // Map to server language
     const serverLanguage = getServerLanguage(language);
     
@@ -516,6 +555,7 @@ class LSPClientManager {
 
     // Only notify changes if document was opened
     if (!this.openedDocuments.has(docKey)) {
+      console.log(`[LSPClient] ⏭️  Document not opened, skipping didChange`);
       return;
     }
 
@@ -524,11 +564,15 @@ class LSPClientManager {
     // Cancel pending notification for this document
     const pending = this.pendingChanges.get(key);
     if (pending) {
+      console.log(`[LSPClient] 🔄 Debouncing: canceling previous didChange`);
       clearTimeout(pending.timer);
     }
 
     // Schedule new notification
     const timer = setTimeout(() => {
+      const sendStart = performance.now();
+      console.log(`[LSPClient] 📤 Sending debounced didChange after ${this.DEBOUNCE_DELAY}ms`);
+      
       try {
         window.api
           .invoke('lsp:didChange', {
@@ -536,6 +580,9 @@ class LSPClientManager {
             uri,
             text,
             version,
+          })
+          .then(() => {
+            console.log(`[LSPClient] ⏱️  didChange IPC took:`, performance.now() - sendStart, 'ms');
           })
           .catch((err: Error) => {
             console.error(`[LSPClient] ❌ Failed to notify document changed:`, err);
@@ -549,6 +596,7 @@ class LSPClientManager {
     }, this.DEBOUNCE_DELAY);
 
     this.pendingChanges.set(key, { timer, version });
+    console.log(`[LSPClient] ⏱️  notifyDocumentChanged setup took:`, performance.now() - notifyStart, 'ms');
   }
 
   /**

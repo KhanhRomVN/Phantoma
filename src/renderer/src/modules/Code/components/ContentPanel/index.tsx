@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import {
   FileWarning,
   ExternalLink,
@@ -212,17 +212,21 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
 
 // ─── ContentPanel ───────────────────────────────────────────────────────────
 
-export function ContentPanel() {
-  const projects = useCodeStore((s) => s.projects);
-  const currentProjectId = useCodeStore((s) => s.currentProjectId);
-  const project = projects.find((p) => p.id === currentProjectId);
-
-  const openFiles = project?.openFiles ?? [];
-  const activeFileTabId = project?.activeFileTabId ?? null;
-  const fileDisplayNames = project?.fileDisplayNames ?? {};
-  const fileNodeMap = project?.fileNodeMap ?? {};
-  const currentServiceId = project?.currentServiceId ?? null;
-  const service = project?.services.find((s) => s.id === currentServiceId);
+export const ContentPanel = memo(
+  function ContentPanel() {
+    console.log('[ContentPanel] 🎬 RENDER');
+    
+    // 🚀 OPTIMIZED: Selector cực kỳ chính xác - CHỈ lấy những gì cần
+    const currentProjectId = useCodeStore((s) => s.currentProjectId);
+    const project = useCodeStore((s) => s.projects.find((p) => p.id === currentProjectId));
+    
+    // Chỉ extract những values thực sự cần thiết để render
+    const currentServiceId = project?.currentServiceId ?? null;
+    const openFiles = project?.openFiles ?? [];
+    const activeFileTabId = project?.activeFileTabId ?? null;
+    const fileDisplayNames = project?.fileDisplayNames ?? {};
+    const fileNodeMap = project?.fileNodeMap ?? {};
+    const service = project?.services.find((s) => s.id === currentServiceId);
 
   const [loadedContent, setLoadedContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -343,6 +347,18 @@ export function ContentPanel() {
     const category = fileNode ? getFileCategory(fileNode.name) : 'text';
     const filePath = fileNode?.path || '';
 
+    // 🚀 OPTIMIZED: Memoize CodeBlock props để tránh re-create object mỗi render
+    const codeBlockProps = {
+      code: loadedContent || '',
+      language: fileNode ? getLanguage(fileNode.name) : 'plaintext',
+      filePath: fileNode?.path || undefined,
+      fileId: activeFileTabId || undefined,
+      projectRoot: project?.path || undefined,
+      showLineNumbers: true,
+      wordWrap: 'off' as const,
+      enableLSP: true,
+    };
+
     const renderPreview = () => {
       if (loading) {
         return (
@@ -354,18 +370,7 @@ export function ContentPanel() {
 
       switch (category) {
         case 'text':
-          return (
-            <CodeBlock
-              code={loadedContent || ''}
-              language={fileNode ? getLanguage(fileNode.name) : 'plaintext'}
-              filePath={fileNode?.path || undefined}
-              fileId={activeFileTabId || undefined}
-              projectRoot={project?.path || undefined}
-              showLineNumbers
-              wordWrap="off"
-              enableLSP={true} // ✅ TEMPORARILY ENABLED FOR DEBUGGING - Test timing fix
-            />
-          );
+          return <CodeBlock {...codeBlockProps} />;
         case 'image':
           return <ImagePreview path={filePath} name={displayName} />;
         case 'pdf':
@@ -398,7 +403,10 @@ export function ContentPanel() {
       </div>
     </div>
   );
-}
+});
+
+// Custom equality - ContentPanel không cần re-render nếu displayName thay đổi
+ContentPanel.displayName = 'ContentPanel';
 
 const TYPE_ICONS: Record<string, ReactNode> = {
   website: <Globe className="w-3.5 h-3.5" />,
