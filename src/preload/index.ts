@@ -9,6 +9,7 @@ const api = {
   send: (channel: string, ...args: any[]) => electronAPI.ipcRenderer.send(channel, ...args),
   on: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) => {
     electronAPI.ipcRenderer.on(channel, listener);
+    return () => electronAPI.ipcRenderer.removeListener(channel, listener);
   },
   off: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) =>
     electronAPI.ipcRenderer.removeListener(channel, listener),

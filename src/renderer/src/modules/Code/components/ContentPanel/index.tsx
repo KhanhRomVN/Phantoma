@@ -215,22 +215,22 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
 export const ContentPanel = memo(function ContentPanel() {
   // 🚀 ULTRA-OPTIMIZED: Chỉ subscribe vào những fields thực sự cần thiết
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
-  
+
   const currentServiceId = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === currentProjectId);
     return project?.currentServiceId ?? null;
   });
-  
+
   const activeFileTabId = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === currentProjectId);
     return project?.activeFileTabId ?? null;
   });
-  
+
   const openFiles = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === currentProjectId);
     return project?.openFiles ?? [];
   });
-  
+
   const projectPath = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === currentProjectId);
     return project?.path;
@@ -254,61 +254,204 @@ export const ContentPanel = memo(function ContentPanel() {
     return project?.services.find((s) => s.id === serviceId);
   };
 
-  const [loadedContent, setLoadedContent] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Cache nội dung cho tất cả file trong openFiles (không chỉ file active)
+  const [loadedContents, setLoadedContents] = useState<Record<string, string>>({});
+  const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
+  const [fileMtimes, setFileMtimes] = useState<Record<string, number>>({});
 
-  // Determine what to show: service takes priority if selected, then active file
+  // Determine what to show: service takes priority if selected, then files
   const showService = currentServiceId !== null;
-  const showFile = !showService && activeFileTabId !== null;
+  const showFile = !showService && openFiles.length > 0;
 
+  // Log active tab changes
   useEffect(() => {
-    // Only load file content when showing file (not service)
-    if (!showFile || !activeFileTabId) {
-      setLoadedContent(null);
-      return;
+    if (showFile && activeFileTabId) {
+      const displayName = getDisplayName(activeFileTabId);
     }
+  }, [activeFileTabId, showFile]);
+
+  // Khi switch tab, kiểm tra mtime và reload nếu file bị thay đổi bên ngoài
+  useEffect(() => {
+    if (!showFile || !activeFileTabId) return;
 
     const fileNode = getFileNode(activeFileTabId);
-    if (!fileNode) {
-      setLoadedContent(null);
+    if (!fileNode?.path) return;
+
+    const category = getFileCategory(fileNode.name);
+    if (category !== 'text') return;
+
+    const filePath = fileNode.path;
+    const fileId = activeFileTabId;
+    const fileName = fileNode.name;
+
+    window.api
+      .invoke('fs:stat', filePath)
+      .then((stat: { mtime: number }) => {
+        const cachedMtime = fileMtimes[fileId];
+        if (
+          cachedMtime !== undefined &&
+          cachedMtime === stat.mtime &&
+          loadedContents[fileId] !== undefined
+        ) {
+          return;
+        }
+
+        const doRead = (attempt: number) => {
+          window.api
+            .invoke('fs:read-file', filePath)
+            .then((content: string) => {
+              if (content.length === 0 && attempt < 2) {
+                setTimeout(() => doRead(attempt + 1), 300);
+                return;
+              }
+              setLoadedContents((prev) => ({ ...prev, [fileId]: content || '' }));
+              setFileMtimes((prev) => ({ ...prev, [fileId]: stat.mtime }));
+            })
+            .catch((err: any) => {
+              console.error(`[ContentPanel] ❌ Load failed: ${fileName}`, err);
+              setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
+            });
+        };
+        doRead(1);
+      })
+      .catch((err: any) => {
+        console.warn(`[ContentPanel] ⚠️  fs:stat failed for ${fileName}:`, err);
+      });
+  }, [activeFileTabId, showFile]);
+
+  // Event-driven watcher: lắng nghe fs:file-changed từ main process
+  // (chokidar watch file active, độ trễ ~50-100ms thay vì polling 2000ms)
+  useEffect(() => {
+    if (!showFile || !activeFileTabId) return;
+
+    const fileNode = getFileNode(activeFileTabId);
+    if (!fileNode?.path) {
       return;
     }
 
-    // Only load content for text files
     const category = getFileCategory(fileNode.name);
     if (category !== 'text') {
-      setLoadedContent(null);
       return;
     }
 
-    if (fileNode.content != null && openFiles.length > 0) {
-      setLoadedContent(fileNode.content);
-      return;
-    }
+    const filePath = fileNode.path;
+    const fileId = activeFileTabId;
+    const fileName = fileNode.name;
 
-    if (fileNode.path) {
-      setLoading(true);
-      window.api
-        .invoke('fs:read-file', fileNode.path)
-        .then((content: string) => {
-          setLoadedContent(content || '');
-          setLoading(false);
-        })
-        .catch((err: any) => {
-          console.error('[ContentPanel] Failed to load file:', fileNode.path, err);
-          setLoadedContent('');
-          setLoading(false);
-        });
-    } else {
-      setLoadedContent('');
-    }
-  }, [showFile, activeFileTabId, openFiles.length]);
+    // Đăng ký watcher với main process
+    window.api.invoke('fs:watch-file', filePath).catch((err: any) => {
+      console.error(`[ContentPanel] ❌ watch-file failed: ${fileName}`, err);
+    });
+
+    // Lắng nghe sự kiện thay đổi từ chokidar
+    const unsubscribe = window.api.on(
+      'fs:file-changed',
+      (_event: any, data: { filePath: string; mtime: number }) => {
+        if (data.filePath !== filePath) return;
+
+        const doRead = (attempt: number) => {
+          window.api
+            .invoke('fs:read-file', filePath)
+            .then((content: string) => {
+              // Race condition guard: nếu file rỗng nhưng vừa có event thay đổi,
+              if (content.length === 0 && attempt < 2) {
+                setTimeout(() => doRead(attempt + 1), 300);
+                return;
+              }
+              setLoadedContents((prev) => ({ ...prev, [fileId]: content || '' }));
+              setFileMtimes((prev) => ({ ...prev, [fileId]: data.mtime }));
+            })
+            .catch((err: any) => {
+              console.error(`[ContentPanel] ❌ Reload failed: ${fileName}`, err);
+            });
+        };
+        doRead(1);
+      },
+    );
+
+    return () => {
+      unsubscribe();
+      window.api.invoke('fs:unwatch-file', filePath).catch(() => {});
+    };
+  }, [activeFileTabId, showFile]);
+
+  // Load nội dung cho tất cả file text trong openFiles
+  useEffect(() => {
+    if (!showFile || openFiles.length === 0) return;
+    openFiles.forEach((fileId) => {
+      const fileNode = getFileNode(fileId);
+      if (!fileNode) {
+        console.warn(`[ContentPanel] ⚠️ File node not found for ${fileId}`);
+        return;
+      }
+
+      const category = getFileCategory(fileNode.name);
+      if (category !== 'text') {
+        return;
+      }
+
+      // Đã có trong cache
+      if (loadedContents[fileId] !== undefined) {
+        return;
+      }
+
+      // Đang load
+      if (loadingFiles.has(fileId)) {
+        return;
+      }
+
+      if (fileNode.content != null) {
+        setLoadedContents((prev) => ({ ...prev, [fileId]: fileNode.content ?? '' }));
+        // Lấy mtime từ disk nếu có path
+        if (fileNode.path) {
+          window.api
+            .invoke('fs:stat', fileNode.path)
+            .then((stat: { mtime: number }) => {
+              setFileMtimes((prev) => ({ ...prev, [fileId]: stat.mtime }));
+            })
+            .catch(() => {});
+        }
+        return;
+      }
+
+      if (fileNode.path) {
+        setLoadingFiles((prev) => new Set(prev).add(fileId));
+        window.api
+          .invoke('fs:read-file', fileNode.path)
+          .then((content: string) => {
+            setLoadedContents((prev) => ({ ...prev, [fileId]: content || '' }));
+            setLoadingFiles((prev) => {
+              const next = new Set(prev);
+              next.delete(fileId);
+              return next;
+            });
+            // Lưu mtime sau khi load thành công
+            return window.api.invoke('fs:stat', fileNode.path);
+          })
+          .then((stat: { mtime: number }) => {
+            if (stat) setFileMtimes((prev) => ({ ...prev, [fileId]: stat.mtime }));
+          })
+          .catch((err: any) => {
+            console.error(`[ContentPanel] ❌ Failed: ${fileNode.path}`, err);
+            setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
+            setLoadingFiles((prev) => {
+              const next = new Set(prev);
+              next.delete(fileId);
+              return next;
+            });
+          });
+      } else {
+        console.warn(`[ContentPanel] ⚠️ No path/content: ${fileNode.name}`);
+        setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
+      }
+    });
+  }, [showFile, openFiles]);
 
   // ── Service selected ────────────────────────────────────────────────────
   if (showService && currentServiceId) {
     const service = getService(currentServiceId);
     if (!service) return null;
-    
+
     // Check if it's an extension service
     if (service.type === 'extension') {
       // Use stored extensionId if available
@@ -345,57 +488,63 @@ export const ContentPanel = memo(function ContentPanel() {
     );
   }
 
-  // ── Active file ─────────────────────────────────────────────────────────
-  if (showFile && activeFileTabId && openFiles.length > 0) {
-    const fileNode = getFileNode(activeFileTabId);
-    const displayName = getDisplayName(activeFileTabId);
-    const category = fileNode ? getFileCategory(fileNode.name) : 'text';
-    const filePath = fileNode?.path || '';
-
-    const codeBlockKey = `${activeFileTabId}-${filePath}`;
-
-    const renderPreview = () => {
-      if (loading) {
-        return (
-          <div className="flex items-center justify-center h-full text-text-secondary/40 text-sm">
-            Loading...
-          </div>
-        );
-      }
-
-      switch (category) {
-        case 'text':
-          return (
-            <CodeBlock
-              key={codeBlockKey}
-              code={loadedContent || ''}
-              language={fileNode ? getLanguage(fileNode.name) : 'plaintext'}
-              filePath={fileNode?.path || undefined}
-              fileId={activeFileTabId || undefined}
-              projectRoot={projectPath || undefined}
-              showLineNumbers={true}
-              wordWrap="off"
-              enableLSP={true}
-            />
-          );
-        case 'image':
-          return <ImagePreview path={filePath} name={displayName} />;
-        case 'pdf':
-          return <PDFPreview path={filePath} />;
-        case 'video':
-          return <VideoPreview path={filePath} />;
-        case 'audio':
-          return <AudioPreview path={filePath} name={displayName} />;
-        case 'binary':
-        default:
-          return <BinaryPreview name={displayName} path={filePath} />;
-      }
-    };
-
+  // ── Open files ─────────────────────────────────────────────────────────
+  // Render CodeBlock cho TẤT CẢ file trong openFiles, ẩn/hiện bằng CSS
+  // để mỗi CodeBlock tự gửi didOpen khi mount → LSP phân tích mọi file trong tab bar
+  if (showFile && openFiles.length > 0) {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-background">
         <FileTabBar />
-        <div className="flex-1 overflow-hidden">{renderPreview()}</div>
+        <div className="flex-1 overflow-hidden">
+          {openFiles.map((fileId) => {
+            const fileNode = getFileNode(fileId);
+            const isActive = fileId === activeFileTabId;
+            const displayName = getDisplayName(fileId);
+            const category = fileNode ? getFileCategory(fileNode.name) : 'text';
+            const filePath = fileNode?.path || '';
+            const content = loadedContents[fileId];
+            const isLoading = loadingFiles.has(fileId) || content === undefined;
+
+            return (
+              <div
+                key={fileId}
+                style={{
+                  display: isActive ? 'flex' : 'none',
+                  flex: 1,
+                  flexDirection: 'column',
+                  minHeight: 0,
+                  height: '100%',
+                }}
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full text-text-secondary/40 text-sm">
+                    Loading...
+                  </div>
+                ) : (
+                  <>
+                    {category === 'text' && (
+                      <CodeBlock
+                        code={content || ''}
+                        language={fileNode ? getLanguage(fileNode.name) : 'plaintext'}
+                        filePath={fileNode?.path || undefined}
+                        fileId={fileId || undefined}
+                        projectRoot={projectPath || undefined}
+                        showLineNumbers={true}
+                        wordWrap="off"
+                        enableLSP={true}
+                      />
+                    )}
+                    {category === 'image' && <ImagePreview path={filePath} name={displayName} />}
+                    {category === 'pdf' && <PDFPreview path={filePath} />}
+                    {category === 'video' && <VideoPreview path={filePath} />}
+                    {category === 'audio' && <AudioPreview path={filePath} name={displayName} />}
+                    {category === 'binary' && <BinaryPreview name={displayName} path={filePath} />}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }

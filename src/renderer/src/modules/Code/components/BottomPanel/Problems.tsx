@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -229,21 +229,7 @@ interface ContextMenuState {
 
 export function Problems() {
   // Use custom diagnostics store
-  const { allDiagnostics: allDiagsFromStore, diagnosticsByFile } = useDiagnostics();
-  
-  // Convert store format to component format
-  const diagnostics = useMemo(() => {
-    const result: Record<string, Diagnostic[]> = {};
-    Object.entries(diagnosticsByFile).forEach(([uri, diags]) => {
-      if (diags.length > 0) {
-        result[uri] = diags.map(d => ({
-          ...d,
-          severity: d.severity as number,
-        }));
-      }
-    });
-    return result;
-  }, [diagnosticsByFile]);
+  const { allDiagnostics: allDiagsFromStore } = useDiagnostics();
 
   const [severities, setSeverities] = useState<Record<SeverityKey, boolean>>({
     error: true,
@@ -259,7 +245,7 @@ export function Problems() {
 
   const { allDiagnostics, groups } = useMemo(() => {
     // Use diagnostics from store instead of recalculating
-    const all = allDiagsFromStore.map(d => ({
+    const all = (allDiagsFromStore || []).map((d) => ({
       ...d,
       severity: d.severity as number,
     }));

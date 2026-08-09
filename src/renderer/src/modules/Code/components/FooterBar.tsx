@@ -85,13 +85,16 @@ export function FooterBar({ className }: FooterBarProps) {
     };
 
     const handleLSPInitComplete = () => {
+      // Giữ progress bar ở 100%, đợi diagnostics đến mới ẩn
       setLspInitStatus((prev) => ({
         ...prev,
         isInitializing: false,
         progress: 100,
       }));
+    };
 
-      // Hide progress bar after a short delay
+    const handleDiagnosticsReady = () => {
+      // Diagnostics đã hiển thị trong Problems → ẩn progress bar sau 500ms
       setTimeout(() => {
         setLspInitStatus({
           isInitializing: false,
@@ -99,17 +102,19 @@ export function FooterBar({ className }: FooterBarProps) {
           currentFile: null,
           language: null,
         });
-      }, 1000);
+      }, 500);
     };
 
     window.addEventListener('lsp:init:start', handleLSPInitStart as EventListener);
     window.addEventListener('lsp:init:progress', handleLSPInitProgress as EventListener);
     window.addEventListener('lsp:init:complete', handleLSPInitComplete as EventListener);
+    window.addEventListener('lsp:diagnostics:ready', handleDiagnosticsReady as EventListener);
 
     return () => {
       window.removeEventListener('lsp:init:start', handleLSPInitStart as EventListener);
       window.removeEventListener('lsp:init:progress', handleLSPInitProgress as EventListener);
       window.removeEventListener('lsp:init:complete', handleLSPInitComplete as EventListener);
+      window.removeEventListener('lsp:diagnostics:ready', handleDiagnosticsReady as EventListener);
     };
   }, []);
 

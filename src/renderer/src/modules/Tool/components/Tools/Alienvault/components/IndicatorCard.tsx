@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScanResult, IndicatorResult } from '../types';
+import { ScanResult } from '../types';
 import { getReputationColor, getReputationIcon } from '../utils';
 import { REPUTATION_LABELS } from '../constants';
 
@@ -25,12 +25,12 @@ const formatDate = (timestamp: number): string => {
 
 const IndicatorCard: React.FC<IndicatorCardProps> = ({
   scan,
-  globalIdx,
+  globalIdx: _globalIdx,
   isExpanded,
   onToggle,
   onContextMenu,
   accentColor,
-  glow,
+  glow: _glow,
 }) => {
   const result = scan.result;
   const reputationColor = result ? getReputationColor(result.reputation) : '#64748b';

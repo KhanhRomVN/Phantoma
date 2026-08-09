@@ -328,7 +328,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           placeholder="Search by indicator, type, malware family, or pulse name..."
           className="w-full py-2 px-3 pl-8 bg-input-background rounded text-text-primary text-[11px] outline-none font-inherit"
           style={{
-            border: `1px solid ${historySearchQuery ? `${accentColor}50` : ($('--input-border-default') || '')}`,
+            border: `1px solid ${historySearchQuery ? `${accentColor}50` : 'var(--input-border-default)'}`,
           }}
         />
       </div>
@@ -357,7 +357,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
               const isExpanded = expandedCardIndex === globalIdx;
               return (
                 <IndicatorCard
-                  key={globalIdx}
+                  key={`${scan.indicator}-${scan.timestamp}-${idx}`}
                   scan={scan}
                   globalIdx={globalIdx}
                   isExpanded={isExpanded}
@@ -379,7 +379,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
           style={{
             top: contextMenu.y,
             left: contextMenu.x,
-            background: $('--dropdown-background'),
+            background: 'var(--dropdown-background)',
             border: `1px solid ${accentColor}50`,
             boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
           }}

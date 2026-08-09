@@ -70,15 +70,15 @@ function calculateStats(diagnostics: Diagnostic[]): FileDiagnosticStats {
 interface DiagnosticsState {
   // Raw data (key = URI format: file:///...)
   diagnostics: DiagnosticsByFile;
-  
+
   // Cached/derived data (for performance & React stability)
   _statsCache: Map<string, FileDiagnosticStats>;
-  
+
   // Actions
   setDiagnostics: (uri: string, diagnostics: Diagnostic[]) => void;
   clearDiagnostics: (uri: string) => void;
   clearAll: () => void;
-  
+
   // Selectors (memoized getters)
   getDiagnosticsForFile: (filePathOrUri: string) => Diagnostic[];
   getStatsForFile: (filePathOrUri: string) => FileDiagnosticStats;
@@ -91,79 +91,72 @@ interface DiagnosticsState {
 export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
   diagnostics: {},
   _statsCache: new Map(),
-  
+
   // ── Actions ─────────────────────────────────────────────────────────────
-  
+
   setDiagnostics: (uri: string, diagnostics: Diagnostic[]) => {
-    console.log('[DiagnosticsStore] 📊 Setting diagnostics:', {
-      uri,
-      count: diagnostics.length,
-      errors: diagnostics.filter((d) => d.severity === 1).length,
-      warnings: diagnostics.filter((d) => d.severity === 2).length,
-    });
-    
     set((state) => {
       // Update diagnostics
       const newDiagnostics = {
         ...state.diagnostics,
         [uri]: diagnostics,
       };
-      
+
       // Rebuild stats cache
       const newStatsCache = new Map<string, FileDiagnosticStats>();
       Object.entries(newDiagnostics).forEach(([uri, diags]) => {
         if (diags.length === 0) return;
-        
+
         const filePath = uriToPath(uri);
         const stats = calculateStats(diags);
-        
+
         // Only cache files with errors or warnings
         if (stats.errors > 0 || stats.warnings > 0) {
           newStatsCache.set(filePath, stats);
         }
       });
-      
+
       return {
         diagnostics: newDiagnostics,
         _statsCache: newStatsCache,
       };
     });
   },
-  
+
   clearDiagnostics: (uri: string) => {
     set((state) => {
       const newDiagnostics = { ...state.diagnostics };
       delete newDiagnostics[uri];
-      
+
       // Rebuild stats cache
       const newStatsCache = new Map<string, FileDiagnosticStats>();
       Object.entries(newDiagnostics).forEach(([uri, diags]) => {
         if (diags.length === 0) return;
-        
+
         const filePath = uriToPath(uri);
         const stats = calculateStats(diags);
-        
+
         if (stats.errors > 0 || stats.warnings > 0) {
           newStatsCache.set(filePath, stats);
         }
       });
-      
-      return { 
+
+      return {
         diagnostics: newDiagnostics,
         _statsCache: newStatsCache,
       };
     });
   },
-  
+
   clearAll: () => {
-    set({ 
+    set({
       diagnostics: {},
       _statsCache: new Map(),
     });
   },
-  
+
   // ── Selectors ───────────────────────────────────────────────────────────
-  
+
   /**
    * Get diagnostics for a file by path or URI
    * Supports both formats:
@@ -172,15 +165,13 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
    */
   getDiagnosticsForFile: (filePathOrUri: string) => {
     const { diagnostics } = get();
-    
+
     // Normalize to URI format
-    const uri = filePathOrUri.startsWith('file://') 
-      ? filePathOrUri 
-      : pathToUri(filePathOrUri);
-    
+    const uri = filePathOrUri.startsWith('file://') ? filePathOrUri : pathToUri(filePathOrUri);
+
     return diagnostics[uri] || [];
   },
-  
+
   /**
    * Get diagnostic statistics for a file
    */
@@ -188,7 +179,7 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
     const diagnostics = get().getDiagnosticsForFile(filePathOrUri);
     return calculateStats(diagnostics);
   },
-  
+
   /**
    * Get cached stats map (for FileTabBar)
    * Returns the SAME Map reference until diagnostics change
@@ -197,28 +188,30 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
   getStatsCache: () => {
     return get()._statsCache;
   },
-  
+
   /**
    * Get all diagnostics across all files
    */
   getAllDiagnostics: () => {
     const { diagnostics } = get();
-    return Object.entries(diagnostics).flatMap(([uri, diags]) =>
-      diags.map((d) => ({ ...d, uri }))
-    );
+    return Object.entries(diagnostics).flatMap(([uri, diags]) => diags.map((d) => ({ ...d, uri })));
   },
-  
+
   /**
    * Get total error count across all files
    */
   getTotalErrorCount: () => {
-    return get().getAllDiagnostics().filter((d) => d.severity === 1).length;
+    return get()
+      .getAllDiagnostics()
+      .filter((d) => d.severity === 1).length;
   },
-  
+
   /**
    * Get total warning count across all files
    */
   getTotalWarningCount: () => {
-    return get().getAllDiagnostics().filter((d) => d.severity === 2).length;
+    return get()
+      .getAllDiagnostics()
+      .filter((d) => d.severity === 2).length;
   },
 }));

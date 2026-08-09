@@ -1,9 +1,9 @@
 /**
  * Text Document Manager
- * 
+ *
  * Centralized document lifecycle management inspired by VSCode architecture.
  * Manages document references and coordinates LSP notifications.
- * 
+ *
  * Key concepts:
  * - Document lifecycle is independent of editor/component lifecycle
  * - Reference counting tracks how many components use each document
@@ -27,7 +27,7 @@ class TextDocumentManager {
   /**
    * Add a reference to a document from a component.
    * Returns true if didOpen should be sent (first reference).
-   * 
+   *
    * @param uri - Document URI (e.g., "file:///path/to/file.tsx")
    * @param languageId - Language ID (e.g., "typescriptreact")
    * @param model - Monaco text model
@@ -40,7 +40,6 @@ class TextDocumentManager {
     if (doc) {
       // Document already open, increment reference count
       doc.refCount++;
-      console.log(`[DocumentManager] ✅ Added reference to ${this.getFileName(uri)} (refCount: ${doc.refCount})`);
       return false; // Don't send didOpen
     }
 
@@ -54,21 +53,20 @@ class TextDocumentManager {
       text,
     });
 
-    console.log(`[DocumentManager] 📂 First reference to ${this.getFileName(uri)} (refCount: 1) - SEND didOpen`);
     return true; // Send didOpen
   }
 
   /**
    * Remove a reference to a document from a component.
    * Returns true if didClose should be sent (last reference).
-   * 
+   *
    * @param uri - Document URI
    * @returns true if this was the last reference (should send didClose)
    */
   removeReference(uri: string): boolean {
     const doc = this.documents.get(uri);
     if (!doc) {
-      console.warn(`[DocumentManager] ⚠️  Attempted to remove reference to unopened document: ${uri}`);
+      // Silent no-op — can happen when cleanup runs before setup (React StrictMode, fast tab switches)
       return false;
     }
 
@@ -77,17 +75,15 @@ class TextDocumentManager {
     if (doc.refCount === 0) {
       // Last reference removed - clean up document
       this.documents.delete(uri);
-      console.log(`[DocumentManager] 📄 Last reference to ${this.getFileName(uri)} removed (refCount: 0) - SEND didClose`);
       return true; // Send didClose
     }
 
-    console.log(`[DocumentManager] ✅ Removed reference to ${this.getFileName(uri)} (refCount: ${doc.refCount}) - document still open`);
     return false; // Don't send didClose
   }
 
   /**
    * Update document version (for didChange notifications).
-   * 
+   *
    * @param uri - Document URI
    * @returns new version number, or undefined if document not found
    */
@@ -101,7 +97,7 @@ class TextDocumentManager {
 
   /**
    * Update document text content.
-   * 
+   *
    * @param uri - Document URI
    * @param text - New text content
    */
@@ -114,7 +110,7 @@ class TextDocumentManager {
 
   /**
    * Get document info.
-   * 
+   *
    * @param uri - Document URI
    * @returns document info or undefined
    */
@@ -124,7 +120,7 @@ class TextDocumentManager {
 
   /**
    * Check if document is open (has at least one reference).
-   * 
+   *
    * @param uri - Document URI
    * @returns true if document is open
    */
@@ -134,7 +130,7 @@ class TextDocumentManager {
 
   /**
    * Get current reference count for a document.
-   * 
+   *
    * @param uri - Document URI
    * @returns reference count, or 0 if document not found
    */
@@ -144,7 +140,7 @@ class TextDocumentManager {
 
   /**
    * Get all open document URIs.
-   * 
+   *
    * @returns array of open document URIs
    */
   getOpenDocuments(): string[] {
@@ -181,7 +177,6 @@ class TextDocumentManager {
    * WARNING: This does NOT send didClose notifications!
    */
   clearAll(): void {
-    console.log(`[DocumentManager] 🧹 Clearing all documents (${this.documents.size} total)`);
     this.documents.clear();
   }
 }

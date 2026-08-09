@@ -12,11 +12,15 @@ import { join } from 'path';
 interface LSPServer {
   process: ChildProcess;
   language: string;
+  workspaceRoot?: string;
   capabilities: any;
-  pendingRequests: Map<number, {
-    resolve: (value: any) => void;
-    reject: (reason: any) => void;
-  }>;
+  pendingRequests: Map<
+    number,
+    {
+      resolve: (value: any) => void;
+      reject: (reason: any) => void;
+    }
+  >;
   nextRequestId: number;
 }
 
@@ -29,14 +33,10 @@ const activeServers: Map<string, LSPServer> = new Map();
 /**
  * Send JSON-RPC request to language server
  */
-function sendRequest(
-  server: LSPServer,
-  method: string,
-  params: any,
-): Promise<any> {
+function sendRequest(server: LSPServer, method: string, params: any): Promise<any> {
   return new Promise((resolve, reject) => {
     const requestId = server.nextRequestId++;
-    
+
     server.pendingRequests.set(requestId, { resolve, reject });
 
     const request = {
@@ -48,7 +48,7 @@ function sendRequest(
 
     const message = JSON.stringify(request);
     const header = `Content-Length: ${Buffer.byteLength(message, 'utf8')}\r\n\r\n`;
-    
+
     try {
       server.process.stdin?.write(header + message, 'utf8');
     } catch (error) {
@@ -69,11 +69,7 @@ function sendRequest(
 /**
  * Send notification to language server (no response expected)
  */
-function sendNotification(
-  server: LSPServer,
-  method: string,
-  params: any,
-): void {
+function sendNotification(server: LSPServer, method: string, params: any): void {
   const notification = {
     jsonrpc: '2.0',
     method,
@@ -82,7 +78,7 @@ function sendNotification(
 
   const message = JSON.stringify(notification);
   const header = `Content-Length: ${Buffer.byteLength(message, 'utf8')}\r\n\r\n`;
-  
+
   try {
     server.process.stdin?.write(header + message, 'utf8');
   } catch (error) {
@@ -95,22 +91,22 @@ function sendNotification(
  */
 function setupMessageParser(server: LSPServer, mainWindow: any) {
   let buffer = '';
-  
+
   server.process.stdout?.on('data', (data: Buffer) => {
     buffer += data.toString('utf8');
-    
+
     while (true) {
       const headerMatch = buffer.match(/Content-Length: (\d+)\r\n\r\n/);
       if (!headerMatch) break;
-      
+
       const contentLength = parseInt(headerMatch[1], 10);
       const messageStart = buffer.indexOf('\r\n\r\n') + 4;
-      
+
       if (buffer.length < messageStart + contentLength) break;
-      
+
       const messageContent = buffer.substring(messageStart, messageStart + contentLength);
       buffer = buffer.substring(messageStart + contentLength);
-      
+
       try {
         const message = JSON.parse(messageContent);
         handleMessage(server, message, mainWindow);
@@ -129,17 +125,16 @@ function setupMessageParser(server: LSPServer, mainWindow: any) {
  * Handle incoming LSP message
  */
 function handleMessage(server: LSPServer, message: any, mainWindow: any) {
-  // Log ALL messages để debug
-  if (message.method) {
-    console.log(`[LSP:Main] 📩 Incoming message: method="${message.method}", hasId=${message.id !== undefined}`);
-  }
-  
   // Response to a request we sent
-  if (message.id !== undefined && message.id !== null && (message.result !== undefined || message.error !== undefined)) {
+  if (
+    message.id !== undefined &&
+    message.id !== null &&
+    (message.result !== undefined || message.error !== undefined)
+  ) {
     const pending = server.pendingRequests.get(message.id);
     if (pending) {
       server.pendingRequests.delete(message.id);
-      
+
       if (message.error) {
         pending.reject(new Error(message.error.message));
       } else {
@@ -148,13 +143,13 @@ function handleMessage(server: LSPServer, message: any, mainWindow: any) {
     }
     return; // Don't process as notification
   }
-  
+
   // Request from server (has id and method, needs response)
   if (message.id !== undefined && message.id !== null && message.method) {
     handleServerRequest(server, message, mainWindow);
     return;
   }
-  
+
   // Notification from server (has method, no id, no response needed)
   if (message.method) {
     handleNotification(server, message, mainWindow);
@@ -165,18 +160,12 @@ function handleMessage(server: LSPServer, message: any, mainWindow: any) {
  * Handle requests from language server (server asking us for something)
  */
 function handleServerRequest(server: LSPServer, message: any, mainWindow: any) {
-  console.log(`[LSP:Main] 📨 Received request:`, message.method, `(id: ${message.id})`);
-  
   switch (message.method) {
     case 'workspace/configuration':
-      // Language server is requesting configuration
-      console.log(`[LSP:Main] 📋 Workspace configuration requested`);
-      console.log(`[LSP:Main] Items requested:`, JSON.stringify(message.params?.items, null, 2));
-      
       // Build real configuration based on requested items
       const configs = (message.params?.items || []).map((item: any) => {
         const section = item.section || '';
-        
+
         // TypeScript configuration
         if (section.includes('typescript') || section.includes('javascript')) {
           return {
@@ -189,42 +178,41 @@ function handleServerRequest(server: LSPServer, message: any, mainWindow: any) {
             },
             diagnostics: {
               ignoredCodes: [], // Don't ignore any diagnostics
-            }
+            },
           };
         }
-        
+
         // Python configuration
         if (section.includes('python')) {
           return {
             analysis: {
               typeCheckingMode: 'basic',
               autoSearchPaths: true,
-            }
+            },
           };
         }
-        
+
         // Default: empty config
         return {};
       });
-      
+
       // Respond with configuration
       const configResponse = {
         jsonrpc: '2.0',
         id: message.id,
         result: configs,
       };
-      
+
       const responseMessage = JSON.stringify(configResponse);
       const header = `Content-Length: ${Buffer.byteLength(responseMessage, 'utf8')}\r\n\r\n`;
-      
+
       try {
         server.process.stdin?.write(header + responseMessage, 'utf8');
-        console.log(`[LSP:Main] ✅ Sent workspace configuration response:`, JSON.stringify(configs, null, 2));
       } catch (error) {
         console.error(`[LSP:Main] ❌ Failed to send workspace configuration response:`, error);
       }
       break;
-      
+
     default:
       console.warn(`[LSP:Main] ⚠️  Unhandled server request: ${message.method}`);
       // Send empty response to avoid blocking server
@@ -248,45 +236,28 @@ function handleServerRequest(server: LSPServer, message: any, mainWindow: any) {
  * Handle notifications from language server
  */
 function handleNotification(server: LSPServer, message: any, mainWindow: any) {
-  console.log(`[LSP:Main] 📨 Received notification:`, message.method);
-  
   switch (message.method) {
     case 'textDocument/publishDiagnostics':
       // Send diagnostics to renderer
       const diagnostics = message.params.diagnostics || [];
-      console.log(`[LSP:Main] 🔴 Publishing diagnostics for ${message.params.uri}:`, diagnostics.length, 'items');
-      
-      // Log chi tiết từng diagnostic
-      if (diagnostics.length > 0) {
-        console.log('[LSP:Main] 📋 Diagnostic details:');
-        diagnostics.forEach((d: any, idx: number) => {
-          const severity = d.severity === 1 ? '❌ ERROR' : d.severity === 2 ? '⚠️  WARN' : `L${d.severity}`;
-          const line = (d.range?.start?.line ?? 0) + 1;
-          const col = (d.range?.start?.character ?? 0) + 1;
-          console.log(`  ${idx + 1}. ${severity} [${line}:${col}] ${d.message}`);
-        });
-      }
-      
       mainWindow?.send(`lsp:diagnostics:${server.language}`, {
         uri: message.params.uri,
         diagnostics: diagnostics,
       });
-      
+
       if (!mainWindow) {
-        console.error('[LSP:Main] ❌ mainWindow is null/undefined - cannot send diagnostics to renderer!');
-      } else {
-        console.log(`[LSP:Main] ✅ Sent diagnostics to renderer via lsp:diagnostics:${server.language}`);
+        console.error(
+          '[LSP:Main] ❌ mainWindow is null/undefined - cannot send diagnostics to renderer!',
+        );
       }
       break;
-      
+
     case 'window/logMessage':
-      console.log(`[LSP:${server.language}]`, message.params.message);
       break;
-      
+
     case 'window/showMessage':
-      console.log(`[LSP:${server.language}] ${message.params.type}:`, message.params.message);
       break;
-      
+
     default:
       // Forward all other notifications to renderer for monaco-languageclient
       mainWindow?.send(`lsp:message:${server.language}`, message);
@@ -300,32 +271,30 @@ function handleNotification(server: LSPServer, message: any, mainWindow: any) {
  * Start a language server for a specific language
  */
 ipcMain.handle('lsp:start-server', async (event, args) => {
-  console.log('[LSP:Main] 📥 Received start-server request');
-  console.log('[LSP:Main] Args:', JSON.stringify(args, null, 2));
-  
   const { language, command, args: serverArgs, workspaceRoot } = args;
-  
-  // Check if server exists - ALWAYS restart to pick up new config files
+
+  // Check if server exists — only restart if workspaceRoot changed
   const existingServer = activeServers.get(language);
   if (existingServer) {
-    console.log(`[LSP:Main] 🔄 Server exists for ${language}, restarting to pick up config changes...`);
+    if (existingServer.workspaceRoot === workspaceRoot) {
+      return {
+        success: true,
+        serverId: existingServer.process.pid,
+        capabilities: existingServer.capabilities,
+      };
+    }
     try {
       // Send shutdown + exit
       await sendRequest(existingServer, 'shutdown', null);
       sendNotification(existingServer, 'exit', null);
       existingServer.process.kill();
       activeServers.delete(language);
-      console.log(`[LSP:Main] ✅ Old server stopped for ${language}`);
     } catch (e) {
-      console.log(`[LSP:Main] ⚠️  Error stopping old server:`, e);
       activeServers.delete(language);
     }
   }
 
   try {
-    console.log(`[LSP:Main] 🚀 Spawning process: ${command} ${serverArgs.join(' ')}`);
-    console.log(`[LSP:Main] Working directory: ${workspaceRoot}`);
-    
     // Spawn language server process with full environment
     const serverProcess = spawn(command, serverArgs, {
       cwd: workspaceRoot,
@@ -338,8 +307,6 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
       },
     });
 
-    console.log(`[LSP:Main] ✅ Process spawned with PID: ${serverProcess.pid}`);
-    
     // Log stderr immediately for early errors
     serverProcess.stderr?.on('data', (data: Buffer) => {
       const errorMsg = data.toString();
@@ -354,31 +321,31 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
 
     // Handle unexpected exit
     serverProcess.on('exit', (code, signal) => {
-      console.warn(`[LSP:Main] ⚠️  Process exited for ${language}. Code: ${code}, Signal: ${signal}`);
+      console.warn(
+        `[LSP:Main] ⚠️  Process exited for ${language}. Code: ${code}, Signal: ${signal}`,
+      );
       activeServers.delete(language);
     });
 
     const server: LSPServer = {
       process: serverProcess,
       language,
+      workspaceRoot,
       capabilities: {},
       pendingRequests: new Map(),
       nextRequestId: 1,
     };
 
     activeServers.set(language, server);
-    
+
     // Setup message parsing - get main window instead of using event.sender
     const mainWindow = BrowserWindow.getAllWindows()[0];
     if (!mainWindow) {
       console.error('[LSP:Main] ❌ No main window found!');
       throw new Error('No main window available');
     }
-    console.log('[LSP:Main] ✅ Using main window for IPC communication');
-    
+
     setupMessageParser(server, mainWindow.webContents);
-    
-    console.log(`[LSP:Main] 📡 Sending initialize request...`);
 
     // Initialize the language server
     const initResult = await sendRequest(server, 'initialize', {
@@ -444,16 +411,10 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
       },
     });
 
-    console.log(`[LSP:Main] ✅ Initialization response received`);
-    console.log(`[LSP:Main] Capabilities:`, JSON.stringify(initResult.capabilities, null, 2));
-
     server.capabilities = initResult.capabilities;
 
     // Send initialized notification
     sendNotification(server, 'initialized', {});
-    console.log(`[LSP:Main] ✅ Sent initialized notification`);
-
-    console.log(`[LSP:Main] ✅ Started server for ${language}`);
 
     return {
       success: true,
@@ -463,11 +424,10 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
   } catch (error: any) {
     console.error(`[LSP:Main] ❌ Failed to start server for ${language}:`, error);
     console.error(`[LSP:Main] Stack:`, error.stack);
-    
+
     // Remove from active servers on failure
     activeServers.delete(language);
-    console.log(`[LSP:Main] 🗑️  Removed ${language} server from active list due to error`);
-    
+
     return {
       success: false,
       error: error.message,
@@ -480,7 +440,7 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
  */
 ipcMain.handle('lsp:stop-server', async (event, args) => {
   const { language } = args;
-  
+
   const server = activeServers.get(language);
   if (!server) {
     return { success: false, error: 'Server not found' };
@@ -489,17 +449,15 @@ ipcMain.handle('lsp:stop-server', async (event, args) => {
   try {
     // Send shutdown request
     await sendRequest(server, 'shutdown', null);
-    
+
     // Send exit notification
     sendNotification(server, 'exit', null);
-    
+
     // Kill process
     server.process.kill();
-    
+
     activeServers.delete(language);
-    
-    console.log(`[LSP] Stopped server for ${language}`);
-    
+
     return { success: true };
   } catch (error: any) {
     console.error(`[LSP] Error stopping server for ${language}:`, error);
@@ -512,9 +470,7 @@ ipcMain.handle('lsp:stop-server', async (event, args) => {
  */
 ipcMain.handle('lsp:didOpen', async (event, args) => {
   const { language, uri, languageId, text, version } = args;
-  
-  console.log(`[LSP:Main] 📂 didOpen notification for ${language}: ${uri}`);
-  
+
   const server = activeServers.get(language);
   if (!server) {
     console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
@@ -530,8 +486,7 @@ ipcMain.handle('lsp:didOpen', async (event, args) => {
         text,
       },
     });
-    
-    console.log(`[LSP:Main] ✅ Sent didOpen notification for ${uri}`);
+
     return { success: true };
   } catch (error: any) {
     console.error(`[LSP:Main] ❌ Error sending didOpen:`, error);
@@ -544,9 +499,7 @@ ipcMain.handle('lsp:didOpen', async (event, args) => {
  */
 ipcMain.handle('lsp:didSave', async (event, args) => {
   const { language, uri, text } = args;
-  
-  console.log(`[LSP:Main] 💾 didSave notification for ${language}: ${uri}`);
-  
+
   const server = activeServers.get(language);
   if (!server) {
     console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
@@ -558,8 +511,7 @@ ipcMain.handle('lsp:didSave', async (event, args) => {
       textDocument: { uri },
       text, // Include text for servers that need it
     });
-    
-    console.log(`[LSP:Main] ✅ Sent didSave notification for ${uri}`);
+
     return { success: true };
   } catch (error: any) {
     console.error(`[LSP:Main] ❌ Error sending didSave:`, error);
@@ -572,9 +524,7 @@ ipcMain.handle('lsp:didSave', async (event, args) => {
  */
 ipcMain.handle('lsp:didClose', async (event, args) => {
   const { language, uri } = args;
-  
-  console.log(`[LSP:Main] 📪 didClose notification for ${language}: ${uri}`);
-  
+
   const server = activeServers.get(language);
   if (!server) {
     console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
@@ -585,8 +535,7 @@ ipcMain.handle('lsp:didClose', async (event, args) => {
     sendNotification(server, 'textDocument/didClose', {
       textDocument: { uri },
     });
-    
-    console.log(`[LSP:Main] ✅ Sent didClose notification for ${uri}`);
+
     return { success: true };
   } catch (error: any) {
     console.error(`[LSP:Main] ❌ Error sending didClose:`, error);
@@ -600,9 +549,7 @@ ipcMain.handle('lsp:didClose', async (event, args) => {
  */
 ipcMain.handle('lsp:didChange', async (event, args) => {
   const { language, uri, text, version } = args;
-  
-  console.log(`[LSP:Main] ✏️  didChange notification for ${language}: ${uri} (v${version})`);
-  
+
   const server = activeServers.get(language);
   if (!server) {
     console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
@@ -621,12 +568,6 @@ ipcMain.handle('lsp:didChange', async (event, args) => {
         },
       ],
     });
-    
-    console.log(`[LSP:Main] ✅ Sent didChange notification for ${uri}`);
-
-    // ✨ OPTIMIZATION: Remove redundant didSave and didChangeConfiguration
-    // TypeScript server will publish diagnostics automatically after didChange
-    // Only send didSave when user actually saves the file (Ctrl+S)
 
     return { success: true };
   } catch (error: any) {
@@ -640,7 +581,7 @@ ipcMain.handle('lsp:didChange', async (event, args) => {
  */
 ipcMain.handle('lsp:completion', async (event, args) => {
   const { language, uri, position, text } = args;
-  
+
   const server = activeServers.get(language);
   if (!server) {
     return null;
@@ -671,7 +612,7 @@ ipcMain.handle('lsp:completion', async (event, args) => {
  */
 ipcMain.handle('lsp:hover', async (event, args) => {
   const { language, uri, position, text } = args;
-  
+
   const server = activeServers.get(language);
   if (!server) {
     return null;
@@ -700,7 +641,7 @@ ipcMain.handle('lsp:hover', async (event, args) => {
  */
 ipcMain.handle('lsp:definition', async (event, args) => {
   const { language, uri, position, text } = args;
-  
+
   const server = activeServers.get(language);
   if (!server) {
     return null;
@@ -729,7 +670,7 @@ ipcMain.handle('lsp:definition', async (event, args) => {
  */
 ipcMain.handle('lsp:signature-help', async (event, args) => {
   const { language, uri, position, text } = args;
-  
+
   const server = activeServers.get(language);
   if (!server) {
     return null;
@@ -758,7 +699,7 @@ ipcMain.handle('lsp:signature-help', async (event, args) => {
  */
 ipcMain.handle('lsp:format', async (event, args) => {
   const { language, uri, text, options } = args;
-  
+
   const server = activeServers.get(language);
   if (!server) {
     return null;
@@ -787,9 +728,7 @@ ipcMain.handle('lsp:format', async (event, args) => {
  */
 ipcMain.handle('lsp:pullDiagnostics', async (event, args) => {
   const { language, uri } = args;
-  
-  console.log(`[LSP:Main] 🔍 Requesting pull diagnostics for ${language}: ${uri}`);
-  
+
   const server = activeServers.get(language);
   if (!server) {
     console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
@@ -801,11 +740,8 @@ ipcMain.handle('lsp:pullDiagnostics', async (event, args) => {
       textDocument: { uri },
     });
 
-    console.log(`[LSP:Main] ✅ Pull diagnostics response:`, result);
-    
     // Manually publish diagnostics to renderer if we got items
     if (result && result.items) {
-      console.log(`[LSP:Main] 📤 Manually publishing ${result.items.length} diagnostics`);
       event.sender.send(`lsp:diagnostics:${language}`, {
         uri,
         diagnostics: result.items,
@@ -824,7 +760,7 @@ ipcMain.handle('lsp:pullDiagnostics', async (event, args) => {
  */
 ipcMain.handle('lsp:send-message', async (event, args) => {
   const { language, message } = args;
-  
+
   const server = activeServers.get(language);
   if (!server) {
     throw new Error(`Server not found for ${language}`);
@@ -850,7 +786,6 @@ export function stopAllLSPServers() {
   for (const [language, server] of activeServers.entries()) {
     try {
       server.process.kill();
-      console.log(`[LSP] Stopped server for ${language}`);
     } catch (error) {
       console.error(`[LSP] Error stopping server for ${language}:`, error);
     }

@@ -1,19 +1,19 @@
 /**
  * LSP Manager Service
- * 
+ *
  * Pure orchestrator for LSP diagnostics flow.
  * Receives IPC events → Updates Store → Syncs Monaco
- * 
+ *
  * Architecture (Single Direction):
  * Main Process → IPC Events → LSP Manager → Store (Single Source) → UI
  *                                         └→ Monaco Adapter (View Sync)
- * 
+ *
  * Responsibilities:
  * - Transform IPC events to store format
  * - Update DiagnosticsStore (single source of truth)
  * - Delegate Monaco sync to adapter
  * - Manage server lifecycle
- * 
+ *
  * NOT responsible for:
  * - Direct Monaco manipulation (delegated to adapter)
  * - UI rendering (components read from store)
@@ -47,6 +47,7 @@ class LSPManager {
   private servers: Map<string, LSPServerStatus> = new Map();
   private diagnosticsListeners: Map<string, Set<DiagnosticsListener>> = new Map();
   private isInitialized = false;
+  private diagnosticsReadyDispatched = false;
 
   /**
    * Initialize LSP Manager
@@ -58,8 +59,6 @@ class LSPManager {
       return;
     }
 
-    console.log('[LSPManager] 🚀 Initializing...');
-
     // Listen for diagnostics from ALL languages
     this.setupDiagnosticsListeners();
 
@@ -67,7 +66,6 @@ class LSPManager {
     this.setupServerLifecycleListeners();
 
     this.isInitialized = true;
-    console.log('[LSPManager] ✅ Initialized successfully');
   }
 
   /**
@@ -90,13 +88,11 @@ class LSPManager {
 
     languages.forEach((language) => {
       const eventName = `lsp:diagnostics:${language}`;
-      
+
       // ✅ FIX: IPC callback receives (ipcEvent, ...args) but we only need the data payload
       window.api.on(eventName, (_ipcEvent: any, eventData: any) => {
         this.handleDiagnosticsEvent(language, eventData);
       });
-
-      console.log(`[LSPManager] 👂 Listening for ${eventName}`);
     });
   }
 
@@ -107,8 +103,6 @@ class LSPManager {
     // Server started
     window.api.on('lsp:server:started', (_ipcEvent: any, eventData: any) => {
       const { language, pid } = eventData;
-      console.log(`[LSPManager] ✅ Server started: ${language} (PID: ${pid})`);
-      
       this.servers.set(language, {
         language,
         status: 'running',
@@ -120,8 +114,6 @@ class LSPManager {
     // Server stopped
     window.api.on('lsp:server:stopped', (_ipcEvent: any, eventData: any) => {
       const { language } = eventData;
-      console.log(`[LSPManager] ⏹️  Server stopped: ${language}`);
-      
       this.servers.set(language, {
         language,
         status: 'stopped',
@@ -132,7 +124,7 @@ class LSPManager {
     window.api.on('lsp:server:error', (_ipcEvent: any, eventData: any) => {
       const { language, error } = eventData;
       console.error(`[LSPManager] ❌ Server error: ${language}`, error);
-      
+
       this.servers.set(language, {
         language,
         status: 'error',
@@ -144,48 +136,21 @@ class LSPManager {
   /**
    * Handle incoming diagnostics event
    * This is called when LSP server sends publishDiagnostics
-   * 
+   *
    * ✨ OPTIMIZATION: Debounce rapid diagnostics updates to prevent unnecessary re-renders
    */
-  private pendingDiagnostics: Map<string, NodeJS.Timeout> = new Map();
-  private readonly DIAGNOSTICS_DEBOUNCE_MS = 150;
-
   private handleDiagnosticsEvent(language: string, event: any) {
     const handleStart = performance.now();
     const { uri, diagnostics } = event;
-    
-    console.log(`[LSPManager] 📊 Diagnostics received:`, {
-      language,
-      uri,
-      count: diagnostics.length,
-      errors: diagnostics.filter((d: any) => d.severity === 1).length,
-      warnings: diagnostics.filter((d: any) => d.severity === 2).length,
-      timestamp: handleStart,
-    });
 
-    // ✨ OPTIMIZATION: Debounce diagnostics processing
-    // TypeScript server often sends multiple publishDiagnostics in quick succession
-    // We only process the last one to avoid unnecessary work
-    const existingTimeout = this.pendingDiagnostics.get(uri);
-    if (existingTimeout) {
-      console.log(`[LSPManager] 🔄 Debouncing: canceling previous diagnostics update`);
-      clearTimeout(existingTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      this.processDiagnostics(uri, diagnostics, handleStart);
-      this.pendingDiagnostics.delete(uri);
-    }, this.DIAGNOSTICS_DEBOUNCE_MS);
-
-    this.pendingDiagnostics.set(uri, timeout);
+    // Process immediately — diagnostics appear in Problems with minimal delay
+    this.processDiagnostics(uri, diagnostics, handleStart);
   }
 
   /**
    * Process diagnostics (called after debounce delay)
    */
   private processDiagnostics(uri: string, diagnostics: Diagnostic[], startTime: number) {
-    console.log(`[LSPManager] 📤 Processing debounced diagnostics after ${this.DIAGNOSTICS_DEBOUNCE_MS}ms`);
-
     // Create diagnostics event
     const diagEvent: DiagnosticsEvent = {
       uri,
@@ -194,31 +159,25 @@ class LSPManager {
     };
 
     // 1. Update store (single source of truth)
-    const storeStart = performance.now();
     useDiagnosticsStore.getState().setDiagnostics(uri, diagnostics);
-    console.log(`[LSPManager] ⏱️  Store update took:`, performance.now() - storeStart, 'ms');
+
+    // Signal FooterBar: diagnostics are ready, hide progress bar
+    if (!this.diagnosticsReadyDispatched && diagnostics.length > 0) {
+      this.diagnosticsReadyDispatched = true;
+      window.dispatchEvent(new CustomEvent('lsp:diagnostics:ready'));
+    }
 
     // 2. Sync to Monaco for inline display
-    const monacoSyncStart = performance.now();
     monacoAdapter.syncMarkers(uri, diagnostics);
-    console.log(`[LSPManager] ⏱️  Monaco sync took:`, performance.now() - monacoSyncStart, 'ms');
 
     // 3. Notify file-specific listeners (optional)
-    const notifyStart = performance.now();
     this.notifyListeners(uri, diagEvent);
-    console.log(`[LSPManager] ⏱️  Listener notification took:`, performance.now() - notifyStart, 'ms');
-
-    console.log(`[LSPManager] ⏱️  TOTAL handleDiagnostics took:`, performance.now() - startTime, 'ms');
 
     // Log summary (only for non-empty diagnostics)
     if (diagnostics.length > 0) {
-      console.groupCollapsed(`[LSPManager] 📋 ${diagnostics.length} diagnostic(s) for ${this.getFileName(uri)}`);
-      diagnostics.forEach((d: Diagnostic, i: number) => {
-        const severity = d.severity === 1 ? '❌' : d.severity === 2 ? '⚠️' : 'ℹ️';
-        const line = d.range.start.line + 1;
-        const col = d.range.start.character + 1;
-        console.log(`${i + 1}. ${severity} [${line}:${col}] ${d.message}`);
-      });
+      console.groupCollapsed(
+        `[LSPManager] 📋 ${diagnostics.length} diagnostic(s) for ${this.getFileName(uri)}`,
+      );
       console.groupEnd();
     }
   }
@@ -233,7 +192,6 @@ class LSPManager {
     }
 
     this.diagnosticsListeners.get(uri)!.add(listener);
-    console.log(`[LSPManager] 📝 Subscribed to diagnostics for ${this.getFileName(uri)}`);
 
     // Return unsubscribe function
     return () => {
@@ -244,7 +202,6 @@ class LSPManager {
           this.diagnosticsListeners.delete(uri);
         }
       }
-      console.log(`[LSPManager] 🔕 Unsubscribed from diagnostics for ${this.getFileName(uri)}`);
     };
   }
 
@@ -254,7 +211,6 @@ class LSPManager {
   private notifyListeners(uri: string, event: DiagnosticsEvent) {
     const listeners = this.diagnosticsListeners.get(uri);
     if (listeners && listeners.size > 0) {
-      console.log(`[LSPManager] 📢 Notifying ${listeners.size} listener(s) for ${this.getFileName(uri)}`);
       listeners.forEach((listener) => {
         try {
           listener(event);
@@ -290,7 +246,6 @@ class LSPManager {
    * Clear diagnostics for a file
    */
   clearDiagnostics(uri: string) {
-    console.log(`[LSPManager] 🗑️  Clearing diagnostics for ${this.getFileName(uri)}`);
     useDiagnosticsStore.getState().clearDiagnostics(uri);
     monacoAdapter.clearMarkers(uri);
   }
@@ -299,7 +254,6 @@ class LSPManager {
    * Clear all diagnostics
    */
   clearAllDiagnostics() {
-    console.log('[LSPManager] 🗑️  Clearing all diagnostics');
     useDiagnosticsStore.getState().clearAll();
     // Monaco markers will be cleared when models are disposed
   }

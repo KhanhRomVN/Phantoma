@@ -15,10 +15,10 @@ import { useDiagnosticsStore } from '../stores/diagnosticsStore';
  */
 function getServerLanguage(languageId: string): string {
   const mapping: Record<string, string> = {
-    'typescriptreact': 'typescript',
-    'javascriptreact': 'javascript',
+    typescriptreact: 'typescript',
+    javascriptreact: 'javascript',
   };
-  
+
   return mapping[languageId] || languageId;
 }
 
@@ -56,35 +56,29 @@ class LSPClientManager {
 
   /**
    * Start a language server for a specific language
+   * Progress is based on real milestones, not simulated time.
    */
   async startLanguageServer(config: LSPClientConfig): Promise<void> {
-    const startTime = performance.now();
+    const emit = (progress: number) => {
+      window.dispatchEvent(new CustomEvent('lsp:init:progress', { detail: { progress } }));
+    };
 
-    // Emit init start event
     window.dispatchEvent(
       new CustomEvent('lsp:init:start', {
         detail: { language: config.language, file: config.workspaceRoot },
       }),
     );
-
-    // Simulate progress updates during initialization
-    const progressInterval = setInterval(() => {
-      const elapsed = performance.now() - startTime;
-      const progress = Math.min((elapsed / 2000) * 100, 95);
-      window.dispatchEvent(
-        new CustomEvent('lsp:init:progress', {
-          detail: { progress },
-        }),
-      );
-    }, 100);
+    emit(5);
 
     if (this.activeServers.has(config.language)) {
-      clearInterval(progressInterval);
+      emit(100);
       window.dispatchEvent(new CustomEvent('lsp:init:complete'));
       return;
     }
 
     try {
+      emit(10); // Sending IPC to main process
+
       const result = await window.api.invoke('lsp:start-server', {
         language: config.language,
         command: config.serverCommand,
@@ -93,6 +87,8 @@ class LSPClientManager {
       });
 
       if (result.success) {
+        emit(50); // Server spawned + initialized
+
         this.activeServers.set(config.language, {
           language: config.language,
           process: result.serverId,
@@ -100,25 +96,19 @@ class LSPClientManager {
         });
 
         this.setupLanguageFeatures(config.language, result.capabilities);
-        
-        clearInterval(progressInterval);
-        window.dispatchEvent(
-          new CustomEvent('lsp:init:progress', {
-            detail: { progress: 100 },
-          }),
-        );
+        emit(80); // Monaco features registered
+
+        emit(95); // Server ready — 100% only when diagnostics arrive
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('lsp:init:complete'));
         }, 100);
       } else {
         console.error(`[LSPClient] ❌ Failed to start server:`, result.error);
-        clearInterval(progressInterval);
         window.dispatchEvent(new CustomEvent('lsp:init:complete'));
         throw new Error(`Failed to start language server: ${result.error}`);
       }
     } catch (error) {
       console.error(`[LSPClient] ❌ Exception starting server for ${config.language}:`, error);
-      clearInterval(progressInterval);
       window.dispatchEvent(new CustomEvent('lsp:init:complete'));
       if (error instanceof Error) {
         console.error('[LSPClient] Stack:', error.stack);
@@ -499,8 +489,6 @@ class LSPClientManager {
   ): Promise<void> {
     const serverLanguage = getServerLanguage(language);
 
-    console.log(`[LSPClient] 📂 Sending didOpen`, { uri });
-
     try {
       return window.api
         .invoke('lsp:didOpen', {
@@ -586,8 +574,6 @@ class LSPClientManager {
   notifyDocumentClosed(language: string, uri: string): void {
     const serverLanguage = getServerLanguage(language);
 
-    console.log('[LSPClient] 📄 Sending didClose', { uri });
-
     try {
       window.api
         .invoke('lsp:didClose', {
@@ -672,6 +658,11 @@ export const LSP_SERVER_CONFIGS: Record<string, LSPClientConfig> = {
 };
 
 /**
+ * Cache in-flight start promises để dedup khi nhiều CodeBlock mount cùng lúc
+ */
+const startingServers = new Map<string, Promise<void>>();
+
+/**
  * Auto-start language server when opening a file
  */
 export async function autoStartLanguageServer(
@@ -681,9 +672,12 @@ export async function autoStartLanguageServer(
   // Map React variants to base languages
   // TypeScript Language Server handles both .ts and .tsx files
   // We need to start the "typescript" server for "typescriptreact" files
-  const serverLanguage = language === 'typescriptreact' ? 'typescript' 
-                       : language === 'javascriptreact' ? 'javascript'
-                       : language;
+  const serverLanguage =
+    language === 'typescriptreact'
+      ? 'typescript'
+      : language === 'javascriptreact'
+        ? 'javascript'
+        : language;
 
   const config = LSP_SERVER_CONFIGS[serverLanguage];
   if (!config) {
@@ -694,8 +688,20 @@ export async function autoStartLanguageServer(
     return;
   }
 
-  await lspClientManager.startLanguageServer({
+  const existingPromise = startingServers.get(serverLanguage);
+  if (existingPromise) {
+    return existingPromise;
+  }
+
+  const promise = lspClientManager.startLanguageServer({
     ...config,
     workspaceRoot,
   });
+  startingServers.set(serverLanguage, promise);
+
+  try {
+    await promise;
+  } finally {
+    startingServers.delete(serverLanguage);
+  }
 }

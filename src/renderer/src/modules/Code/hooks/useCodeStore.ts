@@ -29,7 +29,25 @@ export interface Project {
   dirVersions: Record<string, number>;
 }
 
-export type ProjectInput = Omit<Project, 'id' | 'services' | 'files' | 'expandedFolderIds' | 'openFiles' | 'fileDisplayNames' | 'fileNodeMap' | 'activeFileTabId' | 'currentServiceId' | 'currentFileId' | 'bottomPanelTab' | 'isBottomPanelOpen' | 'activityPanelTab' | 'unsavedFiles' | 'originalContents' | 'dirVersions'>;
+export type ProjectInput = Omit<
+  Project,
+  | 'id'
+  | 'services'
+  | 'files'
+  | 'expandedFolderIds'
+  | 'openFiles'
+  | 'fileDisplayNames'
+  | 'fileNodeMap'
+  | 'activeFileTabId'
+  | 'currentServiceId'
+  | 'currentFileId'
+  | 'bottomPanelTab'
+  | 'isBottomPanelOpen'
+  | 'activityPanelTab'
+  | 'unsavedFiles'
+  | 'originalContents'
+  | 'dirVersions'
+>;
 
 export interface Service {
   id: string;
@@ -129,9 +147,7 @@ export const useCodeStore = create<CodeState>()(
         const state = get();
         if (!state.currentProjectId) return;
         set({
-          projects: state.projects.map((p) =>
-            p.id === state.currentProjectId ? updater(p) : p,
-          ),
+          projects: state.projects.map((p) => (p.id === state.currentProjectId ? updater(p) : p)),
         });
       };
 
@@ -141,7 +157,6 @@ export const useCodeStore = create<CodeState>()(
         const migratedProjects = state.projects.map((project) => {
           const validServices = project.services.filter((service) => {
             if (service.type === 'extension' && !service.extensionId) {
-              console.log('[Migration] Removing old extension service:', service.id);
               return false;
             }
             return true;
@@ -150,8 +165,8 @@ export const useCodeStore = create<CodeState>()(
           return {
             ...project,
             services: validServices,
-            currentServiceId: validServices.find(s => s.id === project.currentServiceId) 
-              ? project.currentServiceId 
+            currentServiceId: validServices.find((s) => s.id === project.currentServiceId)
+              ? project.currentServiceId
               : null,
           };
         });
@@ -249,8 +264,7 @@ export const useCodeStore = create<CodeState>()(
                 ? {
                     ...p,
                     services: p.services.filter((s) => s.id !== serviceId),
-                    currentServiceId:
-                      p.currentServiceId === serviceId ? null : p.currentServiceId,
+                    currentServiceId: p.currentServiceId === serviceId ? null : p.currentServiceId,
                   }
                 : p,
             ),
@@ -263,9 +277,7 @@ export const useCodeStore = create<CodeState>()(
               p.id === projectId
                 ? {
                     ...p,
-                    services: p.services.map((s) =>
-                      s.id === serviceId ? { ...s, status } : s,
-                    ),
+                    services: p.services.map((s) => (s.id === serviceId ? { ...s, status } : s)),
                   }
                 : p,
             ),
@@ -273,8 +285,8 @@ export const useCodeStore = create<CodeState>()(
         },
 
         setCurrentService: (serviceId) => {
-          updateCurrentProject((p) => ({ 
-            ...p, 
+          updateCurrentProject((p) => ({
+            ...p,
             currentServiceId: serviceId,
             activeFileTabId: null,
           }));
@@ -289,9 +301,7 @@ export const useCodeStore = create<CodeState>()(
               const names = displayName
                 ? { ...p.fileDisplayNames, [fileId]: displayName }
                 : p.fileDisplayNames;
-              const nodeMap = fileNode
-                ? { ...p.fileNodeMap, [fileId]: fileNode }
-                : p.fileNodeMap;
+              const nodeMap = fileNode ? { ...p.fileNodeMap, [fileId]: fileNode } : p.fileNodeMap;
               return {
                 ...p,
                 openFiles: [...p.openFiles, fileId],
@@ -327,8 +337,8 @@ export const useCodeStore = create<CodeState>()(
         },
 
         setActiveFileTab: (fileId) => {
-          updateCurrentProject((p) => ({ 
-            ...p, 
+          updateCurrentProject((p) => ({
+            ...p,
             activeFileTabId: fileId,
             currentServiceId: null,
           }));
@@ -356,9 +366,7 @@ export const useCodeStore = create<CodeState>()(
 
         setProjectFiles: (projectId, files) => {
           set((state) => ({
-            projects: state.projects.map((p) =>
-              p.id === projectId ? { ...p, files } : p,
-            ),
+            projects: state.projects.map((p) => (p.id === projectId ? { ...p, files } : p)),
           }));
         },
 
@@ -410,9 +418,7 @@ export const useCodeStore = create<CodeState>()(
 
         hydrateProjectFiles: (projectId, files) => {
           set((state) => ({
-            projects: state.projects.map((p) =>
-              p.id === projectId ? { ...p, files } : p,
-            ),
+            projects: state.projects.map((p) => (p.id === projectId ? { ...p, files } : p)),
           }));
         },
 

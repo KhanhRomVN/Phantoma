@@ -62,6 +62,41 @@ function stopWatching(projectPath: string): void {
   }
 }
 
+// ─── Per-file Watcher ────────────────────────────────────────────────────────
+
+const fileWatchers = new Map<string, FSWatcher>();
+
+function startWatchingFile(filePath: string, sender: Electron.WebContents): void {
+  if (fileWatchers.has(filePath)) return;
+
+  const watcher = chokidar.watch(filePath, {
+    persistent: true,
+    ignoreInitial: true,
+    atomic: true,
+  });
+
+  watcher.on('change', () => {
+    try {
+      const stat = fs.statSync(filePath);
+      sender.send('fs:file-changed', { filePath, mtime: stat.mtimeMs });
+    } catch {}
+  });
+
+  watcher.on('error', (err: Error) => {
+    console.error(`[fs:file-watcher] Error watching ${filePath}:`, err.message);
+  });
+
+  fileWatchers.set(filePath, watcher);
+}
+
+function stopWatchingFile(filePath: string): void {
+  const watcher = fileWatchers.get(filePath);
+  if (watcher) {
+    watcher.close();
+    fileWatchers.delete(filePath);
+  }
+}
+
 // ─── Certificate ────────────────────────────────────────────────────────────
 
 export async function installSystemCA(): Promise<boolean> {
@@ -99,6 +134,14 @@ export function setupFSHandlers() {
   // File read/write
   ipcMain.handle('fs:read-file', async (_, filePath: string) => {
     if (!fs.existsSync(filePath)) throw new Error('File not found: ' + filePath);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const stat = fs.statSync(filePath);
+      if (content.length > 0 || stat.size === 0) return content;
+      if (attempt < 4) {
+        await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
+      }
+    }
     return fs.readFileSync(filePath, 'utf-8');
   });
 
@@ -297,6 +340,17 @@ export function setupFSHandlers() {
 
   ipcMain.handle('fs:unwatch-dir', async (_, projectPath: string) => {
     stopWatching(projectPath);
+    return true;
+  });
+
+  // Per-file watcher
+  ipcMain.handle('fs:watch-file', async (event, filePath: string) => {
+    startWatchingFile(filePath, event.sender);
+    return true;
+  });
+
+  ipcMain.handle('fs:unwatch-file', async (_, filePath: string) => {
+    stopWatchingFile(filePath);
     return true;
   });
 

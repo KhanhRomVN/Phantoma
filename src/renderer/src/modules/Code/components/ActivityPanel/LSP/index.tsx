@@ -59,16 +59,12 @@ export function LSPPanel() {
     setError(null);
 
     try {
-      console.log('[LSP] Installing', server.name, '...');
-
       // Simulate installation (in real app, this would call IPC to install via npm/system)
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Mark as installed
       markLSPInstalled(server.id);
       loadServers();
-
-      console.log('[LSP] Installed', server.name);
     } catch (err) {
       console.error('[LSP] Failed to install', server.name, ':', err);
       setError(`Failed to install ${server.name}`);
@@ -82,8 +78,6 @@ export function LSPPanel() {
     setError(null);
 
     try {
-      console.log('[LSP] Uninstalling', serverId, '...');
-
       // Simulate uninstallation
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -93,8 +87,6 @@ export function LSPPanel() {
       localStorage.setItem('lsp-installed-servers', JSON.stringify(filtered));
 
       loadServers();
-
-      console.log('[LSP] Uninstalled', serverId);
     } catch (err) {
       console.error('[LSP] Failed to uninstall', serverId, ':', err);
       setError(`Failed to uninstall server`);
@@ -235,7 +227,8 @@ function LSPServerItem({ server, onInstall, onUninstall, loading }: LSPServerIte
               onError={(e) => {
                 // Fallback to Terminal icon if image fails to load
                 e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>';
+                e.currentTarget.parentElement!.innerHTML =
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>';
               }}
             />
           ) : (
@@ -246,9 +239,7 @@ function LSPServerItem({ server, onInstall, onUninstall, loading }: LSPServerIte
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-xs font-medium text-text-primary truncate flex-1">
-              {server.name}
-            </h3>
+            <h3 className="text-xs font-medium text-text-primary truncate flex-1">{server.name}</h3>
             {server.installed && (
               <span className="flex items-center gap-1 text-[10px] text-emerald-400 shrink-0">
                 <CheckCircle className="w-3 h-3" />
@@ -262,9 +253,7 @@ function LSPServerItem({ server, onInstall, onUninstall, loading }: LSPServerIte
           </p>
 
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] text-accent truncate">
-              {server.language}
-            </span>
+            <span className="text-[10px] text-accent truncate">{server.language}</span>
 
             <div className="flex items-center gap-1 shrink-0">
               {server.homepage && (

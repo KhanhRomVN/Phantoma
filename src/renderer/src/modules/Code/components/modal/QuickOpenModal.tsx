@@ -6,6 +6,18 @@ import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 import { cn } from '@renderer/shared/utils/cn';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
+// ─── Preload scanDirectory (once at module level, not per modal open) ────────
+let _scanDirFn: ((dirPath: string) => Promise<FileNode[]>) | null = null;
+let _scanDirLoading = false;
+function _preloadScanner(): void {
+  if (_scanDirFn || _scanDirLoading) return;
+  _scanDirLoading = true;
+  import('../ProjectTabBar/OpenProjectModal').then(function (m) {
+    _scanDirFn = m.scanDirectory;
+  });
+}
+_preloadScanner();
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface FlatFileEntry {
   name: string;
@@ -94,12 +106,11 @@ function flattenFiles(
 ): FlatFileEntry[] {
   const result: FlatFileEntry[] = [];
   for (const node of nodes) {
-    // Skip ignored directories and files
     if (shouldIgnoreFile(node.name, node.type !== 'file' || !!node.children?.length)) {
       continue;
     }
 
-    const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+    const fullPath = parentPath ? parentPath + '/' + node.name : node.name;
 
     if (node.type === 'file' && !shouldIgnoreFile(node.name, false)) {
       const parts = node.name.split('.');
@@ -116,19 +127,6 @@ function flattenFiles(
     if (node.children && node.children.length > 0) {
       result.push(...flattenFiles(node.children, unsavedFiles, fullPath, depth + 1));
     }
-  }
-
-  // Log depth info for debugging
-  if (depth === 0) {
-    // Count nodes by depth
-    const depthCounts: Record<number, number> = {};
-    const countDepth = (n: FileNode[], d: number) => {
-      depthCounts[d] = (depthCounts[d] || 0) + n.length;
-      n.forEach((node) => {
-        if (node.children) countDepth(node.children, d + 1);
-      });
-    };
-    countDepth(nodes, 0);
   }
 
   return result;
@@ -197,6 +195,8 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const keyboardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Cache: only rescan when project path changes (not on every modal open/close)
+  const cachedPathRef = useRef<string>('');
 
   const project = useCodeStore((s) => {
     const p = s.projects.find((pr) => pr.id === s.currentProjectId);
@@ -205,42 +205,53 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
   const openFile = useCodeStore((s) => s.openFile);
   const setActiveFileTab = useCodeStore((s) => s.setActiveFileTab);
 
-  // Scan all files when modal opens
+  // Scan files on first open or when project path changes (cache survives close)
   useEffect(() => {
-    if (isOpen && project?.path) {
-      setIsScanning(true);
+    if (!isOpen || !project?.path) return;
 
-      import('../ProjectTabBar/OpenProjectModal').then(({ scanDirectory }) => {
-        scanDirectory(project.path).then((fileNodes) => {
-          const files = flattenFiles(fileNodes, project.unsavedFiles);
-          setScannedFiles(files);
-          setIsScanning(false);
-        });
+    // Already cached for this project path – skip scan
+    if (cachedPathRef.current === project.path && scannedFiles.length > 0) {
+      setIsScanning(false);
+      return;
+    }
+
+    setIsScanning(true);
+    cachedPathRef.current = project.path;
+
+    // Use preloaded scanDirectory or wait for it
+    const doScan = (scanFn: typeof _scanDirFn) => {
+      if (!scanFn) return;
+      scanFn(project.path).then((fileNodes) => {
+        // Guard: project may have changed during async scan
+        if (cachedPathRef.current !== project.path) return;
+        const files = flattenFiles(fileNodes, project.unsavedFiles);
+        setScannedFiles(files);
+        setIsScanning(false);
+      });
+    };
+
+    if (_scanDirFn) {
+      doScan(_scanDirFn);
+    } else {
+      // Module still loading – wait for it
+      import('../ProjectTabBar/OpenProjectModal').then((m) => {
+        _scanDirFn = m.scanDirectory;
+        doScan(_scanDirFn);
       });
     }
-  }, [isOpen, project?.path, project?.unsavedFiles]);
+  }, [isOpen, project?.path, project?.unsavedFiles, scannedFiles.length]);
 
   const allFiles = useMemo<FlatFileEntry[]>(() => {
-    if (!project) {
-      return [];
-    }
+    if (!project) return [];
 
-    // Combine files from:
-    // 1. Scanned files (if available)
-    // 2. project.files (initial scan)
-    // 3. project.fileNodeMap (all opened files, including lazy-loaded ones)
     let files: FlatFileEntry[] = [];
 
     if (scannedFiles.length > 0) {
       files = scannedFiles;
     } else {
-      // Start with project.files
       files = flattenFiles(project.files, project.unsavedFiles);
 
-      // Add opened files that might not be in project.files (lazy-loaded)
       const fileNodeMapEntries = Object.entries(project.fileNodeMap);
-
-      let addedCount = 0;
       for (const [fileId, node] of fileNodeMapEntries) {
         if (node.type === 'file') {
           const exists = files.some((f) => f.node.id === fileId);
@@ -254,7 +265,6 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
               modified: project.unsavedFiles.has(fileId),
               node,
             });
-            addedCount++;
           }
         }
       }
@@ -269,7 +279,6 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
 
   const filteredFiles = useMemo<SearchResult[]>(() => {
     if (!search.trim()) {
-      // No query: recently opened first, then the rest alphabetically
       const recent: SearchResult[] = [];
       const rest: SearchResult[] = [];
       for (const file of allFiles) {
@@ -284,7 +293,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
       return [...recent, ...rest];
     }
 
-    const results = allFiles
+    return allFiles
       .map((file) => {
         const searchTarget = file.name + ' ' + file.path;
         const result = fuzzyMatch(search, searchTarget);
@@ -296,7 +305,6 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
         file: x.file,
         indices: x.result.indices.filter((i) => i < x.file.name.length),
       }));
-    return results;
   }, [allFiles, search, recentSet]);
 
   // Reset selected index when results change
@@ -312,11 +320,8 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
       setSearch('');
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 80);
-    } else {
-      // Reset scanned files when modal closes
-      setScannedFiles([]);
-      setIsScanning(false);
     }
+    // NOTE: no longer reset scannedFiles on close – cache survives
   }, [isOpen]);
 
   // Keyboard navigation
@@ -350,7 +355,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
   // Scroll selected item into view
   useEffect(() => {
     if (listRef.current) {
-      const el = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
+      const el = listRef.current.querySelector('[data-index="' + selectedIndex + '"]');
       if (el) el.scrollIntoView({ block: 'nearest' });
     }
   }, [selectedIndex]);
@@ -394,7 +399,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
             </div>
           ) : filteredFiles.length === 0 ? (
             <div className="text-center py-8 text-text-secondary/50 text-xs">
-              {search.trim() ? `No files matching "${search}"` : 'No files in project'}
+              {search.trim() ? 'No files matching "' + search + '"' : 'No files in project'}
             </div>
           ) : (
             <>
@@ -404,10 +409,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
                   ? item.file.path.substring(0, item.file.path.lastIndexOf('/') + 1)
                   : '';
 
-                // Group label "Recently opened" before first item (when no search)
                 const showRecentLabel = !search.trim() && index === 0 && recentCount > 0;
-
-                // Group label "Other files" after recently opened
                 const showOtherLabel =
                   !search.trim() &&
                   index === recentCount &&
@@ -439,10 +441,8 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
                         if (!isKeyboardNav) setSelectedIndex(index);
                       }}
                     >
-                      {/* File icon */}
                       <img src={iconPath} alt="" className="w-[21px] h-[21px] shrink-0" />
 
-                      {/* File name + path */}
                       <div className="flex-1 min-w-0 flex items-center gap-0">
                         <span className="font-mono text-[12.5px] font-medium text-text-primary whitespace-nowrap shrink-0">
                           {highlightText(item.file.name, item.indices)}
@@ -454,7 +454,6 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
                         )}
                       </div>
 
-                      {/* Modified indicator */}
                       {item.file.modified && (
                         <span
                           className="w-1.5 h-1.5 rounded-full bg-[#5fd9a4] shrink-0"

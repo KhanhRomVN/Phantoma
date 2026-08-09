@@ -1,6 +1,6 @@
 /**
  * Language Server Manager
- * 
+ *
  * Manages TypeScript/JavaScript language servers in Main Process.
  * Forwards LSP messages between Renderer and Language Server via IPC.
  */
@@ -44,12 +44,6 @@ class LanguageServerProcess {
 
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log(`[LanguageServer] Starting ${this.languageId} server...`, {
-        command: this.config.command,
-        args: this.config.args,
-        cwd: this.config.cwd,
-      });
-
       // Check if command exists
       if (!fs.existsSync(this.config.command)) {
         reject(new Error(`Language server binary not found: ${this.config.command}`));
@@ -77,8 +71,7 @@ class LanguageServerProcess {
         });
 
         // Handle process exit
-        this.process.on('exit', (code, signal) => {
-          console.log(`[LanguageServer:${this.languageId}] Process exited`, { code, signal });
+        this.process.on('exit', () => {
           this.process = null;
         });
 
@@ -88,7 +81,6 @@ class LanguageServerProcess {
           reject(error);
         });
 
-        console.log(`[LanguageServer] ${this.languageId} server started (PID: ${this.process.pid})`);
         resolve();
       } catch (error) {
         console.error(`[LanguageServer] Failed to start ${this.languageId} server:`, error);
@@ -131,15 +123,13 @@ class LanguageServerProcess {
    */
   private sendMessageToRenderer(message: LSPMessage): void {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
-      console.warn(`[LanguageServer:${this.languageId}] Cannot send message - window not available`);
+      console.warn(
+        `[LanguageServer:${this.languageId}] Cannot send message - window not available`,
+      );
       return;
     }
 
     this.mainWindow.webContents.send(`lsp:message:${this.languageId}`, message);
-    console.log(`[LanguageServer:${this.languageId}] → Renderer:`, {
-      method: message.method || 'response',
-      id: message.id,
-    });
   }
 
   /**
@@ -156,15 +146,10 @@ class LanguageServerProcess {
     const fullMessage = header + content;
 
     this.process.stdin.write(fullMessage, 'utf8');
-    console.log(`[LanguageServer:${this.languageId}] ← Renderer:`, {
-      method: message.method,
-      id: message.id,
-    });
   }
 
   stop(): void {
     if (this.process) {
-      console.log(`[LanguageServer] Stopping ${this.languageId} server...`);
       this.process.kill();
       this.process = null;
     }
@@ -184,7 +169,6 @@ class LanguageServerManager {
   initialize(mainWindow: BrowserWindow): void {
     this.mainWindow = mainWindow;
     this.setupIPCHandlers();
-    console.log('[LanguageServerManager] Initialized');
   }
 
   /**
@@ -210,8 +194,6 @@ class LanguageServerManager {
     ipcMain.handle('lsp:stop-server', async (_event, { languageId }) => {
       return this.stopLanguageServer(languageId);
     });
-
-    console.log('[LanguageServerManager] IPC handlers registered');
   }
 
   /**
@@ -220,7 +202,6 @@ class LanguageServerManager {
   async startLanguageServer(languageId: string, workspaceRoot: string): Promise<void> {
     // Check if already running
     if (this.servers.has(languageId) && this.servers.get(languageId)!.isRunning()) {
-      console.log(`[LanguageServerManager] Server already running: ${languageId}`);
       return;
     }
 
@@ -277,10 +258,15 @@ class LanguageServerManager {
   private getTypeScriptServerConfig(workspaceRoot: string): LanguageServerConfig {
     // Use typescript-language-server (npm package)
     // Command: typescript-language-server --stdio
-    const tsServerPath = this.findNodeModule('typescript-language-server', 'bin/typescript-language-server');
+    const tsServerPath = this.findNodeModule(
+      'typescript-language-server',
+      'bin/typescript-language-server',
+    );
 
     if (!tsServerPath) {
-      throw new Error('typescript-language-server not found. Install: npm install -g typescript-language-server');
+      throw new Error(
+        'typescript-language-server not found. Install: npm install -g typescript-language-server',
+      );
     }
 
     return {
@@ -336,7 +322,6 @@ class LanguageServerManager {
    * Stop all language servers
    */
   stopAll(): void {
-    console.log('[LanguageServerManager] Stopping all language servers...');
     this.servers.forEach((server) => server.stop());
     this.servers.clear();
   }

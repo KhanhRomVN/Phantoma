@@ -133,13 +133,6 @@ function configureTypeScriptDefaults() {
     noSyntaxValidation: false, // Keep syntax validation (fast, no false positives)
     diagnosticCodesToIgnore: [],
   });
-
-  console.log('[CodeBlock] TypeScript compiler options configured:', {
-    moduleResolution: 'Bundler',
-    jsx: 'ReactJSX',
-    target: 'ESNext',
-    diagnostics: 'LSP only (Monaco built-in semantic disabled)',
-  });
 }
 
 /**
@@ -214,8 +207,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     projectRoot,
   } = props;
 
-
-
   const { currentPreset } = useTheme();
   const markFileAsUnsaved = useCodeStore((s) => s.markFileAsUnsaved);
   const markFileAsSaved = useCodeStore((s) => s.markFileAsSaved);
@@ -224,6 +215,8 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
   const editorInstance = useRef<any>(null);
   const modelRef = useRef<any>(null);
   const isModelOwnerRef = useRef<boolean>(false);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const didAddReferenceRef = useRef<boolean>(false);
   const decorationsRef = useRef<string[]>([]);
   const lineDecorationsRef = useRef<string[]>([]);
   const rangeDecorationsRef = useRef<string[]>([]);
@@ -397,16 +390,10 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         const needsLSP = enableLSP && filePath && window.monaco.Uri;
 
         if (needsLSP) {
-          console.log('[CodeBlock] 🔍 LSP Init:', { languageId, filePath });
-
           const uri = window.monaco.Uri.file(filePath);
-
           // Check for existing model
           const existingModel = window.monaco.editor.getModel(uri);
-
           if (existingModel) {
-            console.log('[CodeBlock] ♻️  Reusing existing model');
-
             const existingValue = existingModel.getValue();
             const existingLanguage = existingModel.getLanguageId();
 
@@ -425,7 +412,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
               isModelOwnerRef.current = false;
             }
           } else {
-            console.log('[CodeBlock] 🆕 Creating new model');
             modelRef.current = window.monaco.editor.createModel(code, monacoLanguageId, uri);
             isModelOwnerRef.current = true;
           }
@@ -451,7 +437,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           };
 
           const workspaceRoot = getProjectRoot();
-          const isNewModel = isModelOwnerRef.current;
 
           // Initialize LSP client
           lspClientManager.initialize(window.monaco);
@@ -461,38 +446,34 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
               // Subscribe to diagnostics via LSP Manager
               if (filePath) {
                 const uri = window.monaco.Uri.file(filePath).toString();
-                void lspManager.subscribeToDiagnostics(uri, (event) => {
-                  console.log('[CodeBlock] 🔔 Diagnostics received:', {
-                    uri: event.uri,
-                    count: event.diagnostics.length,
-                  });
-                });
+                // Cleanup previous subscription if any (prevents listener leak on re-render)
+                if (unsubscribeRef.current) {
+                  unsubscribeRef.current();
+                }
+                unsubscribeRef.current = lspManager.subscribeToDiagnostics(uri, () => {});
               }
 
               // ✅ Document Manager: Register reference to this document
               if (modelRef.current && filePath) {
                 const uri = window.monaco.Uri.file(filePath).toString();
                 const text = modelRef.current.getValue();
-                
+
                 // Check if we should send didOpen (first reference)
                 const shouldSendDidOpen = documentManager.addReference(
                   uri,
                   languageId,
                   modelRef.current,
-                  text
+                  text,
                 );
 
+                didAddReferenceRef.current = true;
+
                 if (shouldSendDidOpen) {
-                  console.log('[CodeBlock] 📂 Sending didOpen (first reference)');
-                  
                   try {
                     await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
-                    console.log('[CodeBlock] ✅ didOpen completed');
                   } catch (err) {
                     console.error('[CodeBlock] ❌ didOpen failed:', err);
                   }
-                } else {
-                  console.log('[CodeBlock] ♻️  Document already open, reference added');
                 }
               }
             })
@@ -654,19 +635,31 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     return () => {
       mounted = false;
 
-      // ✅ Document Manager: Unregister reference
-      if (enableLSP && filePath && modelRef.current) {
-        const uri = window.monaco.Uri.file(filePath).toString();
-        
-        // Check if we should send didClose (last reference)
-        const shouldSendDidClose = documentManager.removeReference(uri);
-        
-        if (shouldSendDidClose) {
-          console.log('[CodeBlock] 📄 Sending didClose (last reference removed)');
-          const languageId = detectLanguageId(filePath, language);
-          lspClientManager.notifyDocumentClosed(languageId, uri);
-        } else {
-          console.log('[CodeBlock] ✅ Reference removed, document still open');
+      // ✅ Cleanup LSP subscriptions (prevents listener leak)
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+
+      // ✅ Document Manager: Unregister reference only if file is actually closed
+      // (not on tab switch — openFiles still contains the file)
+      if (enableLSP && filePath && modelRef.current && didAddReferenceRef.current) {
+        const state = useCodeStore.getState();
+        const project = state.projects.find((p) => p.id === state.currentProjectId);
+        const isStillOpen = project?.openFiles.some((fid) => {
+          const node = project.fileNodeMap[fid];
+          return node?.path === filePath;
+        });
+
+        if (!isStillOpen) {
+          const uri = window.monaco.Uri.file(filePath).toString();
+          const shouldSendDidClose = documentManager.removeReference(uri);
+
+          if (shouldSendDidClose) {
+            const languageId = detectLanguageId(filePath, language);
+            lspClientManager.notifyDocumentClosed(languageId, uri);
+          }
+          didAddReferenceRef.current = false;
         }
       }
 
@@ -676,13 +669,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         editorInstance.current = null;
       }
     };
-
-    console.log('[CodeBlock] 📦 useEffect triggered', {
-      wordWrap,
-      codeLength: code.length,
-      filePath,
-      enableLSP,
-    });
   }, [filePath, enableLSP]);
 
   // Set original content when code first loads
@@ -753,35 +739,36 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
       window.monaco.editor.defineTheme(activeThemeName, finalTheme);
       window.monaco.editor.setTheme(activeThemeName);
-      console.log('[CodeBlock] 🎨 Theme updated dynamically');
 
       // Debug: Check if tokenization is working
       if (editorInstance.current && modelRef.current) {
-        const model = modelRef.current;
-        const languageId = model.getLanguageId();
-        console.log('[CodeBlock] 🔍 Tokenization Debug:', {
-          languageId,
-          lineCount: model.getLineCount(),
-          hasMonacoLanguages: !!window.monaco?.languages,
-          registeredLanguages:
-            window.monaco?.languages?.getLanguages?.()?.map((l: any) => l.id) || [],
-        });
+        // Try to tokenize first line — poll until Monaco language worker is ready
+        let attempts = 0;
+        const maxAttempts = 10;
+        const pollInterval = 200;
 
-        // Try to tokenize first line
-        try {
-          const firstLine = model.getLineContent(1);
-          if (firstLine && window.monaco?.editor?.tokenize) {
-            const monacoLang = model.getLanguageId();
-            const tokens = window.monaco.editor.tokenize(firstLine, monacoLang);
-            console.log('[CodeBlock] 🎨 First line tokens:', {
-              line: firstLine.substring(0, 50),
-              monacoLanguage: monacoLang,
-              tokens: tokens[0]?.map((t: any) => ({ type: t.type, offset: t.offset })),
-            });
+        const tryTokenize = () => {
+          if (!modelRef.current || modelRef.current.isDisposed()) return;
+          try {
+            const firstLine = modelRef.current.getLineContent(1);
+            if (firstLine && window.monaco?.editor?.tokenize) {
+              const monacoLang = modelRef.current.getLanguageId();
+              const rawTokens = window.monaco.editor.tokenize(firstLine, monacoLang);
+              const tokens = rawTokens[0]?.map((t: any) => ({ type: t.type, offset: t.offset }));
+              const hasValidTokens = tokens?.length > 0 && tokens[0].type !== '';
+
+              if (hasValidTokens || attempts >= maxAttempts) {
+              } else {
+                attempts++;
+                setTimeout(tryTokenize, pollInterval);
+              }
+            }
+          } catch (e) {
+            console.warn('[CodeBlock] ⚠️ Tokenization check failed:', e);
           }
-        } catch (e) {
-          console.warn('[CodeBlock] ⚠️ Tokenization check failed:', e);
-        }
+        };
+
+        setTimeout(tryTokenize, 300);
       }
     };
 

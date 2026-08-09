@@ -1,6 +1,6 @@
 /**
  * IPC Message Transport
- * 
+ *
  * Custom MessageReader/Writer for Electron IPC communication.
  * Bridges monaco-languageclient with Electron Main Process LSP servers.
  */
@@ -122,8 +122,6 @@ export class IPCMessageReader implements MessageReader {
         this.onErrorEmitter.fire(error as Error);
       }
     });
-
-    console.log(`[IPCMessageReader] 👂 Listening for ${eventName}`);
   }
 }
 
