@@ -14,7 +14,7 @@ import {
 
 // Components
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
-import { CodeBlock, CodeBlockRef } from '@renderer/components/common/CodeBlock';
+import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // Types
 import { NetworkRequest } from '../Home/Filter';

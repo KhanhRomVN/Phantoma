@@ -56,7 +56,7 @@ import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
 import FileIcon from '@renderer/components/common/FileIcon';
 import GitDiffBlock from './blocks/code/GitDiffBlock';
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 
 interface TagRouterProps {
   group: GroupType;

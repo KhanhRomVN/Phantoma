@@ -25,7 +25,7 @@ import FileIcon from '@renderer/components/common/FileIcon';
 import { TagHeader } from '../../TagHeader';
 import ActionBar from '../../ActionBar';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 
 // Helper: map file extension to language for CodeBlock header
 const getLanguageFromPath = (filePath: string): string | undefined => {

@@ -536,7 +536,7 @@ class LSPClientManager {
    * Notify language server that a document was changed
    * This is essential for triggering diagnostics analysis
    *
-   * OPTIMIZED: Debounced to prevent duplicate notifications
+   * ✨ OPTIMIZATION: Increased debounce delay to reduce LSP server load
    */
   notifyDocumentChanged(language: string, uri: string, text: string, version: number): void {
     const notifyStart = performance.now();
@@ -568,10 +568,15 @@ class LSPClientManager {
       clearTimeout(pending.timer);
     }
 
+    // ✨ OPTIMIZATION: Increased debounce delay from 300ms to 500ms
+    // This reduces the number of didChange notifications sent to LSP server
+    // Most users pause for at least 500ms while thinking/typing
+    const OPTIMIZED_DEBOUNCE_DELAY = 500;
+
     // Schedule new notification
     const timer = setTimeout(() => {
       const sendStart = performance.now();
-      console.log(`[LSPClient] 📤 Sending debounced didChange after ${this.DEBOUNCE_DELAY}ms`);
+      console.log(`[LSPClient] 📤 Sending debounced didChange after ${OPTIMIZED_DEBOUNCE_DELAY}ms`);
       
       try {
         window.api
@@ -593,7 +598,7 @@ class LSPClientManager {
 
       // Cleanup
       this.pendingChanges.delete(key);
-    }, this.DEBOUNCE_DELAY);
+    }, OPTIMIZED_DEBOUNCE_DELAY);
 
     this.pendingChanges.set(key, { timer, version });
     console.log(`[LSPClient] ⏱️  notifyDocumentChanged setup took:`, performance.now() - notifyStart, 'ms');

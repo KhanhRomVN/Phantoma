@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Download, Cpu, FolderOpen, File } from 'lucide-react';
 
 // Components
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 
 // Types
 import { ResourceItem } from '../../../../types/resource.types';

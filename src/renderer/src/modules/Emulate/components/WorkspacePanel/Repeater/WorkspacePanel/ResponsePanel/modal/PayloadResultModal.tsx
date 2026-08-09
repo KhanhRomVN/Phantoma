@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 // Components
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
-import { CodeBlock, CodeBlockRef } from '@renderer/components/common/CodeBlock';
+import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // Types
 import type { RunResult } from '../../../../../../types/repeater.types';

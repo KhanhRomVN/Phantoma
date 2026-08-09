@@ -144,7 +144,12 @@ class LSPManager {
   /**
    * Handle incoming diagnostics event
    * This is called when LSP server sends publishDiagnostics
+   * 
+   * ✨ OPTIMIZATION: Debounce rapid diagnostics updates to prevent unnecessary re-renders
    */
+  private pendingDiagnostics: Map<string, NodeJS.Timeout> = new Map();
+  private readonly DIAGNOSTICS_DEBOUNCE_MS = 150;
+
   private handleDiagnosticsEvent(language: string, event: any) {
     const handleStart = performance.now();
     const { uri, diagnostics } = event;
@@ -157,6 +162,29 @@ class LSPManager {
       warnings: diagnostics.filter((d: any) => d.severity === 2).length,
       timestamp: handleStart,
     });
+
+    // ✨ OPTIMIZATION: Debounce diagnostics processing
+    // TypeScript server often sends multiple publishDiagnostics in quick succession
+    // We only process the last one to avoid unnecessary work
+    const existingTimeout = this.pendingDiagnostics.get(uri);
+    if (existingTimeout) {
+      console.log(`[LSPManager] 🔄 Debouncing: canceling previous diagnostics update`);
+      clearTimeout(existingTimeout);
+    }
+
+    const timeout = setTimeout(() => {
+      this.processDiagnostics(uri, diagnostics, handleStart);
+      this.pendingDiagnostics.delete(uri);
+    }, this.DIAGNOSTICS_DEBOUNCE_MS);
+
+    this.pendingDiagnostics.set(uri, timeout);
+  }
+
+  /**
+   * Process diagnostics (called after debounce delay)
+   */
+  private processDiagnostics(uri: string, diagnostics: Diagnostic[], startTime: number) {
+    console.log(`[LSPManager] 📤 Processing debounced diagnostics after ${this.DIAGNOSTICS_DEBOUNCE_MS}ms`);
 
     // Create diagnostics event
     const diagEvent: DiagnosticsEvent = {
@@ -180,9 +208,9 @@ class LSPManager {
     this.notifyListeners(uri, diagEvent);
     console.log(`[LSPManager] ⏱️  Listener notification took:`, performance.now() - notifyStart, 'ms');
 
-    console.log(`[LSPManager] ⏱️  TOTAL handleDiagnostics took:`, performance.now() - handleStart, 'ms');
+    console.log(`[LSPManager] ⏱️  TOTAL handleDiagnostics took:`, performance.now() - startTime, 'ms');
 
-    // Log summary
+    // Log summary (only for non-empty diagnostics)
     if (diagnostics.length > 0) {
       console.groupCollapsed(`[LSPManager] 📋 ${diagnostics.length} diagnostic(s) for ${this.getFileName(uri)}`);
       diagnostics.forEach((d: Diagnostic, i: number) => {

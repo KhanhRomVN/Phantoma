@@ -15,7 +15,7 @@ import {
 import type { ReactNode } from 'react';
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 import { FileTabBar } from '../FileTabBar';
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -212,21 +212,51 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
 
 // ─── ContentPanel ───────────────────────────────────────────────────────────
 
-export const ContentPanel = memo(
-  function ContentPanel() {
-    console.log('[ContentPanel] 🎬 RENDER');
-    
-    // 🚀 OPTIMIZED: Selector cực kỳ chính xác - CHỈ lấy những gì cần
-    const currentProjectId = useCodeStore((s) => s.currentProjectId);
-    const project = useCodeStore((s) => s.projects.find((p) => p.id === currentProjectId));
-    
-    // Chỉ extract những values thực sự cần thiết để render
-    const currentServiceId = project?.currentServiceId ?? null;
-    const openFiles = project?.openFiles ?? [];
-    const activeFileTabId = project?.activeFileTabId ?? null;
-    const fileDisplayNames = project?.fileDisplayNames ?? {};
-    const fileNodeMap = project?.fileNodeMap ?? {};
-    const service = project?.services.find((s) => s.id === currentServiceId);
+export const ContentPanel = memo(function ContentPanel() {
+  console.log('[ContentPanel] 🎬 RENDER');
+
+  // 🚀 ULTRA-OPTIMIZED: Chỉ subscribe vào những fields thực sự cần thiết
+  // Tránh re-render khi các fields khác trong project thay đổi
+  const currentProjectId = useCodeStore((s) => s.currentProjectId);
+  
+  // ✨ CRITICAL FIX: Tách riêng các selectors để tránh re-render không cần thiết
+  const currentServiceId = useCodeStore((s) => {
+    const project = s.projects.find((p) => p.id === currentProjectId);
+    return project?.currentServiceId ?? null;
+  });
+  
+  const activeFileTabId = useCodeStore((s) => {
+    const project = s.projects.find((p) => p.id === currentProjectId);
+    return project?.activeFileTabId ?? null;
+  });
+  
+  const openFiles = useCodeStore((s) => {
+    const project = s.projects.find((p) => p.id === currentProjectId);
+    return project?.openFiles ?? [];
+  });
+  
+  const projectPath = useCodeStore((s) => {
+    const project = s.projects.find((p) => p.id === currentProjectId);
+    return project?.path;
+  });
+
+  // Lookup helpers - chỉ chạy khi cần
+  const getDisplayName = (fileId: string) => {
+    const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+    return project?.fileDisplayNames[fileId] || fileId;
+  };
+
+  const getFileNode = (fileId: string): FileNode | null => {
+    const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+    if (!project) return null;
+    return findFileById(project.files, fileId) || project.fileNodeMap[fileId] || null;
+  };
+
+  const getService = (serviceId: string | null) => {
+    if (!serviceId) return null;
+    const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+    return project?.services.find((s) => s.id === serviceId);
+  };
 
   const [loadedContent, setLoadedContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -235,20 +265,14 @@ export const ContentPanel = memo(
   const showService = currentServiceId !== null;
   const showFile = !showService && activeFileTabId !== null;
 
-  // Resolve fileNode: tìm trong project.files trước, fallback vào fileNodeMap
-  const resolveFileNode = (id: string): FileNode | null => {
-    if (!project) return null;
-    return findFileById(project.files, id) || fileNodeMap[id] || null;
-  };
-
   useEffect(() => {
     // Only load file content when showing file (not service)
-    if (!showFile || !activeFileTabId || !project) {
+    if (!showFile || !activeFileTabId) {
       setLoadedContent(null);
       return;
     }
 
-    const fileNode = resolveFileNode(activeFileTabId);
+    const fileNode = getFileNode(activeFileTabId);
     if (!fileNode) {
       setLoadedContent(null);
       return;
@@ -261,7 +285,7 @@ export const ContentPanel = memo(
       return;
     }
 
-    if (fileNode.content != null && project.files.length > 0) {
+    if (fileNode.content != null && openFiles.length > 0) {
       setLoadedContent(fileNode.content);
       return;
     }
@@ -282,11 +306,13 @@ export const ContentPanel = memo(
     } else {
       setLoadedContent('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showFile, activeFileTabId]); // ✅ Depend on showFile and activeFileTabId
+  }, [showFile, activeFileTabId, openFiles.length]); // ✅ OPTIMIZED: Only depend on length, not entire array
 
   // ── Service selected (priority over file) ──────────────────────────────
-  if (showService && service) {
+  if (showService && currentServiceId) {
+    const service = getService(currentServiceId);
+    if (!service) return null;
+    
     // Check if it's an extension service
     if (service.type === 'extension') {
       // Debug logging
@@ -319,10 +345,7 @@ export const ContentPanel = memo(
 
       console.log('[ContentPanel] Final extensionId:', extensionId);
 
-      return (
-        <div className="flex-1 flex flex-col min-h-0 bg-background">
-        </div>
-      );
+      return <div className="flex-1 flex flex-col min-h-0 bg-background"></div>;
     }
 
     // Regular service (non-extension)
@@ -341,9 +364,9 @@ export const ContentPanel = memo(
   }
 
   // ── Active file ─────────────────────────────────────────────────────────
-  if (showFile && activeFileTabId && openFiles.length > 0 && project) {
-    const fileNode = resolveFileNode(activeFileTabId);
-    const displayName = fileDisplayNames[activeFileTabId] || activeFileTabId;
+  if (showFile && activeFileTabId && openFiles.length > 0) {
+    const fileNode = getFileNode(activeFileTabId);
+    const displayName = getDisplayName(activeFileTabId);
     const category = fileNode ? getFileCategory(fileNode.name) : 'text';
     const filePath = fileNode?.path || '';
 
@@ -353,7 +376,7 @@ export const ContentPanel = memo(
       language: fileNode ? getLanguage(fileNode.name) : 'plaintext',
       filePath: fileNode?.path || undefined,
       fileId: activeFileTabId || undefined,
-      projectRoot: project?.path || undefined,
+      projectRoot: projectPath || undefined,
       showLineNumbers: true,
       wordWrap: 'off' as const,
       enableLSP: true,

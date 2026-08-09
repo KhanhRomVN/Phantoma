@@ -3,13 +3,13 @@ import { forwardRef, useImperativeHandle, useRef, useState, useMemo } from 'reac
 import hljs from 'highlight.js';
 
 // Components
-import { CodeBlock, CodeBlockRef } from '@renderer/components/common/CodeBlock';
+import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // Utils
 import { cn } from '@renderer/shared/utils/cn';
+import { NetworkRequest } from './Filter';
 
 // Types
-import { NetworkRequest } from '../../../../types/inspector';
 
 interface BodyDetailsProps {
   request: NetworkRequest;

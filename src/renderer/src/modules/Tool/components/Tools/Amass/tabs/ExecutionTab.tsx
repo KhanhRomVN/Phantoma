@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { AmassScanParams, TooltipState } from '../types';
 import { buildCommand } from '../utils';
 import { MODES, OUTPUT_FORMATS, COMMON_FLAGS, DATA_SOURCES } from '../constants';
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 import { Play, Save } from 'lucide-react';
 
 interface FlagCategory {

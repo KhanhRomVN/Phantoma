@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 import { Message } from '../../../types/message';
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 import RevertConfirmModal from '@renderer/components/common/RevertConfirmModal';
 
 interface ResponseMetadataBarProps {

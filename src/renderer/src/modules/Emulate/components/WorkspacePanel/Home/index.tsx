@@ -17,7 +17,7 @@ import {
 // Components
 import { HeadersDetails } from './Headers';
 import { BodyDetails, BodyDetailsRef } from './Body';
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 import { CookieDetails } from './Cookie';
 import { InitiatorDetails } from './Initiator';
 import { RequestTable } from './RequestTable';

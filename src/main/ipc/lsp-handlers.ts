@@ -624,29 +624,9 @@ ipcMain.handle('lsp:didChange', async (event, args) => {
     
     console.log(`[LSP:Main] ✅ Sent didChange notification for ${uri}`);
 
-    // Also send didSave to trigger diagnostics immediately
-    // TypeScript server often only publishes diagnostics after save
-    sendNotification(server, 'textDocument/didSave', {
-      textDocument: { uri },
-      text,
-    });
-    console.log(`[LSP:Main] 💾 Sent didSave notification for ${uri}`);
-    
-    // [WORKAROUND] TypeScript server might not analyze standalone files
-    // Send workspace/didChangeConfiguration to trigger re-analysis
-    setTimeout(() => {
-      console.log(`[LSP:Main] 🔄 Sending workspace/didChangeConfiguration to trigger analysis`);
-      sendNotification(server, 'workspace/didChangeConfiguration', {
-        settings: {
-          // Force TypeScript to analyze all files, including standalone
-          typescript: {
-            preferences: {
-              includePackageJsonAutoImports: 'auto'
-            }
-          }
-        }
-      });
-    }, 100);
+    // ✨ OPTIMIZATION: Remove redundant didSave and didChangeConfiguration
+    // TypeScript server will publish diagnostics automatically after didChange
+    // Only send didSave when user actually saves the file (Ctrl+S)
 
     return { success: true };
   } catch (error: any) {

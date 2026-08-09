@@ -2,7 +2,7 @@ import React from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import FileIcon from '@renderer/components/common/FileIcon';
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 import { $ } from '@renderer/utils/color';
 
 const ABSOLUTE_PATH_REGEX = /^(\/[^\s<>"'`]+|[A-Za-z]:\\[^\s<>"'`]+)/;

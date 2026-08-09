@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 // Components
-import { CodeBlock, CodeBlockRef } from '@renderer/components/common/CodeBlock';
+import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // Hooks
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';

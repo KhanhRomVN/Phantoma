@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NmapScanParams, TooltipState } from '../types';
 import { buildCommand } from '../utils';
 import { SCAN_TYPES, TIMING_LABELS, COMMON_FLAGS } from '../constants';
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 import { Play, Save, Square } from 'lucide-react';
 
 // ─── Flag Accordion ────────────────────────────────────────────────────────────

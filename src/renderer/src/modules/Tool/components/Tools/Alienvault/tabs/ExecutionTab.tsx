@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { AlienvaultScanParams, TooltipState } from '../types';
 import { INDICATOR_TYPES } from '../constants';
-import { CodeBlock } from '@renderer/components/common/CodeBlock';
+import CodeBlock from '@renderer/components/common/CodeBlock';
 import { Play, Save } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
 

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Plus, Play, Copy, FileText, Trash2 } from 'lucide-react';
 
 // Components
-import { CodeBlock, CodeBlockRef } from '@renderer/components/common/CodeBlock';
+import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // Utils
 import { cn } from '@renderer/shared/utils/cn';
