@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
+import { fileWatcherService } from '../../services/file-watcher.service';
 import { FileTabBar } from '../FileTabBar';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
@@ -236,6 +237,11 @@ export const ContentPanel = memo(function ContentPanel() {
     return project?.path;
   });
 
+  const unsavedFiles = useCodeStore((s) => {
+    const project = s.projects.find((p) => p.id === currentProjectId);
+    return project?.unsavedFiles ?? new Set<string>();
+  });
+
   // Lookup helpers
   const getDisplayName = (fileId: string) => {
     const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
@@ -319,61 +325,57 @@ export const ContentPanel = memo(function ContentPanel() {
       });
   }, [activeFileTabId, showFile]);
 
+  // ⚠️ DEPRECATED: File watcher moved to fileWatcherService
+  // File watcher now runs independently of component lifecycle
+  // See: src/renderer/src/modules/Code/services/file-watcher.service.ts
+  //
   // Event-driven watcher: lắng nghe fs:file-changed từ main process
   // (chokidar watch file active, độ trễ ~50-100ms thay vì polling 2000ms)
+  // useEffect(() => {
+  //   ... (commented out - file watcher now handled by service)
+  // }, [activeFileTabId, showFile]);
+
+  // NEW: Listen to file changes from fileWatcherService
+  // This updates loadedContents when files change externally
   useEffect(() => {
-    if (!showFile || !activeFileTabId) return;
+    const unsubscribe = fileWatcherService.onFileChange((event) => {
+      const { filePath, content, mtime } = event;
+      
+      // Find fileId for this filePath
+      const state = useCodeStore.getState();
+      const project = state.projects.find((p) => p.id === currentProjectId);
+      if (!project) return;
 
-    const fileNode = getFileNode(activeFileTabId);
-    if (!fileNode?.path) {
-      return;
-    }
+      let targetFileId: string | null = null;
+      for (const fid of project.openFiles) {
+        const node = project.fileNodeMap[fid];
+        if (node && node.path === filePath) {
+          targetFileId = fid;
+          break;
+        }
+      }
 
-    const category = getFileCategory(fileNode.name);
-    if (category !== 'text') {
-      return;
-    }
+      if (!targetFileId) return;
 
-    const filePath = fileNode.path;
-    const fileId = activeFileTabId;
-    const fileName = fileNode.name;
+      console.log('[ContentPanel] 📝 Updating content from file watcher:', filePath);
+      
+      // Update loadedContents
+      setLoadedContents((prev) => ({
+        ...prev,
+        [targetFileId]: content,
+      }));
 
-    // Đăng ký watcher với main process
-    window.api.invoke('fs:watch-file', filePath).catch((err: any) => {
-      console.error(`[ContentPanel] ❌ watch-file failed: ${fileName}`, err);
+      // Update mtime
+      setFileMtimes((prev) => ({
+        ...prev,
+        [targetFileId]: mtime,
+      }));
     });
-
-    // Lắng nghe sự kiện thay đổi từ chokidar
-    const unsubscribe = window.api.on(
-      'fs:file-changed',
-      (_event: any, data: { filePath: string; mtime: number }) => {
-        if (data.filePath !== filePath) return;
-
-        const doRead = (attempt: number) => {
-          window.api
-            .invoke('fs:read-file', filePath)
-            .then((content: string) => {
-              // Race condition guard: nếu file rỗng nhưng vừa có event thay đổi,
-              if (content.length === 0 && attempt < 2) {
-                setTimeout(() => doRead(attempt + 1), 300);
-                return;
-              }
-              setLoadedContents((prev) => ({ ...prev, [fileId]: content || '' }));
-              setFileMtimes((prev) => ({ ...prev, [fileId]: data.mtime }));
-            })
-            .catch((err: any) => {
-              console.error(`[ContentPanel] ❌ Reload failed: ${fileName}`, err);
-            });
-        };
-        doRead(1);
-      },
-    );
 
     return () => {
       unsubscribe();
-      window.api.invoke('fs:unwatch-file', filePath).catch(() => {});
     };
-  }, [activeFileTabId, showFile]);
+  }, [currentProjectId]);
 
   // Load nội dung cho tất cả file text trong openFiles
   useEffect(() => {
@@ -400,7 +402,7 @@ export const ContentPanel = memo(function ContentPanel() {
         return;
       }
 
-      if (fileNode.content != null) {
+      if (fileNode.content != null && unsavedFiles.has(fileId)) {
         setLoadedContents((prev) => ({ ...prev, [fileId]: fileNode.content ?? '' }));
         // Lấy mtime từ disk nếu có path
         if (fileNode.path) {
@@ -504,6 +506,8 @@ export const ContentPanel = memo(function ContentPanel() {
             const filePath = fileNode?.path || '';
             const content = loadedContents[fileId];
             const isLoading = loadingFiles.has(fileId) || content === undefined;
+            
+            console.log('[DEBUG] Rendering file tab:', fileId, 'isActive:', isActive, 'content length:', content?.length, 'isLoading:', isLoading);
 
             return (
               <div

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { electronApp, optimizer } from '@electron-toolkit/utils';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -39,16 +39,11 @@ import {
   setupWindowHandlers,
   setupTerminalHandlers,
   setupGitHandlers,
-  registerExtensionsHandlers,
   setupLoggerHandlers,
 } from './ipc';
 
 // Import LSP handlers
 import './ipc/lsp-handlers';
-import { stopAllLSPServers } from './ipc/lsp-handlers';
-
-// Import app launcher
-import { launchApp } from './app-launcher';
 
 // Ensure certificate directory exists for http-mitm-proxy
 const certDir = path.join(process.cwd(), '.http-mitm-proxy', 'certs');
@@ -109,7 +104,6 @@ app.whenReady().then(async () => {
   setupWindowHandlers();
   setupTerminalHandlers();
   setupGitHandlers();
-  registerExtensionsHandlers();
 
   // Auto-install certificate when proxy session is created
   const originalCreateSession = proxyManager.createSession.bind(proxyManager);

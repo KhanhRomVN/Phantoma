@@ -2,22 +2,119 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
-import { Copy, ClipboardPaste } from 'lucide-react';
+import { Copy, ClipboardPaste, Terminal as TerminalIcon, Trash2 } from 'lucide-react';
 import { Dropdown, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
+import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface TerminalInstance {
+  id: string;
+  name: string;
+  xterm: XTerm | null;
+  fitAddon: FitAddon | null;
+  pid?: number;
+  shell?: string;
+  isAlive: boolean;
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export function Terminal() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<XTerm | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
-  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const respawnDisposableRef = useRef<any>(null);
-  const isUnmountingRef = useRef(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [terminals, setTerminals] = useState<TerminalInstance[]>([]);
+  const [activeTerminalId, setActiveTerminalId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    terminalId?: string;
+  } | null>(null);
+  const [rightPanelWidth, setRightPanelWidth] = useState(224); // 14rem = 224px
+  const [isResizing, setIsResizing] = useState(false);
 
-  const handleContextMenu = useCallback((e: MouseEvent) => {
+  const containerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isUnmountingRef = useRef(false);
+  const initializedTerminalsRef = useRef<Set<string>>(new Set());
+  const hasCreatedInitialTerminalRef = useRef(false);
+  const resizeStartXRef = useRef(0);
+  const resizeStartWidthRef = useRef(0);
+
+  // ── Helper Functions ──────────────────────────────────────────────────────
+
+  const generateTerminalId = useCallback(() => {
+    return `terminal-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  }, []);
+
+  // ── Terminal Management ─────────────────────────────────────────────────
+
+  const createTerminal = useCallback(async () => {
+    const id = generateTerminalId();
+
+    console.log('[Terminal] 🆕 Creating new terminal:', { id });
+
+    setTerminals((prev) => [
+      ...prev,
+      {
+        id,
+        name: 'bash', // Default, will be updated after spawn
+        xterm: null,
+        fitAddon: null,
+        isAlive: false,
+      },
+    ]);
+
+    setActiveTerminalId(id);
+    console.log('[Terminal] ✅ Terminal added to state, activeTerminalId set to:', id);
+  }, [generateTerminalId]);
+
+  const killTerminal = useCallback(
+    async (terminalId: string) => {
+      const terminal = terminals.find((t) => t.id === terminalId);
+      if (!terminal) {
+        console.warn('[Terminal] ⚠️  Cannot kill terminal, not found:', terminalId);
+        return;
+      }
+
+      console.log('[Terminal] 🔪 Killing terminal:', { id: terminalId, name: terminal.name });
+
+      try {
+        await window.api.invoke('terminal:kill', terminalId);
+        console.log('[Terminal] ✅ Terminal killed successfully');
+      } catch (err) {
+        console.error('[Terminal] ❌ Kill failed:', err);
+      }
+
+      // Cleanup
+      terminal.xterm?.dispose();
+      containerRefs.current.delete(terminalId);
+      initializedTerminalsRef.current.delete(terminalId);
+
+      setTerminals((prev) => {
+        const filtered = prev.filter((t) => t.id !== terminalId);
+
+        console.log('[Terminal] 📊 Terminals after kill:', filtered.length);
+
+        // Switch to another terminal if we killed the active one
+        if (terminalId === activeTerminalId && filtered.length > 0) {
+          const newActive = filtered[0].id;
+          console.log('[Terminal] 🔄 Switching active terminal to:', newActive);
+          setActiveTerminalId(newActive);
+        } else if (filtered.length === 0) {
+          console.log('[Terminal] 📭 No terminals left');
+          setActiveTerminalId(null);
+        }
+
+        return filtered;
+      });
+    },
+    [terminals, activeTerminalId],
+  );
+
+  // ── Context Menu ──────────────────────────────────────────────────────────
+
+  const handleContextMenu = useCallback((e: MouseEvent, terminalId: string) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY });
+    setContextMenu({ x: e.clientX, y: e.clientY, terminalId });
   }, []);
 
   const closeContextMenu = useCallback(() => {
@@ -25,177 +122,360 @@ export function Terminal() {
   }, []);
 
   const handleCopy = useCallback(() => {
-    const term = xtermRef.current;
-    if (!term) return;
-    const selection = term.getSelection();
+    const terminalId = contextMenu?.terminalId;
+    if (!terminalId) return;
+
+    const terminal = terminals.find((t) => t.id === terminalId);
+    if (!terminal || !terminal.xterm) return;
+
+    const selection = terminal.xterm.getSelection();
     if (selection) {
       navigator.clipboard.writeText(selection).catch(() => {});
     }
     closeContextMenu();
-  }, [closeContextMenu]);
+  }, [contextMenu, terminals, closeContextMenu]);
 
   const handlePaste = useCallback(() => {
+    const terminalId = contextMenu?.terminalId;
+    if (!terminalId) return;
+
     navigator.clipboard
       .readText()
       .then((text) => {
-        window.api.send('terminal:write', text);
+        window.api.send('terminal:write', { terminalId, data: text });
       })
       .catch(() => {});
     closeContextMenu();
-  }, [closeContextMenu]);
+  }, [contextMenu]);
+
+  // ── Terminal Initialization ─────────────────────────────────────────────
+
+  useEffect(() => {
+    terminals.forEach(async (terminalInstance) => {
+      // Skip if already initialized
+      if (initializedTerminalsRef.current.has(terminalInstance.id)) return;
+
+      const container = containerRefs.current.get(terminalInstance.id);
+      if (!container) return;
+
+      console.log('[Terminal] 🎨 Initializing xterm for:', terminalInstance.id);
+      initializedTerminalsRef.current.add(terminalInstance.id);
+
+      const term = new XTerm({
+        cursorBlink: true,
+        fontSize: 13,
+        fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+        theme: {
+          background: '#12141a',
+          foreground: '#eef0f4',
+          cursor: '#ff9d5c',
+          selectionBackground: 'rgba(255, 157, 92, 0.3)',
+          black: '#2c313d',
+          red: '#ff6b6b',
+          green: '#3ecf8e',
+          yellow: '#ff9d5c',
+          blue: '#5eb3ff',
+          magenta: '#c792ea',
+          cyan: '#4fc7da',
+          white: '#eef0f4',
+          brightBlack: '#565d70',
+          brightRed: '#ff6b6b',
+          brightGreen: '#3ecf8e',
+          brightYellow: '#ff9d5c',
+          brightBlue: '#5eb3ff',
+          brightMagenta: '#c792ea',
+          brightCyan: '#4fc7da',
+          brightWhite: '#ffffff',
+        },
+        allowProposedApi: true,
+        // Fix IME composition (Vietnamese, Chinese, Japanese input)
+        disableStdin: false,
+        convertEol: false,
+        windowsMode: false,
+      });
+
+      console.log('[Terminal] 🎨 XTerm options:', {
+        disableStdin: false,
+        convertEol: false,
+        windowsMode: false,
+      });
+
+      const fitAddon = new FitAddon();
+      term.loadAddon(fitAddon);
+      term.open(container);
+
+      setTimeout(() => {
+        fitAddon.fit();
+      }, 50);
+
+      // Update terminal instance with xterm
+      setTerminals((prev) =>
+        prev.map((t) => (t.id === terminalInstance.id ? { ...t, xterm: term, fitAddon } : t)),
+      );
+
+      // Context menu
+      container.addEventListener('contextmenu', (e) => handleContextMenu(e, terminalInstance.id));
+
+      // PTY output - Register BEFORE spawning shell to catch initial prompt
+      const onData = (_event: any, payload: { terminalId: string; data: string }) => {
+        if (payload.terminalId === terminalInstance.id) {
+          console.log('[Terminal] � Received data from PTY:', {
+            terminalId: payload.terminalId,
+            length: payload.data.length,
+          });
+          term.write(payload.data);
+        }
+      };
+      window.api.on('terminal:data', onData);
+
+      // PTY exit
+      const onExit = (
+        _event: any,
+        payload: { terminalId: string; exitCode: number; signal?: number },
+      ) => {
+        if (payload.terminalId !== terminalInstance.id) return;
+        if (isUnmountingRef.current) return;
+
+        console.log('[Terminal] 💀 Shell exited:', payload);
+
+        const reason = payload.signal
+          ? `signal ${payload.signal}`
+          : `exit code ${payload.exitCode}`;
+        term.writeln(`\r\n\x1b[1;31m●\x1b[0m Shell closed (${reason})`);
+
+        setTerminals((prev) =>
+          prev.map((t) => (t.id === terminalInstance.id ? { ...t, isAlive: false } : t)),
+        );
+      };
+      window.api.on('terminal:exit', onExit);
+
+      // User input
+      term.onData((data) => {
+        console.log('[Terminal] 📤 Sending data to PTY:', {
+          terminalId: terminalInstance.id,
+          length: data.length,
+        });
+        window.api.send('terminal:write', { terminalId: terminalInstance.id, data });
+      });
+
+      // Spawn shell - Do this AFTER registering listeners
+      try {
+        console.log('[Terminal] 🚀 Spawning shell for:', terminalInstance.id);
+        const info = await window.api.invoke('terminal:spawn', terminalInstance.id);
+
+        if (isUnmountingRef.current) return;
+
+        console.log('[Terminal] ✅ Shell spawned:', {
+          terminalId: terminalInstance.id,
+          shell: info.shell,
+          pid: info.pid,
+        });
+
+        // Extract shell name (bash, zsh, powershell, etc.)
+        const shellName = info.shell.split('/').pop()?.split('.')[0] || 'shell';
+
+        setTerminals((prev) =>
+          prev.map((t) =>
+            t.id === terminalInstance.id
+              ? { ...t, name: shellName, pid: info.pid, shell: info.shell, isAlive: true }
+              : t,
+          ),
+        );
+      } catch (err: any) {
+        if (isUnmountingRef.current) return;
+        console.error('[Terminal] ❌ Failed to spawn shell:', err);
+        term.writeln(`\x1b[1;31m✖\x1b[0m Failed to spawn shell: ${err.message}`);
+      }
+    });
+  }, [terminals, handleContextMenu]);
+
+  // ── Resize Handling ──────────────────────────────────────────────────────
 
   const handleResize = useCallback(() => {
-    if (!fitAddonRef.current || !xtermRef.current) return;
-
     if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+
     resizeTimerRef.current = setTimeout(() => {
-      try {
-        fitAddonRef.current!.fit();
-        const { cols, rows } = xtermRef.current!;
-        window.api.send('terminal:resize', { cols, rows });
-      } catch {
-        // ignore
-      }
+      terminals.forEach((t) => {
+        if (t.fitAddon && t.xterm) {
+          try {
+            t.fitAddon.fit();
+            const { cols, rows } = t.xterm;
+            window.api.send('terminal:resize', { terminalId: t.id, cols, rows });
+          } catch {
+            // ignore
+          }
+        }
+      });
     }, 50);
+  }, [terminals]);
+
+  useEffect(() => {
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [handleResize]);
+
+  // ── Right Panel Resize ───────────────────────────────────────────────────
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    setIsResizing(true);
+    resizeStartXRef.current = e.clientX;
+    resizeStartWidthRef.current = rightPanelWidth;
+  }, [rightPanelWidth]);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const deltaX = resizeStartXRef.current - e.clientX;
+    const newWidth = Math.max(150, Math.min(500, resizeStartWidthRef.current + deltaX));
+    setRightPanelWidth(newWidth);
+  }, [isResizing]);
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
   }, []);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    isUnmountingRef.current = false;
-
-    const term = new XTerm({
-      cursorBlink: true,
-      fontSize: 13,
-      fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-      theme: {
-        background: '#12141a',
-        foreground: '#eef0f4',
-        cursor: '#ff9d5c',
-        selectionBackground: 'rgba(255, 157, 92, 0.3)',
-        black: '#2c313d',
-        red: '#ff6b6b',
-        green: '#3ecf8e',
-        yellow: '#ff9d5c',
-        blue: '#5eb3ff',
-        magenta: '#c792ea',
-        cyan: '#4fc7da',
-        white: '#eef0f4',
-        brightBlack: '#565d70',
-        brightRed: '#ff6b6b',
-        brightGreen: '#3ecf8e',
-        brightYellow: '#ff9d5c',
-        brightBlue: '#5eb3ff',
-        brightMagenta: '#c792ea',
-        brightCyan: '#4fc7da',
-        brightWhite: '#ffffff',
-      },
-      allowProposedApi: true,
-    });
-
-    const fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
-    term.open(containerRef.current);
-    fitAddon.fit();
-
-    xtermRef.current = term;
-    fitAddonRef.current = fitAddon;
-
-    containerRef.current.addEventListener('contextmenu', handleContextMenu);
-
-    // ── Spawn shell via node-pty ──
-    window.api
-      .invoke('terminal:spawn')
-      .then((info: { pid: number; shell: string }) => {
-        if (isUnmountingRef.current) return;
-        term.writeln(
-          `\x1b[1;32m●\x1b[0m Shell: \x1b[1;33m${info.shell}\x1b[0m (PID: ${info.pid})\r\n`,
-        );
-      })
-      .catch((err: Error) => {
-        if (isUnmountingRef.current) return;
-        term.writeln(`\x1b[1;31m✖\x1b[0m Không thể khởi tạo shell: ${err.message}`);
-      });
-
-    // Renderer → Main: user input (fire-and-forget, no response needed)
-    term.onData((data) => {
-      window.api.send('terminal:write', data);
-    });
-
-    // Main → Renderer: PTY output
-    const onData = (_event: any, data: string) => {
-      term.write(data);
-    };
-    window.api.on('terminal:data', onData);
-
-    // Main → Renderer: PTY exit
-    const onExit = (_event: any, { exitCode, signal }: { exitCode: number; signal?: number }) => {
-      // Suppress exit message during unmount (e.g. StrictMode double-mount in dev)
-      if (isUnmountingRef.current) return;
-
-      const reason = signal ? `signal ${signal}` : `exit code ${exitCode}`;
-      term.writeln(
-        `\r\n\x1b[1;31m●\x1b[0m Shell đã đóng (${reason}). Gõ phím bất kỳ để khởi tạo lại...`,
-      );
-
-      // Re-spawn on any keypress after exit
-      if (respawnDisposableRef.current) {
-        respawnDisposableRef.current.dispose();
-      }
-      respawnDisposableRef.current = term.onData(() => {
-        if (respawnDisposableRef.current) {
-          respawnDisposableRef.current.dispose();
-          respawnDisposableRef.current = null;
-        }
-        window.api
-          .invoke('terminal:spawn')
-          .then((info: { pid: number; shell: string }) => {
-            if (isUnmountingRef.current) return;
-            term.writeln(
-              `\x1b[1;32m●\x1b[0m Shell: \x1b[1;33m${info.shell}\x1b[0m (PID: ${info.pid})\r\n`,
-            );
-          })
-          .catch(() => {
-            if (isUnmountingRef.current) return;
-            term.writeln('\x1b[1;31m✖\x1b[0m Không thể khởi tạo lại shell\r\n');
-          });
-      });
-    };
-    window.api.on('terminal:exit', onExit);
-
-    window.addEventListener('resize', handleResize);
-
-    const observer = new ResizeObserver(() => {
-      handleResize();
-    });
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResizeMove);
+      window.addEventListener('mouseup', handleResizeEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleResizeMove);
+        window.removeEventListener('mouseup', handleResizeEnd);
+      };
     }
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
+
+  // ── Create First Terminal ───────────────────────────────────────────────
+
+  useEffect(() => {
+    if (terminals.length === 0 && !hasCreatedInitialTerminalRef.current) {
+      hasCreatedInitialTerminalRef.current = true;
+      createTerminal();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Keyboard Shortcuts ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      console.log('[Terminal] ⌨️  Key pressed:', {
+        key: e.key,
+        code: e.code,
+        ctrl: e.ctrlKey,
+        shift: e.shiftKey,
+        alt: e.altKey,
+      });
+
+      // Ctrl+Shift+` to create new terminal
+      // Try both ` and the code for backtick
+      if (e.ctrlKey && e.shiftKey && (e.key === '`' || e.code === 'Backquote')) {
+        e.preventDefault();
+        console.log('[Terminal] 🎯 Ctrl+Shift+` detected - creating new terminal');
+        createTerminal();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    console.log('[Terminal] ✅ Keyboard shortcut listener registered');
 
     return () => {
-      isUnmountingRef.current = true;
-      window.removeEventListener('resize', handleResize);
-      observer.disconnect();
-      window.api.off('terminal:data', onData);
-      window.api.off('terminal:exit', onExit);
-      if (respawnDisposableRef.current) {
-        respawnDisposableRef.current.dispose();
-        respawnDisposableRef.current = null;
-      }
-      window.api.invoke('terminal:kill').catch(() => {});
-      term.dispose();
-      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      containerRef.current?.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('keydown', handleKeyDown);
+      console.log('[Terminal] 🗑️  Keyboard shortcut listener removed');
     };
-  }, [handleResize, handleContextMenu]);
+  }, [createTerminal]);
+
+  // ── Cleanup on Unmount ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    return () => {
+      isUnmountingRef.current = true;
+      terminals.forEach((t) => {
+        window.api.invoke('terminal:kill', t.id).catch(() => {});
+        t.xterm?.dispose();
+      });
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Render ──────────────────────────────────────────────────────────────
 
   const dropdownPosition = contextMenu ? { top: contextMenu.y, left: contextMenu.x } : undefined;
 
   return (
-    <>
-      <div ref={containerRef} className="flex-1 overflow-hidden" style={{ padding: '4px 8px' }} />
+    <div className="flex-1 flex overflow-hidden">
+      {/* Main Terminal Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Terminal Instances */}
+        <div className="flex-1 relative overflow-hidden">
+          {terminals.map((t) => (
+            <div
+              key={t.id}
+              ref={(el) => {
+                if (el) containerRefs.current.set(t.id, el);
+              }}
+              className={cn(
+                'absolute inset-0 overflow-hidden',
+                activeTerminalId === t.id ? 'block' : 'hidden',
+              )}
+              style={{ padding: '4px 8px' }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Right Panel - Terminal List (only show when multiple terminals) */}
+      {terminals.length > 1 && (
+        <div 
+          className="border-l border-border bg-sidebar flex flex-col relative"
+          style={{ width: `${rightPanelWidth}px` }}
+        >
+          {/* Resize Handle */}
+          <div
+            className={cn(
+              'absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent/50 transition-colors',
+              isResizing && 'bg-accent'
+            )}
+            onMouseDown={handleResizeStart}
+          />
+
+          <div className="flex-1 overflow-y-auto">
+            {terminals.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setActiveTerminalId(t.id)}
+                className={cn(
+                  'group w-full flex items-center gap-2 px-3 py-1 text-left transition-colors',
+                  'hover:bg-sidebar-item-hover',
+                  activeTerminalId === t.id && 'bg-sidebar-item-hover',
+                )}
+              >
+                <TerminalIcon
+                  className={cn('w-3.5 h-3.5 shrink-0', t.isAlive ? 'text-success' : 'text-error')}
+                />
+
+                <div className="flex-1 min-w-0 text-xs font-medium text-text-primary truncate">
+                  {t.name}
+                </div>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    killTerminal(t.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-error/10 text-text-secondary hover:text-error transition-all"
+                  title="Kill Terminal"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Context Menu */}
       {contextMenu && dropdownPosition && (
         <Dropdown
           open={true}
@@ -221,7 +501,7 @@ export function Terminal() {
           </DropdownContent>
         </Dropdown>
       )}
-    </>
+    </div>
   );
 }
 

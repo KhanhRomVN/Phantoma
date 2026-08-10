@@ -12,6 +12,7 @@ import { FooterBar } from './components/FooterBar';
 import { useLSPNotifier } from './hooks/useLSPNotifier';
 import { SaveConfirmModal } from './components/modal/SaveConfirmModal';
 import { QuickOpenModal } from './components/modal/QuickOpenModal';
+import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 
 export function Code() {
   const {
@@ -20,13 +21,22 @@ export function Code() {
     isNewProjectOpen,
     setNewProjectOpen,
     projects,
+    currentProjectId,
     hydrateProjectFiles,
     hasUnsavedChanges,
   } = useCodeStore();
+  const { setCodeState } = useAgentFeature();
   const hydratedRef = useRef(false);
   const [isQuickOpenOpen, setQuickOpenOpen] = useState(false);
 
   useLSPNotifier();
+
+  // Update Agent context with Code state
+  useEffect(() => {
+    setCodeState({
+      currentProjectId,
+    });
+  }, [currentProjectId, setCodeState]);
 
   // Prevent closing app with unsaved changes
   useEffect(() => {

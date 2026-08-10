@@ -7,6 +7,7 @@ import {
 import { useCodeStore } from '../../../modules/Code/hooks/useCodeStore';
 import { lspManager } from '../../../modules/Code/services/lsp-manager.service';
 import { documentManager } from '../../../modules/Code/services/document-manager.service';
+import { fileWatcherService } from '../../../modules/Code/services/file-watcher.service';
 
 // Define Window interface to include require for AMD loader
 declare global {
@@ -221,6 +222,8 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
   const lineDecorationsRef = useRef<string[]>([]);
   const rangeDecorationsRef = useRef<string[]>([]);
   const [isEditorReady, setIsEditorReady] = React.useState(false);
+  const isExternalUpdateRef = useRef<boolean>(false); // Track if update is from external source
+  const previousCodeRef = useRef<string>(code); // Track previous code value to detect external changes
 
   // Memoize themeConfig to prevent unnecessary re-renders
   const themeConfigStr = JSON.stringify(themeConfig);
@@ -471,9 +474,22 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                 if (shouldSendDidOpen) {
                   try {
                     await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
+                    console.log('[CodeBlock] ✅ didOpen sent to LSP server');
                   } catch (err) {
                     console.error('[CodeBlock] ❌ didOpen failed:', err);
                   }
+                }
+
+                // 🔍 Start file watcher to track external changes
+                // This keeps running even when tab is closed
+                if (filePath) {
+                  fileWatcherService.watchFile(filePath, languageId, text)
+                    .then(() => {
+                      console.log('[CodeBlock] ✅ File watcher started:', filePath);
+                    })
+                    .catch((err) => {
+                      console.error('[CodeBlock] ❌ File watcher failed:', err);
+                    });
                 }
               }
             })
@@ -539,6 +555,14 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         // Handle content changes with LSP notification
         let changeVersion = 2; // Start from 2 (version 1 was didOpen)
         editorInstance.current.onDidChangeModelContent(() => {
+          // Skip if this is an external update (from file watcher)
+          if (isExternalUpdateRef.current) {
+            console.log('[DEBUG CodeBlock] onDidChangeModelContent - skipping (external update)');
+            isExternalUpdateRef.current = false;
+            return;
+          }
+
+          console.log('[DEBUG CodeBlock] onDidChangeModelContent - processing (user edit)');
           const newContent = editorInstance.current.getValue();
 
           if (onChange) {
@@ -548,6 +572,12 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           // Track unsaved changes
           if (fileId) {
             markFileAsUnsaved(fileId, newContent);
+          }
+
+          // Update file watcher's last known content
+          if (filePath) {
+            fileWatcherService.updateContent(filePath, newContent);
+            // Also touch file to reset cleanup timer on user edit
           }
 
           // Notify LSP server about content changes (debounced automatically)
@@ -643,25 +673,30 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
       // ✅ Document Manager: Unregister reference only if file is actually closed
       // (not on tab switch — openFiles still contains the file)
-      if (enableLSP && filePath && modelRef.current && didAddReferenceRef.current) {
-        const state = useCodeStore.getState();
-        const project = state.projects.find((p) => p.id === state.currentProjectId);
-        const isStillOpen = project?.openFiles.some((fid) => {
-          const node = project.fileNodeMap[fid];
-          return node?.path === filePath;
-        });
+      // 
+      // ⚠️ DISABLED: We no longer send didClose to LSP server when closing tabs
+      // This keeps diagnostics visible in Problems panel even after tab is closed
+      // LSP server will keep the document "open" until workspace is closed
+      //
+      // if (enableLSP && filePath && modelRef.current && didAddReferenceRef.current) {
+      //   const state = useCodeStore.getState();
+      //   const project = state.projects.find((p) => p.id === state.currentProjectId);
+      //   const isStillOpen = project?.openFiles.some((fid) => {
+      //     const node = project.fileNodeMap[fid];
+      //     return node?.path === filePath;
+      //   });
 
-        if (!isStillOpen) {
-          const uri = window.monaco.Uri.file(filePath).toString();
-          const shouldSendDidClose = documentManager.removeReference(uri);
+      //   if (!isStillOpen) {
+      //     const uri = window.monaco.Uri.file(filePath).toString();
+      //     const shouldSendDidClose = documentManager.removeReference(uri);
 
-          if (shouldSendDidClose) {
-            const languageId = detectLanguageId(filePath, language);
-            lspClientManager.notifyDocumentClosed(languageId, uri);
-          }
-          didAddReferenceRef.current = false;
-        }
-      }
+      //     if (shouldSendDidClose) {
+      //       const languageId = detectLanguageId(filePath, language);
+      //       lspClientManager.notifyDocumentClosed(languageId, uri);
+      //     }
+      //     didAddReferenceRef.current = false;
+      //   }
+      // }
 
       // Always dispose editor instance (but keep the model alive)
       if (editorInstance.current) {
@@ -680,12 +715,53 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
   // Update value
   useEffect(() => {
-    // No-op: Value updates are handled in initMonaco
-    // This effect is kept for reference but does nothing
-    // Model value is updated when:
-    // 1. Tab switches (existingModel.setValue in initMonaco)
-    // 2. Content changes (onDidChangeModelContent handler)
-  }, [code]);
+    console.log('[DEBUG CodeBlock] code prop changed, length:', code?.length);
+    console.log('[DEBUG CodeBlock] modelRef.current exists:', !!modelRef.current);
+    console.log('[DEBUG CodeBlock] editorInstance.current exists:', !!editorInstance.current);
+    console.log('[DEBUG CodeBlock] previousCodeRef:', previousCodeRef.current?.length);
+    
+    // Detect if this is an external change (code prop changed but not from our setValue)
+    const isExternalChange = previousCodeRef.current !== code;
+    console.log('[DEBUG CodeBlock] isExternalChange:', isExternalChange);
+    
+    if (modelRef.current && editorInstance.current && isExternalChange) {
+      const currentValue = modelRef.current.getValue();
+      console.log('[DEBUG CodeBlock] current model value length:', currentValue.length);
+      console.log('[DEBUG CodeBlock] values are different:', currentValue !== code);
+      
+      if (currentValue !== code) {
+        console.log('[DEBUG CodeBlock] ✅ Updating model value from external change');
+        // Set flag to prevent onDidChangeModelContent from treating this as user edit
+        isExternalUpdateRef.current = true;
+        modelRef.current.setValue(code);
+      } else {
+        console.log('[DEBUG CodeBlock] ⏭️ Model already has correct value, but still notifying LSP');
+      }
+      
+      // ALWAYS notify LSP server about external content changes (even if model value is same)
+      // This handles the case where user edited in app, then saved externally
+      if (enableLSP && filePath) {
+        console.log('[DEBUG CodeBlock] 📡 Notifying LSP server about external change');
+        const uri = window.monaco.Uri.file(filePath).toString();
+        const languageId = language || 'plaintext';
+        // Use notifyDocumentChanged to update LSP with new content
+        lspClientManager.notifyDocumentChanged(languageId, uri, code, Date.now());
+      }
+      
+      // Mark file as saved since this is coming from disk
+      if (fileId) {
+        markFileAsSaved(fileId);
+        setOriginalContent(fileId, code);
+      }
+      
+      // Update previous code ref
+      previousCodeRef.current = code;
+    } else if (!isExternalChange) {
+      console.log('[DEBUG CodeBlock] ⏭️ Skipping - no external change detected');
+    } else {
+      console.log('[DEBUG CodeBlock] ❌ Cannot update - model or editor not ready');
+    }
+  }, [code, fileId, enableLSP, filePath, language, markFileAsSaved, setOriginalContent]);
 
   // Update word wrap dynamically
   useEffect(() => {

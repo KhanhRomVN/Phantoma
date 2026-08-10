@@ -10,5 +10,4 @@ export { setupConversationHandlers } from './conversation.handlers';
 export { setupWindowHandlers } from './window.handlers';
 export { setupTerminalHandlers } from './terminal.handlers';
 export { setupGitHandlers } from './git.handlers';
-export { registerExtensionsHandlers } from './extensions.handlers';
 export { setupLoggerHandlers } from './logger.handlers';
