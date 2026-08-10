@@ -17,13 +17,29 @@ import { ReadFileHandler } from '../modules/Code/handler/tool/ReadFileHandler';
 import { WriteToFileHandler } from '../modules/Code/handler/tool/WriteToFileHandler';
 import { ReplaceInFileHandler } from '../modules/Code/handler/tool/ReplaceInFileHandler';
 import {
-  DeleteFileHandler, ListFilesHandler, FindFilesHandler,
-  RevertFileHandler, ViewReplaceHistoryHandler, FileMiscHandler,
+  DeleteFileHandler,
+  ListFilesHandler,
+  FindFilesHandler,
+  RevertFileHandler,
+  ViewReplaceHistoryHandler,
+  FileMiscHandler,
 } from '../modules/Code/handler/tool/FileHandlers';
 import { GrepHandler } from '../modules/Code/handler/tool/GrepHandler';
-import { GitStatusHandler, GitDiffHandler, GitCommitHandler } from '../modules/Code/handler/tool/GitHandlers';
-import { FileOpenHandler, DiffViewHandler, PreviewHandler } from '../modules/Code/handler/system/SystemHandlers';
-import { RunCommandHandler, TerminalInputHandler, CloseTerminalHandler } from '../modules/Code/handler/terminal/TerminalHandlers';
+import {
+  GitStatusHandler,
+  GitDiffHandler,
+  GitCommitHandler,
+} from '../modules/Code/handler/tool/GitHandlers';
+import {
+  FileOpenHandler,
+  DiffViewHandler,
+  PreviewHandler,
+} from '../modules/Code/handler/system/SystemHandlers';
+import {
+  RunCommandHandler,
+  TerminalInputHandler,
+  CloseTerminalHandler,
+} from '../modules/Code/handler/terminal/TerminalHandlers';
 import { StorageHandler } from '../modules/Code/handler/storage/StorageHandler';
 import { FileLockManager } from '../modules/Code/managers/FileLockManager';
 
@@ -111,10 +127,19 @@ export class CodeController {
   // ── Static: execute tool (thay thế CodeControllerBridge) ──────────
 
   private static readonly TOOL_MAP: Record<string, string> = {
-    read_file: 'readFile', write_to_file: 'writeFile', replace_in_file: 'replaceInFile',
-    delete_file: 'deleteFile', revert_file: 'revertFile', view_replace_history: 'viewReplaceHistory',
-    list_files: 'listFiles', find_files: 'findFiles', run_command: 'runCommand',
-    grep: 'executeGrep', git_diff: 'gitDiff', git_status: 'gitStatus', git_commit: 'gitCommit',
+    read_file: 'readFile',
+    write_to_file: 'writeFile',
+    replace_in_file: 'replaceInFile',
+    delete_file: 'deleteFile',
+    revert_file: 'revertFile',
+    view_replace_history: 'viewReplaceHistory',
+    list_files: 'listFiles',
+    find_files: 'findFiles',
+    run_command: 'runCommand',
+    grep: 'executeGrep',
+    git_diff: 'gitDiff',
+    git_status: 'gitStatus',
+    git_commit: 'gitCommit',
   };
 
   /** Thực thi tool command, trả về Promise. Dùng bởi tool-executors. */
@@ -161,12 +186,20 @@ export class CodeController {
 
   public onResult(listener: ResultListener): () => void {
     this.resultListeners.add(listener);
-    return () => { this.resultListeners.delete(listener); };
+    return () => {
+      this.resultListeners.delete(listener);
+    };
   }
 
   private emitResult(result: CodeControllerResult): void {
     extensionService.postMessage(result);
-    this.resultListeners.forEach((fn) => { try { fn(result); } catch (e) { console.error('[CodeController] listener error:', e); } });
+    this.resultListeners.forEach((fn) => {
+      try {
+        fn(result);
+      } catch (e) {
+        console.error('[CodeController] listener error:', e);
+      }
+    });
   }
 
   private getCurrentProjectPath(): string {
@@ -185,94 +218,147 @@ export class CodeController {
 
     try {
       switch (command) {
-        case 'readFile': case 'getFileContent': {
-          this.emitResult(await this.readFileHandler.handle(msg)); break;
+        case 'readFile':
+        case 'getFileContent': {
+          // [DEBUG]
+          console.log('[DEBUG-CodeController] readFile msg:', JSON.stringify(msg));
+          const readResult = await this.readFileHandler.handle(msg);
+          console.log('[DEBUG-CodeController] readFile result hasDiagnostics:', !!readResult.diagnostics, '| count:', readResult.diagnostics?.length ?? 0);
+          this.emitResult(readResult);
+          break;
         }
         case 'writeFile': {
-          this.emitResult(await this.writeToFileHandler.handle(msg)); break;
+          this.emitResult(await this.writeToFileHandler.handle(msg));
+          break;
         }
         case 'replaceInFile': {
-          this.emitResult(await this.replaceInFileHandler.handle(msg)); break;
+          this.emitResult(await this.replaceInFileHandler.handle(msg));
+          break;
         }
         case 'deleteFile': {
-          this.emitResult(await this.deleteFileHandler.handle(msg)); break;
+          this.emitResult(await this.deleteFileHandler.handle(msg));
+          break;
         }
         case 'revertFile': {
-          this.emitResult(await this.revertFileHandler.handle(msg)); break;
+          this.emitResult(await this.revertFileHandler.handle(msg));
+          break;
         }
         case 'viewReplaceHistory': {
-          this.emitResult(await this.viewReplaceHistoryHandler.handleHistory(msg)); break;
+          this.emitResult(await this.viewReplaceHistoryHandler.handleHistory(msg));
+          break;
         }
         case 'getHistoryVersion': {
-          this.emitResult(await this.viewReplaceHistoryHandler.handleHistoryVersion(msg)); break;
+          this.emitResult(await this.viewReplaceHistoryHandler.handleHistoryVersion(msg));
+          break;
         }
         case 'listFiles': {
-          this.emitResult(await this.listFilesHandler.handle(msg)); break;
+          this.emitResult(await this.listFilesHandler.handle(msg));
+          break;
         }
         case 'findFiles': {
-          this.emitResult(await this.findFilesHandler.handle(msg)); break;
+          this.emitResult(await this.findFilesHandler.handle(msg));
+          break;
         }
         case 'validateFuzzyMatch': {
-          this.emitResult(await this.replaceInFileHandler.handleValidateFuzzy(msg)); break;
+          this.emitResult(await this.replaceInFileHandler.handleValidateFuzzy(msg));
+          break;
         }
         case 'getFileStats': {
-          this.emitResult(await this.fileMiscHandler.handleGetFileStats(msg)); break;
+          this.emitResult(await this.fileMiscHandler.handleGetFileStats(msg));
+          break;
         }
         case 'getDiagnostics': {
-          this.emitResult(await this.fileMiscHandler.handleGetDiagnostics(msg)); break;
+          // [DEBUG]
+          console.log('[DEBUG-CodeController] getDiagnostics msg:', JSON.stringify(msg));
+          const result = await this.fileMiscHandler.handleGetDiagnostics(msg);
+          console.log('[DEBUG-CodeController] getDiagnostics result:', JSON.stringify(result));
+          this.emitResult(result);
+          break;
         }
         case 'openFile': {
-          this.emitResult(this.fileOpenHandler.handleOpenFile(msg)); break;
+          this.emitResult(this.fileOpenHandler.handleOpenFile(msg));
+          break;
         }
         case 'openFolder': {
-          this.emitResult(await this.fileOpenHandler.handleOpenFolder(msg)); break;
+          this.emitResult(await this.fileOpenHandler.handleOpenFolder(msg));
+          break;
         }
         case 'openTempImage': {
-          this.emitResult(await this.previewHandler.handleOpenTempImage(msg)); break;
+          this.emitResult(await this.previewHandler.handleOpenTempImage(msg));
+          break;
         }
         case 'openFileDiff': {
-          this.emitResult(this.diffViewHandler.handleFileDiff(msg)); break;
+          this.emitResult(this.diffViewHandler.handleFileDiff(msg));
+          break;
         }
         case 'openWriteToFile': {
-          this.emitResult(this.previewHandler.handleOpenWriteToFile(msg)); break;
+          this.emitResult(this.previewHandler.handleOpenWriteToFile(msg));
+          break;
         }
         case 'openViewReplaceHistoryVersion': {
-          this.emitResult(this.previewHandler.handleOpenViewReplaceHistoryVersion(msg)); break;
+          this.emitResult(this.previewHandler.handleOpenViewReplaceHistoryVersion(msg));
+          break;
         }
         case 'runCommand': {
-          this.emitResult(this.runCommandHandler.handle(msg)); break;
+          this.emitResult(this.runCommandHandler.handle(msg));
+          break;
         }
         case 'terminalInput': {
-          this.emitResult(this.terminalInputHandler.handle(msg)); break;
+          this.emitResult(this.terminalInputHandler.handle(msg));
+          break;
         }
         case 'closeTerminal': {
-          this.emitResult(this.closeTerminalHandler.handle(msg)); break;
+          this.emitResult(this.closeTerminalHandler.handle(msg));
+          break;
         }
         case 'gitStatus': {
-          this.emitResult(await this.gitStatusHandler.handle(msg)); break;
+          this.emitResult(await this.gitStatusHandler.handle(msg));
+          break;
         }
         case 'gitDiff': {
-          this.emitResult(await this.gitDiffHandler.handle(msg)); break;
+          this.emitResult(await this.gitDiffHandler.handle(msg));
+          break;
         }
         case 'showGitDiff': {
-          this.emitResult(this.diffViewHandler.handleShowGitDiff(msg)); break;
+          this.emitResult(this.diffViewHandler.handleShowGitDiff(msg));
+          break;
         }
         case 'gitCommit': {
-          this.emitResult(await this.gitCommitHandler.handle(msg)); break;
+          this.emitResult(await this.gitCommitHandler.handle(msg));
+          break;
         }
         case 'executeGrep': {
           const grepResult = await this.grepHandler.handle(msg.action || msg);
-          this.emitResult({ command: 'agentActionResult', requestId: msg.action?.requestId || msg.requestId, result: grepResult });
+          this.emitResult({
+            command: 'agentActionResult',
+            requestId: msg.action?.requestId || msg.requestId,
+            result: grepResult,
+          });
           break;
         }
-        case 'storageGet': case 'storageSet': case 'storageDelete': case 'storageList': {
-          this.emitResult(await this.storageHandler.handle(msg)); break;
+        case 'storageGet':
+        case 'storageSet':
+        case 'storageDelete':
+        case 'storageList': {
+          this.emitResult(await this.storageHandler.handle(msg));
+          break;
         }
         case 'getProjectContext': {
           const state = useCodeStore.getState();
           const project = state.projects.find((p) => p.id === state.currentProjectId);
-          this.emitResult({ command: 'projectContext', requestId: msg.requestId,
-            project: project ? { name: project.name, path: project.path, template: project.template, fileCount: project.files.length, serviceCount: project.services.length } : null });
+          this.emitResult({
+            command: 'projectContext',
+            requestId: msg.requestId,
+            project: project
+              ? {
+                  name: project.name,
+                  path: project.path,
+                  template: project.template,
+                  fileCount: project.files.length,
+                  serviceCount: project.services.length,
+                }
+              : null,
+          });
           break;
         }
         case 'getSystemInfo': {
@@ -280,21 +366,36 @@ export class CodeController {
             const info = await extensionService.getSystemInfo();
             this.emitResult({ command: 'systemInfo', requestId: msg.requestId, ...info });
           } catch (e: any) {
-            this.emitResult({ command: 'systemInfo', requestId: msg.requestId, error: e.message || String(e) });
+            this.emitResult({
+              command: 'systemInfo',
+              requestId: msg.requestId,
+              error: e.message || String(e),
+            });
           }
           break;
         }
         case 'requestTheme': {
-          this.emitResult({ command: 'themeInfo', requestId: msg.requestId, theme: 'dark' }); break;
+          this.emitResult({ command: 'themeInfo', requestId: msg.requestId, theme: 'dark' });
+          break;
         }
-        case 'showError': console.error('[CodeController] showError:', msg.message); break;
+        case 'showError':
+          console.error('[CodeController] showError:', msg.message);
+          break;
         default:
           console.warn('[CodeController] Unknown command: ' + command);
-          this.emitResult({ command: 'error', requestId: msg.requestId, error: 'Unknown command: ' + command });
+          this.emitResult({
+            command: 'error',
+            requestId: msg.requestId,
+            error: 'Unknown command: ' + command,
+          });
       }
     } catch (error: any) {
       console.error('[CodeController] handleMessage error for "' + command + '":', error);
-      this.emitResult({ command: 'error', requestId: msg.requestId, error: error.message || String(error) });
+      this.emitResult({
+        command: 'error',
+        requestId: msg.requestId,
+        error: error.message || String(error),
+      });
     }
   }
 }

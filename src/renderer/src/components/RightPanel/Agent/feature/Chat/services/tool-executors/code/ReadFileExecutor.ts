@@ -9,11 +9,17 @@ export async function executeReadFile(
   _bypassIgnore: boolean = false,
 ): Promise<{ output: string; diagnostics?: any[] } | null> {
   const filePath = params.path || params.file_path || '';
+  console.log('[DEBUG-ReadFileExecutor] params:', JSON.stringify(params));
+  console.log('[DEBUG-ReadFileExecutor] filePath:', filePath);
+
   const result = await CodeController.executeTool('read_file', {
     path: filePath,
     start_line: params.start_line,
     end_line: params.end_line,
   });
+
+  console.log('[DEBUG-ReadFileExecutor] result.success:', result.success);
+  console.log('[DEBUG-ReadFileExecutor] result.data:', JSON.stringify(result.data));
 
   if (!result.success) {
     return { output: "[read_file for '" + filePath + "'] Result: Error - " + (result.error || '') };

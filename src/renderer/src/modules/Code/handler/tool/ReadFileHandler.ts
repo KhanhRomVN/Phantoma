@@ -44,6 +44,15 @@ export interface ReadFileResult {
   error?: string;
 }
 
+function isAbsolute(p: string): boolean {
+  return p.startsWith('/') || p.startsWith('file://') || /^[A-Za-z]:[\\/]/.test(p);
+}
+
+function joinPath(base: string, relative: string): string {
+  if (base.endsWith('/')) return base + relative;
+  return base + '/' + relative;
+}
+
 export class ReadFileHandler {
   /**
    * Đọc file và trả về kết quả (thay vì postMessage như Zen).
@@ -59,8 +68,20 @@ export class ReadFileHandler {
     }
 
     try {
+      // Resolve relative path → absolute path nếu cần
+      let resolvedPath = pathValue;
+      if (!isAbsolute(pathValue)) {
+        const { useCodeStore } = await import('../../hooks/useCodeStore');
+        const state = useCodeStore.getState();
+        const project = state.projects.find((p) => p.id === state.currentProjectId);
+        if (project?.path) {
+          resolvedPath = joinPath(project.path, pathValue);
+          console.log('[DEBUG-ReadFile] resolved:', pathValue, '→', resolvedPath);
+        }
+      }
+
       // Security check
-      const securityCheck = SecurityValidator.validatePath(pathValue, false);
+      const securityCheck = SecurityValidator.validatePath(resolvedPath, false);
       if (!securityCheck.safe) {
         return {
           command: 'fileContent',
@@ -74,7 +95,7 @@ export class ReadFileHandler {
         throw new Error('IPC not available');
       }
 
-      let content: string = await api.invoke('fs:read-file', pathValue);
+      let content: string = await api.invoke('fs:read-file', resolvedPath);
 
       // Xử lý start_line / end_line
       const startLine = message.start_line ?? message.startLine;
@@ -85,16 +106,37 @@ export class ReadFileHandler {
         content = lines.slice(startLine || 0, end).join('\n');
       }
 
-      // TODO: Lấy diagnostics từ LSP client khi cần
-      // Hiện tại trả về mảng rỗng, sẽ tích hợp sau
-      const diagnostics: any[] = [];
+      // Lấy diagnostics từ diagnosticsStore (nếu không bị skip)
+      let diagnostics: any[] = [];
+      if (!message.skipDiagnostics) {
+        try {
+          const { useDiagnosticsStore } = await import('../../stores/diagnosticsStore');
+          const storeState = useDiagnosticsStore.getState();
+          const storeUris = Object.keys(storeState.diagnostics);
+          console.log('[DEBUG-ReadFile] resolvedPath:', resolvedPath);
+          console.log('[DEBUG-ReadFile] store URIs count:', storeUris.length, '| first:', storeUris.slice(0, 5));
+
+          const raw = storeState.getDiagnosticsForFile(resolvedPath);
+          diagnostics = raw.map((d: any) => ({
+            severity: d.severity === 1 ? 'Error' : d.severity === 2 ? 'Warning' : 'Info',
+            message: d.message,
+            line: d.range?.start?.line ?? d.line ?? 0,
+            column: d.range?.start?.character ?? d.column ?? 0,
+            source: d.source || 'lsp',
+            code: d.code,
+          }));
+          console.log('[DEBUG-ReadFile] final diagnostics:', diagnostics.length, 'items');
+        } catch (e) {
+          console.warn('[DEBUG-ReadFile] failed to get diagnostics:', e);
+        }
+      }
 
       return {
         command: 'fileContent',
         requestId: message.requestId,
-        path: pathValue,
+        path: resolvedPath,
         content,
-        diagnostics: diagnostics.length ? diagnostics : undefined,
+        diagnostics: diagnostics.length > 0 ? diagnostics : undefined,
       };
     } catch (e: any) {
       return {
