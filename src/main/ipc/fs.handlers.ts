@@ -34,7 +34,7 @@ function startWatching(projectPath: string, sender: Electron.WebContents): void 
   };
 
   const watcher = chokidar.watch(projectPath, {
-    ignored: [/(^|[\/\\])\../, '**/node_modules/**', '**/.git/**'],
+    ignored: [/(^|[\/\\])\../, '**/node_modules/**', '**/.git/**', '**/log.log'],
     persistent: true,
     ignoreInitial: true,
     depth: 99,

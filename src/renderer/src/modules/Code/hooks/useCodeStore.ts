@@ -542,3 +542,20 @@ export const useCodeStore = create<CodeState>()(
     },
   ),
 );
+
+// [DEBUG] — log mỗi khi projects thay đổi, kèm danh sách field bị thay đổi
+// Xóa sau khi xác định được nguyên nhân
+useCodeStore.subscribe((state, prevState) => {
+  if (state.projects === prevState.projects) return;
+
+  const prevProj = prevState.projects.find((p) => p.id === prevState.currentProjectId);
+  const currProj = state.projects.find((p) => p.id === state.currentProjectId);
+  if (!prevProj || !currProj) return;
+
+  const changedFields: string[] = [];
+  for (const key of Object.keys(currProj) as (keyof typeof currProj)[]) {
+    if (prevProj[key] !== currProj[key]) {
+      changedFields.push(key);
+    }
+  }
+});

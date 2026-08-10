@@ -49,9 +49,6 @@ export function Terminal() {
 
   const createTerminal = useCallback(async () => {
     const id = generateTerminalId();
-
-    console.log('[Terminal] 🆕 Creating new terminal:', { id });
-
     setTerminals((prev) => [
       ...prev,
       {
@@ -64,7 +61,6 @@ export function Terminal() {
     ]);
 
     setActiveTerminalId(id);
-    console.log('[Terminal] ✅ Terminal added to state, activeTerminalId set to:', id);
   }, [generateTerminalId]);
 
   const killTerminal = useCallback(
@@ -75,11 +71,8 @@ export function Terminal() {
         return;
       }
 
-      console.log('[Terminal] 🔪 Killing terminal:', { id: terminalId, name: terminal.name });
-
       try {
         await window.api.invoke('terminal:kill', terminalId);
-        console.log('[Terminal] ✅ Terminal killed successfully');
       } catch (err) {
         console.error('[Terminal] ❌ Kill failed:', err);
       }
@@ -92,15 +85,11 @@ export function Terminal() {
       setTerminals((prev) => {
         const filtered = prev.filter((t) => t.id !== terminalId);
 
-        console.log('[Terminal] 📊 Terminals after kill:', filtered.length);
-
         // Switch to another terminal if we killed the active one
         if (terminalId === activeTerminalId && filtered.length > 0) {
           const newActive = filtered[0].id;
-          console.log('[Terminal] 🔄 Switching active terminal to:', newActive);
           setActiveTerminalId(newActive);
         } else if (filtered.length === 0) {
-          console.log('[Terminal] 📭 No terminals left');
           setActiveTerminalId(null);
         }
 
@@ -158,7 +147,6 @@ export function Terminal() {
       const container = containerRefs.current.get(terminalInstance.id);
       if (!container) return;
 
-      console.log('[Terminal] 🎨 Initializing xterm for:', terminalInstance.id);
       initializedTerminalsRef.current.add(terminalInstance.id);
 
       const term = new XTerm({
@@ -194,12 +182,6 @@ export function Terminal() {
         windowsMode: false,
       });
 
-      console.log('[Terminal] 🎨 XTerm options:', {
-        disableStdin: false,
-        convertEol: false,
-        windowsMode: false,
-      });
-
       const fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
       term.open(container);
@@ -219,10 +201,6 @@ export function Terminal() {
       // PTY output - Register BEFORE spawning shell to catch initial prompt
       const onData = (_event: any, payload: { terminalId: string; data: string }) => {
         if (payload.terminalId === terminalInstance.id) {
-          console.log('[Terminal] � Received data from PTY:', {
-            terminalId: payload.terminalId,
-            length: payload.data.length,
-          });
           term.write(payload.data);
         }
       };
@@ -235,8 +213,6 @@ export function Terminal() {
       ) => {
         if (payload.terminalId !== terminalInstance.id) return;
         if (isUnmountingRef.current) return;
-
-        console.log('[Terminal] 💀 Shell exited:', payload);
 
         const reason = payload.signal
           ? `signal ${payload.signal}`
@@ -251,25 +227,13 @@ export function Terminal() {
 
       // User input
       term.onData((data) => {
-        console.log('[Terminal] 📤 Sending data to PTY:', {
-          terminalId: terminalInstance.id,
-          length: data.length,
-        });
         window.api.send('terminal:write', { terminalId: terminalInstance.id, data });
       });
 
       // Spawn shell - Do this AFTER registering listeners
       try {
-        console.log('[Terminal] 🚀 Spawning shell for:', terminalInstance.id);
         const info = await window.api.invoke('terminal:spawn', terminalInstance.id);
-
         if (isUnmountingRef.current) return;
-
-        console.log('[Terminal] ✅ Shell spawned:', {
-          terminalId: terminalInstance.id,
-          shell: info.shell,
-          pid: info.pid,
-        });
 
         // Extract shell name (bash, zsh, powershell, etc.)
         const shellName = info.shell.split('/').pop()?.split('.')[0] || 'shell';
@@ -318,19 +282,25 @@ export function Terminal() {
 
   // ── Right Panel Resize ───────────────────────────────────────────────────
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    setIsResizing(true);
-    resizeStartXRef.current = e.clientX;
-    resizeStartWidthRef.current = rightPanelWidth;
-  }, [rightPanelWidth]);
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      setIsResizing(true);
+      resizeStartXRef.current = e.clientX;
+      resizeStartWidthRef.current = rightPanelWidth;
+    },
+    [rightPanelWidth],
+  );
 
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!isResizing) return;
-    
-    const deltaX = resizeStartXRef.current - e.clientX;
-    const newWidth = Math.max(150, Math.min(500, resizeStartWidthRef.current + deltaX));
-    setRightPanelWidth(newWidth);
-  }, [isResizing]);
+  const handleResizeMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const deltaX = resizeStartXRef.current - e.clientX;
+      const newWidth = Math.max(150, Math.min(500, resizeStartWidthRef.current + deltaX));
+      setRightPanelWidth(newWidth);
+    },
+    [isResizing],
+  );
 
   const handleResizeEnd = useCallback(() => {
     setIsResizing(false);
@@ -360,29 +330,17 @@ export function Terminal() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      console.log('[Terminal] ⌨️  Key pressed:', {
-        key: e.key,
-        code: e.code,
-        ctrl: e.ctrlKey,
-        shift: e.shiftKey,
-        alt: e.altKey,
-      });
-
       // Ctrl+Shift+` to create new terminal
       // Try both ` and the code for backtick
       if (e.ctrlKey && e.shiftKey && (e.key === '`' || e.code === 'Backquote')) {
         e.preventDefault();
-        console.log('[Terminal] 🎯 Ctrl+Shift+` detected - creating new terminal');
         createTerminal();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    console.log('[Terminal] ✅ Keyboard shortcut listener registered');
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      console.log('[Terminal] 🗑️  Keyboard shortcut listener removed');
     };
   }, [createTerminal]);
 
@@ -427,7 +385,7 @@ export function Terminal() {
 
       {/* Right Panel - Terminal List (only show when multiple terminals) */}
       {terminals.length > 1 && (
-        <div 
+        <div
           className="border-l border-border bg-sidebar flex flex-col relative"
           style={{ width: `${rightPanelWidth}px` }}
         >
@@ -435,7 +393,7 @@ export function Terminal() {
           <div
             className={cn(
               'absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent/50 transition-colors',
-              isResizing && 'bg-accent'
+              isResizing && 'bg-accent',
             )}
             onMouseDown={handleResizeStart}
           />

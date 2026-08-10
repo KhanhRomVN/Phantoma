@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { X, CircleDot, Copy, Plus } from 'lucide-react';
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { cn } from '@renderer/shared/utils/cn';
@@ -97,8 +97,6 @@ export function FileTabBar() {
         const displayName = fileDisplayNames[fileId] || fileId;
         const isActive = activeFileTabId === fileId;
         const isUnsaved = unsavedFiles.has(fileId);
-        const node = fileNodeMap[fileId];
-        const filePath = node?.path || '';
 
         return (
           <Dropdown
@@ -109,7 +107,9 @@ export function FileTabBar() {
           >
             <DropdownTrigger asChild>
               <button
-                onClick={() => setActiveFileTab(fileId)}
+                onClick={() => {
+                  setActiveFileTab(fileId);
+                }}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 h-full text-[13px] whitespace-nowrap transition-colors group',
                   'border-t-2',
@@ -170,10 +170,15 @@ export function FileTabBar() {
             <DropdownContent className="min-w-[180px]">
               <DropdownItem onClick={() => handleClose(fileId)}>Close</DropdownItem>
               <DropdownItem onClick={() => handleCloseOthers(fileId)}>Close Others</DropdownItem>
-              <DropdownItem onClick={() => handleCloseToTheRight(fileId)}>Close to the Right</DropdownItem>
+              <DropdownItem onClick={() => handleCloseToTheRight(fileId)}>
+                Close to the Right
+              </DropdownItem>
               <DropdownItem onClick={handleCloseAll}>Close All</DropdownItem>
               <DropdownSeparator />
-              <DropdownItem icon={<Copy className="w-3.5 h-3.5" />} onClick={() => handleCopyPath(fileId)}>
+              <DropdownItem
+                icon={<Copy className="w-3.5 h-3.5" />}
+                onClick={() => handleCopyPath(fileId)}
+              >
                 Copy Path
               </DropdownItem>
             </DropdownContent>

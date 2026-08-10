@@ -1,15 +1,15 @@
 /**
  * File Watcher Service
- * 
+ *
  * Manages file watchers for all files in the project.
  * Keeps watchers alive even when file tabs are closed.
- * 
+ *
  * Smart cleanup strategy:
  * - Track "last accessed time" for each file
  * - After 10 minutes of inactivity, auto-cleanup watcher and send didClose to LSP
  * - Files with diagnostics are kept longer (30 minutes)
  * - Manual cleanup available via unwatchFile()
- * 
+ *
  * Responsibilities:
  * - Start watching files when they're opened
  * - Keep watchers alive across tab switches/closes
@@ -49,8 +49,7 @@ class FileWatcherService {
 
   initialize() {
     if (this.isInitialized) return;
-    
-    console.log('[FileWatcherService] 🔍 Initialized with smart cleanup');
+
     this.isInitialized = true;
   }
 
@@ -102,12 +101,7 @@ class FileWatcherService {
     const hasDiagnostics = this.hasImportantDiagnostics(filePath);
     const timeout = hasDiagnostics ? WITH_DIAGNOSTICS_TIMEOUT : INACTIVE_TIMEOUT;
 
-    console.log(
-      `[FileWatcherService] ⏰ Scheduling cleanup for ${filePath} in ${timeout / 60000} minutes (${hasDiagnostics ? 'has diagnostics' : 'no diagnostics'})`
-    );
-
     watched.cleanupTimer = setTimeout(() => {
-      console.log('[FileWatcherService] 🧹 Auto-cleanup triggered for:', filePath);
       this.unwatchFile(filePath);
     }, timeout);
   }
@@ -122,8 +116,6 @@ class FileWatcherService {
 
     watched.lastAccessTime = Date.now();
     this.scheduleCleanup(filePath);
-    
-    console.log('[FileWatcherService] 👆 File touched, cleanup timer reset:', filePath);
   }
 
   /**
@@ -133,12 +125,9 @@ class FileWatcherService {
   async watchFile(filePath: string, language: string, initialContent: string) {
     // Already watching this file - just touch it
     if (this.watchedFiles.has(filePath)) {
-      console.log('[FileWatcherService] 📂 Already watching, touching:', filePath);
       this.touchFile(filePath);
       return;
     }
-
-    console.log('[FileWatcherService] 🔍 Starting watch:', filePath);
 
     // Register watcher with main process
     try {
@@ -154,21 +143,18 @@ class FileWatcherService {
       async (_event: any, data: { filePath: string; mtime: number }) => {
         if (data.filePath !== filePath) return;
 
-        console.log('[FileWatcherService] 📝 File changed externally:', filePath);
-
         // Touch file to reset cleanup timer
         this.touchFile(filePath);
 
         try {
           // Read new content
           const newContent = await window.api.invoke('fs:read-file', filePath);
-          
+
           const watched = this.watchedFiles.get(filePath);
           if (!watched) return;
 
           // Skip if content hasn't actually changed
           if (watched.lastContent === newContent) {
-            console.log('[FileWatcherService] ⏭️ Content unchanged, skipping notifications');
             return;
           }
 
@@ -177,16 +163,8 @@ class FileWatcherService {
 
           // Notify LSP server about external change
           const uri = `file://${filePath}`;
-          console.log('[FileWatcherService] 📡 Notifying LSP server:', uri);
-          
-          lspClientManager.notifyDocumentChanged(
-            language,
-            uri,
-            newContent,
-            Date.now()
-          );
 
-          console.log('[FileWatcherService] ✅ LSP notified successfully');
+          lspClientManager.notifyDocumentChanged(language, uri, newContent, Date.now());
 
           // Notify UI listeners (for updating editor content)
           this.notifyListeners({
@@ -194,7 +172,6 @@ class FileWatcherService {
             content: newContent,
             mtime: data.mtime,
           });
-
         } catch (err) {
           console.error('[FileWatcherService] ❌ Error handling file change:', err);
         }
@@ -209,13 +186,11 @@ class FileWatcherService {
       lastContent: initialContent,
       lastAccessTime: Date.now(),
     };
-    
+
     this.watchedFiles.set(filePath, watched);
 
     // Schedule initial cleanup
     this.scheduleCleanup(filePath);
-
-    console.log('[FileWatcherService] ✅ Now watching:', filePath);
   }
 
   /**
@@ -237,8 +212,6 @@ class FileWatcherService {
     const watched = this.watchedFiles.get(filePath);
     if (!watched) return;
 
-    console.log('[FileWatcherService] 🛑 Stopping watch:', filePath);
-
     // Clear cleanup timer
     if (watched.cleanupTimer) {
       clearTimeout(watched.cleanupTimer);
@@ -258,24 +231,18 @@ class FileWatcherService {
     const uri = `file://${filePath}`;
     try {
       await lspClientManager.notifyDocumentClosed(watched.language, uri);
-      console.log('[FileWatcherService] ✅ didClose sent to LSP server');
     } catch (err) {
       console.error('[FileWatcherService] ❌ Error sending didClose:', err);
     }
-
     this.watchedFiles.delete(filePath);
-    
-    console.log('[FileWatcherService] ✅ Watch stopped and memory freed:', filePath);
   }
 
   /**
    * Stop watching all files (e.g., when closing project)
    */
   async unwatchAll() {
-    console.log('[FileWatcherService] 🛑 Stopping all watchers');
-
     const promises = Array.from(this.watchedFiles.keys()).map((filePath) =>
-      this.unwatchFile(filePath)
+      this.unwatchFile(filePath),
     );
 
     await Promise.all(promises);

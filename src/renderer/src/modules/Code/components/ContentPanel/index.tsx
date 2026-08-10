@@ -340,7 +340,7 @@ export const ContentPanel = memo(function ContentPanel() {
   useEffect(() => {
     const unsubscribe = fileWatcherService.onFileChange((event) => {
       const { filePath, content, mtime } = event;
-      
+
       // Find fileId for this filePath
       const state = useCodeStore.getState();
       const project = state.projects.find((p) => p.id === currentProjectId);
@@ -357,8 +357,6 @@ export const ContentPanel = memo(function ContentPanel() {
 
       if (!targetFileId) return;
 
-      console.log('[ContentPanel] 📝 Updating content from file watcher:', filePath);
-      
       // Update loadedContents
       setLoadedContents((prev) => ({
         ...prev,
@@ -506,8 +504,6 @@ export const ContentPanel = memo(function ContentPanel() {
             const filePath = fileNode?.path || '';
             const content = loadedContents[fileId];
             const isLoading = loadingFiles.has(fileId) || content === undefined;
-            
-            console.log('[DEBUG] Rendering file tab:', fileId, 'isActive:', isActive, 'content length:', content?.length, 'isLoading:', isLoading);
 
             return (
               <div
