@@ -4,8 +4,8 @@ import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Globe } from 'luci
 // Types
 
 // Utils
-import type { SourceNode } from '../../../utils/sourceTree';
-import { formatSize } from '../../../utils/sourceTree';
+import type { SourceNode } from '../../../utils/source-tree.util';
+import { formatSize } from '../../../utils/source-tree.util';
 
 interface SourceTreeViewProps {
   nodes: SourceNode[];

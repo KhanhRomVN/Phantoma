@@ -1,8 +1,38 @@
+/**
+ * ------------------------------------------------------------------
+ * Save Confirm Modal
+ * ------------------------------------------------------------------
+ * Modal dialog prompting the user to save unsaved files before
+ * performing a destructive action (close tab, switch project, etc.).
+ * Lists all unsaved files with icons and truncated paths. Offers
+ * Save All, Don't Save, and Cancel (X) actions.
+ *
+ * Main features:
+ * - Lists unsaved files with file-type icons and truncated paths
+ * - Scrollable list when more than 3 files
+ * - Save All button with loading spinner
+ * - Don't Save button to discard changes and continue
+ * - Error display on save failure
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useMemo } from 'react';
+
+// ── UI ──
 import { Save } from 'lucide-react';
+
+// ── Components ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
+
+// ── Hooks ──
 import { useCodeStore } from '../../hooks/useCodeStore';
+
+// ── Utils ──
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+
+// ─── Helpers ────────────────────────────────────────────────────────────
 
 /**
  * Truncate a path by keeping the head and tail, replacing the middle with "..."
@@ -16,7 +46,9 @@ function truncatePathMiddle(path: string, maxLen: number): string {
   return path.slice(0, headLen) + '...' + path.slice(-tailLen);
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function SaveConfirmModal() {
+  // ── Store ──
   const {
     isSaveConfirmModalOpen,
     setSaveConfirmModalOpen,
@@ -28,9 +60,11 @@ export function SaveConfirmModal() {
     currentProjectId,
   } = useCodeStore();
 
+  // ── State ──
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Derived ──
   const currentProject = projects.find((p) => p.id === currentProjectId);
 
   const unsavedFiles = useMemo(() => {
@@ -45,6 +79,7 @@ export function SaveConfirmModal() {
   const unsavedCount = unsavedFiles.length;
   const hasOverflow = unsavedCount > 3;
 
+  // ── Handlers ──
   const handleSaveAndContinue = async () => {
     setIsSaving(true);
     setError(null);
@@ -75,6 +110,7 @@ export function SaveConfirmModal() {
 
   if (!isSaveConfirmModalOpen) return null;
 
+  // ── Render ──
   return (
     <Modal isOpen={isSaveConfirmModalOpen} onClose={handleClose} className="w-full max-w-lg">
       {/* Header with built-in X button, no description (custom below) */}

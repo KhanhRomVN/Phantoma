@@ -1,17 +1,29 @@
 /**
- * Text Document Manager
+ * ------------------------------------------------------------------
+ * Document Manager Service
+ * ------------------------------------------------------------------
+ * Manages the lifecycle of Monaco Editor text documents using
+ * reference counting. Each component can register usage of a document;
+ * the document is only truly opened (didOpen) on the first reference
+ * and closed (didClose) when the last reference is removed. This
+ * prevents duplicate open/close when multiple components view the
+ * same file.
  *
- * Centralized document lifecycle management inspired by VSCode architecture.
- * Manages document references and coordinates LSP notifications.
- *
- * Key concepts:
- * - Document lifecycle is independent of editor/component lifecycle
- * - Reference counting tracks how many components use each document
- * - didOpen sent only when first reference is added (refCount 0→1)
- * - didClose sent only when last reference is removed (refCount 1→0)
- * - Tab switches don't affect document state (refCount stays > 0)
+ * Main functions:
+ * - addReference()       : Add a reference, returns true if first (should send didOpen)
+ * - removeReference()    : Remove a reference, returns true if last (should send didClose)
+ * - incrementVersion()   : Increment document version (for didChange)
+ * - updateText()         : Update the cached text content
+ * - getDocument()        : Get full document info
+ * - isDocumentOpen()     : Check if document is being managed
+ * - getRefCount()        : Get current reference count
+ * - getOpenDocuments()   : Get URIs of all open documents
+ * - getStats()           : Get debug statistics
+ * - clearAll()           : Clear all documents (for testing/cleanup)
+ * ------------------------------------------------------------------
  */
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface TextDocumentInfo {
   uri: string;
   languageId: string;
@@ -21,6 +33,7 @@ interface TextDocumentInfo {
   text: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 class TextDocumentManager {
   private documents: Map<string, TextDocumentInfo> = new Map();
 
@@ -181,7 +194,7 @@ class TextDocumentManager {
   }
 }
 
-// Singleton instance
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const documentManager = new TextDocumentManager();
 
 // Export type for external use

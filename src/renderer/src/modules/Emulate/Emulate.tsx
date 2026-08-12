@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
-import { targetService } from '../../services/TargetService';
+import { emulateApi } from './services/emulate-api.service';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 import { EmulateController } from '../../controller/EmulateController';
@@ -174,7 +174,7 @@ export default React.memo(function Emulate({
   const setActiveTarget = useCallback(
     (id: string | null) => {
       if (id) {
-        targetService.updateLastUsed(id).catch((err) => {
+        emulateApi.updateLastUsed(id).catch((err) => {
           console.error('[Emulate] Failed to update last_used_at:', err);
         });
       }

@@ -1,11 +1,27 @@
 /**
+ * ------------------------------------------------------------------
  * LSP Panel
+ * ------------------------------------------------------------------
+ * Browse and install Language Server Protocol servers from the
+ * Activity sidebar. Displays all available LSP servers from the
+ * shared registry with search, filter, install/uninstall actions,
+ * and homepage links.
  *
- * Browse and install Language Server Protocol servers.
- * Provides IntelliSense, auto-complete, and diagnostics for various languages.
+ * Main features:
+ * - Search servers by name, language, or description
+ * - Filter to show installed only
+ * - Install / Uninstall with simulated progress
+ * - Server item cards with language icon, description, and actions
+ * - Error display with dismiss button
+ * - Refresh button to re-sync installed state
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect } from 'react';
+
+// ── UI ──
 import {
   Terminal,
   Download,
@@ -18,25 +34,29 @@ import {
   Trash2,
   CheckCircle,
 } from 'lucide-react';
+
+// ── Services ──
 import { isLSPInstalled, markLSPInstalled, type LSPServer } from '../../../services/lsp.service';
 
-// ─── LSP Servers (imported from shared registry) ────────────────────────────
-
+// ── Constants ──
 import { AVAILABLE_LSP_SERVERS } from '../../../constants/lsp-servers';
 
-// ─── LSP Panel Component ────────────────────────────────────────────────────
+// ─── Component ──────────────────────────────────────────────────────────
 
 export function LSPPanel() {
+  // ── State ──
   const [servers, setServers] = useState<LSPServer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showInstalledOnly, setShowInstalledOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Effects ──
   useEffect(() => {
     loadServers();
   }, []);
 
+  // ── Helpers ──
   const loadServers = () => {
     // Mark installed servers
     const serversWithStatus = AVAILABLE_LSP_SERVERS.map((server) => ({
@@ -46,6 +66,7 @@ export function LSPPanel() {
     setServers(serversWithStatus);
   };
 
+  // ── Handlers ──
   const handleRefresh = () => {
     setLoading(true);
     setTimeout(() => {
@@ -95,6 +116,7 @@ export function LSPPanel() {
     }
   };
 
+  // ── Derived ──
   const filteredServers = searchQuery.trim()
     ? servers.filter(
         (server) =>
@@ -108,6 +130,7 @@ export function LSPPanel() {
     ? filteredServers.filter((server: any) => server.installed)
     : filteredServers;
 
+  // ── Render ──
   return (
     <div className="flex flex-col h-full bg-sidebar">
       {/* Header */}
@@ -195,7 +218,7 @@ export function LSPPanel() {
   );
 }
 
-// ─── LSP Server Item Component ─────────────────────────────────────────────
+// ─── LSP Server Item ────────────────────────────────────────────────────
 
 interface LSPServerItemProps {
   server: LSPServer & { installed?: boolean };

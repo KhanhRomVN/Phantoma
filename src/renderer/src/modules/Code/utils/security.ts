@@ -1,24 +1,24 @@
 /**
- * SecurityValidator — Kiểm tra bảo mật tĩnh cho file path và shell command.
+ * ------------------------------------------------------------------
+ * Security Validator
+ * ------------------------------------------------------------------
+ * Validates file paths and shell commands for safety before execution.
+ * Blocks access to sensitive files (.env, credentials, SSH keys),
+ * protected system directories, and dangerous shell patterns.
  *
- * ?Usage:
- *   const result = SecurityValidator.validatePath('/path/to/file', isWrite);
- *   const cmdResult = SecurityValidator.validateCommand('rm -rf /');
- *
- * ?Function:
- *   validatePath()    : Kiểm tra đường dẫn file có an toàn không.
- *   validateCommand() : Kiểm tra lệnh shell có chứa pattern nguy hiểm không.
- *
- * ?Note:
- *   Port trực tiếp từ temp/Zen/src/utils/security.ts.
- *   Code này không phụ thuộc vào bất kỳ API nào (Node.js hay VS Code).
+ * Main functions:
+ * - validatePath()    : Check if a file path is safe to access/write
+ * - validateCommand() : Check if a shell command contains dangerous patterns
+ * ------------------------------------------------------------------
  */
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface SecurityResult {
   safe: boolean;
   reason?: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class SecurityValidator {
   private static readonly SENSITIVE_PATTERNS = [
     /\.env$/,
@@ -38,14 +38,7 @@ export class SecurityValidator {
     /secrets\.json$/,
   ];
 
-  private static readonly PROTECTED_DIRS = [
-    '/etc',
-    '/usr',
-    '/sbin',
-    '/boot',
-    '/sys',
-    '/proc',
-  ];
+  private static readonly PROTECTED_DIRS = ['/etc', '/usr', '/sbin', '/boot', '/sys', '/proc'];
 
   private static readonly DANGEROUS_COMMAND_PATTERNS = [
     { pattern: /;\s*rm\s+-rf\s+\//, label: 'rm -rf /' },
@@ -64,21 +57,14 @@ export class SecurityValidator {
     { pattern: /eval\s+"?\$/, label: 'eval variable' },
   ];
 
-  private static readonly ELEVATION_PATTERNS = [
-    /\bsudo\b/,
-    /\bsu\s+-?\s/,
-    /\bdoas\b/,
-  ];
+  private static readonly ELEVATION_PATTERNS = [/\bsudo\b/, /\bsu\s+-?\s/, /\bdoas\b/];
 
   /**
    * Validate a file path for safety.
    * @param filePath  Đường dẫn file cần kiểm tra
    * @param isWrite   true nếu là thao tác ghi (sẽ kiểm tra thêm protected dirs)
    */
-  public static validatePath(
-    filePath: string,
-    isWrite: boolean = false,
-  ): SecurityResult {
+  public static validatePath(filePath: string, isWrite: boolean = false): SecurityResult {
     if (!filePath || filePath.trim().length === 0) {
       return { safe: false, reason: 'Empty or invalid path' };
     }
@@ -139,8 +125,7 @@ export class SecurityValidator {
       if (pattern.test(command)) {
         return {
           safe: false,
-          reason:
-            'Command rejected: elevated privilege commands (sudo, su, doas) are blocked',
+          reason: 'Command rejected: elevated privilege commands (sudo, su, doas) are blocked',
         };
       }
     }

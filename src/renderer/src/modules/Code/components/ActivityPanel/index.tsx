@@ -1,12 +1,41 @@
+/**
+ * ------------------------------------------------------------------
+ * Activity Panel
+ * ------------------------------------------------------------------
+ * Left sidebar panel container with tabbed views for File Explorer,
+ * Search, Source Control, and LSP server management. Includes a
+ * resizable width handle (200px–600px) and delegates content
+ * rendering to the active tab component.
+ *
+ * Main features:
+ * - Tab bar (ActivityBar) + content area layout
+ * - 4 tabs: File Explorer, Search, Source Control, LSP
+ * - Resizable width via drag handle
+ * - Reads/writes panel width and active tab from Code store
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useRef, useState } from 'react';
+
+// ── UI ──
+import { Folder, Search as SearchIcon, GitBranch, Code2 } from 'lucide-react';
+
+// ── Hooks ──
 import { useCodeStore } from '../../hooks/useCodeStore';
+
+// ── Components ──
 import { ActivityBar } from './ActivityBar';
 import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { SourceControl } from './SourceControl';
 import { LSPPanel } from './LSP';
-import { Folder, Search as SearchIcon, GitBranch, Code2 } from 'lucide-react';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Constants ──────────────────────────────────────────────────────────
 const TABS = [
   { id: 'explore', icon: <Folder className="w-4 h-4" />, label: 'File Explorer' },
   { id: 'search', icon: <SearchIcon className="w-4 h-4" />, label: 'Search' },
@@ -25,16 +54,25 @@ const TABS = [
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 600;
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function ActivityPanel() {
+  // ── Store ──
   const project = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId));
   const setActivityPanelTab = useCodeStore((s) => s.setActivityPanelTab);
   const activityPanelWidth = useCodeStore((s) => s.activityPanelWidth);
   const setActivityPanelWidth = useCodeStore((s) => s.setActivityPanelWidth);
-  const activityPanelTab = project?.activityPanelTab ?? 'explore';
+
+  // ── State ──
   const [isResizing, setIsResizing] = useState(false);
+
+  // ── Refs ──
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
 
+  // ── Derived ──
+  const activityPanelTab = project?.activityPanelTab ?? 'explore';
+
+  // ── Handlers ──
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -72,6 +110,7 @@ export function ActivityPanel() {
     }
   };
 
+  // ── Render ──
   return (
     <div
       className="flex h-full bg-sidebar-background border-r border-border relative flex-shrink-0"

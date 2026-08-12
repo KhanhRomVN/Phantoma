@@ -1,4 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * Content Panel
+ * ------------------------------------------------------------------
+ * Main editor area displaying Monaco Editor code blocks for open
+ * files. Handles file open/close lifecycle, LSP auto-start, external
+ * file change detection, and service content rendering (websites,
+ * apps, devices, databases, APIs, designs, extensions).
+ *
+ * Main features:
+ * - Monaco Editor integration via CodeBlock component
+ * - Auto-starts LSP server for supported file types
+ * - File watcher integration for external change detection
+ * - Service type content rendering (iframe for websites, etc.)
+ * - Empty state with file icon when no file is open
+ * - Unsaved changes tracking via file content comparison
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, memo } from 'react';
+import type { ReactNode } from 'react';
+
+// ── UI ──
 import {
   FileWarning,
   ExternalLink,
@@ -12,9 +36,14 @@ import {
   Table,
   Puzzle,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+
+// ── Hooks ──
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
+
+// ── Services ──
 import { fileWatcherService } from '../../services/file-watcher.service';
+
+// ── Components ──
 import { FileTabBar } from '../FileTabBar';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
@@ -269,18 +298,16 @@ export const ContentPanel = memo(function ContentPanel() {
   const showService = currentServiceId !== null;
   const showFile = !showService && openFiles.length > 0;
 
-  // Log active tab changes
-  useEffect(() => {
-    if (showFile && activeFileTabId) {
-      const displayName = getDisplayName(activeFileTabId);
-    }
-  }, [activeFileTabId, showFile]);
-
   // Khi switch tab, kiểm tra mtime và reload nếu file bị thay đổi bên ngoài
   useEffect(() => {
     if (!showFile || !activeFileTabId) return;
 
     const fileNode = getFileNode(activeFileTabId);
+    console.log('[ContentPanel] 🔍 Active file changed:', {
+      activeFileTabId,
+      fileNode: fileNode ? { name: fileNode.name, path: fileNode.path } : null,
+    });
+
     if (!fileNode?.path) return;
 
     const category = getFileCategory(fileNode.name);
@@ -290,23 +317,47 @@ export const ContentPanel = memo(function ContentPanel() {
     const fileId = activeFileTabId;
     const fileName = fileNode.name;
 
+    console.log('[ContentPanel] 📖 Reading file:', {
+      fileId,
+      fileName,
+      filePath,
+    });
+
     window.api
       .invoke('fs:stat', filePath)
       .then((stat: { mtime: number }) => {
         const cachedMtime = fileMtimes[fileId];
+        console.log('[ContentPanel] 📊 File stat:', {
+          fileName,
+          newMtime: stat.mtime,
+          cachedMtime,
+          hasContent: loadedContents[fileId] !== undefined,
+        });
+
         if (
           cachedMtime !== undefined &&
           cachedMtime === stat.mtime &&
           loadedContents[fileId] !== undefined
         ) {
+          console.log('[ContentPanel] ✅ Using cached content for', fileName);
           return;
         }
 
         const doRead = (attempt: number) => {
+          console.log(`[ContentPanel] 📂 Attempt ${attempt} reading:`, filePath);
           window.api
             .invoke('fs:read-file', filePath)
             .then((content: string) => {
+              console.log('[ContentPanel] 📄 Read result:', {
+                fileName,
+                filePath,
+                contentLength: content.length,
+                contentPreview: content.substring(0, 100),
+                attempt,
+              });
+
               if (content.length === 0 && attempt < 2) {
+                console.log('[ContentPanel] ⏳ Empty content, retrying...');
                 setTimeout(() => doRead(attempt + 1), 300);
                 return;
               }
@@ -378,6 +429,12 @@ export const ContentPanel = memo(function ContentPanel() {
   // Load nội dung cho tất cả file text trong openFiles
   useEffect(() => {
     if (!showFile || openFiles.length === 0) return;
+
+    console.log('[ContentPanel] 🔄 Loading content for open files:', {
+      openFilesCount: openFiles.length,
+      openFiles,
+    });
+
     openFiles.forEach((fileId) => {
       const fileNode = getFileNode(fileId);
       if (!fileNode) {
@@ -385,22 +442,32 @@ export const ContentPanel = memo(function ContentPanel() {
         return;
       }
 
+      console.log('[ContentPanel] 📋 Processing file:', {
+        fileId,
+        fileName: fileNode.name,
+        filePath: fileNode.path,
+      });
+
       const category = getFileCategory(fileNode.name);
       if (category !== 'text') {
+        console.log('[ContentPanel] ⏭️  Skipping non-text file:', fileNode.name);
         return;
       }
 
       // Đã có trong cache
       if (loadedContents[fileId] !== undefined) {
+        console.log('[ContentPanel] ✅ Already cached:', fileNode.name);
         return;
       }
 
       // Đang load
       if (loadingFiles.has(fileId)) {
+        console.log('[ContentPanel] ⏳ Already loading:', fileNode.name);
         return;
       }
 
       if (fileNode.content != null && unsavedFiles.has(fileId)) {
+        console.log('[ContentPanel] 💾 Using unsaved content:', fileNode.name);
         setLoadedContents((prev) => ({ ...prev, [fileId]: fileNode.content ?? '' }));
         // Lấy mtime từ disk nếu có path
         if (fileNode.path) {
@@ -415,10 +482,21 @@ export const ContentPanel = memo(function ContentPanel() {
       }
 
       if (fileNode.path) {
+        console.log('[ContentPanel] 📂 Starting to load:', {
+          fileName: fileNode.name,
+          filePath: fileNode.path,
+        });
         setLoadingFiles((prev) => new Set(prev).add(fileId));
         window.api
           .invoke('fs:read-file', fileNode.path)
           .then((content: string) => {
+            console.log('[ContentPanel] 📄 Loaded content:', {
+              fileName: fileNode.name,
+              filePath: fileNode.path,
+              fileId,
+              contentLength: content.length,
+              contentPreview: content.substring(0, 100),
+            });
             setLoadedContents((prev) => ({ ...prev, [fileId]: content || '' }));
             setLoadingFiles((prev) => {
               const next = new Set(prev);
@@ -504,6 +582,20 @@ export const ContentPanel = memo(function ContentPanel() {
             const filePath = fileNode?.path || '';
             const content = loadedContents[fileId];
             const isLoading = loadingFiles.has(fileId) || content === undefined;
+
+            {
+              // Debug log for rendering
+              isActive &&
+                console.log('[ContentPanel] 🎨 Rendering active file:', {
+                  fileId,
+                  displayName,
+                  category,
+                  filePath,
+                  isLoading,
+                  contentLength: content?.length,
+                  contentPreview: content?.substring(0, 100),
+                });
+            }
 
             return (
               <div

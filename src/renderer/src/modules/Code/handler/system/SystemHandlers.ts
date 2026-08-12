@@ -1,17 +1,19 @@
 /**
- * SystemHandlers — Gộp các handler hệ thống.
+ * ------------------------------------------------------------------
+ * System Handlers
+ * ------------------------------------------------------------------
+ * IPC message handlers for system-level operations within the Code
+ * module. Adapted from Zen's VSCode API to window.api.invoke + emit
+ * event pattern.
  *
- * Bao gồm:
- *   - FileOpenHandler  : Mở file trong editor + jump to line
- *   - DiffViewHandler  : Mở diff view
- *   - PreviewHandler   : Preview ảnh, file content
- *
- * ?Note:
- *   Port từ Zen, adapt từ vscode API → window.api.invoke + emit event.
- *   Các handler này chủ yếu emit event để Code module UI xử lý.
+ * Main handlers:
+ * - FileOpenHandler  : Open a file in the editor with optional jump-to-line
+ * - DiffViewHandler  : Open diff view for file comparisons
+ * - PreviewHandler   : Preview images, file content, and replace history
+ * ------------------------------------------------------------------
  */
 
-// ─── Types ────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────
 
 interface BaseParams {
   requestId?: string;
@@ -25,9 +27,7 @@ interface BaseResult {
   [key: string]: any;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// FileOpenHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── FileOpenHandler ────────────────────────────────────────────────────
 
 export class FileOpenHandler {
   /** Mở file trong Code editor, hỗ trợ jump to line */
@@ -66,9 +66,7 @@ export class FileOpenHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// DiffViewHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── DiffViewHandler ────────────────────────────────────────────────────
 
 export class DiffViewHandler {
   /** Mở diff view cho thao tác file (replace, revert...) */
@@ -92,9 +90,7 @@ export class DiffViewHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// PreviewHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── PreviewHandler ─────────────────────────────────────────────────────
 
 export class PreviewHandler {
   /** Mở ảnh base64 trong editor/viewer */

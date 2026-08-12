@@ -1,9 +1,23 @@
 /**
- * LSP (Language Server Protocol) Service
- * Detects language from file extension and maps to recommended LSP servers.
+ * ------------------------------------------------------------------
+ * LSP Service
+ * ------------------------------------------------------------------
+ * Defines the list of supported LSP servers (TypeScript, Python, Rust,
+ * Go, CSS, HTML, JSON, YAML, Bash, PHP, Java, C#...) with package info
+ * and descriptions. Provides utilities for language detection from file
+ * extensions and installation state tracking in localStorage.
+ *
+ * Main functions:
+ * - detectLanguage()    : Detect language from file extension
+ * - getLSPServer()      : Get the matching LSP server info for a filename
+ * - isLSPInstalled()    : Check if an LSP server is marked as installed
+ * - markLSPInstalled()  : Mark an LSP server as installed
+ * - dismissLSP()        : Hide LSP install suggestion (don't ask again)
+ * - isLSPDismissed()    : Check if LSP suggestion was dismissed
+ * ------------------------------------------------------------------
  */
 
-// ─── Language → LSP Server Mapping ──────────────────────────────────────
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface LSPServer {
   id: string;
   name: string;
@@ -14,6 +28,7 @@ export interface LSPServer {
   icon?: string;
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const LSP_SERVERS: Record<string, LSPServer> = {
   typescript: {
     id: 'typescript',
@@ -181,7 +196,6 @@ export function getLSPServer(filename: string): LSPServer | null {
 }
 
 // ─── Installation State ─────────────────────────────────────────────────
-
 const INSTALLED_KEY = 'lsp-installed-servers';
 
 /**

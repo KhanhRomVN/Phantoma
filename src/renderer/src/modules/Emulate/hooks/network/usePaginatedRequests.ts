@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { requestStorage, StoredRequest } from '../../../../services/IndexedDBStorage';
+import { requestStorage, StoredRequest } from '../../services/request-storage.service';
 import { NetworkRequest } from '../../types/inspector';
 
 interface UsePaginatedRequestsOptions {

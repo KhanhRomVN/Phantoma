@@ -1,27 +1,21 @@
 /**
- * ReplaceInFileHistoryManager — Lưu lịch sử các lần replace_in_file.
+ * ------------------------------------------------------------------
+ * Replace-In-File History Manager
+ * ------------------------------------------------------------------
+ * Versioned history storage for replace-in-file operations.
+ * Persists each replacement as a versioned snapshot in localStorage,
+ * enabling undo/revert functionality across editor sessions.
  *
- * ?Usage:
- *   const mgr = ReplaceInFileHistoryManager.getInstance();
- *   await mgr.saveHistory(filePath, newContent, errorCount, warningCount, ...);
- *   const version = await mgr.getHistoryVersion(filePath, 3);
- *
- * ?Function:
- *   saveHistory()         : Lưu phiên bản mới sau mỗi lần replace.
- *   getHistoryList()      : Trả về danh sách version kèm error/warning/line count.
- *   getHistoryVersion()   : Lấy nội dung đầy đủ của một version.
- *   getCurrentVersion()   : Lấy version hiện tại của file.
- *   deleteVersionsAfter() : Xóa các version cao hơn version chỉ định.
- *
- * ?Storage:
- *   Dùng localStorage thay vì file system (khác với Zen dùng thư mục ~/khanhromvn-zen).
- *   Key format: `replace_history:{filePath}:versions`
- *
- * ?Note:
- *   Port từ temp/Zen/src/managers/ReplaceInFileHistoryManager.ts.
- *   Adapt: thay fs.writeFile bằng localStorage, bỏ crypto hash.
+ * Main functions:
+ * - getCurrentVersion()    : Get the latest version number for a file
+ * - saveHistory()          : Save a new version snapshot after replacement
+ * - getHistoryList()       : List all versions (without full content)
+ * - getHistoryVersion()    : Retrieve full content of a specific version
+ * - deleteVersionsAfter()  : Prune versions after a given version (for revert)
+ * ------------------------------------------------------------------
  */
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ReplaceInFileHistory {
   id: string;
   filePath: string;
@@ -36,8 +30,10 @@ export interface ReplaceInFileHistory {
   responseNumber?: number;
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const STORAGE_PREFIX = 'replace_history:';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ReplaceInFileHistoryManager {
   private static instance: ReplaceInFileHistoryManager;
 
@@ -122,7 +118,9 @@ export class ReplaceInFileHistoryManager {
   }
 
   /** Lấy danh sách versions (không bao gồm fullContent để tiết kiệm bộ nhớ) */
-  public async getHistoryList(filePath: string): Promise<Omit<ReplaceInFileHistory, 'fullContent'>[]> {
+  public async getHistoryList(
+    filePath: string,
+  ): Promise<Omit<ReplaceInFileHistory, 'fullContent'>[]> {
     const versions = await this.readVersions(filePath);
     return versions.map(({ fullContent: _, ...rest }) => rest);
   }

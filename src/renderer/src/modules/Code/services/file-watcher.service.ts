@@ -1,26 +1,41 @@
 /**
+ * ------------------------------------------------------------------
  * File Watcher Service
+ * ------------------------------------------------------------------
+ * Monitors external file changes for all project files. Keeps watchers
+ * alive even after tabs are closed, using a smart idle-time cleanup
+ * strategy: 10 min idle → auto-unwatch + didClose to LSP (30 min if
+ * the file has diagnostics). Supports manual unwatch as well.
  *
- * Manages file watchers for all files in the project.
- * Keeps watchers alive even when file tabs are closed.
- *
- * Smart cleanup strategy:
- * - Track "last accessed time" for each file
- * - After 10 minutes of inactivity, auto-cleanup watcher and send didClose to LSP
- * - Files with diagnostics are kept longer (30 minutes)
- * - Manual cleanup available via unwatchFile()
- *
- * Responsibilities:
- * - Start watching files when they're opened
+ * Core responsibilities:
+ * - Start watching files when they are opened
  * - Keep watchers alive across tab switches/closes
  * - Notify LSP server of external changes
- * - Emit events for UI updates
- * - Auto-cleanup inactive files
+ * - Emit events for UI to refresh content
+ * - Auto-cleanup idle files
+ *
+ * Main functions:
+ * - initialize()         : Initialize the service (idempotent)
+ * - onFileChange()       : Register a file-change listener, returns unsubscribe
+ * - watchFile()          : Start watching a file for external changes
+ * - unwatchFile()        : Stop watching a file, send didClose to LSP
+ * - unwatchAll()         : Stop watching all files (project close)
+ * - touchFile()          : Update last-access time, reset cleanup timer
+ * - updateContent()      : Update known content when user edits in-app
+ * - isWatching()         : Check if a file is being watched
+ * - getWatchedFiles()    : Get all watched file paths
+ * - getStats()           : Get debug statistics
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import { lspClientManager } from './lsp-client.service';
+
+// ── Stores ──
 import { useDiagnosticsStore } from '../stores/diagnosticsStore';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface WatchedFile {
   filePath: string;
   language: string;
@@ -38,10 +53,11 @@ export interface FileChangeEvent {
 
 type FileChangeListener = (event: FileChangeEvent) => void;
 
-// Cleanup configuration
+// ─── Constants ──────────────────────────────────────────────────────────
 const INACTIVE_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 const WITH_DIAGNOSTICS_TIMEOUT = 30 * 60 * 1000; // 30 minutes for files with errors/warnings
 
+// ─── Class ──────────────────────────────────────────────────────────────
 class FileWatcherService {
   private watchedFiles: Map<string, WatchedFile> = new Map();
   private changeListeners: Set<FileChangeListener> = new Set();
@@ -280,7 +296,7 @@ class FileWatcherService {
   }
 }
 
-// Export singleton instance
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const fileWatcherService = new FileWatcherService();
 
 // Auto-initialize

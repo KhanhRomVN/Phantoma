@@ -1,14 +1,41 @@
+/**
+ * ------------------------------------------------------------------
+ * Project Tab Bar
+ * ------------------------------------------------------------------
+ * Top-level horizontal tab bar for switching between open projects.
+ * Each tab shows a colored square indicator, project name, and an
+ * unsaved-changes dot (or X on hover). Includes a "+" button to
+ * open the project manager modal.
+ *
+ * Main features:
+ * - Project tabs with color indicators
+ * - Unsaved indicator (dot → X on hover) matching FileTabBar pattern
+ * - "+" button to open project manager
+ * - Auto-hides scrollbar
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import { Plus, X, CircleDot } from 'lucide-react';
+
+// ── Hooks ──
 import { useCodeStore } from '../../hooks/useCodeStore';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface ProjectTabBarProps {
   onOpenManager: () => void;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function ProjectTabBar({ onOpenManager }: ProjectTabBarProps) {
+  // ── Store ──
   const { projects, currentProjectId, setCurrentProject, removeProject } = useCodeStore();
 
+  // ── Render ──
   return (
     <div className="flex items-center h-10 bg-sidebar-background border-b border-divider px-2 overflow-x-auto flex-shrink-0 gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       {projects.map((project) => {

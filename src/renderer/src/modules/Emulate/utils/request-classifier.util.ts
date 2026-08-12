@@ -1,6 +1,14 @@
-import { PayloadType } from '../types/repeater.types';
-
-export type { PayloadType };
+/**
+ * ------------------------------------------------------------------
+ * Request Classifier Utility
+ * ------------------------------------------------------------------
+ * Hàm phân loại network request vào 1 trong 11 category dựa trên
+ * type, path, protocol. Dùng chung cho filter UI và request table.
+ *
+ * Các hàm chính:
+ * - getRequestCategory() : Phân loại request → xhr/js/css/img/media/font/doc/ws/wasm/manifest/other
+ * ------------------------------------------------------------------
+ */
 
 export function getRequestCategory(req: {
   type?: string;

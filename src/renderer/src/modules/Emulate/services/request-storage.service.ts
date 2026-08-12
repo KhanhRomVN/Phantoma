@@ -1,6 +1,17 @@
 /**
- * IndexedDB Storage Service for Network Requests
- * Stores requests per target with compression for response bodies
+ * ------------------------------------------------------------------
+ * Request Storage Service
+ * ------------------------------------------------------------------
+ * Lưu trữ network requests vào IndexedDB theo từng target. Hỗ trợ
+ * nén/giải nén response body (gzip) cho request > 10KB để tiết kiệm
+ * dung lượng. Cung cấp API phân trang (limit/offset).
+ *
+ * Các hàm chính:
+ * - saveRequest()     : Lưu một request vào DB (tự động nén response body nếu > 10KB)
+ * - getRequests()     : Lấy danh sách request của target (phân trang, mới nhất trước)
+ * - getRequestsCount(): Đếm tổng số request của một target
+ * - deleteTarget()    : Xóa toàn bộ request của một target
+ * ------------------------------------------------------------------
  */
 
 const DB_NAME = 'PhantomaRequests';
@@ -23,18 +34,18 @@ export interface StoredRequest {
   requestHeaders: Record<string, string>;
   responseHeaders: Record<string, string>;
   requestBody: string;
-  responseBody: string; // compressed or raw
-  responseBodyCompressed?: boolean; // flag indicating if body is compressed
+  responseBody: string;
+  responseBodyCompressed?: boolean;
   initiator?: string;
   securityIssues?: any[];
   requestCookies?: Record<string, string>;
   responseCookies?: Record<string, string>;
 }
 
-export class IndexedDBStorage {
+export class RequestStorage {
   private db: IDBDatabase | null = null;
   private dbReady: Promise<void>;
-  private compressThreshold = 10240; // 10KB - compress bodies larger than this
+  private compressThreshold = 10240; // 10KB
 
   constructor() {
     this.dbReady = this.initDB();
@@ -74,7 +85,6 @@ export class IndexedDBStorage {
         new Blob([encoder.encode(data)]).stream().pipeThrough(new CompressionStream('gzip')),
       ).arrayBuffer();
 
-      // Convert to base64 for storage
       const uint8Array = new Uint8Array(compressed);
       let binary = '';
       for (let i = 0; i < uint8Array.length; i++) {
@@ -82,7 +92,6 @@ export class IndexedDBStorage {
       }
       return btoa(binary);
     } catch {
-      // Fallback: store as-is if compression fails
       return data;
     }
   }
@@ -139,13 +148,11 @@ export class IndexedDBStorage {
       responseCookies: request.responseCookies,
     };
 
-    // Compress response body if large
     if (stored.responseBody && stored.responseBody.length > this.compressThreshold) {
       try {
         stored.responseBody = await this.compress(stored.responseBody);
         stored.responseBodyCompressed = true;
       } catch {
-        // Keep uncompressed
         stored.responseBodyCompressed = false;
       }
     }
@@ -173,7 +180,6 @@ export class IndexedDBStorage {
       let skipped = 0;
       let collected = 0;
 
-      // Helper: decompress all records after cursor finishes
       const finalize = async () => {
         for (const r of requests) {
           if (r.responseBodyCompressed && r.responseBody) {
@@ -181,14 +187,13 @@ export class IndexedDBStorage {
               r.responseBody = await this.decompress(r.responseBody, true);
               r.responseBodyCompressed = false;
             } catch {
-              // Keep as-is if decompression fails
+              // Keep as-is
             }
           }
         }
         resolve(requests);
       };
 
-      // Query in descending timestamp order (newest first)
       const range = IDBKeyRange.bound([targetId, 0], [targetId, Date.now()]);
       const cursor = index.openCursor(range, 'prev');
 
@@ -235,66 +240,6 @@ export class IndexedDBStorage {
     });
   }
 
-  async cleanupOld(targetId: string, keepCount: number): Promise<number> {
-    await this.ensureReady();
-    if (!this.db) throw new Error('Database not initialized');
-
-    const count = await this.getRequestsCount(targetId);
-    if (count <= keepCount) return 0;
-
-    const toDelete = count - keepCount;
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const index = store.index('targetId_timestamp');
-
-      const requestsToDelete: string[] = [];
-      let deleted = 0;
-
-      // Get oldest requests (ascending timestamp)
-      const range = IDBKeyRange.bound([targetId, 0], [targetId, Date.now()]);
-      const cursor = index.openCursor(range, 'next');
-
-      cursor.onsuccess = (event) => {
-        const cursor_ = (event.target as IDBRequest).result;
-        if (!cursor_ || deleted >= toDelete) {
-          // Delete all collected requests
-          const deleteTransaction = this.db!.transaction([STORE_NAME], 'readwrite');
-          const deleteStore = deleteTransaction.objectStore(STORE_NAME);
-          let completed = 0;
-
-          requestsToDelete.forEach((id) => {
-            const req = deleteStore.delete(id);
-            req.onsuccess = () => {
-              completed++;
-              if (completed === requestsToDelete.length) {
-                resolve(deleted);
-              }
-            };
-            req.onerror = () => {
-              // Continue even if one fails
-              completed++;
-              if (completed === requestsToDelete.length) {
-                resolve(deleted);
-              }
-            };
-          });
-
-          if (requestsToDelete.length === 0) resolve(0);
-          return;
-        }
-
-        const value = cursor_.value as StoredRequest;
-        requestsToDelete.push(value.id);
-        deleted++;
-        cursor_.continue();
-      };
-
-      cursor.onerror = () => reject(cursor.error);
-    });
-  }
-
   async deleteTarget(targetId: string): Promise<void> {
     await this.ensureReady();
     if (!this.db) throw new Error('Database not initialized');
@@ -319,21 +264,7 @@ export class IndexedDBStorage {
       cursor.onerror = () => reject(cursor.error);
     });
   }
-
-  async clearAll(): Promise<void> {
-    await this.ensureReady();
-    if (!this.db) throw new Error('Database not initialized');
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.clear();
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
 }
 
 // Singleton instance
-export const requestStorage = new IndexedDBStorage();
+export const requestStorage = new RequestStorage();

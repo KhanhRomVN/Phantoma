@@ -1,10 +1,36 @@
+/**
+ * ------------------------------------------------------------------
+ * Toast
+ * ------------------------------------------------------------------
+ * Individual toast notification card with variant-specific styling.
+ * Supports info, success, error, warning, and loading variants with
+ * icon, description, action buttons, and a progress bar for loading
+ * state. Uses theme-aware CSS variable colors.
+ *
+ * Main features:
+ * - 5 variants: info, success, error, warning, loading
+ * - Progress bar with percentage for loading state
+ * - Up to 3 action buttons (primary, secondary, ghost)
+ * - Source label display in footer
+ * - Stack offset and z-index based on index
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { type ReactNode, useState } from 'react';
+
+// ── UI ──
 import { X, Info, CheckCircle, AlertTriangle, AlertCircle, Loader2 } from 'lucide-react';
+
+// ── Types ──
 import type { ToastItem } from '../../services/toast.service';
+
+// ── Utils ──
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
 
-// ─── Variant config ─────────────────────────────────────────────────────────
+// ─── Variant Config ─────────────────────────────────────────────────────
 
 const variantConfig: Record<
   NonNullable<ToastItem['variant']>,
@@ -42,7 +68,7 @@ const variantConfig: Record<
   },
 };
 
-// ─── Action button styles (semantic, không phụ thuộc theme) ─────────────────
+// ─── Action Button Styles ───────────────────────────────────────────────
 
 function actionButtonClasses(variant?: 'primary' | 'secondary' | 'ghost'): string {
   const base =
@@ -58,7 +84,7 @@ function actionButtonClasses(variant?: 'primary' | 'secondary' | 'ghost'): strin
   }
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
+// ─── Component ──────────────────────────────────────────────────────────
 
 interface ToastProps {
   toast: ToastItem;
@@ -68,18 +94,22 @@ interface ToastProps {
 }
 
 export function Toast({ toast, onDismiss, index }: ToastProps) {
+  // ── State ──
+  const [closeHovered, setCloseHovered] = useState(false);
+
+  // ── Derived ──
   const variant = toast.variant || 'info';
   const config = variantConfig[variant];
   const hasProgress = variant === 'loading' && toast.progress !== undefined;
-  const [closeHovered, setCloseHovered] = useState(false);
 
-  // Theme-aware colors
+  // ── Theme-aware colors ──
   const cardBg = $('--card-background');
   const textPrimary = $('--text-primary');
   const textSecondary = $('--text-secondary');
   const textDim = $('--text-secondary', 0.55);
   const borderClr = $('--border');
 
+  // ── Render ──
   return (
     <div
       className={cn(

@@ -1,5 +1,4 @@
-// Security types for Emulate feature
-// Re-export and extend global security types
+// Types
 import type { SecurityIssue } from '../../../types/inspector';
 
 export { SecurityIssue };

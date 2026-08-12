@@ -1,6 +1,23 @@
+/**
+ * ------------------------------------------------------------------
+ * Source Control
+ * ------------------------------------------------------------------
+ * Git source control panel in the Activity sidebar. Displays the
+ * current branch, sync status, and a summary of changes/PRs.
+ *
+ * Main features:
+ * - Shows current branch name with sync status
+ * - Displays change and pull request counts (static placeholder)
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import { GitBranch, GitCommit, GitPullRequest } from 'lucide-react';
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function SourceControl() {
+  // ── Render ──
   return (
     <div className="flex-1 overflow-y-auto p-3">
       <div className="text-xs font-medium text-text-secondary/60 mb-3">Source Control</div>

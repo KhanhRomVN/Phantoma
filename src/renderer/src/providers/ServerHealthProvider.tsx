@@ -1,5 +1,13 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
-import { apiClient } from '../services/ApiClient';
+import { apiService } from '@renderer/services/api.service';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  ReactNode,
+} from 'react';
 
 interface ServerHealthContextType {
   error: string | null;
@@ -28,7 +36,7 @@ export const ServerHealthProvider: React.FC<ServerHealthProviderProps> = ({ chil
       if (isChecking.current) return;
       isChecking.current = true;
       try {
-        const healthy = await apiClient.healthCheck();
+        const healthy = await apiService.healthCheck();
         if (healthy) {
           setIsValid(true);
           setError(null);
@@ -61,11 +69,7 @@ export const ServerHealthProvider: React.FC<ServerHealthProviderProps> = ({ chil
     clearError,
   };
 
-  return (
-    <ServerHealthContext.Provider value={value}>
-      {children}
-    </ServerHealthContext.Provider>
-  );
+  return <ServerHealthContext.Provider value={value}>{children}</ServerHealthContext.Provider>;
 };
 
 export const useServerHealth = (): ServerHealthContextType => {

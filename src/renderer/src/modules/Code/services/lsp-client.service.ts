@@ -1,18 +1,32 @@
 /**
+ * ------------------------------------------------------------------
  * LSP Client Service
- * Manages Language Server Protocol client connections for Monaco Editor
- * Supports all programming languages via their respective language servers
+ * ------------------------------------------------------------------
+ * Manages the lifecycle of Language Server Protocol (LSP) servers.
+ * Responsible for starting/stopping servers, registering Monaco Editor
+ * providers (completion, hover, definition, signature help, formatting),
+ * and sending document state notifications (didOpen/didChange/didSave/
+ * didClose) to LSP servers.
+ *
+ * Main functions:
+ * - initialize()              : Initialize with Monaco instance
+ * - startLanguageServer()     : Start an LSP server for a language
+ * - stopLanguageServer()      : Stop an LSP server for a language
+ * - stopAllServers()          : Stop all running LSP servers
+ * - isServerRunning()         : Check if a server is running
+ * - getRunningServers()       : Get list of languages with running servers
+ * - notifyDocumentOpened()    : Send didOpen to LSP server
+ * - notifyDocumentChanged()   : Send didChange (debounced 500ms)
+ * - notifyDocumentSaved()     : Send didSave to LSP server
+ * - notifyDocumentClosed()    : Send didClose to LSP server
+ *
+ * Exported helpers:
+ * - autoStartLanguageServer() : Auto-start LSP server when opening a file
+ * ------------------------------------------------------------------
  */
 
-import { useDiagnosticsStore } from '../stores/diagnosticsStore';
+// ─── Helpers ────────────────────────────────────────────────────────────
 
-// ─── Helper Functions ───────────────────────────────────────────────────────
-
-/**
- * Map Monaco/LSP language IDs to their corresponding language server
- * TypeScript Language Server handles both .ts and .tsx files
- * JavaScript Server handles both .js and .jsx files
- */
 function getServerLanguage(languageId: string): string {
   const mapping: Record<string, string> = {
     typescriptreact: 'typescript',
@@ -22,7 +36,7 @@ function getServerLanguage(languageId: string): string {
   return mapping[languageId] || languageId;
 }
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────
 
 export interface LSPClientConfig {
   language: string;
@@ -37,7 +51,7 @@ interface ActiveServer {
   capabilities: any;
 }
 
-// ─── LSP Client Manager ─────────────────────────────────────────────────────
+// ─── Class ──────────────────────────────────────────────────────────────
 
 class LSPClientManager {
   private activeServers: Map<string, ActiveServer> = new Map();
@@ -385,7 +399,7 @@ class LSPClientManager {
    * NOTE: This is now handled by LSP Manager for better centralization
    * We keep this for backward compatibility with Monaco markers
    */
-  private setupDiagnostics(language: string) {
+  private setupDiagnostics(_language: string) {
     if (!this.monaco) return;
     // Diagnostics are managed by LSP Manager
   }
@@ -589,11 +603,10 @@ class LSPClientManager {
   }
 }
 
-// ─── Singleton Instance ─────────────────────────────────────────────────────
-
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const lspClientManager = new LSPClientManager();
 
-// ─── Auto-start Configuration ───────────────────────────────────────────────
+// ─── Auto-start Configuration ───────────────────────────────────────────
 
 /**
  * Language server configurations

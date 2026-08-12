@@ -1,21 +1,22 @@
 /**
- * ReadFileHandler — Đọc nội dung file, hỗ trợ đọc theo dòng, diagnostics.
+ * ------------------------------------------------------------------
+ * Read File Handler
+ * ------------------------------------------------------------------
+ * Reads file content with optional line-range slicing and LSP
+ * diagnostics attachment. Adapted from Zen's vscode.workspace.fs
+ * to window.api.invoke IPC. Supports relative path resolution
+ * against the current project root.
  *
- * ?Usage:
- *   const handler = new ReadFileHandler();
- *   await handler.handle(message);
- *
- * ?Function:
- *   handle(): Đọc file, hỗ trợ start_line/end_line, skipDiagnostics.
- *
- * ?Note:
- *   Port từ temp/Zen/src/handlers/tool/ReadFileHandler.ts.
- *   Adapt: thay vscode.workspace.fs → window.api.invoke('fs:read-file').
- *   Adapt: thay vscode.WebviewView.postMessage → return Promise<Result>.
+ * Main functions:
+ * - handle() : Read file, apply start_line/end_line, attach diagnostics
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { SecurityValidator } from '../../utils/security';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ReadFileParams {
   path?: string;
   filePath?: string;
@@ -44,6 +45,8 @@ export interface ReadFileResult {
   error?: string;
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────
+
 function isAbsolute(p: string): boolean {
   return p.startsWith('/') || p.startsWith('file://') || /^[A-Za-z]:[\\/]/.test(p);
 }
@@ -53,6 +56,7 @@ function joinPath(base: string, relative: string): string {
   return base + '/' + relative;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ReadFileHandler {
   /**
    * Đọc file và trả về kết quả (thay vì postMessage như Zen).

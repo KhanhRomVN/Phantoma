@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { dataService } from '../services/DataService';
-import { TargetTab } from '../../features/Emulate/types/target.types';
+import { dataService } from '../modules/Emulate/services/emulate-api.service';
+import { TargetTab } from '@renderer/modules/Emulate/types/target.types';
 
 interface UseTargetDataOptions {
   autoLoad?: boolean;
@@ -25,13 +25,13 @@ interface UseTargetDataReturn {
 
 /**
  * Hook for managing target data with React state
- * 
+ *
  * Usage:
  * const { targets, loading, saveTarget, deleteTarget } = useTargetData();
- * 
+ *
  * // Auto-load on mount
  * const { targets, loading } = useTargetData({ autoLoad: true });
- * 
+ *
  * // Load by platform
  * const { targets } = useTargetData({ platform: 'web' });
  */
@@ -53,13 +53,13 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
 
   const loadTargets = useCallback(async () => {
     if (!isMounted.current) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       let data: TargetTab[];
-      
+
       if (platform) {
         data = await dataService.getTargetsByPlatform(platform);
       } else if (searchQuery) {
@@ -67,7 +67,7 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
       } else {
         data = await dataService.getTargets();
       }
-      
+
       if (isMounted.current) {
         setTargets(data);
       }
@@ -85,12 +85,12 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
   const saveTarget = useCallback(async (target: TargetTab): Promise<TargetTab> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const saved = await dataService.saveTarget(target);
-      
-      setTargets(prev => {
-        const index = prev.findIndex(t => t.id === saved.id);
+
+      setTargets((prev) => {
+        const index = prev.findIndex((t) => t.id === saved.id);
         if (index >= 0) {
           const newTargets = [...prev];
           newTargets[index] = saved;
@@ -98,7 +98,7 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
         }
         return [...prev, saved];
       });
-      
+
       return saved;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save target');
@@ -111,7 +111,7 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
   const saveTargets = useCallback(async (newTargets: TargetTab[]): Promise<TargetTab[]> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const saved = await dataService.saveTargets(newTargets);
       setTargets(saved);
@@ -124,30 +124,33 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
     }
   }, []);
 
-  const createTarget = useCallback(async (input: Omit<TargetTab, 'id'> & { id?: string }): Promise<TargetTab> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const created = await dataService.createTarget(input);
-      setTargets(prev => [...prev, created]);
-      return created;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create target');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const createTarget = useCallback(
+    async (input: Omit<TargetTab, 'id'> & { id?: string }): Promise<TargetTab> => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const created = await dataService.createTarget(input);
+        setTargets((prev) => [...prev, created]);
+        return created;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to create target');
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   const deleteTarget = useCallback(async (id: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await dataService.deleteTarget(id);
       if (result) {
-        setTargets(prev => prev.filter(t => t.id !== id));
+        setTargets((prev) => prev.filter((t) => t.id !== id));
       }
       return result;
     } catch (err) {
@@ -161,11 +164,11 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
   const deleteTargets = useCallback(async (ids: string[]): Promise<number> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await dataService.deleteTargets(ids);
       if (result > 0) {
-        setTargets(prev => prev.filter(t => !ids.includes(t.id)));
+        setTargets((prev) => prev.filter((t) => !ids.includes(t.id)));
       }
       return result;
     } catch (err) {
@@ -179,7 +182,7 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
   const clearAll = useCallback(async (): Promise<number> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await dataService.clearAllTargets();
       setTargets([]);
@@ -199,7 +202,7 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
   const search = useCallback(async (query: string): Promise<TargetTab[]> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const results = await dataService.searchTargets(query);
       return results;

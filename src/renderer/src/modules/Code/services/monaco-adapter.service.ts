@@ -1,17 +1,22 @@
 /**
+ * ------------------------------------------------------------------
  * Monaco Adapter Service
+ * ------------------------------------------------------------------
+ * Bridge between the LSP diagnostics system and the Monaco Editor.
+ * Converts LSP-format diagnostics into Monaco editor markers for
+ * inline squiggles, hover tooltips, and quick-fix display.
  *
- * Decoupled adapter layer between diagnostics data and Monaco Editor.
- * Responsible ONLY for syncing markers to Monaco for inline display.
- *
- * Separation of concerns:
- * - DiagnosticsStore: Single source of truth
- * - MonacoAdapter: View layer sync (this file)
- * - LSPManager: Orchestrator
+ * Main functions:
+ * - syncMarkers()   : Sync diagnostics as Monaco markers for a file URI
+ * - clearMarkers()  : Clear all markers for a file URI from Monaco
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import type { Diagnostic } from '../stores/diagnosticsStore';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 class MonacoAdapter {
   /**
    * Sync diagnostics to Monaco editor markers
@@ -88,6 +93,5 @@ class MonacoAdapter {
   }
 }
 
-// ─── Singleton Instance ─────────────────────────────────────────────────────
-
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const monacoAdapter = new MonacoAdapter();

@@ -6,6 +6,16 @@ import { NetworkRequest } from '../../types/inspector';
 // HOOK
 import { usePaginatedRequests } from './usePaginatedRequests';
 
+// UTILS — pure network parsers (tách từ file này)
+import {
+  buildCdpRequest,
+  parseProxyRequest,
+  decodeBinaryBody,
+  formatElapsedTime,
+  formatResponseSize,
+  buildPlaceholderRequest,
+} from '../../utils/network-event-parser.util';
+
 export interface CdpRequestData {
   id: string;
   url: string;
@@ -67,7 +77,6 @@ export interface CdpScriptSourceData {
 
 interface UseNetworkEventsOptions {
   targetId?: string;
-  initialRequests?: NetworkRequest[];
   onRequest?: (request: NetworkRequest) => void;
   onResponse?: (requestId: string, status: number, headers: Record<string, string>) => void;
   onResponseBody?: (requestId: string, body: string, size: number) => void;
@@ -80,7 +89,6 @@ interface UseNetworkEventsOptions {
 export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const {
     targetId = '',
-    initialRequests = [],
     onRequest,
     onResponse,
     onResponseBody,
@@ -118,57 +126,11 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     unpackedScriptsRef.current = new Map();
   }, [targetId]);
 
-  // Build request object from CDP data
+  // Build request object from CDP data — delegates to pure parser
   const buildRequest = useCallback((data: CdpRequestData): Partial<NetworkRequest> => {
-    let host = '';
-    let path = '';
-    let protocol = 'http';
-    try {
-      if (data.url) {
-        const url = new URL(data.url);
-        host = url.host;
-        path = url.pathname;
-        protocol = url.protocol.replace(':', '');
-      }
-    } catch {
-      // Ignore invalid URL
-    }
-
-    const resourceTypeMap: Record<string, string> = {
-      Document: 'doc',
-      XHR: 'xhr',
-      Fetch: 'fetch',
-      Script: 'js',
-      Stylesheet: 'css',
-      Image: 'img',
-      Media: 'media',
-      Font: 'font',
-      WebSocket: 'ws',
-      Manifest: 'manifest',
-      Other: 'other',
-    };
-    const type = resourceTypeMap[data.resourceType] || 'other';
-    const id = data.id || `cdp-${Date.now()}-${Math.random()}`;
-    timestampMapRef.current.set(id, data.timestamp || Date.now());
-
-    return {
-      id,
-      method: data.method || 'GET',
-      protocol,
-      host,
-      path,
-      url: data.url || '',
-      status: 0,
-      type,
-      size: '0 B',
-      time: '0ms',
-      timestamp: data.timestamp || Date.now(),
-      requestHeaders: data.headers || {},
-      responseHeaders: {},
-      requestBody: data.requestBody || '',
-      responseBody: '',
-      initiator: data.initiator ? JSON.stringify(data.initiator) : undefined,
-    };
+    const { request, generatedId, timestamp } = buildCdpRequest(data);
+    timestampMapRef.current.set(generatedId, timestamp);
+    return request;
   }, []);
 
   // Handle CDP request event
@@ -198,36 +160,15 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         onResponse?.(data.id, data.statusCode, data.headers);
       } else {
         console.warn('[useNetworkEvents] No existing request for response:', data.id);
-        console.debug('[DEBUG] Creating placeholder request for response ID:', data.id);
-        // Create placeholder request from response data
-        const placeholder: Partial<NetworkRequest> = {
-          id: data.id,
-          method: 'GET', // Fallback - method not available in response
-          url: '', // Will be filled from response headers if available
-          status: data.statusCode || 200,
-          responseHeaders: data.headers || {},
-          timestamp: data.timestamp || Date.now(),
-          type: 'other',
-          host: '',
-          path: '/',
-          protocol: 'http',
-          size: '0 B',
-          time: '0ms',
-          requestHeaders: {},
-          responseBody: '',
-          requestBody: '',
-        };
-        // Try to extract URL from response headers
-        if (data.headers && typeof data.headers === 'object') {
-          const urlHeader = data.headers[':path'] || data.headers['x-original-url'] || '';
-          if (urlHeader) {
-            placeholder.url = urlHeader;
-          }
-        }
-        const fullReq = placeholder as NetworkRequest;
-        requestMapRef.current.set(data.id, fullReq);
-        addRequest(fullReq);
-        onRequest?.(fullReq);
+        const placeholder = buildPlaceholderRequest(
+          data.id,
+          data.statusCode,
+          data.headers,
+          data.timestamp || Date.now(),
+        );
+        requestMapRef.current.set(data.id, placeholder);
+        addRequest(placeholder);
+        onRequest?.(placeholder);
         onResponse?.(data.id, data.statusCode, data.headers);
       }
     },
@@ -238,16 +179,15 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleCdpResponseBody = useCallback(
     (data: CdpResponseBodyData) => {
       const requestTimestamp = timestampMapRef.current.get(data.id);
-      let timeMs = 0;
+      let timeStr = '0ms';
 
       if (requestTimestamp) {
-        const currentTime = data.timestamp || Date.now();
-        timeMs = currentTime - requestTimestamp;
+        const { timeStr: elapsed } = formatElapsedTime(requestTimestamp, data.timestamp || Date.now());
+        timeStr = elapsed;
         timestampMapRef.current.delete(data.id);
       }
 
-      const timeStr = timeMs >= 1000 ? `${(timeMs / 1000).toFixed(2)}s` : `${timeMs}ms`;
-      const sizeStr = data.size ? `${(data.size / 1024).toFixed(1)} KB` : '0 B';
+      const { sizeStr } = formatResponseSize(data.size);
 
       const updates: Partial<NetworkRequest> = {
         responseBody: data.body || '',
@@ -286,70 +226,11 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleProxyRequest = useCallback(
     (data: any) => {
       try {
-        let host = '';
-        let path = '';
-        let protocol = 'https';
-        try {
-          if (data.url) {
-            const url = new URL(data.url);
-            host = url.host;
-            path = url.pathname;
-            protocol = url.protocol.replace(':', '');
-          }
-        } catch {
-          // Ignore invalid URL
-        }
-
-        let type = 'other';
-        const pathLower = path.toLowerCase();
-        if (pathLower.endsWith('.js')) type = 'js';
-        else if (pathLower.endsWith('.css')) type = 'css';
-        else if (pathLower.endsWith('.html') || pathLower.endsWith('.htm')) type = 'doc';
-        else if (
-          pathLower.endsWith('.png') ||
-          pathLower.endsWith('.jpg') ||
-          pathLower.endsWith('.jpeg') ||
-          pathLower.endsWith('.gif') ||
-          pathLower.endsWith('.svg') ||
-          pathLower.endsWith('.webp')
-        ) type = 'img';
-        else if (pathLower.endsWith('.json')) type = 'xhr';
-        else if (
-          data.method === 'POST' ||
-          data.method === 'PUT' ||
-          data.method === 'DELETE' ||
-          data.method === 'PATCH'
-        ) type = 'xhr';
-        else if (
-          data.method === 'GET' &&
-          (data.url?.includes('api') || data.url?.includes('graphql'))
-        ) type = 'xhr';
-
-        const id = data.id || `proxy-${Date.now()}-${Math.random()}`;
-        timestampMapRef.current.set(id, data.timestamp || Date.now());
-
-        const req: NetworkRequest = {
-          id,
-          method: data.method || 'GET',
-          protocol,
-          host,
-          path,
-          url: data.url || '',
-          status: 0,
-          type,
-          size: '0 B',
-          time: '0ms',
-          timestamp: data.timestamp || Date.now(),
-          requestHeaders: data.headers || {},
-          responseHeaders: {},
-          requestBody: '',
-          responseBody: '',
-          initiator: data.initiator || undefined,
-        };
-
-        requestMapRef.current.set(id, req);
-        addRequest(req);
-        onRequest?.(req);
+        const { request, generatedId, timestamp } = parseProxyRequest(data);
+        timestampMapRef.current.set(generatedId, timestamp);
+        requestMapRef.current.set(generatedId, request);
+        addRequest(request);
+        onRequest?.(request);
       } catch (error) {
         onError?.(error);
       }
@@ -382,48 +263,20 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     (data: any) => {
       try {
         const requestTimestamp = timestampMapRef.current.get(data.id);
-        let timeMs = 0;
+        let timeStr = '0ms';
+        let sizeBytes = 0;
 
         if (requestTimestamp) {
-          const currentTime = data.timestamp || Date.now();
-          timeMs = currentTime - requestTimestamp;
+          const result = formatElapsedTime(requestTimestamp, data.timestamp || Date.now());
+          timeStr = result.timeStr;
           timestampMapRef.current.delete(data.id);
         }
 
-        const timeStr = timeMs >= 1000 ? `${(timeMs / 1000).toFixed(2)}s` : `${timeMs}ms`;
+        const sizeResult = formatResponseSize(data.size);
+        sizeBytes = sizeResult.sizeBytes;
+        const finalSize = sizeResult.sizeStr;
 
-        let sizeBytes = 0;
-        if (typeof data.size === 'string') {
-          const match = data.size.match(/([\d.]+)\s*(KB|B)/);
-          if (match) {
-            const num = parseFloat(match[1]);
-            if (match[2] === 'KB') sizeBytes = num * 1024;
-            else sizeBytes = num;
-          }
-        } else if (typeof data.size === 'number') {
-          sizeBytes = data.size;
-        }
-
-        const finalSize = sizeBytes > 0 ? `${(sizeBytes / 1024).toFixed(1)} KB` : '0 B';
-
-        let body = data.body || '';
-        if (data.isBinary && body) {
-          try {
-            const decoded = atob(body);
-            try {
-              const utf8Decoded = decodeURIComponent(escape(decoded));
-              if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(utf8Decoded)) {
-                body = `[Binary Data - Base64 encoded]\n${body.substring(0, 1000)}...`;
-              } else {
-                body = utf8Decoded;
-              }
-            } catch {
-              body = `[Binary Data - Base64 encoded]\n${body.substring(0, 1000)}...`;
-            }
-          } catch {
-            body = `[Binary Data - Unable to decode]\n${body.substring(0, 1000)}...`;
-          }
-        }
+        const body = decodeBinaryBody(data.body || '', data.isBinary, 'Binary Data');
 
         updateRequest(data.id, {
           responseBody: body,
@@ -444,24 +297,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       try {
         const existing = requestMapRef.current.get(data.id);
         if (existing) {
-          let body = data.body || '';
-          if (data.isBinary && body) {
-            try {
-              const decoded = atob(body);
-              try {
-                const utf8Decoded = decodeURIComponent(escape(decoded));
-                if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(utf8Decoded)) {
-                  body = `[Binary Request Body]\n${body.substring(0, 1000)}...`;
-                } else {
-                  body = utf8Decoded;
-                }
-              } catch {
-                body = `[Binary Request Body]\n${body.substring(0, 1000)}...`;
-              }
-            } catch {
-              body = `[Binary Request Body - Unable to decode]\n${body.substring(0, 1000)}...`;
-            }
-          }
+          const body = decodeBinaryBody(data.body || '', data.isBinary, 'Binary Request Body');
           updateRequest(data.id, { requestBody: body });
         }
       } catch (error) {

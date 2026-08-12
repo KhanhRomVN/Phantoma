@@ -10,7 +10,7 @@ import type { HistoryEntry } from '../../../types/repeater.types';
 import type { NetworkRequest } from '../Home/Filter';
 
 // Services
-import repeaterApi, { RepeaterRequest } from '../../../services/repeater-api.service';
+import emulateApi, { RepeaterRequest } from '../../../services/emulate-api.service';
 
 // STORE
 import { useNetworkStore } from '@renderer/stores/networkStore';
@@ -109,7 +109,7 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
       setDbRequests([]);
       return;
     }
-    repeaterApi.listRequests(targetId).then((res) => {
+    emulateApi.listRequests(targetId).then((res) => {
       if (res.success && res.data) {
         const mapped = res.data.map(mapDbToNetworkRequest);
         setDbRequests(mapped);

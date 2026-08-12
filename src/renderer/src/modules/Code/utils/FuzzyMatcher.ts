@@ -1,19 +1,17 @@
 /**
- * FuzzyMatcher — Tìm kiếm fuzzy trong nội dung file.
+ * ------------------------------------------------------------------
+ * Fuzzy Matcher
+ * ------------------------------------------------------------------
+ * Fuzzy search utility for matching a search block within file content.
+ * Used by the replace-in-file tool to locate code blocks when exact
+ * matching fails, using Dice coefficient similarity on bigrams.
  *
- * ?Usage:
- *   const match = FuzzyMatcher.findMatch(fileContent, searchBlock);
- *   if (match) { ... }
- *
- * ?Function:
- *   findMatch(): Tìm vị trí khớp gần đúng nhất của searchBlock trong fileContent.
- *
- * ?Note:
- *   Port từ temp/Zen/src/utils/FuzzyMatcher.ts.
- *   Zen dùng Fuse.js — bản này dùng thuật toán bigram similarity tự implement
- *   để tránh thêm dependency. Nếu cần độ chính xác cao hơn, upgrade path: cài fuse.js.
+ * Main functions:
+ * - findMatch() : Find the best fuzzy match for a search block in file content
+ * ------------------------------------------------------------------
  */
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface MatchResult {
   startIndex: number;
   endIndex: number;
@@ -22,16 +20,9 @@ interface MatchResult {
   startLine: number; // 1-indexed
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class FuzzyMatcher {
-  /**
-   * Tìm best fuzzy match cho search block trong file content.
-   * Dùng anchor line (dòng đầu tiên không trống của search block) để tìm
-   * vị trí tiềm năng, sau đó mở rộng cửa sổ và tính similarity.
-   */
-  public static findMatch(
-    fileContent: string,
-    searchBlock: string,
-  ): MatchResult | null {
+  public static findMatch(fileContent: string, searchBlock: string): MatchResult | null {
     const fileLines = fileContent.split(/\r?\n/);
     const searchLines = searchBlock.split(/\r?\n/);
 

@@ -1,22 +1,28 @@
 /**
- * FileHandlers — Gộp các handler thao tác file còn lại.
+ * ------------------------------------------------------------------
+ * File Handlers
+ * ------------------------------------------------------------------
+ * IPC message handlers for file operations within the Code module.
+ * Adapted from Zen's VSCode API to window.api.invoke IPC.
  *
- * Bao gồm:
- *   - DeleteFileHandler     : Xóa file
- *   - ListFilesHandler      : Liệt kê cây thư mục
- *   - FindFilesHandler      : Tìm file theo tên
- *   - RevertFileHandler     : Revert file về version cũ
- *   - ViewReplaceHistoryHandler : Xem lịch sử replace
- *   - FileMiscHandler       : getFileStats, getDiagnostics, getFileContent
- *
- * ?Note:
- *   Port từ Zen, adapt từ vscode API → window.api.invoke IPC.
+ * Main handlers:
+ * - DeleteFileHandler          : Delete a file
+ * - ListFilesHandler           : List directory tree
+ * - FindFilesHandler           : Find files by name pattern
+ * - RevertFileHandler          : Revert file to a previous version
+ * - ViewReplaceHistoryHandler  : View replace-in-file history
+ * - FileMiscHandler            : getFileStats, getDiagnostics, getFileContent
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { SecurityValidator } from '../../utils/security';
+
+// ── Managers ──
 import { ReplaceInFileHistoryManager } from '../../managers/ReplaceInFileHistoryManager';
 
-// ─── Types ────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────
 
 interface BaseParams {
   requestId?: string;
@@ -44,9 +50,6 @@ interface RevertFileParams extends BaseParams {
   conversationId?: string;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// ViewReplaceHistoryHandler
-// ═══════════════════════════════════════════════════════════════════════
 interface FileMiscParams extends BaseParams {
   path?: string;
   filePath?: string;
@@ -59,9 +62,7 @@ interface BaseResult {
   [key: string]: any;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// DeleteFileHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── DeleteFileHandler ──────────────────────────────────────────────────
 
 export class DeleteFileHandler {
   public async handle(message: any): Promise<BaseResult> {
@@ -81,9 +82,7 @@ export class DeleteFileHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// ListFilesHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── ListFilesHandler ───────────────────────────────────────────────────
 
 export class ListFilesHandler {
   public async handle(message: ListFilesParams): Promise<BaseResult> {
@@ -157,9 +156,7 @@ export class ListFilesHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// FindFilesHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── FindFilesHandler ───────────────────────────────────────────────────
 
 export class FindFilesHandler {
   public async handle(message: FindFilesParams): Promise<BaseResult> {
@@ -198,9 +195,7 @@ export class FindFilesHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// RevertFileHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── RevertFileHandler ──────────────────────────────────────────────────
 
 export class RevertFileHandler {
   public async handle(message: RevertFileParams): Promise<BaseResult> {
@@ -263,9 +258,7 @@ export class RevertFileHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// ViewReplaceHistoryHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── ViewReplaceHistoryHandler ──────────────────────────────────────────
 
 export class ViewReplaceHistoryHandler {
   public async handleHistory(message: any): Promise<BaseResult> {
@@ -325,9 +318,7 @@ export class ViewReplaceHistoryHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// FileMiscHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── FileMiscHandler ────────────────────────────────────────────────────
 
 export class FileMiscHandler {
   /** Lấy thông tin file (kích thước, ngày sửa...) */

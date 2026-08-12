@@ -1,22 +1,21 @@
 /**
- * DiffProvider — Cung cấp nội dung cho diff view.
+ * ------------------------------------------------------------------
+ * Diff Provider
+ * ------------------------------------------------------------------
+ * In-memory storage provider for diff comparison content.
+ * Stores temporary file snapshots keyed by a unique identifier,
+ * and generates virtual URIs for Monaco diff editor views.
  *
- * ?Usage:
- *   DiffProvider.instance.store(key, content);
- *   const uri = DiffProvider.toUri(key, filename);
- *
- * ?Function:
- *   store() : Lưu nội dung tạm vào Map.
- *   get()   : Lấy nội dung đã lưu.
- *   toUri() : Tạo URI ảo cho diff view.
- *
- * ?Note:
- *   Port từ temp/Zen/src/providers/DiffProvider.ts.
- *   Adapt: Zen dùng vscode.Uri + TextDocumentContentProvider.
- *   Code module dùng Map + custom URI scheme hoặc emit event.
- *   Đây là phiên bản đơn giản — diff view sẽ được xử lý bởi Code UI.
+ * Main functions:
+ * - store()   : Save content under a key
+ * - get()     : Retrieve stored content by key
+ * - toUri()   : Generate a virtual diff:// URI for Monaco
+ * - clear()   : Remove a single stored entry
+ * - clearAll(): Remove all stored entries
+ * ------------------------------------------------------------------
  */
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class DiffProvider {
   public static instance = new DiffProvider();
   private store_ = new Map<string, string>();

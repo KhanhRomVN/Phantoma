@@ -1,7 +1,30 @@
+/**
+ * ------------------------------------------------------------------
+ * Delete Confirm Modal
+ * ------------------------------------------------------------------
+ * Confirmation dialog before permanently deleting files or folders
+ * from the file explorer. Supports single and multi-item deletion
+ * with a warning about irreversibility.
+ *
+ * Main features:
+ * - Single item: shows filename in the description
+ * - Multi item: lists all items in a scrollable container
+ * - Warning banner with error icon
+ * - Cancel and Delete buttons
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
+
+// ── UI ──
 import { Trash2, AlertTriangle } from 'lucide-react';
+
+// ── Components ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface DeleteConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -9,15 +32,18 @@ interface DeleteConfirmModalProps {
   items: string[];
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
   items,
 }) => {
+  // ── Derived ──
   const count = items.length;
   const isMulti = count > 1;
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} closeOnBackdropClick={false}>
       <ModalHeader

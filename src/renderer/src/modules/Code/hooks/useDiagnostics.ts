@@ -1,23 +1,24 @@
 /**
- * Custom hook for consuming diagnostics data
- * 
- * Provides a clean API for components to access diagnostics
- * from the single source of truth (DiagnosticsStore)
- * 
- * Usage examples:
- * 
- * // Get diagnostics for a specific file
- * const { diagnostics, stats } = useDiagnostics('/path/to/file.ts');
- * 
- * // Get all diagnostics
- * const { allDiagnostics, totalErrors, totalWarnings } = useDiagnostics();
- * 
- * // Get stats map for all files (FileTabBar use case)
- * const statsMap = useDiagnostics.statsMap();
+ * ------------------------------------------------------------------
+ * useDiagnostics
+ * ------------------------------------------------------------------
+ * Hook for accessing LSP diagnostic data from the diagnostics store.
+ * Supports both file-specific queries (by path) and global summaries.
+ * Also exposes static helper methods for stats map and per-file checks.
+ *
+ * Main features:
+ * - File-specific diagnostics with error/warning counts
+ * - Global diagnostics summary across all files
+ * - Static statsMap() for FileTabBar badge rendering
+ * - Static hasIssues() for quick per-file diagnostic check
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Stores ──
 import { useDiagnosticsStore } from '../stores/diagnosticsStore';
 
+// ─── Hook ───────────────────────────────────────────────────────────────
 export function useDiagnostics(filePath?: string) {
   const store = useDiagnosticsStore();
 

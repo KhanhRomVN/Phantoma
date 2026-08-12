@@ -1,6 +1,32 @@
+/**
+ * ------------------------------------------------------------------
+ * Bottom Panel
+ * ------------------------------------------------------------------
+ * Resizable bottom panel container with tabbed views for Output,
+ * Terminal, Port, Performance, and Problems. Supports dynamic tab
+ * visibility, a "+" dropdown to add hidden tabs, keyboard shortcut
+ * help tooltip, and resize handle (120px–600px).
+ *
+ * Main features:
+ * - 5 tabs: Output, Terminal, Port, Performance, Problems
+ * - Dynamic tab show/hide via "+" dropdown
+ * - Resizable height with drag handle
+ * - Keyboard shortcut reference tooltip
+ * - Listens for add-bottom-tab custom event
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useRef, useEffect } from 'react';
+
+// ── UI ──
 import { X, Plus, HelpCircle } from 'lucide-react';
+
+// ── Hooks ──
 import { useCodeStore } from '../../hooks/useCodeStore';
+
+// ── Components ──
 import {
   Dropdown,
   DropdownTrigger,
@@ -13,9 +39,11 @@ import { Output } from './Output';
 import { Port } from './Port';
 import { Performance } from './Performance';
 import { Problems } from './Problems';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-// ─── Tab Definitions ──────────────────────────────────────────────────────
+// ─── Tab Definitions ────────────────────────────────────────────────────
 interface TabDef {
   id: string;
   label: string;
@@ -30,30 +58,36 @@ const ALL_TABS: TabDef[] = [
   { id: 'problems', label: 'Problem', defaultVisible: true },
 ];
 
-// ─── Resize constants ─────────────────────────────────────────────────────
+// ─── Constants ──────────────────────────────────────────────────────────
 const MIN_HEIGHT = 120;
 const MAX_HEIGHT = 600;
 const DEFAULT_HEIGHT = 320;
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function BottomPanel() {
-  const currentProjectId = useCodeStore((s) => s.currentProjectId);
+  // ── Store ──
   const project = useCodeStore((s) =>
     s.projects.find((p) => p.id === s.currentProjectId)
   );
   const setBottomPanelTab = useCodeStore((s) => s.setBottomPanelTab);
   const toggleBottomPanel = useCodeStore((s) => s.toggleBottomPanel);
 
-  const bottomPanelTab = project?.bottomPanelTab ?? 'output';
-  const isBottomPanelOpen = project?.isBottomPanelOpen ?? true;
-
+  // ── State ──
   const [visibleTabIds, setVisibleTabIds] = useState<string[]>(
     ALL_TABS.filter((t) => t.defaultVisible).map((t) => t.id),
   );
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
+
+  // ── Refs ──
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
 
+  // ── Derived ──
+  const bottomPanelTab = project?.bottomPanelTab ?? 'output';
+  const isBottomPanelOpen = project?.isBottomPanelOpen ?? true;
+
+  // ── Effects ──
   // Listen for add-bottom-tab event from keyboard shortcut
   useEffect(() => {
     const handler = (e: Event) => {
@@ -66,6 +100,7 @@ export function BottomPanel() {
     return () => window.removeEventListener('add-bottom-tab', handler);
   }, [visibleTabIds]);
 
+  // ── Handlers ──
   const handleResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -118,6 +153,7 @@ export function BottomPanel() {
     }
   };
 
+  // ── Render ──
   return (
     <div
       className="flex flex-col bg-sidebar-background border-t border-divider flex-shrink-0 relative"

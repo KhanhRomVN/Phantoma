@@ -1,9 +1,29 @@
+/**
+ * ------------------------------------------------------------------
+ * Search
+ * ------------------------------------------------------------------
+ * Simple file search panel in the Activity sidebar. Provides a text
+ * input for filtering files by name with a search icon.
+ *
+ * Main features:
+ * - Text input with search icon
+ * - Placeholder "No results found" when query is non-empty
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState } from 'react';
+
+// ── UI ──
 import { Search as SearchIcon } from 'lucide-react';
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function Search() {
+  // ── State ──
   const [query, setQuery] = useState('');
 
+  // ── Render ──
   return (
     <div className="flex-1 overflow-y-auto p-3">
       <div className="flex items-center gap-2 px-3 py-1.5 bg-input-background border border-border rounded-lg">

@@ -1,13 +1,17 @@
-/**
- * LSP Servers Registry
- *
- * Unified list of available Language Server Protocol servers
- * with language icons merged directly into each entry.
- *
- * Total: ~125 LSP servers covering web, backend, systems, data, DevOps, and niche domains.
- */
-
 import type { LSPServer } from '../services/lsp.service';
+
+/**
+ * ------------------------------------------------------------------
+ * LSP Server Registry
+ * ------------------------------------------------------------------
+ * Complete registry of available LSP servers with icons, descriptions,
+ * and npm package names. Used by the LSP install prompt and the
+ * ActivityPanel LSP browser to display available language servers.
+ *
+ * Main exports:
+ * - AVAILABLE_LSP_SERVERS : Full list of LSP server definitions
+ * ------------------------------------------------------------------
+ */
 
 // ─── CDN Icon Base ─────────────────────────────────────────────────────────
 

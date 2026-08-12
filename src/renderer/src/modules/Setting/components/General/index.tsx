@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AlertCircle, FolderOpen, Save, File, FolderPlus, Eye, ChevronDown } from 'lucide-react';
 import { useServerHealth } from '../../../../providers/ServerHealthProvider';
-import { apiClient } from '../../../../services/ApiClient';
-import { databaseService } from '../../../../services/DatabaseService';
+import { apiService } from '@renderer/services/api.service';
+import databaseService from '@renderer/services/database.service';
 
 // Helper function to get directory name from a file path (cross-platform)
 // Works without Node.js path module
@@ -73,7 +73,7 @@ const General: React.FC = () => {
     setServerUrl(newUrl);
     localStorage.setItem('server_url', newUrl);
     // Update the API client's base URL
-    apiClient.setBaseUrl(newUrl);
+    apiService.setBaseUrl(newUrl);
     // Clear any previous error so the health check can retry
     clearError();
     // Dispatch event for any other listeners
@@ -149,7 +149,9 @@ const General: React.FC = () => {
       setDbError('Please enter a file name');
       return;
     }
-    const fileName = newFileName.trim().endsWith('.sql') ? newFileName.trim() : newFileName.trim() + '.sql';
+    const fileName = newFileName.trim().endsWith('.sql')
+      ? newFileName.trim()
+      : newFileName.trim() + '.sql';
     const fullPath = `${selectedFolderPath}/${fileName}`;
     setShowCreateFileInput(false);
     setNewDbPath(fullPath);
@@ -274,7 +276,9 @@ const General: React.FC = () => {
                 title="Browse database file"
               >
                 <FolderOpen className="w-4 h-4 text-text-secondary" />
-                <ChevronDown className={`w-3.5 h-3.5 text-text-secondary transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-text-secondary transition-transform ${showDropdown ? 'rotate-180' : ''}`}
+                />
               </button>
               {showDropdown && (
                 <div className="absolute right-0 mt-1 w-56 bg-background-primary border border-border rounded-md shadow-lg overflow-hidden z-50">

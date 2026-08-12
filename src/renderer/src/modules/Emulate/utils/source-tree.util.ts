@@ -1,15 +1,24 @@
 /**
- * Source Tree Builder
- * Parse URLs into hierarchical tree structure like DevTools Sources tab
- * 
- * Example:
- * https://fe-static.deepseek.com/chat/static/87321.87453ce690.js
- * 
- * Becomes:
- * fe-static.deepseek.com/
- *   └─ chat/
- *       └─ static/
- *           └─ 87321.87453ce690.js
+ * ------------------------------------------------------------------
+ * Source Tree Utility
+ * ------------------------------------------------------------------
+ * Parse URLs thành cấu trúc cây thư mục phân cấp giống DevTools Sources tab.
+ * Hỗ trợ build cây từ danh sách URL, tìm kiếm file, export JSON.
+ *
+ * Ví dụ:
+ *   https://fe-static.deepseek.com/chat/static/87321.87453ce690.js
+ *   → fe-static.deepseek.com/chat/static/87321.87453ce690.js
+ *
+ * Các hàm chính:
+ * - buildSourceTree()   : Xây dựng cây thư mục từ danh sách URL
+ * - parseUrl()          : Parse URL thành domain + path + filename
+ * - findNodeByUrl()     : Tìm node trong cây theo URL
+ * - getAllFiles()       : Lấy danh sách phẳng tất cả file
+ * - searchFiles()       : Tìm kiếm file theo tên hoặc nội dung
+ * - getTreeStats()      : Thống kê cây (tổng domain/folder/file/size)
+ * - exportTreeAsJson()  : Export cây ra JSON
+ * - formatSize()        : Format byte sang KB/MB/GB
+ * ------------------------------------------------------------------
  */
 
 export interface SourceNode {
@@ -59,10 +68,10 @@ export function parseUrl(url: string): { domain: string; path: string[]; filenam
 
     const urlObj = new URL(url);
     const domain = urlObj.host;
-    
+
     // Remove leading/trailing slashes and split
     const pathParts = urlObj.pathname.replace(/^\/|\/$/g, '').split('/');
-    
+
     // Last part is filename, rest are folders
     const filename = pathParts.pop() || 'index.js';
     const path = pathParts;
@@ -117,15 +126,17 @@ function findOrCreateNode(
 /**
  * Build source tree from URLs
  */
-export function buildSourceTree(sources: Array<{
-  url: string;
-  size?: number;
-  scriptId?: string;
-  staticSource?: string;
-  unpackedSource?: string;
-  isDifferent?: boolean;
-  compressionRatio?: string;
-}>): SourceTreeData {
+export function buildSourceTree(
+  sources: Array<{
+    url: string;
+    size?: number;
+    scriptId?: string;
+    staticSource?: string;
+    unpackedSource?: string;
+    isDifferent?: boolean;
+    compressionRatio?: string;
+  }>,
+): SourceTreeData {
   const roots: SourceNode[] = [];
   const flatMap = new Map<string, SourceNode>();
 
@@ -157,14 +168,7 @@ export function buildSourceTree(sources: Array<{
 
     // Create file node
     const filePath = `${currentPath}/${filename}`;
-    const fileNode = findOrCreateNode(
-      currentParent,
-      roots,
-      flatMap,
-      filename,
-      'file',
-      filePath,
-    );
+    const fileNode = findOrCreateNode(currentParent, roots, flatMap, filename, 'file', filePath);
 
     // Add metadata to file node
     fileNode.url = source.url;
@@ -207,7 +211,7 @@ export function findNodeByUrl(tree: SourceTreeData, url: string): SourceNode | u
 
   const { domain, path, filename } = parsed;
   const filePath = [domain, ...path, filename].join('/');
-  
+
   return tree.flatMap.get(filePath);
 }
 

@@ -1,4 +1,29 @@
-import { useState, useCallback, useEffect, useRef, memo, createContext, useContext } from 'react';
+/**
+ /**
+ * ------------------------------------------------------------------
+ * File Explorer
+ * ------------------------------------------------------------------
+ * Tree-view file browser in the Activity sidebar. Renders the project
+ * file tree with expandable folders, file-type icons, right-click
+ * context menu (copy path, rename, delete, new file/folder), and
+ * supports folder collapse-all and manual refresh.
+ *
+ * Main features:
+ * - Recursive folder/file tree with expand/collapse
+ * - File-type and folder icons via fileIconMapper
+ * - Right-click context menu: Copy Path, Rename, Delete, New File, New Folder
+ * - Delete confirmation modal for single/multi items
+ * - Collapse all folders button
+ * - Manual refresh to re-scan directory
+ * - Directory version invalidation for file watcher sync
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useCallback, useRef, useEffect, createContext, useContext, memo } from 'react';
+
+// ── UI ──
 import {
   ChevronRight,
   ChevronsDownUp,
@@ -12,9 +37,15 @@ import {
   Trash2,
   Pencil,
 } from 'lucide-react';
+
+// ── Hooks ──
 import { useCodeStore, type FileNode } from '../../../hooks/useCodeStore';
+
+// ── Utils ──
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { cn } from '@renderer/shared/utils/cn';
+
+// ── Components ──
 import {
   Dropdown,
   DropdownTrigger,
@@ -362,7 +393,10 @@ const TreeNode = memo(function TreeNode({
           >
             {isFolder ? (
               loading ? (
-                <Loader className="w-3.5 h-3.5 shrink-0 text-text-secondary animate-spin" strokeWidth={1.5} />
+                <Loader
+                  className="w-3.5 h-3.5 shrink-0 text-text-secondary animate-spin"
+                  strokeWidth={1.5}
+                />
               ) : (
                 <ChevronRight
                   className={cn(
@@ -397,10 +431,16 @@ const TreeNode = memo(function TreeNode({
         <DropdownContent className="min-w-[180px]">
           {isFolder && (
             <>
-              <DropdownItem icon={<FilePlus className="w-3.5 h-3.5" />} onClick={() => handleCreateFromContext('file')}>
+              <DropdownItem
+                icon={<FilePlus className="w-3.5 h-3.5" />}
+                onClick={() => handleCreateFromContext('file')}
+              >
                 New File
               </DropdownItem>
-              <DropdownItem icon={<FolderPlus className="w-3.5 h-3.5" />} onClick={() => handleCreateFromContext('folder')}>
+              <DropdownItem
+                icon={<FolderPlus className="w-3.5 h-3.5" />}
+                onClick={() => handleCreateFromContext('folder')}
+              >
                 New Folder
               </DropdownItem>
               <DropdownSeparator />
@@ -413,7 +453,11 @@ const TreeNode = memo(function TreeNode({
             Copy Path
           </DropdownItem>
           <DropdownSeparator />
-          <DropdownItem icon={<Trash2 className="w-3.5 h-3.5" />} onClick={handleDelete} variant="error">
+          <DropdownItem
+            icon={<Trash2 className="w-3.5 h-3.5" />}
+            onClick={handleDelete}
+            variant="error"
+          >
             Delete
           </DropdownItem>
         </DropdownContent>
@@ -536,7 +580,11 @@ export function FileExplore() {
           if (shiftKey && lastClickedId) {
             // Tìm siblingIds chứa cả lastClickedId và id
             if (!project) return prev;
-            const findSiblings = (nodes: FileNode[], targetA: string, targetB: string): string[] | null => {
+            const findSiblings = (
+              nodes: FileNode[],
+              targetA: string,
+              targetB: string,
+            ): string[] | null => {
               for (const n of nodes) {
                 if (n.children) {
                   const childIds = n.children.map((c) => c.id);

@@ -11,7 +11,7 @@ import { ResourceItem, ResourceType } from '../../../types/resource.types';
 import { detectResourceType } from '../../../constants/resource';
 
 // Utils
-import { formatSize } from '../../../utils/sourceTree';
+import { formatSize } from '../../../utils/source-tree.util';
 import { detectWasmModules } from '../../../../../utils/detectors';
 
 // Services

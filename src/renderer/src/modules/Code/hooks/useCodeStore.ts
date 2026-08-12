@@ -1,6 +1,33 @@
+/**
+ * ------------------------------------------------------------------
+ * Code Store
+ * ------------------------------------------------------------------
+ * Zustand store with localStorage persistence for the Code editor module.
+ * Manages projects, services, open files, unsaved changes tracking,
+ * bottom panel state, activity panel state, folder expansion, and
+ * file watcher directory invalidation.
+ *
+ * Main actions:
+ * - addProject / removeProject / updateProject : Project CRUD
+ * - addService / removeService / updateServiceStatus : Service management
+ * - openFile / closeFile / setActiveFileTab : File tab management
+ * - saveFile / saveAllFiles / markFileAsUnsaved / markFileAsSaved : Save workflow
+ * - toggleBottomPanel / setBottomPanelTab / setActivityPanelTab : Panel control
+ * - toggleFolderExpand / collapseAllFolders : File tree navigation
+ * - invalidateDir / hydrateProjectFiles : File tree sync
+ * - executeWithSaveCheck : Guard action with unsaved-changes prompt
+ *
+ * Main types:
+ * - Project, Service, FileNode : Core data models
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Store ──
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface Project {
   id: string;
   name: string;
@@ -71,6 +98,8 @@ export interface FileNode {
   path?: string;
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────
+
 function createDefaultPerProject() {
   return {
     expandedFolderIds: [] as string[],
@@ -88,6 +117,8 @@ function createDefaultPerProject() {
     dirVersions: {} as Record<string, number>,
   };
 }
+
+// ─── Store Interface ────────────────────────────────────────────────────
 
 interface CodeState {
   projects: Project[];
@@ -134,6 +165,8 @@ interface CodeState {
   setSaveConfirmModalOpen: (open: boolean) => void;
   executeWithSaveCheck: (action: () => void) => void;
 }
+
+// ─── Store ──────────────────────────────────────────────────────────────
 
 export const useCodeStore = create<CodeState>()(
   persist(
@@ -209,6 +242,8 @@ export const useCodeStore = create<CodeState>()(
         pendingAction: null,
         isSaveConfirmModalOpen: false,
 
+        // ── Project Actions ──
+
         addProject: (project) => {
           const newProject: Project = {
             ...project,
@@ -243,6 +278,8 @@ export const useCodeStore = create<CodeState>()(
         setCurrentProject: (id) => {
           set({ currentProjectId: id });
         },
+
+        // ── Service Actions ──
 
         addService: (projectId, service) => {
           const newService: Service = {
@@ -291,6 +328,8 @@ export const useCodeStore = create<CodeState>()(
             activeFileTabId: null,
           }));
         },
+
+        // ── File Tab Actions ──
 
         openFile: (_projectId, fileId, displayName, fileNode) => {
           const project = getCurrentProject();
@@ -344,6 +383,8 @@ export const useCodeStore = create<CodeState>()(
           }));
         },
 
+        // ── Panel Actions ──
+
         setBottomPanelTab: (tab) => {
           updateCurrentProject((p) => ({ ...p, bottomPanelTab: tab }));
         },
@@ -356,6 +397,8 @@ export const useCodeStore = create<CodeState>()(
           updateCurrentProject((p) => ({ ...p, activityPanelTab: tab }));
         },
 
+        // ── Modal Actions ──
+
         setProjectManagerOpen: (open) => {
           set({ isProjectManagerOpen: open });
         },
@@ -363,6 +406,8 @@ export const useCodeStore = create<CodeState>()(
         setNewProjectOpen: (open) => {
           set({ isNewProjectOpen: open });
         },
+
+        // ── File Tree Actions ──
 
         setProjectFiles: (projectId, files) => {
           set((state) => ({
@@ -421,6 +466,8 @@ export const useCodeStore = create<CodeState>()(
             projects: state.projects.map((p) => (p.id === projectId ? { ...p, files } : p)),
           }));
         },
+
+        // ── Save Actions ──
 
         markFileAsUnsaved: (fileId: string, content: string) => {
           const project = getCurrentProject();
@@ -495,6 +542,8 @@ export const useCodeStore = create<CodeState>()(
             throw err;
           }
         },
+
+        // ── Save-Check Guard ──
 
         setPendingAction: (action: (() => void) | null) => {
           set({ pendingAction: action });

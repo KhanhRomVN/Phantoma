@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { targetService } from '../../../services/TargetService';
+import { emulateApi } from '../../Emulate/services/emulate-api.service';
 import { TableInfo, TableData, FilterCondition, Operator } from '../types/database';
 
 export function useDatabase() {
@@ -36,7 +36,7 @@ export function useDatabase() {
       setError(null);
 
       if (tableName === 'emulate_targets') {
-        const targets = await targetService.getTargets();
+        const targets = await emulateApi.getTargets();
         if (targets.length > 0) {
           const columns = Object.keys(targets[0]).filter((col) => col !== 'rowid');
           const columnTypes: Record<string, string> = {};
@@ -156,7 +156,7 @@ export function useDatabase() {
         if (selectedTable === 'emulate_targets') {
           // Delete each target via API
           for (const id of rowIds) {
-            await targetService.deleteTarget(String(id));
+            await emulateApi.deleteTarget(String(id));
           }
         }
 

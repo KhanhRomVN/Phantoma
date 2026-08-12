@@ -1,26 +1,28 @@
 /**
- * ReplaceInFileHandler — Thay thế nội dung trong file (old_str/new_str hoặc diff format).
+ * ------------------------------------------------------------------
+ * Replace-In-File Handler
+ * ------------------------------------------------------------------
+ * Replaces content in a file using old_str/new_str or SEARCH/REPLACE
+ * diff format. Supports exact match with fuzzy fallback via FuzzyMatcher.
+ * Serializes writes through a queue with file locking and security
+ * validation. Saves versioned history when conversation context is available.
  *
- * ?Usage:
- *   const handler = new ReplaceInFileHandler(fileLockManager);
- *   await handler.handle(message);
- *
- * ?Function:
- *   handle()             : Thay thế nội dung trong file, hỗ trợ fuzzy match.
- *   handleValidateFuzzy() : Kiểm tra fuzzy match giữa search block và nội dung file.
- *
- * ?Note:
- *   Port từ temp/Zen/src/handlers/tool/ReplaceInFileHandler.ts.
- *   Adapt: thay vscode.workspace.fs → window.api.invoke('fs:read-file' / 'fs:write-file').
- *   Adapt: thay vscode.WebviewView.postMessage → return Promise<Result>.
- *   Bỏ CheckpointManager (Code module có cơ chế unsaved changes riêng).
+ * Main functions:
+ * - handle()             : Replace content in file (exact → fuzzy fallback)
+ * - handleValidateFuzzy() : Validate fuzzy match between search block and file
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { SecurityValidator } from '../../utils/security';
-import { FileLockManager } from '../../managers/FileLockManager';
-import { ReplaceInFileHistoryManager } from '../../managers/ReplaceInFileHistoryManager';
 import { FuzzyMatcher } from '../../utils/FuzzyMatcher';
 
+// ── Managers ──
+import { FileLockManager } from '../../managers/FileLockManager';
+import { ReplaceInFileHistoryManager } from '../../managers/ReplaceInFileHistoryManager';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ReplaceInFileParams {
   path?: string;
   filePath?: string;
@@ -70,6 +72,7 @@ export interface ValidateFuzzyResult {
   startLine?: number;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ReplaceInFileHandler {
   private replaceQueue: Promise<void> = Promise.resolve();
 

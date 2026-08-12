@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { InspectorFilter } from '../../types/filter.types';
 import { DEFAULT_FILTER_STATE } from '../../constants/defaults';
 import { NetworkRequest } from '../../types/inspector';
-import { getRequestCategory } from '../../utils/requestHelpers';
+import { getRequestCategory } from '../../utils/request-classifier.util';
 
 // Pure function — reusable outside React (e.g. EmulateController)
 export function filterRequestsByConfig(

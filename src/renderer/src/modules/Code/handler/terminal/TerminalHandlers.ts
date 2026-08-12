@@ -1,10 +1,23 @@
 /**
- * TerminalHandlers — Gộp các handler thao tác Terminal.
- * Port từ Zen, adapt từ TerminalManager (spawn process) → emit event
- * đến BottomPanel/Terminal component trong Code module.
+ * ------------------------------------------------------------------
+ * Terminal Handlers
+ * ------------------------------------------------------------------
+ * IPC message handlers for terminal operations within the Code module.
+ * Adapted from Zen's TerminalManager — spawns processes and emits
+ * events to the BottomPanel/Terminal component.
+ *
+ * Main handlers:
+ * - RunCommandHandler     : Validate and forward shell command execution
+ * - TerminalInputHandler  : Forward input to a specific terminal instance
+ * - CloseTerminalHandler  : Close a terminal by its ID
+ * ------------------------------------------------------------------
  */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { SecurityValidator } from '../../utils/security';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface BaseResult {
   command: string;
   requestId?: string;
@@ -12,9 +25,7 @@ interface BaseResult {
   [key: string]: any;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// RunCommandHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── RunCommandHandler ──────────────────────────────────────────────────
 
 export class RunCommandHandler {
   public handle(message: any): BaseResult {
@@ -36,9 +47,7 @@ export class RunCommandHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// TerminalInputHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── TerminalInputHandler ───────────────────────────────────────────────
 
 export class TerminalInputHandler {
   public handle(message: any): BaseResult {
@@ -49,9 +58,7 @@ export class TerminalInputHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// CloseTerminalHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── CloseTerminalHandler ───────────────────────────────────────────────
 
 export class CloseTerminalHandler {
   public handle(message: any): BaseResult {

@@ -1,4 +1,27 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * Quick Open Modal
+ * ------------------------------------------------------------------
+ * VSCode-style Ctrl+P file quick-open modal. Flattens the project
+ * file tree, filters by fuzzy path matching, and supports keyboard
+ * navigation (↑↓ Enter). Excludes binary files, lock files, and
+ * common ignore directories.
+ *
+ * Main features:
+ * - Fuzzy path search across all project files
+ * - Keyboard navigation with arrow keys and Enter
+ * - File type icons via fileIconMapper
+ * - Unsaved changes indicator
+ * - Preloads directory scanner at module level for instant open
+ * - Excludes node_modules, .git, binary files, lock files, etc.
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+
+// ── UI ──
 import { Search, ArrowUp, ArrowDown, CornerDownLeft, Loader } from 'lucide-react';
 import { Modal, ModalBody, ModalFooter } from '../../../../components/ui/Modal';
 import { Kbd } from '../../../../components/ui/Kbd';
@@ -62,15 +85,60 @@ const IGNORE_DIRS = new Set([
 
 /** File extensions considered binary / non-text — excluded from Quick Open */
 const BINARY_EXTENSIONS = new Set([
-  'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'icns', 'webp', 'avif',
-  'woff', 'woff2', 'ttf', 'eot', 'otf',
-  'mp3', 'mp4', 'avi', 'mov', 'mkv', 'webm', 'ogg', 'wav', 'flac',
-  'zip', 'tar', 'gz', 'bz2', 'xz', '7z', 'rar',
-  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-  'wasm', 'bin', 'exe', 'dll', 'so', 'dylib',
-  'class', 'jar', 'war', 'ear',
-  'o', 'obj', 'a', 'lib',
-  'pyc', 'pyo', 'pyd',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'bmp',
+  'ico',
+  'icns',
+  'webp',
+  'avif',
+  'woff',
+  'woff2',
+  'ttf',
+  'eot',
+  'otf',
+  'mp3',
+  'mp4',
+  'avi',
+  'mov',
+  'mkv',
+  'webm',
+  'ogg',
+  'wav',
+  'flac',
+  'zip',
+  'tar',
+  'gz',
+  'bz2',
+  'xz',
+  '7z',
+  'rar',
+  'pdf',
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'ppt',
+  'pptx',
+  'wasm',
+  'bin',
+  'exe',
+  'dll',
+  'so',
+  'dylib',
+  'class',
+  'jar',
+  'war',
+  'ear',
+  'o',
+  'obj',
+  'a',
+  'lib',
+  'pyc',
+  'pyo',
+  'pyd',
   'tsbuildinfo',
 ]);
 

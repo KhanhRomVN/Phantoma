@@ -1,5 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * useLSP Notifier
+ * ------------------------------------------------------------------
+ * Hook that monitors the active file and prompts the user to install
+ * the corresponding LSP server if detected but not yet installed.
+ * Manages toast notifications, progress simulation, and install flow.
+ *
+ * Main features:
+ * - Detects LSP server for the current file type
+ * - Shows install prompt toast with Install / Cancel / Homepage actions
+ * - Simulates installation progress via toast updates
+ * - Handles install success, failure, retry, and dismiss flows
+ * - Cleans up progress interval on unmount
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useCallback, useRef } from 'react';
+
+// ── Hooks ──
 import { useCodeStore } from './useCodeStore';
+
+// ── Services ──
 import {
   getLSPServer,
   isLSPInstalled,
@@ -10,22 +33,27 @@ import {
 } from '../services/lsp.service';
 import { toastService } from '../services/toast.service';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const LSP_TOAST_ID = 'lsp-install';
 
+// ─── Hook ───────────────────────────────────────────────────────────────
 export function useLSPNotifier() {
+  // ── Store ──
   const projects = useCodeStore((s) => s.projects);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const forceShowLSPOverlay = useCodeStore((s) => s.forceShowLSPOverlay);
   const setForceShowLSPOverlay = useCodeStore((s) => s.setForceShowLSPOverlay);
 
+  // ── Derived ──
   const project = projects.find((p) => p.id === currentProjectId);
   const activeFileTabId = project?.activeFileTabId ?? null;
   const fileDisplayNames = project?.fileDisplayNames ?? {};
 
+  // ── Refs ──
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const serverRef = useRef<LSPServer | null>(null);
 
-  // ── Progress simulation ──────────────────────────────────────────────────
+  // ── Callbacks ──
 
   const startProgressSimulation = useCallback(() => {
     let progress = 0;
@@ -39,8 +67,6 @@ export function useLSPNotifier() {
       toastService.update(LSP_TOAST_ID, { progress });
     }, 220);
   }, []);
-
-  // ── Install handler ──────────────────────────────────────────────────────
 
   const handleInstall = useCallback(async () => {
     const server = serverRef.current;
@@ -91,8 +117,6 @@ export function useLSPNotifier() {
     }
   }, [startProgressSimulation, setForceShowLSPOverlay]);
 
-  // ── Show toast ───────────────────────────────────────────────────────────
-
   const showLSPToast = useCallback(
     (server: LSPServer) => {
       serverRef.current = server;
@@ -138,8 +162,9 @@ export function useLSPNotifier() {
     [handleInstall, setForceShowLSPOverlay],
   );
 
-  // ── Watch file changes ──────────────────────────────────────────────────
+  // ── Effects ──
 
+  // Watch file changes and show LSP install prompt
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!activeFileTabId) {
@@ -171,8 +196,7 @@ export function useLSPNotifier() {
     return () => clearTimeout(timer);
   }, [activeFileTabId, fileDisplayNames, forceShowLSPOverlay, showLSPToast]);
 
-  // ── Cleanup ──────────────────────────────────────────────────────────────
-
+  // Cleanup progress interval on unmount
   useEffect(() => {
     return () => {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);

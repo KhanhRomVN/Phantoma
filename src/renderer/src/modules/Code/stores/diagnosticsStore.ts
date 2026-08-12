@@ -1,6 +1,31 @@
+/**
+ * ------------------------------------------------------------------
+ * Diagnostics Store
+ * ------------------------------------------------------------------
+ * Zustand store for managing LSP diagnostic data across all open files.
+ * Tracks errors, warnings, infos, and hints per file URI, with a
+ * cached stats map for efficient React re-render control.
+ *
+ * Main actions:
+ * - setDiagnostics()      : Set diagnostics for a file URI
+ * - clearDiagnostics()    : Remove diagnostics for a file URI
+ * - clearAll()            : Clear all diagnostics
+ *
+ * Main selectors:
+ * - getDiagnosticsForFile() : Get diagnostics by file path or URI
+ * - getStatsForFile()       : Get error/warning counts for a file
+ * - getStatsCache()         : Get cached stats map (stable reference)
+ * - getAllDiagnostics()     : Get all diagnostics across all files
+ * - getTotalErrorCount()    : Get total error count across all files
+ * - getTotalWarningCount()  : Get total warning count across all files
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Store ──
 import { create } from 'zustand';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────
 
 export interface Diagnostic {
   uri: string; // file:///path/to/file.ts
@@ -27,7 +52,7 @@ export interface FileDiagnosticStats {
   total: number;
 }
 
-// ─── Helper Functions ───────────────────────────────────────────────────────
+// ─── Helper Functions ───────────────────────────────────────────────────
 
 /**
  * Convert URI to file path
@@ -65,7 +90,7 @@ function calculateStats(diagnostics: Diagnostic[]): FileDiagnosticStats {
   };
 }
 
-// ─── Store ──────────────────────────────────────────────────────────────────
+// ─── Store ──────────────────────────────────────────────────────────────
 
 interface DiagnosticsState {
   // Raw data (key = URI format: file:///...)
@@ -92,7 +117,7 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
   diagnostics: {},
   _statsCache: new Map(),
 
-  // ── Actions ─────────────────────────────────────────────────────────────
+  // ── Actions ───────────────────────────────────────────────────────────
 
   setDiagnostics: (uri: string, diagnostics: Diagnostic[]) => {
     set((state) => {
@@ -155,7 +180,7 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
     });
   },
 
-  // ── Selectors ───────────────────────────────────────────────────────────
+  // ── Selectors ─────────────────────────────────────────────────────────
 
   /**
    * Get diagnostics for a file by path or URI

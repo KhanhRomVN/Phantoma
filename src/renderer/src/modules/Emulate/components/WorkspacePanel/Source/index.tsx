@@ -18,12 +18,12 @@ import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // Types
 import { NetworkRequest } from '../Home/Filter';
-import type { SourceNode, SourceTreeData } from '../../../utils/sourceTree';
+import type { SourceNode, SourceTreeData } from '../../../utils/source-tree.util';
 import type { CdpScriptUnpackedData } from '../../../hooks/network/useNetworkEvents';
 
 // Utils
 
-import { buildSourceTree, formatSize } from '../../../utils/sourceTree';
+import { buildSourceTree, formatSize } from '../../../utils/source-tree.util';
 import { prettifyCode, isMinified } from '../../../utils/prettify';
 import { cn } from '@renderer/shared/utils/cn';
 

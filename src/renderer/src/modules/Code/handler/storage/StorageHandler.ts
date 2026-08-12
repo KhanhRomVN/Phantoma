@@ -1,20 +1,20 @@
 /**
- * StorageHandler — Xử lý storage operations (get/set/delete/list).
+ * ------------------------------------------------------------------
+ * Storage Handler
+ * ------------------------------------------------------------------
+ * Handles localStorage CRUD operations via IPC messages from the
+ * main process. Uses a prefix-based key namespace to isolate storage
+ * from other modules.
  *
- * ?Usage:
- *   const handler = new StorageHandler();
- *   await handler.handle(message);
- *
- * ?Function:
- *   handle(): Điều phối storageGet / storageSet / storageDelete / storageList.
- *
- * ?Note:
- *   Port từ temp/Zen/src/handlers/storage/StorageHandler.ts.
- *   Adapt: thay GlobalStorageManager → localStorage (qua ExtensionService pattern).
- *   Zen dùng GlobalStorageManager với file JSON, Code module dùng localStorage.
+ * Main commands:
+ * - storageGet    : Read a value by key
+ * - storageSet    : Write a value by key
+ * - storageDelete : Remove a value by key
+ * - storageList   : List all keys under a given prefix
+ * ------------------------------------------------------------------
  */
 
-// ─── Types ────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────
 
 interface StorageResult {
   command: string;
@@ -27,10 +27,10 @@ interface StorageResult {
   error?: string;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────
-
+// ─── Constants ──────────────────────────────────────────────────────────
 const STORAGE_PREFIX = 'zen_storage:';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class StorageHandler {
   public async handle(message: any): Promise<StorageResult> {
     try {

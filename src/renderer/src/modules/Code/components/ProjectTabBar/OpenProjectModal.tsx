@@ -1,11 +1,41 @@
+/**
+ * ------------------------------------------------------------------
+ * Open Project Modal
+ * ------------------------------------------------------------------
+ * Modal for opening existing projects. Shows a searchable list of
+ * recent projects from localStorage, with keyboard navigation
+ * (↑↓ Enter), type metadata, and a Browse button to open any folder.
+ * On selection, scans the directory tree and sets up the project
+ * in the Code store.
+ *
+ * Main features:
+ * - Recent projects list with search filtering
+ * - Keyboard navigation: ArrowUp, ArrowDown, Enter
+ * - Browse button to open any folder via system dialog
+ * - Auto-scan directory tree on open
+ * - Time-ago display for recent projects
+ * - Running project indicator
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useCallback } from 'react';
+
+// ── UI ──
 import { FolderOpen, Search, X, ArrowUp, ArrowDown, CornerDownLeft } from 'lucide-react';
+
+// ── Components ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Kbd } from '@renderer/components/ui/Kbd';
+
+// ── Hooks ──
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Type Metadata ──────────────────────────────────────────────────────
 const TYPE_META: Record<string, { label: string; color: string }> = {
   web: { label: 'Web App', color: '#5eb3ff' },
   api: { label: 'API Service', color: '#3ecf8e' },
@@ -15,6 +45,7 @@ const TYPE_META: Record<string, { label: string; color: string }> = {
   empty: { label: 'Empty', color: '#7d8394' },
 };
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface RecentProject {
   name: string;
   path: string;
@@ -31,10 +62,11 @@ interface DirEntry {
   mtime: number;
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const STORAGE_KEY = 'recent-projects';
 const MAX_SCAN_DEPTH = 10;
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────
 const getRecentProjects = (): RecentProject[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -67,7 +99,7 @@ const timeAgo = (ts: number): string => {
   return `${Math.floor(days / 30)}mo ago`;
 };
 
-// ─── Directory Scanner ──────────────────────────────────────────────────────
+// ─── Directory Scanner ──────────────────────────────────────────────────
 let fileIdCounter = 0;
 
 const dirEntryToFileNode = (entry: DirEntry): FileNode => ({
@@ -110,19 +142,23 @@ export const scanDirectory = async (dirPath: string, depth: number = 0): Promise
   }
 };
 
-// ─── Component ──────────────────────────────────────────────────────────────
+// ─── Component ──────────────────────────────────────────────────────────
 interface OpenProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
+  // ── Store ──
   const { addProject, setCurrentProject, setProjectFiles } = useCodeStore();
+
+  // ── State ──
   const [search, setSearch] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // ── Effects ──
   useEffect(() => {
     if (isOpen) {
       setRecentProjects(getRecentProjects());
@@ -131,6 +167,7 @@ export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
     }
   }, [isOpen]);
 
+  // ── Derived ──
   const filtered = recentProjects.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -139,6 +176,7 @@ export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
 
   const safeActiveIndex = Math.min(activeIndex, Math.max(0, filtered.length - 1));
 
+  // ── Callbacks ──
   const openFolderInIDE = useCallback(
     async (folderPath: string, folderName: string) => {
       setLoading(true);
@@ -159,6 +197,7 @@ export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
     [addProject, setCurrentProject, setProjectFiles, onClose],
   );
 
+  // ── Handlers ──
   const handleOpen = useCallback(
     (project: RecentProject) => {
       addRecentProject({ name: project.name, path: project.path, type: project.type });
@@ -195,6 +234,7 @@ export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
     }
   };
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-lg">
       <ModalHeader
@@ -285,36 +325,33 @@ export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
         )}
       </ModalBody>
 
-      <ModalFooter className="px-4 py-3 border-t border-border flex items-center justify-between text-[10px]">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <div className="flex items-center justify-center bg-sidebar-item-hover/70 rounded p-1">
-              <Kbd>
-                <ArrowUp className="w-3 h-3" strokeWidth={1.5} />
-                <ArrowDown className="w-3 h-3" strokeWidth={1.5} />
-              </Kbd>
-            </div>
-            <span className="text-text-primary">Navigate</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="flex items-center justify-center bg-sidebar-item-hover/70 rounded p-1">
-              <Kbd>
-                <CornerDownLeft className="w-3 h-3" strokeWidth={1.5} />
-              </Kbd>
-            </div>
-            <span className="text-text-primary">Open</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Kbd>ESC</Kbd>
-            <span className="text-text-primary">Close</span>
-          </div>
+      <ModalFooter className="border-t border-border px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3 text-[11px] text-text-secondary/40">
+          <span className="flex items-center gap-1.5">
+            <Kbd>
+              <ArrowUp className="w-2.5 h-2.5" />
+            </Kbd>
+            <Kbd>
+              <ArrowDown className="w-2.5 h-2.5" />
+            </Kbd>
+            <span>Navigate</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Kbd>
+              <CornerDownLeft className="w-2.5 h-2.5" />
+            </Kbd>
+            <span>Open</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Kbd>Esc</Kbd>
+            <span>Close</span>
+          </span>
         </div>
         <button
           onClick={handleBrowse}
-          disabled={loading}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-sidebar-item-hover border border-border text-sm font-medium text-text-secondary hover:bg-sidebar-item-hover/80 transition-colors disabled:opacity-40"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-[#1a1206] text-sm font-medium hover:bg-accent/80 transition-colors"
         >
-          <FolderOpen className="w-4 h-4 text-accent" strokeWidth={1.3} />
+          <FolderOpen className="w-4 h-4" strokeWidth={1.7} />
           Browse…
         </button>
       </ModalFooter>

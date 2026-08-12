@@ -1,4 +1,28 @@
-// Logcat Service - Android logcat management
+/**
+ * ------------------------------------------------------------------
+ * Logcat Service
+ * ------------------------------------------------------------------
+ * Quản lý logcat Android: start/stop, subscribe nhận log real-time,
+ * parse dòng log thô thành LogEntry có cấu trúc. Hỗ trợ phát hiện
+ * thiết bị/emulator, wireless ADB, và liệt kê packages.
+ *
+ * Các hàm chính:
+ * - start()              : Bắt đầu logcat trên thiết bị
+ * - stop()               : Dừng logcat
+ * - subscribe()          : Đăng ký callback nhận log, trả về unsubscribe
+ * - parseLogLine()       : Parse một dòng log thô thành LogEntry
+ * - listPackages()       : Liệt kê packages đã cài trên thiết bị
+ * - detectEmulators()    : Phát hiện emulator/thiết bị đang kết nối
+ * - enableWirelessAdb()  : Bật wireless ADB trên thiết bị
+ * - connectWireless()    : Kết nối thiết bị qua wireless ADB
+ * - getLevelColor()      : Lấy màu chữ cho log level
+ * - getLevelBgColor()    : Lấy màu nền cho log level
+ * - getLevelLabel()      : Lấy nhãn hiển thị cho log level
+ * - isRunningStatus()    : Kiểm tra logcat đang chạy không
+ * ------------------------------------------------------------------
+ */
+
+// Types
 import { LogEntry, LogLevel } from '../types/log.types';
 
 export interface LogcatOptions {
@@ -53,7 +77,7 @@ export class LogcatService {
 
   parseLogLine(line: string): LogEntry | null {
     const match = line.match(
-      /^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+(.+?):\s+(.*)$/
+      /^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+(.+?):\s+(.*)$/,
     );
     if (match) {
       return {
@@ -79,7 +103,7 @@ export class LogcatService {
     }
 
     const timeMatch = line.match(
-      /^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+([VDIWEF])\/(.+?)\(\s*(\d+)\):\s+(.*)$/
+      /^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+([VDIWEF])\/(.+?)\(\s*(\d+)\):\s+(.*)$/,
     );
     if (timeMatch) {
       return {
@@ -133,10 +157,12 @@ export class LogcatService {
       });
 
       vms.forEach((vm: string) => {
-        if (!connected.some((d: unknown) => {
-          const dev = d as { name?: string; id?: string };
-          return dev.name === vm || dev.id === vm;
-        })) {
+        if (
+          !connected.some((d: unknown) => {
+            const dev = d as { name?: string; id?: string };
+            return dev.name === vm || dev.id === vm;
+          })
+        ) {
           list.push({ name: vm, serial: vm, type: 'vm' });
         }
       });
@@ -147,7 +173,9 @@ export class LogcatService {
     }
   }
 
-  async enableWirelessAdb(serial: string): Promise<{ success: boolean; ip?: string; error?: string }> {
+  async enableWirelessAdb(
+    serial: string,
+  ): Promise<{ success: boolean; ip?: string; error?: string }> {
     try {
       const result = await window.api.invoke('mobile:enable-wireless-adb', serial);
       return result;

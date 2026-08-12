@@ -1,9 +1,34 @@
-import { useState, useCallback, useEffect } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * New Project Modal
+ * ------------------------------------------------------------------
+ * Multi-step modal for creating a new project. Guides the user through
+ * selecting a project type, a template, and configuring the name and
+ * location. Shows a live path preview as the user types.
+ *
+ * Main features:
+ * - Step 1: Project type selection (web, API, CLI, library, mobile, empty)
+ * - Step 2: Template selection per type (Vite, Next.js, Express, etc.)
+ * - Step 3: Project name + folder location with browse button
+ * - Live path preview showing where the project will be created
+ * - Form resets on modal open
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useEffect, useCallback } from 'react';
+
+// ── UI ──
 import { Folder, ChevronRight, Check } from 'lucide-react';
+
+// ── Components ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-// ─── Data ───────────────────────────────────────────────────────────────────
+// ─── Type Metadata ──────────────────────────────────────────────────────
 const TYPE_META: Record<string, { label: string; color: string; desc: string }> = {
   web: { label: 'Web App', color: '#5eb3ff', desc: 'Ứng dụng chạy trên trình duyệt' },
   api: { label: 'API Service', color: '#3ecf8e', desc: 'Dịch vụ backend / REST / GraphQL' },
@@ -13,6 +38,7 @@ const TYPE_META: Record<string, { label: string; color: string; desc: string }> 
   empty: { label: 'Trống', color: '#7d8394', desc: 'Thư mục trống, tự cấu hình' },
 };
 
+// ─── Templates ──────────────────────────────────────────────────────────
 interface TemplateItem {
   key: string;
   name: string;
@@ -47,7 +73,7 @@ const TEMPLATES: Record<string, TemplateItem[]> = {
   empty: [{ key: 'blank', name: 'Thư mục trống', desc: 'Không cài đặt gì thêm' }],
 };
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────
 const slugify = (str: string): string =>
   str
     .toLowerCase()
@@ -57,18 +83,20 @@ const slugify = (str: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '') || 'du-an-moi';
 
-// ─── Component ──────────────────────────────────────────────────────────────
+// ─── Component ──────────────────────────────────────────────────────────
 interface NewProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
+  // ── State ──
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [projectName, setProjectName] = useState('');
   const [projectLocation, setProjectLocation] = useState('~/dev');
 
+  // ── Effects ──
   // Reset form on open
   useEffect(() => {
     if (isOpen) {
@@ -79,10 +107,13 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
     }
   }, [isOpen]);
 
+  // ── Derived ──
   const slug = slugify(projectName);
   const previewPath = `${projectLocation.replace(/\/$/, '')}/${slug}`;
   const canCreate = selectedType && selectedTemplate && projectName.trim().length > 0;
+  const templates = selectedType ? TEMPLATES[selectedType] || [] : [];
 
+  // ── Handlers ──
   const handleBrowse = useCallback(async () => {
     try {
       const result = await window.api.invoke('selectFolder');
@@ -101,8 +132,7 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
     onClose();
   }, [canCreate, previewPath, onClose]);
 
-  const templates = selectedType ? TEMPLATES[selectedType] || [] : [];
-
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-lg">
       <ModalHeader title="Tạo dự án mới" onClose={onClose} />

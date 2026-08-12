@@ -1,6 +1,20 @@
 /**
- * Tiện ích cho Repeater — sinh payload, parse header, đếm payload.
+ * ------------------------------------------------------------------
+ * Fuzzer Payload Utility
+ * ------------------------------------------------------------------
+ * Tiện ích sinh và xử lý payload cho Fuzzer/Repeater:
+ * generator payload (list/numbers/brute force), áp dụng payload vào
+ * template, parse HTTP headers, đếm tổng số payload.
+ *
+ * Các hàm chính:
+ * - generatePayloads()  : Generator sinh payload từ FuzzerJob
+ * - applyPayload()      : Thay thế placeholder §...§ trong template bằng payload
+ * - parseHeaders()      : Parse text headers thành Record<string, string>
+ * - countPayloads()     : Đếm tổng số payload sẽ được sinh từ FuzzerJob
+ * ------------------------------------------------------------------
  */
+
+// Types
 import { FuzzerJob } from '../types/repeater.types';
 
 export function* generatePayloads(job: FuzzerJob): Generator<string> {

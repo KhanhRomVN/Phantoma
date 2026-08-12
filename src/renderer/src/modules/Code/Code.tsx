@@ -1,5 +1,32 @@
+/**
+ * ------------------------------------------------------------------
+ * Code
+ * ------------------------------------------------------------------
+ * Main layout component for the Code editor module.
+ * Orchestrates the project tabs, service tabs, activity panel,
+ * content panel (Monaco editor), bottom panel, and footer bar.
+ * Handles global keyboard shortcuts and coordinates LSP notifications.
+ *
+ * Main features:
+ * - Project & service tab navigation
+ * - Keyboard shortcuts: Ctrl+O (open), Ctrl+N (new), Ctrl+P (quick open),
+ *   Ctrl+S (save), Ctrl+Shift+S (save-as), Ctrl+W (close tab),
+ *   Ctrl+` (toggle bottom panel), Ctrl+Shift+` (new terminal)
+ * - Unsaved changes guard on browser close
+ * - Auto-restores project file trees from localStorage on startup
+ * - Bridges Code state to Agent feature context
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useRef, useState } from 'react';
+
+// ── Hooks ──
 import { useCodeStore } from './hooks/useCodeStore';
+import { useLSPNotifier } from './hooks/useLSPNotifier';
+
+// ── Components ──
 import { ProjectTabBar } from './components/ProjectTabBar';
 import { OpenProjectModal, scanDirectory } from './components/ProjectTabBar/OpenProjectModal';
 import { NewProjectModal } from './components/ProjectTabBar/NewProjectModal';
@@ -9,12 +36,15 @@ import { ActivityPanel } from './components/ActivityPanel';
 import { BottomPanel } from './components/BottomPanel';
 import { ToastContainer } from './components/common/ToastContainer';
 import { FooterBar } from './components/FooterBar';
-import { useLSPNotifier } from './hooks/useLSPNotifier';
 import { SaveConfirmModal } from './components/modal/SaveConfirmModal';
 import { QuickOpenModal } from './components/modal/QuickOpenModal';
+
+// ── Context ──
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function Code() {
+  // ── Store ──
   const {
     isProjectManagerOpen,
     setProjectManagerOpen,
@@ -26,11 +56,17 @@ export function Code() {
     hasUnsavedChanges,
   } = useCodeStore();
   const { setCodeState } = useAgentFeature();
-  const hydratedRef = useRef(false);
+
+  // ── State ──
   const [isQuickOpenOpen, setQuickOpenOpen] = useState(false);
 
+  // ── Refs ──
+  const hydratedRef = useRef(false);
+
+  // ── LSP ──
   useLSPNotifier();
 
+  // ── Effects ──
   // Update Agent context with Code state
   useEffect(() => {
     setCodeState({
@@ -187,6 +223,7 @@ export function Code() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setProjectManagerOpen, setNewProjectOpen]);
 
+  // ── Render ──
   return (
     <div className="flex flex-col h-full w-full bg-background relative">
       <ProjectTabBar onOpenManager={() => setProjectManagerOpen(true)} />

@@ -1,16 +1,18 @@
 /**
- * GitHandlers — Gộp các handler thao tác Git.
+ * ------------------------------------------------------------------
+ * Git Handlers
+ * ------------------------------------------------------------------
+ * IPC message handlers for Git operations within the Code module.
+ * Adapted from Zen's child_process.exec to window.api.invoke('git:*').
  *
- * Bao gồm:
- *   - GitStatusHandler : git status
- *   - GitDiffHandler   : git diff
- *   - GitCommitHandler : git commit
- *
- * ?Note:
- *   Port từ Zen, adapt từ child_process.exec → window.api.invoke('git:*').
+ * Main handlers:
+ * - GitStatusHandler : git status
+ * - GitDiffHandler   : git diff (optionally scoped to a file)
+ * - GitCommitHandler : git commit with message
+ * ------------------------------------------------------------------
  */
 
-// ─── Types ────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────
 
 interface BaseParams {
   requestId?: string;
@@ -22,9 +24,6 @@ interface GitDiffParams extends BaseParams {
   filePath?: string;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// GitCommitHandler
-// ═══════════════════════════════════════════════════════════════════════
 interface BaseResult {
   command: string;
   requestId?: string;
@@ -32,9 +31,7 @@ interface BaseResult {
   [key: string]: any;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// GitStatusHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── GitStatusHandler ───────────────────────────────────────────────────
 
 export class GitStatusHandler {
   public async handle(message: GitStatusParams): Promise<BaseResult> {
@@ -58,9 +55,7 @@ export class GitStatusHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// GitDiffHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── GitDiffHandler ─────────────────────────────────────────────────────
 
 export class GitDiffHandler {
   public async handle(message: GitDiffParams): Promise<BaseResult> {
@@ -84,9 +79,7 @@ export class GitDiffHandler {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// GitCommitHandler
-// ═══════════════════════════════════════════════════════════════════════
+// ─── GitCommitHandler ───────────────────────────────────────────────────
 
 export class GitCommitHandler {
   public async handle(message: any): Promise<BaseResult> {

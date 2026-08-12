@@ -1,11 +1,32 @@
+/**
+ * ------------------------------------------------------------------
+ * Performance
+ * ------------------------------------------------------------------
+ * System performance monitor panel in the bottom panel. Displays
+ * real-time CPU usage, JS heap memory, and application uptime.
+ * Polls every 2 seconds via performance API with CPU placeholder.
+ *
+ * Main features:
+ * - CPU usage (placeholder — needs main process for real data)
+ * - JS heap memory usage with percentage and color warning at >80%
+ * - Application uptime formatted as "Xd Yh" or "Xh Ym"
+ * - Auto-refreshes every 2 seconds
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect } from 'react';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface SystemMetrics {
   cpu: number;
   memory: number;
   memoryTotal: number;
   uptime: number;
 }
+
+// ─── Helpers ────────────────────────────────────────────────────────────
 
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400);
@@ -16,9 +37,12 @@ function formatUptime(seconds: number): string {
   return `${m}m`;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function Performance() {
+  // ── State ──
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
 
+  // ── Effects ──
   useEffect(() => {
     const fetchMetrics = () => {
       // Get memory from performance API
@@ -36,6 +60,7 @@ export function Performance() {
     return () => clearInterval(interval);
   }, []);
 
+  // ── Render ──
   if (!metrics) {
     return (
       <div className="flex-1 flex items-center justify-center text-text-secondary/40 text-xs">

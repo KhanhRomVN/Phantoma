@@ -9,7 +9,7 @@ import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
 // Utils
 import { cn } from '@renderer/shared/utils/cn';
-import { getRequestCategory } from '../../../utils/requestHelpers';
+import { getRequestCategory } from '../../../utils/request-classifier.util';
 
 // Re-export NetworkRequest from inspector types to maintain single source of truth
 export type { NetworkRequest };

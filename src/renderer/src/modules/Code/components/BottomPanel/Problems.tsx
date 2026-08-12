@@ -1,4 +1,27 @@
+/**
+ * ------------------------------------------------------------------
+ * Problems
+ * ------------------------------------------------------------------
+ * Bottom panel tab displaying LSP diagnostics (errors, warnings,
+ * infos, hints) for the current project. Groups issues by severity
+ * with collapsible file sections, inline code preview, search
+ * filtering, and copy-to-clipboard support.
+ *
+ * Main features:
+ * - Groups diagnostics by severity: Errors, Warnings, Infos, Hints
+ * - Collapsible file sections with diagnostic counts
+ * - Inline source code preview with highlighted ranges
+ * - Search/filter across all diagnostics
+ * - Copy diagnostic message to clipboard
+ * - Severity sort order toggle
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useMemo, useCallback } from 'react';
+
+// ── UI ──
 import {
   AlertCircle,
   AlertTriangle,
@@ -11,12 +34,16 @@ import {
   Copy,
   FileText,
 } from 'lucide-react';
+
+// ── Components ──
 import {
   Dropdown,
   DropdownTrigger,
   DropdownContent,
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
+
+// ── Hooks ──
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 import { useDiagnostics } from '../../hooks/useDiagnostics';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';

@@ -10,7 +10,7 @@
  */
 import { InspectorFilter } from '../types/filter.types';
 import { NetworkRequest } from '../types/inspector';
-import { getRequestCategory } from '../utils/requestHelpers';
+import { getRequestCategory } from '../utils/request-classifier.util';
 
 export class GetFilterHandler {
   public handle(filter: InspectorFilter, requests: NetworkRequest[]): string {

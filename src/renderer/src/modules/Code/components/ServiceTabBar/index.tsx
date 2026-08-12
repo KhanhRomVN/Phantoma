@@ -1,8 +1,44 @@
-import { cn } from '@renderer/shared/utils/cn';
-import { useCodeStore } from '../../hooks/useCodeStore';
-import { X, Globe, Smartphone, Monitor, Database, Plug, Palette, Table, Puzzle } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * Service Tab Bar
+ * ------------------------------------------------------------------
+ * Horizontal tab bar below the project tabs for switching between
+ * docked services (website, app, device, database, API, design, etc.).
+ * Each tab shows an icon, name, status dot, and optional meta text.
+ * Tabs can be closed with an X button visible on hover or when active.
+ *
+ * Main features:
+ * - Service tabs with type-specific icons and colors
+ * - Status indicator dot (running/stopped/building/error)
+ * - Close button per tab
+ * - Empty state when no services are docked
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ───────────────────────────────────────────────────────────
+// ── React ──
 import type { ReactNode } from 'react';
 
+// ── UI ──
+import {
+  X,
+  Globe,
+  Smartphone,
+  Monitor,
+  Database,
+  Plug,
+  Palette,
+  Table,
+  Puzzle,
+} from 'lucide-react';
+
+// ── Hooks ──
+import { useCodeStore } from '../../hooks/useCodeStore';
+
+// ── Utils ──
+import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Constants ──────────────────────────────────────────────────────────
 const TYPE_ICONS: Record<string, ReactNode> = {
   website: <Globe className="w-3.5 h-3.5" />,
   app: <Smartphone className="w-3.5 h-3.5" />,
@@ -22,16 +58,28 @@ const TYPE_COLORS: Record<string, string> = {
   api: 'text-yellow',
   design: 'text-pink',
   table: 'text-teal',
-  extension: 'text-accent', // Extension color
+  extension: 'text-accent',
 };
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function ServiceTabBar() {
+  // ── Store ──
   const projects = useCodeStore((s) => s.projects);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const setCurrentService = useCodeStore((s) => s.setCurrentService);
   const removeService = useCodeStore((s) => s.removeService);
+
+  // ── Derived ──
   const project = projects.find((p) => p.id === currentProjectId);
 
+  // ── Handlers ──
+  const handleCloseService = (e: React.MouseEvent, serviceId: string) => {
+    e.stopPropagation();
+    if (!currentProjectId) return;
+    removeService(currentProjectId, serviceId);
+  };
+
+  // ── Render ──
   if (!project || project.services.length === 0) {
     return (
       <div className="flex items-center h-10 bg-sidebar-background border-b border-divider px-3 text-xs text-text-secondary/40">
@@ -41,12 +89,6 @@ export function ServiceTabBar() {
   }
 
   const currentServiceId = project.currentServiceId;
-
-  const handleCloseService = (e: React.MouseEvent, serviceId: string) => {
-    e.stopPropagation();
-    if (!currentProjectId) return;
-    removeService(currentProjectId, serviceId);
-  };
 
   return (
     <div className="flex items-center h-9 bg-sidebar-background border-b border-divider px-1 overflow-x-auto flex-shrink-0 gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -79,7 +121,7 @@ export function ServiceTabBar() {
             {service.meta && (
               <span className="text-[11px] text-text-secondary/50">{service.meta}</span>
             )}
-            
+
             {/* Close button */}
             <span
               onClick={(e) => handleCloseService(e, service.id)}

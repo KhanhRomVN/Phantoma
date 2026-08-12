@@ -1,6 +1,7 @@
-// Target management types
-import { AppPlatform } from '../constants/platforms';
+// Constants
 import { ToolType } from '../constants/tools';
+
+// Types
 import { InspectorFilter } from './filter.types';
 import { NetworkRequest } from './inspector';
 

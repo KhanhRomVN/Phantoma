@@ -1,13 +1,28 @@
 /**
+ * ------------------------------------------------------------------
  * IPC Message Transport
+ * ------------------------------------------------------------------
+ * Implements communication between Monaco Editor (renderer) and LSP
+ * server (main process) via Electron IPC. Provides two main classes:
+ * - IPCMessageReader: Receives messages from main process, emits via event
+ * - IPCMessageWriter: Sends messages to main process via IPC invoke
  *
- * Custom MessageReader/Writer for Electron IPC communication.
- * Bridges monaco-languageclient with Electron Main Process LSP servers.
+ * Main functions (IPCMessageReader):
+ * - listen()    : Register a callback to receive messages, returns Disposable
+ * - dispose()   : Dispose the reader, remove IPC listener
+ *
+ * Main functions (IPCMessageWriter):
+ * - write()     : Send an LSP message to the main process
+ * - end()       : Fire onClose event, signal end of writing
+ * - dispose()   : Dispose the writer, clean up emitter
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import type { Message } from 'vscode-languageserver-protocol';
 
-// Define minimal interfaces for MessageReader/Writer
+// ─── Internal Interfaces ────────────────────────────────────────────────
 interface DataCallback {
   (data: Message): void;
 }
@@ -20,6 +35,7 @@ interface Event<T> {
   (listener: (e: T) => void): Disposable;
 }
 
+// ─── Emitter ────────────────────────────────────────────────────────────
 class Emitter<T> {
   private listeners: Set<(e: T) => void> = new Set();
 
@@ -45,7 +61,7 @@ class Emitter<T> {
   }
 }
 
-// MessageReader interface
+// ─── Message Transport Interfaces ───────────────────────────────────────
 interface MessageReader {
   readonly onError: Event<Error>;
   readonly onClose: Event<void>;
@@ -53,7 +69,6 @@ interface MessageReader {
   dispose(): void;
 }
 
-// MessageWriter interface
 interface MessageWriter {
   readonly onError: Event<[Error, Message | undefined, number | undefined]>;
   readonly onClose: Event<void>;
@@ -62,7 +77,7 @@ interface MessageWriter {
   dispose(): void;
 }
 
-// ─── IPC Message Reader ─────────────────────────────────────────────────────
+// ─── IPC Message Reader ─────────────────────────────────────────────────
 
 export class IPCMessageReader implements MessageReader {
   private onMessageEmitter = new Emitter<Message>();
@@ -125,7 +140,7 @@ export class IPCMessageReader implements MessageReader {
   }
 }
 
-// ─── IPC Message Writer ─────────────────────────────────────────────────────
+// ─── IPC Message Writer ─────────────────────────────────────────────────
 
 export class IPCMessageWriter implements MessageWriter {
   private onErrorEmitter = new Emitter<[Error, Message | undefined, number | undefined]>();

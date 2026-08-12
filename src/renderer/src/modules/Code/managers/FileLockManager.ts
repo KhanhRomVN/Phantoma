@@ -1,18 +1,17 @@
 /**
- * FileLockManager — Quản lý khóa file tuần tự (mutex queue).
+ * ------------------------------------------------------------------
+ * File Lock Manager
+ * ------------------------------------------------------------------
+ * Async mutex queue for serializing file operations by key (file path).
+ * Ensures concurrent write/read operations on the same file are
+ * executed sequentially to avoid race conditions.
  *
- * ?Usage:
- *   const release = await fileLockManager.acquire('/path/to/file');
- *   try { ... } finally { release(); }
- *
- * ?Function:
- *   acquire(): Chờ đến lượt, khóa file, trả về hàm release để mở khóa.
- *
- * ?Note:
- *   Port trực tiếp từ temp/Zen/src/managers/FileLockManager.ts.
- *   Không phụ thuộc vào bất kỳ API ngoài.
+ * Main functions:
+ * - acquire() : Acquire a lock on a key, returns a release function
+ * ------------------------------------------------------------------
  */
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class FileLockManager {
   private locks = new Map<string, Promise<void>>();
 

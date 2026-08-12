@@ -13,7 +13,7 @@
 import { NetworkRequest } from '../types/inspector';
 
 // UTIL
-import { buildSourceTree, type SourceNode } from '../utils/sourceTree';
+import { buildSourceTree, type SourceNode } from '../utils/source-tree.util';
 
 export interface ListSourcesFilter {
   host?: string;

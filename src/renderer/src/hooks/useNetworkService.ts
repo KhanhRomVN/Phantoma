@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useNetworkStore, NetworkRequest, CdpScriptUnpackedData } from '../stores/networkStore';
-import { useModuleStore } from '../stores/moduleStore';
 
 // NetworkService: singleton IPC listener manager
 // Runs once at app level (MainLayout), survives route changes

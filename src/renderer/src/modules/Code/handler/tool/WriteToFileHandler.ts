@@ -1,23 +1,25 @@
 /**
- * WriteToFileHandler — Ghi file mới hoặc ghi đè trong workspace.
+ * ------------------------------------------------------------------
+ * Write-To-File Handler
+ * ------------------------------------------------------------------
+ * Creates or overwrites a file in the workspace with serialized write
+ * queue, file locking, and security validation. Adapted from Zen's
+ * vscode.workspace.fs to window.api.invoke IPC. CheckpointManager is
+ * omitted — the Code module uses its own unsaved-changes mechanism.
  *
- * ?Usage:
- *   const handler = new WriteToFileHandler(fileLockManager);
- *   await handler.handle(message);
- *
- * ?Function:
- *   handle(): Ghi nội dung mới vào file (tạo hoặc ghi đè), có lock, security check.
- *
- * ?Note:
- *   Port từ temp/Zen/src/handlers/tool/WriteToFileHandler.ts.
- *   Adapt: thay vscode.workspace.fs → window.api.invoke('fs:write-file').
- *   Adapt: thay vscode.WebviewView.postMessage → return Promise<Result>.
- *   Bỏ CheckpointManager (Code module có cơ chế unsaved changes riêng).
+ * Main functions:
+ * - handle() : Write content to file (create or overwrite)
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { SecurityValidator } from '../../utils/security';
+
+// ── Managers ──
 import { FileLockManager } from '../../managers/FileLockManager';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface WriteToFileParams {
   path?: string;
   filePath?: string;
@@ -44,6 +46,7 @@ export interface WriteToFileResult {
   error?: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class WriteToFileHandler {
   private writeQueue: Promise<void> = Promise.resolve();
 

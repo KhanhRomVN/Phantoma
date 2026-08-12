@@ -1,9 +1,39 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * Terminal
+ * ------------------------------------------------------------------
+ * Bottom panel tab providing an xterm.js-based terminal emulator.
+ * Supports multiple terminal instances, shell selection, copy/paste
+ * actions, and keyboard shortcut reference. Communicates with the
+ * main process for PTY spawn/kill via IPC.
+ *
+ * Main features:
+ * - xterm.js terminal with FitAddon for responsive sizing
+ * - Multiple terminal instances (add/close)
+ * - Shell selection dropdown (bash, zsh, fish, sh)
+ * - Copy (Ctrl+Shift+C) and Paste (Ctrl+Shift+V) actions
+ * - Clear terminal action
+ * - Keyboard shortcut help tooltip
+ * - Auto-focus on mount
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── XTerm ──
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
+
+// ── React ──
+import { useState, useRef, useEffect, useCallback } from 'react';
+
+// ── UI ──
 import { Copy, ClipboardPaste, Terminal as TerminalIcon, Trash2 } from 'lucide-react';
+
+// ── Components ──
 import { Dropdown, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 // ─── Types ──────────────────────────────────────────────────────────────────

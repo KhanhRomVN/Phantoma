@@ -1,5 +1,23 @@
-// ─── Types ──────────────────────────────────────────────────────────────────
+/**
+ * ------------------------------------------------------------------
+ * Toast Service
+ * ------------------------------------------------------------------
+ * Manages toast notification display in the application.
+ * Supports multiple variants: info, success, error, warning, loading.
+ * Features auto-dismiss, max 3 action buttons per toast, and live
+ * update support (e.g. LSP install progress bar).
+ *
+ * Main functions:
+ * - subscribe()  : Register a listener for toast list changes, returns unsubscribe
+ * - getToasts()  : Get the current toast list
+ * - show()       : Show a new toast (or update if same id), returns id
+ * - update()     : Partially update a visible toast's content
+ * - dismiss()    : Close a toast by id
+ * - clearAll()   : Close all toasts
+ * ------------------------------------------------------------------
+ */
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ToastAction {
   label: string;
   onClick: () => void;
@@ -14,21 +32,16 @@ export interface ToastItem {
   title: string;
   description?: string;
   variant?: ToastVariant;
-  /** Nguồn gốc hiển thị dạng mono nhỏ, vd: "npm registry", "system" */
   source?: string;
-  /** 0–100, chỉ dùng với variant='loading' */
   progress?: number;
-  /** Tối đa 3 nút hành động */
   actions?: ToastAction[];
-  /** ms, 0 = không tự dismiss */
   duration?: number;
   onClose?: () => void;
 }
 
 export type ToastShowOptions = Omit<ToastItem, 'id'> & { id?: string };
 
-// ─── State ──────────────────────────────────────────────────────────────────
-
+// ─── State ──────────────────────────────────────────────────────────────
 type Listener = () => void;
 const listeners = new Set<Listener>();
 let toasts: ToastItem[] = [];
@@ -43,8 +56,7 @@ function generateId(): string {
   return `toast-${Date.now()}-${idCounter}`;
 }
 
-// ─── Service ────────────────────────────────────────────────────────────────
-
+// ─── Service ────────────────────────────────────────────────────────────
 export const toastService = {
   /** Đăng ký listener, trả về hàm unsubscribe */
   subscribe(fn: Listener): () => void {

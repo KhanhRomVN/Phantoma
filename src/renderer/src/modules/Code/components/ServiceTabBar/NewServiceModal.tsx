@@ -1,6 +1,26 @@
+/**
+ * ------------------------------------------------------------------
+ * New Service Modal
+ * ------------------------------------------------------------------
+ * Modal dialog for adding a new service to the current project.
+ * Displays a grid of service type cards (Website, UI Design) with
+ * icons, descriptions, and color indicators.
+ *
+ * Main features:
+ * - Service type selection cards with icons and descriptions
+ * - Color-coded type indicators
+ * - Hover highlight for card selection
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import { Globe, Palette } from 'lucide-react';
+
+// ── Components ──
 import { Modal, ModalHeader, ModalBody } from '@renderer/components/ui/Modal';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface ServiceCard {
   id: string;
   name: string;
@@ -9,6 +29,12 @@ interface ServiceCard {
   color: string;
 }
 
+interface NewServiceModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+// ─── Constants ──────────────────────────────────────────────────────────
 const SERVICE_CARDS: ServiceCard[] = [
   {
     id: 'website',
@@ -26,12 +52,9 @@ const SERVICE_CARDS: ServiceCard[] = [
   },
 ];
 
-interface NewServiceModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
+// ─── Component ──────────────────────────────────────────────────────────
 export function NewServiceModal({ isOpen, onClose }: NewServiceModalProps) {
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-md">
       <ModalHeader title="Thêm Service" onClose={onClose} />

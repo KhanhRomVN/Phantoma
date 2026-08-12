@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { repeaterApi } from '../../services/repeater-api.service';
+import { emulateApi } from '../../services/emulate-api.service';
 import type { ParamItem, PayloadItem, HistoryEntry, RunResult } from '../../types/repeater.types';
 
 interface UseRepeaterPersistenceOptions {
@@ -34,7 +34,7 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
     setIsLoading(true);
     hasLoadedRef.current = false;
     (async () => {
-      const res = await repeaterApi.listRequests(targetId);
+      const res = await emulateApi.listRequests(targetId);
       if (cancelled) return;
       if (res.success && res.data && res.data.length > 0) {
         const req = res.data[0];
@@ -43,7 +43,7 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
         let loadedHeaders: ParamItem[] = [];
         try { loadedParams = JSON.parse(req.params || '[]'); } catch (e) {}
         try { loadedHeaders = JSON.parse(req.headers || '[]'); } catch (e) {}
-        const payloadsRes = await repeaterApi.listPayloads(targetId, req.id);
+        const payloadsRes = await emulateApi.listPayloads(targetId, req.id);
         let loadedPayloads: PayloadItem[] = [];
         if (payloadsRes.success && payloadsRes.data) {
           loadedPayloads = payloadsRes.data.map((p: any) => ({
@@ -69,9 +69,9 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
       setIsSaving(true);
       try {
         if (currentRequestId) {
-          await repeaterApi.updateRequest(targetId, currentRequestId, { method, url, body, params: JSON.stringify(params), headers: JSON.stringify(headers) });
+          await emulateApi.updateRequest(targetId, currentRequestId, { method, url, body, params: JSON.stringify(params), headers: JSON.stringify(headers) });
         } else {
-          const res = await repeaterApi.createRequest(targetId, { method, url, body, params: JSON.stringify(params), headers: JSON.stringify(headers) });
+          const res = await emulateApi.createRequest(targetId, { method, url, body, params: JSON.stringify(params), headers: JSON.stringify(headers) });
           if (res.success && res.data) setCurrentRequestId(res.data.id);
         }
         lastSavedRef.current = snapshot;
@@ -84,7 +84,7 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
   const savePayloads = useCallback(async () => {
     if (!targetId || !currentRequestId) return;
     for (const p of payloads) {
-      await repeaterApi.upsertPayload(targetId, currentRequestId, { name: p.name, payload_values: JSON.stringify(p.values), enabled: p.enabled ? 1 : 0 });
+      await emulateApi.upsertPayload(targetId, currentRequestId, { name: p.name, payload_values: JSON.stringify(p.values), enabled: p.enabled ? 1 : 0 });
     }
   }, [targetId, currentRequestId, payloads]);
 
@@ -92,11 +92,11 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
     if (!targetId) return;
     let requestId = currentRequestId;
     if (!requestId) {
-      const res = await repeaterApi.createRequest(targetId, { method, url, body, params: JSON.stringify(params), headers: JSON.stringify(headers) });
+      const res = await emulateApi.createRequest(targetId, { method, url, body, params: JSON.stringify(params), headers: JSON.stringify(headers) });
       if (res.success && res.data) { requestId = res.data.id; setCurrentRequestId(requestId); }
       else return;
     }
-    await repeaterApi.saveHistory(targetId, requestId, {
+    await emulateApi.saveHistory(targetId, requestId, {
       history: { method: entry.method, url: entry.url, status: entry.status, statuses: entry.statuses ? JSON.stringify(entry.statuses) : undefined, timestamp: Math.floor(entry.timestamp / 1000), end_time: entry.endTime ? Math.floor(entry.endTime / 1000) : undefined, duration: entry.duration, payload_count: entry.payloadCount || runs.length, payload_summary: entry.payload, request_headers: entry.requestHeaders ? JSON.stringify(entry.requestHeaders) : undefined, request_body: entry.requestBody },
       runs: runs.map((r) => ({ payload_name: r.payloadName, payload_value: r.value, status: r.status, duration: r.duration, method: r.method, url: r.url, params: JSON.stringify(r.params || {}), request_headers: JSON.stringify(r.requestHeaders || {}), request_body: r.requestBody || '', response_headers: JSON.stringify(r.responseHeaders || {}), response_body: r.responseBody || '' })),
     });

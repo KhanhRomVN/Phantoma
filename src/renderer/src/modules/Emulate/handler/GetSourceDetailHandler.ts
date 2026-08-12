@@ -12,7 +12,7 @@
 import { NetworkRequest } from '../types/inspector';
 
 // UTIL
-import { buildSourceTree, type SourceNode } from '../utils/sourceTree';
+import { buildSourceTree, type SourceNode } from '../utils/source-tree.util';
 
 // HOOK
 import type { CdpScriptUnpackedData } from '../hooks/network/useNetworkEvents';

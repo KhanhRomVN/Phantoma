@@ -1,14 +1,42 @@
+/**
+ * ------------------------------------------------------------------
+ * FooterBar
+ * ------------------------------------------------------------------
+ * Status bar displayed at the bottom of the Code editor module.
+ * Shows LSP (Language Server Protocol) status for the active file,
+ * including install prompts, initialization progress, and connection state.
+ *
+ * Main features:
+ * - Detects and displays the LSP server for the current file type
+ * - Shows install prompt (⚠) for detected but not installed LSP servers
+ * - Shows checkmark for installed and active LSP servers
+ * - Displays real-time LSP initialization progress bar with percentage
+ * - Auto-hides progress bar after diagnostics are ready
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useCallback } from 'react';
+
+// ── UI ──
 import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+
+// ── Hooks ──
 import { useCodeStore } from '../hooks/useCodeStore';
+
+// ── Services ──
 import {
   getLSPServer,
   isLSPInstalled,
   isLSPDismissed,
   type LSPServer,
 } from '../services/lsp.service';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface FooterBarProps {
   className?: string;
 }
@@ -20,7 +48,9 @@ interface LSPInitStatus {
   language: string | null;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function FooterBar({ className }: FooterBarProps) {
+  // ── State ──
   const [activeLSP, setActiveLSP] = useState<LSPServer | null>(null);
   const [pendingLSP, setPendingLSP] = useState(false);
   const [lspInitStatus, setLspInitStatus] = useState<LSPInitStatus>({
@@ -30,15 +60,17 @@ export function FooterBar({ className }: FooterBarProps) {
     language: null,
   });
 
+  // ── Store ──
   const projects = useCodeStore((s) => s.projects);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const setForceShowLSPOverlay = useCodeStore((s) => s.setForceShowLSPOverlay);
 
+  // ── Derived ──
   const project = projects.find((p) => p.id === currentProjectId);
   const activeFileTabId = project?.activeFileTabId ?? null;
   const fileDisplayNames = project?.fileDisplayNames ?? {};
 
-  // Check LSP for currently opened file
+  // ── Callbacks ──
   const checkLSP = useCallback(() => {
     if (!activeFileTabId) {
       setActiveLSP(null);
@@ -59,12 +91,12 @@ export function FooterBar({ className }: FooterBarProps) {
     setPendingLSP(!isLSPInstalled(detected.id) && !isLSPDismissed(detected.id));
   }, [activeFileTabId, fileDisplayNames]);
 
+  // ── Effects ──
   useEffect(() => {
     const timer = setTimeout(checkLSP, 1500);
     return () => clearTimeout(timer);
   }, [checkLSP]);
 
-  // Listen for LSP initialization events
   useEffect(() => {
     const handleLSPInitStart = (event: CustomEvent) => {
       const { language, file } = event.detail || {};
@@ -85,7 +117,6 @@ export function FooterBar({ className }: FooterBarProps) {
     };
 
     const handleLSPInitComplete = () => {
-      // Giữ progress bar ở 100%, đợi diagnostics đến mới ẩn
       setLspInitStatus((prev) => ({
         ...prev,
         isInitializing: false,
@@ -94,7 +125,6 @@ export function FooterBar({ className }: FooterBarProps) {
     };
 
     const handleDiagnosticsReady = () => {
-      // Diagnostics đã hiển thị trong Problems → ẩn progress bar sau 500ms
       setTimeout(() => {
         setLspInitStatus({
           isInitializing: false,
@@ -118,12 +148,14 @@ export function FooterBar({ className }: FooterBarProps) {
     };
   }, []);
 
+  // ── Handlers ──
   const handleLSPClick = () => {
     if (pendingLSP) {
       setForceShowLSPOverlay(true);
     }
   };
 
+  // ── Render ──
   return (
     <div
       className={cn(

@@ -1,24 +1,21 @@
 /**
- * GrepHandler — Thực thi regex search trên file/thư mục.
+ * ------------------------------------------------------------------
+ * Grep Handler
+ * ------------------------------------------------------------------
+ * Executes regex search across files and folders within the workspace.
+ * Adapted from Zen's vscode.workspace.findFiles to window.api.invoke IPC.
+ * Includes security validation, file size limits, and exclusion patterns.
  *
- * ?Usage:
- *   const handler = new GrepHandler(workspaceRoot);
- *   await handler.handle(action);
- *
- * ?Function:
- *   handle() : Security check path, thực thi grep, trả về kết quả.
- *
- * ?Note:
- *   Port từ temp/Zen/src/handlers/tool/GrepHandler.ts.
- *   Adapt: thay vscode.workspace.findFiles → window.api.invoke('fs:grep').
- *   Adapt: thay fs.readFile → IPC call.
- *   Adapt: thay vscode.WebviewView.postMessage → return Promise<Result>.
+ * Main functions:
+ * - handle() : Validate path, execute grep, return matches grouped by file
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { SecurityValidator } from '../../utils/security';
 
-// ─── Constants ────────────────────────────────────────────────────────
-
+// ─── Constants ──────────────────────────────────────────────────────────
 const MAX_GREP_FILES = 500;
 const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024; // 1 MB
 const EXCLUDE_PATTERNS = [
@@ -36,8 +33,7 @@ const EXCLUDE_PATTERNS = [
   '.vscode',
 ];
 
-// ─── Types ────────────────────────────────────────────────────────────
-
+// ─── Types ──────────────────────────────────────────────────────────────
 interface GrepAction {
   path?: string;
   search_term?: string;
@@ -57,6 +53,7 @@ interface GrepResult {
   error?: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class GrepHandler {
   constructor(_workspaceRoot: string) {
     // workspaceRoot được giữ để tương thích signature với Zen

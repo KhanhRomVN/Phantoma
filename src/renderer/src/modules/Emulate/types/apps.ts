@@ -1,4 +1,3 @@
-// Re-export and extend global types for Emulate feature
 import type {
   AppPlatform as GlobalAppPlatform,
   AppMode as GlobalAppMode,

@@ -1,8 +1,37 @@
-import { useState, useCallback, useEffect } from 'react';
-import { X, CircleDot, Copy, Plus } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * File Tab Bar
+ * ------------------------------------------------------------------
+ * Horizontal tab bar for open files within the current project.
+ * Each tab shows a file-type icon, display name, and unsaved indicator.
+ * Right-click context menu provides Close, Close Others, Close to the
+ * Right, Close All, and Copy Path actions. Unsaved files trigger a
+ * save-check guard before closing.
+ *
+ * Main features:
+ * - Open file tabs with file-type icons
+ * - Unsaved indicator (dot) that transforms to X on hover
+ * - Right-click context menu with 5 actions
+ * - Save-check guard for unsaved files before close
+ * - Hides entirely when no files are open
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useCallback } from 'react';
+
+// ── UI ──
+import { X, CircleDot, Copy } from 'lucide-react';
+
+// ── Hooks ──
 import { useCodeStore } from '../../hooks/useCodeStore';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+
+// ── Components ──
 import {
   Dropdown,
   DropdownTrigger,
@@ -11,15 +40,19 @@ import {
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function FileTabBar() {
+  // ── Store ──
   const projects = useCodeStore((s) => s.projects);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const setActiveFileTab = useCodeStore((s) => s.setActiveFileTab);
   const closeFile = useCodeStore((s) => s.closeFile);
   const executeWithSaveCheck = useCodeStore((s) => s.executeWithSaveCheck);
 
+  // ── State ──
   const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
 
+  // ── Derived ──
   const project = projects.find((p) => p.id === currentProjectId);
   if (!project || project.openFiles.length === 0) {
     return null;
@@ -27,7 +60,7 @@ export function FileTabBar() {
 
   const { openFiles, fileDisplayNames, activeFileTabId, fileNodeMap, unsavedFiles } = project;
 
-  // ── Context menu actions ──────────────────────────────────────────────────
+  // ── Callbacks ──
   const handleClose = useCallback(
     (fileId: string) => {
       const isUnsaved = unsavedFiles.has(fileId);
@@ -91,6 +124,7 @@ export function FileTabBar() {
     [fileNodeMap],
   );
 
+  // ── Render ──
   return (
     <div className="flex items-center h-9 bg-sidebar-background border-b border-divider px-1 overflow-x-auto flex-shrink-0 gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       {openFiles.map((fileId) => {

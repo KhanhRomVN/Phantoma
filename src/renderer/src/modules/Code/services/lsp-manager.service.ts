@@ -1,29 +1,31 @@
 /**
+ * ------------------------------------------------------------------
  * LSP Manager Service
+ * ------------------------------------------------------------------
+ * Central coordinator for the entire LSP system. Listens for diagnostics
+ * from all LSP servers, syncs them into the diagnostics store (Zustand)
+ * and Monaco Editor markers. Tracks per-server lifecycle state
+ * (starting/running/stopped/error). Supports per-file diagnostic listeners.
  *
- * Pure orchestrator for LSP diagnostics flow.
- * Receives IPC events → Updates Store → Syncs Monaco
- *
- * Architecture (Single Direction):
- * Main Process → IPC Events → LSP Manager → Store (Single Source) → UI
- *                                         └→ Monaco Adapter (View Sync)
- *
- * Responsibilities:
- * - Transform IPC events to store format
- * - Update DiagnosticsStore (single source of truth)
- * - Delegate Monaco sync to adapter
- * - Manage server lifecycle
- *
- * NOT responsible for:
- * - Direct Monaco manipulation (delegated to adapter)
- * - UI rendering (components read from store)
- * - Data aggregation (handled by store selectors)
+ * Main functions:
+ * - initialize()              : Set up IPC listeners for diagnostics & server lifecycle
+ * - subscribeToDiagnostics()  : Register a file-specific diagnostics listener, returns unsubscribe
+ * - getServerStatus()         : Get the status of an LSP server by language
+ * - getAllServerStatuses()    : Get statuses of all LSP servers
+ * - getDiagnosticsForFile()   : Get diagnostics for a file (from store)
+ * - clearDiagnostics()        : Clear diagnostics for a file (store + Monaco markers)
+ * - clearAllDiagnostics()     : Clear all diagnostics
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Stores ──
 import { useDiagnosticsStore, type Diagnostic } from '../stores/diagnosticsStore';
+
+// ── Services ──
 import { monacoAdapter } from './monaco-adapter.service';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────
 
 export interface LSPServerStatus {
   language: string;
@@ -41,7 +43,7 @@ export interface DiagnosticsEvent {
 
 type DiagnosticsListener = (event: DiagnosticsEvent) => void;
 
-// ─── LSP Manager ────────────────────────────────────────────────────────────
+// ─── Class ──────────────────────────────────────────────────────────────
 
 class LSPManager {
   private servers: Map<string, LSPServerStatus> = new Map();
@@ -139,7 +141,7 @@ class LSPManager {
    *
    * ✨ OPTIMIZATION: Debounce rapid diagnostics updates to prevent unnecessary re-renders
    */
-  private handleDiagnosticsEvent(language: string, event: any) {
+  private handleDiagnosticsEvent(_language: string, event: any) {
     const handleStart = performance.now();
     const { uri, diagnostics } = event;
 
@@ -150,7 +152,7 @@ class LSPManager {
   /**
    * Process diagnostics (called after debounce delay)
    */
-  private processDiagnostics(uri: string, diagnostics: Diagnostic[], startTime: number) {
+  private processDiagnostics(uri: string, diagnostics: Diagnostic[], _startTime: number) {
     // Create diagnostics event
     const diagEvent: DiagnosticsEvent = {
       uri,
@@ -271,8 +273,7 @@ class LSPManager {
   }
 }
 
-// ─── Singleton Instance ─────────────────────────────────────────────────────
-
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const lspManager = new LSPManager();
 
 // Auto-initialize on import
