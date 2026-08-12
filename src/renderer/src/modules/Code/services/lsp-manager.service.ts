@@ -61,6 +61,8 @@ class LSPManager {
       return;
     }
 
+    console.log('[LSPManager] 🔌 Initializing — registering IPC listeners for LSP diagnostics...');
+
     // Listen for diagnostics from ALL languages
     this.setupDiagnosticsListeners();
 
@@ -68,6 +70,7 @@ class LSPManager {
     this.setupServerLifecycleListeners();
 
     this.isInitialized = true;
+    console.log('[LSPManager] ✅ Initialized — waiting for diagnostics...');
   }
 
   /**
@@ -145,6 +148,11 @@ class LSPManager {
     const handleStart = performance.now();
     const { uri, diagnostics } = event;
 
+    // [DEBUG] Log every incoming diagnostics event to confirm IPC is working after refresh
+    console.log(
+      `[LSPManager] 📨 Received diagnostics: language="${_language}", uri="${this.getFileName(uri)}", count=${diagnostics?.length ?? 0}`,
+    );
+
     // Process immediately — diagnostics appear in Problems with minimal delay
     this.processDiagnostics(uri, diagnostics, handleStart);
   }
@@ -163,10 +171,19 @@ class LSPManager {
     // 1. Update store (single source of truth)
     useDiagnosticsStore.getState().setDiagnostics(uri, diagnostics);
 
-    // Signal FooterBar: diagnostics are ready, hide progress bar
-    if (!this.diagnosticsReadyDispatched && diagnostics.length > 0) {
+    // [DEBUG] Confirm store was updated
+    const storeDiags = useDiagnosticsStore.getState().getDiagnosticsForFile(uri);
+    console.log(
+      `[LSPManager] 💾 Store updated: "${this.getFileName(uri)}" — stored ${storeDiags.length} diagnostic(s)`,
+    );
+
+    // Signal FooterBar: diagnostics system is ready (dispatch on first response, even if empty)
+    // This fixes the refresh issue where diagnosticsReadyDispatched stays false if the first
+    // publishDiagnostics is an empty array → FooterBar never hides the initializing state.
+    if (!this.diagnosticsReadyDispatched) {
       this.diagnosticsReadyDispatched = true;
       window.dispatchEvent(new CustomEvent('lsp:diagnostics:ready'));
+      console.log('[LSPManager] ✅ Diagnostics system ready — dispatched lsp:diagnostics:ready');
     }
 
     // 2. Sync to Monaco for inline display

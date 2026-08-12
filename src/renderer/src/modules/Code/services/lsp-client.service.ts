@@ -59,7 +59,6 @@ class LSPClientManager {
   private diagnosticsEnabled = true;
   private pendingChanges: Map<string, { timer: ReturnType<typeof setTimeout>; version: number }> =
     new Map();
-  private readonly DEBOUNCE_DELAY = 300; // ms
 
   /**
    * Initialize LSP client with Monaco instance
@@ -201,10 +200,7 @@ class LSPClientManager {
       console.warn('[LSPClient] ⚠️  No formatting provider capability');
     }
 
-    // Register diagnostics (errors/warnings)
-    if (this.diagnosticsEnabled) {
-      this.setupDiagnostics(language);
-    }
+    // Diagnostics are managed by LSPManager — no setup needed here
   }
 
   /**
@@ -395,37 +391,6 @@ class LSPClientManager {
   }
 
   /**
-   * Setup diagnostics (errors/warnings) from language server
-   * NOTE: This is now handled by LSP Manager for better centralization
-   * We keep this for backward compatibility with Monaco markers
-   */
-  private setupDiagnostics(_language: string) {
-    if (!this.monaco) return;
-    // Diagnostics are managed by LSP Manager
-  }
-
-  /**
-   * Convert LSP diagnostic severity to Monaco marker severity
-   */
-  private convertDiagnosticSeverity(severity: number): any {
-    if (!this.monaco) return 8; // Error as default
-
-    const MarkerSeverity = this.monaco.MarkerSeverity;
-    switch (severity) {
-      case 1:
-        return MarkerSeverity.Error;
-      case 2:
-        return MarkerSeverity.Warning;
-      case 3:
-        return MarkerSeverity.Info;
-      case 4:
-        return MarkerSeverity.Hint;
-      default:
-        return MarkerSeverity.Error;
-    }
-  }
-
-  /**
    * Map language to Monaco language ID
    */
   private getMonacoLanguageId(language: string): string {
@@ -585,18 +550,14 @@ class LSPClientManager {
    * Notify language server that a document was closed.
    * Should be called by document manager only.
    */
-  notifyDocumentClosed(language: string, uri: string): void {
+  async notifyDocumentClosed(language: string, uri: string): Promise<void> {
     const serverLanguage = getServerLanguage(language);
 
     try {
-      window.api
-        .invoke('lsp:didClose', {
-          language: serverLanguage,
-          uri,
-        })
-        .catch((err: Error) => {
-          console.error(`[LSPClient] ❌ didClose failed:`, err);
-        });
+      await window.api.invoke('lsp:didClose', {
+        language: serverLanguage,
+        uri,
+      });
     } catch (error) {
       console.error(`[LSPClient] ❌ didClose exception:`, error);
     }
@@ -698,8 +659,34 @@ export async function autoStartLanguageServer(
   }
 
   if (lspClientManager.isServerRunning(serverLanguage)) {
+    console.log(`[LSPClient] ⏭️  Server "${serverLanguage}" already running in renderer — skipping`);
     return;
   }
+
+  // [DEBUG] After renderer refresh (Ctrl+R), activeServers Map is empty but the server
+  // process may still be alive in main process. Sync with main to avoid unnecessary
+  // lsp:start-server calls and the lsp:init:start/lsp:init:complete noise that can
+  // desync FooterBar's progress state.
+  try {
+    const result = await window.api.invoke('lsp:get-active-servers');
+    if (result?.success && result.servers?.includes(serverLanguage)) {
+      console.log(
+        `[LSPClient] 🔄 Synced: "${serverLanguage}" server found running in main process after refresh`,
+      );
+      // Mark as running in renderer without calling startLanguageServer
+      lspClientManager['activeServers'].set(serverLanguage, {
+        language: serverLanguage,
+        process: -1, // Unknown PID — server started in previous renderer session
+        capabilities: {},
+      });
+      return;
+    }
+  } catch (err) {
+    // Non-critical — proceed with normal start flow below
+    console.warn(`[LSPClient] ⚠️  Failed to sync active servers from main:`, err);
+  }
+
+  console.log(`[LSPClient] 🚀 Starting language server for "${serverLanguage}"...`);
 
   const existingPromise = startingServers.get(serverLanguage);
   if (existingPromise) {
@@ -714,6 +701,7 @@ export async function autoStartLanguageServer(
 
   try {
     await promise;
+    console.log(`[LSPClient] ✅ Server "${serverLanguage}" started successfully`);
   } finally {
     startingServers.delete(serverLanguage);
   }

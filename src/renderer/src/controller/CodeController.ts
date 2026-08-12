@@ -16,14 +16,12 @@ import { useCodeStore } from '../modules/Code/hooks/useCodeStore';
 import { ReadFileHandler } from '../modules/Code/handler/tool/ReadFileHandler';
 import { WriteToFileHandler } from '../modules/Code/handler/tool/WriteToFileHandler';
 import { ReplaceInFileHandler } from '../modules/Code/handler/tool/ReplaceInFileHandler';
-import {
-  DeleteFileHandler,
-  ListFilesHandler,
-  FindFilesHandler,
-  RevertFileHandler,
-  ViewReplaceHistoryHandler,
-  FileMiscHandler,
-} from '../modules/Code/handler/tool/FileHandlers';
+import { DeleteFileHandler } from '../modules/Code/handler/tool/DeleteFileHandler';
+import { ListFilesHandler } from '../modules/Code/handler/tool/ListFilesHandler';
+import { FindFilesHandler } from '../modules/Code/handler/tool/FindFilesHandler';
+import { RevertFileHandler } from '../modules/Code/handler/tool/RevertFileHandler';
+import { ViewReplaceHistoryHandler } from '../modules/Code/handler/tool/ViewReplaceHistoryHandler';
+import { FileMiscHandler } from '../modules/Code/handler/tool/FileMiscHandler';
 import { GrepHandler } from '../modules/Code/handler/tool/GrepHandler';
 import {
   GitStatusHandler,

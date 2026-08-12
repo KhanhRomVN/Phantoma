@@ -473,9 +473,14 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
                 if (shouldSendDidOpen) {
                   try {
+                    // Clean old document state in LSP server before re-opening.
+                    // After Ctrl+R refresh, the LSP server still holds documents
+                    // from the previous session — a duplicate didOpen won't trigger
+                    // new diagnostics. didClose + didOpen forces re-analysis.
+                    await lspClientManager.notifyDocumentClosed(languageId, uri);
                     await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
                   } catch (err) {
-                    console.error('[CodeBlock] ❌ didOpen failed:', err);
+                    console.error('[CodeBlock] ❌ LSP document sync failed:', err);
                   }
                 }
 

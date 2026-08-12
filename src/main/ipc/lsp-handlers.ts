@@ -466,6 +466,21 @@ ipcMain.handle('lsp:stop-server', async (event, args) => {
 });
 
 /**
+ * Get list of active language servers (for renderer refresh recovery)
+ * Returns language names only — no sensitive process info
+ */
+ipcMain.handle('lsp:get-active-servers', async () => {
+  try {
+    const servers = Array.from(activeServers.keys());
+    console.log(`[LSP:Main] 📋 get-active-servers: ${servers.length} server(s) running — [${servers.join(', ') || 'none'}]`);
+    return { success: true, servers };
+  } catch (error: any) {
+    console.error('[LSP:Main] ❌ get-active-servers error:', error);
+    return { success: false, error: error.message, servers: [] };
+  }
+});
+
+/**
  * Notify server that a document was opened
  */
 ipcMain.handle('lsp:didOpen', async (event, args) => {
