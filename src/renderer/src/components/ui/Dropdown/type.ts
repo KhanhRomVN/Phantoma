@@ -23,6 +23,7 @@ export interface DropdownTriggerProps {
 export interface DropdownContentProps {
   children: React.ReactNode;
   className?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 export interface DropdownItemProps extends React.HTMLAttributes<HTMLDivElement> {

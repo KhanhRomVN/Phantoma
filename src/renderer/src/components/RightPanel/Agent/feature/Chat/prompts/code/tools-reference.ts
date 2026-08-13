@@ -1,5 +1,5 @@
 export const TOOLS_REFERENCE = `# TOOLS
-
+  
 Use XML tags for all tool calls:
 <read_file><file_path>path/to/file</file_path></read_file>
 <read_file><file_path>path/to/file</file_path><start_line>1</start_line><end_line>50</end_line></read_file>

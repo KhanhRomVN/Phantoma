@@ -6,6 +6,9 @@ import { NetworkRequest } from '../../types/inspector';
 // HOOK
 import { usePaginatedRequests } from './usePaginatedRequests';
 
+// STORE
+import { useNetworkStore } from '../../../../stores/networkStore';
+
 // UTILS — pure network parsers (tách từ file này)
 import {
   buildCdpRequest,
@@ -118,6 +121,11 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const requestMapRef = useRef<Map<string, NetworkRequest>>(new Map());
   const timestampMapRef = useRef<Map<string, number>>(new Map());
   const unpackedScriptsRef = useRef<Map<string, CdpScriptUnpackedData>>(new Map());
+
+  // Sync local requests to global store for RequestTable / Repeater
+  useEffect(() => {
+    useNetworkStore.setState({ requests });
+  }, [requests]);
 
   // Reset refs when targetId changes to prevent memory leak
   useEffect(() => {

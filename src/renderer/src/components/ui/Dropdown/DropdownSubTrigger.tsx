@@ -3,6 +3,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { DropdownItemProps } from './type';
 import { ChevronRight } from 'lucide-react';
 import { useDropdownSubContext } from './DropdownSub';
+import { useDropdownSize, dropdownSizeStyles } from './DropdownContent';
 
 interface DropdownSubTriggerProps extends Omit<DropdownItemProps, 'items'> {
   children: React.ReactNode;
@@ -19,22 +20,26 @@ export function DropdownSubTrigger({
   ...props
 }: DropdownSubTriggerProps) {
   const { open } = useDropdownSubContext();
+  const size = useDropdownSize();
+  const styles = dropdownSizeStyles[size];
 
   return (
     <div
       className={cn(
-        'w-full flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-text-primary hover:bg-dropdown-item-hover transition-colors cursor-pointer whitespace-nowrap',
+        'w-full flex items-center justify-between transition-colors cursor-pointer whitespace-nowrap text-text-primary hover:bg-dropdown-item-hover',
+        styles.item,
+        styles.gap,
         disabled && 'opacity-50 cursor-not-allowed hover:bg-transparent',
         open && 'bg-dropdown-item-hover',
         className,
       )}
       {...props}
     >
-      <div className="flex items-center gap-2">
-        {icon && <span className="shrink-0">{icon}</span>}
+      <div className={cn('flex items-center', styles.gap)}>
+        {icon && <span className={cn('shrink-0', styles.icon)}>{icon}</span>}
         <span>{children}</span>
       </div>
-      <ChevronRight className="w-3.5 h-3.5 text-text-secondary" />
+      <ChevronRight className={cn(styles.icon, 'text-text-secondary')} />
     </div>
   );
 }

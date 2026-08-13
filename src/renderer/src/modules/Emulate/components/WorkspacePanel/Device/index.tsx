@@ -17,7 +17,7 @@ import {
 import { cn } from '@renderer/shared/utils/cn';
 
 // Services
-import { apiService } from '../../../../../services/api.service';
+import { ipcService } from '../../../../../services/ipc.service';
 import { logcatService } from '../../../services/logcat.service';
 
 interface Device {
@@ -64,7 +64,7 @@ export function DevicePanel() {
 
   const checkDeviceStatus = async (serial: string) => {
     try {
-      const res = await apiService.checkFrida(serial);
+      const res = await ipcService.checkFrida(serial);
       setStatusMap((prev) => ({
         ...prev,
         [serial]: {
@@ -85,9 +85,9 @@ export function DevicePanel() {
     }));
 
     try {
-      const installed = await apiService.installFrida(serial);
+      const installed = await ipcService.installFrida(serial);
       if (installed.success && installed.data) {
-        const started = await apiService.startFrida(serial);
+        const started = await ipcService.startFrida(serial);
         if (started.success && started.data) {
           await checkDeviceStatus(serial);
           addLog(serial, '✅ Frida deployed and started successfully');
@@ -113,14 +113,14 @@ export function DevicePanel() {
 
     try {
       if (isRunning) {
-        await apiService.destroyProxySession('default');
+        await ipcService.destroyProxySession('default');
         setStatusMap((prev) => ({
           ...prev,
           [serial]: { ...prev[serial], proxy: 'stopped' },
         }));
         addLog(serial, '⏹️ Proxy stopped');
       } else {
-        await apiService.createProxySession('default');
+        await ipcService.createProxySession('default');
         setStatusMap((prev) => ({
           ...prev,
           [serial]: { ...prev[serial], proxy: 'running' },
@@ -150,7 +150,7 @@ export function DevicePanel() {
       if (!packageName) return;
 
       addLog(serial, `🔓 Unpinning SSL for ${packageName}...`);
-      const res = await apiService.injectSSLBypass(serial, packageName);
+      const res = await ipcService.injectSSLBypass(serial, packageName);
       if (res.success && res.data) {
         setStatusMap((prev) => ({
           ...prev,

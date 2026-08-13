@@ -22,7 +22,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getTargetPlatform, getTargetFavicon } from '.';
 
 // Services
-import { apiService } from '../../../../services/api.service';
+import { ipcService } from '../../../../services/ipc.service';
 
 // STORE
 import { useTimerStore } from '../../../../stores/timerStore';
@@ -292,14 +292,14 @@ const TargetList: React.FC<TargetListProps> = ({
             console.error('[TargetList] window.api is not available');
             return;
           }
-          const portRes = await apiService.getCdpLaunchPort();
+          const portRes = await ipcService.getCdpLaunchPort();
           const launchPort = portRes.success ? portRes.data?.port : null;
           const ports = launchPort ? [launchPort] : [9222];
           for (const port of ports) {
             try {
-              const result = await apiService.connectCdp(port);
+              const result = await ipcService.connectCdp(port);
               if (result?.success) {
-                await apiService.reloadCdp();
+                await ipcService.reloadCdp();
                 break;
               }
             } catch {
@@ -322,7 +322,7 @@ const TargetList: React.FC<TargetListProps> = ({
       // Update last_used_at immediately when starting MITM
       onSelectTarget(targetId);
       onStartTarget(targetId, 'mitm');
-      apiService
+      ipcService
         .createProxySession('default')
         .then(async () => {
           if (onLaunchTarget) {
@@ -348,14 +348,14 @@ const TargetList: React.FC<TargetListProps> = ({
       // Update last_used_at immediately when starting Frida
       onSelectTarget(targetId);
       onStartTarget(targetId, 'frida');
-      apiService
+      ipcService
         .createProxySession('default')
         .then(async () => {
           if (onLaunchTarget) {
             await onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'frida');
           }
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           console.error('[TargetList] Failed to create proxy session:', err);
           onStopTarget();
         });

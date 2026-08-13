@@ -8,7 +8,6 @@ import { useCodeStore } from '../../../modules/Code/hooks/useCodeStore';
 import { lspManager } from '../../../modules/Code/services/lsp-manager.service';
 import { documentManager } from '../../../modules/Code/services/document-manager.service';
 import { fileWatcherService } from '../../../modules/Code/services/file-watcher.service';
-
 // Define Window interface to include require for AMD loader
 declare global {
   interface Window {
@@ -148,17 +147,14 @@ function detectLanguageId(
   filePath: string | undefined,
   fallbackLanguage: string = 'plaintext',
 ): string {
-  if (!filePath) return fallbackLanguage;
-
-  const ext = filePath.toLowerCase().split('.').pop();
-
-  // Map file extensions to Monaco/LSP language IDs
+  // Map file extensions & markdown language hints to Monaco language IDs.
   const languageMap: Record<string, string> = {
     // TypeScript/JavaScript with JSX
     tsx: 'typescriptreact',
     jsx: 'javascriptreact',
     // TypeScript/JavaScript
     ts: 'typescript',
+    typescript: 'typescript',
     js: 'javascript',
     mjs: 'javascript',
     cjs: 'javascript',
@@ -169,24 +165,50 @@ function detectLanguageId(
     scss: 'scss',
     less: 'less',
     md: 'markdown',
+    markdown: 'markdown',
     py: 'python',
+    python: 'python',
     java: 'java',
     cpp: 'cpp',
     c: 'c',
     cs: 'csharp',
+    csharp: 'csharp',
     go: 'go',
+    golang: 'go',
     rs: 'rust',
+    rust: 'rust',
     php: 'php',
     rb: 'ruby',
+    ruby: 'ruby',
     xml: 'xml',
     yaml: 'yaml',
     yml: 'yaml',
     sh: 'shell',
     bash: 'shell',
+    shell: 'shell',
+    zsh: 'shell',
     sql: 'sql',
+    dockerfile: 'dockerfile',
+    docker: 'dockerfile',
+    toml: 'ini',
+    ini: 'ini',
+    text: 'plaintext',
+    plaintext: 'plaintext',
+    plain: 'plaintext',
+    txt: 'plaintext',
   };
 
-  return languageMap[ext || ''] || fallbackLanguage;
+  if (filePath) {
+    const ext = filePath.toLowerCase().split('.').pop();
+    if (ext) {
+      const mapped = languageMap[ext];
+      if (mapped) return mapped;
+    }
+  }
+  const key = fallbackLanguage.toLowerCase();
+  const mapped = languageMap[key];
+  if (mapped) return mapped;
+  return 'plaintext';
 }
 
 const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {

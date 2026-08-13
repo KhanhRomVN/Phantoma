@@ -65,10 +65,16 @@ const DEFAULT_HEIGHT = 320;
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function BottomPanel() {
-  // ── Store ──
-  const project = useCodeStore((s) =>
-    s.projects.find((p) => p.id === s.currentProjectId)
-  );
+  console.log('[DEBUG|BottomPanel] render');
+  // ── Store — select riêng fields thay vì toàn bộ project ──
+  const bottomPanelTab = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.bottomPanelTab ?? 'output';
+  });
+  const isBottomPanelOpen = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.isBottomPanelOpen ?? true;
+  });
   const setBottomPanelTab = useCodeStore((s) => s.setBottomPanelTab);
   const toggleBottomPanel = useCodeStore((s) => s.toggleBottomPanel);
 
@@ -84,8 +90,6 @@ export function BottomPanel() {
   const startHeightRef = useRef(0);
 
   // ── Derived ──
-  const bottomPanelTab = project?.bottomPanelTab ?? 'output';
-  const isBottomPanelOpen = project?.isBottomPanelOpen ?? true;
 
   // ── Effects ──
   // Listen for add-bottom-tab event from keyboard shortcut

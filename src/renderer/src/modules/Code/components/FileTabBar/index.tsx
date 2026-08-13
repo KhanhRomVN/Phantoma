@@ -22,7 +22,7 @@
 import { useState, useCallback } from 'react';
 
 // ── UI ──
-import { X, CircleDot, Copy } from 'lucide-react';
+import { X, CircleDot, Copy, Plus } from 'lucide-react';
 
 // ── Hooks ──
 import { useCodeStore } from '../../hooks/useCodeStore';
@@ -42,9 +42,28 @@ import {
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function FileTabBar() {
-  // ── Store ──
-  const projects = useCodeStore((s) => s.projects);
-  const currentProjectId = useCodeStore((s) => s.currentProjectId);
+  console.log('[DEBUG|FileTabBar] render');
+  // ── Store — select riêng fields thay vì toàn bộ projects array ──
+  const openFiles = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.openFiles ?? [];
+  });
+  const fileDisplayNames = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.fileDisplayNames ?? {};
+  });
+  const activeFileTabId = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.activeFileTabId ?? null;
+  });
+  const fileNodeMap = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.fileNodeMap ?? {};
+  });
+  const unsavedFiles = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.unsavedFiles ?? new Set<string>();
+  });
   const setActiveFileTab = useCodeStore((s) => s.setActiveFileTab);
   const closeFile = useCodeStore((s) => s.closeFile);
   const executeWithSaveCheck = useCodeStore((s) => s.executeWithSaveCheck);
@@ -53,12 +72,9 @@ export function FileTabBar() {
   const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
 
   // ── Derived ──
-  const project = projects.find((p) => p.id === currentProjectId);
-  if (!project || project.openFiles.length === 0) {
+  if (openFiles.length === 0) {
     return null;
   }
-
-  const { openFiles, fileDisplayNames, activeFileTabId, fileNodeMap, unsavedFiles } = project;
 
   // ── Callbacks ──
   const handleClose = useCallback(

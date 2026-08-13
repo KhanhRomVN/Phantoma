@@ -56,8 +56,12 @@ const MAX_WIDTH = 600;
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function ActivityPanel() {
-  // ── Store ──
-  const project = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId));
+  console.log('[DEBUG|ActivityPanel] render');
+  // ── Store — select riêng activityPanelTab thay vì toàn bộ project ──
+  const activityPanelTab = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.activityPanelTab ?? 'explore';
+  });
   const setActivityPanelTab = useCodeStore((s) => s.setActivityPanelTab);
   const activityPanelWidth = useCodeStore((s) => s.activityPanelWidth);
   const setActivityPanelWidth = useCodeStore((s) => s.setActivityPanelWidth);
@@ -68,9 +72,6 @@ export function ActivityPanel() {
   // ── Refs ──
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
-
-  // ── Derived ──
-  const activityPanelTab = project?.activityPanelTab ?? 'explore';
 
   // ── Handlers ──
   const handleMouseDown = (e: React.MouseEvent) => {

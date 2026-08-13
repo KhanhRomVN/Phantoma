@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 import { DropdownItemProps, DropdownSeparatorProps } from './type';
 import { useDropdownContext } from './Dropdown';
+import { useDropdownSize, dropdownSizeStyles } from './DropdownContent';
 
 export const DropdownItem = React.memo(function DropdownItem({
   children,
@@ -14,6 +15,8 @@ export const DropdownItem = React.memo(function DropdownItem({
   ...props
 }: DropdownItemProps) {
   const { close } = useDropdownContext();
+  const size = useDropdownSize();
+  const styles = dropdownSizeStyles[size];
 
   const handleClick = () => {
     if (disabled) return;
@@ -30,7 +33,9 @@ export const DropdownItem = React.memo(function DropdownItem({
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
       className={cn(
-        'w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors cursor-pointer whitespace-nowrap relative',
+        'w-full flex items-center transition-colors cursor-pointer whitespace-nowrap relative',
+        styles.item,
+        styles.gap,
         variant === 'error'
           ? 'text-error hover:bg-error/10'
           : 'text-text-primary hover:bg-dropdown-item-hover',
@@ -39,7 +44,7 @@ export const DropdownItem = React.memo(function DropdownItem({
       )}
       {...props}
     >
-      {icon && <span className="shrink-0">{icon}</span>}
+      {icon && <span className={cn('shrink-0', styles.icon)}>{icon}</span>}
       {children}
     </div>
   );

@@ -15,7 +15,7 @@ import { formatSize } from '../../../utils/source-tree.util';
 import { detectWasmModules } from '../../../../../utils/detectors';
 
 // Services
-import { apiService } from '../../../../../services/api.service';
+import { ipcService } from '../../../../../services/ipc.service';
 
 interface ResourcesPanelProps {
   requests?: NetworkRequest[];
@@ -35,7 +35,7 @@ export function ResourcesPanel({ requests = [], onCountChange }: ResourcesPanelP
   useEffect(() => {
     const fetchManifest = async () => {
       try {
-        const res = await apiService.getCacheManifest();
+        const res = await ipcService.getCacheManifest();
         if (res.success && res.data) {
           setCacheManifest(res.data as any);
         }

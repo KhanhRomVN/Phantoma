@@ -4,7 +4,7 @@ import { emulateApi } from './services/emulate-api.service';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 import { EmulateController } from '../../controller/EmulateController';
-import { apiService } from '../../services/api.service';
+import { ipcService } from '../../services/ipc.service';
 
 // Components
 import { initialFilterState } from './components/WorkspacePanel/Home';
@@ -253,7 +253,6 @@ export default React.memo(function Emulate({
 
   const { requests, clearRequests, unpackedScripts } = useNetworkEvents({
     targetId: activeTargetId || undefined,
-    initialRequests: savedRequests,
     onRequestsChange: (newRequests) => {
       setState((prev) => ({ ...prev, requests: newRequests }));
     },
@@ -341,11 +340,11 @@ export default React.memo(function Emulate({
 
     const mode = targetStatesRef.current[targetId]?.mode;
     if (mode === 'cdp') {
-      await apiService.disconnectCdp();
-      await apiService.terminateApp();
+      await ipcService.disconnectCdp();
+      await ipcService.terminateApp();
     } else if (mode === 'mitm' || mode === 'frida') {
-      await apiService.destroyProxySession('default');
-      await apiService.terminateApp();
+      await ipcService.destroyProxySession('default');
+      await ipcService.terminateApp();
     }
 
     stopTarget(targetId);
@@ -384,7 +383,7 @@ export default React.memo(function Emulate({
         const target = targetTabs.find((t) => t.id === appId);
         const launchTarget = target?.executablePath || appId;
 
-        const result = await apiService.launchApp(
+        const result = await ipcService.launchApp(
           launchTarget,
           proxyUrl,
           customUrl,

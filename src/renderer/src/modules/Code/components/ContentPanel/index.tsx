@@ -243,6 +243,7 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
 // ─── ContentPanel ───────────────────────────────────────────────────────────
 
 export const ContentPanel = memo(function ContentPanel() {
+  console.log('[DEBUG|ContentPanel] render');
   // 🚀 ULTRA-OPTIMIZED: Chỉ subscribe vào những fields thực sự cần thiết
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
 
