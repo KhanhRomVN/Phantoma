@@ -32,9 +32,7 @@ export interface InspectorFilter {
   path: {
     whitelist: string[];
   };
-  status: {
-    [key: number]: boolean;
-  };
+  status: Record<string, boolean>;
   type: {
     xhr: boolean;
     js: boolean;
@@ -120,6 +118,7 @@ interface NetworkFilterProps {
   onChange: (filter: InspectorFilter) => void;
   requests?: NetworkRequest[];
   targetId?: string | null;
+  isSessionRunning?: boolean;
 }
 
 function ListFilterSection({
@@ -128,12 +127,14 @@ function ListFilterSection({
   onChange,
   allItems = [],
   getColorForItem,
+  disabled = false,
 }: {
   title: string;
   lists: { whitelist: string[] };
   onChange: (lists: { whitelist: string[] }) => void;
   allItems?: string[];
   getColorForItem?: (item: string) => string;
+  disabled?: boolean;
 }) {
   const [input, setInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -177,7 +178,8 @@ function ListFilterSection({
         <div className="flex gap-1.5 relative w-full items-center">
           <div className="flex-1">
             <input
-              className="w-full bg-input-background border border-input-border-default hover:border-input-border-hover focus:border-primary/70 rounded px-3 py-2 text-xs focus:bg-input-background/80 outline-none h-10 transition-all text-text-primary placeholder:text-text-secondary"
+              className="w-full bg-input-background border border-input-border-default hover:border-input-border-hover focus:border-primary/70 rounded px-3 py-2 text-xs focus:bg-input-background/80 outline-none h-10 transition-all text-text-primary placeholder:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={disabled}
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);
@@ -246,13 +248,13 @@ function ListFilterSection({
                 <span
                   key={item}
                   className={cn(
-                    'inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs border cursor-default',
+                    'inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-default',
+                    !color && 'bg-muted/50 text-muted-foreground',
                   )}
                   style={
                     color
                       ? {
                           color: color,
-                          borderColor: color,
                           backgroundColor: `${color}20`,
                         }
                       : undefined
@@ -282,7 +284,13 @@ function ListFilterSection({
   );
 }
 
-export function NetworkFilter({ filter, onChange, requests = [], targetId }: NetworkFilterProps) {
+export function NetworkFilter({
+  filter,
+  onChange,
+  requests = [],
+  targetId,
+  isSessionRunning,
+}: NetworkFilterProps) {
   const { getColorByIndex } = useAccentColors();
 
   // Storage key for filter data
@@ -335,10 +343,14 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
   const availableStatuses = Array.from(
     new Set(
       requests
-        .filter((r) => r.protocol === 'https' && typeof r.status === 'number')
+        .filter((r) => r.protocol === 'https' && typeof r.status === 'number' && r.status !== 0)
         .map((r) => r.status),
     ),
   ).sort((a, b) => (a || 0) - (b || 0));
+
+  const hasFailed = requests.some(
+    (r) => r.status === 0 && r.responseHeaders?.['X-Request-Status'] === 'Failed',
+  );
 
   const availableMethods = Array.from(
     new Set(requests.map((r) => r.method?.toUpperCase()).filter(Boolean)),
@@ -464,16 +476,14 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                       })
                     }
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium border transition-all',
-                      isVisible
-                        ? 'text-text-primary'
-                        : 'text-muted-foreground border-border bg-transparent opacity-50',
+                      'px-3 py-1 rounded text-xs font-medium transition-all',
+                      isVisible ? '' : 'text-muted-foreground hover:bg-gray-500/30',
                     )}
                     style={
                       isVisible
                         ? {
                             color: color.color,
-                            borderColor: color.color,
+                            backgroundColor: `${color.color}20`,
                           }
                         : undefined
                     }
@@ -498,6 +508,7 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
               const hash = item.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
               return getColorByIndex(hash % 8);
             }}
+            disabled={!isSessionRunning}
           />
         </section>
 
@@ -506,18 +517,17 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold">Status</h3>
           </div>
-          {availableStatuses.length === 0 ? (
+          {availableStatuses.length === 0 && !hasFailed ? (
             <div className="text-xs text-muted-foreground italic px-2">No statuses available</div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableStatuses.map((code) => {
                 const safeCode = typeof code === 'number' ? code : 0;
-                let colorClass = 'text-text-secondary border-border';
-                if (safeCode >= 200 && safeCode < 300) colorClass = 'text-green border-green/30';
-                else if (safeCode >= 300 && safeCode < 400)
-                  colorClass = 'text-yellow border-yellow/30';
-                else if (safeCode >= 400 && safeCode < 500) colorClass = 'text-red border-red/30';
-                else if (safeCode >= 500) colorClass = 'text-rose-400 border-rose-400/30';
+                let colorClass = 'text-muted-foreground';
+                if (safeCode >= 200 && safeCode < 300) colorClass = 'text-green';
+                else if (safeCode >= 300 && safeCode < 400) colorClass = 'text-yellow';
+                else if (safeCode >= 400 && safeCode < 500) colorClass = 'text-red';
+                else if (safeCode >= 500) colorClass = 'text-rose-400';
 
                 const isVisible = filter.status[safeCode] !== false;
 
@@ -534,10 +544,8 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                       })
                     }
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium border transition-all whitespace-nowrap',
-                      isVisible
-                        ? colorClass
-                        : 'text-muted-foreground border-border bg-transparent opacity-50',
+                      'px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap',
+                      isVisible ? colorClass : 'text-muted-foreground hover:bg-gray-500/30',
                     )}
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >
@@ -545,6 +553,30 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                   </button>
                 );
               })}
+
+              {hasFailed && (
+                <button
+                  key="failed"
+                  onClick={() =>
+                    onChange({
+                      ...filter,
+                      status: {
+                        ...filter.status,
+                        failed: filter.status['failed'] === false,
+                      },
+                    })
+                  }
+                  className={cn(
+                    'px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap',
+                    filter.status['failed'] !== false
+                      ? 'text-red'
+                      : 'text-muted-foreground hover:bg-gray-500/30',
+                  )}
+                  title={filter.status['failed'] !== false ? 'Click to hide' : 'Click to show'}
+                >
+                  Failed
+                </button>
+              )}
             </div>
           )}
         </section>
@@ -576,16 +608,14 @@ export function NetworkFilter({ filter, onChange, requests = [], targetId }: Net
                       })
                     }
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium border transition-all',
-                      isVisible
-                        ? 'text-text-primary'
-                        : 'text-muted-foreground border-border bg-transparent opacity-50',
+                      'px-3 py-1 rounded text-xs font-medium transition-all',
+                      isVisible ? '' : ' text-muted-foreground hover:bg-gray-500/30',
                     )}
                     style={
                       isVisible
                         ? {
                             color: config.color,
-                            borderColor: config.color,
+                            backgroundColor: `${config.color}20`,
                           }
                         : undefined
                     }

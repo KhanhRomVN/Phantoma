@@ -10,7 +10,14 @@ export function filterRequestsByConfig(
   filter: InspectorFilter,
   searchTerm: string,
 ): NetworkRequest[] {
-  return requests.filter((req) => {
+  console.log('[DEBUG|filterRequestsByConfig] input', {
+    requests: requests.length,
+    methods: filter.methods,
+    status: filter.status,
+    type: filter.type,
+    searchTerm,
+  });
+  const result = requests.filter((req) => {
     // Method filter
     const method = req.method?.toUpperCase() || '';
     const methodKey = method as keyof typeof filter.methods;
@@ -28,7 +35,13 @@ export function filterRequestsByConfig(
 
     // Status filter
     const status = req.status;
-    if (status && filter.status[status] === false) {
+    const failedStatus =
+      status === 0 && req.responseHeaders?.['X-Request-Status'] === 'Failed';
+    if (failedStatus) {
+      if (filter.status['failed'] === false) {
+        return false;
+      }
+    } else if (typeof status === 'number' && filter.status[status] === false) {
       return false;
     }
 
@@ -62,6 +75,9 @@ export function filterRequestsByConfig(
 
     return true;
   });
+
+  console.log('[DEBUG|filterRequestsByConfig] output', result.length);
+  return result;
 }
 
 interface UseRequestFilterOptions {

@@ -46,6 +46,8 @@ import { fileWatcherService } from '../../services/file-watcher.service';
 // ── Components ──
 import { FileTabBar } from '../FileTabBar';
 import CodeBlock from '@renderer/components/common/CodeBlock';
+import { DesignViewer } from './DesignViewer';
+import { AgentGroupViewer } from './AgentGroupViewer';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -531,6 +533,28 @@ export const ContentPanel = memo(function ContentPanel() {
     const service = getService(currentServiceId);
     if (!service) return null;
 
+    // Check if it's an agent group service
+    if (service.type === 'extension' && service.tabId && service.meta === 'Agent Group') {
+      const state = useCodeStore.getState();
+      const project = state.projects.find((p) => p.id === currentProjectId);
+      const agentGroup = project?.agentGroups.find((g) => g.id === service.tabId);
+
+      if (agentGroup) {
+        return <AgentGroupViewer agentGroup={agentGroup} />;
+      }
+    }
+
+    // Check if it's a design service
+    if (service.type === 'design' && service.tabId) {
+      const state = useCodeStore.getState();
+      const project = state.projects.find((p) => p.id === currentProjectId);
+      const design = project?.designs.find((d) => d.id === service.tabId);
+
+      if (design) {
+        return <DesignViewer design={design} />;
+      }
+    }
+
     // Check if it's an extension service
     if (service.type === 'extension') {
       // Use stored extensionId if available
@@ -552,7 +576,7 @@ export const ContentPanel = memo(function ContentPanel() {
       return <div className="flex-1 flex flex-col min-h-0 bg-background"></div>;
     }
 
-    // Regular service (non-extension)
+    // Regular service (non-extension, non-design, non-agent-group)
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-background">
         <div className="flex-1 flex items-center justify-center text-text-secondary/60">

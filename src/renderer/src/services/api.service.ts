@@ -29,6 +29,12 @@ class ApiService {
   constructor(baseUrl?: string) {
     const storedUrl = localStorage.getItem('server_url');
     this.baseUrl = baseUrl || (storedUrl ? `http://${storedUrl}` : DEFAULT_BASE_URL);
+    // [DEBUG] Có thể xóa sau khi fix lỗi base URL — hiển thị URL đang dùng
+    console.log('[DEBUG|ApiService] Base URL initialized:', {
+      storedUrl,
+      baseUrl: this.baseUrl,
+      defaultBaseUrl: DEFAULT_BASE_URL,
+    });
   }
 
   /**

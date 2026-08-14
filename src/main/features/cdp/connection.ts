@@ -169,7 +169,15 @@ export async function initializeNetwork(this: CdpManager) {
       maxPostDataSize: 5000000,
     });
   } catch (e) {
-    console.error('[CDP] Failed to enable network:', e);
+    const errorDetail = e instanceof Error
+      ? { name: e.name, message: e.message, stack: e.stack }
+      : e;
+    console.error('[CDP] Failed to enable network:', {
+      error: errorDetail,
+      wsReadyState: this.ws?.readyState,
+      wsOpen: this.ws?.readyState === WebSocket.OPEN,
+      isConnected: this.isConnected,
+    });
   }
 
   try {

@@ -44,6 +44,7 @@ export interface CdpRequestData {
 
 export interface CdpResponseData {
   id: string;
+  url?: string;
   statusCode: number;
   headers: Record<string, string>;
   timestamp: number;
@@ -121,10 +122,25 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const requestMapRef = useRef<Map<string, NetworkRequest>>(new Map());
   const timestampMapRef = useRef<Map<string, number>>(new Map());
   const unpackedScriptsRef = useRef<Map<string, CdpScriptUnpackedData>>(new Map());
+  const pendingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const cleanupIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const requestsRef = useRef(requests);
+
+  // Sync requestsRef với requests mới nhất — tránh đưa requests vào dependency của listener effect
+  useEffect(() => {
+    requestsRef.current = requests;
+  }, [requests]);
 
   // Sync local requests to global store for RequestTable / Repeater
   useEffect(() => {
-    useNetworkStore.setState({ requests });
+    useNetworkStore.setState({
+      requests: requests.map((r) => ({
+        ...r,
+        status: r.status ?? 0,
+        size: typeof r.size === 'number' ? String(r.size) : (r.size ?? '0 B'),
+        time: typeof r.time === 'number' ? String(r.time) : (r.time ?? '0ms'),
+      })) as unknown as import('../../../../stores/networkStore').NetworkRequest[],
+    });
   }, [requests]);
 
   // Reset refs when targetId changes to prevent memory leak
@@ -132,6 +148,14 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     requestMapRef.current = new Map();
     timestampMapRef.current = new Map();
     unpackedScriptsRef.current = new Map();
+    // Clear all pending timeouts
+    pendingTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+    pendingTimeoutsRef.current = new Map();
+    // Clear cleanup interval
+    if (cleanupIntervalRef.current) {
+      clearInterval(cleanupIntervalRef.current);
+      cleanupIntervalRef.current = null;
+    }
   }, [targetId]);
 
   // Build request object from CDP data — delegates to pure parser
@@ -146,6 +170,14 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     (data: CdpRequestData) => {
       const req = buildRequest(data);
       const fullReq = req as NetworkRequest;
+      // Skip non-network protocols (data:, blob:, etc.)
+      if (fullReq.protocol === 'data' || fullReq.protocol === 'blob') return;
+      // Skip OPTIONS preflight requests to reduce noise (they often don't complete properly in CDP)
+      if (fullReq.method === 'OPTIONS') {
+        console.debug('[useNetworkEvents] Skipping OPTIONS preflight request:', fullReq.url);
+        return;
+      }
+      
       requestMapRef.current.set(fullReq.id, fullReq);
       addRequest(fullReq);
       onRequest?.(fullReq);
@@ -157,17 +189,29 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleCdpResponse = useCallback(
     (data: CdpResponseData) => {
       const existing = requestMapRef.current.get(data.id);
-      if (existing) {
-        const updates: Partial<NetworkRequest> = {
-          status: data.statusCode || 200,
-          responseHeaders: data.headers || {},
-        };
-        const updated = { ...existing, ...updates };
-        requestMapRef.current.set(data.id, updated);
-        updateRequest(data.id, updates);
-        onResponse?.(data.id, data.statusCode, data.headers);
-      } else {
-        console.warn('[useNetworkEvents] No existing request for response:', data.id);
+      
+      // Clear timeout if exists
+      const timeout = pendingTimeoutsRef.current.get(data.id);
+      if (timeout) {
+        clearTimeout(timeout);
+        pendingTimeoutsRef.current.delete(data.id);
+      }
+      
+      // Only log errors or issues
+      if (!existing) {
+        // Skip responses for data/blob URIs — these are not real network requests
+        if (data.url && (data.url.startsWith('data:') || data.url.startsWith('blob:'))) {
+          return;
+        }
+        // Skip responses without URL — placeholder sẽ không có thông tin hữu ích
+        if (!data.url) {
+          return;
+        }
+        console.warn('[DEBUG|NetworkEvents] Response without request, creating placeholder', {
+          id: data.id,
+          url: data.url,
+          statusCode: data.statusCode,
+        });
         const placeholder = buildPlaceholderRequest(
           data.id,
           data.statusCode,
@@ -177,6 +221,25 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         requestMapRef.current.set(data.id, placeholder);
         addRequest(placeholder);
         onRequest?.(placeholder);
+        onResponse?.(data.id, data.statusCode, data.headers);
+      } else {
+        // Only log if status code indicates error (4xx, 5xx)
+        if (data.statusCode >= 400) {
+          console.error('[DEBUG|NetworkEvents] CDP Response error', {
+            id: data.id,
+            statusCode: data.statusCode,
+            url: existing.url,
+            method: existing.method,
+          });
+        }
+        
+        const updates: Partial<NetworkRequest> = {
+          status: data.statusCode ?? 200,
+          responseHeaders: data.headers || {},
+        };
+        const updated = { ...existing, ...updates };
+        requestMapRef.current.set(data.id, updated);
+        updateRequest(data.id, updates);
         onResponse?.(data.id, data.statusCode, data.headers);
       }
     },
@@ -190,7 +253,10 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       let timeStr = '0ms';
 
       if (requestTimestamp) {
-        const { timeStr: elapsed } = formatElapsedTime(requestTimestamp, data.timestamp || Date.now());
+        const { timeStr: elapsed } = formatElapsedTime(
+          requestTimestamp,
+          data.timestamp || Date.now(),
+        );
         timeStr = elapsed;
         timestampMapRef.current.delete(data.id);
       }
@@ -235,36 +301,103 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     (data: any) => {
       try {
         const { request, generatedId, timestamp } = parseProxyRequest(data);
+        // Skip non-network protocols (data:, blob:, etc.)
+        if (request.protocol === 'data' || request.protocol === 'blob') return;
+        // Skip OPTIONS preflight requests
+        if (request.method === 'OPTIONS') {
+          console.debug('[useNetworkEvents] Skipping OPTIONS preflight request:', request.url);
+          return;
+        }
+        
         timestampMapRef.current.set(generatedId, timestamp);
         requestMapRef.current.set(generatedId, request);
         addRequest(request);
         onRequest?.(request);
+        
+        // Set timeout to mark as failed if no response after 10s (reduced from 30s)
+        const timeoutId = setTimeout(() => {
+          const existing = requestMapRef.current.get(generatedId);
+          if (existing && existing.status === 0) {
+            console.warn('[DEBUG|NetworkEvents] Request timeout after 10s', {
+              id: generatedId,
+              method: existing.method,
+              url: existing.url,
+              timestamp: new Date().toISOString(),
+            });
+            updateRequest(generatedId, {
+              status: 0,
+              responseHeaders: { 'X-Request-Status': 'Timeout' },
+              time: '10000ms',
+            });
+          }
+          pendingTimeoutsRef.current.delete(generatedId);
+        }, 10000);
+        
+        pendingTimeoutsRef.current.set(generatedId, timeoutId);
       } catch (error) {
         onError?.(error);
       }
     },
-    [addRequest, onRequest, onError],
+    [addRequest, onRequest, onError, updateRequest],
   );
 
   const handleProxyResponse = useCallback(
     (data: any) => {
       try {
+        // Clear timeout if exists
+        const timeout = pendingTimeoutsRef.current.get(data.id);
+        if (timeout) {
+          clearTimeout(timeout);
+          pendingTimeoutsRef.current.delete(data.id);
+        }
+        
         const existing = requestMapRef.current.get(data.id);
+        
         if (existing) {
+          // Only log if status code indicates error (4xx, 5xx)
+          if (data.statusCode >= 400) {
+            console.error('[DEBUG|NetworkEvents] Proxy Response error', {
+              id: data.id,
+              statusCode: data.statusCode,
+              url: existing.url,
+              method: existing.method,
+            });
+          }
+          
           const updates = {
-            status: data.statusCode || 200,
+            status: data.statusCode ?? 200,
             responseHeaders: data.headers || {},
           };
           const updated = { ...existing, ...updates };
           requestMapRef.current.set(data.id, updated);
           updateRequest(data.id, updates);
           onResponse?.(data.id, data.statusCode, data.headers);
+        } else {
+          // Skip responses without URL — placeholder sẽ không có thông tin hữu ích
+          if (!data.url) {
+            return;
+          }
+          // Response arrived before request — create placeholder
+          console.warn('[DEBUG|NetworkEvents] Proxy response without request, creating placeholder', {
+            id: data.id,
+            statusCode: data.statusCode,
+          });
+          const placeholder = buildPlaceholderRequest(
+            data.id,
+            data.statusCode,
+            data.headers || {},
+            data.timestamp || Date.now(),
+          );
+          requestMapRef.current.set(data.id, placeholder);
+          addRequest(placeholder);
+          onRequest?.(placeholder);
+          onResponse?.(data.id, data.statusCode, data.headers);
         }
       } catch (error) {
         onError?.(error);
       }
     },
-    [updateRequest, onResponse, onError],
+    [updateRequest, onResponse, addRequest, onRequest, onError],
   );
 
   const handleProxyResponseBody = useCallback(
@@ -326,6 +459,31 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       console.warn('[useNetworkEvents] window.api.on not available');
       return;
     }
+
+    // Setup periodic cleanup for stuck pending requests (every 5 seconds)
+    cleanupIntervalRef.current = setInterval(() => {
+      const now = Date.now();
+      requestsRef.current.forEach((req) => {
+        if (req.status === 0 && !req.responseHeaders?.['X-Request-Status']) {
+          const timestamp = timestampMapRef.current.get(req.id);
+          if (timestamp && now - timestamp > 10000) {
+            // Request pending > 10s
+            console.warn('[DEBUG|NetworkEvents] Cleaning up stale pending request', {
+              id: req.id,
+              method: req.method,
+              url: req.url,
+              age: `${Math.round((now - timestamp) / 1000)}s`,
+            });
+            updateRequest(req.id, {
+              status: 0,
+              responseHeaders: { 'X-Request-Status': 'Stale' },
+              time: `${now - timestamp}ms`,
+            });
+            timestampMapRef.current.delete(req.id);
+          }
+        }
+      });
+    }, 5000);
 
     const handleRequest = (_event: any, data: any) => {
       try {
@@ -428,6 +586,16 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         window.api.off('proxy:response-body', handleProxyResponseBodyWrapped);
         window.api.off('proxy:request-body', handleProxyRequestBodyWrapped);
       }
+      
+      // Clear all pending timeouts on unmount
+      pendingTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+      pendingTimeoutsRef.current.clear();
+      
+      // Clear cleanup interval
+      if (cleanupIntervalRef.current) {
+        clearInterval(cleanupIntervalRef.current);
+        cleanupIntervalRef.current = null;
+      }
     };
   }, [
     handleCdpRequest,
@@ -441,6 +609,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     handleProxyResponseBody,
     handleProxyRequestBody,
     targetId,
+    updateRequest,
   ]);
 
   return {

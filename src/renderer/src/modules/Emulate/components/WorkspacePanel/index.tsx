@@ -1,4 +1,5 @@
 import React from 'react';
+import { useMemo } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
 // Components
@@ -79,6 +80,8 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
   onStartTarget,
   isTargetActive,
 }) => {
+  const emptySet = useMemo(() => new Set<string>(), []);
+
   const TabBar = (
     <div className="flex h-10 border-b border-border shrink-0 overflow-x-auto gap-0.5 px-2">
       {(Object.keys(TOOLS) as ToolType[]).map((id) => {
@@ -130,12 +133,13 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
             <>
               <div className="flex-1 min-h-0 border-b border-border">
                 <RequestTable
+                  filter={filter}
                   selectedId={selectedId}
                   onSelect={onSetSelectedId}
                   searchTerm={searchTerm}
                   onSearchChange={onSearchChange}
-                  interceptedIds={new Set()}
-                  pendingActionIds={new Set()}
+                  interceptedIds={emptySet}
+                  pendingActionIds={emptySet}
                   onForward={() => {}}
                   onDrop={() => {}}
                   onDelete={() => {}}
@@ -171,6 +175,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
                   onToggleFilter={onToggleFilter}
                   isFilterOpen={isFilterOpen}
                   targetId={activeTargetId}
+                  isSessionRunning={targetStates[activeTargetId]?.isActive || false}
                 />
               </div>
             </>

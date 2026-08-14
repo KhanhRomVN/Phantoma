@@ -5,7 +5,7 @@ import { Dashboard } from '../modules/Dashboard';
 import Scan from '../modules/Scan';
 import { Wireless } from '../modules/Wireless';
 import Setting from '../modules/Setting';
-import { Recon } from '../modules/Intel';
+import { Recon } from '../modules/Recon';
 import TestPage from '../modules/Test';
 import Code from '../modules/Code/Code';
 import Emulate from '@renderer/modules/Emulate/Emulate';

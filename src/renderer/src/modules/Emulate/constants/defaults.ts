@@ -8,7 +8,7 @@ export interface DefaultFilterState {
   methods: Record<HttpMethod, boolean>;
   host: { whitelist: string[] };
   path: { whitelist: string[] };
-  status: Record<number, boolean>;
+  status: Record<string, boolean>;
   type: {
     xhr: boolean;
     js: boolean;
@@ -40,7 +40,7 @@ export const DEFAULT_FILTER_STATE: DefaultFilterState = {
   },
   host: { whitelist: [] },
   path: { whitelist: [] },
-  status: {},
+  status: { failed: true },
   type: {
     xhr: true,
     js: true,

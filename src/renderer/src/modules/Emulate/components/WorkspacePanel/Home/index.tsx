@@ -66,6 +66,7 @@ interface NetworkDetailsProps {
   initialComposerRequest?: NetworkRequest | null;
   showComposerTab?: boolean;
   targetId?: string | null;
+  isSessionRunning?: boolean;
 }
 
 function TextSelectionMenu({
@@ -146,6 +147,7 @@ export const RequestDetails = React.memo(function RequestDetails({
   onCompareRequests: _onCompareRequests,
   showComposerTab = false,
   targetId,
+  isSessionRunning,
 }: NetworkDetailsProps) {
   const [internalActiveTab, setInternalActiveTab] = useState('headers');
   const [isRawMode, setIsRawMode] = useState(false);
@@ -625,6 +627,7 @@ export const RequestDetails = React.memo(function RequestDetails({
                 onChange={onFilterChange}
                 requests={requests}
                 targetId={targetId}
+                isSessionRunning={isSessionRunning}
               />
             </ResizableSplit>
           ) : (

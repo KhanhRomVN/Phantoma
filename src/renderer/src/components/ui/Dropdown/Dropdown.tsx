@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { DropdownProps } from './type';
 import { cn } from '@renderer/shared/utils/cn';
 
-type Position = { top: number; left: number };
+type Position = { top: number; left: number; width?: number };
 
 interface DropdownContextType {
   close: () => void;
@@ -44,7 +44,7 @@ export const Dropdown = React.memo(function Dropdown({
 
   const triggerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<Position>({ top: 0, left: 0 });
+  const [position, setPosition] = useState<Position>({ top: 0, left: 0, width: undefined });
   const [isPositioned, setIsPositioned] = useState(false);
 
   // Calculate position for fixed strategy
@@ -57,6 +57,18 @@ export const Dropdown = React.memo(function Dropdown({
       width: window.innerWidth,
       height: window.innerHeight,
     };
+
+    console.log('[Dropdown] Calculate position:', {
+      triggerRect: {
+        width: triggerRect.width,
+        height: triggerRect.height,
+        left: triggerRect.left,
+        top: triggerRect.top,
+      },
+      contentRect: { width: contentRect.width, height: contentRect.height },
+      align,
+      side,
+    });
 
     let top = 0;
     let left = 0;
@@ -141,7 +153,7 @@ export const Dropdown = React.memo(function Dropdown({
       finalLeft = viewport.width - contentRect.width - margin;
     }
 
-    return { top: finalTop, left: finalLeft };
+    return { top: finalTop, left: finalLeft, width: triggerRect.width };
   };
 
   const updatePosition = () => {
@@ -154,6 +166,7 @@ export const Dropdown = React.memo(function Dropdown({
       }
       const pos = calculateFixedPosition();
       if (pos) {
+        console.log('[Dropdown] Setting position:', pos, 'isPositioned:', isPositioned);
         setPosition(pos);
         setIsPositioned(true);
       }
@@ -184,14 +197,41 @@ export const Dropdown = React.memo(function Dropdown({
 
   // Update position when open or props change
   useEffect(() => {
+    console.log(
+      '[Dropdown] Open changed:',
+      open,
+      'contentRef:',
+      !!contentRef.current,
+      'strategy:',
+      strategy,
+    );
     if (open && contentRef.current) {
+      // Double requestAnimationFrame to ensure content has rendered with correct dimensions
       requestAnimationFrame(() => {
-        updatePosition();
+        requestAnimationFrame(() => {
+          console.log('[Dropdown] About to call updatePosition');
+          updatePosition();
+        });
       });
     } else {
       setIsPositioned(false);
     }
   }, [open, side, align, sideOffset, strategy, manualPosition]);
+
+  // Watch for content size changes and recalculate position
+  useEffect(() => {
+    if (!open || !contentRef.current || strategy !== 'fixed') return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      updatePosition();
+    });
+
+    resizeObserver.observe(contentRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [open, strategy]);
 
   // Handle resize and scroll for fixed strategy
   useEffect(() => {
@@ -332,6 +372,7 @@ export const Dropdown = React.memo(function Dropdown({
                   style={{
                     top: position.top,
                     left: position.left,
+                    width: position.width,
                     opacity: isPositioned ? 1 : 0,
                     transition: 'opacity 0.15s ease',
                     pointerEvents: 'auto',

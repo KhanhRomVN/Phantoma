@@ -29,6 +29,7 @@ export class CdpManager extends EventEmitter {
   public scriptIdMap = new Map<string, string>(); // url -> scriptId or requestId -> url
   public requestIdMap = new Map<string, string>(); // hash requestId -> numeric requestId
   public scriptSourceCache = new Map<string, string>(); // scriptId -> unpacked source
+  private currentPort = 0;
 
   constructor() {
     super();
@@ -48,8 +49,24 @@ export class CdpManager extends EventEmitter {
   }
 
   public async connect(port: number, retries = 5, delay = 1000): Promise<boolean> {
+    // [DEBUG] Có thể xóa sau khi fix log lặp — hiển thị trạng thái connection hiện tại
+    console.log('[DEBUG|CDP] connect() called:', {
+      port,
+      currentPort: this.currentPort,
+      isConnected: this.isConnected,
+      wsReadyState: this.ws?.readyState,
+      wsOpen: this.ws?.readyState === WebSocket.OPEN,
+    });
+
+    // Guard: nếu đã connected tới cùng port, bỏ qua reconnect
+    if (this.isConnected && this.ws?.readyState === WebSocket.OPEN && this.currentPort === port) {
+      console.log('[DEBUG|CDP] Already connected to port', port, '- skipping reconnect');
+      return true;
+    }
+
     // Clean up before connecting
     this.cleanup();
+    this.currentPort = port;
 
     try {
       const targetsResponse = await fetch(`http://127.0.0.1:${port}/json/list`);

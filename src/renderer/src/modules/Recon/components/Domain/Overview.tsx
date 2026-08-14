@@ -2,6 +2,7 @@ import type { ReconResult } from '../../types/domain/recon-result';
 import { StatBox } from '../shared/StatBox';
 import { SectionHeader } from '../shared/SectionHeader';
 import { cn } from '@renderer/shared/utils/cn';
+import { $ } from '@renderer/utils/color';
 
 interface OverviewProps {
   result: ReconResult;
@@ -16,7 +17,7 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
 
   return (
     <div className="flex-1 overflow-y-auto p-3">
-      {/* Top stats row */}
+      S{/* Top stats row */}
       <div className="grid grid-cols-4 gap-2 mb-3">
         <StatBox
           label="Data Points"
@@ -43,7 +44,6 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
           accent={highRiskEntities > 0 ? $('--error') : $('--success')}
         />
       </div>
-
       {/* Scan Info Card */}
       <div className="bg-card-background border border-border rounded p-3 mb-3">
         <SectionHeader accent={$('--primary') || '#3686ff'}>Target Information</SectionHeader>
@@ -83,7 +83,6 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
           </span>
         </div>
       </div>
-
       {/* Entities Card */}
       <div className="bg-card-background border border-border rounded p-3 mb-3">
         <SectionHeader accent={$('--accent-purple') || '#a78bfa'}>
@@ -130,7 +129,6 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
           ))}
         </div>
       </div>
-
       {/* Category Breakdown */}
       <div className="bg-card-background border border-border rounded p-3 mb-3">
         <SectionHeader accent={$('--success') || '#10b981'}>Category Breakdown</SectionHeader>
@@ -154,7 +152,6 @@ export function Overview({ result, onSelectEntity }: OverviewProps) {
             ))}
         </div>
       </div>
-
       {/* Warnings */}
       {result.warnings.length > 0 && (
         <div className="bg-card-background border border-border rounded p-3">

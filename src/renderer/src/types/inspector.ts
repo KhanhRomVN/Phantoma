@@ -13,11 +13,14 @@ export interface NetworkRequest {
   time?: string | number;
   timestamp: number;
   headers?: Record<string, string>;
-  body?: {
-    request?: string | object;
-    response?: string | object;
-    [key: string]: any;
-  } | string | object;
+  body?:
+    | {
+        request?: string | object;
+        response?: string | object;
+        [key: string]: any;
+      }
+    | string
+    | object;
   analysis?: NetworkAnalysis;
   requestCookies?: Record<string, string>;
   responseCookies?: Record<string, string>;

@@ -33,6 +33,8 @@ const General: React.FC = () => {
   // Load server URL from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('server_url');
+    // [DEBUG] Có thể xóa sau khi fix lỗi base URL — hiển thị giá trị localStorage
+    console.log('[DEBUG|Setting] Loaded server_url from localStorage:', saved);
     if (saved) {
       setServerUrl(saved);
     }

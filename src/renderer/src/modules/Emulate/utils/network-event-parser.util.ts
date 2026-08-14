@@ -49,15 +49,42 @@ export function parseUrlParts(rawUrl: string): {
   path: string;
   protocol: string;
 } {
+  if (!rawUrl) return { host: '', path: '', protocol: 'unknown' };
+
+  // Handle data: and blob: URIs — not real network requests
+  if (rawUrl.startsWith('data:') || rawUrl.startsWith('blob:')) {
+    const preview = rawUrl.length > 64 ? rawUrl.substring(0, 64) + '...' : rawUrl;
+    return { host: '', path: preview, protocol: rawUrl.split(':')[0] || 'unknown' };
+  }
+
+  // Normalize media:// scheme — strip prefix to get real URL
+  let urlToParse = rawUrl;
+  if (urlToParse.startsWith('media://')) {
+    urlToParse = urlToParse.replace(/^media:\/\//, '');
+    // Fix mangled protocol like https//example.com -> https://example.com
+    urlToParse = urlToParse.replace(/^(https?)\/+(?!\/)/, '$1://');
+  }
+
   try {
-    const url = new URL(rawUrl);
+    const url = new URL(urlToParse);
     return {
       host: url.host,
-      path: url.pathname,
+      path: url.pathname + url.search,
       protocol: url.protocol.replace(':', ''),
     };
   } catch {
-    return { host: '', path: '', protocol: 'http' };
+    // Fallback: try prepending https://
+    try {
+      const url = new URL('https://' + urlToParse);
+      return {
+        host: url.host,
+        path: url.pathname + url.search,
+        protocol: 'https',
+      };
+    } catch {
+      // Last resort: keep raw URL in path so nothing is lost
+      return { host: '', path: rawUrl, protocol: 'unknown' };
+    }
   }
 }
 

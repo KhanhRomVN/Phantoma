@@ -2,6 +2,19 @@ import WebSocket from 'ws';
 import { CdpManager } from './cdp-manager';
 
 export function handleNetworkEvent(this: CdpManager, method: string, params: any) {
+  // [DEBUG] Có thể xóa sau khi điều tra request /query bị treo
+  if (method === 'Network.loadingFinished' || method === 'Network.loadingFailed') {
+    const numericKey = `request:${params?.requestId}`;
+    let url = this.scriptIdMap.get(numericKey);
+    if (!url) {
+      url = this.requestIdMap.get(`hash:${params?.requestId}`);
+    }
+    console.log('[DEBUG|CDP]', method, ':', {
+      requestId: params?.requestId,
+      url,
+    });
+  }
+
   if (!this.mainWindow) {
     return;
   }
@@ -92,8 +105,20 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
     }
   }
 
+  // [DEBUG] Có thể xóa sau khi điều tra request /query bị treo
+  if (response.url?.includes('deepseek.com/query')) {
+    console.log('[DEBUG|CDP] responseReceived for /query:', {
+      requestId,
+      url: response.url,
+      status: response.status,
+      mimeType: response.mimeType,
+      timestamp,
+    });
+  }
+
   this.sendToRenderer('cdp:response', {
     id: requestId,
+    url: response.url || '',
     statusCode: response.status,
     headers: response.headers,
     mimeType: response.mimeType,
@@ -250,4 +275,14 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
 export function handleLoadingFailed(this: CdpManager, params: any) {
   const { requestId, errorText } = params;
   this.sendToRenderer('cdp:error', { id: requestId, error: errorText });
+  // Gửi response với status 0 để renderer update request status thành Failed
+  this.sendToRenderer('cdp:response', {
+    id: requestId,
+    url: '',
+    statusCode: 0,
+    headers: { 'X-Request-Status': 'Failed', 'X-Error': errorText || 'Unknown error' },
+    mimeType: '',
+    timestamp: Date.now(),
+    responseTimestamp: Date.now(),
+  });
 }

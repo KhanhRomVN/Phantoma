@@ -106,8 +106,10 @@ export const RequestTable = React.memo(function RequestTable({
   activeTargetMode: propsActiveTargetMode,
   onStopTarget,
 }: RequestTableProps) {
+  // [DEBUG] Remove after fixing scroll re-render issue
   const storeRequests = useNetworkStore((s) => s.requests);
   const requests = useMemo(() => {
+    console.log('[DEBUG|RequestTable] filter prop', filter);
     return filter ? filterRequestsByConfig(storeRequests, filter, searchTerm) : storeRequests;
   }, [storeRequests, filter, searchTerm]);
 
@@ -445,6 +447,7 @@ export const RequestTable = React.memo(function RequestTable({
           const id = row.original.id;
           const isPending = pendingActionIds?.has(id);
           const status = row.getValue('status') as number;
+          const responseHeaders = row.original.responseHeaders as Record<string, string> | undefined;
 
           if (isPending) {
             return (
@@ -494,10 +497,14 @@ export const RequestTable = React.memo(function RequestTable({
             colorClass = 'text-yellow';
           } else if (status >= 400) {
             colorClass = 'text-red';
+          } else if (status === 0 && responseHeaders?.['X-Request-Status']) {
+            colorClass = 'text-red';
           }
           return (
             <span className={cn('font-bold text-xs text-center w-full', colorClass)}>
-              {status || 'Pending'}
+              {status === 0 && responseHeaders?.['X-Request-Status']
+                ? responseHeaders['X-Request-Status']
+                : (status || 'Pending')}
             </span>
           );
         },
@@ -779,13 +786,13 @@ export const RequestTable = React.memo(function RequestTable({
   const handleScroll = useCallback(() => {
     const container = tableContainerRef.current;
     if (!container || !selectedId) {
-      setShowScrollToSelected(false);
+      setShowScrollToSelected((prev) => (prev === false ? prev : false));
       return;
     }
 
     const idx = rows.findIndex((row) => row.original.id === selectedId);
     if (idx === -1) {
-      setShowScrollToSelected(false);
+      setShowScrollToSelected((prev) => (prev === false ? prev : false));
       return;
     }
 
@@ -794,8 +801,8 @@ export const RequestTable = React.memo(function RequestTable({
     const clientHeight = container.clientHeight;
 
     const isOutOfView = rowTop < scrollTop + 16 || rowTop > scrollTop + clientHeight - 48;
-    setShowScrollToSelected(isOutOfView);
-  }, [rows, selectedId]);
+    setShowScrollToSelected((prev) => (prev === isOutOfView ? prev : isOutOfView));
+  }, [rows, selectedId, showScrollToSelected]);
 
   useEffect(() => {
     handleScroll();

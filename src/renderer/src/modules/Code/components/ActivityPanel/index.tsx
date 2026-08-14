@@ -20,7 +20,7 @@
 import { useRef, useState } from 'react';
 
 // ── UI ──
-import { Folder, Search as SearchIcon, GitBranch, Code2 } from 'lucide-react';
+import { Folder, Search as SearchIcon, GitBranch, Code2, Palette, CheckSquare, Users } from 'lucide-react';
 
 // ── Hooks ──
 import { useCodeStore } from '../../hooks/useCodeStore';
@@ -31,6 +31,9 @@ import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { SourceControl } from './SourceControl';
 import { LSPPanel } from './LSP';
+import { DesignPanel } from './DesignPanel';
+import { TodoPanel } from './TodoPanel';
+import { AgentGroupPanel } from './AgentGroupPanel';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -43,6 +46,21 @@ const TABS = [
     id: 'source',
     icon: <GitBranch className="w-4 h-4" />,
     label: 'Source Control',
+  },
+  {
+    id: 'todo',
+    icon: <CheckSquare className="w-4 h-4" />,
+    label: 'Tasks',
+  },
+  {
+    id: 'agents',
+    icon: <Users className="w-4 h-4" />,
+    label: 'Agent Groups',
+  },
+  {
+    id: 'design',
+    icon: <Palette className="w-4 h-4" />,
+    label: 'Design',
   },
   {
     id: 'lsp',
@@ -104,6 +122,12 @@ export function ActivityPanel() {
         return <Search />;
       case 'source':
         return <SourceControl />;
+      case 'todo':
+        return <TodoPanel />;
+      case 'agents':
+        return <AgentGroupPanel />;
+      case 'design':
+        return <DesignPanel />;
       case 'lsp':
         return <LSPPanel />;
       default:

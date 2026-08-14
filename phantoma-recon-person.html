@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHANTOMA — Person Recon v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080a0f;
+  --bg-elev:#0c0f16;
+  --panel:#0f131b;
+  --panel-2:#131824;
+  --panel-hover:#161d2b;
+  --border:#1c2330;
+  --border-soft:#161c27;
+  --text:#e8ecf3;
+  --text-dim:#8b93a3;
+  --text-faint:#4d5566;
+  --blue:#4c8dff;
+  --blue-dim:rgba(76,141,255,.12);
+  --cyan:#22d3ee;
+  --cyan-dim:rgba(34,211,238,.12);
+  --green:#2fd66d;
+  --green-dim:rgba(47,214,109,.12);
+  --amber:#f5a524;
+  --amber-dim:rgba(245,165,36,.12);
+  --red:#f5455c;
+  --red-dim:rgba(245,69,92,.13);
+  --purple:#a78bfa;
+  --purple-dim:rgba(167,139,250,.12);
+  --pink:#f472b6;
+  --pink-dim:rgba(244,114,182,.12);
+  --agent:#5eead4;
+  --agent-dim:rgba(94,234,212,.12);
+  --radius:10px;
+  --radius-sm:6px;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --display:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:13px;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#232b3a;border-radius:8px;}
+::-webkit-scrollbar-thumb:hover{background:#2c3547;}
+
+.app{display:grid;grid-template-rows:44px 1fr;height:100vh;}
+
+/* ===== TOP BAR ===== */
+.topbar{display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--bg-elev);border-bottom:1px solid var(--border);min-width:0;}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:.06em;color:var(--text);white-space:nowrap;}
+.brand .mark{width:18px;height:18px;border-radius:4px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex:none;}
+.brand .ver{font-size:10px;color:var(--text-faint);font-weight:500;background:var(--panel-2);padding:1px 6px;border-radius:4px;border:1px solid var(--border);}
+.crumb{display:flex;align-items:center;gap:6px;color:var(--text-dim);font-size:12px;white-space:nowrap;}
+.crumb b{color:var(--text);font-weight:600;}
+.crumb svg{opacity:.5;}
+.topsearch{flex:1;max-width:560px;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text-dim);}
+.topsearch input{background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12px;flex:1;}
+.topsearch input::placeholder{color:var(--text-faint);}
+.topsearch .kbd{font-size:10px;color:var(--text-faint);border:1px solid var(--border);border-radius:4px;padding:1px 5px;}
+.topicons{display:flex;align-items:center;gap:4px;margin-left:auto;flex:none;}
+.ticon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;position:relative;}
+.ticon:hover{background:var(--panel-2);color:var(--text);}
+.ticon .dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg-elev);}
+.avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#04121f;}
+
+/* ===== LAYOUT ===== */
+.layout{display:grid;grid-template-columns:250px 1fr 300px;min-height:0;}
+.col{min-height:0;overflow:hidden;display:flex;flex-direction:column;}
+.sidebar{background:var(--bg-elev);border-right:1px solid var(--border);}
+.rightpanel{background:var(--bg-elev);border-left:1px solid var(--border);}
+
+/* ===== SIDEBAR ===== */
+.side-head{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 8px;}
+.side-title{font-family:var(--display);font-weight:700;font-size:12.5px;letter-spacing:.03em;color:var(--text);text-transform:uppercase;}
+.side-add{width:22px;height:22px;border-radius:6px;background:var(--panel-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;}
+.side-add:hover{color:var(--text);border-color:#2c3547;}
+.side-search{margin:0 12px 10px;position:relative;}
+.side-search input{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:6px 10px 6px 26px;color:var(--text);font-family:var(--mono);font-size:11.5px;outline:none;}
+.side-search input:focus{border-color:#2c3f66;}
+.side-search svg{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-faint);}
+.target-list{flex:1;overflow-y:auto;padding:0 8px 12px;}
+.target{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:8px;cursor:pointer;margin-bottom:2px;border-left:2px solid transparent;position:relative;}
+.target:hover{background:var(--panel-2);}
+.target.active{background:var(--panel-2);border-left-color:var(--blue);}
+.target .avimg{width:32px;height:32px;border-radius:8px;flex:none;background:linear-gradient(135deg,#1c2333,#232b3d);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text-dim);border:1px solid var(--border);}
+.target.active .avimg{color:var(--blue);border-color:#2c3f66;}
+.target-info{min-width:0;flex:1;}
+.target-name{font-size:12px;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.target-sub{font-size:10.5px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.target-badge{font-size:9.5px;padding:1px 6px;border-radius:4px;font-weight:600;flex:none;}
+.tb-done{background:var(--green-dim);color:var(--green);}
+.tb-scan{background:var(--amber-dim);color:var(--amber);}
+.tb-queue{background:var(--panel-2);color:var(--text-faint);border:1px solid var(--border);}
+.side-foot{padding:10px 14px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text-faint);display:flex;justify-content:space-between;}
+
+/* ===== MAIN ===== */
+.main{background:var(--bg);}
+.main-head{padding:14px 22px 0;border-bottom:1px solid var(--border);}
+.ph-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px;}
+.ph-identity{display:flex;gap:14px;align-items:center;}
+.ph-photo{width:52px;height:52px;border-radius:12px;flex:none;background:linear-gradient(135deg,#1c2333,#242c40);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:17px;color:var(--blue);}
+.ph-name{font-family:var(--display);font-weight:700;font-size:19px;color:var(--text);letter-spacing:.01em;display:flex;align-items:center;gap:9px;}
+.confbadge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:var(--green-dim);color:var(--green);letter-spacing:.02em;}
+.ph-meta{display:flex;gap:14px;margin-top:5px;color:var(--text-dim);font-size:11.5px;flex-wrap:wrap;}
+.ph-meta span{display:flex;align-items:center;gap:5px;}
+.ph-meta svg{opacity:.6;}
+.ph-actions{display:flex;gap:8px;flex:none;}
+.btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:7px;border:1px solid var(--border);background:var(--panel);color:var(--text-dim);font-family:var(--mono);font-size:11.5px;font-weight:500;cursor:pointer;}
+.btn:hover{color:var(--text);border-color:#2c3547;background:var(--panel-2);}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600;}
+.btn.primary:hover{background:#3f7ce0;}
+.btn.agentbtn{background:var(--agent-dim);border-color:rgba(94,234,212,.35);color:var(--agent);}
+.btn.agentbtn:hover{background:rgba(94,234,212,.2);}
+.btn.ghost{background:transparent;}
+.btn.small{padding:5px 9px;font-size:10.5px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+.tabs{display:flex;gap:2px;margin-top:2px;overflow-x:auto;}
+.tab{padding:9px 13px;font-size:12px;color:var(--text-dim);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;font-weight:500;display:flex;align-items:center;gap:6px;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--text);border-bottom-color:var(--blue);}
+.tab .cnt{font-size:10px;color:var(--text-faint);background:var(--panel-2);padding:0px 5px;border-radius:8px;}
+.tab.active .cnt{color:var(--blue);background:var(--blue-dim);}
+
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 22px;border-bottom:1px solid var(--border-soft);background:var(--bg-elev);flex-wrap:wrap;}
+.toolbar .topsearch{max-width:320px;padding:5px 9px;}
+.chip{font-size:11px;padding:5px 10px;border-radius:6px;background:var(--panel);border:1px solid var(--border);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.chip:hover{color:var(--text);border-color:#2c3547;}
+.chip.on{background:var(--blue-dim);color:var(--blue);border-color:rgba(76,141,255,.35);}
+.toolbar .spacer{flex:1;}
+.iconbtn{width:28px;height:28px;border-radius:6px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;}
+.iconbtn:hover{color:var(--text);border-color:#2c3547;}
+
+.content{flex:1;overflow-y:auto;padding:18px 22px 40px;}
+.tabpanel{display:none;}
+.tabpanel.active{display:block;}
+
+/* ===== CARDS / GRID ===== */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stat-label{font-size:10px;letter-spacing:.06em;color:var(--text-faint);text-transform:uppercase;font-weight:600;margin-bottom:8px;}
+.stat-value{font-family:var(--display);font-size:24px;font-weight:700;color:var(--text);line-height:1;}
+.stat-value.c-blue{color:var(--blue);}
+.stat-value.c-green{color:var(--green);}
+.stat-value.c-amber{color:var(--amber);}
+.stat-value.c-red{color:var(--red);}
+.stat-sub{font-size:10.5px;color:var(--text-faint);margin-top:6px;}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border-soft);gap:8px;flex-wrap:wrap;}
+.panel-head h3{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:8px;}
+.panel-head h3::before{content:'';width:3px;height:13px;background:var(--blue);border-radius:2px;display:inline-block;}
+.panel-head.agenthead h3::before{background:var(--agent);}
+.panel-head .hint{font-size:10.5px;color:var(--text-faint);}
+.panel-body{padding:16px;}
+
+.kv-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-soft);font-size:12px;gap:10px;}
+.kv-row:last-child{border-bottom:none;}
+.kv-row .k{color:var(--text-faint);letter-spacing:.03em;font-size:10.5px;text-transform:uppercase;font-weight:600;flex:none;}
+.kv-row .v{color:var(--text);font-weight:500;text-align:right;min-width:0;}
+.kv-row .v.link{color:var(--blue);cursor:pointer;}
+.kv-row .v.green{color:var(--green);font-weight:700;}
+.kv-row .v.red{color:var(--red);font-weight:700;}
+.kv-row.flagged{background:rgba(245,69,92,.06);margin:0 -16px;padding:8px 16px;border-bottom:1px solid rgba(245,69,92,.15);}
+.kv-row.hidden-row{display:none;}
+.kv-row .edit-input{background:var(--panel-2);border:1px solid var(--blue);border-radius:5px;padding:4px 7px;color:var(--text);font-family:var(--mono);font-size:12px;width:100%;outline:none;}
+.kv-editctl{display:flex;gap:4px;flex:none;}
+
+.two-col{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+
+.pill{font-size:11px;padding:5px 11px;border-radius:6px;font-weight:600;border:1px solid transparent;display:inline-flex;align-items:center;gap:6px;}
+.pill .n{opacity:.65;font-weight:500;}
+.pill-purple{background:var(--purple-dim);color:var(--purple);}
+.pill-green{background:var(--green-dim);color:var(--green);}
+.pill-blue{background:var(--blue-dim);color:var(--blue);}
+.pill-cyan{background:var(--cyan-dim);color:var(--cyan);}
+.pill-red{background:var(--red-dim);color:var(--red);}
+.pill-amber{background:var(--amber-dim);color:var(--amber);}
+.pill-pink{background:var(--pink-dim);color:var(--pink);}
+.pill-agent{background:var(--agent-dim);color:var(--agent);}
+.pillrow{display:flex;flex-wrap:wrap;gap:8px;}
+
+.warnlist{display:flex;flex-direction:column;}
+.warn{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:12px;color:var(--text-dim);align-items:flex-start;}
+.warn:last-child{border-bottom:none;}
+.warn svg{flex:none;margin-top:1px;color:var(--amber);}
+.warn.sev-high svg{color:var(--red);}
+.warn b{color:var(--text);font-weight:600;}
+.warn .tag{margin-left:auto;flex:none;font-size:9.5px;color:var(--text-faint);background:var(--panel-2);padding:1px 6px;border-radius:4px;}
+
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding-top:4px;}
+.gauge-num{font-family:var(--display);font-size:30px;font-weight:800;margin-top:-40px;color:var(--amber);}
+.gauge-label{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+.gauge-legend{display:flex;gap:14px;margin-top:14px;font-size:10.5px;color:var(--text-faint);}
+.gauge-legend span{display:flex;align-items:center;gap:5px;}
+.gauge-legend i{width:7px;height:7px;border-radius:2px;display:inline-block;}
+
+.graph-box{width:100%;height:230px;position:relative;}
+.graph-box.tall{height:460px;}
+.node-label{font-family:var(--mono);font-size:9px;fill:var(--text-dim);}
+.node-label.center{fill:var(--text);font-weight:700;font-size:10px;}
+
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{text-align:left;padding:8px 10px;color:var(--text-faint);font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);font-weight:600;background:var(--panel-2);cursor:pointer;user-select:none;white-space:nowrap;}
+thead th:hover{color:var(--text-dim);}
+thead th .arrow{opacity:.4;margin-left:3px;}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--border-soft);color:var(--text-dim);vertical-align:middle;}
+tbody tr{cursor:pointer;}
+tbody tr:hover td{background:var(--panel-hover);}
+tbody td.strong{color:var(--text);font-weight:600;}
+.cat-tag{font-size:9.5px;padding:2px 7px;border-radius:4px;font-weight:700;white-space:nowrap;border:1px solid currentColor;}
+.conf-bar{width:60px;height:5px;border-radius:3px;background:var(--border);overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px;}
+.conf-bar i{display:block;height:100%;background:var(--green);}
+.status-chip{font-size:9.5px;padding:2px 8px;border-radius:10px;font-weight:600;}
+.st-active{background:var(--green-dim);color:var(--green);}
+.st-inactive{background:var(--panel-2);color:var(--text-faint);border:1px solid var(--border);}
+.st-susp{background:var(--red-dim);color:var(--red);}
+.st-breach{background:var(--red-dim);color:var(--red);}
+.st-clean{background:var(--green-dim);color:var(--green);}
+
+.timeline{position:relative;padding-left:26px;}
+.timeline::before{content:'';position:absolute;left:8px;top:4px;bottom:4px;width:1px;background:var(--border);}
+.tl-item{position:relative;padding-bottom:22px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-dot{position:absolute;left:-26px;top:2px;width:15px;height:15px;border-radius:50%;background:var(--panel-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;}
+.tl-dot i{width:6px;height:6px;border-radius:50%;background:var(--blue);}
+.tl-date{font-size:10px;color:var(--text-faint);font-weight:600;letter-spacing:.03em;margin-bottom:3px;}
+.tl-title{font-size:12.5px;color:var(--text);font-weight:600;margin-bottom:2px;}
+.tl-desc{font-size:11.5px;color:var(--text-dim);}
+.tl-src{font-size:10px;color:var(--text-faint);margin-top:4px;}
+
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
+.media-item{aspect-ratio:1;border-radius:8px;border:1px solid var(--border);background:linear-gradient(135deg,#141a26,#1a2233);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative;overflow:hidden;}
+.media-item svg{color:var(--text-faint);}
+.media-tag{position:absolute;bottom:5px;left:5px;right:5px;font-size:9px;color:var(--text-dim);background:rgba(0,0,0,.5);padding:2px 5px;border-radius:4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.loc-card{display:flex;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--panel-2);}
+.loc-icon{width:34px;height:34px;border-radius:8px;background:var(--blue-dim);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:none;}
+.loc-body{flex:1;}
+.loc-addr{font-size:12.5px;color:var(--text);font-weight:600;}
+.loc-meta{font-size:10.5px;color:var(--text-faint);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;}
+
+/* ===== hoverable data + floating action toolbar ===== */
+.hx{cursor:default;border-radius:4px;transition:background .1s;}
+.hx:hover{background:rgba(76,141,255,.09);outline:1px dashed rgba(76,141,255,.35);outline-offset:2px;}
+#hoverToolbar{
+  position:fixed;z-index:200;display:none;
+  background:var(--panel-2);border:1px solid #2c3547;border-radius:8px;
+  padding:4px;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.45);
+  font-size:10.5px;
+}
+#hoverToolbar.show{display:flex;}
+.ht-btn{display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:5px;color:var(--text-dim);cursor:pointer;white-space:nowrap;}
+.ht-btn:hover{background:var(--panel-hover);color:var(--text);}
+.ht-btn.agent{color:var(--agent);}
+.ht-btn.danger{color:var(--red);}
+.ht-btn.warn{color:var(--amber);}
+
+/* ===== AGENT PANEL ===== */
+.rp-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.rp-head .t{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:7px;}
+.agent-status-dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);}
+.agent-status-dot.running{background:var(--agent);box-shadow:0 0 0 3px var(--agent-dim);animation:pulse 1.4s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(94,234,212,.4);}70%{box-shadow:0 0 0 6px rgba(94,234,212,0);}100%{box-shadow:0 0 0 0 rgba(94,234,212,0);}}
+.rp-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;min-height:0;}
+.agent-controls{display:flex;gap:6px;margin-bottom:12px;}
+.agent-feed{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px;padding-right:2px;}
+.amsg{font-size:11.5px;line-height:1.5;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--panel);}
+.amsg .amsg-time{font-size:9.5px;color:var(--text-faint);margin-bottom:3px;display:flex;align-items:center;gap:5px;}
+.amsg.sys{border-left:2px solid var(--agent);}
+.amsg.found{border-left:2px solid var(--green);}
+.amsg.ask{border-left:2px solid var(--amber);background:var(--amber-dim);}
+.amsg.user{border-left:2px solid var(--blue);background:var(--blue-dim);}
+.amsg-confirm{display:flex;gap:6px;margin-top:8px;}
+.agent-input-row{display:flex;gap:6px;flex:none;}
+.agent-input-row input{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:11.5px;outline:none;}
+.agent-input-row input:focus{border-color:#2c3f66;}
+.agent-quick{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.agent-quick span{font-size:10px;color:var(--text-faint);background:var(--panel);border:1px solid var(--border);padding:4px 8px;border-radius:12px;cursor:pointer;}
+.agent-quick span:hover{color:var(--text);border-color:#2c3547;}
+
+.rp-card{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:13px;margin-bottom:12px;}
+.rp-card h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:9px;font-weight:700;}
+.riskmeter{display:flex;align-items:baseline;gap:8px;}
+.riskmeter .val{font-family:var(--display);font-size:26px;font-weight:800;color:var(--amber);}
+.riskmeter .lbl{font-size:11px;color:var(--text-dim);}
+.miniprog{height:5px;border-radius:3px;background:var(--border);margin-top:10px;overflow:hidden;}
+.miniprog i{display:block;height:100%;}
+.src-row{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;color:var(--text-dim);}
+.src-row b{color:var(--text);font-weight:600;}
+.note-box{background:var(--panel-2);border:1px dashed var(--border);border-radius:8px;padding:10px;font-size:11px;color:var(--text-dim);line-height:1.55;}
+.tag-mini{font-size:9.5px;padding:2px 6px;border-radius:4px;background:var(--panel-2);color:var(--text-faint);border:1px solid var(--border);margin:2px 4px 0 0;display:inline-block;}
+
+/* ===== WEBVIEW TAB ===== */
+.webview-wrap{display:grid;grid-template-columns:1fr 240px;gap:14px;height:calc(100vh - 240px);min-height:420px;}
+.browser-chrome{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;overflow:hidden;}
+.browser-tabs{display:flex;gap:4px;padding:8px 8px 0;background:var(--bg-elev);}
+.btab{font-size:10.5px;padding:6px 12px;border-radius:6px 6px 0 0;background:var(--panel);color:var(--text-dim);display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-bottom:none;}
+.btab.active{color:var(--text);background:var(--panel);}
+.browser-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--border);}
+.browser-bar .navbtn{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-faint);}
+.browser-bar .navbtn:hover{color:var(--text);background:var(--panel-2);}
+.browser-bar .addr{flex:1;display:flex;align-items:center;gap:7px;background:var(--panel-2);border:1px solid var(--border);border-radius:16px;padding:6px 12px;font-size:11.5px;color:var(--text-dim);}
+.browser-bar .addr input{background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:11.5px;flex:1;}
+.browser-frame{flex:1;background:#050609;display:flex;align-items:center;justify-content:center;position:relative;}
+.browser-frame iframe{width:100%;height:100%;border:none;background:#fff;}
+.browser-placeholder{text-align:center;color:var(--text-faint);padding:30px;max-width:360px;}
+.browser-placeholder svg{opacity:.4;margin-bottom:12px;}
+.browser-placeholder .tt{color:var(--text-dim);font-size:12.5px;font-weight:600;margin-bottom:6px;}
+.browser-side{display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.capture-row{display:flex;gap:6px;padding:8px 10px;background:var(--panel);border-top:1px solid var(--border);}
+.bm-item{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--panel);cursor:pointer;font-size:11px;}
+.bm-item:hover{border-color:#2c3547;background:var(--panel-2);}
+.bm-item .u{color:var(--text);font-weight:600;}
+.bm-item .d{color:var(--text-faint);font-size:10px;}
+
+/* ===== AUDIT TAB ===== */
+.audit-row{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--border-soft);font-size:11.5px;}
+.audit-row:last-child{border-bottom:none;}
+.audit-ic{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--panel-2);border:1px solid var(--border);}
+.audit-body{flex:1;min-width:0;}
+.audit-title{color:var(--text);font-weight:600;}
+.audit-meta{color:var(--text-faint);font-size:10.5px;margin-top:2px;}
+.audit-diff{font-size:10.5px;color:var(--text-dim);margin-top:4px;background:var(--panel-2);border-radius:6px;padding:6px 8px;}
+.audit-diff .old{color:var(--red);text-decoration:line-through;opacity:.75;}
+.audit-diff .new{color:var(--green);}
+.audit-actions{flex:none;}
+
+/* ===== EXTENDED TAB ===== */
+.ext-badge{font-size:9px;padding:2px 6px;border-radius:4px;background:var(--panel-2);color:var(--text-faint);border:1px solid var(--border);}
+
+/* ===== TOAST ===== */
+#toastWrap{position:fixed;bottom:16px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:300;}
+.toast{background:var(--panel-2);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:8px;padding:10px 14px;font-size:11.5px;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.4);min-width:220px;animation:toastin .18s ease-out;}
+.toast.agent{border-left-color:var(--agent);}
+.toast.ok{border-left-color:var(--green);}
+.toast.warnT{border-left-color:var(--amber);}
+@keyframes toastin{from{transform:translateY(8px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+/* detail drawer */
+.overlay{position:fixed;inset:0;background:rgba(4,6,10,.6);backdrop-filter:blur(2px);display:none;align-items:stretch;justify-content:flex-end;z-index:150;}
+.overlay.open{display:flex;}
+.drawer{width:420px;max-width:92vw;background:var(--bg-elev);border-left:1px solid var(--border);height:100%;overflow-y:auto;animation:slidein .16s ease-out;}
+@keyframes slidein{from{transform:translateX(24px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.drawer-head{padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
+.drawer-head h2{font-family:var(--display);font-size:15px;color:var(--text);}
+.drawer-head .close{cursor:pointer;color:var(--text-faint);}
+.drawer-head .close:hover{color:var(--text);}
+.drawer-body{padding:16px;}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;color:var(--text-faint);text-align:center;}
+.empty-state svg{margin-bottom:12px;opacity:.5;}
+.empty-state .t{font-size:13px;color:var(--text-dim);font-weight:600;margin-bottom:4px;}
+.empty-state .s{font-size:11.5px;max-width:280px;}
+
+@media (max-width:1200px){
+  .layout{grid-template-columns:220px 1fr;}
+  .rightpanel{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand"><span class="mark">◆</span>PHANTOMA<span class="ver">2.0.0</span></div>
+    <div class="crumb"><span>Recon</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      <b>Person Target</b>
+    </div>
+    <div class="topsearch">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="globalSearch" placeholder="Tìm kiếm dữ liệu (hỗ trợ regex)...">
+      <span class="kbd">⌘K</span>
+    </div>
+    <div class="topicons">
+      <div class="ticon" title="Nhật ký hoạt động" id="gotoAuditBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+      <div class="ticon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg><span class="dot"></span></div>
+      <div class="ticon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09c0 .68.39 1.3 1 1.51.66.26 1.4.12 1.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06c-.45.42-.59 1.16-.33 1.82.21.61.83 1 1.51 1H21a2 2 0 010 4h-.09c-.68 0-1.3.39-1.51 1z"/></svg></div>
+      <div class="avatar">TB</div>
+    </div>
+  </div>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="col sidebar">
+      <div class="side-head"><div class="side-title">Person Targets</div>
+        <div class="side-add"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></div>
+      </div>
+      <div class="side-search">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input placeholder="Lọc mục tiêu...">
+      </div>
+      <div class="target-list" id="targetList"></div>
+      <div class="side-foot"><span>4 mục tiêu</span><span>2 đang chạy</span></div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="col main">
+      <div class="main-head">
+        <div class="ph-title-row">
+          <div class="ph-identity">
+            <div class="ph-photo">AW</div>
+            <div>
+              <div class="ph-name">Alex Mercer Whitfield <span class="confbadge" id="confBadge">CONF 81%</span></div>
+              <div class="ph-meta">
+                <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg>Austin, TX, US</span>
+                <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Senior Infra Engineer @ Northwind Systems</span>
+                <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Sinh 1991 · 34 tuổi (ước tính)</span>
+              </div>
+            </div>
+          </div>
+          <div class="ph-actions">
+            <button class="btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Thêm nguồn</button>
+            <button class="btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Xuất báo cáo</button>
+            <button class="btn primary" id="rescanBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.2 8.4c.5 1.8.6 3.7.1 5.6a9.9 9.9 0 01-9.6 7.5 9.9 9.9 0 01-7-2.9M2.8 15.6a9.7 9.7 0 01-.1-5.6 9.9 9.9 0 019.6-7.5c2.6 0 5 1.1 6.9 2.8"/><path d="M22 4l-4 4M2 20l4-4"/></svg>Quét lại</button>
+          </div>
+        </div>
+        <div class="tabs" id="tabBar"></div>
+      </div>
+
+      <div class="toolbar" id="toolbar">
+        <div class="topsearch"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg><input id="tableSearch" placeholder="Lọc dữ liệu trong tab này..."></div>
+        <div class="chip on" data-filter="all">Tất cả</div>
+        <div class="chip" data-filter="identity">Danh tính</div>
+        <div class="chip" data-filter="social">MXH</div>
+        <div class="chip" data-filter="contact">Liên hệ</div>
+        <div class="chip" data-filter="location">Vị trí</div>
+        <div class="chip" data-filter="breach">Rò rỉ</div>
+        <div class="chip" data-filter="vehicle">Phương tiện</div>
+        <div class="chip" data-filter="device">Thiết bị</div>
+        <div class="chip" data-filter="legal">Pháp lý</div>
+        <div class="spacer"></div>
+        <div class="iconbtn" title="Sắp xếp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 18V4"/></svg></div>
+        <div class="iconbtn" title="Xuất CSV"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>
+      </div>
+
+      <div class="content" id="content">
+
+        <!-- OVERVIEW -->
+        <div class="tabpanel active" id="tab-overview">
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-label">Data Points</div><div class="stat-value c-blue" id="statDP">862</div><div class="stat-sub">từ 27 nguồn</div></div>
+            <div class="stat-card"><div class="stat-label">Entities</div><div class="stat-value c-green">1</div><div class="stat-sub">danh tính đã xác nhận</div></div>
+            <div class="stat-card"><div class="stat-label">Accounts liên kết</div><div class="stat-value">19</div><div class="stat-sub">12 đang hoạt động</div></div>
+            <div class="stat-card"><div class="stat-label">High Risk</div><div class="stat-value c-red">4</div><div class="stat-sub">phát hiện độ nhạy cao</div></div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <div class="panel">
+                <div class="panel-head"><h3>Thông Tin Mục Tiêu</h3><span class="hint">cập nhật 4 phút trước</span></div>
+                <div class="panel-body" id="identityKV"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head"><h3>Phân Loại Dữ Liệu</h3></div>
+                <div class="panel-body">
+                  <div class="pillrow">
+                    <span class="pill pill-purple">Danh tính <span class="n">18</span></span>
+                    <span class="pill pill-blue">Mạng xã hội <span class="n">146</span></span>
+                    <span class="pill pill-cyan">Email/Phone <span class="n">23</span></span>
+                    <span class="pill pill-green">Việc làm <span class="n">9</span></span>
+                    <span class="pill pill-amber">Vị trí <span class="n">31</span></span>
+                    <span class="pill pill-red">Rò rỉ dữ liệu <span class="n">12</span></span>
+                    <span class="pill pill-pink">Người liên quan <span class="n">17</span></span>
+                    <span class="pill pill-blue">Hình ảnh <span class="n">64</span></span>
+                    <span class="pill pill-purple">Tài chính <span class="n">6</span></span>
+                    <span class="pill pill-cyan">Bài đăng/Mention <span class="n">421</span></span>
+                    <span class="pill pill-green">Forum/OSINT <span class="n">88</span></span>
+                    <span class="pill pill-amber">Phương tiện <span class="n">2</span></span>
+                    <span class="pill pill-blue">Thiết bị/IP <span class="n">5</span></span>
+                    <span class="pill pill-red">Dark Web <span class="n">3</span></span>
+                    <span class="pill pill-green">Pháp lý/Doanh nghiệp <span class="n">4</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head"><h3>Cảnh Báo (7)</h3><span class="hint">3 mức cao</span></div>
+                <div class="panel-body"><div class="warnlist" id="warnList"></div></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="panel">
+                <div class="panel-head"><h3>Điểm Rủi Ro Lộ Diện</h3></div>
+                <div class="panel-body gauge-wrap">
+                  <svg width="180" height="110" viewBox="0 0 180 110" id="riskGaugeSvg"></svg>
+                  <div class="gauge-num">68</div>
+                  <div class="gauge-label">Trung bình – Cao</div>
+                  <div class="gauge-legend">
+                    <span><i style="background:var(--green)"></i>Thấp</span>
+                    <span><i style="background:var(--amber)"></i>T.bình</span>
+                    <span><i style="background:var(--red)"></i>Cao</span>
+                  </div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Bản Đồ Liên Kết</h3><span class="hint">rút gọn</span></div>
+                <div class="panel-body"><svg class="graph-box" viewBox="0 0 300 230" id="graphMini"></svg></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Hoạt Động Theo Thời Gian</h3></div>
+                <div class="panel-body">
+                  <svg width="100%" height="120" viewBox="0 0 260 120" id="activityChart" preserveAspectRatio="none"></svg>
+                  <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-faint);margin-top:4px;">
+                    <span>T1</span><span>T3</span><span>T5</span><span>T7</span><span>T9</span><span>T11</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- IDENTITY -->
+        <div class="tabpanel" id="tab-identity">
+          <div class="two-col">
+            <div>
+              <div class="panel">
+                <div class="panel-head"><h3>Hồ Sơ Danh Tính</h3><span class="hint">nhấp giữ chuột để thao tác</span></div>
+                <div class="panel-body" id="identityKV2"></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Học Vấn &amp; Việc Làm</h3></div>
+                <div class="panel-body">
+                  <div class="loc-card"><div class="loc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
+                    <div class="loc-body"><div class="loc-addr hx" data-field="Việc làm hiện tại" data-value="Senior Infrastructure Engineer — Northwind Systems" data-source="LinkedIn">Senior Infrastructure Engineer — Northwind Systems</div><div class="loc-meta"><span>2022 – hiện tại</span><span>Austin, TX</span><span>Nguồn: LinkedIn</span></div></div></div>
+                  <div class="loc-card"><div class="loc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
+                    <div class="loc-body"><div class="loc-addr hx" data-field="Việc làm trước" data-value="DevOps Engineer — Cascade Cloud Labs" data-source="LinkedIn, Cache Wayback">DevOps Engineer — Cascade Cloud Labs</div><div class="loc-meta"><span>2018 – 2022</span><span>Denver, CO</span><span>Nguồn: LinkedIn, Cache Wayback</span></div></div></div>
+                  <div class="loc-card"><div class="loc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg></div>
+                    <div class="loc-body"><div class="loc-addr hx" data-field="Học vấn" data-value="B.S. Computer Science — University of Colorado Boulder" data-source="LinkedIn, Alumni directory">B.S. Computer Science — University of Colorado Boulder</div><div class="loc-meta"><span>2013 – 2017</span><span>Nguồn: LinkedIn, Alumni directory</span></div></div></div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="panel">
+                <div class="panel-head"><h3>Bí Danh &amp; Username Tái Sử Dụng</h3><span class="hint">9 biến thể</span></div>
+                <div class="panel-body">
+                  <div class="pillrow" id="aliasPills"></div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Ảnh Xác Nhận Danh Tính</h3></div>
+                <div class="panel-body"><div class="media-grid" id="idPhotos"></div></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Ghi Chú Điều Tra</h3><span class="hint">có thể sửa</span></div>
+                <div class="panel-body">
+                  <div class="note-box hx" id="investNote" data-field="Ghi chú điều tra" data-source="Điều tra viên" data-value="Trùng khớp cao giữa ảnh đại diện LinkedIn và ảnh EXIF từ bài đăng Reddit ngày 03/2024 (cùng thiết bị, cùng địa điểm chụp bán kính 400m). Khuyến nghị xác minh chéo thêm qua nguồn hình ảnh trước khi đưa vào báo cáo chính thức.">Trùng khớp cao giữa ảnh đại diện LinkedIn và ảnh EXIF từ bài đăng Reddit ngày 03/2024 (cùng thiết bị, cùng địa điểm chụp bán kính 400m). Khuyến nghị xác minh chéo thêm qua nguồn hình ảnh trước khi đưa vào báo cáo chính thức.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SOCIAL -->
+        <div class="tabpanel" id="tab-social">
+          <div class="panel">
+            <div class="panel-head"><h3>Tài Khoản Mạng Xã Hội &amp; Nền Tảng</h3><span class="hint">19 tài khoản được liên kết</span></div>
+            <div class="panel-body" style="padding:0;">
+              <table>
+                <thead><tr><th>Nền tảng</th><th>Username</th><th>Trạng thái</th><th>Followers</th><th>Hoạt động gần nhất</th><th>Độ tin cậy</th><th></th></tr></thead>
+                <tbody id="socialTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTACT / DIGITAL FOOTPRINT -->
+        <div class="tabpanel" id="tab-contact">
+          <div class="two-col">
+            <div>
+              <div class="panel">
+                <div class="panel-head"><h3>Email</h3><span class="hint">6 địa chỉ</span></div>
+                <div class="panel-body" style="padding:0;">
+                  <table><thead><tr><th>Địa chỉ</th><th>Loại</th><th>Rò rỉ</th><th>Nguồn</th></tr></thead><tbody id="emailTable"></tbody></table>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Số Điện Thoại</h3><span class="hint">3 số</span></div>
+                <div class="panel-body" style="padding:0;">
+                  <table><thead><tr><th>Số</th><th>Nhà mạng</th><th>Loại</th><th>Nguồn</th></tr></thead><tbody id="phoneTable"></tbody></table>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="panel">
+                <div class="panel-head"><h3>Rò Rỉ Dữ Liệu (Breach Exposure)</h3><span class="hint">4 sự cố</span></div>
+                <div class="panel-body">
+                  <div class="warn sev-high"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span class="hx" data-field="Breach" data-source="Breach DB" data-value="Collection #4 Combolist"><b>Collection #4 Combolist</b> — 2023. Email + mật khẩu băm (SHA-1) bị lộ.</span><span class="tag">2023</span></div>
+                  <div class="warn sev-high"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span class="hx" data-field="Breach" data-source="Breach DB" data-value="CloudNote SaaS Breach"><b>CloudNote SaaS Breach</b> — 2022. Tên, email, IP đăng ký bị rò rỉ.</span><span class="tag">2022</span></div>
+                  <div class="warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span class="hx" data-field="Breach" data-source="Breach DB" data-value="Forum Trader Leak"><b>Forum Trader Leak</b> — 2020. Chỉ email, không có mật khẩu.</span><span class="tag">2020</span></div>
+                  <div class="warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span class="hx" data-field="Breach" data-source="Breach DB" data-value="Fitness App Leak"><b>Fitness App Leak</b> — 2019. Email + username + IP xấp xỉ.</span><span class="tag">2019</span></div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Phân Bổ Nguồn Rò Rỉ</h3></div>
+                <div class="panel-body" style="display:flex;align-items:center;gap:18px;">
+                  <svg width="120" height="120" viewBox="0 0 120 120" id="donutChart"></svg>
+                  <div style="font-size:11px;color:var(--text-dim);display:flex;flex-direction:column;gap:7px;">
+                    <span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--red);margin-right:6px;"></i>Combolist — 42%</span>
+                    <span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--amber);margin-right:6px;"></i>SaaS Breach — 28%</span>
+                    <span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--blue);margin-right:6px;"></i>Forum Leak — 18%</span>
+                    <span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--purple);margin-right:6px;"></i>Khác — 12%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOCATIONS -->
+        <div class="tabpanel" id="tab-locations">
+          <div class="panel">
+            <div class="panel-head"><h3>Địa Chỉ &amp; Vị Trí</h3><span class="hint">6 vị trí được ghi nhận</span></div>
+            <div class="panel-body" id="locList"></div>
+          </div>
+        </div>
+
+        <!-- NETWORK -->
+        <div class="tabpanel" id="tab-network">
+          <div class="two-col">
+            <div class="panel" style="grid-column:1 / -1;">
+              <div class="panel-head"><h3>Sơ Đồ Liên Kết Đầy Đủ</h3><span class="hint">kéo để xoay · scroll để zoom (mock)</span></div>
+              <div class="panel-body"><svg class="graph-box tall" viewBox="0 0 620 460" id="graphFull"></svg></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Danh Sách Người/Thực Thể Liên Quan</h3></div>
+            <div class="panel-body" style="padding:0;">
+              <table><thead><tr><th>Tên / Thực thể</th><th>Quan hệ</th><th>Điểm chung</th><th>Độ tin cậy</th><th></th></tr></thead>
+              <tbody id="relatedTable"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="tabpanel" id="tab-timeline">
+          <div class="panel">
+            <div class="panel-head"><h3>Dòng Thời Gian Sự Kiện</h3><span class="hint">42 mốc</span></div>
+            <div class="panel-body"><div class="timeline" id="timelineList"></div></div>
+          </div>
+        </div>
+
+        <!-- MEDIA -->
+        <div class="tabpanel" id="tab-media">
+          <div class="panel">
+            <div class="panel-head"><h3>Hình Ảnh &amp; Tài Liệu Thu Thập</h3><span class="hint">64 hình · 7 tài liệu</span></div>
+            <div class="panel-body"><div class="media-grid" id="mediaGrid"></div></div>
+          </div>
+        </div>
+
+        <!-- EXTENDED -->
+        <div class="tabpanel" id="tab-extended">
+          <div class="two-col">
+            <div>
+              <div class="panel">
+                <div class="panel-head"><h3>Phương Tiện</h3><span class="ext-badge">suy luận trung bình</span></div>
+                <div class="panel-body" id="vehiclePanel"></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Thiết Bị &amp; Mạng</h3><span class="ext-badge">từ metadata / IP log</span></div>
+                <div class="panel-body" id="devicePanel"></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Miền &amp; Hạ Tầng Sở Hữu</h3><span class="ext-badge">WHOIS / DNS</span></div>
+                <div class="panel-body" style="padding:0;">
+                  <table><thead><tr><th>Domain</th><th>Đăng ký</th><th>Trạng thái</th><th>Nguồn</th></tr></thead><tbody id="domainTable"></tbody></table>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="panel">
+                <div class="panel-head"><h3>Pháp Lý &amp; Doanh Nghiệp</h3><span class="ext-badge">hồ sơ công khai</span></div>
+                <div class="panel-body" id="legalPanel"></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Dark Web Mentions</h3><span class="ext-badge">3 lượt nhắc đến</span></div>
+                <div class="panel-body" id="darkwebPanel"></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Phân Tích Văn Phong (NLP)</h3><span class="ext-badge">agent tạo ra</span></div>
+                <div class="panel-body">
+                  <div class="note-box">Văn phong trên forum/Reddit cho thấy câu ngắn, dùng nhiều thuật ngữ hạ tầng (k8s, terraform, CI/CD), tần suất dùng dấu "—" cao bất thường — trùng khớp với style commit message trên GitHub cùng tài khoản (độ tương đồng ước tính 82%).</div>
+                  <div class="pillrow" style="margin-top:10px;">
+                    <span class="pill pill-agent">Độ tương đồng 82%</span>
+                    <span class="pill pill-blue">12 mẫu văn bản</span>
+                    <span class="pill pill-purple">3 nền tảng</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WEBVIEW -->
+        <div class="tabpanel" id="tab-webview">
+          <div class="webview-wrap">
+            <div class="browser-chrome">
+              <div class="browser-tabs">
+                <div class="btab active"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>Tra cứu thủ công</div>
+              </div>
+              <div class="browser-bar">
+                <div class="navbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+                <div class="navbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.2 8.4c.5 1.8.6 3.7.1 5.6a9.9 9.9 0 01-9.6 7.5 9.9 9.9 0 01-7-2.9M2.8 15.6a9.7 9.7 0 01-.1-5.6 9.9 9.9 0 019.6-7.5c2.6 0 5 1.1 6.9 2.8"/><path d="M22 4l-4 4M2 20l4-4"/></svg></div>
+                <div class="addr">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                  <input id="webviewUrl" placeholder="Nhập URL để tra cứu thủ công..." value="https://www.linkedin.com/in/alex-whitfield-91">
+                </div>
+                <button class="btn small primary" id="webviewGo">Đi</button>
+              </div>
+              <div class="browser-frame" id="browserFrame">
+                <div class="browser-placeholder">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                  <div class="tt">Trình duyệt tích hợp (mock)</div>
+                  <div>Trong bản dựng thực tế, khu vực này sẽ nhúng một phiên duyệt web an toàn để bạn tự tra cứu nguồn, có thể chọn văn bản/ảnh và bấm "Chụp vào hồ sơ" để đưa trực tiếp vào Raw Data kèm trích dẫn nguồn.</div>
+                </div>
+              </div>
+              <div class="capture-row">
+                <input id="captureField" placeholder="Tên trường dữ liệu (vd: Chức danh hiện tại)" style="flex:1;background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;">
+                <input id="captureValue" placeholder="Giá trị đã chọn / sao chép" style="flex:1;background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;">
+                <button class="btn small agentbtn" id="captureBtn">+ Chụp vào hồ sơ</button>
+              </div>
+            </div>
+            <div class="browser-side">
+              <div class="panel" style="margin-bottom:0;">
+                <div class="panel-head"><h3>Nguồn Đã Lưu</h3></div>
+                <div class="panel-body" id="bookmarkList" style="display:flex;flex-direction:column;gap:8px;"></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Lịch Sử Chụp</h3></div>
+                <div class="panel-body" id="captureHistory" style="display:flex;flex-direction:column;gap:8px;font-size:11px;color:var(--text-dim);">
+                  <span style="color:var(--text-faint);">Chưa có mục nào được chụp trong phiên này.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUDIT LOG -->
+        <div class="tabpanel" id="tab-audit">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Nhật Ký Thao Tác</h3>
+              <div style="display:flex;gap:6px;">
+                <div class="chip on" data-alog="all">Tất cả</div>
+                <div class="chip" data-alog="edit">Chỉnh sửa</div>
+                <div class="chip" data-alog="agent">Agent</div>
+                <div class="chip" data-alog="flag">Đánh dấu</div>
+              </div>
+            </div>
+            <div class="panel-body" id="auditBody"></div>
+          </div>
+        </div>
+
+        <!-- RAW DATA -->
+        <div class="tabpanel" id="tab-raw">
+          <div class="panel">
+            <div class="panel-head"><h3>Toàn Bộ Điểm Dữ Liệu (Raw)</h3><span class="hint" id="rawCount"></span></div>
+            <div class="panel-body" style="padding:0;">
+              <table>
+                <thead><tr>
+                  <th data-sort="cat">Danh mục <span class="arrow">↕</span></th>
+                  <th data-sort="field">Trường dữ liệu <span class="arrow">↕</span></th>
+                  <th data-sort="value">Giá trị</th>
+                  <th data-sort="source">Nguồn <span class="arrow">↕</span></th>
+                  <th data-sort="conf">Tin cậy <span class="arrow">↕</span></th>
+                  <th data-sort="date">Thu thập <span class="arrow">↕</span></th>
+                </tr></thead>
+                <tbody id="rawTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: AGENT -->
+    <div class="col rightpanel">
+      <div class="rp-head">
+        <span class="t"><span class="agent-status-dot" id="agentDot"></span>AI Agent</span>
+        <div class="iconbtn" id="agentMenuBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></div>
+      </div>
+      <div class="rp-body">
+        <div class="agent-controls">
+          <button class="btn small agentbtn" id="agentRunBtn" style="flex:1;">▶ Chạy Agent</button>
+          <button class="btn small" id="agentModeBtn" title="Chuyển chế độ tự động / bán tự động">Bán tự động</button>
+        </div>
+        <div class="agent-quick">
+          <span data-q="Tìm thêm hồ sơ mạng xã hội">Tìm thêm MXH</span>
+          <span data-q="Kiểm tra rò rỉ dữ liệu mới">Kiểm tra breach mới</span>
+          <span data-q="Xác minh địa chỉ hiện tại">Xác minh địa chỉ</span>
+          <span data-q="Tìm người liên quan">Tìm người liên quan</span>
+        </div>
+        <div class="agent-feed" id="agentFeed"></div>
+        <div class="agent-input-row">
+          <input id="agentInput" placeholder="Giao nhiệm vụ cho Agent...">
+          <button class="btn small agentbtn" id="agentSendBtn">Gửi</button>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="rp-card">
+            <h4>Điểm Rủi Ro Tổng</h4>
+            <div class="riskmeter"><span class="val">68</span><span class="lbl">/ 100 — Trung bình-Cao</span></div>
+            <div class="miniprog"><i style="width:68%;background:linear-gradient(90deg,var(--amber),var(--red));"></i></div>
+          </div>
+          <div class="rp-card">
+            <h4>Tiến Độ Thu Thập</h4>
+            <div class="src-row"><span>Danh tính</span><b>100%</b></div>
+            <div class="miniprog"><i style="width:100%;background:var(--green);"></i></div>
+            <div class="src-row" style="margin-top:8px;"><span>Mạng xã hội</span><b>92%</b></div>
+            <div class="miniprog"><i style="width:92%;background:var(--blue);"></i></div>
+            <div class="src-row" style="margin-top:8px;"><span>Vị trí</span><b>76%</b></div>
+            <div class="miniprog"><i style="width:76%;background:var(--cyan);"></i></div>
+            <div class="src-row" style="margin-top:8px;"><span>Thiết bị/Mạng</span><b>41%</b></div>
+            <div class="miniprog"><i style="width:41%;background:var(--purple);"></i></div>
+            <div class="src-row" style="margin-top:8px;"><span>Tài chính</span><b>34%</b></div>
+            <div class="miniprog"><i style="width:34%;background:var(--purple);"></i></div>
+          </div>
+          <div class="rp-card">
+            <h4>Từ Khóa Nổi Bật</h4>
+            <div>
+              <span class="tag-mini">homelab</span><span class="tag-mini">kubernetes</span><span class="tag-mini">austin</span>
+              <span class="tag-mini">terraform</span><span class="tag-mini">marathon</span><span class="tag-mini">golden retriever</span>
+              <span class="tag-mini">colorado</span><span class="tag-mini">devops</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- DETAIL DRAWER -->
+<div class="overlay" id="overlay">
+  <div class="drawer">
+    <div class="drawer-head">
+      <div><h2 id="drawerTitle">Chi tiết điểm dữ liệu</h2></div>
+      <div class="close" id="drawerClose"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </div>
+</div>
+
+<!-- FLOATING HOVER TOOLBAR -->
+<div id="hoverToolbar"></div>
+<div id="toastWrap"></div>
+
+<script>
+/* ================================================================
+   STATE
+================================================================= */
+const state = {
+  auditLog: [],       // {id, ts, type, title, meta, oldVal, newVal, revert}
+  agentMode: "semi",  // "semi" | "auto"
+  agentRunning: false,
+  auditIdSeq: 1,
+};
+
+function nowStr(){
+  const d = new Date();
+  return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function toast(msg, kind){
+  const el = document.createElement("div");
+  el.className = "toast" + (kind ? " "+kind : "");
+  el.textContent = msg;
+  document.getElementById("toastWrap").appendChild(el);
+  setTimeout(()=>{ el.style.transition="opacity .25s"; el.style.opacity="0"; setTimeout(()=>el.remove(),260); }, 3400);
+}
+
+/* ================================================================
+   AUDIT LOG
+================================================================= */
+function pushAudit({type, title, meta, oldVal, newVal, revert}){
+  const entry = {
+    id: state.auditIdSeq++,
+    ts: nowStr(),
+    type: type || "edit",
+    title, meta, oldVal, newVal, revert,
+    reverted: false,
+  };
+  state.auditLog.unshift(entry);
+  renderAudit();
+  updateAuditCount();
+  return entry;
+}
+function auditIconFor(type){
+  if(type==="edit") return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4z"/></svg>`;
+  if(type==="agent") return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/></svg>`;
+  if(type==="flag") return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22V15"/></svg>`;
+  if(type==="hide") return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.94 10.94 0 0112 20c-7 0-10-8-10-8a18.5 18.5 0 015.06-5.94M9.9 4.24A10.87 10.87 0 0112 4c7 0 10 8 10 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+  return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>`;
+}
+function renderAudit(filter){
+  filter = filter || "all";
+  const box = document.getElementById("auditBody");
+  const rows = state.auditLog.filter(a=> filter==="all" ? true : a.type===filter);
+  if(!rows.length){
+    box.innerHTML = `<div class="empty-state"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg><div class="t">Chưa có hoạt động nào</div><div class="s">Mọi chỉnh sửa, thao tác Agent và đánh dấu trong phiên này sẽ được ghi lại tại đây để bạn có thể khôi phục bất cứ lúc nào.</div></div>`;
+    return;
+  }
+  box.innerHTML = rows.map(a=>{
+    const diff = (a.oldVal!==undefined && a.newVal!==undefined) ? `<div class="audit-diff"><span class="old">${a.oldVal}</span> → <span class="new">${a.newVal}</span></div>` : "";
+    const revertBtn = (a.revert && !a.reverted) ? `<button class="btn small" data-revert="${a.id}">Hoàn tác</button>` : (a.reverted ? `<span class="ext-badge">đã hoàn tác</span>` : "");
+    return `<div class="audit-row">
+      <div class="audit-ic">${auditIconFor(a.type)}</div>
+      <div class="audit-body">
+        <div class="audit-title">${a.title}</div>
+        <div class="audit-meta">${a.ts} ${a.meta ? "· "+a.meta : ""}</div>
+        ${diff}
+      </div>
+      <div class="audit-actions">${revertBtn}</div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll("[data-revert]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = Number(btn.dataset.revert);
+      const entry = state.auditLog.find(a=>a.id===id);
+      if(entry && entry.revert){
+        entry.revert();
+        entry.reverted = true;
+        renderAudit(document.querySelector('[data-alog].on')?.dataset.alog || "all");
+        toast("Đã hoàn tác: " + entry.title, "ok");
+      }
+    };
+  });
+}
+function updateAuditCount(){
+  const tabEl = document.querySelector('.tab[data-tab="audit"] .cnt');
+  if(tabEl) tabEl.textContent = state.auditLog.length;
+}
+document.querySelectorAll("[data-alog]").forEach(chip=>{
+  chip.onclick = ()=>{
+    document.querySelectorAll("[data-alog]").forEach(c=>c.classList.remove("on"));
+    chip.classList.add("on");
+    renderAudit(chip.dataset.alog);
+  };
+});
+document.getElementById("gotoAuditBtn").onclick = ()=>{
+  document.querySelector('.tab[data-tab="audit"]').click();
+};
+
+/* ================================================================
+   DATA MOCK
+================================================================= */
+const targets = [
+  {name:"Alex Mercer Whitfield", sub:"862 data points", init:"AW", status:"done", active:true},
+  {name:"Priya Nandakumar", sub:"đang quét · 41%", init:"PN", status:"scan", active:false},
+  {name:"Dmitri Volkov", sub:"312 data points", init:"DV", status:"done", active:false},
+  {name:"J. Okafor", sub:"trong hàng đợi", init:"JO", status:"queue", active:false},
+];
+
+const tabs = [
+  {id:"overview", label:"Tổng quan"},
+  {id:"identity", label:"Danh tính"},
+  {id:"social", label:"Mạng xã hội", cnt:19},
+  {id:"contact", label:"Liên hệ & Rò rỉ", cnt:9},
+  {id:"locations", label:"Vị trí", cnt:6},
+  {id:"network", label:"Liên kết", cnt:17},
+  {id:"timeline", label:"Dòng thời gian", cnt:42},
+  {id:"media", label:"Media", cnt:71},
+  {id:"extended", label:"Mở rộng", cnt:14},
+  {id:"webview", label:"WebView"},
+  {id:"audit", label:"Nhật ký", cnt:0},
+  {id:"raw", label:"Raw Data", cnt:862},
+];
+
+const catColors = {
+  identity:["Danh tính","pill-purple","purple"],
+  social:["MXH","pill-blue","blue"],
+  contact:["Liên hệ","pill-cyan","cyan"],
+  location:["Vị trí","pill-amber","amber"],
+  breach:["Rò rỉ","pill-red","red"],
+  employment:["Việc làm","pill-green","green"],
+  network:["Liên quan","pill-pink","pink"],
+  media:["Media","pill-blue","blue"],
+  vehicle:["Phương tiện","pill-amber","amber"],
+  device:["Thiết bị","pill-cyan","cyan"],
+  legal:["Pháp lý","pill-green","green"],
+  darkweb:["Dark Web","pill-red","red"],
+};
+
+const identityFields = [
+  ["Họ tên đầy đủ","Alex Mercer Whitfield","LinkedIn, Hộ tịch công khai", true],
+  ["Bí danh / Alias","amwhitfield, alex.mw, ghostpanel91","Cross-match username", true],
+  ["Thời gian quét","18m 42s","Hệ thống", false],
+  ["Raw hits","14,208","Hệ thống", false],
+  ["Nguồn dữ liệu","27 nguồn ↗","Hệ thống", false],
+  ["Độ tin cậy tổng","81%","Tính toán tổng hợp", false],
+];
+const identityFields2 = [
+  ["Tên đầy đủ","Alex Mercer Whitfield","LinkedIn", true],
+  ["Tên thường gọi","Alex Whitfield","LinkedIn, Reddit", true],
+  ["Ngày sinh (ước tính)","Tháng 3, 1991","Kỷ yếu, WHOIS domain", true],
+  ["Giới tính","Nam","Suy luận đại từ nhân xưng", false],
+  ["Quốc tịch","Hoa Kỳ","LinkedIn, hộ chiếu công khai", true],
+  ["Ngôn ngữ suy luận","Tiếng Anh (bản ngữ)","Phân tích văn phong", false],
+  ["Đặc điểm nhận dạng","Cao ~1m80, tóc nâu sẫm, đeo kính gọng đen","Ảnh sự kiện", true],
+  ["Nguồn suy luận","LinkedIn, EXIF ảnh, 2 forum ↗","Hệ thống", false],
+];
+
+const aliasList = ["amwhitfield","alex.mw","ghostpanel91","a_whitfield","amw_dev","whitfield.alex","panel_ghost"];
+
+const socialAccounts = [
+  ["LinkedIn","alex-whitfield-91","active","1,204","2 ngày trước",96],
+  ["GitHub","amw-dev","active","318 followers","6 giờ trước",92],
+  ["X / Twitter","@ghostpanel91","active","2,940","31 phút trước",88],
+  ["Reddit","u/panel_ghost","active","karma 18.2k","4 giờ trước",83],
+  ["Instagram","alex.mw","inactive","540","8 tháng trước",61],
+  ["Facebook","alex.m.whitfield","inactive","—","2 năm trước",54],
+  ["TikTok","@amwhitfield","suspended","—","tài khoản bị khoá",47],
+  ["Discord","amw#4471","active","3 server chung",'22 phút trước',66],
+  ["Pinterest","alexwhitfield","inactive","—","1 năm trước",39],
+  ["Strava","Alex W.","active","42 hoạt động","hôm qua",79],
+  ["Steam","ghostpanel","active","614 giờ chơi","3 ngày trước",71],
+  ["Keybase","amw_dev","inactive","—","3 năm trước",44],
+];
+
+const emails = [
+  ["alex.whitfield@gmail.com","Cá nhân (chính)","st-breach","3 vụ rò rỉ"],
+  ["a.whitfield@northwindsys.com","Công việc","st-clean","Không phát hiện"],
+  ["amw.dev@protonmail.com","Dev / GitHub","st-clean","Không phát hiện"],
+  ["ghostpanel91@yahoo.com","Cũ / diễn đàn","st-breach","2 vụ rò rỉ"],
+  ["alexw1991@outlook.com","Đăng ký dịch vụ","st-breach","1 vụ rò rỉ"],
+  ["contact@amwlabs.dev","Domain cá nhân","st-clean","Không phát hiện"],
+];
+
+const phones = [
+  ["+1 (512) 555-0148","AT&T Mobility","Di động (chính)","Truecaller cache"],
+  ["+1 (720) 555-0199","Verizon","Di động (cũ)","Whitepages 2021"],
+  ["+1 (512) 555-0177","VoIP — Google Voice","Phụ","Đăng ký domain WHOIS"],
+];
+
+const locations = [
+  ["2140 Rainey St, Austin, TX 78701","Hiện tại","2023 – nay","WHOIS domain, giao hàng công khai",92],
+  ["Denver, CO (khu vực)","Trước đây","2018 – 2022","LinkedIn, EXIF ảnh Instagram",84],
+  ["Boulder, CO (khuôn viên ĐH)","Học tập","2013 – 2017","Kỷ yếu, mạng trường",77],
+  ["909 W 5th St, Austin, TX (văn phòng)","Nơi làm việc","2022 – nay","Company directory, check-in Foursquare",90],
+  ["Portland, OR (chuyến đi)","Đã ghé thăm","06/2024","Geotag ảnh Instagram",58],
+  ["Kansas City, MO","Quê quán (suy luận)","trước 2013","Kỷ yếu trung học, hồ sơ gia đình",65],
+];
+
+const relatedEntities = [
+  ["Jordan Whitfield","Anh/em ruột (suy luận)","Cùng họ, cùng địa chỉ 2016",74],
+  ["Northwind Systems","Nhà tuyển dụng","LinkedIn, email công ty",96],
+  ["Priya Nandakumar","Đồng nghiệp cũ","Đồng tác giả GitHub, Cascade Cloud",68],
+  ["Dana R. Whitfield","Có thể là vợ/người thân","Cùng địa chỉ hiện tại, tag ảnh chung",57],
+  ["r/homelab","Cộng đồng thường tham gia","142 bài đăng, 3 năm hoạt động",88],
+];
+
+const timelineEvents = [
+  ["03/2025","Đăng bài r/homelab về cụm Kubernetes tại nhà","Bài đăng công khai, 340 upvotes","Reddit"],
+  ["01/2025","Cập nhật chức danh LinkedIn thành Senior Infra Engineer","Thay đổi hồ sơ được ghi nhận qua cache","LinkedIn Cache"],
+  ["11/2024","Xuất hiện trong rò rỉ Collection #4 Combolist","Email + hash mật khẩu","Breach DB"],
+  ["08/2024","Tham dự hội nghị DevOpsDays Austin (diễn giả phụ)","Ảnh nhóm gắn thẻ công khai","Sự kiện / Ảnh"],
+  ["06/2024","Đăng ảnh check-in Portland, OR","Geotag EXIF trong ảnh Instagram","Instagram"],
+  ["02/2024","Chuyển địa chỉ đến Rainey St, Austin","Cập nhật WHOIS domain cá nhân","WHOIS"],
+  ["09/2023","Rời Cascade Cloud Labs, gia nhập Northwind Systems","Thông báo LinkedIn + email công ty mới","LinkedIn"],
+  ["05/2022","Xuất hiện trong rò rỉ CloudNote SaaS Breach","Tên, email, IP đăng ký","Breach DB"],
+  ["01/2020","Tạo repository GitHub công khai đầu tiên","dotfiles config","GitHub"],
+  ["06/2017","Tốt nghiệp Đại học Colorado Boulder","Thông báo alumni","Trường học"],
+];
+
+/* extended categories */
+const vehicles = [
+  ["Toyota RAV4 2021","Màu bạc, biển số bang TX (một phần: JXX-4••1)","Hồ sơ đăng ký xe công khai bang TX", 71],
+  ["Trek FX 3 (xe đạp)","Xuất hiện lặp lại trong ảnh Strava","Ảnh hoạt động Strava", 55],
+];
+const devices = [
+  ["ISP nhà riêng","Spectrum / Charter Communications, khu vực Austin TX","Reverse DNS lookup (mock)", 68],
+  ["Thiết bị chụp ảnh","iPhone 14 Pro (theo EXIF)","Metadata ảnh Instagram/Reddit", 82],
+  ["Địa chỉ IP thấy gần nhất","IP dân dụng, Austin TX (không lưu số cụ thể)","Log bình luận forum công khai", 46],
+];
+const domains = [
+  ["amwlabs.dev","Alex M Whitfield (privacy-protected)","st-active","WHOIS + Cloudflare"],
+  ["ghostpanel.net","Ẩn danh WHOIS, trùng IP hosting với amwlabs.dev","st-active","Passive DNS"],
+  ["oldportfolio-amw.com","Alex Whitfield (2019, đã hết hạn)","st-inactive","Wayback Machine"],
+];
+const legalRecords = [
+  ["Đăng ký doanh nghiệp","AMW Labs LLC — thành lập 2021, bang Texas, vai trò: Người quản lý duy nhất","Texas Secretary of State", 89],
+  ["Hồ sơ tòa án dân sự","Không tìm thấy hồ sơ tranh chấp công khai nào liên quan","Tòa án cấp hạt (public records)", 60],
+  ["Giấy phép nghề nghiệp","Không áp dụng / không tìm thấy","—", 0],
+];
+const darkwebMentions = [
+  ["Rao bán combolist","Email + hash xuất hiện trong gói combolist rao bán trên diễn đàn ngầm","Dark web monitoring (mock)","2023"],
+  ["Nhắc đến username","Username 'ghostpanel91' được nhắc trong thread trao đổi tài khoản gaming","Forum ngầm (mock)","2022"],
+  ["Rò rỉ metadata dịch vụ","IP đăng ký xuất hiện trong dump dữ liệu CloudNote","Breach archive (mock)","2022"],
+];
+
+/* raw data generator */
+const rawCategories = ["identity","social","contact","location","breach","employment","network","media","vehicle","device","legal"];
+const rawFields = {
+  identity:["Họ tên đầy đủ","Ngày sinh","Quốc tịch","Giới tính","Đặc điểm nhận dạng"],
+  social:["Username LinkedIn","Username GitHub","Handle X/Twitter","Username Reddit","Username Discord","Username Steam"],
+  contact:["Email cá nhân","Email công việc","Số điện thoại di động","Email dev","Số điện thoại phụ"],
+  location:["Địa chỉ hiện tại","Vị trí văn phòng","Thành phố học tập","Toạ độ EXIF ảnh","Quê quán suy luận"],
+  breach:["Nguồn rò rỉ","Loại dữ liệu lộ","Ngày phát hiện breach","Mật khẩu băm"],
+  employment:["Công ty hiện tại","Chức danh","Công ty trước đây","Ngành nghề"],
+  network:["Người liên quan","Loại quan hệ","Tổ chức liên kết","Cộng đồng tham gia"],
+  media:["Ảnh đại diện","Ảnh sự kiện","Ảnh gắn thẻ","Tài liệu PDF công khai","Video sự kiện"],
+  vehicle:["Xe đăng ký","Loại phương tiện","Biển số (một phần)"],
+  device:["ISP","Thiết bị chụp ảnh","IP gần nhất"],
+  legal:["Doanh nghiệp đăng ký","Hồ sơ tòa án","Giấy phép nghề nghiệp"],
+};
+const rawSources = ["LinkedIn","GitHub","Reddit","X/Twitter","WHOIS","Breach DB","Instagram cache","Company Directory","Forum Archive","Wayback Machine","Foursquare","Truecaller","Alumni Directory","Discord scrape","Texas SOS","Strava"];
+const rawValues = ["Alex Mercer Whitfield","1991-03-XX","Hoa Kỳ","amwhitfield","alex.whitfield@gmail.com","+1 (512) 555-0148","2140 Rainey St, Austin TX","Northwind Systems","Senior Infra Engineer","Jordan Whitfield (anh em)","r/homelab","30.2599, -97.7407","SHA-1 hash lộ 2023","ghostpanel91","Cascade Cloud Labs","Kubernetes cluster homelab","panel_ghost","318 followers","2 vụ rò rỉ","Đại học Colorado Boulder","Toyota RAV4 2021","Spectrum / Charter","AMW Labs LLC"];
+
+function genRaw(n){
+  const rows=[];
+  for(let i=0;i<n;i++){
+    const cat = rawCategories[i % rawCategories.length];
+    const fieldsArr = rawFields[cat];
+    const field = fieldsArr[i % fieldsArr.length];
+    const value = rawValues[(i*3+1) % rawValues.length];
+    const source = rawSources[(i*2) % rawSources.length];
+    const conf = 42 + ((i*17) % 58);
+    const day = 1 + (i % 27);
+    const month = 1 + (i % 12);
+    rows.push({id:"r"+i, cat, field, value, source, conf, date:`2025-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`});
+  }
+  return rows;
+}
+let rawData = genRaw(96);
+let rawIdSeq = rawData.length;
+
+/* ============ RENDER: SIDEBAR ============ */
+const targetList = document.getElementById("targetList");
+targets.forEach(t=>{
+  const el = document.createElement("div");
+  el.className = "target" + (t.active ? " active":"");
+  const badge = t.status==="done" ? '<span class="target-badge tb-done">XONG</span>' : t.status==="scan" ? '<span class="target-badge tb-scan">QUÉT</span>' : '<span class="target-badge tb-queue">CHỜ</span>';
+  el.innerHTML = `<div class="avimg">${t.init}</div><div class="target-info"><div class="target-name">${t.name}</div><div class="target-sub">${t.sub}</div></div>${badge}`;
+  el.onclick = ()=>{document.querySelectorAll(".target").forEach(x=>x.classList.remove("active")); el.classList.add("active");};
+  targetList.appendChild(el);
+});
+
+/* ============ RENDER: TABS ============ */
+const tabBar = document.getElementById("tabBar");
+tabs.forEach((t,i)=>{
+  const el = document.createElement("div");
+  el.className = "tab" + (i===0 ? " active":"");
+  el.dataset.tab = t.id;
+  el.innerHTML = t.label + (t.cnt!==undefined ? ` <span class="cnt">${t.cnt}</span>`:"");
+  el.onclick = ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".tabpanel").forEach(x=>x.classList.remove("active"));
+    el.classList.add("active");
+    document.getElementById("tab-"+t.id).classList.add("active");
+    const noToolbar = ["overview","webview","audit","extended"];
+    document.getElementById("toolbar").style.display = noToolbar.includes(t.id) ? "none" : "flex";
+  };
+  tabBar.appendChild(el);
+});
+document.getElementById("toolbar").style.display = "none";
+
+/* ============ RENDER: IDENTITY KV (editable + hoverable) ============ */
+function renderKV(containerId, fields){
+  const box = document.getElementById(containerId);
+  box.innerHTML = "";
+  fields.forEach((f,idx)=>{
+    const [label, value, source, editable] = f;
+    const row = document.createElement("div");
+    row.className = "kv-row";
+    row.dataset.field = label;
+    row.dataset.source = source;
+    row.dataset.editable = editable ? "1":"0";
+    row.innerHTML = `<span class="k">${label}</span><span class="v hx" data-field="${label}" data-source="${source}" data-value="${value}">${value}</span>`;
+    box.appendChild(row);
+  });
+}
+renderKV("identityKV", identityFields);
+renderKV("identityKV2", identityFields2);
+
+/* alias pills */
+const aliasPills = document.getElementById("aliasPills");
+aliasList.forEach((a,i)=>{
+  const cls = ["pill-blue","pill-purple","pill-cyan","pill-green"][i%4];
+  const span = document.createElement("span");
+  span.className = `pill ${cls} hx`;
+  span.dataset.field = "Alias/Username";
+  span.dataset.value = a;
+  span.dataset.source = "Cross-match username";
+  span.textContent = a;
+  aliasPills.appendChild(span);
+});
+
+/* ============ RENDER: WARNINGS ============ */
+const warnData = [
+  ["high","Địa chỉ hiện tại chưa xác minh chéo với nguồn cấp 1","2025-03"],
+  ["high","Email cá nhân xuất hiện trong 3 vụ rò rỉ dữ liệu lớn","breach"],
+  ["high","Trùng khớp ảnh EXIF cho thấy vị trí sinh sống thực tế khác hồ sơ","EXIF"],
+  ["mid","Một số tài khoản MXH đã ngừng hoạt động >1 năm — độ tin cậy giảm","MXH"],
+  ["mid","Quan hệ 'Dana R. Whitfield' chỉ dựa trên suy luận gián tiếp","suy luận"],
+  ["mid","Username tái sử dụng trên diễn đàn có nội dung nhạy cảm — cần lọc thủ công","forum"],
+  ["low","Một số mention trùng tên nhưng khác thực thể — có thể gây nhiễu","trùng tên"],
+];
+const warnList = document.getElementById("warnList");
+warnData.forEach(w=>{
+  const el = document.createElement("div");
+  el.className = "warn" + (w[0]==="high" ? " sev-high":"");
+  el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>${w[1]}</span><span class="tag">${w[2]}</span>`;
+  warnList.appendChild(el);
+});
+
+/* ============ RENDER: SOCIAL TABLE ============ */
+const socialTable = document.getElementById("socialTable");
+socialAccounts.forEach(a=>{
+  const [platform,uname,status,followers,last,conf] = a;
+  const stClass = status==="active"?"st-active":status==="suspended"?"st-susp":"st-inactive";
+  const stLabel = status==="active"?"Hoạt động":status==="suspended"?"Bị khoá":"Không hoạt động";
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="strong hx" data-field="Nền tảng" data-value="${platform}" data-source="${platform}">${platform}</td><td class="hx" data-field="Username" data-value="${uname}" data-source="${platform}">${uname}</td><td><span class="status-chip ${stClass}">${stLabel}</span></td><td>${followers}</td><td>${last}</td><td><span class="conf-bar"><i style="width:${conf}%"></i></span>${conf}%</td><td><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-faint)"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg></td>`;
+  tr.onclick = (e)=>{
+    if(e.target.closest('.hx')) return;
+    openDrawer(platform+" — "+uname, `<div class="kv-row"><span class="k">Trạng thái</span><span class="v">${stLabel}</span></div><div class="kv-row"><span class="k">Followers</span><span class="v">${followers}</span></div><div class="kv-row"><span class="k">Hoạt động gần nhất</span><span class="v">${last}</span></div><div class="kv-row"><span class="k">Độ tin cậy</span><span class="v green">${conf}%</span></div>`);
+  };
+  socialTable.appendChild(tr);
+});
+
+/* ============ RENDER: EMAIL / PHONE ============ */
+const emailTable = document.getElementById("emailTable");
+emails.forEach(e=>{
+  const [addr,type,st,detail] = e;
+  const label = st==="st-breach" ? "Có rò rỉ" : "Sạch";
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="strong hx" data-field="Email" data-value="${addr}" data-source="${type}">${addr}</td><td>${type}</td><td><span class="status-chip ${st}">${label}</span></td><td>${detail}</td>`;
+  emailTable.appendChild(tr);
+});
+const phoneTable = document.getElementById("phoneTable");
+phones.forEach(p=>{
+  const [num,carrier,type,src] = p;
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="strong hx" data-field="Số điện thoại" data-value="${num}" data-source="${src}">${num}</td><td>${carrier}</td><td>${type}</td><td>${src}</td>`;
+  phoneTable.appendChild(tr);
+});
+
+/* ============ RENDER: LOCATIONS ============ */
+const locList = document.getElementById("locList");
+locations.forEach(l=>{
+  const [addr,type,range,src,conf] = l;
+  const el = document.createElement("div");
+  el.className = "loc-card";
+  el.innerHTML = `<div class="loc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+  <div class="loc-body"><div class="loc-addr hx" data-field="Địa chỉ" data-value="${addr}" data-source="${src}">${addr}</div><div class="loc-meta"><span>${type}</span><span>${range}</span><span>Nguồn: ${src}</span><span style="color:var(--green)">Tin cậy ${conf}%</span></div></div>`;
+  locList.appendChild(el);
+});
+
+/* ============ RENDER: NETWORK TABLE ============ */
+const relatedTable = document.getElementById("relatedTable");
+function renderRelated(){
+  relatedTable.innerHTML = "";
+  relatedEntities.forEach(r=>{
+    const [name,rel,common,conf] = r;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="strong hx" data-field="Thực thể liên quan" data-value="${name}" data-source="${common}">${name}</td><td>${rel}</td><td>${common}</td><td><span class="conf-bar"><i style="width:${conf}%"></i></span>${conf}%</td><td><span class="ht-btn agent" style="display:inline-flex;" data-recursive="${name}">🔍 Đệ quy</span></td>`;
+    relatedTable.appendChild(tr);
+  });
+  relatedTable.querySelectorAll('[data-recursive]').forEach(b=>{
+    b.onclick = (e)=>{ e.stopPropagation(); recursiveLookup(b.dataset.recursive, "Người/thực thể liên quan"); };
+  });
+}
+renderRelated();
+
+/* ============ RENDER: TIMELINE ============ */
+const timelineList = document.getElementById("timelineList");
+timelineEvents.forEach(t=>{
+  const [date,title,desc,src] = t;
+  const el = document.createElement("div");
+  el.className = "tl-item";
+  el.innerHTML = `<div class="tl-dot"><i></i></div><div class="tl-date">${date}</div><div class="tl-title hx" data-field="Sự kiện" data-value="${title}" data-source="${src}">${title}</div><div class="tl-desc">${desc}</div><div class="tl-src">Nguồn: ${src}</div>`;
+  timelineList.appendChild(el);
+});
+
+/* ============ RENDER: MEDIA GRID ============ */
+const mediaGrid = document.getElementById("mediaGrid");
+const idPhotos = document.getElementById("idPhotos");
+const mediaTags = ["LinkedIn avatar","Reddit post img","Instagram (cũ)","Sự kiện DevOpsDays","GitHub org photo","Facebook (2019)","Strava route","Screenshot forum","Ảnh nhóm hội nghị","Tài liệu PDF","Video ngắn","Ảnh EXIF geotag"];
+function mkMedia(container,count){
+  for(let i=0;i<count;i++){
+    const el = document.createElement("div");
+    el.className = "media-item";
+    const isDoc = (i%9===8);
+    el.innerHTML = isDoc
+      ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>`
+      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`;
+    const tag = mediaTags[i % mediaTags.length];
+    el.innerHTML += `<div class="media-tag">${tag}</div>`;
+    el.onclick = ()=>openDrawer(tag, `<div class="kv-row"><span class="k">Loại</span><span class="v">${isDoc?'Tài liệu':'Hình ảnh'}</span></div><div class="kv-row"><span class="k">Thu thập</span><span class="v">2025-0${(i%9)+1}-1${i%9}</span></div><div class="kv-row"><span class="k">Nguồn</span><span class="v">${rawSources[i%rawSources.length]}</span></div>`);
+    container.appendChild(el);
+  }
+}
+mkMedia(mediaGrid,24);
+mkMedia(idPhotos,6);
+
+/* ============ RENDER: EXTENDED TAB ============ */
+function kvBlock(containerId, rows){
+  const box = document.getElementById(containerId);
+  box.innerHTML = rows.map(r=>{
+    const [label,val,src,conf] = r;
+    return `<div class="kv-row"><span class="k">${label}</span><span class="v hx" data-field="${label}" data-value="${val}" data-source="${src}">${val} <span style="color:var(--text-faint);font-weight:400;">(${conf}%)</span></span></div>`;
+  }).join("");
+}
+kvBlock("vehiclePanel", vehicles);
+kvBlock("devicePanel", devices);
+kvBlock("legalPanel", legalRecords);
+
+const domainTable = document.getElementById("domainTable");
+domains.forEach(d=>{
+  const [dom,owner,st,src] = d;
+  const label = st==="st-active" ? "Hoạt động" : "Hết hạn";
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="strong hx" data-field="Domain" data-value="${dom}" data-source="${src}">${dom}</td><td>${owner}</td><td><span class="status-chip ${st}">${label}</span></td><td>${src}</td>`;
+  domainTable.appendChild(tr);
+});
+
+const darkwebPanel = document.getElementById("darkwebPanel");
+darkwebPanel.innerHTML = darkwebMentions.map(m=>{
+  const [title,desc,src,year] = m;
+  return `<div class="warn sev-high"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg><span class="hx" data-field="Dark web" data-value="${title}" data-source="${src}"><b>${title}</b> — ${desc}</span><span class="tag">${year}</span></div>`;
+}).join("");
+
+/* ============ RENDER: RAW TABLE ============ */
+const rawTable = document.getElementById("rawTable");
+const rawCountEl = document.getElementById("rawCount");
+function renderRaw(rows){
+  rawTable.innerHTML = "";
+  rows.forEach(r=>{
+    const [label,cls,colorKey] = catColors[r.cat];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><span class="cat-tag ${cls}" style="background:transparent;color:var(--${colorKey})">${label}</span></td>
+      <td class="strong">${r.field}</td><td class="hx" data-field="${r.field}" data-value="${r.value}" data-source="${r.source}">${r.value}</td><td>${r.source}</td>
+      <td><span class="conf-bar"><i style="width:${r.conf}%;background:${r.conf>70?'var(--green)':r.conf>50?'var(--amber)':'var(--red)'}"></i></span>${r.conf}%</td>
+      <td>${r.date}</td>`;
+    tr.onclick = (e)=>{
+      if(e.target.closest('.hx')) return;
+      openDrawer(r.field, `<div class="kv-row"><span class="k">Danh mục</span><span class="v">${label}</span></div><div class="kv-row"><span class="k">Giá trị</span><span class="v">${r.value}</span></div><div class="kv-row"><span class="k">Nguồn</span><span class="v link">${r.source} ↗</span></div><div class="kv-row"><span class="k">Độ tin cậy</span><span class="v green">${r.conf}%</span></div><div class="kv-row"><span class="k">Ngày thu thập</span><span class="v">${r.date}</span></div>`);
+    };
+    rawTable.appendChild(tr);
+  });
+  rawCountEl.textContent = rows.length + " dòng hiển thị";
+  const tabEl = document.querySelector('.tab[data-tab="raw"] .cnt');
+  if(tabEl) tabEl.textContent = rawData.length;
+}
+renderRaw(rawData);
+
+document.querySelectorAll(".chip[data-filter]").forEach(chip=>{
+  chip.onclick = ()=>{
+    document.querySelectorAll(".chip[data-filter]").forEach(c=>c.classList.remove("on"));
+    chip.classList.add("on");
+    const f = chip.dataset.filter;
+    const filtered = f==="all" ? rawData : rawData.filter(r=>r.cat===f);
+    renderRaw(filtered);
+  };
+});
+document.getElementById("tableSearch").addEventListener("input",(e)=>{
+  const q = e.target.value.toLowerCase();
+  renderRaw(rawData.filter(r=> (r.field+r.value+r.source).toLowerCase().includes(q)));
+});
+document.querySelectorAll('#tab-raw thead th').forEach(th=>{
+  th.onclick = ()=>{
+    const key = th.dataset.sort;
+    if(!key) return;
+    rawData = [...rawData].sort((a,b)=> (""+a[key]).localeCompare(""+b[key]));
+    renderRaw(rawData);
+  };
+});
+
+/* ============ DRAWER ============ */
+const overlay = document.getElementById("overlay");
+function openDrawer(title,bodyHtml){
+  document.getElementById("drawerTitle").textContent = title;
+  document.getElementById("drawerBody").innerHTML = bodyHtml;
+  overlay.classList.add("open");
+}
+document.getElementById("drawerClose").onclick = ()=>overlay.classList.remove("open");
+overlay.onclick = (e)=>{ if(e.target===overlay) overlay.classList.remove("open"); };
+
+/* ================================================================
+   HOVER ACTION TOOLBAR (data point context actions)
+================================================================= */
+const hoverToolbar = document.getElementById("hoverToolbar");
+let hoverHideTimer = null;
+let currentHoverEl = null;
+
+function buildHoverActions(el){
+  const field = el.dataset.field || "Dữ liệu";
+  const value = el.dataset.value || el.textContent.trim();
+  const source = el.dataset.source || "Không rõ";
+  const actions = [];
+  actions.push({icon:"🔗", label:"Truy cập nguồn", fn:()=>{
+    toast(`Đang mở nguồn: ${source} (mock — kết nối tới nguồn thật cần cấu hình backend)`, null);
+  }});
+  actions.push({icon:"🔍", label:"Tra cứu đệ quy (AI)", cls:"agent", fn:()=>{
+    recursiveLookup(value, field);
+  }});
+  if(el.closest('.kv-row') || el.classList.contains('note-box')){
+    actions.push({icon:"✎", label:"Sửa giá trị", fn:()=>{ startInlineEdit(el, field, source); }});
+  }
+  actions.push({icon:"🚩", label:"Đánh dấu nghi ngờ", cls:"warn", fn:()=>{
+    el.style.outline = "2px solid var(--red)";
+    el.style.outlineOffset = "2px";
+    pushAudit({type:"flag", title:`Đánh dấu nghi ngờ: ${field}`, meta:`Giá trị: ${value}`, revert:()=>{ el.style.outline=""; }});
+    toast("Đã đánh dấu nghi ngờ trường: " + field, "warnT");
+  }});
+  actions.push({icon:"🗑", label:"Ẩn khỏi hồ sơ", cls:"danger", fn:()=>{
+    const container = el.closest('.kv-row') || el.closest('tr') || el;
+    const prevDisplay = container.style.display;
+    container.style.display = "none";
+    pushAudit({type:"hide", title:`Đã ẩn: ${field}`, meta:`Giá trị: ${value}`, revert:()=>{ container.style.display = prevDisplay; }});
+    toast("Đã ẩn khỏi hồ sơ: " + field, "warnT");
+  }});
+  return actions;
+}
+
+function showHoverToolbar(el){
+  currentHoverEl = el;
+  const actions = buildHoverActions(el);
+  hoverToolbar.innerHTML = actions.map((a,i)=>`<div class="ht-btn ${a.cls||''}" data-hi="${i}">${a.icon} ${a.label}</div>`).join("");
+  const rect = el.getBoundingClientRect();
+  hoverToolbar.classList.add("show");
+  const toolbarW = 190;
+  let left = rect.left;
+  if(left + toolbarW > window.innerWidth - 10) left = window.innerWidth - toolbarW - 10;
+  let top = rect.bottom + 6;
+  if(top + 200 > window.innerHeight) top = rect.top - 6 - (actions.length*30);
+  hoverToolbar.style.left = left + "px";
+  hoverToolbar.style.top = top + "px";
+  hoverToolbar.querySelectorAll("[data-hi]").forEach(btn=>{
+    btn.onclick = ()=>{ actions[Number(btn.dataset.hi)].fn(); hideHoverToolbar(); };
+  });
+}
+function hideHoverToolbar(){
+  hoverToolbar.classList.remove("show");
+  currentHoverEl = null;
+}
+document.addEventListener("mouseover",(e)=>{
+  const el = e.target.closest(".hx");
+  if(el){
+    clearTimeout(hoverHideTimer);
+    showHoverToolbar(el);
+  }
+});
+document.addEventListener("mouseout",(e)=>{
+  const leavingHx = e.target.closest(".hx");
+  const enteringToolbar = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest("#hoverToolbar");
+  const enteringHx = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".hx");
+  if(leavingHx && !enteringToolbar && !enteringHx){
+    hoverHideTimer = setTimeout(hideHoverToolbar, 220);
+  }
+});
+hoverToolbar.addEventListener("mouseenter", ()=>clearTimeout(hoverHideTimer));
+hoverToolbar.addEventListener("mouseleave", ()=>{ hoverHideTimer = setTimeout(hideHoverToolbar, 150); });
+
+/* ============ INLINE EDIT ============ */
+function startInlineEdit(el, field, source){
+  const oldVal = el.dataset.value || el.textContent.trim();
+  const input = document.createElement("input");
+  input.className = "edit-input";
+  input.value = oldVal;
+  const parent = el.parentElement;
+  el.style.display = "none";
+  parent.insertBefore(input, el);
+  input.focus();
+  input.select();
+  function commit(){
+    const newVal = input.value.trim();
+    input.remove();
+    el.style.display = "";
+    if(newVal && newVal !== oldVal){
+      el.textContent = newVal;
+      el.dataset.value = newVal;
+      pushAudit({
+        type:"edit", title:`Sửa: ${field}`, meta:`Nguồn: ${source}`,
+        oldVal, newVal,
+        revert:()=>{ el.textContent = oldVal; el.dataset.value = oldVal; }
+      });
+      toast("Đã lưu thay đổi cho: " + field, "ok");
+    }
+  }
+  input.addEventListener("keydown",(ev)=>{
+    if(ev.key==="Enter") commit();
+    if(ev.key==="Escape"){ input.remove(); el.style.display=""; }
+  });
+  input.addEventListener("blur", commit);
+}
+
+/* ================================================================
+   RECURSIVE LOOKUP (AI-assisted deep dive from any data point)
+================================================================= */
+const agentFeed = document.getElementById("agentFeed");
+const agentDot = document.getElementById("agentDot");
+
+function agentSay(text, kind, confirmCb){
+  const el = document.createElement("div");
+  el.className = "amsg " + (kind||"sys");
+  const label = kind==="ask" ? "Agent · cần xác nhận" : kind==="found" ? "Agent · phát hiện" : kind==="user" ? "Bạn" : "Agent";
+  el.innerHTML = `<div class="amsg-time">${label} · ${nowStr()}</div><div class="amsg-text"></div>`;
+  el.querySelector(".amsg-text").textContent = text;
+  if(kind==="ask" && confirmCb){
+    const cf = document.createElement("div");
+    cf.className = "amsg-confirm";
+    cf.innerHTML = `<button class="btn small primary">Xác nhận, thêm vào hồ sơ</button><button class="btn small ghost">Bỏ qua</button>`;
+    cf.children[0].onclick = ()=>{ confirmCb(true); cf.remove(); };
+    cf.children[1].onclick = ()=>{ confirmCb(false); cf.remove(); };
+    el.appendChild(cf);
+  }
+  agentFeed.appendChild(el);
+  agentFeed.scrollTop = agentFeed.scrollHeight;
+  return el;
+}
+
+function addRawFinding(cat, field, value, source, conf, note){
+  rawIdSeq++;
+  const now = new Date();
+  const row = {id:"r"+rawIdSeq, cat, field, value, source, conf, date: now.toISOString().slice(0,10)};
+  rawData.unshift(row);
+  const activeFilter = document.querySelector('.chip[data-filter].on')?.dataset.filter || "all";
+  renderRaw(activeFilter==="all" ? rawData : rawData.filter(r=>r.cat===activeFilter));
+  document.getElementById("statDP").textContent = (Number(document.getElementById("statDP").textContent.replace(/,/g,''))+1).toLocaleString('en-US');
+  pushAudit({type:"agent", title:`Agent thêm dữ liệu mới: ${field}`, meta: note || `Nguồn: ${source}`, newVal: value, revert:()=>{
+    rawData = rawData.filter(r=>r.id!==row.id);
+    renderRaw(rawData);
+  }});
+}
+
+function recursiveLookup(seedValue, seedField){
+  setAgentRunning(true);
+  agentSay(`Bắt đầu tra cứu đệ quy từ "${seedValue}" (nguồn gốc: ${seedField})...`, "sys");
+  const steps = [
+    `Đang tìm các điểm dữ liệu liên quan tới "${seedValue}" trên nhiều nguồn công khai...`,
+    `Đối chiếu chéo với dữ liệu đã có trong hồ sơ để loại trùng lặp...`,
+    `Đang chấm điểm độ tin cậy cho các kết quả mới...`,
+  ];
+  let i = 0;
+  const iv = setInterval(()=>{
+    if(i < steps.length){
+      agentSay(steps[i], "sys");
+      i++;
+    } else {
+      clearInterval(iv);
+      const guesses = [
+        {field:"Mối liên hệ mới", value: seedValue+" — liên kết tới 1 tài khoản Mastodon chưa xác minh", source:"Cross-reference (mock)", conf:52, cat:"network"},
+        {field:"Địa điểm liên quan", value: "Xuất hiện gần "+seedValue+" trong 2 ảnh gắn thẻ vị trí", source:"Geotag scan (mock)", conf:63, cat:"location"},
+      ];
+      const g = guesses[Math.floor(Math.random()*guesses.length)];
+      if(state.agentMode==="auto"){
+        addRawFinding(g.cat, g.field, g.value, g.source, g.conf, `Tra cứu đệ quy từ: ${seedField}`);
+        agentSay(`Đã tự động thêm phát hiện mới vào hồ sơ (chế độ Tự động): ${g.value}`, "found");
+        toast("Agent đã thêm dữ liệu mới từ tra cứu đệ quy", "agent");
+      } else {
+        agentSay(`Tìm thấy khả năng liên quan: "${g.value}" (tin cậy ${g.conf}%). Thêm vào hồ sơ?`, "ask", (ok)=>{
+          if(ok){
+            addRawFinding(g.cat, g.field, g.value, g.source, g.conf, `Tra cứu đệ quy từ: ${seedField}`);
+            agentSay(`Đã thêm vào hồ sơ: ${g.value}`, "found");
+            toast("Đã thêm phát hiện mới vào hồ sơ", "agent");
+          } else {
+            agentSay("Đã bỏ qua phát hiện này theo yêu cầu của bạn.", "sys");
+          }
+          setAgentRunning(false);
+        });
+        return;
+      }
+      setAgentRunning(false);
+    }
+  }, 850);
+}
+
+function setAgentRunning(v){
+  state.agentRunning = v;
+  agentDot.classList.toggle("running", v);
+  document.getElementById("agentRunBtn").textContent = v ? "■ Đang chạy..." : "▶ Chạy Agent";
+  document.getElementById("agentRunBtn").disabled = v;
+}
+
+/* full agent run (from "Chạy Agent" button) */
+function runFullAgentScan(){
+  if(state.agentRunning) return;
+  setAgentRunning(true);
+  agentSay("Bắt đầu chu trình quét: tổng hợp lại toàn bộ hồ sơ, tìm điểm còn thiếu và đối chiếu nguồn mới.", "sys");
+  const script = [
+    {t:"Đang kiểm tra các nền tảng MXH chưa quét (Mastodon, BlueSky, Threads)...", k:"sys"},
+    {t:"Tìm thấy khả năng có tài khoản Threads trùng bí danh 'amw_dev' — chưa xác minh chắc chắn.", k:"ask", g:{field:"Tài khoản MXH mới", value:"Threads: @amw_dev (chưa xác minh)", source:"Cross-match username (mock)", conf:58, cat:"social"}},
+    {t:"Đang quét lại các nguồn breach mới công bố trong 30 ngày qua...", k:"sys"},
+    {t:"Không phát hiện breach mới liên quan tới các email đã biết.", k:"sys"},
+    {t:"Đang đối chiếu vị trí hiện tại với dữ liệu giao hàng/check-in gần nhất...", k:"sys"},
+    {t:"Địa chỉ '2140 Rainey St, Austin, TX' được củng cố thêm bởi 1 check-in Foursquare mới.", k:"found"},
+  ];
+  let i = 0;
+  const iv = setInterval(()=>{
+    if(i>=script.length){
+      clearInterval(iv);
+      agentSay("Hoàn tất chu trình quét. Độ tin cậy tổng thể được cập nhật.", "sys");
+      setAgentRunning(false);
+      toast("Agent đã hoàn tất chu trình quét", "agent");
+      return;
+    }
+    const s = script[i]; i++;
+    if(s.k==="ask" && s.g){
+      agentSay(s.t, "ask", (ok)=>{
+        if(ok){
+          addRawFinding(s.g.cat, s.g.field, s.g.value, s.g.source, s.g.conf, "Phát hiện trong chu trình quét đầy đủ");
+          agentSay("Đã thêm vào hồ sơ theo xác nhận của bạn.", "found");
+          toast("Đã thêm dữ liệu mới vào hồ sơ", "agent");
+        } else {
+          agentSay("Đã bỏ qua theo yêu cầu của bạn.", "sys");
+        }
+      });
+    } else {
+      agentSay(s.t, s.k);
+    }
+  }, 1000);
+}
+document.getElementById("agentRunBtn").onclick = runFullAgentScan;
+document.getElementById("rescanBtn").onclick = runFullAgentScan;
+
+/* agent mode toggle */
+const agentModeBtn = document.getElementById("agentModeBtn");
+agentModeBtn.onclick = ()=>{
+  state.agentMode = state.agentMode==="semi" ? "auto" : "semi";
+  agentModeBtn.textContent = state.agentMode==="semi" ? "Bán tự động" : "Tự động";
+  toast(state.agentMode==="auto" ? "Agent chuyển sang chế độ Tự động — sẽ tự thêm phát hiện tin cậy cao mà không hỏi lại." : "Agent chuyển sang chế độ Bán tự động — sẽ hỏi xác nhận trước khi thêm dữ liệu.", "agent");
+};
+
+/* agent chat input */
+document.getElementById("agentSendBtn").onclick = sendAgentTask;
+document.getElementById("agentInput").addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendAgentTask(); });
+function sendAgentTask(){
+  const input = document.getElementById("agentInput");
+  const text = input.value.trim();
+  if(!text) return;
+  agentSay(text, "user");
+  input.value = "";
+  setAgentRunning(true);
+  setTimeout(()=>{
+    agentSay(`Đã nhận nhiệm vụ: "${text}". Đang lên kế hoạch truy vấn phù hợp trên các nguồn liên quan...`, "sys");
+    setTimeout(()=>{
+      agentSay(`Hoàn tất bước đầu cho nhiệm vụ này. Cần thêm ngữ cảnh hoặc bạn có thể yêu cầu tôi "tra cứu đệ quy" trực tiếp từ một điểm dữ liệu bất kỳ để đào sâu hơn.`, "sys");
+      setAgentRunning(false);
+    }, 1300);
+  }, 700);
+}
+document.querySelectorAll(".agent-quick span").forEach(s=>{
+  s.onclick = ()=>{ document.getElementById("agentInput").value = s.dataset.q; sendAgentTask(); };
+});
+
+/* seed agent feed */
+agentSay("Xin chào — tôi là Agent hỗ trợ điều tra hồ sơ này. Tôi có thể tự tìm kiếm, đối chiếu và đề xuất dữ liệu mới. Bấm ▶ Chạy Agent để bắt đầu, hoặc hỏi tôi trực tiếp bên dưới.", "sys");
+agentSay('Tôi nhận thấy quan hệ "Dana R. Whitfield" chỉ có độ tin cậy 57%. Bạn có muốn tôi tra cứu sâu hơn để xác minh không?', "ask", (ok)=>{
+  if(ok){
+    agentSay("Đang tra cứu sâu hơn về mối quan hệ này...", "sys");
+    setTimeout(()=>{
+      addRawFinding("network","Xác minh quan hệ","Tìm thấy 1 bài đăng công khai gắn thẻ chung tại cùng địa chỉ (2024)","Instagram tag scan (mock)",66,"Xác minh theo yêu cầu người dùng");
+      agentSay("Đã tìm thêm 1 bằng chứng gián tiếp, độ tin cậy quan hệ có thể tăng lên ~66%. Đã thêm vào Raw Data để bạn xem xét.", "found");
+    }, 1400);
+  } else {
+    agentSay("Đã bỏ qua theo yêu cầu của bạn. Bạn có thể quay lại bất cứ lúc nào.", "sys");
+  }
+});
+
+/* ================================================================
+   WEBVIEW TAB
+================================================================= */
+const bookmarkList = document.getElementById("bookmarkList");
+const savedSources = [
+  ["linkedin.com/in/alex-whitfield-91","LinkedIn — hồ sơ chính"],
+  ["github.com/amw-dev","GitHub — hoạt động dev"],
+  ["reddit.com/u/panel_ghost","Reddit — bài đăng homelab"],
+  ["texas.gov/business-search","Texas SOS — tra cứu doanh nghiệp"],
+];
+savedSources.forEach(s=>{
+  const el = document.createElement("div");
+  el.className = "bm-item";
+  el.innerHTML = `<span class="u">${s[0]}</span><span class="d">${s[1]}</span>`;
+  el.onclick = ()=>{ document.getElementById("webviewUrl").value = "https://"+s[0]; toast("Đã nạp địa chỉ vào thanh URL", null); };
+  bookmarkList.appendChild(el);
+});
+
+document.getElementById("webviewGo").onclick = ()=>{
+  const url = document.getElementById("webviewUrl").value.trim();
+  if(!url) return;
+  toast("Trình duyệt tích hợp là bản mô phỏng UI — cần backend proxy để tải trang thật.", "warnT");
+};
+
+document.getElementById("captureBtn").onclick = ()=>{
+  const field = document.getElementById("captureField").value.trim();
+  const value = document.getElementById("captureValue").value.trim();
+  const url = document.getElementById("webviewUrl").value.trim();
+  if(!field || !value){ toast("Cần nhập cả tên trường và giá trị trước khi chụp.", "warnT"); return; }
+  addRawFinding("identity", field, value, url || "WebView thủ công", 70, "Chụp thủ công từ WebView");
+  const hist = document.getElementById("captureHistory");
+  if(hist.querySelector("span")) hist.innerHTML = "";
+  const row = document.createElement("div");
+  row.style.cssText = "padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--panel);";
+  row.innerHTML = `<b style="color:var(--text)">${field}</b>: ${value}<div style="color:var(--text-faint);font-size:9.5px;margin-top:2px;">${nowStr()} · ${url||'—'}</div>`;
+  hist.prepend(row);
+  document.getElementById("captureField").value = "";
+  document.getElementById("captureValue").value = "";
+  toast("Đã chụp dữ liệu vào hồ sơ (Raw Data)", "ok");
+};
+
+/* ================================================================
+   SVG CHARTS
+================================================================= */
+(function(){
+  const svg = document.getElementById("riskGaugeSvg");
+  const cx=90, cy=95, r=75;
+  const val = 68;
+  function pt(angle,rad){ return [cx+rad*Math.cos(angle), cy-rad*Math.sin(angle)]; }
+  function arcPath(a0,a1,rad){ const [x0,y0]=pt(a0,rad),[x1,y1]=pt(a1,rad); const large = (a0-a1)>Math.PI?1:0; return `M${x0} ${y0} A${rad} ${rad} 0 ${large} 1 ${x1} ${y1}`; }
+  const segs = [[Math.PI,Math.PI*0.66,"var(--green)"],[Math.PI*0.66,Math.PI*0.33,"var(--amber)"],[Math.PI*0.33,0,"var(--red)"]];
+  let html="";
+  segs.forEach(s=>{ html += `<path d="${arcPath(s[0],s[1],r)}" stroke="${s[2]}" stroke-width="14" fill="none" stroke-linecap="round" opacity="0.9"/>`; });
+  const needleAngle = Math.PI - (val/100)*Math.PI;
+  const [nx,ny] = pt(needleAngle, r-22);
+  html += `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"/>`;
+  html += `<circle cx="${cx}" cy="${cy}" r="4.5" fill="var(--text)"/>`;
+  svg.innerHTML = html;
+})();
+
+(function(){
+  const svg = document.getElementById("donutChart");
+  const cx=60, cy=60, r=46, rw=16;
+  const data = [[42,"var(--red)"],[28,"var(--amber)"],[18,"var(--blue)"],[12,"var(--purple)"]];
+  let acc=0; let html="";
+  data.forEach(d=>{
+    const a0 = (acc/100)*2*Math.PI - Math.PI/2;
+    acc += d[0];
+    const a1 = (acc/100)*2*Math.PI - Math.PI/2;
+    const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0);
+    const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const large = (a1-a0)>Math.PI?1:0;
+    html += `<path d="M${x0} ${y0} A${r} ${r} 0 ${large} 1 ${x1} ${y1}" stroke="${d[1]}" stroke-width="${rw}" fill="none"/>`;
+  });
+  html += `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="Syne" font-weight="700" font-size="16" fill="var(--text)">4</text>`;
+  svg.innerHTML = html;
+})();
+
+(function(){
+  const svg = document.getElementById("activityChart");
+  const vals = [12,18,9,26,31,22,40,35,48,29,52,44];
+  const w=260,h=120,gap=4;
+  const bw = (w/vals.length)-gap;
+  const max = Math.max(...vals);
+  let html="";
+  vals.forEach((v,i)=>{
+    const bh = (v/max)*(h-8);
+    const x = i*(bw+gap);
+    const y = h-bh;
+    const color = i>=vals.length-3 ? "var(--blue)" : "#243047";
+    html += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="2" fill="${color}"/>`;
+  });
+  svg.innerHTML = html;
+})();
+
+function buildGraph(svgId, big){
+  const svg = document.getElementById(svgId);
+  const w = big?620:300, h = big?460:230;
+  const cx=w/2, cy=h/2;
+  const center = {x:cx,y:cy,label:"Alex Whitfield",color:"var(--blue)",r:big?15:11};
+  const ringNodes = big ? [
+    {label:"amwhitfield",color:"var(--purple)"},{label:"ghostpanel91",color:"var(--purple)"},
+    {label:"alex.whitfield@gmail.com",color:"var(--cyan)"},{label:"+1 512 555 0148",color:"var(--cyan)"},
+    {label:"Rainey St, Austin",color:"var(--amber)"},{label:"Northwind Systems",color:"var(--green)"},
+    {label:"Jordan Whitfield",color:"var(--pink)"},{label:"Dana R. Whitfield",color:"var(--pink)"},
+    {label:"Priya Nandakumar",color:"var(--pink)"},{label:"r/homelab",color:"var(--blue)"},
+    {label:"Collection#4 Breach",color:"var(--red)"},{label:"CloudNote Breach",color:"var(--red)"},
+    {label:"GitHub: amw-dev",color:"var(--blue)"},{label:"CU Boulder",color:"var(--green)"},
+    {label:"AMW Labs LLC",color:"var(--agent)"},
+  ] : [
+    {label:"amwhitfield",color:"var(--purple)"},{label:"gmail",color:"var(--cyan)"},
+    {label:"Austin, TX",color:"var(--amber)"},{label:"Northwind",color:"var(--green)"},
+    {label:"Jordan W.",color:"var(--pink)"},{label:"Breach x4",color:"var(--red)"},{label:"GitHub",color:"var(--blue)"},
+  ];
+  const radius = big? 190 : 100;
+  let html = "";
+  const positions = [];
+  ringNodes.forEach((n,i)=>{
+    const angle = (i/ringNodes.length)*2*Math.PI - Math.PI/2;
+    const x = cx + radius*Math.cos(angle);
+    const y = cy + radius*Math.sin(angle);
+    positions.push({...n,x,y});
+  });
+  positions.forEach(p=>{ html += `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="#232b3a" stroke-width="1.4"/>`; });
+  if(big && positions.length>10){
+    html += `<line x1="${positions[6].x}" y1="${positions[6].y}" x2="${positions[7].x}" y2="${positions[7].y}" stroke="#2a2340" stroke-width="1" stroke-dasharray="3,3"/>`;
+    html += `<line x1="${positions[5].x}" y1="${positions[5].y}" x2="${positions[8].x}" y2="${positions[8].y}" stroke="#2a2340" stroke-width="1" stroke-dasharray="3,3"/>`;
+  }
+  html += `<circle cx="${cx}" cy="${cy}" r="${center.r}" fill="${center.color}" opacity="0.18"/>`;
+  html += `<circle cx="${cx}" cy="${cy}" r="${center.r*0.6}" fill="${center.color}"/>`;
+  html += `<text x="${cx}" y="${cy+center.r+13}" text-anchor="middle" class="node-label center">${center.label}</text>`;
+  positions.forEach(p=>{
+    const rr = big?7:5.5;
+    html += `<circle cx="${p.x}" cy="${p.y}" r="${rr}" fill="${p.color}" opacity="0.85"/>`;
+    const dy = p.y > cy ? rr+11 : -(rr+5);
+    html += `<text x="${p.x}" y="${p.y+dy}" text-anchor="middle" class="node-label">${p.label}</text>`;
+  });
+  svg.innerHTML = html;
+}
+buildGraph("graphMini", false);
+buildGraph("graphFull", true);
+
+/* init audit tab empty state + count */
+renderAudit();
+updateAuditCount();
+</script>
+</body>
+</html>

@@ -27,6 +27,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// ── Types ──
+import type { Design, DesignInput } from '../types/design';
+import type { Task, TaskInput } from '../types/task';
+import type { AgentGroup, AgentGroupInput, AgentTerminal } from '../types/agent-group';
+import type { MCP, MCPInput } from '../types/mcp';
+
 // ─── Interfaces ─────────────────────────────────────────────────────────
 export interface Project {
   id: string;
@@ -36,6 +42,10 @@ export interface Project {
   template: string;
   services: Service[];
   files: FileNode[];
+  designs: Design[];
+  tasks: Task[];
+  agentGroups: AgentGroup[];
+  mcps: MCP[];
   // ── Per-project state ──
   expandedFolderIds: string[];
   openFiles: string[];
@@ -48,7 +58,7 @@ export interface Project {
   bottomPanelTab: 'output' | 'terminal' | 'port' | 'performance' | 'problems';
   isBottomPanelOpen: boolean;
   // ── Activity panel per-project ──
-  activityPanelTab: 'explore' | 'search' | 'source' | 'extension' | 'lsp';
+  activityPanelTab: 'explore' | 'search' | 'source' | 'todo' | 'agents' | 'design' | 'extension' | 'lsp';
   // ── Unsaved changes tracking ──
   unsavedFiles: Set<string>;
   originalContents: Record<string, string>;
@@ -61,6 +71,10 @@ export type ProjectInput = Omit<
   | 'id'
   | 'services'
   | 'files'
+  | 'designs'
+  | 'tasks'
+  | 'agentGroups'
+  | 'mcps'
   | 'expandedFolderIds'
   | 'openFiles'
   | 'fileDisplayNames'
@@ -115,6 +129,10 @@ function createDefaultPerProject() {
     unsavedFiles: new Set<string>(),
     originalContents: {} as Record<string, string>,
     dirVersions: {} as Record<string, number>,
+    designs: [] as Design[],
+    tasks: [] as Task[],
+    agentGroups: [] as AgentGroup[],
+    mcps: [] as MCP[],
   };
 }
 
@@ -144,7 +162,7 @@ interface CodeState {
   setActiveFileTab: (fileId: string) => void;
   setBottomPanelTab: (tab: 'output' | 'terminal' | 'port' | 'performance' | 'problems') => void;
   toggleBottomPanel: () => void;
-  setActivityPanelTab: (tab: 'explore' | 'search' | 'source' | 'extension' | 'lsp') => void;
+  setActivityPanelTab: (tab: 'explore' | 'search' | 'source' | 'todo' | 'agents' | 'design' | 'extension' | 'lsp') => void;
   setProjectManagerOpen: (open: boolean) => void;
   setNewProjectOpen: (open: boolean) => void;
   setProjectFiles: (projectId: string, files: FileNode[]) => void;
@@ -164,6 +182,29 @@ interface CodeState {
   setPendingAction: (action: (() => void) | null) => void;
   setSaveConfirmModalOpen: (open: boolean) => void;
   executeWithSaveCheck: (action: () => void) => void;
+  // Design actions
+  addDesign: (projectId: string, design: DesignInput) => void;
+  updateDesign: (projectId: string, designId: string, updates: Partial<Design>) => void;
+  removeDesign: (projectId: string, designId: string) => void;
+  openDesign: (projectId: string, designId: string) => void;
+  // Task actions
+  addTask: (projectId: string, task: TaskInput) => void;
+  updateTask: (projectId: string, taskId: string, updates: Partial<Task>) => void;
+  removeTask: (projectId: string, taskId: string) => void;
+  changeTaskStatus: (projectId: string, taskId: string, status: Task['status']) => void;
+  // Agent Group actions
+  addAgentGroup: (projectId: string, group: AgentGroupInput) => void;
+  updateAgentGroup: (projectId: string, groupId: string, updates: Partial<AgentGroup>) => void;
+  removeAgentGroup: (projectId: string, groupId: string) => void;
+  openAgentGroup: (projectId: string, groupId: string) => void;
+  updateTerminalInGroup: (projectId: string, groupId: string, terminalId: string, updates: Partial<AgentTerminal>) => void;
+  // MCP actions
+  addMCP: (projectId: string, mcp: MCPInput) => void;
+  updateMCP: (projectId: string, mcpId: string, updates: Partial<MCP>) => void;
+  removeMCP: (projectId: string, mcpId: string) => void;
+  installMCP: (projectId: string, mcpId: string) => void;
+  uninstallMCP: (projectId: string, mcpId: string) => void;
+  openMCPDetail: (projectId: string, mcpId: string) => void;
 }
 
 // ─── Store ──────────────────────────────────────────────────────────────
@@ -227,9 +268,85 @@ export const useCodeStore = create<CodeState>()(
         }
       };
 
+      // Migration: Add designs array to old projects
+      const migrateDesignsArray = () => {
+        const state = get();
+        const migratedProjects = state.projects.map((project) => {
+          if (project.designs === undefined) {
+            return {
+              ...project,
+              designs: [] as Design[],
+            };
+          }
+          return project;
+        });
+
+        if (migratedProjects.some((p, i) => p !== state.projects[i])) {
+          set({ projects: migratedProjects });
+        }
+      };
+
+      // Migration: Add tasks array to old projects
+      const migrateTasksArray = () => {
+        const state = get();
+        const migratedProjects = state.projects.map((project) => {
+          if (project.tasks === undefined) {
+            return {
+              ...project,
+              tasks: [] as Task[],
+            };
+          }
+          return project;
+        });
+
+        if (migratedProjects.some((p, i) => p !== state.projects[i])) {
+          set({ projects: migratedProjects });
+        }
+      };
+
+      // Migration: Add agentGroups array to old projects
+      const migrateAgentGroupsArray = () => {
+        const state = get();
+        const migratedProjects = state.projects.map((project) => {
+          if (project.agentGroups === undefined) {
+            return {
+              ...project,
+              agentGroups: [] as AgentGroup[],
+            };
+          }
+          return project;
+        });
+
+        if (migratedProjects.some((p, i) => p !== state.projects[i])) {
+          set({ projects: migratedProjects });
+        }
+      };
+
+      // Migration: Add mcps array to old projects
+      const migrateMCPsArray = () => {
+        const state = get();
+        const migratedProjects = state.projects.map((project) => {
+          if (project.mcps === undefined) {
+            return {
+              ...project,
+              mcps: [] as MCP[],
+            };
+          }
+          return project;
+        });
+
+        if (migratedProjects.some((p, i) => p !== state.projects[i])) {
+          set({ projects: migratedProjects });
+        }
+      };
+
       setTimeout(() => {
         migrateOldExtensionServices();
         migratePerProjectPanelState();
+        migrateDesignsArray();
+        migrateTasksArray();
+        migrateAgentGroupsArray();
+        migrateMCPsArray();
       }, 100);
 
       return {
@@ -560,6 +677,370 @@ export const useCodeStore = create<CodeState>()(
           } else {
             action();
           }
+        },
+
+        // ── Design Actions ──
+
+        addDesign: (projectId: string, design: DesignInput) => {
+          const newDesign: Design = {
+            ...design,
+            id: `design_${Date.now()}`,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, designs: [...p.designs, newDesign] } : p,
+            ),
+          }));
+          // Auto-create a service for the design
+          const designService: ServiceInput = {
+            id: `service_${newDesign.id}`,
+            name: newDesign.name,
+            type: 'design',
+            meta: 'Design',
+            tabId: newDesign.id,
+          };
+          get().addService(projectId, designService);
+          // Auto-open the design
+          get().openDesign(projectId, newDesign.id);
+        },
+
+        updateDesign: (projectId: string, designId: string, updates: Partial<Design>) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    designs: p.designs.map((d) =>
+                      d.id === designId ? { ...d, ...updates, updatedAt: Date.now() } : d,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        removeDesign: (projectId: string, designId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    designs: p.designs.filter((d) => d.id !== designId),
+                    services: p.services.filter((s) => s.tabId !== designId),
+                    currentServiceId:
+                      p.currentServiceId === `service_${designId}` ? null : p.currentServiceId,
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        openDesign: (projectId: string, designId: string) => {
+          const state = get();
+          const project = state.projects.find((p) => p.id === projectId);
+          if (!project) return;
+
+          // Find or create service for this design
+          let service = project.services.find((s) => s.tabId === designId);
+          if (!service) {
+            const design = project.designs.find((d) => d.id === designId);
+            if (!design) return;
+
+            const designService: ServiceInput = {
+              id: `service_${designId}`,
+              name: design.name,
+              type: 'design',
+              meta: 'Design',
+              tabId: designId,
+            };
+            get().addService(projectId, designService);
+            service = designService as Service;
+          }
+
+          // Set as current service
+          get().setCurrentService(service.id);
+        },
+
+        // ── Task Actions ──
+
+        addTask: (projectId: string, task: TaskInput) => {
+          const newTask: Task = {
+            ...task,
+            id: `task_${Date.now()}`,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, tasks: [...p.tasks, newTask] } : p,
+            ),
+          }));
+        },
+
+        updateTask: (projectId: string, taskId: string, updates: Partial<Task>) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    tasks: p.tasks.map((t) =>
+                      t.id === taskId ? { ...t, ...updates, updatedAt: Date.now() } : t,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        removeTask: (projectId: string, taskId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, tasks: p.tasks.filter((t) => t.id !== taskId) } : p,
+            ),
+          }));
+        },
+
+        changeTaskStatus: (projectId: string, taskId: string, status: Task['status']) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    tasks: p.tasks.map((t) =>
+                      t.id === taskId
+                        ? {
+                            ...t,
+                            status,
+                            updatedAt: Date.now(),
+                            completedAt: status === 'completed' ? Date.now() : t.completedAt,
+                          }
+                        : t,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        // ── Agent Group Actions ──
+
+        addAgentGroup: (projectId: string, group: AgentGroupInput) => {
+          const newGroup: AgentGroup = {
+            ...group,
+            id: `agent_group_${Date.now()}`,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, agentGroups: [...p.agentGroups, newGroup] } : p,
+            ),
+          }));
+
+          // Auto-create service tab for agent group
+          const agentService: ServiceInput = {
+            id: `service_${newGroup.id}`,
+            name: newGroup.name,
+            type: 'extension', // Reuse extension type for custom content
+            meta: 'Agent Group',
+            tabId: newGroup.id,
+          };
+          get().addService(projectId, agentService);
+          get().openAgentGroup(projectId, newGroup.id);
+        },
+
+        updateAgentGroup: (projectId: string, groupId: string, updates: Partial<AgentGroup>) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    agentGroups: p.agentGroups.map((g) =>
+                      g.id === groupId ? { ...g, ...updates, updatedAt: Date.now() } : g,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        removeAgentGroup: (projectId: string, groupId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    agentGroups: p.agentGroups.filter((g) => g.id !== groupId),
+                    services: p.services.filter((s) => s.tabId !== groupId),
+                    currentServiceId:
+                      p.currentServiceId === `service_${groupId}` ? null : p.currentServiceId,
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        openAgentGroup: (projectId: string, groupId: string) => {
+          const state = get();
+          const project = state.projects.find((p) => p.id === projectId);
+          if (!project) return;
+
+          let service = project.services.find((s) => s.tabId === groupId);
+          if (!service) {
+            const group = project.agentGroups.find((g) => g.id === groupId);
+            if (!group) return;
+
+            const agentService: ServiceInput = {
+              id: `service_${groupId}`,
+              name: group.name,
+              type: 'extension',
+              meta: 'Agent Group',
+              tabId: groupId,
+            };
+            get().addService(projectId, agentService);
+            service = agentService as Service;
+          }
+
+          get().setCurrentService(service.id);
+        },
+
+        updateTerminalInGroup: (
+          projectId: string,
+          groupId: string,
+          terminalId: string,
+          updates: Partial<AgentTerminal>,
+        ) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    agentGroups: p.agentGroups.map((g) =>
+                      g.id === groupId
+                        ? {
+                            ...g,
+                            terminals: g.terminals.map((t) =>
+                              t.id === terminalId ? { ...t, ...updates } : t,
+                            ),
+                            updatedAt: Date.now(),
+                          }
+                        : g,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        // ── MCP Actions ──
+
+        addMCP: (projectId: string, mcp: MCPInput) => {
+          const newMCP: MCP = {
+            ...mcp,
+            id: `mcp_${Date.now()}`,
+            status: 'not-installed',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, mcps: [...p.mcps, newMCP] } : p,
+            ),
+          }));
+        },
+
+        updateMCP: (projectId: string, mcpId: string, updates: Partial<MCP>) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    mcps: p.mcps.map((m) =>
+                      m.id === mcpId ? { ...m, ...updates, updatedAt: Date.now() } : m,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        removeMCP: (projectId: string, mcpId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, mcps: p.mcps.filter((m) => m.id !== mcpId) } : p,
+            ),
+          }));
+        },
+
+        installMCP: (projectId: string, mcpId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    mcps: p.mcps.map((m) =>
+                      m.id === mcpId
+                        ? {
+                            ...m,
+                            status: 'installed',
+                            installedAt: Date.now(),
+                            updatedAt: Date.now(),
+                          }
+                        : m,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        uninstallMCP: (projectId: string, mcpId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    mcps: p.mcps.map((m) =>
+                      m.id === mcpId
+                        ? {
+                            ...m,
+                            status: 'not-installed',
+                            installedAt: undefined,
+                            updatedAt: Date.now(),
+                          }
+                        : m,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        openMCPDetail: (projectId: string, mcpId: string) => {
+          const state = get();
+          const project = state.projects.find((p) => p.id === projectId);
+          if (!project) return;
+
+          const mcp = project.mcps.find((m) => m.id === mcpId);
+          if (!mcp) return;
+
+          // Create service tab for MCP detail view
+          let service = project.services.find((s) => s.tabId === mcpId);
+          if (!service) {
+            const mcpService: ServiceInput = {
+              id: `service_${mcpId}`,
+              name: mcp.name,
+              type: 'extension',
+              meta: 'MCP',
+              tabId: mcpId,
+            };
+            get().addService(projectId, mcpService);
+            service = mcpService as Service;
+          }
+
+          get().setCurrentService(service.id);
         },
       };
     },

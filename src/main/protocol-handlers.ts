@@ -62,7 +62,7 @@ export function registerMediaProtocol() {
       if (mainWindow) {
         mainWindow.webContents.send('proxy:request', {
           id: requestId,
-          url: request.url,
+          url: actualUrl,
           method: request.method,
           headers: request.headers,
           timestamp: Date.now(),
@@ -124,7 +124,7 @@ export function registerMediaProtocol() {
       if (mainWindow) {
         mainWindow.webContents.send('proxy:response', {
           id: requestId,
-          url: request.url,
+          url: actualUrl,
           statusCode: response.status,
           headers: responseHeaders,
           timestamp: Date.now(),

@@ -23,6 +23,7 @@ import { useTheme } from '@renderer/theme';
 import useNetworkEvents from './hooks/network/useNetworkEvents';
 import TargetSidebar from './components/TargetListPanel';
 import { useTimerStore } from '../../stores/timerStore';
+import { useNetworkStore } from '../../stores/networkStore';
 
 // Constants
 
@@ -57,7 +58,6 @@ export default React.memo(function Emulate({
     targetTabs,
     activeTargetId,
     targetStates,
-    requests: savedRequests,
   } = state;
 
   // Update Agent context with Emulate state
@@ -257,6 +257,18 @@ export default React.memo(function Emulate({
       setState((prev) => ({ ...prev, requests: newRequests }));
     },
   });
+
+  // Clear stale requests from previous session when module mounts
+  useEffect(() => {
+    // [DEBUG] Remove after fixing stale requests issue
+    console.log('[DEBUG|Emulate] mount — clearing stale requests', {
+      storeRequests: useNetworkStore.getState().requests.length,
+      stateRequests: state.requests?.length,
+      activeTargetId,
+    });
+    useNetworkStore.setState({ requests: [] });
+    setState((prev) => ({ ...prev, requests: [] }));
+  }, []);
 
   // Sync requests to EmulateController
   useEffect(() => {

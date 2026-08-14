@@ -9,7 +9,7 @@ export interface InspectorFilter {
   path: {
     whitelist: string[];
   };
-  status: Record<number, boolean>;
+  status: Record<string, boolean>;
   type: {
     xhr: boolean;
     js: boolean;
