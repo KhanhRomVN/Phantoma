@@ -204,6 +204,18 @@ export interface ListSourcesParams {
   };
 }
 
+export interface ListResourcesParams {
+  filter?: {
+    type?: string;
+  };
+}
+
 export interface GetSourceDetailParams {
   index: number;
+}
+
+export interface GetResourceContentParams {
+  index: number;
+  start_line?: number;
+  end_line?: number;
 }

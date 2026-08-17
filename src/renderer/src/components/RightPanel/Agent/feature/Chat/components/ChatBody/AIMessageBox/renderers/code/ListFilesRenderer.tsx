@@ -27,7 +27,6 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   messageId,
   isActionClicked,
   isActiveGroup,
-  isLastMessage,
   isLastItemInList,
   toolOutputs,
   allMessages,

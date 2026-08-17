@@ -211,7 +211,7 @@ export function ResourcePreview({ item }: ResourcePreviewProps) {
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-auto p-4 bg-muted/5">
+        <div className="flex-1 overflow-auto bg-muted/5">
           <CodeBlock
             code={item.responseBody}
             language={getLanguage()}

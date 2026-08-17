@@ -49,15 +49,6 @@ export class CdpManager extends EventEmitter {
   }
 
   public async connect(port: number, retries = 5, delay = 1000): Promise<boolean> {
-    // [DEBUG] Có thể xóa sau khi fix log lặp — hiển thị trạng thái connection hiện tại
-    console.log('[DEBUG|CDP] connect() called:', {
-      port,
-      currentPort: this.currentPort,
-      isConnected: this.isConnected,
-      wsReadyState: this.ws?.readyState,
-      wsOpen: this.ws?.readyState === WebSocket.OPEN,
-    });
-
     // Guard: nếu đã connected tới cùng port, bỏ qua reconnect
     if (this.isConnected && this.ws?.readyState === WebSocket.OPEN && this.currentPort === port) {
       console.log('[DEBUG|CDP] Already connected to port', port, '- skipping reconnect');
@@ -70,11 +61,11 @@ export class CdpManager extends EventEmitter {
 
     try {
       const targetsResponse = await fetch(`http://127.0.0.1:${port}/json/list`);
-      
+
       if (!targetsResponse.ok) throw new Error(`HTTP ${targetsResponse.status} from /json/list`);
 
       const targets = (await targetsResponse.json()) as any[];
-      
+
       const allPageTargets = targets.filter((t) => t.type === 'page');
 
       let pageTarget = allPageTargets.find(
@@ -87,25 +78,21 @@ export class CdpManager extends EventEmitter {
 
       if (!pageTarget && allPageTargets.length > 0) {
         pageTarget = allPageTargets[0];
-        
       }
 
       if (!pageTarget) {
         const browserTarget = targets.find((t) => t.type === 'browser');
         if (!browserTarget) {
-          
           return false;
         }
-        
+
         return this.connectToTarget(browserTarget.webSocketDebuggerUrl, retries, delay);
       }
 
-      
       return this.connectToTarget(pageTarget.webSocketDebuggerUrl, retries, delay);
     } catch (error) {
       console.error('[CDP DEBUG] Error in connect():', error);
       if (retries > 0) {
-        
         await new Promise((r) => setTimeout(r, delay));
         return this.connect(port, retries - 1, delay);
       }

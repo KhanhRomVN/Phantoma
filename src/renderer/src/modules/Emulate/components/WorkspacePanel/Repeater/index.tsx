@@ -198,19 +198,28 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
         />
       </div>
       <div className="flex-1 flex flex-col min-w-0 bg-muted/5">
-        <RequestPanel
-          request={selectedRequest}
-          lastRunTimestamp={lastRunTimestamp}
-          saveToHistory={saveToHistory}
-          onSaveToggle={() => setSaveToHistory(!saveToHistory)}
-          onRun={() => setLastRunTimestamp(Date.now())}
-          onSaveSession={() => setLastRunTimestamp(null)}
-          onSwitchTab={() => {}}
-          targetId={targetId}
-          viewHistoryEntry={viewHistoryEntry}
-          onViewHistory={handleViewHistory}
-          onExitView={handleExitView}
-        />
+        {allRequests.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-text-secondary">
+            <p className="text-sm">No requests in Repeater</p>
+            <p className="text-xs mt-1 opacity-60">
+              Right-click a request and select "Send to Repeater"
+            </p>
+          </div>
+        ) : (
+          <RequestPanel
+            request={selectedRequest}
+            lastRunTimestamp={lastRunTimestamp}
+            saveToHistory={saveToHistory}
+            onSaveToggle={() => setSaveToHistory(!saveToHistory)}
+            onRun={() => setLastRunTimestamp(Date.now())}
+            onSaveSession={() => setLastRunTimestamp(null)}
+            onSwitchTab={() => {}}
+            targetId={targetId}
+            viewHistoryEntry={viewHistoryEntry}
+            onViewHistory={handleViewHistory}
+            onExitView={handleExitView}
+          />
+        )}
       </div>
     </div>
   );

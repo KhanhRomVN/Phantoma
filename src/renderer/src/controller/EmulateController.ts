@@ -13,8 +13,10 @@ import {
 } from '../modules/Emulate/handler/ListHttpHandler';
 import { ListHostsHandler } from '../modules/Emulate/handler/ListHostsHandler';
 import { ListSourcesHandler, ListSourcesFilter } from '../modules/Emulate/handler/ListSourcesHandler';
+import { ListResourcesHandler, ListResourcesFilter } from '../modules/Emulate/handler/ListResourcesHandler';
 import { GetSourceDetailHandler } from '../modules/Emulate/handler/GetSourceDetailHandler';
 import { GetHttpsDetailHandler } from '../modules/Emulate/handler/GetHttpsDetailHandler';
+import { GetResourceContentHandler, GetResourceContentOptions } from '../modules/Emulate/handler/GetResourceContentHandler';
 import { GetTrafficSummaryHandler } from '../modules/Emulate/handler/GetTrafficSummaryHandler';
 import { GetFilterHandler } from '../modules/Emulate/handler/GetFilterHandler';
 import { ApplyFilterHandler } from '../modules/Emulate/handler/ApplyFilterHandler';
@@ -36,8 +38,10 @@ export class EmulateController {
   private listHttpHandler: ListHttpHandler;
   private listHostsHandler: ListHostsHandler;
   private listSourcesHandler: ListSourcesHandler;
+  private listResourcesHandler: ListResourcesHandler;
   private getSourceDetailHandler: GetSourceDetailHandler;
   private getHttpsDetailHandler: GetHttpsDetailHandler;
+  private getResourceContentHandler: GetResourceContentHandler;
   private getTrafficSummaryHandler: GetTrafficSummaryHandler;
   private getFilterHandler: GetFilterHandler;
   private applyFilterHandler: ApplyFilterHandler;
@@ -46,8 +50,10 @@ export class EmulateController {
     this.listHttpHandler = new ListHttpHandler();
     this.listHostsHandler = new ListHostsHandler();
     this.listSourcesHandler = new ListSourcesHandler();
+    this.listResourcesHandler = new ListResourcesHandler();
     this.getSourceDetailHandler = new GetSourceDetailHandler();
     this.getHttpsDetailHandler = new GetHttpsDetailHandler();
+    this.getResourceContentHandler = new GetResourceContentHandler();
     this.getTrafficSummaryHandler = new GetTrafficSummaryHandler();
     this.getFilterHandler = new GetFilterHandler();
     this.applyFilterHandler = new ApplyFilterHandler();
@@ -83,6 +89,9 @@ export class EmulateController {
         case 'list_sources': {
           return { success: true, data: { output: ctrl.listSourcesText(params.filter || {}) } };
         }
+        case 'list_resources': {
+          return { success: true, data: { output: ctrl.listResourcesText(params.filter || {}) } };
+        }
         case 'get_source_detail': {
           if (params.index === undefined) return { success: false, error: 'index is required' };
           return { success: true, data: { output: ctrl.getSourceDetailText(params.index) } };
@@ -90,6 +99,13 @@ export class EmulateController {
         case 'get_https_detail': {
           if (params.index === undefined) return { success: false, error: 'index is required' };
           return { success: true, data: { output: ctrl.getHttpsDetailText(params.index) } };
+        }
+        case 'get_resource_content': {
+          if (params.index === undefined) return { success: false, error: 'index is required' };
+          const options: GetResourceContentOptions = {};
+          if (params.start_line !== undefined) options.startLine = params.start_line;
+          if (params.end_line !== undefined) options.endLine = params.end_line;
+          return { success: true, data: { output: ctrl.getResourceContentText(params.index, options) } };
         }
         case 'apply_filter': {
           const currentFilter = ctrl.getFilter();
@@ -128,8 +144,10 @@ export class EmulateController {
   public listHttpsText(filter: ListHttpFilter = {}, limit: number = 50): string { return this.listHttps(filter, limit).text; }
   public listHostsText(): string { return this.listHostsHandler.handle(this.requests).text; }
   public listSourcesText(filter: ListSourcesFilter = {}): string { return this.listSourcesHandler.handle(this.requests, filter).text; }
+  public listResourcesText(filter: ListResourcesFilter = {}): string { return this.listResourcesHandler.handle(this.requests, filter).text; }
   public getSourceDetailText(index: number): string { return this.getSourceDetailHandler.handle(this.requests, this.unpackedScripts, index).text; }
   public getHttpsDetailText(index: number): string { return this.getHttpsDetailHandler.handle(this.requests, index).text; }
+  public getResourceContentText(index: number, options: GetResourceContentOptions = {}): string { return this.getResourceContentHandler.handle(this.requests, index, options).text; }
   public getTrafficSummary(): TrafficSummary { return this.getTrafficSummaryHandler.handle(this.requests); }
   public setFilter(filter: InspectorFilter): void { this.filter = filter; }
   public getFilter(): InspectorFilter | undefined { return this.filter; }

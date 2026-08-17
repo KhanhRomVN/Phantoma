@@ -90,6 +90,18 @@ interface UseNetworkEventsOptions {
   onRequestsChange?: (requests: NetworkRequest[]) => void;
 }
 
+// [DEBUG] Helper theo dõi kích thước Map — xóa sau khi fix rò rỉ RAM
+function logMapStats(label: string, map: Map<string, any>) {
+  let totalSize = 0;
+  map.forEach((value) => {
+    try {
+      totalSize += JSON.stringify(value).length;
+    } catch {
+      // Bỏ qua giá trị không serialize được
+    }
+  });
+}
+
 export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const {
     targetId = '',
@@ -133,6 +145,8 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
   // Sync local requests to global store for RequestTable / Repeater
   useEffect(() => {
+    // [DEBUG] Xóa sau khi xác nhận requests giữ nguyên khi chuyển module
+    console.log('[DEBUG] Syncing requests to networkStore, count:', requests.length);
     useNetworkStore.setState({
       requests: requests.map((r) => ({
         ...r,
@@ -177,8 +191,10 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         console.debug('[useNetworkEvents] Skipping OPTIONS preflight request:', fullReq.url);
         return;
       }
-      
+
       requestMapRef.current.set(fullReq.id, fullReq);
+      // [DEBUG] Theo dõi rò rỉ RAM — xóa sau khi fix
+      logMapStats('requestMapRef', requestMapRef.current);
       addRequest(fullReq);
       onRequest?.(fullReq);
     },
@@ -189,14 +205,14 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleCdpResponse = useCallback(
     (data: CdpResponseData) => {
       const existing = requestMapRef.current.get(data.id);
-      
+
       // Clear timeout if exists
       const timeout = pendingTimeoutsRef.current.get(data.id);
       if (timeout) {
         clearTimeout(timeout);
         pendingTimeoutsRef.current.delete(data.id);
       }
-      
+
       // Only log errors or issues
       if (!existing) {
         // Skip responses for data/blob URIs — these are not real network requests
@@ -232,7 +248,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
             method: existing.method,
           });
         }
-        
+
         const updates: Partial<NetworkRequest> = {
           status: data.statusCode ?? 200,
           responseHeaders: data.headers || {},
@@ -283,6 +299,8 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleScriptUnpacked = useCallback(
     (data: CdpScriptUnpackedData) => {
       unpackedScriptsRef.current.set(data.requestId, data);
+      // [DEBUG] Theo dõi rò rỉ RAM — xóa sau khi fix
+      logMapStats('unpackedScriptsRef', unpackedScriptsRef.current);
       onScriptUnpacked?.(data);
     },
     [onScriptUnpacked],
@@ -308,12 +326,12 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           console.debug('[useNetworkEvents] Skipping OPTIONS preflight request:', request.url);
           return;
         }
-        
+
         timestampMapRef.current.set(generatedId, timestamp);
         requestMapRef.current.set(generatedId, request);
         addRequest(request);
         onRequest?.(request);
-        
+
         // Set timeout to mark as failed if no response after 10s (reduced from 30s)
         const timeoutId = setTimeout(() => {
           const existing = requestMapRef.current.get(generatedId);
@@ -332,7 +350,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           }
           pendingTimeoutsRef.current.delete(generatedId);
         }, 10000);
-        
+
         pendingTimeoutsRef.current.set(generatedId, timeoutId);
       } catch (error) {
         onError?.(error);
@@ -350,9 +368,9 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           clearTimeout(timeout);
           pendingTimeoutsRef.current.delete(data.id);
         }
-        
+
         const existing = requestMapRef.current.get(data.id);
-        
+
         if (existing) {
           // Only log if status code indicates error (4xx, 5xx)
           if (data.statusCode >= 400) {
@@ -363,7 +381,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
               method: existing.method,
             });
           }
-          
+
           const updates = {
             status: data.statusCode ?? 200,
             responseHeaders: data.headers || {},
@@ -378,10 +396,13 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
             return;
           }
           // Response arrived before request — create placeholder
-          console.warn('[DEBUG|NetworkEvents] Proxy response without request, creating placeholder', {
-            id: data.id,
-            statusCode: data.statusCode,
-          });
+          console.warn(
+            '[DEBUG|NetworkEvents] Proxy response without request, creating placeholder',
+            {
+              id: data.id,
+              statusCode: data.statusCode,
+            },
+          );
           const placeholder = buildPlaceholderRequest(
             data.id,
             data.statusCode,
@@ -462,6 +483,10 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
     // Setup periodic cleanup for stuck pending requests (every 5 seconds)
     cleanupIntervalRef.current = setInterval(() => {
+      // [DEBUG] Log tổng quan 3 Map mỗi 5s — xóa sau khi fix rò rỉ
+      logMapStats('requestMapRef', requestMapRef.current);
+      logMapStats('unpackedScriptsRef', unpackedScriptsRef.current);
+      logMapStats('timestampMapRef', timestampMapRef.current);
       const now = Date.now();
       requestsRef.current.forEach((req) => {
         if (req.status === 0 && !req.responseHeaders?.['X-Request-Status']) {
@@ -586,11 +611,11 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         window.api.off('proxy:response-body', handleProxyResponseBodyWrapped);
         window.api.off('proxy:request-body', handleProxyRequestBodyWrapped);
       }
-      
+
       // Clear all pending timeouts on unmount
       pendingTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       pendingTimeoutsRef.current.clear();
-      
+
       // Clear cleanup interval
       if (cleanupIntervalRef.current) {
         clearInterval(cleanupIntervalRef.current);

@@ -197,14 +197,6 @@ export const Dropdown = React.memo(function Dropdown({
 
   // Update position when open or props change
   useEffect(() => {
-    console.log(
-      '[Dropdown] Open changed:',
-      open,
-      'contentRef:',
-      !!contentRef.current,
-      'strategy:',
-      strategy,
-    );
     if (open && contentRef.current) {
       // Double requestAnimationFrame to ensure content has rendered with correct dimensions
       requestAnimationFrame(() => {

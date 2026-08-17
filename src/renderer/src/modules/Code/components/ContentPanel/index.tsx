@@ -46,8 +46,8 @@ import { fileWatcherService } from '../../services/file-watcher.service';
 // ── Components ──
 import { FileTabBar } from '../FileTabBar';
 import CodeBlock from '@renderer/components/common/CodeBlock';
-import { DesignViewer } from './DesignViewer';
-import { AgentGroupViewer } from './AgentGroupViewer';
+import { DesignTool } from './Design';
+import { WorkSessionViewer } from './WorkSessionViewer';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -540,7 +540,12 @@ export const ContentPanel = memo(function ContentPanel() {
       const agentGroup = project?.agentGroups.find((g) => g.id === service.tabId);
 
       if (agentGroup) {
-        return <AgentGroupViewer agentGroup={agentGroup} />;
+        return (
+          <div className="flex-1 flex flex-col min-h-0 bg-background">
+            {openFiles.length > 0 && <FileTabBar />}
+            <WorkSessionViewer agentGroup={agentGroup} />
+          </div>
+        );
       }
     }
 
@@ -551,34 +556,56 @@ export const ContentPanel = memo(function ContentPanel() {
       const design = project?.designs.find((d) => d.id === service.tabId);
 
       if (design) {
-        return <DesignViewer design={design} />;
+        // Parse design HTML as DesignProject
+        let designProject;
+        try {
+          designProject = JSON.parse(design.html);
+        } catch (e) {
+          // If not valid JSON, create a minimal project structure
+          designProject = {
+            id: design.id,
+            name: design.name,
+            domain: 'preview.local',
+            pages: [],
+          };
+        }
+
+        return (
+          <div className="flex-1 flex flex-col min-h-0 bg-background">
+            {openFiles.length > 0 && <FileTabBar />}
+            <div className="flex-1 min-h-0">
+              <DesignTool
+                project={designProject}
+                onSave={(updated) => {
+                  // Save updated project back to design
+                  const updateDesign = useCodeStore.getState().updateDesign;
+                  if (currentProjectId) {
+                    updateDesign(currentProjectId, design.id, {
+                      ...design,
+                      html: JSON.stringify(updated, null, 2),
+                    });
+                  }
+                }}
+              />
+            </div>
+          </div>
+        );
       }
     }
 
     // Check if it's an extension service
     if (service.type === 'extension') {
-      // Use stored extensionId if available
-      const extensionId =
-        service.extensionId ||
-        (() => {
-          // Fallback: extract from service ID
-          const withoutPrefix = service.id.replace('ext_', '');
-          const lastUnderscoreIndex = withoutPrefix.lastIndexOf('_');
-
-          if (lastUnderscoreIndex !== -1) {
-            const namespace = withoutPrefix.substring(0, lastUnderscoreIndex);
-            const name = withoutPrefix.substring(lastUnderscoreIndex + 1);
-            return `${namespace}.${name}`;
-          }
-          return withoutPrefix.replace(/_/g, '.');
-        })();
-
-      return <div className="flex-1 flex flex-col min-h-0 bg-background"></div>;
+      return (
+        <div className="flex-1 flex flex-col min-h-0 bg-background">
+          {openFiles.length > 0 && <FileTabBar />}
+        </div>
+      );
     }
 
     // Regular service (non-extension, non-design, non-agent-group)
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-background">
+        {openFiles.length > 0 && <FileTabBar />}
         <div className="flex-1 flex items-center justify-center text-text-secondary/60">
           <div className="text-center">
             <div className="text-4xl mb-3">{TYPE_ICONS[service.type] || '📄'}</div>

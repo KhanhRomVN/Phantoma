@@ -46,9 +46,31 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     },
   },
 
+  list_resources: {
+    id: "list_resources",
+    title: "LIST RESOURCES",
+    category: "tool",
+    timeout: 15000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
   get_source_detail: {
     id: "get_source_detail",
     title: "SOURCE DETAIL",
+    category: "tool",
+    timeout: 15000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  get_resource_content: {
+    id: "get_resource_content",
+    title: "RESOURCE CONTENT",
     category: "tool",
     timeout: 15000,
     permissions: {

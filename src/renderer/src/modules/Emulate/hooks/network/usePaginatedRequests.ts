@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { NetworkRequest } from '../../types/inspector';
+import { useNetworkStore } from '../../../../stores/networkStore';
 
 interface UsePaginatedRequestsOptions {
   targetId: string;
@@ -17,11 +18,20 @@ export function usePaginatedRequests({
   maxMemory = 1000,
   onRequestsChange,
 }: UsePaginatedRequestsOptions) {
-  const [requests, setRequests] = useState<NetworkRequest[]>([]);
+  const [requests, setRequests] = useState<NetworkRequest[]>(() =>
+    useNetworkStore.getState().requests as NetworkRequest[],
+  );
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const onRequestsChangeRef = useRef(onRequestsChange);
   const targetIdRef = useRef(targetId);
+  // [DEBUG] Cờ bỏ qua clear requests ở lần mount đầu tiên khi khôi phục từ store
+  const isFirstMountRef = useRef(true);
+
+  // [DEBUG] Xóa sau khi xác nhận requests giữ nguyên khi chuyển module
+  useEffect(() => {
+    console.log('[DEBUG] usePaginatedRequests mounted, restored requests:', requests.length);
+  }, []);
 
   useEffect(() => {
     onRequestsChangeRef.current = onRequestsChange;
@@ -115,6 +125,10 @@ export function usePaginatedRequests({
   // Clear requests when targetId changes
   useEffect(() => {
     if (targetId) {
+      if (isFirstMountRef.current) {
+        isFirstMountRef.current = false;
+        return; // Bỏ qua clear lần mount đầu tiên — giữ requests khôi phục từ store
+      }
       setRequests([]);
       setTotalCount(0);
       setHasMore(false);

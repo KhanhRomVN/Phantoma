@@ -42,6 +42,12 @@ export class ListHttpHandler {
     const lowerPath = filter.path?.toLowerCase();
     const filterStatus = filter.status;
 
+    // Create stable index map: request.id -> original position (1-indexed)
+    const stableIndexMap = new Map<string, number>();
+    requests.forEach((r, idx) => {
+      stableIndexMap.set(r.id, idx + 1);
+    });
+
     let filtered = requests;
 
     if (lowerMethod) {
@@ -63,12 +69,13 @@ export class ListHttpHandler {
     // Build text table
     const header = `| stt | method | status | host | path |`;
     const separator = `|-----|--------|--------|------|------|`;
-    const rows = limited.map((r, i) => {
+    const rows = limited.map((r) => {
+      const stableIndex = stableIndexMap.get(r.id) || 0; // Use stable index instead of array position
       const method = r.method.padEnd(6);
       const status = String(r.status ?? '---').padEnd(6);
       const host = (r.host || '').substring(0, 30).padEnd(30);
       const path = (r.path || '').substring(0, 60);
-      return `| ${String(i).padEnd(3)} | ${method} | ${status} | ${host} | ${path} |`;
+      return `| ${String(stableIndex).padEnd(3)} | ${method} | ${status} | ${host} | ${path} |`;
     });
 
     const text = [

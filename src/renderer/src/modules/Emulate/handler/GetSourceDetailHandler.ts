@@ -23,13 +23,20 @@ export interface GetSourceDetailResult {
 }
 
 export class GetSourceDetailHandler {
+  /**
+   * Get source file detail by stable index (1-indexed).
+   * @param requests - All requests array
+   * @param unpackedScripts - Unpacked script sources map
+   * @param stableIndex - 1-indexed position from list_sources output
+   */
   public handle(
     requests: NetworkRequest[],
     unpackedScripts: Map<string, CdpScriptUnpackedData> | undefined,
-    index: number,
+    stableIndex: number,
   ): GetSourceDetailResult {
-    // Build flat file list từ source tree
-    const tree = buildSourceTree(requests.filter((r) => r.url && r.url.length > 0) as any);
+    // Build unfiltered flat file list with stable indices (same logic as ListSourcesHandler)
+    const allRequests = requests.filter((r) => r.url && r.url.length > 0);
+    const tree = buildSourceTree(allRequests as any);
     const flatFiles: SourceNode[] = [];
 
     const flatten = (nodes: SourceNode[]) => {
@@ -44,14 +51,17 @@ export class GetSourceDetailHandler {
     };
     flatten(tree.roots);
 
-    if (index < 0 || index >= flatFiles.length) {
+    // Convert 1-indexed stable index to 0-indexed array position
+    const arrayIndex = stableIndex - 1;
+
+    if (arrayIndex < 0 || arrayIndex >= flatFiles.length) {
       return {
-        text: `[get_source_detail] Error: index ${index} out of range (0-${flatFiles.length - 1})`,
+        text: `[get_source_detail] Error: index ${stableIndex} out of range (1-${flatFiles.length})`,
         found: false,
       };
     }
 
-    const file = flatFiles[index];
+    const file = flatFiles[arrayIndex];
 
     // Tìm request gốc để lấy responseBody
     const request = requests.find((r) => r.url === file.url);
@@ -91,7 +101,7 @@ export class GetSourceDetailHandler {
     }
 
     const text = [
-      `[get_source_detail] File: ${file.name}`,
+      `[get_source_detail] File: ${file.name} (stt=${stableIndex})`,
       `URL: ${file.url || 'N/A'}`,
       `Size: ${file.size ? formatFileSize(file.size) : 'unknown'}`,
       `Source: ${sourceLabel}`,

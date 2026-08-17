@@ -17,7 +17,9 @@ import { parseListHttps } from './parsers/emulate/ListHttpsParser';
 import { parseGetHttpsDetail } from './parsers/emulate/GetHttpsDetailParser';
 import { parseListHosts } from './parsers/emulate/ListHostsParser';
 import { parseListSources } from './parsers/emulate/ListSourcesParser';
+import { parseListResources } from './parsers/emulate/ListResourcesParser';
 import { parseGetSourceDetail } from './parsers/emulate/GetSourceDetailParser';
+import { parseGetResourceContent } from './parsers/emulate/GetResourceContentParser';
 import { parseApplyFilter } from './parsers/emulate/ApplyFilterParser';
 import { parseMarkdown } from './parsers/other/MarkdownParser';
 
@@ -556,9 +558,19 @@ export const parseAIResponse = (content: string): ParsedResponse => {
               action = { type: 'list_sources' as const, params, rawXml };
               break;
             }
+            case 'list_resources': {
+              const params = parseListResources(innerContent || '');
+              action = { type: 'list_resources' as const, params, rawXml };
+              break;
+            }
             case 'get_source_detail': {
               const params = parseGetSourceDetail(innerContent || '');
               action = { type: 'get_source_detail' as const, params, rawXml };
+              break;
+            }
+            case 'get_resource_content': {
+              const params = parseGetResourceContent(innerContent || '');
+              action = { type: 'get_resource_content' as const, params, rawXml };
               break;
             }
             case 'apply_filter': {

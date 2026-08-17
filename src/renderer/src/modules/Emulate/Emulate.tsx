@@ -52,13 +52,7 @@ export default React.memo(function Emulate({
     filter: initialFilterState,
   });
 
-  const {
-    selectedTool,
-    selectedId,
-    targetTabs,
-    activeTargetId,
-    targetStates,
-  } = state;
+  const { selectedTool, selectedId, targetTabs, activeTargetId, targetStates } = state;
 
   // Update Agent context with Emulate state
   useEffect(() => {
@@ -258,18 +252,6 @@ export default React.memo(function Emulate({
     },
   });
 
-  // Clear stale requests from previous session when module mounts
-  useEffect(() => {
-    // [DEBUG] Remove after fixing stale requests issue
-    console.log('[DEBUG|Emulate] mount — clearing stale requests', {
-      storeRequests: useNetworkStore.getState().requests.length,
-      stateRequests: state.requests?.length,
-      activeTargetId,
-    });
-    useNetworkStore.setState({ requests: [] });
-    setState((prev) => ({ ...prev, requests: [] }));
-  }, []);
-
   // Sync requests to EmulateController
   useEffect(() => {
     EmulateController.getInstance().setRequests(requests);
@@ -297,11 +279,58 @@ export default React.memo(function Emulate({
 
   const { filter, searchTerm, setSearchTerm, updateFilter } = useRequestFilter();
 
+  // Load filter from API when activeTargetId changes
+  useEffect(() => {
+    if (!activeTargetId) return;
+
+    const loadFilterFromAPI = async () => {
+      try {
+        const dto = await emulateApi.getFilter(activeTargetId);
+        if (dto) {
+          // Parse JSON strings safely
+          const safeParse = <T,>(value: string | undefined | null, fallback: T): T => {
+            if (!value) return fallback;
+            try {
+              return JSON.parse(value) as T;
+            } catch {
+              return fallback;
+            }
+          };
+
+          const mergedFilter = {
+            ...filter,
+            methods: safeParse(dto.method, filter.methods),
+            host: safeParse(dto.host, filter.host),
+            status: safeParse(dto.status, filter.status),
+            type: safeParse(dto.type, filter.type),
+          };
+          updateFilter(mergedFilter);
+        }
+      } catch (error) {
+        console.error('[Emulate] Failed to load filter from API:', error);
+      }
+    };
+
+    loadFilterFromAPI();
+  }, [activeTargetId]); // Only run when activeTargetId changes
+
+  // Sync filter to EmulateController
+  useEffect(() => {
+    EmulateController.getInstance().setFilter(filter);
+  }, [filter]);
+
   // Derived state
   const currentTargetUrl = targetTabs.find((tab) => tab.id === activeTargetId)?.url;
 
   useEffect(() => {
     setLoadedFromIPC(true);
+    // [DEBUG] Xóa sau khi xác nhận requests giữ nguyên khi chuyển module
+    console.log('[DEBUG] Emulate mounted/remounted', {
+      activeTargetId,
+      targetStates,
+      requestsCount: state.requests.length,
+      networkStoreCount: useNetworkStore.getState().requests.length,
+    });
   }, []);
 
   // Handlers

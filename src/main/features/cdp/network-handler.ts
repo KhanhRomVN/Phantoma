@@ -2,19 +2,6 @@ import WebSocket from 'ws';
 import { CdpManager } from './cdp-manager';
 
 export function handleNetworkEvent(this: CdpManager, method: string, params: any) {
-  // [DEBUG] Có thể xóa sau khi điều tra request /query bị treo
-  if (method === 'Network.loadingFinished' || method === 'Network.loadingFailed') {
-    const numericKey = `request:${params?.requestId}`;
-    let url = this.scriptIdMap.get(numericKey);
-    if (!url) {
-      url = this.requestIdMap.get(`hash:${params?.requestId}`);
-    }
-    console.log('[DEBUG|CDP]', method, ':', {
-      requestId: params?.requestId,
-      url,
-    });
-  }
-
   if (!this.mainWindow) {
     return;
   }

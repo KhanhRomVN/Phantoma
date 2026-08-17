@@ -45,6 +45,27 @@ Use XML tags for all tool calls:
 - Returns: The file URL, size, and the source code (prettified if minified). If the file has an unpacked version (from debugger), returns the unpacked source instead.
 - Example: \`<get_source_detail><index>5</index></get_source_detail>\` — get source for file stt=5
 - ⚠ SOURCE-BEFORE-DETAIL: Always call \`list_sources\` before \`get_source_detail\`. The index must come from a \`list_sources\` result.
+
+**list_resources**: List all captured resource files (images, videos, audios, fonts, documents, wasm).
+- \`filter\`: (optional) Filter resources by type. Available filter attributes:
+  - \`type\`: Filter by resource type — exact match. Values: \`image\`, \`video\`, \`audio\`, \`font\`, \`document\`, \`wasm\`
+- Returns: A numbered list with \`stt\` (stable index), \`type\`, \`filename\`, \`size\`, and \`content-type\`.
+- Examples:
+  - \`<list_resources />\` — list all resources
+  - \`<list_resources><filter><type>image</type></filter></list_resources>\` — only images
+  - \`<list_resources><filter><type>wasm</type></filter></list_resources>\` — only WebAssembly modules
+- ⚠ RESOURCE-BEFORE-CONTENT: Always call \`list_resources\` before \`get_resource_content\`. The index must come from a \`list_resources\` result.
+
+**get_resource_content**: Get the content of a specific resource file (with optional line range for text resources).
+- \`index\`: The \`stt\` (index) of the resource from a previous \`list_resources\` result (required).
+- \`start_line\`: (optional) Starting line number (1-indexed, inclusive). Only for text-based resources.
+- \`end_line\`: (optional) Ending line number (1-indexed, inclusive). Only for text-based resources.
+- Returns: For text resources (fonts, SVG, documents): file metadata + content (full or line range). For binary resources (images, videos): metadata only (content viewing not supported).
+- Examples:
+  - \`<get_resource_content><index>3</index></get_resource_content>\` — get full content of resource stt=3
+  - \`<get_resource_content><index>5</index><start_line>1</start_line><end_line>100</end_line></get_resource_content>\` — get lines 1-100 of resource stt=5
+- ⚠ RESOURCE-BEFORE-CONTENT: Always call \`list_resources\` before \`get_resource_content\`. The index must come from a \`list_resources\` result.
+
 **apply_filter**: Modify the current request table filter. Check <filter_context> for current state first.
 - Child tags with action attribute:
   - \`<method action="hide|show">METHOD</method>\` — hide or show a method

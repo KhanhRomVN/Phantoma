@@ -15,15 +15,23 @@ export interface GetHttpsDetailResult {
 }
 
 export class GetHttpsDetailHandler {
-  public handle(requests: NetworkRequest[], index: number): GetHttpsDetailResult {
-    if (index < 0 || index >= requests.length) {
+  /**
+   * Get HTTPS request detail by stable index (1-indexed).
+   * @param requests - All requests array
+   * @param stableIndex - 1-indexed position from list_https output
+   */
+  public handle(requests: NetworkRequest[], stableIndex: number): GetHttpsDetailResult {
+    // Convert 1-indexed stable index to 0-indexed array position
+    const arrayIndex = stableIndex - 1;
+
+    if (arrayIndex < 0 || arrayIndex >= requests.length) {
       return {
-        text: `[get_https_detail] Error: index ${index} out of range (0-${requests.length - 1})`,
+        text: `[get_https_detail] Error: index ${stableIndex} out of range (1-${requests.length})`,
         found: false,
       };
     }
 
-    const req = requests[index];
+    const req = requests[arrayIndex];
     const method = req.method || 'UNKNOWN';
     const url = req.url || 'N/A';
     const status = req.status ? String(req.status) : 'N/A';
@@ -80,7 +88,7 @@ export class GetHttpsDetailHandler {
     }
 
     const text = [
-      `[get_https_detail] Request #${index}`,
+      `[get_https_detail] Request #${stableIndex}`,
       `--- Request ---`,
       `Method:  ${method}`,
       `URL:     ${url}`,

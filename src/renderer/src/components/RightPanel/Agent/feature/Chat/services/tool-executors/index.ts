@@ -160,11 +160,25 @@ export function getExecutor(actionType: string): ToolExecutor | null {
           return executeListSources(action.params || {});
         },
       };
+    case 'list_resources':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeListResources } = await import('./emulate/ListResourcesExecutor');
+          return executeListResources(action.params || {});
+        },
+      };
     case 'get_source_detail':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const { executeGetSourceDetail } = await import('./emulate/GetSourceDetailExecutor');
           return executeGetSourceDetail(action.params || {});
+        },
+      };
+    case 'get_resource_content':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeGetResourceContent } = await import('./emulate/GetResourceContentExecutor');
+          return executeGetResourceContent(action.params || {});
         },
       };
     case 'get_https_detail':

@@ -51,6 +51,8 @@ import {
   GetSourceDetailRenderer,
   GetHttpsDetailRenderer,
   ApplyFilterRenderer,
+  ListResourcesRenderer,
+  GetResourceContentRenderer,
 } from './renderers';
 import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
@@ -740,6 +742,44 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
         actionIndex={toolGroup[0].index}
         messageId={messageId}
         isActionClicked={clickedActions.has(actionId1)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'list_resources') {
+    return (
+      <ListResourcesRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'get_resource_content') {
+    return (
+      <GetResourceContentRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
         isActiveGroup={isActiveGroup}
         isLastMessage={isLastMessage}
         isLastItemInList={isLastItemInList}

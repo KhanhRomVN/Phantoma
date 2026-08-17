@@ -25,6 +25,8 @@ export { ListSourcesRenderer } from './emulate/ListSourcesRenderer';
 export { GetSourceDetailRenderer } from './emulate/GetSourceDetailRenderer';
 export { ApplyFilterRenderer } from './emulate/ApplyFilterRenderer';
 export { GetHttpsDetailRenderer } from './emulate/GetHttpsDetailRenderer';
+export { ListResourcesRenderer } from './emulate/ListResourcesRenderer';
+export { GetResourceContentRenderer } from './emulate/GetResourceContentRenderer';
 
 // Shared types and utilities
 export type {

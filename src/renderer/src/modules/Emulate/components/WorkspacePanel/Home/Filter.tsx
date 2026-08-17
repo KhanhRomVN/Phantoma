@@ -11,6 +11,19 @@ import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 import { cn } from '@renderer/shared/utils/cn';
 import { getRequestCategory } from '../../../utils/request-classifier.util';
 
+// Services
+import { emulateApi } from '../../../services/emulate-api.service';
+
+// Helper: parse JSON string an toàn, trả về fallback nếu fail
+function safeParse<T>(value: string | undefined | null, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 // Re-export NetworkRequest from inspector types to maintain single source of truth
 export type { NetworkRequest };
 
@@ -292,6 +305,7 @@ export function NetworkFilter({
   isSessionRunning,
 }: NetworkFilterProps) {
   const { getColorByIndex } = useAccentColors();
+  const [isLoadingFilter, setIsLoadingFilter] = useState(false);
 
   // Storage key for filter data
   const getStorageKey = () => {
@@ -299,7 +313,36 @@ export function NetworkFilter({
     return `${base}-filter`;
   };
 
-  // Load filter from storage on mount
+  // Load filter from API when session starts
+  useEffect(() => {
+    if (!targetId || !isSessionRunning) return;
+
+    const loadFilterFromAPI = async () => {
+      setIsLoadingFilter(true);
+      try {
+        const dto = await emulateApi.getFilter(targetId);
+
+        if (dto) {
+          const mergedFilter = {
+            ...filter,
+            methods: safeParse(dto.method, filter.methods),
+            host: safeParse(dto.host, filter.host),
+            status: safeParse(dto.status, filter.status),
+            type: safeParse(dto.type, filter.type),
+          };
+          onChange(mergedFilter);
+        }
+      } catch (error) {
+        console.error('[Filter] ❌ Exception while loading filter:', error);
+      } finally {
+        setIsLoadingFilter(false);
+      }
+    };
+
+    loadFilterFromAPI();
+  }, [targetId, isSessionRunning]);
+
+  // Load filter from storage on mount (fallback)
   useEffect(() => {
     if (!targetId) return;
     try {
@@ -333,10 +376,36 @@ export function NetworkFilter({
         type: filter.type,
       };
       localStorage.setItem(key, JSON.stringify(dataToSave));
-    } catch {
-      // Ignore errors
+    } catch (error) {
+      console.error('[Filter] ❌ Failed to save to localStorage:', error);
     }
   }, [filter, targetId]);
+
+  // Save filter to API whenever it changes
+  useEffect(() => {
+    if (!targetId || !isSessionRunning) return;
+
+    const saveFilterToAPI = async () => {
+      try {
+        await emulateApi.saveFilter(targetId, {
+          emulate_target_id: targetId,
+          method: JSON.stringify(filter.methods),
+          host: JSON.stringify(filter.host),
+          status: JSON.stringify(filter.status),
+          type: JSON.stringify(filter.type),
+        });
+      } catch (error) {
+        console.error('[Filter] ❌ Exception while saving filter:', error);
+      }
+    };
+
+    // Debounce the save operation
+    const timeoutId = setTimeout(() => {
+      saveFilterToAPI();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [filter, targetId, isSessionRunning]);
 
   const allHosts = Array.from(new Set(requests.map((r) => r.host).filter(Boolean)));
 
@@ -359,6 +428,21 @@ export function NetworkFilter({
   const availableTypes = Array.from(
     new Set(requests.map((r) => getRequestCategory(r)).filter(Boolean)),
   ).sort();
+
+  // Check for hidden methods that have requests
+  const hiddenMethodsWithRequests = useMemo(() => {
+    const hidden = new Set<string>();
+    availableMethods.forEach((method) => {
+      const isHidden = filter.methods[method as keyof typeof filter.methods] === false;
+      if (isHidden) {
+        const hasRequests = requests.some((r) => r.method?.toUpperCase() === method);
+        if (hasRequests) {
+          hidden.add(method);
+        }
+      }
+    });
+    return hidden;
+  }, [availableMethods, filter.methods, requests]);
 
   // Generate color mappings using accentColors from theme
   const typeConfig: Record<string, { label: string; color: string; bgColor: string }> =
@@ -453,6 +537,9 @@ export function NetworkFilter({
         <section className="min-w-0 col-span-1 md:col-span-2">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold">Method</h3>
+            {isLoadingFilter && (
+              <span className="text-[10px] text-text-secondary animate-pulse">Loading...</span>
+            )}
           </div>
           {availableMethods.length === 0 ? (
             <div className="text-xs text-muted-foreground italic px-2">No methods available</div>
@@ -462,21 +549,22 @@ export function NetworkFilter({
                 const safeKey = key as string;
                 const color = methodColors[safeKey] || methodColors['GET'];
                 const isVisible = filter.methods[safeKey as keyof typeof filter.methods] !== false;
+                const isHiddenWithRequests = hiddenMethodsWithRequests.has(safeKey);
 
                 return (
                   <button
                     key={key}
-                    onClick={() =>
+                    onClick={() => {
                       onChange({
                         ...filter,
                         methods: {
                           ...filter.methods,
                           [key]: !isVisible,
                         },
-                      })
-                    }
+                      });
+                    }}
                     className={cn(
-                      'px-3 py-1 rounded text-xs font-medium transition-all',
+                      'px-3 py-1 rounded text-xs font-medium transition-all relative',
                       isVisible ? '' : 'text-muted-foreground hover:bg-gray-500/30',
                     )}
                     style={
@@ -487,9 +575,18 @@ export function NetworkFilter({
                           }
                         : undefined
                     }
-                    title={isVisible ? 'Click to hide' : 'Click to show'}
+                    title={
+                      isHiddenWithRequests
+                        ? `${safeKey} requests exist but are hidden`
+                        : isVisible
+                          ? 'Click to hide'
+                          : 'Click to show'
+                    }
                   >
                     {key}
+                    {isHiddenWithRequests && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-warning rounded-full border border-background animate-pulse" />
+                    )}
                   </button>
                 );
               })}
@@ -534,15 +631,15 @@ export function NetworkFilter({
                 return (
                   <button
                     key={safeCode}
-                    onClick={() =>
+                    onClick={() => {
                       onChange({
                         ...filter,
                         status: {
                           ...filter.status,
                           [safeCode]: !isVisible,
                         },
-                      })
-                    }
+                      });
+                    }}
                     className={cn(
                       'px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap',
                       isVisible ? colorClass : 'text-muted-foreground hover:bg-gray-500/30',
@@ -557,15 +654,15 @@ export function NetworkFilter({
               {hasFailed && (
                 <button
                   key="failed"
-                  onClick={() =>
+                  onClick={() => {
                     onChange({
                       ...filter,
                       status: {
                         ...filter.status,
                         failed: filter.status['failed'] === false,
                       },
-                    })
-                  }
+                    });
+                  }}
                   className={cn(
                     'px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap',
                     filter.status['failed'] !== false
@@ -598,15 +695,15 @@ export function NetworkFilter({
                 return (
                   <button
                     key={key}
-                    onClick={() =>
+                    onClick={() => {
                       onChange({
                         ...filter,
                         type: {
                           ...filter.type,
                           [safeKey]: !isVisible,
                         },
-                      })
-                    }
+                      });
+                    }}
                     className={cn(
                       'px-3 py-1 rounded text-xs font-medium transition-all',
                       isVisible ? '' : ' text-muted-foreground hover:bg-gray-500/30',

@@ -78,6 +78,7 @@
     "find-unused": "tsx scripts/find-unused.ts"
   },
   "dependencies": {
+    "@babel/standalone": "^8.0.4",
     "@codingame/monaco-vscode-api": "^36.0.0",
     "@electron-toolkit/preload": "^2.0.0",
     "@electron-toolkit/utils": "^2.0.0",

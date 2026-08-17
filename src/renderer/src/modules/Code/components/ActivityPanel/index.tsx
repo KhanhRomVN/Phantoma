@@ -31,9 +31,9 @@ import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { SourceControl } from './SourceControl';
 import { LSPPanel } from './LSP';
-import { DesignPanel } from './DesignPanel';
-import { TodoPanel } from './TodoPanel';
-import { AgentGroupPanel } from './AgentGroupPanel';
+import { DesignPanel } from './Design';
+import { TodoPanel } from './Todo';
+import { WorkSessionPanel } from './WorkSession';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -125,7 +125,7 @@ export function ActivityPanel() {
       case 'todo':
         return <TodoPanel />;
       case 'agents':
-        return <AgentGroupPanel />;
+        return <WorkSessionPanel />;
       case 'design':
         return <DesignPanel />;
       case 'lsp':

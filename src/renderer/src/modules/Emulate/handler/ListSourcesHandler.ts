@@ -27,27 +27,52 @@ export interface ListSourcesResult {
 
 export class ListSourcesHandler {
   public handle(requests: NetworkRequest[], filter: ListSourcesFilter = {}): ListSourcesResult {
-    // Lọc requests có URL (chỉ source files mới có URL)
-    let filtered = requests.filter((r) => r.url && r.url.length > 0);
+    // Step 1: Build unfiltered flat file list and assign stable indices (1-indexed)
+    const allRequests = requests.filter((r) => r.url && r.url.length > 0);
+    const unfilteredTree = buildSourceTree(allRequests as any);
+    
+    const allFlatFiles: SourceNode[] = [];
+    const flattenUnfiltered = (nodes: SourceNode[]) => {
+      for (const node of nodes) {
+        if (node.type === 'file') {
+          allFlatFiles.push(node);
+        }
+        if (node.children) {
+          flattenUnfiltered(node.children);
+        }
+      }
+    };
+    for (const root of unfilteredTree.roots) {
+      flattenUnfiltered([root]);
+    }
 
-    // Filter by type
+    // Create stable index map: URL -> stable index (1-indexed)
+    const stableIndexMap = new Map<string, number>();
+    allFlatFiles.forEach((file, idx) => {
+      if (file.url) {
+        stableIndexMap.set(file.url, idx + 1);
+      }
+    });
+
+    // Step 2: Apply filters
+    let filtered = allRequests;
+
     const filterType = filter.type?.toLowerCase();
     if (filterType) {
       filtered = filtered.filter((r) => r.type?.toLowerCase() === filterType);
     }
 
-    // Filter by host
     const lowerHost = filter.host?.toLowerCase();
     if (lowerHost) {
       filtered = filtered.filter((r) => r.host?.toLowerCase().includes(lowerHost));
     }
 
-    // Build source tree (cast to any vì NetworkRequest.size là string|number)
+    // Step 3: Build filtered tree
     const tree = buildSourceTree(filtered as any);
 
-    // Render tree as text with sequential indices
+    // Step 4: Render tree with stable indices
     const lines: string[] = [];
-    let index = 0;
+    let visibleCount = 0;
 
     const renderNode = (node: SourceNode, depth: number, prefix: string) => {
       const indent = '  '.repeat(depth);
@@ -70,10 +95,11 @@ export class ListSourcesHandler {
           }
         }
       } else if (node.type === 'file') {
+        const stableIndex = node.url ? stableIndexMap.get(node.url) || 0 : 0;
         const sizeStr = node.size ? ` (${formatFileSize(node.size)})` : '';
-        const line = `${indent}${prefix}stt=${index} ${node.name}${sizeStr}`;
+        const line = `${indent}${prefix}stt=${stableIndex} ${node.name}${sizeStr}`;
         lines.push(line);
-        index++;
+        visibleCount++;
       }
     };
 
@@ -81,10 +107,13 @@ export class ListSourcesHandler {
       renderNode(root, 0, '');
     }
 
-    const text = [`[list_sources] Total source files: ${index}`, ...lines].join('\n');
+    const text = [
+      `[list_sources] Total: ${allFlatFiles.length}, Filtered: ${visibleCount}`,
+      ...lines
+    ].join('\n');
 
     return {
-      total: index,
+      total: allFlatFiles.length,
       text,
     };
   }

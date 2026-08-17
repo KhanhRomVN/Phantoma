@@ -109,7 +109,6 @@ export const RequestTable = React.memo(function RequestTable({
   // [DEBUG] Remove after fixing scroll re-render issue
   const storeRequests = useNetworkStore((s) => s.requests);
   const requests = useMemo(() => {
-    console.log('[DEBUG|RequestTable] filter prop', filter);
     return filter ? filterRequestsByConfig(storeRequests, filter, searchTerm) : storeRequests;
   }, [storeRequests, filter, searchTerm]);
 
@@ -440,19 +439,21 @@ export const RequestTable = React.memo(function RequestTable({
       },
       {
         accessorKey: 'status',
-        header: 'Status',
+        header: () => <div className="w-full text-center">Status</div>,
         id: 'status', // Explicitly set ID for the column
         size: 110,
         cell: ({ row }) => {
           const id = row.original.id;
           const isPending = pendingActionIds?.has(id);
           const status = row.getValue('status') as number;
-          const responseHeaders = row.original.responseHeaders as Record<string, string> | undefined;
+          const responseHeaders = row.original.responseHeaders as
+            | Record<string, string>
+            | undefined;
 
           if (isPending) {
             return (
               <div
-                className="flex items-center gap-1.5 text-text-primary"
+                className="flex items-center justify-center gap-1.5 text-text-primary"
                 onClick={(e) => e.stopPropagation()}
               >
                 <svg
@@ -501,17 +502,19 @@ export const RequestTable = React.memo(function RequestTable({
             colorClass = 'text-red';
           }
           return (
-            <span className={cn('font-bold text-xs text-center w-full', colorClass)}>
-              {status === 0 && responseHeaders?.['X-Request-Status']
-                ? responseHeaders['X-Request-Status']
-                : (status || 'Pending')}
-            </span>
+            <div className="flex items-center justify-center w-full">
+              <span className={cn('font-bold text-xs', colorClass)}>
+                {status === 0 && responseHeaders?.['X-Request-Status']
+                  ? responseHeaders['X-Request-Status']
+                  : status || 'Pending'}
+              </span>
+            </div>
           );
         },
       },
       {
         accessorKey: 'type',
-        header: 'Type',
+        header: () => <div className="w-full text-center">Type</div>,
         size: 80,
         cell: ({ row }) => {
           const type = row.getValue('type') as string;
@@ -530,7 +533,11 @@ export const RequestTable = React.memo(function RequestTable({
             other: 'text-text-secondary',
           };
           const colorClass = typeColorMap[type] || 'text-text-secondary';
-          return <span className={cn('text-xs font-medium', colorClass)}>{formattedType}</span>;
+          return (
+            <div className="flex items-center justify-center w-full">
+              <span className={cn('text-xs font-medium', colorClass)}>{formattedType}</span>
+            </div>
+          );
         },
       },
       {
@@ -649,15 +656,23 @@ export const RequestTable = React.memo(function RequestTable({
       },
       {
         accessorKey: 'size',
-        header: 'Size',
+        header: () => <div className="w-full text-center">Size</div>,
         size: 95,
-        cell: ({ row }) => <span className="text-text-primary">{row.getValue('size')}</span>,
+        cell: ({ row }) => (
+          <div className="flex items-center justify-center w-full">
+            <span className="text-text-primary">{row.getValue('size')}</span>
+          </div>
+        ),
       },
       {
         accessorKey: 'time',
-        header: 'Time',
+        header: () => <div className="w-full text-center">Time</div>,
         size: 95,
-        cell: ({ row }) => <span className="text-text-primary">{row.getValue('time')}</span>,
+        cell: ({ row }) => (
+          <div className="flex items-center justify-center w-full">
+            <span className="text-text-primary">{row.getValue('time')}</span>
+          </div>
+        ),
       },
     ],
     [pendingActionIds, onForward, onDrop, highlightedIds, toggleHighlight, getColorByIndex, toRgba],
