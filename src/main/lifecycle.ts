@@ -5,6 +5,7 @@ import { closeAllGenericWebWindows } from './features/generic-web';
 import { execSync } from 'child_process';
 import { appState, clearActiveState } from './shared/state';
 import { stopAllLSPServers } from './ipc/lsp-handlers';
+import { closeAllBrowserSessions } from './ipc/browser.handlers';
 
 // Fix EAI_AGAIN DNS errors by preferring IPv4
 try {
@@ -35,6 +36,7 @@ export async function cleanup() {
   await proxyManager.stopAll();
   closeAllGenericWebWindows();
   stopAllLSPServers(); // Stop all language servers
+  await closeAllBrowserSessions(); // Close all browser sessions
   if (appState.activeChildProcess) {
     appState.activeChildProcess.kill();
     appState.activeChildProcess = null;

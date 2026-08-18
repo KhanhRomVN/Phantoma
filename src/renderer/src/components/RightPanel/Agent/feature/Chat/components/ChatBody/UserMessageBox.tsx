@@ -1,8 +1,8 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
-import RevertConfirmModal from '@renderer/components/common/RevertConfirmModal';
 import FilesPreviews from '../../../../components/common/MessageInput/FilesPreviews';
 import { Message } from '../../types/message';
+import RevertConfirmModal from './RevertConfirmModal';
 
 /**
  * Parse <question-answer> tag from user message content

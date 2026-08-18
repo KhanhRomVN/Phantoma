@@ -6,6 +6,10 @@ import {
   getDefaultPrompt as getEmulateDefaultPrompt,
   combinePrompts as combineEmulatePrompts,
 } from '../prompts/emulate';
+import {
+  getDefaultPrompt as getReconDefaultPrompt,
+  combinePrompts as combineReconPrompts,
+} from '../prompts/recon';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 import type { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
 
@@ -135,8 +139,22 @@ export class PromptBuilder {
     const effectiveLang = aiLanguage;
 
     // Select prompt module based on feature
-    const getDefaultPrompt = feature === 'emulate' ? getEmulateDefaultPrompt : getCodeDefaultPrompt;
-    const combinePrompts = feature === 'emulate' ? combineEmulatePrompts : combineCodePrompts;
+    let getDefaultPrompt = getCodeDefaultPrompt;
+    let combinePrompts = combineCodePrompts;
+    
+    console.log('[PromptBuilder] Building system prompt with feature:', feature);
+    
+    if (feature === 'emulate') {
+      getDefaultPrompt = getEmulateDefaultPrompt;
+      combinePrompts = combineEmulatePrompts;
+      console.log('[PromptBuilder] Using EMULATE prompts');
+    } else if (feature === 'recon') {
+      getDefaultPrompt = getReconDefaultPrompt;
+      combinePrompts = combineReconPrompts;
+      console.log('[PromptBuilder] Using RECON prompts');
+    } else {
+      console.log('[PromptBuilder] Using CODE prompts (default)');
+    }
 
     let systemPrompt = getDefaultPrompt(effectiveLang);
 

@@ -72,6 +72,8 @@ const MainLayoutContent = () => {
       setActiveFeature('emulate');
     } else if (currentPath === 'code') {
       setActiveFeature('code');
+    } else if (currentPath === 'recon') {
+      setActiveFeature('recon');
     } else {
       setActiveFeature(null);
     }

@@ -108,11 +108,15 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
 // ─── AgentPanel ────────────────────────────────────────────────────────────
 
 export function AgentPanel() {
-  const { activeFeature, emulateState, codeState } = useAgentFeature();
+  const { activeFeature, emulateState, codeState, reconState } = useAgentFeature();
   const { activeTargetId, targetStates } = emulateState;
   const { currentProjectId } = codeState;
+  const { activeTargetId: reconActiveTargetId, targets: reconTargets } = reconState;
   const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
   const isTargetActive = currentTargetState?.isActive || false;
+  const isReconTargetActive = reconActiveTargetId
+    ? reconTargets.find((t) => t.id === reconActiveTargetId)?.isActive ?? false
+    : false;
 
   // Tập hợp các view đã từng mở (keep-alive)
   const openedKeysRef = useRef<Set<string>>(new Set());
@@ -126,8 +130,11 @@ export function AgentPanel() {
     if (activeFeature === 'code' && currentProjectId) {
       return `code:${currentProjectId}`;
     }
+    if (activeFeature === 'recon' && reconActiveTargetId) {
+      return `recon:${reconActiveTargetId}`;
+    }
     return null;
-  }, [activeFeature, activeTargetId, isTargetActive, currentProjectId]);
+  }, [activeFeature, activeTargetId, isTargetActive, currentProjectId, reconActiveTargetId]);
 
   // Khi activeKey thay đổi, thêm vào openedKeys
   useEffect(() => {
@@ -149,17 +156,25 @@ export function AgentPanel() {
           changed = true;
         }
       }
+      if (key.startsWith('recon:')) {
+        const targetId = key.slice('recon:'.length);
+        if (!reconTargets.find((t) => t.id === targetId)) {
+          openedKeysRef.current.delete(key);
+          changed = true;
+        }
+      }
       // code keys được giữ vĩnh viễn — project có thể bị xóa nhưng state vẫn trong memory
       // upgrade path: cleanup code keys khi project bị remove khỏi useCodeStore
     }
     if (changed) {
       forceUpdate((n) => n + 1);
     }
-  }, [targetStates]);
+  }, [targetStates, reconTargets]);
 
   // Overlay checks
-  const showGenericOverlay = activeFeature !== 'emulate' && activeFeature !== 'code';
+  const showGenericOverlay = activeFeature !== 'emulate' && activeFeature !== 'code' && activeFeature !== 'recon';
   const showEmulateOverlay = activeFeature === 'emulate' && (!activeTargetId || !isTargetActive);
+  const showReconOverlay = activeFeature === 'recon' && (!reconActiveTargetId || !isReconTargetActive);
 
   const renderEmulateOverlay = () => {
     const hasTarget = !!activeTargetId;
@@ -185,11 +200,24 @@ export function AgentPanel() {
         {/* Overlay cho emulate khi chưa có target */}
         {showEmulateOverlay && renderEmulateOverlay()}
 
+        {/* Overlay cho recon khi chưa có target */}
+        {showReconOverlay && (
+          <AgentOverlay
+            title={reconActiveTargetId ? 'Start the target session' : 'Select a target to start'}
+            description={
+              reconActiveTargetId
+                ? 'Click Start on the selected target to begin a browser session and use the Agent'
+                : 'Please select a target and start a browser session to use the Agent'
+            }
+            icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
+          />
+        )}
+
         {/* Keep-alive views — tất cả đều mounted, chỉ activeKey hiển thị */}
         {!showGenericOverlay && !showEmulateOverlay && (
           <div className="flex-1 overflow-hidden bg-background flex flex-col">
             {Array.from(openedKeysRef.current).map((key) => {
-              const feature = key.startsWith('emulate:') ? 'emulate' : 'code';
+              const feature = key.startsWith('emulate:') ? 'emulate' : key.startsWith('recon:') ? 'recon' : 'code';
               return (
                 <AgentView
                   key={key}

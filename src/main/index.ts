@@ -40,6 +40,8 @@ import {
   setupTerminalHandlers,
   setupGitHandlers,
   setupLoggerHandlers,
+  setupBrowserHandlers,
+  closeAllBrowserSessions,
 } from './ipc';
 
 // Import LSP handlers
@@ -104,6 +106,7 @@ app.whenReady().then(async () => {
   setupWindowHandlers();
   setupTerminalHandlers();
   setupGitHandlers();
+  setupBrowserHandlers();
 
   // Auto-install certificate when proxy session is created
   const originalCreateSession = proxyManager.createSession.bind(proxyManager);

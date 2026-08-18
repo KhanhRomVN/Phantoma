@@ -1,6 +1,12 @@
 # Công Cụ Emulate
 
-## 1. `list_https`
+## Phần 1: Tool Chủ Động
+
+Các tool này cần được AI gọi bằng lệnh XML tương ứng.
+
+---
+
+### 1. `list_https`
 Liệt kê các request HTTPS đã được bắt giữ.
 
 | Tham số | Bắt buộc | Mô tả |
@@ -10,7 +16,7 @@ Liệt kê các request HTTPS đã được bắt giữ.
 Trả về bảng danh sách request với các cột `stt` (số thứ tự), `method`, `status`, `type`, `host`, `path`.
 
 **Ví dụ:**
-
+```
 <list_https><limit>5</limit></list_https>
 ```
 
@@ -28,7 +34,7 @@ Trả về bảng danh sách request với các cột `stt` (số thứ tự), `
 
 ---
 
-## 2. `get_https_detail`
+### 2. `get_https_detail`
 Lấy toàn bộ chi tiết request/response của một request HTTPS đã được bắt giữ.
 
 | Tham số | Bắt buộc | Mô tả |
@@ -73,7 +79,7 @@ Body:    {
 
 ---
 
-## 3. `list_hosts`
+### 3. `list_hosts`
 Liệt kê tất cả host duy nhất từ traffic HTTPS đã bắt giữ, kèm số lượng request tương ứng.
 
 Không có tham số.
@@ -99,7 +105,7 @@ Trả về bảng với các cột `stt` (số thứ tự), `host`, `count` (s�
 
 ---
 
-## 4. `list_sources`
+### 4. `list_sources`
 Liệt kê các file nguồn (scripts, stylesheets) từ traffic đã bắt giữ, tổ chức dưới dạng cây thư mục.
 
 | Tham số | Bắt buộc | Mô tả |
@@ -140,7 +146,7 @@ cdn.example.com/
 
 ---
 
-## 5. `get_source_detail`
+### 5. `get_source_detail`
 Lấy toàn bộ mã nguồn của một file cụ thể từ cây nguồn.
 
 | Tham số | Bắt buộc | Mô tả |
@@ -168,11 +174,6 @@ Source: unpacked source
  * @version 2.1.0
  */
 const Utils = (() => {
-  /**
-   * Format currency to VND
-   * @param {number} amount
-   * @returns {string}
-   */
   function formatCurrency(amount) {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -180,50 +181,86 @@ const Utils = (() => {
     }).format(amount);
   }
 
-  /**
-   * Debounce function to limit execution frequency
-   * @param {Function} fn
-   * @param {number} delay - milliseconds
-   * @returns {Function}
-   */
-  function debounce(fn, delay = 300) {
-    let timer;
-    return function (...args) {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn.apply(this, args), delay);
-    };
-  }
-
-  /**
-   * Parse JWT token payload without verification
-   * @param {string} token
-   * @returns {Object|null}
-   */
-  function parseJWT(token) {
-    try {
-      const payload = token.split('.')[1];
-      return JSON.parse(atob(payload));
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /**
-   * Deep clone an object
-   * @param {Object} obj
-   * @returns {Object}
-   */
-  function deepClone(obj) {
-    return JSON.parse(JSON.stringify(obj));
-  }
-
-  return { formatCurrency, debounce, parseJWT, deepClone };
-
+  return { formatCurrency };
+})();
+```
 
 ---
 
-## 6. `apply_filter`
-Show/hide methods, statuses, types; add/remove host/path whitelist; set size/time range.
+### 6. `list_resources`
+Liệt kê tất cả file resource thu thập được (images, videos, audios, fonts, documents, wasm).
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `filter.type` | Không | Lọc theo loại: `image`, `video`, `audio`, `font`, `document`, `wasm` |
+
+⚠️ Luôn gọi `list_resources` trước khi gọi `get_resource_content`.
+
+Trả về bảng với các cột `stt` (số thứ tự), `type`, `filename`, `size`, `content-type`.
+
+**Ví dụ:**
+```
+<list_resources>
+  <filter>
+    <type>image</type>
+  </filter>
+</list_resources>
+```
+
+**Kết quả:**
+```
+[list_resources] Total: 15, Filtered: 8
+| stt | type     | filename | size | content-type |
+|-----|----------|----------|------|--------------|
+| 0   | image    | logo.png | 45.2 KB | image/png |
+| 1   | image    | banner.jpg | 234.1 KB | image/jpeg |
+| 2   | image    | avatar.svg | 12.8 KB | image/svg+xml |
+```
+
+---
+
+### 7. `get_resource_content`
+Lấy nội dung của một file resource cụ thể (hỗ trợ line range cho text resource).
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `index` | **Có** | Số `stt` từ kết quả `list_resources` trước đó |
+| `start_line` | Không | Dòng bắt đầu (1-indexed). Chỉ cho text-based resource. |
+| `end_line` | Không | Dòng kết thúc (1-indexed). Chỉ cho text-based resource. |
+
+⚠️ Luôn gọi `list_resources` trước khi gọi `get_resource_content`.
+
+Trả về thông tin file (type, filename, content-type, size, URL) và nội dung (cho text resource) hoặc metadata (cho binary resource). Text resource mặc định giới hạn 1000 dòng đầu.
+
+**Ví dụ:**
+```
+<get_resource_content>
+  <index>3</index>
+  <start_line>1</start_line>
+  <end_line>50</end_line>
+</get_resource_content>
+```
+
+**Kết quả:**
+```
+[get_resource_content] Resource #3
+Type: font
+Filename: custom-font.woff2
+Content-Type: font/woff2
+Size: 87.3 KB
+URL: https://cdn.example.com/fonts/custom-font.woff2
+Lines: 1-50 of 120
+
+@font-face {
+  font-family: 'CustomFont';
+  src: url('custom-font.woff2') format('woff2');
+}
+```
+
+---
+
+### 8. `apply_filter`
+Thay đổi filter hiện tại của bảng request. Kiểm tra `<filter_context>` để biết trạng thái hiện tại trước khi gọi.
 
 | Tham số | Bắt buộc | Mô tả |
 |-----------|----------|-------------|
@@ -238,15 +275,78 @@ Show/hide methods, statuses, types; add/remove host/path whitelist; set size/tim
 Có thể gửi nhiều tham số trong cùng 1 lần gọi. Các tham số được áp dụng đồng thời.
 
 **Ví dụ:**
-
+```
 <apply_filter>
   <method action="hide">OPTIONS</method>
   <type action="hide">css</type>
   <host action="add">api.example.com</host>
 </apply_filter>
-
+```
 
 **Kết quả:**
-
+```
 [apply_filter] Applied: Methods: OPTIONS(hide); Types: css(hide); Hosts: api.example.com(add)
-})();
+```
+
+---
+
+## Phần 2: Tool Bị Động
+
+Các tool này tự động được đính kèm vào mỗi request, không cần AI kích hoạt bằng lệnh.
+
+---
+
+### 1. `get_traffic_summary`
+Tự động đính kèm tổng quan distinct values của traffic hiện tại vào mỗi request.
+
+**Không cần gọi** — luôn có sẵn trong context.
+
+Trả về:
+- `hosts`: Danh sách host với số lượng request
+- `methods`: Danh sách method với số lượng request
+- `statuses`: Danh sách status code với số lượng request
+- `types`: Danh sách resource type với số lượng request
+
+**Dữ liệu mẫu:**
+```
+Traffic Summary:
+- Hosts: api.example.com (47), cdn.example.com (23), analytics.example.com (8)
+- Methods: GET (120), POST (20), OPTIONS (2)
+- Statuses: 200 (105), 304 (20), 401 (10), 404 (5)
+- Types: fetch (98), xhr (30), image (14)
+```
+
+---
+
+### 2. `get_filter` (filter_context)
+Tự động đính kèm trạng thái filter hiện tại vào mỗi request dưới dạng `<filter_context>`.
+
+**Không cần gọi** — luôn có sẵn trong context.
+
+Mô tả filter đang áp dụng:
+- Methods đang hiển thị (disabled kèm `(hide)`)
+- Hosts whitelist
+- Paths whitelist
+- Statuses đang hiển thị (disabled kèm `(hide)`)
+- Types đang hiển thị (disabled kèm `(hide)`)
+- Khoảng size và time (nếu có)
+
+**Dữ liệu mẫu:**
+```
+<filter_context>
+Methods: GET, POST, PUT, DELETE, OPTIONS(hide)
+Hosts: api.example.com
+Statuses: 200, 304, 401, 404(hide)
+Types: fetch, xhr, image, css(hide)
+</filter_context>
+```
+
+---
+
+## Quy Tắc Quan Trọng
+
+1. **Luôn gọi `list_https` trước khi gọi `get_https_detail`**
+2. **Luôn gọi `list_sources` trước khi gọi `get_source_detail`**
+3. **Luôn gọi `list_resources` trước khi gọi `get_resource_content`**
+4. **Kiểm tra `<filter_context>` trước khi gọi `apply_filter`**
+5. **Tool bị động không cần gọi — chúng luôn có sẵn trong context**

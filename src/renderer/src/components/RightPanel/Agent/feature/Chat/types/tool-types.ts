@@ -219,3 +219,16 @@ export interface GetResourceContentParams {
   start_line?: number;
   end_line?: number;
 }
+
+// ===== RECON TOOLS =====
+export interface LaunchBrowserParams {
+  targetId?: string;
+}
+
+export interface CloseBrowserParams {
+  targetId?: string;
+}
+
+export interface GetBrowserStatusParams {
+  targetId?: string;
+}

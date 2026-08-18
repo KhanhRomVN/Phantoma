@@ -25,6 +25,24 @@ export { executeGetHttpsDetail } from './emulate/GetHttpsDetailExecutor';
 export { executeApplyFilter } from './emulate/ApplyFilterExecutor';
 
 // ═══════════════════════════════════════════════════════════════════════
+// Re-export — Recon tools
+// ═══════════════════════════════════════════════════════════════════════
+export { executeListTabs } from './recon/ListTabsExecutor';
+export { executeCreateTab } from './recon/CreateTabExecutor';
+export { executeCloseTab } from './recon/CloseTabExecutor';
+export { executeSwitchTab } from './recon/SwitchTabExecutor';
+export { executeNavigate } from './recon/NavigateExecutor';
+export { executeBack } from './recon/BackExecutor';
+export { executeForward } from './recon/ForwardExecutor';
+export { executeReload } from './recon/ReloadExecutor';
+export { executeGetPageContent } from './recon/GetPageContentExecutor';
+export { executeListElements } from './recon/ListElementsExecutor';
+export { executeClickElement } from './recon/ClickElementExecutor';
+export { executeFillInput } from './recon/FillInputExecutor';
+export { executePressKey } from './recon/PressKeyExecutor';
+export { executeScroll } from './recon/ScrollExecutor';
+
+// ═══════════════════════════════════════════════════════════════════════
 // Imports
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -65,23 +83,36 @@ export function getExecutor(actionType: string): ToolExecutor | null {
     case 'write_to_file':
       return {
         execute: async (action: any, ctx: ExecutorContext, options?: ExecutorOptions) => {
-          return executeWriteToFile(action.params,
-            options?.skipDiagnostics ?? false, options?.bypassIgnore ?? false,
-            ctx.conversationIdRef?.current, (action as any).actionId);
+          return executeWriteToFile(
+            action.params,
+            options?.skipDiagnostics ?? false,
+            options?.bypassIgnore ?? false,
+            ctx.conversationIdRef?.current,
+            (action as any).actionId,
+          );
         },
       };
     case 'replace_in_file':
       return {
         execute: async (action: any, ctx: ExecutorContext, options?: ExecutorOptions) => {
-          return executeReplaceInFile(action.params,
-            options?.skipDiagnostics ?? false, options?.bypassIgnore ?? false,
-            ctx.conversationIdRef?.current, (action as any).actionId);
+          return executeReplaceInFile(
+            action.params,
+            options?.skipDiagnostics ?? false,
+            options?.bypassIgnore ?? false,
+            ctx.conversationIdRef?.current,
+            (action as any).actionId,
+          );
         },
       };
     case 'revert_file':
       return {
         execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeRevertFile(action.params, false, ctx.conversationIdRef?.current, (action as any).actionId);
+          return executeRevertFile(
+            action.params,
+            false,
+            ctx.conversationIdRef?.current,
+            (action as any).actionId,
+          );
         },
       };
     case 'view_replace_history':
@@ -125,8 +156,10 @@ export function getExecutor(actionType: string): ToolExecutor | null {
     case 'git_diff':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const filePath = typeof action.params === 'string'
-            ? action.params : action.params?.path || action.params?.file_path || '';
+          const filePath =
+            typeof action.params === 'string'
+              ? action.params
+              : action.params?.path || action.params?.file_path || '';
           const diffId = (action as any).actionId || 'git-diff-' + Date.now();
           return executeGitDiff(filePath, diffId);
         },
@@ -177,7 +210,8 @@ export function getExecutor(actionType: string): ToolExecutor | null {
     case 'get_resource_content':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeGetResourceContent } = await import('./emulate/GetResourceContentExecutor');
+          const { executeGetResourceContent } =
+            await import('./emulate/GetResourceContentExecutor');
           return executeGetResourceContent(action.params || {});
         },
       };
@@ -193,6 +227,106 @@ export function getExecutor(actionType: string): ToolExecutor | null {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const { executeApplyFilter } = await import('./emulate/ApplyFilterExecutor');
           return executeApplyFilter(action.params || {});
+        },
+      };
+
+    // ── Recon tools ──────────────────────────────────────────────
+    case 'list_tabs':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeListTabs } = await import('./recon/ListTabsExecutor');
+          return executeListTabs(action.params || {});
+        },
+      };
+    case 'create_tab':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeCreateTab } = await import('./recon/CreateTabExecutor');
+          return executeCreateTab(action.params || {});
+        },
+      };
+    case 'close_tab':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeCloseTab } = await import('./recon/CloseTabExecutor');
+          return executeCloseTab(action.params || {});
+        },
+      };
+    case 'switch_tab':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeSwitchTab } = await import('./recon/SwitchTabExecutor');
+          return executeSwitchTab(action.params || {});
+        },
+      };
+    case 'navigate':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeNavigate } = await import('./recon/NavigateExecutor');
+          return executeNavigate(action.params || {});
+        },
+      };
+    case 'back':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeBack } = await import('./recon/BackExecutor');
+          return executeBack(action.params || {});
+        },
+      };
+    case 'forward':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeForward } = await import('./recon/ForwardExecutor');
+          return executeForward(action.params || {});
+        },
+      };
+    case 'reload':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeReload } = await import('./recon/ReloadExecutor');
+          return executeReload(action.params || {});
+        },
+      };
+    case 'get_page_content':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeGetPageContent } = await import('./recon/GetPageContentExecutor');
+          return executeGetPageContent(action.params || {});
+        },
+      };
+    case 'list_elements':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeListElements } = await import('./recon/ListElementsExecutor');
+          return executeListElements(action.params || {});
+        },
+      };
+    case 'click_element':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeClickElement } = await import('./recon/ClickElementExecutor');
+          return executeClickElement(action.params || {});
+        },
+      };
+    case 'fill_input':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeFillInput } = await import('./recon/FillInputExecutor');
+          return executeFillInput(action.params || {});
+        },
+      };
+    case 'press_key':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executePressKey } = await import('./recon/PressKeyExecutor');
+          return executePressKey(action.params || {});
+        },
+      };
+    case 'scroll':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const { executeScroll } = await import('./recon/ScrollExecutor');
+          return executeScroll(action.params || {});
         },
       };
 

@@ -21,6 +21,20 @@ import { parseListResources } from './parsers/emulate/ListResourcesParser';
 import { parseGetSourceDetail } from './parsers/emulate/GetSourceDetailParser';
 import { parseGetResourceContent } from './parsers/emulate/GetResourceContentParser';
 import { parseApplyFilter } from './parsers/emulate/ApplyFilterParser';
+import { parseListTabs } from './parsers/recon/ListTabsParser';
+import { parseCreateTab } from './parsers/recon/CreateTabParser';
+import { parseCloseTab } from './parsers/recon/CloseTabParser';
+import { parseSwitchTab } from './parsers/recon/SwitchTabParser';
+import { parseNavigate } from './parsers/recon/NavigateParser';
+import { parseBack } from './parsers/recon/BackParser';
+import { parseForward } from './parsers/recon/ForwardParser';
+import { parseReload } from './parsers/recon/ReloadParser';
+import { parseGetPageContent } from './parsers/recon/GetPageContentParser';
+import { parseListElements } from './parsers/recon/ListElementsParser';
+import { parseClickElement } from './parsers/recon/ClickElementParser';
+import { parseFillInput } from './parsers/recon/FillInputParser';
+import { parsePressKey } from './parsers/recon/PressKeyParser';
+import { parseScroll } from './parsers/recon/ScrollParser';
 import { parseMarkdown } from './parsers/other/MarkdownParser';
 
 import { extractThinkingBlocks } from './parsers/other/ThinkingParser';
@@ -578,6 +592,77 @@ export const parseAIResponse = (content: string): ParsedResponse => {
               action = { type: 'apply_filter' as const, params, rawXml };
               break;
             }
+            // ── Recon tools ──────────────────────────────────────
+            case 'list_tabs': {
+              const params = parseListTabs(innerContent || '');
+              action = { type: 'list_tabs' as const, params, rawXml };
+              break;
+            }
+            case 'create_tab': {
+              const params = parseCreateTab(innerContent || '');
+              action = { type: 'create_tab' as const, params, rawXml };
+              break;
+            }
+            case 'close_tab': {
+              const params = parseCloseTab(innerContent || '');
+              action = { type: 'close_tab' as const, params, rawXml };
+              break;
+            }
+            case 'switch_tab': {
+              const params = parseSwitchTab(innerContent || '');
+              action = { type: 'switch_tab' as const, params, rawXml };
+              break;
+            }
+            case 'navigate': {
+              const params = parseNavigate(innerContent || '');
+              action = { type: 'navigate' as const, params, rawXml };
+              break;
+            }
+            case 'back': {
+              const params = parseBack(innerContent || '');
+              action = { type: 'back' as const, params, rawXml };
+              break;
+            }
+            case 'forward': {
+              const params = parseForward(innerContent || '');
+              action = { type: 'forward' as const, params, rawXml };
+              break;
+            }
+            case 'reload': {
+              const params = parseReload(innerContent || '');
+              action = { type: 'reload' as const, params, rawXml };
+              break;
+            }
+            case 'get_page_content': {
+              const params = parseGetPageContent(innerContent || '');
+              action = { type: 'get_page_content' as const, params, rawXml };
+              break;
+            }
+            case 'list_elements': {
+              const params = parseListElements(innerContent || '');
+              action = { type: 'list_elements' as const, params, rawXml };
+              break;
+            }
+            case 'click_element': {
+              const params = parseClickElement(innerContent || '');
+              action = { type: 'click_element' as const, params, rawXml };
+              break;
+            }
+            case 'fill_input': {
+              const params = parseFillInput(innerContent || '');
+              action = { type: 'fill_input' as const, params, rawXml };
+              break;
+            }
+            case 'press_key': {
+              const params = parsePressKey(innerContent || '');
+              action = { type: 'press_key' as const, params, rawXml };
+              break;
+            }
+            case 'scroll': {
+              const params = parseScroll(innerContent || '');
+              action = { type: 'scroll' as const, params, rawXml };
+              break;
+            }
             default:
               // Fallback to ToolParser for any unhandled tools
               action = parseToolAction(toolName, innerContent || '', rawXml);
@@ -585,6 +670,31 @@ export const parseAIResponse = (content: string): ParsedResponse => {
 
           result.contentBlocks.push({ type: 'tool', action, actionIndex });
           result.actions.push(action); // Populate legacy actions array
+
+          // Always log recon tools for debugging
+          if (
+            action.type.startsWith('list_tabs') ||
+            action.type.startsWith('create_tab') ||
+            action.type.startsWith('close_tab') ||
+            action.type.startsWith('switch_tab') ||
+            action.type.startsWith('navigate') ||
+            action.type.startsWith('back') ||
+            action.type.startsWith('forward') ||
+            action.type.startsWith('reload') ||
+            action.type.startsWith('get_page_content') ||
+            action.type.startsWith('list_elements') ||
+            action.type.startsWith('click_element') ||
+            action.type.startsWith('fill_input') ||
+            action.type.startsWith('press_key') ||
+            action.type.startsWith('scroll')
+          ) {
+            console.log(
+              '[ResponseParser] Recon tool detected:',
+              action.type,
+              'Params:',
+              action.params,
+            );
+          }
 
           if (DEBUG_PARSER) {
           }

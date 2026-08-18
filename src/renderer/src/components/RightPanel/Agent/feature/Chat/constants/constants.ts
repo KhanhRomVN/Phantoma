@@ -31,18 +31,21 @@ export type {
 import { SHARED_TAG_REGISTRY } from './shared';
 import { CODE_TAG_REGISTRY } from './code';
 import { EMULATE_TAG_REGISTRY } from './emulate';
+import { RECON_TAG_REGISTRY } from './recon';
 import type { TagDefinition } from '../types/tag-types';
 
 export const TAG_REGISTRY: Record<string, TagDefinition> = {
   ...SHARED_TAG_REGISTRY,
   ...CODE_TAG_REGISTRY,
   ...EMULATE_TAG_REGISTRY,
+  ...RECON_TAG_REGISTRY,
 };
 
 // Re-export individual registries
 export { SHARED_TAG_REGISTRY } from './shared';
 export { CODE_TAG_REGISTRY } from './code';
 export { EMULATE_TAG_REGISTRY } from './emulate';
+export { RECON_TAG_REGISTRY } from './recon';
 
 // ============= BACKWARD-COMPATIBLE WRAPPERS =============
 // Các hàm từ shared.ts yêu cầu tham số registry.

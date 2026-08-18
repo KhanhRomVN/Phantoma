@@ -53,6 +53,20 @@ import {
   ApplyFilterRenderer,
   ListResourcesRenderer,
   GetResourceContentRenderer,
+  ListTabsRenderer,
+  CreateTabRenderer,
+  CloseTabRenderer,
+  SwitchTabRenderer,
+  NavigateRenderer,
+  BackRenderer,
+  ForwardRenderer,
+  ReloadRenderer,
+  GetPageContentRenderer,
+  ListElementsRenderer,
+  ClickElementRenderer,
+  FillInputRenderer,
+  PressKeyRenderer,
+  ScrollRenderer,
 } from './renderers';
 import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
@@ -776,6 +790,274 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   if (toolType === 'get_resource_content') {
     return (
       <GetResourceContentRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  // ── Recon tools ───────────────────────────────────────────────
+
+  if (toolType === 'list_tabs') {
+    return (
+      <ListTabsRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'create_tab') {
+    return (
+      <CreateTabRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'close_tab') {
+    return (
+      <CloseTabRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'switch_tab') {
+    return (
+      <SwitchTabRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'navigate') {
+    return (
+      <NavigateRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'back') {
+    return (
+      <BackRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'forward') {
+    return (
+      <ForwardRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'reload') {
+    return (
+      <ReloadRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'get_page_content') {
+    return (
+      <GetPageContentRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'list_elements') {
+    return (
+      <ListElementsRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'click_element') {
+    return (
+      <ClickElementRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'fill_input') {
+    return (
+      <FillInputRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'press_key') {
+    return (
+      <PressKeyRenderer
+        action={firstAction}
+        actionIndex={toolGroup[0].index}
+        messageId={messageId}
+        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        isLastItemInList={isLastItemInList}
+        toolOutputs={toolOutputs}
+        fileStatsMap={fileStatsMap}
+        allMessages={allMessages}
+        onToolClick={onToolClick}
+        conversationId={conversationId}
+      />
+    );
+  }
+
+  if (toolType === 'scroll') {
+    return (
+      <ScrollRenderer
         action={firstAction}
         actionIndex={toolGroup[0].index}
         messageId={messageId}

@@ -8,7 +8,7 @@
 import React, { createContext, useContext, useState } from 'react';
 
 // Types
-export type AgentFeature = 'emulate' | 'code' | null;
+export type AgentFeature = 'emulate' | 'code' | 'recon' | null;
 
 export interface EmulateState {
   activeTargetId: string | null;
@@ -19,6 +19,11 @@ export interface CodeState {
   currentProjectId: string | null;
 }
 
+export interface ReconState {
+  activeTargetId: string | null;
+  targets: Array<{ id: string; email: string; isActive: boolean }>;
+}
+
 interface FeatureContextValue {
   activeFeature: AgentFeature;
   setActiveFeature: (feature: AgentFeature) => void;
@@ -26,6 +31,8 @@ interface FeatureContextValue {
   setEmulateState: (state: EmulateState) => void;
   codeState: CodeState;
   setCodeState: (state: CodeState) => void;
+  reconState: ReconState;
+  setReconState: (state: ReconState) => void;
 }
 
 // CONTEXT
@@ -36,6 +43,8 @@ const FeatureContext = createContext<FeatureContextValue>({
   setEmulateState: () => {},
   codeState: { currentProjectId: null },
   setCodeState: () => {},
+  reconState: { activeTargetId: null, targets: [] },
+  setReconState: () => {},
 });
 
 // Hooks
@@ -51,10 +60,23 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [codeState, setCodeState] = useState<CodeState>({
     currentProjectId: null,
   });
+  const [reconState, setReconState] = useState<ReconState>({
+    activeTargetId: null,
+    targets: [],
+  });
 
   return (
     <FeatureContext.Provider
-      value={{ activeFeature, setActiveFeature, emulateState, setEmulateState, codeState, setCodeState }}
+      value={{
+        activeFeature,
+        setActiveFeature,
+        emulateState,
+        setEmulateState,
+        codeState,
+        setCodeState,
+        reconState,
+        setReconState,
+      }}
     >
       {children}
     </FeatureContext.Provider>
