@@ -15,7 +15,7 @@ import { ResourceItem, ResourceType } from '../types/resource.types';
 
 // UTIL
 import { detectResourceType } from '../constants/resource';
-import { detectWasmModules } from '../../../utils/detectors';
+import { detectWasm } from '../utils/wasm-detector.util';
 
 export interface ListResourcesFilter {
   type?: ResourceType;
@@ -33,16 +33,13 @@ export class ListResourcesHandler {
    * @param requests - Danh sách requests đã capture
    * @param filter   - Điều kiện lọc (type)
    */
-  public handle(
-    requests: NetworkRequest[],
-    filter: ListResourcesFilter = {},
-  ): ListResourcesResult {
+  public handle(requests: NetworkRequest[], filter: ListResourcesFilter = {}): ListResourcesResult {
     // Build resource items (similar logic to ResourcesPanel)
     const items: ResourceItem[] = [];
     const seen = new Set<string>();
 
     // Detect WASM modules
-    const wasmItems = detectWasmModules(requests);
+    const wasmItems = detectWasm(requests);
     wasmItems.forEach((wasm) => {
       const request = requests.find((r) => r.id === wasm.id);
       if (request) {

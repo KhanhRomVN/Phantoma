@@ -265,7 +265,7 @@ export async function detectAndroidDevices(): Promise<MobileEmulator[]> {
           status: bootComplete === '1' ? 'running' : 'booting',
         });
       } catch (e) {
-        console.warn(`Failed to probe device ${serial}:`, e);
+        console.error(`Failed to probe device ${serial}:`, e);
       }
     }
 
@@ -474,7 +474,6 @@ export async function detectAllEmulators(): Promise<MobileEmulator[]> {
   // Check ADB availability first
   const adbCheck = await checkADBAvailability();
   if (!adbCheck.available) {
-    console.warn('ADB not available:', adbCheck.message);
     return [];
   }
 

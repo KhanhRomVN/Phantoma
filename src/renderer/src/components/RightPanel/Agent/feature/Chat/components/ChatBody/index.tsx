@@ -305,6 +305,17 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
+  // DEBUG: Log when ChatBody receives messages prop
+  useEffect(() => {
+    console.log('[ChatBody] 📨 Messages prop received:', {
+      messageCount: messages.length,
+      isLoadingConversation,
+      conversationId,
+      firstMessageId: messages[0]?.id,
+      lastMessageId: messages[messages.length - 1]?.id,
+    });
+  }, [messages, isLoadingConversation, conversationId]);
+
   const {
     visibleMessages: paginatedMessages,
     hiddenCount,
@@ -477,7 +488,9 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
       )}
     >
       {isLoadingConversation ? (
-        <ChatBodySkeleton />
+        <>
+          <ChatBodySkeleton />
+        </>
       ) : (
         <>
           {isSearchOpen && (
@@ -690,23 +703,4 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   );
 };
 
-// PERF: React.memo with custom comparator
-const ChatBody = React.memo(ChatBodyInternal, (prevProps, nextProps) => {
-  return (
-    prevProps.messages === nextProps.messages &&
-    prevProps.isProcessing === nextProps.isProcessing &&
-    prevProps.isContinuing === nextProps.isContinuing &&
-    prevProps.executionState === nextProps.executionState &&
-    prevProps.toolOutputs === nextProps.toolOutputs &&
-    prevProps.terminalStatus === nextProps.terminalStatus &&
-    prevProps.conversationId === nextProps.conversationId &&
-    prevProps.isRestored === nextProps.isRestored &&
-    prevProps.isSearchOpen === nextProps.isSearchOpen &&
-    prevProps.searchQuery === nextProps.searchQuery &&
-    prevProps.isLoadingConversation === nextProps.isLoadingConversation &&
-    prevProps.isGitProcessing === nextProps.isGitProcessing &&
-    prevProps.isGitStatusVisible === nextProps.isGitStatusVisible &&
-    prevProps.singleLineReviewActions === nextProps.singleLineReviewActions
-  );
-});
-export default ChatBody;
+export default ChatBodyInternal;

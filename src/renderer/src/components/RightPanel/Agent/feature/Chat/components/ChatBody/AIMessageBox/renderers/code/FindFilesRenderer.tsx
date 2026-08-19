@@ -18,7 +18,7 @@ import FileIcon from '@renderer/components/common/FileIcon';
 
 // Components
 import { TagHeader } from '../../TagHeader';
-import { TreeBlock } from '../../blocks/code/TreeBlock';
+import { TreeBlock } from '../../blocks/other/TreeBlock';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 
 export const FindFilesRenderer: React.FC<BaseRendererProps> = ({

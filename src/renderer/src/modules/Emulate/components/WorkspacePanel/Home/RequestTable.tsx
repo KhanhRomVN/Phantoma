@@ -45,7 +45,7 @@ import { filterRequestsByConfig } from '../../../hooks/network/useRequestFilter'
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
 // STORE
-import { useNetworkStore } from '../../../../../stores/networkStore';
+import { useNetworkStore } from '../../../stores/networkStore';
 
 // Utils
 import { cn } from '@renderer/shared/utils/cn';

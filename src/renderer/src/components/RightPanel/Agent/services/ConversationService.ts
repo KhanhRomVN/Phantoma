@@ -1,4 +1,7 @@
-import { conversationAPI } from '@preload/api/conversation';
+import { logger } from '@renderer/utils/logger';
+
+// Access conversation API through window.api
+const conversationAPI = window.api.conversation;
 
 /**
  * ConversationService — quản lý persist conversations qua localStorage (keyed theo moduleId).
@@ -24,11 +27,14 @@ export interface ConversationData {
     tokenUsage?: number;
     conversationId?: string;
   }>;
-  toolOutputs?: Record<string, {
-    output: string;
-    isError: boolean;
-    terminalId?: string;
-  }>;
+  toolOutputs?: Record<
+    string,
+    {
+      output: string;
+      isError: boolean;
+      terminalId?: string;
+    }
+  >;
   questionAnswers?: Record<string, string>;
   singleLineReviewActions?: Record<string, any>;
   conversationFileStats?: {
@@ -59,49 +65,43 @@ export const ConversationService = {
   /**
    * Save a conversation
    */
-  save: async (
-    moduleId: string,
-    conversationId: string,
-    data: ConversationData
-  ): Promise<void> => {
+  save: async (moduleId: string, conversationId: string, data: ConversationData): Promise<void> => {
     return conversationAPI.saveConversation(moduleId, conversationId, data);
   },
 
   /**
    * Get a conversation
    */
-  get: async (
-    moduleId: string,
-    conversationId: string
-  ): Promise<ConversationData | null> => {
-    return conversationAPI.getConversation(moduleId, conversationId);
+  get: async (moduleId: string, conversationId: string): Promise<ConversationData | null> => {
+    const data = await conversationAPI.getConversation(moduleId, conversationId);
+    if (data) {
+    } else {
+      logger.warn('[ConversationService] ⚠️ Conversation not found:', {
+        moduleId,
+        conversationId,
+      });
+    }
+    return data;
   },
 
   /**
    * List all conversation IDs for a module
    */
-  list: async (
-    moduleId: string
-  ): Promise<string[]> => {
+  list: async (moduleId: string): Promise<string[]> => {
     return conversationAPI.listConversations(moduleId);
   },
 
   /**
    * Delete a conversation
    */
-  delete: async (
-    moduleId: string,
-    conversationId: string
-  ): Promise<void> => {
+  delete: async (moduleId: string, conversationId: string): Promise<void> => {
     return conversationAPI.deleteConversation(moduleId, conversationId);
   },
 
   /**
    * Delete all conversations for a module
    */
-  deleteAll: async (
-    moduleId: string
-  ): Promise<void> => {
+  deleteAll: async (moduleId: string): Promise<void> => {
     return conversationAPI.deleteAllConversations(moduleId);
   },
 
@@ -110,10 +110,11 @@ export const ConversationService = {
    */
   create: async (
     moduleId: string,
-    initialMessage?: string
+    initialMessage?: string,
   ): Promise<{ conversationId: string; data: ConversationData }> => {
     const conversationId = generateConversationId();
     const now = Date.now();
+
     const data: ConversationData = {
       conversationId,
       messages: initialMessage
@@ -143,7 +144,7 @@ export const ConversationService = {
     role: 'user' | 'assistant' | 'system' | 'tool',
     content: string,
     tokenUsage?: number,
-    backendConversationId?: string
+    backendConversationId?: string,
   ): Promise<ConversationData | null> => {
     const data = await ConversationService.get(moduleId, conversationId);
     if (!data) return null;
@@ -170,11 +171,14 @@ export const ConversationService = {
   updateToolOutputs: async (
     moduleId: string,
     conversationId: string,
-    toolOutputs: Record<string, {
-      output: string;
-      isError: boolean;
-      terminalId?: string;
-    }>
+    toolOutputs: Record<
+      string,
+      {
+        output: string;
+        isError: boolean;
+        terminalId?: string;
+      }
+    >,
   ): Promise<ConversationData | null> => {
     const data = await ConversationService.get(moduleId, conversationId);
     if (!data) return null;
@@ -195,7 +199,7 @@ export const ConversationService = {
   updateQuestionAnswers: async (
     moduleId: string,
     conversationId: string,
-    questionAnswers: Record<string, string>
+    questionAnswers: Record<string, string>,
   ): Promise<ConversationData | null> => {
     const data = await ConversationService.get(moduleId, conversationId);
     if (!data) return null;
@@ -221,7 +225,7 @@ export const ConversationService = {
       totalAdditions: number;
       totalDeletions: number;
       responseNumber?: number;
-    }
+    },
   ): Promise<ConversationData | null> => {
     const data = await ConversationService.get(moduleId, conversationId);
     if (!data) return null;

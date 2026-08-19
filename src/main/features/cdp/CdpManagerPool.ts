@@ -47,7 +47,7 @@ export class CdpManagerPool extends EventEmitter {
     }
 
     // Create new manager
-    
+
     const manager = new CdpManager();
     if (this.mainWindow) {
       manager.setMainWindow(this.mainWindow);
@@ -63,7 +63,7 @@ export class CdpManagerPool extends EventEmitter {
     });
 
     // Auto-connect
-    
+
     this.connectManager(targetId, port).catch(console.error);
 
     this.emit('manager-created', { targetId, port });
@@ -172,7 +172,6 @@ export class CdpManagerPool extends EventEmitter {
             this.targetInfo.set(targetId, info);
           } catch (error) {
             // Connection might be dead, attempt reconnect
-            console.warn(`[CDP Pool] Heartbeat failed for ${targetId}, reconnecting...`);
             await this.reconnectManager(targetId);
           }
         }

@@ -1,4 +1,4 @@
-import { NetworkRequest } from '../../../types/inspector';
+import { NetworkRequest } from '@renderer/shared/types/network';
 
 export type SecuritySeverity = 'high' | 'medium' | 'low' | 'info';
 

@@ -5,7 +5,7 @@ export async function connectToTarget(
   this: CdpManager,
   wsUrl: string,
   retries = 5,
-  delay = 1000
+  delay = 1000,
 ): Promise<boolean> {
   // Clean up existing WebSocket before creating a new one
   if (this.ws) {
@@ -49,7 +49,6 @@ export async function connectToTarget(
           if (pongTimeout) clearTimeout(pongTimeout);
           pongTimeout = setTimeout(() => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-              console.warn('[CDP] No pong received, closing connection');
               try {
                 this.ws.terminate();
               } catch {
@@ -71,7 +70,7 @@ export async function connectToTarget(
       resolved = true;
       startHeartbeat();
       // Wait for WebSocket to be fully ready
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       // Double-check WebSocket is still open
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
         console.error('[CDP] WebSocket not open after delay');
@@ -108,7 +107,6 @@ export async function connectToTarget(
       cleanup();
 
       if (retries > 0 && !resolved) {
-        console.warn('[CDP] Connection closed, reconnecting...');
         setTimeout(() => {
           this.connectToTarget(wsUrl, retries - 1, delay * 2);
         }, delay);
@@ -120,7 +118,6 @@ export async function connectToTarget(
       if (!resolved) {
         resolved = true;
         if (retries > 0) {
-          console.warn(`[CDP] Connection error, retrying... (${retries} attempts left)`);
           setTimeout(() => {
             this.connectToTarget(wsUrl, retries - 1, delay * 2);
           }, delay);
@@ -132,7 +129,6 @@ export async function connectToTarget(
 
     setTimeout(() => {
       if (!resolved) {
-        console.warn('[CDP] Connection timeout');
         resolved = true;
         resolve(false);
       }
@@ -142,8 +138,8 @@ export async function connectToTarget(
 
 export async function initializeNetwork(this: CdpManager) {
   // Wait a bit more to ensure WebSocket is ready
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
   try {
     await this.send('Page.enable', {});
   } catch (e) {
@@ -169,9 +165,8 @@ export async function initializeNetwork(this: CdpManager) {
       maxPostDataSize: 5000000,
     });
   } catch (e) {
-    const errorDetail = e instanceof Error
-      ? { name: e.name, message: e.message, stack: e.stack }
-      : e;
+    const errorDetail =
+      e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : e;
     console.error('[CDP] Failed to enable network:', {
       error: errorDetail,
       wsReadyState: this.ws?.readyState,

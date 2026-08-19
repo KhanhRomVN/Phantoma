@@ -24,7 +24,6 @@ class MonacoAdapter {
    */
   syncMarkers(uri: string, diagnostics: Diagnostic[]): void {
     if (typeof window === 'undefined' || !window.monaco) {
-      console.warn('[MonacoAdapter] Monaco not available, skipping marker sync');
       return;
     }
 
@@ -32,7 +31,6 @@ class MonacoAdapter {
       const model = window.monaco.editor.getModel(window.monaco.Uri.parse(uri));
 
       if (!model) {
-        console.warn(`[MonacoAdapter] Model not found for ${uri}, skipping marker sync`);
         return;
       }
 

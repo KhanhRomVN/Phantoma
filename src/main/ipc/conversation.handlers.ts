@@ -10,10 +10,21 @@ export function setupConversationHandlers(): void {
   // Save conversation
   ipcMain.handle('conversation:save', async (_, { moduleId, conversationId, data }) => {
     try {
+      console.info('[IPC][conversation:save] 💾 Saving conversation:', {
+        moduleId,
+        conversationId,
+        messageCount: data?.messages?.length || 0,
+        hasToolOutputs: !!data?.toolOutputs,
+        hasQuestionAnswers: !!data?.questionAnswers,
+      });
       await storage.saveConversation(moduleId, conversationId, data);
       return { success: true };
-    } catch (error) {
-      console.error('[IPC] Failed to save conversation:', error);
+    } catch (error: any) {
+      console.error('[IPC][conversation:save] ❌ Failed to save conversation:', {
+        error: error.message,
+        moduleId,
+        conversationId,
+      });
       throw error;
     }
   });
@@ -21,7 +32,23 @@ export function setupConversationHandlers(): void {
   // Get conversation
   ipcMain.handle('conversation:get', async (_, { moduleId, conversationId }) => {
     try {
+      console.info('[IPC][conversation:get] 📖 Getting conversation:', {
+        moduleId,
+        conversationId,
+      });
       const data = await storage.getConversation(moduleId, conversationId);
+      if (data) {
+        console.info('[IPC][conversation:get] ✅ Conversation loaded:', {
+          moduleId,
+          conversationId,
+          messageCount: data.messages?.length || 0,
+        });
+      } else {
+        console.warn('[IPC][conversation:get] ⚠️ Conversation not found:', {
+          moduleId,
+          conversationId,
+        });
+      }
       return data;
     } catch (error) {
       console.error('[IPC] Failed to get conversation:', error);
@@ -32,7 +59,13 @@ export function setupConversationHandlers(): void {
   // List conversations
   ipcMain.handle('conversation:list', async (_, { moduleId }) => {
     try {
+      console.info('[IPC][conversation:list] 📋 Listing conversations for moduleId:', moduleId);
       const ids = await storage.listConversations(moduleId);
+      console.info('[IPC][conversation:list] ✅ Found conversations:', {
+        moduleId,
+        count: ids.length,
+        ids: ids.slice(0, 5), // Log first 5 IDs only
+      });
       return ids;
     } catch (error) {
       console.error('[IPC] Failed to list conversations:', error);

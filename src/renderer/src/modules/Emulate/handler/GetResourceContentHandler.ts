@@ -11,11 +11,11 @@
 
 // TYPE
 import { NetworkRequest } from '../types/inspector';
-import { ResourceItem, ResourceType } from '../types/resource.types';
+import { ResourceItem } from '../types/resource.types';
 
 // UTIL
 import { detectResourceType } from '../constants/resource';
-import { detectWasmModules } from '../../../utils/detectors';
+import { detectWasm } from '../utils/wasm-detector.util';
 
 export interface GetResourceContentOptions {
   startLine?: number; // 1-indexed, inclusive
@@ -44,7 +44,7 @@ export class GetResourceContentHandler {
     const seen = new Set<string>();
 
     // Detect WASM modules
-    const wasmItems = detectWasmModules(requests);
+    const wasmItems = detectWasm(requests);
     wasmItems.forEach((wasm) => {
       const request = requests.find((r) => r.id === wasm.id);
       if (request) {

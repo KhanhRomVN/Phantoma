@@ -114,7 +114,6 @@ const highlightMatch = (text: string, searchTerm: string): React.ReactNode => {
       return part;
     });
   } catch (e) {
-    console.warn('[GrepBlock] Failed to highlight:', e);
     return text;
   }
 };

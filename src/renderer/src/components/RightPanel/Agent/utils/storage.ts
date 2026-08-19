@@ -11,17 +11,17 @@
  */
 
 // TYPES
-import { Message, ChatSession, STORAGE_KEYS } from '../types'
+import { Message, ChatSession, STORAGE_KEYS } from '../types';
 
 /**
  * Save messages to localStorage for a conversation
  */
 export function saveMessages(conversationId: string, messages: Message[]): void {
   try {
-    const key = `agent-conversation-${conversationId}`
-    localStorage.setItem(key, JSON.stringify(messages))
+    const key = `agent-conversation-${conversationId}`;
+    localStorage.setItem(key, JSON.stringify(messages));
   } catch (e) {
-    console.warn('Failed to save messages:', e)
+    console.error('Failed to save messages:', e);
   }
 }
 
@@ -30,13 +30,13 @@ export function saveMessages(conversationId: string, messages: Message[]): void 
  */
 export function loadMessages(conversationId: string): Message[] {
   try {
-    const key = `agent-conversation-${conversationId}`
-    const data = localStorage.getItem(key)
-    if (!data) return []
-    return JSON.parse(data)
+    const key = `agent-conversation-${conversationId}`;
+    const data = localStorage.getItem(key);
+    if (!data) return [];
+    return JSON.parse(data);
   } catch (e) {
-    console.warn('Failed to load messages:', e)
-    return []
+    console.error('Failed to load messages:', e);
+    return [];
   }
 }
 
@@ -45,10 +45,10 @@ export function loadMessages(conversationId: string): Message[] {
  */
 export function deleteConversation(conversationId: string): void {
   try {
-    const key = `agent-conversation-${conversationId}`
-    localStorage.removeItem(key)
+    const key = `agent-conversation-${conversationId}`;
+    localStorage.removeItem(key);
   } catch (e) {
-    console.warn('Failed to delete conversation:', e)
+    console.error('Failed to delete conversation:', e);
   }
 }
 
@@ -57,12 +57,12 @@ export function deleteConversation(conversationId: string): void {
  */
 export function getAllConversationIds(): string[] {
   try {
-    const keys = Object.keys(localStorage)
+    const keys = Object.keys(localStorage);
     return keys
       .filter((k) => k.startsWith('agent-conversation-'))
-      .map((k) => k.replace('agent-conversation-', ''))
+      .map((k) => k.replace('agent-conversation-', ''));
   } catch (e) {
-    return []
+    return [];
   }
 }
 
@@ -71,9 +71,9 @@ export function getAllConversationIds(): string[] {
  */
 export function saveSessions(sessions: ChatSession[]): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions))
+    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
   } catch (e) {
-    console.warn('Failed to save sessions:', e)
+    console.error('Failed to save sessions:', e);
   }
 }
 
@@ -82,11 +82,11 @@ export function saveSessions(sessions: ChatSession[]): void {
  */
 export function loadSessions(): ChatSession[] {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.SESSIONS)
-    if (!data) return []
-    return JSON.parse(data)
+    const data = localStorage.getItem(STORAGE_KEYS.SESSIONS);
+    if (!data) return [];
+    return JSON.parse(data);
   } catch (e) {
-    return []
+    return [];
   }
 }
 
@@ -100,21 +100,21 @@ export function createSession(title: string): ChatSession {
     messages: [],
     createdAt: Date.now(),
     updatedAt: Date.now(),
-  }
+  };
 }
 
 /**
  * Update a session's messages
  */
 export function updateSessionMessages(sessionId: string, messages: Message[]): void {
-  const sessions = loadSessions()
-  const index = sessions.findIndex((s) => s.id === sessionId)
-  if (index === -1) return
+  const sessions = loadSessions();
+  const index = sessions.findIndex((s) => s.id === sessionId);
+  if (index === -1) return;
 
-  sessions[index].messages = messages
-  sessions[index].updatedAt = Date.now()
-  saveSessions(sessions)
-  saveMessages(sessionId, messages)
+  sessions[index].messages = messages;
+  sessions[index].updatedAt = Date.now();
+  saveSessions(sessions);
+  saveMessages(sessionId, messages);
 }
 
 /**
@@ -122,14 +122,14 @@ export function updateSessionMessages(sessionId: string, messages: Message[]): v
  */
 export function getOrCreateSession(sessionId: string | null, title?: string): ChatSession {
   if (sessionId) {
-    const sessions = loadSessions()
-    const existing = sessions.find((s) => s.id === sessionId)
-    if (existing) return existing
+    const sessions = loadSessions();
+    const existing = sessions.find((s) => s.id === sessionId);
+    if (existing) return existing;
   }
 
-  const newSession = createSession(title || 'New Chat')
-  const sessions = loadSessions()
-  sessions.push(newSession)
-  saveSessions(sessions)
-  return newSession
+  const newSession = createSession(title || 'New Chat');
+  const sessions = loadSessions();
+  sessions.push(newSession);
+  saveSessions(sessions);
+  return newSession;
 }

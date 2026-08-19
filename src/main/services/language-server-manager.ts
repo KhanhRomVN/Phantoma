@@ -123,9 +123,6 @@ class LanguageServerProcess {
    */
   private sendMessageToRenderer(message: LSPMessage): void {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
-      console.warn(
-        `[LanguageServer:${this.languageId}] Cannot send message - window not available`,
-      );
       return;
     }
 
@@ -225,7 +222,6 @@ class LanguageServerManager {
   async stopLanguageServer(languageId: string): Promise<void> {
     const server = this.servers.get(languageId);
     if (!server) {
-      console.warn(`[LanguageServerManager] No server to stop: ${languageId}`);
       return;
     }
 
@@ -247,7 +243,6 @@ class LanguageServerManager {
       case 'python':
         return this.getPythonServerConfig(workspaceRoot);
       default:
-        console.warn(`[LanguageServerManager] No config for language: ${languageId}`);
         return null;
     }
   }

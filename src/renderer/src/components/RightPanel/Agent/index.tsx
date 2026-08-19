@@ -11,6 +11,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { logger } from '@renderer/utils/logger';
 
 // Components
 import HomePanel from './feature/Home';
@@ -45,6 +46,15 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
 
+  // DEBUG: Log AgentView render
+  console.log('[AgentView] 🎨 Rendering:', {
+    feature,
+    isVisible,
+    hasCurrentChat: !!currentChat,
+    sessionId: currentChat?.sessionId,
+    conversationId: (currentChat as any)?.conversationId,
+  });
+
   const handleHomeSendMessage = useCallback(
     (content: string, files: any[], model: any, account: any) => {
       setInitialMessageData({ content, files, model, account });
@@ -61,32 +71,62 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
   );
 
   const handleBack = useCallback((contentToReturn?: string) => {
+    console.log('[AgentView] 🔙 handleBack called:', { contentToReturn });
     setCurrentChat(null);
     setHomeInitialValue(
       typeof contentToReturn === 'string' && contentToReturn.trim() ? contentToReturn : '',
     );
+    console.log('[AgentView] ✅ handleBack: currentChat set to null');
   }, []);
 
   const handleLoadConversation = useCallback(
     (conversationId: string, sessionId: number, folderPath: string | null) => {
+      // Clear any pending initial message data so each history load starts fresh
+      setInitialMessageData(null);
+      // Always generate a new sessionId to ensure useEffect in useConversationRestore triggers
       const newSession: ChatSession = {
-        sessionId: sessionId || Date.now(),
+        sessionId: Date.now(),
         folderPath: folderPath || (window as any).__zenWorkspaceFolderPath || null,
         conversationId,
         canAccept: true,
       };
+      console.log('[AgentView] 🔄 Setting currentChat:', newSession);
       setCurrentChat(newSession);
     },
     [],
   );
+
+  // Listen for reset to home event from RightPanel Plus button
+  useEffect(() => {
+    const handleResetToHome = () => {
+      if (isVisible) {
+        handleBack();
+      }
+    };
+
+    window.addEventListener('agent:resetToHome', handleResetToHome);
+    return () => {
+      window.removeEventListener('agent:resetToHome', handleResetToHome);
+    };
+  }, [isVisible, handleBack]);
 
   return (
     <div
       className="flex-1 overflow-hidden bg-background flex flex-col"
       style={{ display: isVisible ? 'flex' : 'none' }}
     >
+      {(() => {
+        console.log('[AgentView] 🖼️ Rendering content:', {
+          hasCurrentChat: !!currentChat,
+          sessionId: currentChat?.sessionId,
+          conversationId: (currentChat as any)?.conversationId,
+          willRenderChatPanel: !!currentChat,
+        });
+        return null;
+      })()}
       {currentChat ? (
         <ChatPanel
+          key={currentChat.sessionId} // Force remount when sessionId changes
           currentChat={currentChat}
           onBack={handleBack}
           feature={feature}
@@ -115,25 +155,44 @@ export function AgentPanel() {
   const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
   const isTargetActive = currentTargetState?.isActive || false;
   const isReconTargetActive = reconActiveTargetId
-    ? reconTargets.find((t) => t.id === reconActiveTargetId)?.isActive ?? false
+    ? (reconTargets.find((t) => t.id === reconActiveTargetId)?.isActive ?? false)
     : false;
 
   // Tập hợp các view đã từng mở (keep-alive)
   const openedKeysRef = useRef<Set<string>>(new Set());
   const [, forceUpdate] = useState(0);
 
+  console.log('[AgentPanel] 🎨 Rendering:', {
+    activeFeature,
+    activeTargetId,
+    isTargetActive,
+    openedKeysCount: openedKeysRef.current.size,
+    openedKeys: Array.from(openedKeysRef.current),
+  });
+
   // Xác định active key dựa trên feature
   const activeKey = useMemo(() => {
+    let key: string | null = null;
+
     if (activeFeature === 'emulate' && activeTargetId && isTargetActive) {
-      return `emulate:${activeTargetId}`;
+      key = `emulate:${activeTargetId}`;
+      // Set global context for conversation service
+      (window as any).__activeFeature = 'emulate';
+      (window as any).__activeTargetId = activeTargetId;
+    } else if (activeFeature === 'code' && currentProjectId) {
+      key = `code:${currentProjectId}`;
+      // Set global context for conversation service
+      (window as any).__activeFeature = 'code';
+      (window as any).__currentProjectId = currentProjectId;
+    } else if (activeFeature === 'recon' && reconActiveTargetId) {
+      key = `recon:${reconActiveTargetId}`;
+      // Set global context for conversation service
+      (window as any).__activeFeature = 'recon';
+      (window as any).__activeTargetId = reconActiveTargetId;
     }
-    if (activeFeature === 'code' && currentProjectId) {
-      return `code:${currentProjectId}`;
-    }
-    if (activeFeature === 'recon' && reconActiveTargetId) {
-      return `recon:${reconActiveTargetId}`;
-    }
-    return null;
+
+    console.log('[AgentPanel] 🔑 Active key computed:', { key });
+    return key;
   }, [activeFeature, activeTargetId, isTargetActive, currentProjectId, reconActiveTargetId]);
 
   // Khi activeKey thay đổi, thêm vào openedKeys
@@ -172,9 +231,11 @@ export function AgentPanel() {
   }, [targetStates, reconTargets]);
 
   // Overlay checks
-  const showGenericOverlay = activeFeature !== 'emulate' && activeFeature !== 'code' && activeFeature !== 'recon';
+  const showGenericOverlay =
+    activeFeature !== 'emulate' && activeFeature !== 'code' && activeFeature !== 'recon';
   const showEmulateOverlay = activeFeature === 'emulate' && (!activeTargetId || !isTargetActive);
-  const showReconOverlay = activeFeature === 'recon' && (!reconActiveTargetId || !isReconTargetActive);
+  const showReconOverlay =
+    activeFeature === 'recon' && (!reconActiveTargetId || !isReconTargetActive);
 
   const renderEmulateOverlay = () => {
     const hasTarget = !!activeTargetId;
@@ -216,16 +277,27 @@ export function AgentPanel() {
         {/* Keep-alive views — tất cả đều mounted, chỉ activeKey hiển thị */}
         {!showGenericOverlay && !showEmulateOverlay && (
           <div className="flex-1 overflow-hidden bg-background flex flex-col">
-            {Array.from(openedKeysRef.current).map((key) => {
-              const feature = key.startsWith('emulate:') ? 'emulate' : key.startsWith('recon:') ? 'recon' : 'code';
-              return (
-                <AgentView
-                  key={key}
-                  feature={feature}
-                  isVisible={key === activeKey}
-                />
-              );
-            })}
+            {(() => {
+              const keys = Array.from(openedKeysRef.current);
+              console.log('[AgentPanel] 🖼️ Rendering AgentViews:', {
+                keysCount: keys.length,
+                keys,
+                activeKey,
+              });
+              return keys.map((key) => {
+                const feature = key.startsWith('emulate:')
+                  ? 'emulate'
+                  : key.startsWith('recon:')
+                    ? 'recon'
+                    : 'code';
+                const isVisible = key === activeKey;
+                console.log(`[AgentPanel] 📦 Rendering AgentView key="${key}":`, {
+                  feature,
+                  isVisible,
+                });
+                return <AgentView key={key} feature={feature} isVisible={isVisible} />;
+              });
+            })()}
           </div>
         )}
       </div>

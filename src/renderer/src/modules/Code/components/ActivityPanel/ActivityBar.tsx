@@ -78,7 +78,6 @@ const getTabColor = (tabId: string) => {
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) {
-  console.log('[DEBUG|ActivityBar] render');
   // ── Store ──
   const { accentColors, UNIFIED_ACCENT } = useAccentColors();
 

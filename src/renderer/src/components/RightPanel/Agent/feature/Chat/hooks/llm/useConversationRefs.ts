@@ -1,4 +1,3 @@
-import { useRef } from "react";
 /**
  * useConversationRefs — tập trung tất cả useRef dùng trong ChatLLM (messages, conversationId, model, abort...).
  *
@@ -13,8 +12,8 @@ import { Message } from '../../types/message';
 
 export const useConversationRefs = () => {
   const messagesRef = useRef<Message[]>([]);
-  const currentConversationIdRef = useRef<string>("");
-  const backendConversationIdRef = useRef<string>("");
+  const currentConversationIdRef = useRef<string>('');
+  const backendConversationIdRef = useRef<string>('');
   const lastUsedModelRef = useRef<any>(null);
   const lastUsedAccountRef = useRef<any>(null);
   const abortControllerRef = useRef<AbortController | null>(null);

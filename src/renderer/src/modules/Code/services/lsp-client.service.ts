@@ -56,7 +56,6 @@ interface ActiveServer {
 class LSPClientManager {
   private activeServers: Map<string, ActiveServer> = new Map();
   private monaco: any = null;
-  private diagnosticsEnabled = true;
   private pendingChanges: Map<string, { timer: ReturnType<typeof setTimeout>; version: number }> =
     new Map();
 
@@ -148,8 +147,6 @@ class LSPClientManager {
           return this.getCompletionItems(language, model, position);
         },
       });
-    } else {
-      console.warn('[LSPClient] ⚠️  No completion provider capability');
     }
 
     // Register hover provider
@@ -159,8 +156,6 @@ class LSPClientManager {
           return this.getHover(language, model, position);
         },
       });
-    } else {
-      console.warn('[LSPClient] ⚠️  No hover provider capability');
     }
 
     // Register definition provider
@@ -170,8 +165,6 @@ class LSPClientManager {
           return this.getDefinition(language, model, position);
         },
       });
-    } else {
-      console.warn('[LSPClient] ⚠️  No definition provider capability');
     }
 
     // Register signature help provider
@@ -185,8 +178,6 @@ class LSPClientManager {
           return this.getSignatureHelp(language, model, position);
         },
       });
-    } else {
-      console.warn('[LSPClient] ⚠️  No signature help provider capability');
     }
 
     // Register document formatting provider
@@ -196,8 +187,6 @@ class LSPClientManager {
           return this.formatDocument(language, model, options);
         },
       });
-    } else {
-      console.warn('[LSPClient] ⚠️  No formatting provider capability');
     }
 
     // Diagnostics are managed by LSPManager — no setup needed here
@@ -659,20 +648,15 @@ export async function autoStartLanguageServer(
   }
 
   if (lspClientManager.isServerRunning(serverLanguage)) {
-    console.log(`[LSPClient] ⏭️  Server "${serverLanguage}" already running in renderer — skipping`);
     return;
   }
 
-  // [DEBUG] After renderer refresh (Ctrl+R), activeServers Map is empty but the server
   // process may still be alive in main process. Sync with main to avoid unnecessary
   // lsp:start-server calls and the lsp:init:start/lsp:init:complete noise that can
   // desync FooterBar's progress state.
   try {
     const result = await window.api.invoke('lsp:get-active-servers');
     if (result?.success && result.servers?.includes(serverLanguage)) {
-      console.log(
-        `[LSPClient] 🔄 Synced: "${serverLanguage}" server found running in main process after refresh`,
-      );
       // Mark as running in renderer without calling startLanguageServer
       lspClientManager['activeServers'].set(serverLanguage, {
         language: serverLanguage,
@@ -682,11 +666,8 @@ export async function autoStartLanguageServer(
       return;
     }
   } catch (err) {
-    // Non-critical — proceed with normal start flow below
-    console.warn(`[LSPClient] ⚠️  Failed to sync active servers from main:`, err);
+    console.error(`[LSPClient] ⚠️  Failed to sync active servers from main:`, err);
   }
-
-  console.log(`[LSPClient] 🚀 Starting language server for "${serverLanguage}"...`);
 
   const existingPromise = startingServers.get(serverLanguage);
   if (existingPromise) {
@@ -701,7 +682,6 @@ export async function autoStartLanguageServer(
 
   try {
     await promise;
-    console.log(`[LSPClient] ✅ Server "${serverLanguage}" started successfully`);
   } finally {
     startingServers.delete(serverLanguage);
   }

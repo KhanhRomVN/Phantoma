@@ -97,7 +97,7 @@ function setupLogger(): void {
   };
 
   console.warn = (...args: any[]) => {
-    writeToLog('WARN', ...args);
+    writeToLog('WARN', ...args);  
     inConsoleCall = true;
     try { originalWarn(...args); } finally { inConsoleCall = false; }
   };

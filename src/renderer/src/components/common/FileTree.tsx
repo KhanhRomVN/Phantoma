@@ -1,11 +1,6 @@
 import { useState, useCallback, useRef, useEffect, createContext, useContext, memo } from 'react';
 
-import {
-  ChevronRight,
-  Loader,
-  File,
-  Folder,
-} from 'lucide-react';
+import { ChevronRight, Loader, File, Folder } from 'lucide-react';
 
 import { Kbd } from '@renderer/components/ui/Kbd';
 import { useCodeStore, type FileNode } from '@renderer/modules/Code/hooks/useCodeStore';
@@ -58,7 +53,8 @@ const fetchDirChildren = async (dirPath: string): Promise<FileNode[]> => {
 };
 
 export async function refreshProjectTree(projectId: string, projectPath: string) {
-  const { scanDirectory } = await import('@renderer/modules/Code/components/ProjectTabBar/OpenProjectModal');
+  const { scanDirectory } =
+    await import('@renderer/modules/Code/components/ProjectTabBar/OpenProjectModal');
   const { setProjectFiles } = useCodeStore.getState();
   const files = await scanDirectory(projectPath);
   setProjectFiles(projectId, files);
@@ -131,7 +127,13 @@ interface InlineNewInputProps {
   onCancel: () => void;
 }
 
-export function InlineNewInput({ type, parentPath, depth, onCreated, onCancel }: InlineNewInputProps) {
+export function InlineNewInput({
+  type,
+  parentPath,
+  depth,
+  onCreated,
+  onCancel,
+}: InlineNewInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -197,14 +199,10 @@ function bumpRenderCount(name: string) {
 
 function logRenderCountAndReset(label: string) {
   setTimeout(() => {
-    const count = treeNodeRenderCount;
-    const names = renderedNodeNames.slice(0, 10).join(', ');
     treeNodeRenderCount = 0;
     renderedNodeNames.length = 0;
     const now = performance.now();
-    const sinceLast = lastRenderLogTime > 0 ? (now - lastRenderLogTime).toFixed(0) : 'first';
     lastRenderLogTime = now;
-    console.log(`[FileExplore|DEBUG] RENDER-COUNT after "${label}": ${count} renders, first 10: [${names}] | +${sinceLast}ms`);
   }, 50);
 }
 
@@ -255,7 +253,16 @@ const TreeNode = memo(function TreeNode({
   const [loading, setLoading] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
 
-  const { creating, setCreating, clipboard, onCopyAbsolutePath, onCopyRelativePath, onCutFile, onCopyFile, onPasteFile } = useContext(FileExploreContext);
+  const {
+    creating,
+    setCreating,
+    clipboard,
+    onCopyAbsolutePath,
+    onCopyRelativePath,
+    onCutFile,
+    onCopyFile,
+    onPasteFile,
+  } = useContext(FileExploreContext);
 
   const isActive = selectedNodeIds.has(node.id);
 
@@ -274,17 +281,10 @@ const TreeNode = memo(function TreeNode({
   const hasChildren = children && children.length > 0;
   const canExpand = isFolder && (hasChildren || !!node.path);
 
-  // Debug: log khi expanded state thay đổi + đo thời gian từ click đến re-render
   const expandedRef = useRef(expanded);
   const clickTimeRef = useRef<number>(0);
   useEffect(() => {
     if (expanded !== expandedRef.current) {
-      const now = performance.now();
-      const childCount = children?.length ?? 0;
-      const fromClick = clickTimeRef.current > 0 ? (now - clickTimeRef.current).toFixed(1) : '?';
-      console.log(
-        `[FileExplore|DEBUG] RENDER: "${node.name}" expanded=${expanded}, children=${childCount} | click→render=${fromClick}ms`,
-      );
       expandedRef.current = expanded;
       clickTimeRef.current = 0;
     }
@@ -294,18 +294,18 @@ const TreeNode = memo(function TreeNode({
   useEffect(() => {
     if (isFolder && expanded && !hasChildren && node.path && lazyChildren === null && !loading) {
       const t0 = performance.now();
-      console.log(`[FileExplore|DEBUG] auto-load START: "${node.name}" (${node.path})`);
       setLoading(true);
       fetchDirChildren(node.path)
         .then((kids) => {
-          const elapsed = (performance.now() - t0).toFixed(1);
-          console.log(`[FileExplore|DEBUG] auto-load DONE: "${node.name}" — ${kids.length} items in ${elapsed}ms`);
           setLazyChildren(kids);
           setLoading(false);
         })
         .catch((err) => {
           const elapsed = (performance.now() - t0).toFixed(1);
-          console.error(`[FileExplore|DEBUG] auto-load FAIL: "${node.name}" after ${elapsed}ms`, err);
+          console.error(
+            `[FileExplore|DEBUG] auto-load FAIL: "${node.name}" after ${elapsed}ms`,
+            err,
+          );
           setLoading(false);
         });
     }
@@ -319,14 +319,12 @@ const TreeNode = memo(function TreeNode({
       // Chỉ mở file/folder khi không có multi-select modifier
       if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
         if (!isFolder) {
-          console.log(`[FileExplore|DEBUG] click FILE: "${node.name}"`);
           openFile(projectId, node.id, node.name, node);
           setActiveFileTab(node.id);
           return;
         }
 
         if (expanded) {
-          console.log(`[FileExplore|DEBUG] click COLLAPSE: "${node.name}"`);
           clickTimeRef.current = performance.now();
           toggleFolderExpand(projectId, node.id);
           setTimeout(() => logRenderCountAndReset(`COLLAPSE "${node.name}"`), 100);
@@ -334,7 +332,6 @@ const TreeNode = memo(function TreeNode({
         }
 
         if (!hasChildren && node.path && lazyChildren === null) {
-          console.log(`[FileExplore|DEBUG] click EXPAND+FETCH: "${node.name}" (${node.path})`);
           setLoading(true);
           clickTimeRef.current = performance.now();
           toggleFolderExpand(projectId, node.id);
@@ -343,12 +340,10 @@ const TreeNode = memo(function TreeNode({
           fetchDirChildren(node.path).then((kids) => {
             const elapsed = (performance.now() - tFetch).toFixed(1);
             const total = (performance.now() - tClick).toFixed(1);
-            console.log(`[FileExplore|DEBUG] fetch DONE: "${node.name}" — ${kids.length} items, fetch=${elapsed}ms, total=${total}ms`);
             setLazyChildren(kids);
             setLoading(false);
           });
         } else {
-          console.log(`[FileExplore|DEBUG] click EXPAND (cached): "${node.name}"`);
           clickTimeRef.current = performance.now();
           toggleFolderExpand(projectId, node.id);
           setTimeout(() => logRenderCountAndReset(`EXPAND_CACHED "${node.name}"`), 100);
@@ -386,7 +381,9 @@ const TreeNode = memo(function TreeNode({
       const p = getProject();
       if (p?.path) {
         const rootPath = p.path.endsWith('/') ? p.path : p.path + '/';
-        const relative = node.path.startsWith(rootPath) ? node.path.substring(rootPath.length) : node.path;
+        const relative = node.path.startsWith(rootPath)
+          ? node.path.substring(rootPath.length)
+          : node.path;
         navigator.clipboard.writeText(relative).catch(() => {});
       }
     }
@@ -515,9 +512,7 @@ const TreeNode = memo(function TreeNode({
         <DropdownContent className="min-w-[200px]" size="sm">
           {isFolder && (
             <>
-              <DropdownItem onClick={() => handleCreateFromContext('file')}>
-                New File
-              </DropdownItem>
+              <DropdownItem onClick={() => handleCreateFromContext('file')}>New File</DropdownItem>
               <DropdownItem onClick={() => handleCreateFromContext('folder')}>
                 New Folder
               </DropdownItem>

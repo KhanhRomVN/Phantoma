@@ -1,46 +1,53 @@
 // ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // Re-export — Code tools
 // ═══════════════════════════════════════════════════════════════════════
-export { executeReadFile } from './code/ReadFileExecutor';
-export { executeWriteToFile } from './code/WriteToFileExecutor';
-export { executeReplaceInFile } from './code/ReplaceInFileExecutor';
-export { executeRevertFile } from './code/RevertFileExecutor';
-export { executeViewReplaceHistory } from './code/ViewReplaceHistoryExecutor';
-export { executeListFiles } from './code/ListFilesExecutor';
-export { executeFindFiles } from './code/FindFilesExecutor';
-export { executeRunCommand } from './code/RunCommandExecutor';
-export { executeDeleteFile } from './code/DeleteFileExecutor';
-export { executeGrep } from './code/GrepExecutor';
-export { executeGitDiff } from './code/GitDiffExecutor';
-export { executeMoveFile } from './code/MoveFileExecutor';
+export {
+  executeReadFile,
+  executeWriteToFile,
+  executeReplaceInFile,
+  executeRevertFile,
+  executeViewReplaceHistory,
+  executeListFiles,
+  executeFindFiles,
+  executeRunCommand,
+  executeDeleteFile,
+  executeGrep,
+  executeGitDiff,
+  executeMoveFile,
+} from './CodeExecutor';
 
 // ═══════════════════════════════════════════════════════════════════════
 // Re-export — Emulate tools
 // ═══════════════════════════════════════════════════════════════════════
-export { executeListHttps } from './emulate/ListHttpsExecutor';
-export { executeListHosts } from './emulate/ListHostsExecutor';
-export { executeListSources } from './emulate/ListSourcesExecutor';
-export { executeGetSourceDetail } from './emulate/GetSourceDetailExecutor';
-export { executeGetHttpsDetail } from './emulate/GetHttpsDetailExecutor';
-export { executeApplyFilter } from './emulate/ApplyFilterExecutor';
+export {
+  executeListHttps,
+  executeListHosts,
+  executeListSources,
+  executeGetSourceDetail,
+  executeGetHttpsDetail,
+  executeApplyFilter,
+} from './EmulateExecutor';
 
 // ═══════════════════════════════════════════════════════════════════════
 // Re-export — Recon tools
 // ═══════════════════════════════════════════════════════════════════════
-export { executeListTabs } from './recon/ListTabsExecutor';
-export { executeCreateTab } from './recon/CreateTabExecutor';
-export { executeCloseTab } from './recon/CloseTabExecutor';
-export { executeSwitchTab } from './recon/SwitchTabExecutor';
-export { executeNavigate } from './recon/NavigateExecutor';
-export { executeBack } from './recon/BackExecutor';
-export { executeForward } from './recon/ForwardExecutor';
-export { executeReload } from './recon/ReloadExecutor';
-export { executeGetPageContent } from './recon/GetPageContentExecutor';
-export { executeListElements } from './recon/ListElementsExecutor';
-export { executeClickElement } from './recon/ClickElementExecutor';
-export { executeFillInput } from './recon/FillInputExecutor';
-export { executePressKey } from './recon/PressKeyExecutor';
-export { executeScroll } from './recon/ScrollExecutor';
+export {
+  executeListTabs,
+  executeCreateTab,
+  executeCloseTab,
+  executeSwitchTab,
+  executeNavigate,
+  executeBack,
+  executeForward,
+  executeReload,
+  executeGetPageContent,
+  executeListElements,
+  executeClickElement,
+  executeFillInput,
+  executePressKey,
+  executeScroll,
+} from './ReconExecutor';
 
 // ═══════════════════════════════════════════════════════════════════════
 // Imports
@@ -49,18 +56,50 @@ export { executeScroll } from './recon/ScrollExecutor';
 import type { ExecutorContext, ExecutorOptions, ToolExecutor } from '../../types/executor-types';
 
 // ── Code tool executors ──────────────────────────────────────────────
-import { executeReadFile } from './code/ReadFileExecutor';
-import { executeWriteToFile } from './code/WriteToFileExecutor';
-import { executeReplaceInFile } from './code/ReplaceInFileExecutor';
-import { executeRevertFile } from './code/RevertFileExecutor';
-import { executeViewReplaceHistory } from './code/ViewReplaceHistoryExecutor';
-import { executeListFiles } from './code/ListFilesExecutor';
-import { executeFindFiles } from './code/FindFilesExecutor';
-import { executeRunCommand } from './code/RunCommandExecutor';
-import { executeDeleteFile } from './code/DeleteFileExecutor';
-import { executeGrep } from './code/GrepExecutor';
-import { executeGitDiff } from './code/GitDiffExecutor';
-import { executeMoveFile } from './code/MoveFileExecutor';
+import {
+  executeReadFile,
+  executeWriteToFile,
+  executeReplaceInFile,
+  executeRevertFile,
+  executeViewReplaceHistory,
+  executeListFiles,
+  executeFindFiles,
+  executeRunCommand,
+  executeDeleteFile,
+  executeGrep,
+  executeGitDiff,
+  executeMoveFile,
+} from './CodeExecutor';
+
+// ── Emulate tool executors ──────────────────────────────────────────
+import {
+  executeListHttps,
+  executeListHosts,
+  executeListSources,
+  executeListResources,
+  executeGetSourceDetail,
+  executeGetResourceContent,
+  executeGetHttpsDetail,
+  executeApplyFilter,
+} from './EmulateExecutor';
+
+// ── Recon tool executors ────────────────────────────────────────────
+import {
+  executeListTabs,
+  executeCreateTab,
+  executeCloseTab,
+  executeSwitchTab,
+  executeNavigate,
+  executeBack,
+  executeForward,
+  executeReload,
+  executeGetPageContent,
+  executeListElements,
+  executeClickElement,
+  executeFillInput,
+  executePressKey,
+  executeScroll,
+} from './ReconExecutor';
 
 // ═══════════════════════════════════════════════════════════════════════
 // Factory
@@ -175,57 +214,48 @@ export function getExecutor(actionType: string): ToolExecutor | null {
     case 'list_https':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeListHttps } = await import('./emulate/ListHttpsExecutor');
           return executeListHttps(action.params || {});
         },
       };
     case 'list_hosts':
       return {
         execute: async (_action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeListHosts } = await import('./emulate/ListHostsExecutor');
           return executeListHosts();
         },
       };
     case 'list_sources':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeListSources } = await import('./emulate/ListSourcesExecutor');
           return executeListSources(action.params || {});
         },
       };
     case 'list_resources':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeListResources } = await import('./emulate/ListResourcesExecutor');
           return executeListResources(action.params || {});
         },
       };
     case 'get_source_detail':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeGetSourceDetail } = await import('./emulate/GetSourceDetailExecutor');
           return executeGetSourceDetail(action.params || {});
         },
       };
     case 'get_resource_content':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeGetResourceContent } =
-            await import('./emulate/GetResourceContentExecutor');
           return executeGetResourceContent(action.params || {});
         },
       };
     case 'get_https_detail':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeGetHttpsDetail } = await import('./emulate/GetHttpsDetailExecutor');
           return executeGetHttpsDetail(action.params || {});
         },
       };
     case 'apply_filter':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeApplyFilter } = await import('./emulate/ApplyFilterExecutor');
           return executeApplyFilter(action.params || {});
         },
       };
@@ -234,99 +264,99 @@ export function getExecutor(actionType: string): ToolExecutor | null {
     case 'list_tabs':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeListTabs } = await import('./recon/ListTabsExecutor');
-          return executeListTabs(action.params || {});
+          const result = await executeListTabs(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'create_tab':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeCreateTab } = await import('./recon/CreateTabExecutor');
-          return executeCreateTab(action.params || {});
+          const result = await executeCreateTab(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'close_tab':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeCloseTab } = await import('./recon/CloseTabExecutor');
-          return executeCloseTab(action.params || {});
+          const result = await executeCloseTab(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'switch_tab':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeSwitchTab } = await import('./recon/SwitchTabExecutor');
-          return executeSwitchTab(action.params || {});
+          const result = await executeSwitchTab(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'navigate':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeNavigate } = await import('./recon/NavigateExecutor');
-          return executeNavigate(action.params || {});
+          const result = await executeNavigate(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'back':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeBack } = await import('./recon/BackExecutor');
-          return executeBack(action.params || {});
+          const result = await executeBack(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'forward':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeForward } = await import('./recon/ForwardExecutor');
-          return executeForward(action.params || {});
+          const result = await executeForward(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'reload':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeReload } = await import('./recon/ReloadExecutor');
-          return executeReload(action.params || {});
+          const result = await executeReload(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'get_page_content':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeGetPageContent } = await import('./recon/GetPageContentExecutor');
-          return executeGetPageContent(action.params || {});
+          const result = await executeGetPageContent(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'list_elements':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeListElements } = await import('./recon/ListElementsExecutor');
-          return executeListElements(action.params || {});
+          const result = await executeListElements(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'click_element':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeClickElement } = await import('./recon/ClickElementExecutor');
-          return executeClickElement(action.params || {});
+          const result = await executeClickElement(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'fill_input':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeFillInput } = await import('./recon/FillInputExecutor');
-          return executeFillInput(action.params || {});
+          const result = await executeFillInput(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'press_key':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executePressKey } = await import('./recon/PressKeyExecutor');
-          return executePressKey(action.params || {});
+          const result = await executePressKey(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
     case 'scroll':
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          const { executeScroll } = await import('./recon/ScrollExecutor');
-          return executeScroll(action.params || {});
+          const result = await executeScroll(action.params || {});
+          return result.success ? result.output || null : result.error || null;
         },
       };
 

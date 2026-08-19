@@ -51,45 +51,210 @@ export class ContentHandler {
 
   /**
    * Extract page content as markdown
+   * Enhanced to preserve structure and context for AI understanding
    */
   private async extractMarkdown(page: Page): Promise<string> {
-    // Use Playwright to get the page content and convert to markdown
     const content = await page.evaluate(() => {
-      // Simple markdown conversion (can be enhanced with turndown.js)
-      const body = document.body;
       const markdown: string[] = [];
       
-      // Extract headings
-      const headings = body.querySelectorAll('h1, h2, h3, h4, h5, h6');
-      headings.forEach(h => {
-        const level = parseInt(h.tagName[1]);
-        const prefix = '#'.repeat(level);
-        markdown.push(`${prefix} ${h.textContent?.trim()}\n`);
-      });
-      
-      // Extract paragraphs
-      const paragraphs = body.querySelectorAll('p');
-      paragraphs.forEach(p => {
-        const text = p.textContent?.trim();
-        if (text) {
-          markdown.push(`${text}\n`);
+      // Helper: check if element is visible
+      const isVisible = (el: Element): boolean => {
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0'
+        );
+      };
+
+      // Helper: get clean text (trim and remove extra whitespace)
+      const cleanText = (text: string | null | undefined): string => {
+        if (!text) return '';
+        return text.trim().replace(/\s+/g, ' ');
+      };
+
+      // Helper: recursively process DOM tree
+      const processNode = (node: Element, depth: number = 0): void => {
+        // Skip invisible elements
+        if (!isVisible(node)) return;
+
+        // Skip script, style, noscript tags
+        const tag = node.tagName.toLowerCase();
+        if (['script', 'style', 'noscript', 'svg', 'iframe'].includes(tag)) {
+          return;
         }
-      });
+
+        const indent = '  '.repeat(depth);
+
+        switch (tag) {
+          case 'h1':
+          case 'h2':
+          case 'h3':
+          case 'h4':
+          case 'h5':
+          case 'h6': {
+            const level = parseInt(tag[1]);
+            const text = cleanText(node.textContent);
+            if (text) {
+              markdown.push(`${'#'.repeat(level)} ${text}\n`);
+            }
+            break;
+          }
+
+          case 'p': {
+            const text = cleanText(node.textContent);
+            if (text) {
+              markdown.push(`${text}\n`);
+            }
+            break;
+          }
+
+          case 'a': {
+            const text = cleanText(node.textContent);
+            const href = (node as HTMLAnchorElement).href;
+            if (text && href) {
+              markdown.push(`[${text}](${href}) `);
+            }
+            break;
+          }
+
+          case 'ul':
+          case 'ol': {
+            const items = Array.from(node.children).filter(
+              (child) => child.tagName.toLowerCase() === 'li'
+            );
+            items.forEach((item, idx) => {
+              const text = cleanText(item.textContent);
+              if (text) {
+                const prefix = tag === 'ul' ? '-' : `${idx + 1}.`;
+                markdown.push(`${indent}${prefix} ${text}\n`);
+              }
+            });
+            markdown.push('\n');
+            break;
+          }
+
+          case 'blockquote': {
+            const text = cleanText(node.textContent);
+            if (text) {
+              markdown.push(`> ${text}\n\n`);
+            }
+            break;
+          }
+
+          case 'code': {
+            const text = cleanText(node.textContent);
+            if (text) {
+              markdown.push(`\`${text}\``);
+            }
+            break;
+          }
+
+          case 'pre': {
+            const code = node.querySelector('code');
+            const text = cleanText(code?.textContent || node.textContent);
+            if (text) {
+              markdown.push(`\`\`\`\n${text}\n\`\`\`\n\n`);
+            }
+            break;
+          }
+
+          case 'hr': {
+            markdown.push('---\n\n');
+            break;
+          }
+
+          case 'br': {
+            markdown.push('\n');
+            break;
+          }
+
+          case 'div':
+          case 'section':
+          case 'article':
+          case 'main':
+          case 'aside':
+          case 'nav':
+          case 'header':
+          case 'footer': {
+            // For container elements, process children recursively
+            Array.from(node.children).forEach((child) => {
+              processNode(child, depth + 1);
+            });
+            break;
+          }
+
+          case 'table': {
+            // Basic table support
+            const rows = Array.from(node.querySelectorAll('tr'));
+            if (rows.length > 0) {
+              rows.forEach((row, rowIdx) => {
+                const cells = Array.from(row.querySelectorAll('th, td'));
+                const cellTexts = cells.map((cell) => cleanText(cell.textContent));
+                if (cellTexts.some((t) => t)) {
+                  markdown.push(`| ${cellTexts.join(' | ')} |\n`);
+                }
+                // Add separator after header row
+                if (rowIdx === 0 && row.querySelector('th')) {
+                  markdown.push(`| ${cells.map(() => '---').join(' | ')} |\n`);
+                }
+              });
+              markdown.push('\n');
+            }
+            break;
+          }
+
+          default: {
+            // For other elements, just extract text if there's any direct text content
+            const directText = Array.from(node.childNodes)
+              .filter((child) => child.nodeType === Node.TEXT_NODE)
+              .map((child) => cleanText(child.textContent))
+              .filter((text) => text)
+              .join(' ');
+
+            if (directText) {
+              markdown.push(`${directText} `);
+            }
+
+            // Process children
+            Array.from(node.children).forEach((child) => {
+              processNode(child, depth);
+            });
+            break;
+          }
+        }
+      };
+
+      // Start from main content areas (prioritize semantic HTML)
+      const mainContent =
+        document.querySelector('main') ||
+        document.querySelector('article') ||
+        document.querySelector('[role="main"]') ||
+        document.body;
+
+      if (mainContent) {
+        processNode(mainContent);
+      }
+
+      // Clean up result
+      let result = markdown.join('').trim();
       
-      // Extract lists
-      const lists = body.querySelectorAll('ul, ol');
-      lists.forEach(list => {
-        const items = list.querySelectorAll('li');
-        items.forEach(item => {
-          const prefix = list.tagName === 'UL' ? '-' : '1.';
-          markdown.push(`${prefix} ${item.textContent?.trim()}\n`);
-        });
-      });
+      // Remove excessive newlines
+      result = result.replace(/\n{3,}/g, '\n\n');
       
-      return markdown.join('\n');
+      // Limit length to avoid token overflow
+      const maxLength = 15000;
+      if (result.length > maxLength) {
+        result = result.substring(0, maxLength) + '\n\n[Content truncated...]';
+      }
+
+      return result || '(No content extracted)';
     });
-    
-    return content || '(No content extracted)';
+
+    return content;
   }
 
   /**
@@ -123,20 +288,70 @@ export class ContentHandler {
   }
 
   /**
-   * Extract input elements
+   * Extract input elements (only visible and interactable)
    */
   private async extractInputs(page: Page): Promise<InteractiveElement[]> {
     return await page.evaluate(() => {
-      const inputs = Array.from(document.querySelectorAll('input'));
-      return inputs.map((input, idx) => {
-        const id = input.id || `input-${idx}`;
-        const label = input.labels?.[0]?.textContent?.trim() || input.name || input.placeholder;
+      const isVisible = (el: HTMLElement): boolean => {
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          !el.disabled
+        );
+      };
+
+      const inputs = Array.from(document.querySelectorAll('input')).filter((input) =>
+        isVisible(input)
+      );
+
+      return inputs.slice(0, 50).map((input, idx) => {
+        // Try to find a good label
+        let label = '';
         
+        // 1. Check for associated label
+        if (input.labels && input.labels.length > 0) {
+          label = input.labels[0].textContent?.trim() || '';
+        }
+        
+        // 2. Check aria-label
+        if (!label && input.getAttribute('aria-label')) {
+          label = input.getAttribute('aria-label') || '';
+        }
+        
+        // 3. Check placeholder
+        if (!label && input.placeholder) {
+          label = input.placeholder;
+        }
+        
+        // 4. Check name attribute
+        if (!label && input.name) {
+          label = input.name.replace(/[-_]/g, ' ');
+        }
+        
+        // 5. Check parent label
+        if (!label) {
+          const parentLabel = input.closest('label');
+          if (parentLabel) {
+            label = parentLabel.textContent?.trim() || '';
+          }
+        }
+
+        const id = input.id || input.name || `input-${idx}`;
+
         return {
           ref: id,
           type: 'input' as const,
-          selector: input.id ? `#${input.id}` : `input[type="${input.type}"]:nth-of-type(${idx + 1})`,
-          label,
+          selector: input.id
+            ? `#${input.id}`
+            : input.name
+            ? `input[name="${input.name}"]`
+            : `input[type="${input.type}"]:nth-of-type(${idx + 1})`,
+          label: label || `Input ${input.type}`,
           value: input.value,
           placeholder: input.placeholder,
         };
@@ -145,40 +360,109 @@ export class ContentHandler {
   }
 
   /**
-   * Extract button elements
+   * Extract button elements (only visible and clickable)
    */
   private async extractButtons(page: Page): Promise<InteractiveElement[]> {
     return await page.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll('button, input[type="button"], input[type="submit"]'));
-      return buttons.map((button, idx) => {
-        const id = button.id || `btn-${idx}`;
-        const text = button.textContent?.trim() || (button as HTMLInputElement).value;
+      const isVisible = (el: HTMLElement): boolean => {
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          !el.disabled
+        );
+      };
+
+      const buttons = Array.from(
+        document.querySelectorAll('button, input[type="button"], input[type="submit"], [role="button"]')
+      ).filter((button) => isVisible(button as HTMLElement));
+
+      return buttons.slice(0, 50).map((button, idx) => {
+        let text = '';
         
+        // Get button text
+        if (button.tagName === 'INPUT') {
+          text = (button as HTMLInputElement).value;
+        } else {
+          text = button.textContent?.trim() || '';
+        }
+        
+        // Check aria-label if no text
+        if (!text && button.getAttribute('aria-label')) {
+          text = button.getAttribute('aria-label') || '';
+        }
+        
+        // Check title if still no text
+        if (!text && button.getAttribute('title')) {
+          text = button.getAttribute('title') || '';
+        }
+
+        const id = button.id || `btn-${idx}`;
+
         return {
           ref: id,
           type: 'button' as const,
-          selector: button.id ? `#${button.id}` : `button:nth-of-type(${idx + 1})`,
-          text,
+          selector: button.id
+            ? `#${button.id}`
+            : `button:nth-of-type(${idx + 1})`,
+          text: text || 'Unnamed button',
         };
       });
     });
   }
 
   /**
-   * Extract link elements
+   * Extract link elements (only visible and meaningful)
    */
   private async extractLinks(page: Page): Promise<InteractiveElement[]> {
     return await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll('a[href]'));
-      return links.slice(0, 20).map((link, idx) => { // Limit to 20 links
-        const id = link.id || `link-${idx}`;
-        const text = link.textContent?.trim();
+      const isVisible = (el: HTMLElement): boolean => {
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0'
+        );
+      };
+
+      const links = Array.from(document.querySelectorAll('a[href]')).filter((link) =>
+        isVisible(link as HTMLElement)
+      );
+
+      // Filter out navigation/footer links, keep only meaningful ones
+      const meaningfulLinks = links.filter((link) => {
+        const text = link.textContent?.trim() || '';
         const href = (link as HTMLAnchorElement).href;
         
+        // Skip empty links, javascript: links, and hash-only links
+        if (!text || href.startsWith('javascript:') || href.endsWith('#')) {
+          return false;
+        }
+        
+        // Skip very short text (likely icons or navigation)
+        if (text.length < 3) {
+          return false;
+        }
+        
+        return true;
+      });
+
+      return meaningfulLinks.slice(0, 30).map((link, idx) => {
+        const text = link.textContent?.trim() || '';
+        const href = (link as HTMLAnchorElement).href;
+        const id = link.id || `link-${idx}`;
+
         return {
           ref: id,
           type: 'link' as const,
-          selector: link.id ? `#${link.id}` : `a[href]:nth-of-type(${idx + 1})`,
+          selector: link.id ? `#${link.id}` : `a[href="${href}"]:nth-of-type(${idx + 1})`,
           text,
           href,
         };

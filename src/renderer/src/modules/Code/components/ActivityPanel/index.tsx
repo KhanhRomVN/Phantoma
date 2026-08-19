@@ -20,7 +20,15 @@
 import { useRef, useState } from 'react';
 
 // ── UI ──
-import { Folder, Search as SearchIcon, GitBranch, Code2, Palette, CheckSquare, Users } from 'lucide-react';
+import {
+  Folder,
+  Search as SearchIcon,
+  GitBranch,
+  Code2,
+  Palette,
+  CheckSquare,
+  Users,
+} from 'lucide-react';
 
 // ── Hooks ──
 import { useCodeStore } from '../../hooks/useCodeStore';
@@ -66,7 +74,7 @@ const TABS = [
     id: 'lsp',
     icon: <Code2 className="w-4 h-4" />,
     label: 'Language Servers',
-  }
+  },
 ];
 
 const MIN_WIDTH = 200;
@@ -74,7 +82,6 @@ const MAX_WIDTH = 600;
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function ActivityPanel() {
-  console.log('[DEBUG|ActivityPanel] render');
   // ── Store — select riêng activityPanelTab thay vì toàn bộ project ──
   const activityPanelTab = useCodeStore((s) => {
     const p = s.projects.find((p) => p.id === s.currentProjectId);

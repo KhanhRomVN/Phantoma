@@ -42,7 +42,6 @@ import {
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function FileTabBar() {
-  console.log('[DEBUG|FileTabBar] render');
   // ── Store — select riêng fields thay vì toàn bộ projects array ──
   const openFiles = useCodeStore((s) => {
     const p = s.projects.find((p) => p.id === s.currentProjectId);

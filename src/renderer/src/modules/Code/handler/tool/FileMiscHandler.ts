@@ -21,7 +21,11 @@ export class FileMiscHandler {
   public async handleGetFileStats(message: FileMiscParams): Promise<BaseResult> {
     const pathValue = message.path || message.filePath;
     if (!pathValue) {
-      return { command: 'getFileStatsResult', requestId: message.requestId, error: 'Path is required' };
+      return {
+        command: 'getFileStatsResult',
+        requestId: message.requestId,
+        error: 'Path is required',
+      };
     }
 
     try {
@@ -36,28 +40,29 @@ export class FileMiscHandler {
         stats,
       };
     } catch (e: any) {
-      return { command: 'getFileStatsResult', requestId: message.requestId, error: e.message || String(e) };
+      return {
+        command: 'getFileStatsResult',
+        requestId: message.requestId,
+        error: e.message || String(e),
+      };
     }
   }
 
   /** Lấy diagnostics cho file */
   public async handleGetDiagnostics(message: FileMiscParams): Promise<BaseResult> {
     const pathValue = message.path || message.filePath;
-    console.log('[DEBUG-Diagnostics] handleGetDiagnostics called | pathValue:', pathValue);
 
     if (!pathValue) {
-      return { command: 'getDiagnosticsResult', requestId: message.requestId, error: 'Path is required' };
+      return {
+        command: 'getDiagnosticsResult',
+        requestId: message.requestId,
+        error: 'Path is required',
+      };
     }
 
     try {
-      // Lazy import để tránh circular dependency
       const { useDiagnosticsStore } = await import('../../stores/diagnosticsStore');
-      const allDiagnostics = useDiagnosticsStore.getState().diagnostics;
       const fileDiagnostics = useDiagnosticsStore.getState().getDiagnosticsForFile(pathValue);
-
-      console.log('[DEBUG-Diagnostics] total URIs in store:', Object.keys(allDiagnostics).length);
-      console.log('[DEBUG-Diagnostics] URIs:', Object.keys(allDiagnostics).slice(0, 5));
-      console.log('[DEBUG-Diagnostics] diagnostics for', pathValue, ':', fileDiagnostics.length, 'items');
 
       return {
         command: 'getDiagnosticsResult',
@@ -96,7 +101,11 @@ export class FileMiscHandler {
         content,
       };
     } catch (e: any) {
-      return { command: 'fileContent', requestId: message.requestId, error: e.message || String(e) };
+      return {
+        command: 'fileContent',
+        requestId: message.requestId,
+        error: e.message || String(e),
+      };
     }
   }
 }

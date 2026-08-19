@@ -19,7 +19,7 @@ export async function configureEmulatorProxy(
     try {
       await execAsync(`adb -s "${serial}" reverse tcp:${proxyPort} tcp:${proxyPort}`);
     } catch (e) {
-      console.warn(
+      console.error(
         '[ProxyConfig] adb reverse failed (network might be unreachable if not using special IP aliases):',
         e,
       );

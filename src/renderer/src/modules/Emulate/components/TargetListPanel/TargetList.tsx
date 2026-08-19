@@ -25,7 +25,7 @@ import { getTargetPlatform, getTargetFavicon } from '.';
 import { ipcService } from '../../../../services/ipc.service';
 
 // STORE
-import { useTimerStore } from '../../../../stores/timerStore';
+import { useTimerStore } from '../../stores/timerStore';
 
 interface TargetListProps {
   targetTabs: TargetTab[];

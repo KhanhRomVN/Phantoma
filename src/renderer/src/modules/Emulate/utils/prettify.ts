@@ -3,22 +3,11 @@
  * Formats JavaScript, TypeScript, HTML, CSS, and JSON code
  */
 
-interface PrettifyOptions {
-  parser?: 'babel' | 'typescript' | 'html' | 'css' | 'json';
-  printWidth?: number;
-  tabWidth?: number;
-  useTabs?: boolean;
-  semi?: boolean;
-  singleQuote?: boolean;
-}
-
 /**
  * Simple JavaScript beautifier (fallback when Prettier fails)
  * Optimized for large files
  */
 function simpleBeautify(code: string): string {
-  const startTime = performance.now();
-
   let result = '';
   let indent = 0;
   const tab = '  ';
@@ -141,48 +130,9 @@ function simpleBeautify(code: string): string {
 /**
  * Prettify code using Prettier (browser-compatible approach)
  */
-export async function prettifyCode(
-  code: string,
-  language: string = 'javascript',
-  options: PrettifyOptions = {},
-): Promise<{ formatted: string; error?: string }> {
-  // Determine parser based on language
-  const parserMap: Record<string, string> = {
-    javascript: 'babel',
-    js: 'babel',
-    typescript: 'typescript',
-    ts: 'typescript',
-    jsx: 'babel',
-    tsx: 'typescript',
-    html: 'html',
-    css: 'css',
-    json: 'json',
-  };
-
-  const parser = options.parser || parserMap[language.toLowerCase()] || 'babel';
-
-  // Default options
-  const prettierOptions = {
-    parser,
-    printWidth: options.printWidth || 100,
-    tabWidth: options.tabWidth || 2,
-    useTabs: options.useTabs || false,
-    semi: options.semi !== undefined ? options.semi : true,
-    singleQuote: options.singleQuote !== undefined ? options.singleQuote : true,
-    trailingComma: 'es5' as const,
-    bracketSpacing: true,
-    arrowParens: 'always' as const,
-  };
-
+export async function prettifyCode(code: string): Promise<{ formatted: string; error?: string }> {
   try {
     // Check file size and warn for very large files
-    const sizeKB = code.length / 1024;
-    if (sizeKB > 500) {
-      console.warn(
-        `[Prettify] Large file detected: ${sizeKB.toFixed(0)}KB - formatting may take time`,
-      );
-    }
-
     const formatted = simpleBeautify(code);
 
     if (formatted.length === 0) {

@@ -9,7 +9,7 @@
  * trả về InspectorFilter mới sau khi áp dụng thay đổi.
  */
 import { InspectorFilter } from '../types/filter.types';
-import type { ApplyFilterParams } from '@renderer/components/RightPanel/Agent/feature/Chat/services/parsers/emulate/ApplyFilterParser';
+import type { ApplyFilterParams } from '@renderer/components/RightPanel/Agent/feature/Chat/services/parsers/EmulateParser';
 
 export class ApplyFilterHandler {
   public apply(filter: InspectorFilter, params: ApplyFilterParams): InspectorFilter {

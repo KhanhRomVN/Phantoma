@@ -10,18 +10,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // --- Performance Profiling Tools (Development Only) ---
 if (process.env.NODE_ENV === 'development') {
-  // NOTE: why-did-you-render temporarily disabled due to hooks conflict with React Router v6 + React 19
-  // Track issue: https://github.com/welldone-software/why-did-you-render/issues/xxx
-  // 1. why-did-you-render - detect unnecessary re-renders (DISABLED)
-  // import('@welldone-software/why-did-you-render').then((module) => {
-  //   const whyDidYouRender = module.default || module;
-  //   whyDidYouRender(React, {
-  //     trackAllPureComponents: true,
-  //     trackHooks: true,
-  //     logOnDifferentValues: true,
-  //   });
-  // });
-
   // 2. react-scan - automatically detect performance issues
   import('react-scan').then((module) => {
     module.scan({

@@ -186,7 +186,7 @@ function storageList(prefix?: string): Promise<{ keys: string[] }> {
     }
     return Promise.resolve({ keys });
   } catch (e) {
-    console.warn('[ExtensionService] localStorage list failed:', prefix, e);
+    console.error('[ExtensionService] localStorage list failed:', prefix, e);
     return Promise.resolve({ keys: [] });
   }
 }
@@ -211,18 +211,13 @@ class ExtensionService {
   public postMessage(message: any): void {
     const api = getApi();
     if (!api) {
-      if (message?.command) {
-        console.debug(
-          `[ExtensionService] postMessage skipped (no IPC): ${message.command}`,
-        );
-      }
       return;
     }
     const channel = message?.command || 'generic';
     api.invoke(channel, message).catch((err: any) => {
       // Only warn for non-trivial errors (not "no handler")
       if (err?.message && !err.message.includes('No handler')) {
-        console.warn(`[ExtensionService] postMessage error on "${channel}":`, err.message);
+        console.error(`[ExtensionService] postMessage error on "${channel}":`, err.message);
       }
     });
   }
@@ -251,14 +246,20 @@ class ExtensionService {
       const result = await ipcInvoke('getSystemInfo', {}, 3000);
       if (result) return result;
     } catch (e) {
-      console.warn('[ExtensionService] getSystemInfo via IPC failed, using fallback:', e);
+      console.error('[ExtensionService] getSystemInfo via IPC failed, using fallback:', e);
     }
 
     // Fallback: collect info from renderer
     const platform = navigator.platform || 'Unknown';
     return {
       data: {
-        os: platform.includes('Win') ? 'Windows' : platform.includes('Mac') ? 'macOS' : platform.includes('Linux') ? 'Linux' : platform,
+        os: platform.includes('Win')
+          ? 'Windows'
+          : platform.includes('Mac')
+            ? 'macOS'
+            : platform.includes('Linux')
+              ? 'Linux'
+              : platform,
         ide: 'Phantoma (Electron)',
         shell: platform.includes('Win') ? 'powershell' : '/bin/bash',
         homeDir: '~',

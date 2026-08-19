@@ -78,7 +78,6 @@ export function parseUrl(url: string): { domain: string; path: string[]; filenam
 
     return { domain, path, filename };
   } catch (e) {
-    console.warn('[SourceTree] Failed to parse URL:', url, e);
     return null;
   }
 }

@@ -1,10 +1,11 @@
 import { contextBridge, IpcRendererEvent } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
-import { appAPI } from './api';
+import { appAPI, conversationAPI } from './api';
 
 // Build API object
 const api = {
   app: appAPI,
+  conversation: conversationAPI,
   invoke: (channel: string, ...args: any[]) => electronAPI.ipcRenderer.invoke(channel, ...args),
   send: (channel: string, ...args: any[]) => electronAPI.ipcRenderer.send(channel, ...args),
   on: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) => {

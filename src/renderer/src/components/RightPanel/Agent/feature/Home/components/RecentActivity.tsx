@@ -44,17 +44,17 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
             <span className="text-[11px]">Loading history...</span>
           </div>
         ) : conversations.length > 0 ? (
-          conversations
-            .slice(0, 10)
-            .map((item) => (
-              <HistoryCard
-                key={item.id}
-                item={item}
-                onClick={() => onLoadConversation?.(item.id, item.tabId, item.folderPath)}
-                onDelete={handleDelete}
-                formatDate={formatDate}
-              />
-            ))
+          conversations.slice(0, 10).map((item) => (
+            <HistoryCard
+              key={item.id}
+              item={item}
+              onClick={() => {
+                onLoadConversation?.(item.id, item.tabId, item.folderPath);
+              }}
+              onDelete={handleDelete}
+              formatDate={formatDate}
+            />
+          ))
         ) : (
           <div className="py-2.5 text-[11px] italic text-secondary opacity-60">No recent chats</div>
         )}

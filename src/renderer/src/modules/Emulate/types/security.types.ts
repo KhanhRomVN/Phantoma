@@ -1,5 +1,5 @@
 // Types
-import type { SecurityIssue } from '../../../types/inspector';
+import type { SecurityIssue } from '../../Tool/utils/securityScanner';
 
 export { SecurityIssue };
 

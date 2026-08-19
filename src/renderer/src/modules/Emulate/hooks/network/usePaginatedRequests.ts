@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { NetworkRequest } from '../../types/inspector';
-import { useNetworkStore } from '../../../../stores/networkStore';
+import { useNetworkStore } from '../../stores/networkStore';
 
 interface UsePaginatedRequestsOptions {
   targetId: string;
@@ -18,20 +18,14 @@ export function usePaginatedRequests({
   maxMemory = 1000,
   onRequestsChange,
 }: UsePaginatedRequestsOptions) {
-  const [requests, setRequests] = useState<NetworkRequest[]>(() =>
-    useNetworkStore.getState().requests as NetworkRequest[],
+  const [requests, setRequests] = useState<NetworkRequest[]>(
+    () => useNetworkStore.getState().requests as NetworkRequest[],
   );
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const onRequestsChangeRef = useRef(onRequestsChange);
   const targetIdRef = useRef(targetId);
-  // [DEBUG] Cờ bỏ qua clear requests ở lần mount đầu tiên khi khôi phục từ store
   const isFirstMountRef = useRef(true);
-
-  // [DEBUG] Xóa sau khi xác nhận requests giữ nguyên khi chuyển module
-  useEffect(() => {
-    console.log('[DEBUG] usePaginatedRequests mounted, restored requests:', requests.length);
-  }, []);
 
   useEffect(() => {
     onRequestsChangeRef.current = onRequestsChange;
@@ -88,21 +82,18 @@ export function usePaginatedRequests({
     [maxMemory],
   );
 
-  const updateRequest = useCallback(
-    (id: string, updates: Partial<NetworkRequest>) => {
-      setRequests((prev) => {
-        const updated = prev.map((r) => {
-          if (r.id === id) {
-            return { ...r, ...updates };
-          }
-          return r;
-        });
-        onRequestsChangeRef.current?.(updated);
-        return updated;
+  const updateRequest = useCallback((id: string, updates: Partial<NetworkRequest>) => {
+    setRequests((prev) => {
+      const updated = prev.map((r) => {
+        if (r.id === id) {
+          return { ...r, ...updates };
+        }
+        return r;
       });
-    },
-    [],
-  );
+      onRequestsChangeRef.current?.(updated);
+      return updated;
+    });
+  }, []);
 
   const clearRequests = useCallback(() => {
     setRequests([]);

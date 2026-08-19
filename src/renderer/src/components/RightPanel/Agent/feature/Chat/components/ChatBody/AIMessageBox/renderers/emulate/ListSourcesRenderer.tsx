@@ -3,7 +3,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '../../../../../constants/constants';
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
-import ListSourcesBlock from '../../blocks/emulate/ListSourcesBlock';
+import TreeBlock, { parseSourceTree } from '../../blocks/other/TreeBlock';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 
 export const ListSourcesRenderer: React.FC<BaseRendererProps> = ({
@@ -25,11 +25,13 @@ export const ListSourcesRenderer: React.FC<BaseRendererProps> = ({
 
   let fileCount = 0;
   if (output && !isError) {
-    const match = output.match(/Total source files:\s*(\d+)/);
+    const match = output.match(/Total:\s*(\d+)/);
     if (match) {
       fileCount = parseInt(match[1], 10);
     }
   }
+
+  const sourceTree = output && !isError ? parseSourceTree(output) : [];
 
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
@@ -63,7 +65,7 @@ export const ListSourcesRenderer: React.FC<BaseRendererProps> = ({
       )}
 
       {output && !isError && !isCollapsed && (
-        <ListSourcesBlock content={output} maxHeight="400px" />
+        <TreeBlock files={sourceTree} maxHeight="400px" />
       )}
     </div>
   );

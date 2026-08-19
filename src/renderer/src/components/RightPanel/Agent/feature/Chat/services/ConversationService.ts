@@ -1,21 +1,51 @@
-import { extensionService } from "../../../services/ExtensionService";
-import { Message } from "../types/message";
-import { ConversationCache } from "./ConversationCache";
-import { ChatSession } from "../types/chat";
+import {
+  ConversationService as NewConversationService,
+  ConversationData as NewConversationData,
+  generateMessageId,
+} from '../../../services/ConversationService';
+import { extensionService } from '../../../services/ExtensionService';
+import { Message } from '../types/message';
+import { ConversationCache } from './ConversationCache';
+import { ChatSession } from '../types/chat';
+import { logger } from '@renderer/utils/logger';
 
-const STORAGE_PREFIX = "zen-chat";
+/**
+ * Convert Message[] from Chat to New System format
+ */
+function convertMessagesToNewFormat(messages: Message[]): NewConversationData['messages'] {
+  return messages
+    .filter((m) => !m.isCancelled)
+    .map((m) => ({
+      id: m.id || generateMessageId(),
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp || Date.now(),
+      tokenUsage: m.token_usage,
+      conversationId: m.conversationId,
+    }));
+}
 
-export interface ChatMetadata {
-  id: string;
-  sessionId: number;
-  folderPath: string | null;
-  title: string;
-  lastModified: number;
-  messageCount: number;
-  createdAt: number;
-  totalRequests: number;
-  totalTokenUsage: number;
-  uniqueTaskCount?: number;
+/**
+ * Get moduleId from feature context
+ * This should be called with proper context from parent component
+ */
+function getModuleIdFromContext(sessionId: number, folderPath: string | null): string {
+  // Try to get from global feature context
+  const feature = (window as any).__activeFeature;
+  const targetId = (window as any).__activeTargetId;
+  const projectId = (window as any).__currentProjectId;
+
+  if (feature === 'emulate' && targetId) {
+    return `emulate:${targetId}`;
+  } else if (feature === 'code' && projectId) {
+    return `code:${projectId}`;
+  } else if (feature === 'recon' && targetId) {
+    return `recon:${targetId}`;
+  }
+
+  // Fallback to old format (will be migrated)
+  const safeFolderPath = folderPath || 'global';
+  return `legacy:${sessionId}:${safeFolderPath}`;
 }
 
 export const logChatToWorkspace = (chatUuid: string, message: any) => {
@@ -30,7 +60,7 @@ export const logChatToWorkspace = (chatUuid: string, message: any) => {
     logEntry.conversationId = message.conversationId;
 
     extensionService.postMessage({
-      command: "logChat",
+      command: 'logChat',
       chatUuid,
       logEntry,
     });
@@ -42,38 +72,16 @@ export const calculateTokens = (text: string): number => {
   return Math.ceil(text.length / 4);
 };
 
-export const getConversationKey = (
-  sessionId: number,
-  folderPath: string | null,
-  conversationId?: string,
-): string => {
-  if (conversationId && conversationId.startsWith(STORAGE_PREFIX)) {
-    return conversationId;
-  }
-
-  const safeFolderPath = folderPath || "global";
-  const convId = conversationId || Date.now().toString();
-  const fullKey = `${STORAGE_PREFIX}:${sessionId}:${safeFolderPath}:${convId}`;
-  return fullKey;
-};
-
 export const saveConversation = async (
   sessionId: number,
   folderPath: string | null,
   messages: Message[],
   conversationId?: string,
-  currentChat?: ChatSession,
   skipTimestampUpdate?: boolean,
   title?: string,
   backendConversationId?: string,
-  toolOutputs?: Record<
-    string,
-    { output: string; isError: boolean; terminalId?: string }
-  >,
-  singleLineReviewActions?: Record<
-    string,
-    { action: any; actionId: string; messageId: string }
-  >,
+  toolOutputs?: Record<string, { output: string; isError: boolean; terminalId?: string }>,
+  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>,
   conversationFileStats?: {
     totalFiles: number;
     totalAdditions: number;
@@ -81,155 +89,120 @@ export const saveConversation = async (
   },
 ): Promise<string> => {
   try {
-    const storage = (window as any).storage;
-    if (!storage) return "";
-
     const convId = conversationId || Date.now().toString();
-    const key = getConversationKey(sessionId, folderPath, convId);
+    const moduleId = getModuleIdFromContext(sessionId, folderPath);
 
-    const activeMessages = messages.filter((m) => !m.isCancelled);
-    const totalRequests = activeMessages.filter(
-      (m: Message) => m.role === "user",
-    ).length;
-    const totalTokenUsage = activeMessages.reduce(
-      (sum: number, m: Message) => sum + (m.token_usage || 0),
-      0,
-    );
-
-    let existingCreatedAt: number | undefined;
-    let existingLastModified: number | undefined;
-    let existingTitle: string | undefined;
-    let existingBackendConversationId: string | undefined;
-    let existingToolOutputs:
-      | Record<
-          string,
-          { output: string; isError: boolean; terminalId?: string }
-        >
-      | undefined;
-    let existingSingleLineReviewActions:
-      | Record<string, { action: any; actionId: string; messageId: string }>
-      | undefined;
-
-    const cached = ConversationCache.get(convId);
-    if (cached) {
-      existingToolOutputs = cached.toolOutputs;
-      existingSingleLineReviewActions = cached.singleLineReviewActions;
-      existingBackendConversationId = cached.backendConversationId;
+    // Get existing conversation data
+    let existingData: NewConversationData | null = null;
+    try {
+      existingData = await NewConversationService.get(moduleId, convId);
+    } catch (error) {
+      // Conversation doesn't exist yet, will create new
     }
 
-    try {
-      const existingData = await storage.get(key, false);
-      if (existingData && existingData.value) {
-        const parsed = JSON.parse(existingData.value);
-        existingCreatedAt = parsed.metadata?.createdAt;
-        existingLastModified = parsed.metadata?.lastModified;
-        existingTitle = parsed.metadata?.title;
-        if (!existingBackendConversationId) {
-          existingBackendConversationId = parsed.backendConversationId;
-        }
-        if (
-          !existingToolOutputs &&
-          parsed.toolOutputs &&
-          Object.keys(parsed.toolOutputs).length > 0
-        ) {
-          existingToolOutputs = parsed.toolOutputs;
-        }
-        if (
-          !existingSingleLineReviewActions &&
-          parsed.singleLineReviewActions &&
-          Object.keys(parsed.singleLineReviewActions).length > 0
-        ) {
-          existingSingleLineReviewActions = parsed.singleLineReviewActions;
-        }
-      }
-    } catch (error) {}
+    // Check cache for additional data
+    const cached = ConversationCache.get(convId);
+    if (cached && !existingData) {
+      existingData = {
+        conversationId: convId,
+        backendConversationId: cached.backendConversationId,
+        messages: cached.messages || [],
+        toolOutputs: cached.toolOutputs,
+        singleLineReviewActions: cached.singleLineReviewActions,
+        conversationFileStats: cached.conversationFileStats,
+        createdAt: Date.now(),
+        lastModified: Date.now(),
+      };
+    }
 
-    const messagesToSave = messages.map((m) => ({ ...m }));
-
+    // Merge tool outputs
     const mergedToolOutputs =
       toolOutputs && Object.keys(toolOutputs).length > 0
-        ? { ...(existingToolOutputs || {}), ...toolOutputs }
-        : existingToolOutputs || undefined;
+        ? { ...(existingData?.toolOutputs || {}), ...toolOutputs }
+        : existingData?.toolOutputs || undefined;
 
+    // Merge single line review actions
     const mergedSingleLineReviewActions =
       singleLineReviewActions && Object.keys(singleLineReviewActions).length > 0
         ? {
-            ...(existingSingleLineReviewActions || {}),
+            ...(existingData?.singleLineReviewActions || {}),
             ...singleLineReviewActions,
           }
-        : existingSingleLineReviewActions || undefined;
+        : existingData?.singleLineReviewActions || undefined;
 
-    const data = {
-      messages: messagesToSave,
+    // Convert messages to new format
+    const convertedMessages = convertMessagesToNewFormat(messages);
+
+    // Prepare data for new system
+    const newData: NewConversationData = {
       conversationId: convId,
-      backendConversationId:
-        backendConversationId || existingBackendConversationId,
+      backendConversationId: backendConversationId || existingData?.backendConversationId,
+      messages: convertedMessages,
       toolOutputs: mergedToolOutputs,
+      questionAnswers: existingData?.questionAnswers,
       singleLineReviewActions: mergedSingleLineReviewActions,
-      conversationFileStats: conversationFileStats,
-      metadata: {
-        id: key,
-        sessionId,
-        folderPath,
-        title:
-          title ||
-          existingTitle ||
-          messages[0]?.content.substring(0, 100) ||
-          "New Conversation",
-        lastModified: skipTimestampUpdate
-          ? existingLastModified || Date.now()
-          : Date.now(),
-        messageCount: messages.length,
-        createdAt: existingCreatedAt || Date.now(),
-        totalRequests,
-        totalTokenUsage,
-      } as ChatMetadata,
+      conversationFileStats: conversationFileStats || existingData?.conversationFileStats,
+      createdAt: existingData?.createdAt || Date.now(),
+      lastModified: skipTimestampUpdate ? existingData?.lastModified || Date.now() : Date.now(),
     };
 
-    await storage.set(key, JSON.stringify(data), false);
-
-    // Sync conversation state to file JSON (for backend restore)
-    extensionService.postMessage({
-      command: "saveConversationState",
-      conversationId: convId,
-      messages: messagesToSave,
-      backendConversationId:
-        backendConversationId || existingBackendConversationId,
-      toolOutputs: mergedToolOutputs,
-      singleLineReviewActions: mergedSingleLineReviewActions,
-      conversationFileStats: conversationFileStats,
-      metadata: data.metadata,
-    });
+    // Save to new system
+    await NewConversationService.save(moduleId, convId, newData);
 
     // Update cache
-    const cacheData = {
-      messages: messagesToSave,
+    ConversationCache.set(convId, {
+      messages: convertedMessages,
       conversationId: convId,
-      backendConversationId:
-        backendConversationId || existingBackendConversationId,
+      backendConversationId: newData.backendConversationId,
       toolOutputs: mergedToolOutputs,
       singleLineReviewActions: mergedSingleLineReviewActions,
       conversationFileStats: conversationFileStats,
-    };
-    ConversationCache.set(convId, cacheData);
+    });
+
+    // Sync to backend (keep for compatibility)
+    extensionService.postMessage({
+      command: 'saveConversationState',
+      conversationId: convId,
+      messages: convertedMessages,
+      backendConversationId: newData.backendConversationId,
+      toolOutputs: mergedToolOutputs,
+      singleLineReviewActions: mergedSingleLineReviewActions,
+      conversationFileStats: conversationFileStats,
+    });
+
     return convId;
-  } catch (error) {
-    return "";
+  } catch (error: any) {
+    logger.error('[ConversationService][saveConversation] ❌ Error:', error);
+    console.error('[ConversationService][saveConversation] ❌ Error:', error);
+    return '';
   }
 };
 
 export const deleteConversation = async (
   conversationId?: string,
+  sessionId?: number,
+  folderPath?: string | null,
 ): Promise<boolean> => {
   if (!conversationId) return false;
 
-  ConversationCache.delete(conversationId);
+  try {
+    const moduleId = getModuleIdFromContext(sessionId || -1, folderPath || null);
 
-  return new Promise((resolve) => {
+    // Delete from cache
+    ConversationCache.delete(conversationId);
+
+    // Delete from new system
+    await NewConversationService.delete(moduleId, conversationId);
+
+    // Notify backend (keep for compatibility)
     extensionService.postMessage({
-      command: "deleteConversation",
+      command: 'deleteConversation',
       conversationId: conversationId,
     });
-    resolve(true);
-  });
+
+    return true;
+  } catch (error) {
+    logger.error('[ConversationService][deleteConversation] Error:', error);
+    return false;
+  }
 };

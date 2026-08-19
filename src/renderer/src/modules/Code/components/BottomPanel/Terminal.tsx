@@ -97,7 +97,6 @@ export function Terminal() {
     async (terminalId: string) => {
       const terminal = terminals.find((t) => t.id === terminalId);
       if (!terminal) {
-        console.warn('[Terminal] ⚠️  Cannot kill terminal, not found:', terminalId);
         return;
       }
 

@@ -8,8 +8,27 @@ import { ConversationItem } from '../History/types';
 import { useSettings } from '../../context/SettingsContext';
 import MessageInput from '../../components/common/MessageInput';
 import FilesPreviews from '../../components/common/MessageInput/FilesPreviews';
-import { extensionService } from '../../services/ExtensionService';
 import { useFileHandling } from '../../hooks/useFileHandling';
+import ConversationService from '../../services/ConversationService';
+
+/**
+ * Get moduleId from current context
+ */
+function getCurrentModuleId(): string | null {
+  const feature = (window as any).__activeFeature;
+  const targetId = (window as any).__activeTargetId;
+  const projectId = (window as any).__currentProjectId;
+
+  if (feature === 'emulate' && targetId) {
+    return `emulate:${targetId}`;
+  } else if (feature === 'code' && projectId) {
+    return `code:${projectId}`;
+  } else if (feature === 'recon' && targetId) {
+    return `recon:${targetId}`;
+  }
+
+  return null;
+}
 
 const SLOGANS = [
   'Your AI-powered coding assistant',
@@ -112,10 +131,59 @@ const HomePanel: React.FC<HomePanelProps> = ({
   const [providerFavicons, setProviderFavicons] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    extensionService.postMessage({
-      command: 'getHistory',
-      requestId: `home-enforce-${Date.now()}`,
-    });
+    const loadHistory = async () => {
+      const moduleId = getCurrentModuleId();
+      if (!moduleId) {
+        console.warn('[Home] No active moduleId, cannot load history');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Get list of conversation IDs
+        const conversationIds = await ConversationService.list(moduleId);
+        
+        // Load each conversation's data
+        const conversationsData = await Promise.all(
+          conversationIds.slice(0, 10).map(async (id) => { // Load first 10 for home
+            try {
+              const data = await ConversationService.get(moduleId, id);
+              if (!data) return null;
+
+              // Convert to ConversationItem format
+              const firstMessage = data.messages[0];
+              const title = firstMessage?.content.substring(0, 100) || 'New Conversation';
+              const preview = data.messages.slice(0, 3).map(m => m.content.substring(0, 50)).join(' ');
+
+              return {
+                id: data.conversationId,
+                title,
+                preview,
+                timestamp: data.createdAt,
+                lastModified: data.lastModified,
+                createdAt: data.createdAt,
+                messageCount: data.messages.length,
+                sessionId: -1,
+                folderPath: null,
+              } as ConversationItem;
+            } catch (error) {
+              console.error(`[Home] Failed to load conversation ${id}:`, error);
+              return null;
+            }
+          })
+        );
+
+        const validHistory = conversationsData.filter((c): c is ConversationItem => c !== null);
+        setConversations(validHistory);
+      } catch (error) {
+        console.error('[Home] Failed to load history:', error);
+        setConversations([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadHistory();
   }, []);
 
   useEffect(() => {
@@ -171,42 +239,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
     }, 3000);
     return () => {
       clearInterval(timer);
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = extensionService.onMessage('historyResult', (msg: any) => {
-      if (msg?.history) {
-        const validHistory = msg.history.filter((c: any) => c && c.id);
-        setConversations(validHistory);
-      }
-      setIsLoading(false);
-    });
-
-    const unsubscribeDelete = extensionService.onMessage('deleteConversationResult', (msg: any) => {
-      if (msg?.success) {
-        setConversations((prev) => prev.filter((c) => c.id !== msg.conversationId));
-      }
-    });
-
-    const unsubscribeConfirm = extensionService.onMessage('deleteConfirmed', (msg: any) => {
-      if (msg?.conversationId) {
-        extensionService.postMessage({
-          command: 'deleteConversation',
-          conversationId: msg.conversationId,
-        });
-      }
-    });
-
-    extensionService.postMessage({
-      command: 'getHistory',
-      requestId: `welcome-hist-${Date.now()}`,
-    });
-
-    return () => {
-      unsubscribe();
-      unsubscribeDelete();
-      unsubscribeConfirm();
     };
   }, []);
 

@@ -4,7 +4,7 @@ import { GitBranch, FileCode } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 
 // Types
-import { NetworkRequest } from '../../../../../types/inspector';
+import { NetworkRequest } from '../../../types/inspector';
 
 interface InitiatorDetailsProps {
   request: NetworkRequest;

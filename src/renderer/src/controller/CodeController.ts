@@ -219,9 +219,7 @@ export class CodeController {
         case 'readFile':
         case 'getFileContent': {
           // [DEBUG]
-          console.log('[DEBUG-CodeController] readFile msg:', JSON.stringify(msg));
           const readResult = await this.readFileHandler.handle(msg);
-          console.log('[DEBUG-CodeController] readFile result hasDiagnostics:', !!readResult.diagnostics, '| count:', readResult.diagnostics?.length ?? 0);
           this.emitResult(readResult);
           break;
         }
@@ -266,10 +264,7 @@ export class CodeController {
           break;
         }
         case 'getDiagnostics': {
-          // [DEBUG]
-          console.log('[DEBUG-CodeController] getDiagnostics msg:', JSON.stringify(msg));
           const result = await this.fileMiscHandler.handleGetDiagnostics(msg);
-          console.log('[DEBUG-CodeController] getDiagnostics result:', JSON.stringify(result));
           this.emitResult(result);
           break;
         }
@@ -380,7 +375,6 @@ export class CodeController {
           console.error('[CodeController] showError:', msg.message);
           break;
         default:
-          console.warn('[CodeController] Unknown command: ' + command);
           this.emitResult({
             command: 'error',
             requestId: msg.requestId,

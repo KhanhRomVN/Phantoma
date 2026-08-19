@@ -28,12 +28,22 @@ export const useMessageParsing = (messages: Message[], isStreaming: boolean) => 
     const cache = parseCacheRef.current;
     const lastStreaming = lastStreamingParseRef.current;
 
+    // DEBUG: Log parsing decision
+    console.log('[useMessageParsing] 🔍 Parsing messages:', {
+      messageCount: messages.length,
+      lastParsedLength: lastParsedLengthRef.current,
+      lastParsedResultLength: lastParsedResultRef.current.length,
+      isStreaming,
+    });
+
     // PERF OPTIMIZATION: Incremental parsing with stable references
     // CRITICAL FIX: Check if messages array only GREW (new messages added)
     // We DON'T compare content because the last message might be streaming (content changes)
     // We only check if existing message IDs match → same messages, just potentially updated content
     const messagesOnlyGrew =
-      messages.length >= lastParsedLengthRef.current && lastParsedResultRef.current.length > 0;
+      messages.length >= lastParsedLengthRef.current && 
+      lastParsedResultRef.current.length > 0 &&
+      lastParsedLengthRef.current > 0; // Ensure we have previous results
 
     // For non-streaming messages, check if they're identical to previous render
     const existingMessagesUnchanged =
@@ -42,11 +52,21 @@ export const useMessageParsing = (messages: Message[], isStreaming: boolean) => 
         (msg, i) => msg === lastMessagesRef.current[i], // Same object reference = unchanged
       );
 
+    console.log('[useMessageParsing] 📊 Cache decision:', {
+      messagesOnlyGrew,
+      existingMessagesUnchanged,
+      willReusePrevious: existingMessagesUnchanged,
+    });
+
     let result: any[];
 
     if (existingMessagesUnchanged) {
       //   Reuse ALL previous parsed message objects (stable references!)
       const reusedMessages = lastParsedResultRef.current.slice(0, lastParsedLengthRef.current);
+
+      console.log('[useMessageParsing] ♻️ Reusing previous parsed messages:', {
+        reusedCount: reusedMessages.length,
+      });
 
       // Only parse new messages (or re-parse if last message is streaming)
       const newMessages = messages.slice(lastParsedLengthRef.current);
@@ -60,6 +80,7 @@ export const useMessageParsing = (messages: Message[], isStreaming: boolean) => 
 
       result = [...reusedMessages, ...newParsed];
     } else if (messagesOnlyGrew && !existingMessagesUnchanged) {
+      console.log('[useMessageParsing] 🔄 Re-parsing all (messages changed)');
       // Messages grew but some existing messages changed (e.g., clickedActions updated)
       // Re-parse ALL but try to use object cache for unchanged ones
       result = messages.map((msg: Message, index: number) => {
@@ -69,6 +90,7 @@ export const useMessageParsing = (messages: Message[], isStreaming: boolean) => 
         return parseMessageWithCache(msg, isAssistantStreaming, cache, lastStreaming);
       });
     } else {
+      console.log('[useMessageParsing] 🆕 Parsing all messages (fresh)');
       result = messages.map((msg: Message, index: number) => {
         const isLastMessage = index === messages.length - 1;
         const isAssistantStreaming = isLastMessage && msg.role === 'assistant' && isStreaming;
@@ -86,6 +108,12 @@ export const useMessageParsing = (messages: Message[], isStreaming: boolean) => 
     lastParsedLengthRef.current = messages.length;
     lastParsedResultRef.current = result;
     lastMessagesRef.current = messages; // Store current messages array for next comparison
+
+    console.log('[useMessageParsing] ✅ Parsed result:', {
+      resultLength: result.length,
+      firstMessageId: result[0]?.id,
+      lastMessageId: result[result.length - 1]?.id,
+    });
 
     return result;
   }, [messages, isStreaming]);

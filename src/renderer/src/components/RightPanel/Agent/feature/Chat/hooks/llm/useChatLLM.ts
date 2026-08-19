@@ -199,12 +199,7 @@ export const useChatLLM = ({
       uiHidden?: boolean,
       parentMessageId?: string,
     ) => {
-      // Cho phép tool results (skipFirstRequestLogic=true) đi qua ngay cả khi đang processing
-      // để tránh mất kết quả khi user click nhiều tool liên tiếp
       if (isProcessingRef.current && !skipFirstRequestLogic) {
-        console.warn(
-          `[Zen][sendMessage] BLOCKED - already processing | skipFirstRequestLogic=${skipFirstRequestLogic} | conversationId=${currentConversationIdRef.current} | content preview: ${content.substring(0, 50)}`,
-        );
         return;
       }
 
@@ -238,7 +233,6 @@ export const useChatLLM = ({
 
       // Guard: tool results must never create new session
       if (skipFirstRequestLogic && isNewSession) {
-        console.warn('[Zen] Tool request on new session - aborting');
         return;
       }
 
@@ -278,7 +272,6 @@ export const useChatLLM = ({
 
           trafficContext = isEmpty ? buildEmptyTrafficContext() : buildTrafficContext(summary);
         } catch (err) {
-          console.warn('[useChatLLM] Failed to build traffic context:', err);
           trafficContext = undefined;
         }
       }
@@ -295,7 +288,6 @@ export const useChatLLM = ({
             filterContext = buildEmptyFilterContext();
           }
         } catch (err) {
-          console.warn('[useChatLLM] Failed to build filter context:', err);
           filterContext = undefined;
         }
       }

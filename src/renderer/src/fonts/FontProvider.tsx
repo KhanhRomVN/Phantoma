@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { FONTS, applyFont, getStoredFont, setStoredFont, FontDefinition, getFontById, initFontSystem } from './index';
+import {
+  FONTS,
+  applyFont,
+  getStoredFont,
+  setStoredFont,
+  FontDefinition,
+  getFontById,
+  initFontSystem,
+} from './index';
 
 interface FontProviderState {
   currentFont: FontDefinition | null;
@@ -27,7 +35,7 @@ export const FontProvider: React.FC<FontProviderProps> = ({
     const initFont = () => {
       // Initialize font system (injects @font-face and loads stored/default font)
       initFontSystem();
-      
+
       // Get the current font after initialization
       const storedFontFamily = getStoredFont();
       let font: FontDefinition | undefined;
@@ -35,9 +43,6 @@ export const FontProvider: React.FC<FontProviderProps> = ({
       if (storedFontFamily) {
         // Find font by stored fontFamily string
         font = FONTS.find((f) => f.fontFamily === storedFontFamily);
-        if (!font) {
-          console.warn('🔤 [FontProvider] No font found for stored family:', storedFontFamily);
-        }
       }
 
       if (!font) {
@@ -78,11 +83,7 @@ export const FontProvider: React.FC<FontProviderProps> = ({
     isLoading,
   };
 
-  return (
-    <FontProviderContext.Provider value={value}>
-      {children}
-    </FontProviderContext.Provider>
-  );
+  return <FontProviderContext.Provider value={value}>{children}</FontProviderContext.Provider>;
 };
 
 export const useFont = (): FontProviderState => {

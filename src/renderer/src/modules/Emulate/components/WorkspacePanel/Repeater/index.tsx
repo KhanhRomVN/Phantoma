@@ -13,7 +13,7 @@ import type { NetworkRequest } from '../Home/Filter';
 import emulateApi, { RepeaterRequest } from '../../../services/emulate-api.service';
 
 // STORE
-import { useNetworkStore } from '@renderer/stores/networkStore';
+import { useNetworkStore } from '../../../stores/networkStore';
 
 const getStorageKey = (targetId: string | null, type: string): string => {
   const base = targetId ? `repeater-${targetId}` : 'repeater-default';

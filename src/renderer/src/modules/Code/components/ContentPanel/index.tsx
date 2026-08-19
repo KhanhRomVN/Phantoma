@@ -245,8 +245,6 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
 // ─── ContentPanel ───────────────────────────────────────────────────────────
 
 export const ContentPanel = memo(function ContentPanel() {
-  console.log('[DEBUG|ContentPanel] render');
-  // 🚀 ULTRA-OPTIMIZED: Chỉ subscribe vào những fields thực sự cần thiết
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
 
   const currentServiceId = useCodeStore((s) => {
@@ -301,15 +299,10 @@ export const ContentPanel = memo(function ContentPanel() {
   const showService = currentServiceId !== null;
   const showFile = !showService && openFiles.length > 0;
 
-  // Khi switch tab, kiểm tra mtime và reload nếu file bị thay đổi bên ngoài
   useEffect(() => {
     if (!showFile || !activeFileTabId) return;
 
     const fileNode = getFileNode(activeFileTabId);
-    console.log('[ContentPanel] 🔍 Active file changed:', {
-      activeFileTabId,
-      fileNode: fileNode ? { name: fileNode.name, path: fileNode.path } : null,
-    });
 
     if (!fileNode?.path) return;
 
@@ -320,47 +313,24 @@ export const ContentPanel = memo(function ContentPanel() {
     const fileId = activeFileTabId;
     const fileName = fileNode.name;
 
-    console.log('[ContentPanel] 📖 Reading file:', {
-      fileId,
-      fileName,
-      filePath,
-    });
-
     window.api
       .invoke('fs:stat', filePath)
       .then((stat: { mtime: number }) => {
         const cachedMtime = fileMtimes[fileId];
-        console.log('[ContentPanel] 📊 File stat:', {
-          fileName,
-          newMtime: stat.mtime,
-          cachedMtime,
-          hasContent: loadedContents[fileId] !== undefined,
-        });
 
         if (
           cachedMtime !== undefined &&
           cachedMtime === stat.mtime &&
           loadedContents[fileId] !== undefined
         ) {
-          console.log('[ContentPanel] ✅ Using cached content for', fileName);
           return;
         }
 
         const doRead = (attempt: number) => {
-          console.log(`[ContentPanel] 📂 Attempt ${attempt} reading:`, filePath);
           window.api
             .invoke('fs:read-file', filePath)
             .then((content: string) => {
-              console.log('[ContentPanel] 📄 Read result:', {
-                fileName,
-                filePath,
-                contentLength: content.length,
-                contentPreview: content.substring(0, 100),
-                attempt,
-              });
-
               if (content.length === 0 && attempt < 2) {
-                console.log('[ContentPanel] ⏳ Empty content, retrying...');
                 setTimeout(() => doRead(attempt + 1), 300);
                 return;
               }
@@ -375,22 +345,10 @@ export const ContentPanel = memo(function ContentPanel() {
         doRead(1);
       })
       .catch((err: any) => {
-        console.warn(`[ContentPanel] ⚠️  fs:stat failed for ${fileName}:`, err);
+        console.error(`[ContentPanel] ⚠️  fs:stat failed for ${fileName}:`, err);
       });
   }, [activeFileTabId, showFile]);
 
-  // ⚠️ DEPRECATED: File watcher moved to fileWatcherService
-  // File watcher now runs independently of component lifecycle
-  // See: src/renderer/src/modules/Code/services/file-watcher.service.ts
-  //
-  // Event-driven watcher: lắng nghe fs:file-changed từ main process
-  // (chokidar watch file active, độ trễ ~50-100ms thay vì polling 2000ms)
-  // useEffect(() => {
-  //   ... (commented out - file watcher now handled by service)
-  // }, [activeFileTabId, showFile]);
-
-  // NEW: Listen to file changes from fileWatcherService
-  // This updates loadedContents when files change externally
   useEffect(() => {
     const unsubscribe = fileWatcherService.onFileChange((event) => {
       const { filePath, content, mtime } = event;
@@ -432,45 +390,26 @@ export const ContentPanel = memo(function ContentPanel() {
   // Load nội dung cho tất cả file text trong openFiles
   useEffect(() => {
     if (!showFile || openFiles.length === 0) return;
-
-    console.log('[ContentPanel] 🔄 Loading content for open files:', {
-      openFilesCount: openFiles.length,
-      openFiles,
-    });
-
     openFiles.forEach((fileId) => {
       const fileNode = getFileNode(fileId);
       if (!fileNode) {
-        console.warn(`[ContentPanel] ⚠️ File node not found for ${fileId}`);
         return;
       }
-
-      console.log('[ContentPanel] 📋 Processing file:', {
-        fileId,
-        fileName: fileNode.name,
-        filePath: fileNode.path,
-      });
 
       const category = getFileCategory(fileNode.name);
       if (category !== 'text') {
-        console.log('[ContentPanel] ⏭️  Skipping non-text file:', fileNode.name);
         return;
       }
 
-      // Đã có trong cache
       if (loadedContents[fileId] !== undefined) {
-        console.log('[ContentPanel] ✅ Already cached:', fileNode.name);
         return;
       }
 
-      // Đang load
       if (loadingFiles.has(fileId)) {
-        console.log('[ContentPanel] ⏳ Already loading:', fileNode.name);
         return;
       }
 
       if (fileNode.content != null && unsavedFiles.has(fileId)) {
-        console.log('[ContentPanel] 💾 Using unsaved content:', fileNode.name);
         setLoadedContents((prev) => ({ ...prev, [fileId]: fileNode.content ?? '' }));
         // Lấy mtime từ disk nếu có path
         if (fileNode.path) {
@@ -485,21 +424,10 @@ export const ContentPanel = memo(function ContentPanel() {
       }
 
       if (fileNode.path) {
-        console.log('[ContentPanel] 📂 Starting to load:', {
-          fileName: fileNode.name,
-          filePath: fileNode.path,
-        });
         setLoadingFiles((prev) => new Set(prev).add(fileId));
         window.api
           .invoke('fs:read-file', fileNode.path)
           .then((content: string) => {
-            console.log('[ContentPanel] 📄 Loaded content:', {
-              fileName: fileNode.name,
-              filePath: fileNode.path,
-              fileId,
-              contentLength: content.length,
-              contentPreview: content.substring(0, 100),
-            });
             setLoadedContents((prev) => ({ ...prev, [fileId]: content || '' }));
             setLoadingFiles((prev) => {
               const next = new Set(prev);
@@ -522,7 +450,7 @@ export const ContentPanel = memo(function ContentPanel() {
             });
           });
       } else {
-        console.warn(`[ContentPanel] ⚠️ No path/content: ${fileNode.name}`);
+        console.error(`[ContentPanel] ⚠️ No path/content: ${fileNode.name}`);
         setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
       }
     });
@@ -634,20 +562,6 @@ export const ContentPanel = memo(function ContentPanel() {
             const filePath = fileNode?.path || '';
             const content = loadedContents[fileId];
             const isLoading = loadingFiles.has(fileId) || content === undefined;
-
-            {
-              // Debug log for rendering
-              isActive &&
-                console.log('[ContentPanel] 🎨 Rendering active file:', {
-                  fileId,
-                  displayName,
-                  category,
-                  filePath,
-                  isLoading,
-                  contentLength: content?.length,
-                  contentPreview: content?.substring(0, 100),
-                });
-            }
 
             return (
               <div

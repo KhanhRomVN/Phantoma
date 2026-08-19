@@ -5,12 +5,20 @@
 
 import { ipcMain } from 'electron';
 import type { Browser, Page } from 'puppeteer';
+import { TabHandler } from '../services/recon/TabHandler';
+import { NavigationHandler } from '../services/recon/NavigationHandler';
+import { ContentHandler } from '../services/recon/ContentHandler';
+import { InteractionHandler } from '../services/recon/InteractionHandler';
 
 interface BrowserSession {
   browser: Browser;
   page: Page;
   targetId: string;
   pid?: number;
+  tabHandler: TabHandler;
+  navigationHandler: NavigationHandler;
+  contentHandler: ContentHandler;
+  interactionHandler: InteractionHandler;
 }
 
 // Store active browser sessions
@@ -23,78 +31,93 @@ export function setupBrowserHandlers(): void {
   /**
    * Launch browser for a target
    */
-  ipcMain.handle('browser:launch', async (_, options: {
-    targetId: string;
-    email: string;
-    executablePath?: string;
-  }) => {
-    try {
-      const { targetId, email, executablePath } = options;
+  ipcMain.handle(
+    'browser:launch',
+    async (
+      _,
+      options: {
+        targetId: string;
+        email: string;
+        executablePath?: string;
+      },
+    ) => {
+      try {
+        const { targetId, email, executablePath } = options;
 
-      // Close existing session if already running
-      if (activeSessions.has(targetId)) {
-        const existingSession = activeSessions.get(targetId)!;
-        try {
-          await existingSession.browser.close();
-        } catch (e) {
-          console.error('[Browser] Failed to close existing session:', e);
+        // Close existing session if already running
+        if (activeSessions.has(targetId)) {
+          const existingSession = activeSessions.get(targetId)!;
+          try {
+            await existingSession.browser.close();
+          } catch (e) {
+            console.error('[Browser] Failed to close existing session:', e);
+          }
+          activeSessions.delete(targetId);
         }
-        activeSessions.delete(targetId);
-      }
 
-      // Launch browser with Puppeteer
-      const browserPath = executablePath || '/opt/ungoogled-chromium/chrome';
-      
-      console.log(`[Browser] Launching for target: ${email}`);
-      
-      if (!puppeteerModule) {
-        puppeteerModule = await import('puppeteer');
-      }
+        // Launch browser with Puppeteer
+        const browserPath = executablePath || '/opt/ungoogled-chromium/chrome';
 
-      const browser = await puppeteerModule.default.launch({
-        executablePath: browserPath,
-        headless: false,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-blink-features=AutomationControlled',
-          '--window-size=1920,1080',
-        ],
-      });
+        if (!puppeteerModule) {
+          puppeteerModule = await import('puppeteer');
+        }
 
-      // Get page
-      const pages = await browser.pages();
-      const page = pages[0] || await browser.newPage();
-      
-      await page.setViewport({ width: 1920, height: 1080 });
+        const browser = await puppeteerModule.default.launch({
+          executablePath: browserPath,
+          headless: false,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-blink-features=AutomationControlled',
+            '--window-size=1920,1080',
+          ],
+        });
 
-      // Store session
-      const session: BrowserSession = {
-        browser,
-        page,
-        targetId,
-        pid: browser.process()?.pid,
-      };
+        // Get page
+        const pages = await browser.pages();
+        const page = pages[0] || (await browser.newPage());
 
-      activeSessions.set(targetId, session);
+        await page.setViewport({ width: 1920, height: 1080 });
 
-      console.log(`[Browser] Launched successfully for ${email}, PID: ${session.pid}`);
+        // Initialize handlers
+        const tabHandler = new TabHandler();
+        tabHandler.registerTab('tab-001', page);
+        tabHandler.setActiveTab('tab-001');
 
-      return {
-        success: true,
-        data: {
+        const navigationHandler = new NavigationHandler();
+        const contentHandler = new ContentHandler();
+        const interactionHandler = new InteractionHandler();
+
+        // Store session
+        const session: BrowserSession = {
+          browser,
+          page,
           targetId,
-          pid: session.pid,
-        },
-      };
-    } catch (error: any) {
-      console.error('[Browser] Launch failed:', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to launch browser',
-      };
-    }
-  });
+          pid: browser.process()?.pid,
+          tabHandler,
+          navigationHandler,
+          contentHandler,
+          interactionHandler,
+        };
+
+        activeSessions.set(targetId, session);
+
+        return {
+          success: true,
+          data: {
+            targetId,
+            pid: session.pid,
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Launch failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to launch browser',
+        };
+      }
+    },
+  );
 
   /**
    * Close browser for a target
@@ -102,7 +125,7 @@ export function setupBrowserHandlers(): void {
   ipcMain.handle('browser:close', async (_, targetId: string) => {
     try {
       const session = activeSessions.get(targetId);
-      
+
       if (!session) {
         return {
           success: false,
@@ -110,15 +133,11 @@ export function setupBrowserHandlers(): void {
         };
       }
 
-      console.log(`[Browser] Closing for target: ${targetId}`);
-
       // Close browser
       await session.browser.close();
 
       // Remove from active sessions
       activeSessions.delete(targetId);
-
-      console.log(`[Browser] Closed successfully for ${targetId}`);
 
       return {
         success: true,
@@ -176,40 +195,44 @@ export function setupBrowserHandlers(): void {
   /**
    * Navigate browser to URL
    */
-  ipcMain.handle('browser:navigate', async (_, options: {
-    targetId: string;
-    url: string;
-  }) => {
-    try {
-      const { targetId, url } = options;
-      const session = activeSessions.get(targetId);
+  ipcMain.handle(
+    'browser:navigate',
+    async (
+      _,
+      options: {
+        targetId: string;
+        url: string;
+      },
+    ) => {
+      try {
+        const { targetId, url } = options;
+        const session = activeSessions.get(targetId);
 
-      if (!session) {
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        await session.page.goto(url);
+
+        return {
+          success: true,
+          data: {
+            targetId,
+            url,
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Navigation failed:', error);
         return {
           success: false,
-          error: 'No active browser session for this target',
+          error: error.message || 'Failed to navigate browser',
         };
       }
-
-      console.log(`[Browser] Navigating to ${url} for target: ${targetId}`);
-
-      await session.page.goto(url);
-
-      return {
-        success: true,
-        data: {
-          targetId,
-          url,
-        },
-      };
-    } catch (error: any) {
-      console.error('[Browser] Navigation failed:', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to navigate browser',
-      };
-    }
-  });
+    },
+  );
 
   /**
    * Get browser page
@@ -242,6 +265,653 @@ export function setupBrowserHandlers(): void {
       };
     }
   });
+
+  /**
+   * List all tabs
+   */
+  ipcMain.handle('browser:listTabs', async (_, targetId: string) => {
+    try {
+      const session = activeSessions.get(targetId);
+
+      if (!session) {
+        return {
+          success: false,
+          error: 'No active browser session for this target',
+        };
+      }
+
+      const tabs = await session.tabHandler.listTabs();
+
+      return {
+        success: true,
+        data: { tabs },
+      };
+    } catch (error: any) {
+      console.error('[Browser] List tabs failed:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to list tabs',
+      };
+    }
+  });
+
+  /**
+   * Create a new tab
+   */
+  ipcMain.handle(
+    'browser:createTab',
+    async (
+      _,
+      options: {
+        targetId: string;
+        url?: string;
+      },
+    ) => {
+      try {
+        const { targetId, url } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        // Create new page
+        const newPage = await session.browser.newPage();
+        await newPage.setViewport({ width: 1920, height: 1080 });
+
+        // Generate tab ID
+        const tabCount = session.tabHandler.getTabCount();
+        const newTabId = `tab-${String(tabCount + 1).padStart(3, '0')}`;
+
+        // Register the new tab
+        session.tabHandler.registerTab(newTabId, newPage);
+
+        // Navigate if URL provided
+        if (url) {
+          await newPage.goto(url, { waitUntil: 'networkidle0' });
+        }
+
+        return {
+          success: true,
+          data: {
+            tabId: newTabId,
+            url: newPage.url(),
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Create tab failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to create tab',
+        };
+      }
+    },
+  );
+
+  /**
+   * Close a tab
+   */
+  ipcMain.handle(
+    'browser:closeTab',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = session.tabHandler.getTab(tabId);
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab ${tabId} not found`,
+          };
+        }
+
+        // Close the page
+        await page.close();
+
+        // Unregister from handler
+        session.tabHandler.unregisterTab(tabId);
+
+        return {
+          success: true,
+          data: {
+            tabId,
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Close tab failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to close tab',
+        };
+      }
+    },
+  );
+
+  /**
+   * Switch to a tab
+   */
+  ipcMain.handle(
+    'browser:switchTab',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = session.tabHandler.getTab(tabId);
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab ${tabId} not found`,
+          };
+        }
+
+        // Set as active tab
+        session.tabHandler.setActiveTab(tabId);
+
+        // Bring page to front
+        await page.bringToFront();
+
+        return {
+          success: true,
+          data: {
+            tabId,
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Switch tab failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to switch tab',
+        };
+      }
+    },
+  );
+
+  /**
+   * Navigate back
+   */
+  ipcMain.handle(
+    'browser:back',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        await session.navigationHandler.back(page);
+
+        return {
+          success: true,
+          data: {
+            url: page.url(),
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Back navigation failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to navigate back',
+        };
+      }
+    },
+  );
+
+  /**
+   * Navigate forward
+   */
+  ipcMain.handle(
+    'browser:forward',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        await session.navigationHandler.forward(page);
+
+        return {
+          success: true,
+          data: {
+            url: page.url(),
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Forward navigation failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to navigate forward',
+        };
+      }
+    },
+  );
+
+  /**
+   * Reload page
+   */
+  ipcMain.handle(
+    'browser:reload',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        await session.navigationHandler.reload(page);
+
+        return {
+          success: true,
+          data: {
+            url: page.url(),
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Reload failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to reload page',
+        };
+      }
+    },
+  );
+
+  /**
+   * Get page content
+   */
+  ipcMain.handle(
+    'browser:getPageContent',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const content = await session.contentHandler.getPageContent(page);
+
+        return {
+          success: true,
+          data: content,
+        };
+      } catch (error: any) {
+        console.error('[Browser] Get page content failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to get page content',
+        };
+      }
+    },
+  );
+
+  /**
+   * List elements
+   */
+  ipcMain.handle(
+    'browser:listElements',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        elementType?: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, elementType } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const elements = await session.contentHandler.listElements(page, elementType);
+
+        return {
+          success: true,
+          data: { elements },
+        };
+      } catch (error: any) {
+        console.error('[Browser] List elements failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to list elements',
+        };
+      }
+    },
+  );
+
+  /**
+   * Click element
+   */
+  ipcMain.handle(
+    'browser:clickElement',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        ref: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, ref } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        await session.interactionHandler.clickByRef(page, ref);
+
+        return {
+          success: true,
+          data: {
+            ref,
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Click element failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to click element',
+        };
+      }
+    },
+  );
+
+  /**
+   * Fill input
+   */
+  ipcMain.handle(
+    'browser:fillInput',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        ref: string;
+        value: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, ref, value } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        await session.interactionHandler.fillByRef(page, ref, value);
+
+        return {
+          success: true,
+          data: {
+            ref,
+            value,
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Fill input failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to fill input',
+        };
+      }
+    },
+  );
+
+  /**
+   * Press key
+   */
+  ipcMain.handle(
+    'browser:pressKey',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        key: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, key } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        await session.interactionHandler.pressKey(page, key);
+
+        return {
+          success: true,
+          data: {
+            key,
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Press key failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to press key',
+        };
+      }
+    },
+  );
+
+  /**
+   * Scroll page
+   */
+  ipcMain.handle(
+    'browser:scroll',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        direction: 'up' | 'down' | 'top' | 'bottom';
+        amount?: number;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, direction, amount } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        await session.interactionHandler.scroll(page, direction, amount);
+
+        return {
+          success: true,
+          data: {
+            direction,
+          },
+        };
+      } catch (error: any) {
+        console.error('[Browser] Scroll failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to scroll',
+        };
+      }
+    },
+  );
 }
 
 /**
@@ -256,8 +926,6 @@ export function getBrowserSession(targetId: string): BrowserSession | undefined 
  * Cleanup all browser sessions on app shutdown
  */
 export async function closeAllBrowserSessions(): Promise<void> {
-  console.log('[Browser] Closing all sessions...');
-  
   const closeTasks = Array.from(activeSessions.values()).map(async (session) => {
     try {
       await session.browser.close();
@@ -268,6 +936,4 @@ export async function closeAllBrowserSessions(): Promise<void> {
 
   await Promise.all(closeTasks);
   activeSessions.clear();
-  
-  console.log('[Browser] All sessions closed');
 }

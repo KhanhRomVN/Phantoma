@@ -13,11 +13,14 @@ export interface ConversationData {
     tokenUsage?: number;
     conversationId?: string;
   }>;
-  toolOutputs?: Record<string, {
-    output: string;
-    isError: boolean;
-    terminalId?: string;
-  }>;
+  toolOutputs?: Record<
+    string,
+    {
+      output: string;
+      isError: boolean;
+      terminalId?: string;
+    }
+  >;
   questionAnswers?: Record<string, string>;
   singleLineReviewActions?: Record<string, any>;
   conversationFileStats?: {
@@ -59,7 +62,7 @@ export class ConversationStorage {
   async saveConversation(
     moduleId: string,
     conversationId: string,
-    data: ConversationData
+    data: ConversationData,
   ): Promise<void> {
     const filePath = this.getConversationPath(moduleId, conversationId);
     const dir = path.dirname(filePath);
@@ -81,13 +84,13 @@ export class ConversationStorage {
    */
   async getConversation(
     moduleId: string,
-    conversationId: string
+    conversationId: string,
   ): Promise<ConversationData | null> {
     const filePath = this.getConversationPath(moduleId, conversationId);
     try {
       const content = await fs.promises.readFile(filePath, 'utf-8');
       return JSON.parse(content) as ConversationData;
-    } catch (error) {
+    } catch (error: any) {
       // File not found or read error
       return null;
     }
@@ -111,10 +114,7 @@ export class ConversationStorage {
   /**
    * Delete a conversation
    */
-  async deleteConversation(
-    moduleId: string,
-    conversationId: string
-  ): Promise<void> {
+  async deleteConversation(moduleId: string, conversationId: string): Promise<void> {
     const filePath = this.getConversationPath(moduleId, conversationId);
     try {
       await fs.promises.unlink(filePath);

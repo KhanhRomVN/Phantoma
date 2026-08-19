@@ -214,7 +214,6 @@ function handleServerRequest(server: LSPServer, message: any, mainWindow: any) {
       break;
 
     default:
-      console.warn(`[LSP:Main] ⚠️  Unhandled server request: ${message.method}`);
       // Send empty response to avoid blocking server
       const emptyResponse = {
         jsonrpc: '2.0',
@@ -321,9 +320,6 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
 
     // Handle unexpected exit
     serverProcess.on('exit', (code, signal) => {
-      console.warn(
-        `[LSP:Main] ⚠️  Process exited for ${language}. Code: ${code}, Signal: ${signal}`,
-      );
       activeServers.delete(language);
     });
 
@@ -472,7 +468,6 @@ ipcMain.handle('lsp:stop-server', async (event, args) => {
 ipcMain.handle('lsp:get-active-servers', async () => {
   try {
     const servers = Array.from(activeServers.keys());
-    console.log(`[LSP:Main] 📋 get-active-servers: ${servers.length} server(s) running — [${servers.join(', ') || 'none'}]`);
     return { success: true, servers };
   } catch (error: any) {
     console.error('[LSP:Main] ❌ get-active-servers error:', error);
@@ -488,7 +483,6 @@ ipcMain.handle('lsp:didOpen', async (event, args) => {
 
   const server = activeServers.get(language);
   if (!server) {
-    console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
     return { success: false, error: 'Server not found' };
   }
 
@@ -517,7 +511,6 @@ ipcMain.handle('lsp:didSave', async (event, args) => {
 
   const server = activeServers.get(language);
   if (!server) {
-    console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
     return { success: false, error: 'Server not found' };
   }
 
@@ -542,7 +535,6 @@ ipcMain.handle('lsp:didClose', async (event, args) => {
 
   const server = activeServers.get(language);
   if (!server) {
-    console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
     return { success: false, error: 'Server not found' };
   }
 
@@ -567,7 +559,6 @@ ipcMain.handle('lsp:didChange', async (event, args) => {
 
   const server = activeServers.get(language);
   if (!server) {
-    console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
     return { success: false, error: 'Server not found' };
   }
 
@@ -746,7 +737,6 @@ ipcMain.handle('lsp:pullDiagnostics', async (event, args) => {
 
   const server = activeServers.get(language);
   if (!server) {
-    console.warn(`[LSP:Main] ⚠️  Server not found for ${language}`);
     return { success: false, error: 'Server not found' };
   }
 

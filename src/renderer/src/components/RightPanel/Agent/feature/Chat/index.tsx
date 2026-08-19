@@ -63,6 +63,13 @@ currentChat,
   const prevPropsRef = useRef<any>({});
   renderCountRef.current++;
 
+  // DEBUG: Log render
+  console.log('[ChatPanel] 🎨 Rendering:', {
+    renderCount: renderCountRef.current,
+    sessionId: currentChat?.sessionId,
+    conversationId: (currentChat as any)?.conversationId,
+  });
+
   // DEBUG: Log what caused this render
   useEffect(() => {
     const changedProps: string[] = [];
@@ -241,6 +248,10 @@ currentChat,
     if (prev.isStreaming !== isStreaming) changes.push(`isStreaming: ${isStreaming}`);
     if (prev.currentConversationId !== currentConversationId) changes.push(`currentConversationId`);
     if (prev.isContinuing !== isContinuing) changes.push(`isContinuing: ${isContinuing}`);
+
+    if (changes.length > 0) {
+      console.log('[ChatPanel] 📊 State changed:', changes.join(', '));
+    }
 
     prevChatStateRef.current = {
       messages,
@@ -732,21 +743,4 @@ currentChat,
   );
 };
 
-// Wrap with React.memo to prevent unnecessary re-renders from parent
-export default React.memo(ChatPanel, (prevProps, nextProps) => {
-  const sessionIdSame = prevProps.currentChat?.sessionId === nextProps.currentChat?.sessionId;
-  const folderPathSame = prevProps.currentChat?.folderPath === nextProps.currentChat?.folderPath;
-  const initialDataSame = prevProps.initialMessageData === nextProps.initialMessageData;
-  const onBackSame = prevProps.onBack === nextProps.onBack;
-  const onLoadConvSame = prevProps.onLoadConversation === nextProps.onLoadConversation;
-  const onClearSame = prevProps.onClearInitialData === nextProps.onClearInitialData;
-
-  return (
-    sessionIdSame &&
-    folderPathSame &&
-    initialDataSame &&
-    onBackSame &&
-    onLoadConvSame &&
-    onClearSame
-  );
-});
+export default ChatPanel;

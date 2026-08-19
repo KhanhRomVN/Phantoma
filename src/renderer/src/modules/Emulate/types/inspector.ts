@@ -1,22 +1,7 @@
-// Re-export and extend global types for Emulate feature
-import { SecurityIssue } from '../../Tool/utils/securityScanner';
-import type {
-  NetworkRequest as GlobalNetworkRequest,
-  NetworkAnalysis,
-} from '../../../types/inspector';
+// Re-export global types for Emulate feature
+import type { NetworkRequest } from '@renderer/shared/types/network';
 
-export interface NetworkRequest extends GlobalNetworkRequest {
-  protocol: string;
-  type: string;
-  securityDetails?: any;
-  timing?: any;
-  serverIPAddress?: string;
-  connection?: string;
-  isIntercepted?: boolean;
-  analysis?: NetworkAnalysis & {
-    securityIssues?: SecurityIssue[];
-  };
-}
+export type { NetworkRequest };
 
 export interface WebSocketConnection {
   id: string;

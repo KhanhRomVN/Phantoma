@@ -10,30 +10,28 @@ import { ipcService } from '../../services/ipc.service';
 import { initialFilterState } from './components/WorkspacePanel/Home';
 import WorkspacePanel from './components/WorkspacePanel';
 import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
+import TargetSidebar from './components/TargetListPanel';
 
 // Hooks
 import useTargetData from '../../hooks/useTargetData';
 import { useRequestFilter } from './hooks/network/useRequestFilter';
+import useNetworkEvents from './hooks/network/useNetworkEvents';
 
 // Types
 import { NetworkRequest } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
-import { ToolType, DEFAULT_TOOL } from './constants/tools';
-import { useTheme } from '@renderer/theme';
-import useNetworkEvents from './hooks/network/useNetworkEvents';
-import TargetSidebar from './components/TargetListPanel';
-import { useTimerStore } from '../../stores/timerStore';
-import { useNetworkStore } from '../../stores/networkStore';
+
+// Stores
+import { useTimerStore } from './stores/timerStore';
 
 // Constants
+import { ToolType, DEFAULT_TOOL } from './constants/tools';
 
 export default React.memo(function Emulate({
   activeAppId = '',
   onStopSession = async () => {},
 }: EmulateProps) {
-  const { currentPreset } = useTheme();
-  const accentColor = currentPreset?.tailwind?.primary || '#3b82f6';
-  const { getColorByIndex } = useAccentColors();
+  const { getColorByIndex, UNIFIED_ACCENT } = useAccentColors();
 
   const { setEmulateState } = useAgentFeature();
 
@@ -324,13 +322,6 @@ export default React.memo(function Emulate({
 
   useEffect(() => {
     setLoadedFromIPC(true);
-    // [DEBUG] Xóa sau khi xác nhận requests giữ nguyên khi chuyển module
-    console.log('[DEBUG] Emulate mounted/remounted', {
-      activeTargetId,
-      targetStates,
-      requestsCount: state.requests.length,
-      networkStoreCount: useNetworkStore.getState().requests.length,
-    });
   }, []);
 
   // Handlers
@@ -502,7 +493,7 @@ export default React.memo(function Emulate({
         activeTargetId={activeTargetId}
         targetStates={memoizedTargetStates}
         activeAppId={activeAppId}
-        accentColor={accentColor}
+        accentColor={UNIFIED_ACCENT}
         onSelectTarget={setActiveTarget}
         onRemoveTarget={removeTargetTab}
         onStartTarget={handleStartTarget}

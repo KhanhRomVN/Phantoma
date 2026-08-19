@@ -12,7 +12,7 @@ import { detectResourceType } from '../../../constants/resource';
 
 // Utils
 import { formatSize } from '../../../utils/source-tree.util';
-import { detectWasmModules } from '../../../../../utils/detectors';
+import { detectWasm } from '../../../utils/wasm-detector.util';
 
 // Services
 import { ipcService } from '../../../../../services/ipc.service';
@@ -49,7 +49,7 @@ export function ResourcesPanel({ requests = [], onCountChange }: ResourcesPanelP
   }, []);
 
   // Detect WASM modules
-  const wasmItems = useMemo(() => detectWasmModules(requests), [requests]);
+  const wasmItems = useMemo(() => detectWasm(requests), [requests]);
 
   // Build resource items from requests
   const resourceItems = useMemo(() => {

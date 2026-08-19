@@ -19,7 +19,7 @@ import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
 import FileIcon from '@renderer/components/common/FileIcon';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
-import TreeBlock from '../../blocks/code/TreeBlock';
+import TreeBlock from '../../blocks/other/TreeBlock';
 
 export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   action,

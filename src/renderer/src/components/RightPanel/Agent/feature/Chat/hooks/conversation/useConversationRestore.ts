@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
 /**
  * useConversationRestore — khôi phục conversation từ cache hoặc localStorage khi load/switch conversation.
  *
@@ -6,7 +5,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  *    handleConversationNotFound(): Xử lý khi conversation không tồn tại (xóa + tạo mới).
  */
 
-import { useCallback, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { logger } from '@renderer/utils/logger';
 
 // TYPES
 import { Message } from '../../types/message';
@@ -45,7 +45,6 @@ interface UseConversationRestoreProps {
 
 export const useConversationRestore = ({
   currentChat,
-  currentConversationId,
   currentConversationIdRef,
   messagesRef,
   setMessages,
@@ -63,62 +62,44 @@ export const useConversationRestore = ({
   const [isLoadingConversation, setIsLoadingConversation] = useState<boolean>(true);
   const [isRestored, setIsRestored] = useState<boolean>(false);
   const revertMessageIdRef = useRef<string | null>(null);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isLoadingConversation) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.warn(
+          '[useConversationRestore] Loading timeout reached! Forcing loading state to false',
+        );
+        setIsLoadingConversation(false);
+      }, 10000);
+
+      return () => {
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
+      };
+    }
+  }, [isLoadingConversation]);
 
   // Load conversation
   useEffect(() => {
     const load = async () => {
       if (!currentChat) {
-        if (currentConversationIdRef.current) {
-          return;
-        }
+        // Reset all state when going back to Home (currentChat = null)
+        currentConversationIdRef.current = '';
         setMessages([]);
         setIsLoadingConversation(false);
         setIsProcessing(false);
         setIsRestored(false);
         return;
       }
+
       setIsLoadingConversation(true);
       setIsRestored(false);
+
       const convId = (currentChat as any).conversationId;
       if (convId) {
-        const cached = ConversationCache.get(convId);
-        if (cached) {
-          // Restore messages from cache
-          const messagesToRestore = cached.messages;
-          setMessages(messagesToRestore);
-          if (cached.toolOutputs && Object.keys(cached.toolOutputs).length > 0) {
-            setToolOutputs(cached.toolOutputs);
-          }
-          if (
-            cached.singleLineReviewActions &&
-            Object.keys(cached.singleLineReviewActions).length > 0
-          ) {
-            window.postMessage(
-              {
-                command: 'restoreSingleLineReviewActions',
-                actions: cached.singleLineReviewActions,
-              },
-              '*',
-            );
-          }
-          const pendingParent = sessionStorage.getItem(`zen-revert-parent:${convId}`);
-          if (pendingParent) revertParentMessageIdRef.current = pendingParent;
-          setIsRestored(cached.messages.length > 0);
-          currentConversationIdRef.current = cached.conversationId;
-          setCurrentConversationId(cached.conversationId);
-          if (cached.backendConversationId) {
-            setBackendConversationId(cached.backendConversationId);
-          }
-          if (cached.currentModel) {
-            setCurrentModel(cached.currentModel);
-          }
-          if (cached.currentAccount) {
-            setCurrentAccount(cached.currentAccount);
-          }
-          setIsLoadingConversation(false);
-          return;
-        }
-
         const requestId = `conv-${Date.now()}`;
         extensionService.postMessage({
           command: 'getConversation',
@@ -134,12 +115,20 @@ export const useConversationRestore = ({
     load();
   }, [currentChat?.sessionId, (currentChat as any)?.conversationId]);
 
-  // Handle incoming messages
+  // Handle incoming messages via IPC
   useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      const data = event.data;
-      if (data.command === 'conversationResult') {
-        if (data.data?.messages) {
+    // Listen for messageResponse (main IPC response channel)
+    const unsubMessageResponse = extensionService.onMessage('messageResponse', (data: any) => {
+      // Handle getConversation response
+      if (data?.command === 'getConversation') {
+        if (data?.error) {
+          console.error('[useConversationRestore][getConversation] Error:', data.error);
+          setIsLoadingConversation(false);
+          setIsProcessing(false);
+          return;
+        }
+
+        if (data?.data?.messages) {
           const restoredMessages = data.data.messages.map((msg: Message, i: number) => ({
             ...msg,
             id: msg.id || `restored-${Date.now()}-${i}`,
@@ -212,6 +201,7 @@ export const useConversationRestore = ({
               setCurrentModel(modelToCache);
               setCurrentAccount(accountToCache);
             }
+
             ConversationCache.set(data.data.conversationId, {
               messages: restoredMessages,
               conversationId: data.data.conversationId,
@@ -229,48 +219,61 @@ export const useConversationRestore = ({
             }
           }
         }
+
         setIsLoadingConversation(false);
         setIsProcessing(false);
-      } else if (data.command === 'commitError') {
-        const errorMsg = data.error || 'Unknown git error';
-        const errorMessage: Message = {
-          id: `msg-error-${Date.now()}`,
-          role: 'assistant',
-          content: `❌ **Lỗi commit/push**\n\n\`\`\`\n${errorMsg}\n\`\`\``,
-          timestamp: Date.now(),
-          isError: true,
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-        const vscodeApi = (window as any).vscodeApi;
-        if (vscodeApi) {
-          vscodeApi.postMessage({
-            command: 'showError',
-            message: `Lỗi commit/push: ${errorMsg.substring(0, 200)}${errorMsg.length > 200 ? '...' : ''}`,
-          });
-        }
-      } else if (
-        data.command === 'clearChatConfirmed' &&
-        data.conversationId === currentConversationId
-      ) {
+      }
+    });
+
+    // Listen for commitError
+    const unsubCommitError = extensionService.onMessage('commitError', (data: any) => {
+      const errorMsg = data.error || 'Unknown git error';
+      const errorMessage: Message = {
+        id: `msg-error-${Date.now()}`,
+        role: 'assistant',
+        content: `❌ **Lỗi commit/push**\n\n\`\`\`\n${errorMsg}\n\`\`\``,
+        timestamp: Date.now(),
+        isError: true,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      const vscodeApi = (window as any).vscodeApi;
+      if (vscodeApi) {
+        vscodeApi.postMessage({
+          command: 'showError',
+          message: `Lỗi commit/push: ${errorMsg.substring(0, 200)}${errorMsg.length > 200 ? '...' : ''}`,
+        });
+      }
+    });
+
+    // Listen for clearChatConfirmed
+    const unsubClearChat = extensionService.onMessage('clearChatConfirmed', (data: any) => {
+      if (data.conversationId === currentConversationIdRef.current) {
         handleClearConfirmed();
-      } else if (
-        data.command === 'conversationRevertedError' &&
-        data.conversationId === currentConversationId
-      ) {
-        console.error(
-          '[REVERT-DEBUG] Received conversationRevertedError from extension:',
-          data.error,
-        );
-        setIsLoadingConversation(false);
-        revertMessageIdRef.current = null;
-      } else if (
-        data.command === 'conversationReverted' &&
-        data.conversationId === currentConversationId
-      ) {
+      }
+    });
+
+    // Listen for conversationRevertedError
+    const unsubRevertError = extensionService.onMessage(
+      'conversationRevertedError',
+      (data: any) => {
+        if (data.conversationId === currentConversationIdRef.current) {
+          console.error(
+            '[REVERT-DEBUG] Received conversationRevertedError from extension:',
+            data.error,
+          );
+          setIsLoadingConversation(false);
+          revertMessageIdRef.current = null;
+        }
+      },
+    );
+
+    // Listen for conversationReverted
+    const unsubReverted = extensionService.onMessage('conversationReverted', (data: any) => {
+      if (data.conversationId === currentConversationIdRef.current) {
         const targetId = revertMessageIdRef.current;
         revertMessageIdRef.current = null;
         if (targetId === '__first__') {
-          deleteConversation(currentConversationId);
+          deleteConversation(currentConversationIdRef.current);
           const firstUserMsg = messagesRef.current.find(
             (m) => !m.uiHidden && !m.isCancelled && m.role === 'user',
           );
@@ -293,18 +296,18 @@ export const useConversationRestore = ({
             revertParentMessageIdRef.current = prevAssistant?.response_message_id || null;
             if (revertParentMessageIdRef.current) {
               sessionStorage.setItem(
-                `zen-revert-parent:${currentConversationId}`,
+                `zen-revert-parent:${currentConversationIdRef.current}`,
                 revertParentMessageIdRef.current,
               );
             } else {
-              sessionStorage.removeItem(`zen-revert-parent:${currentConversationId}`);
+              sessionStorage.removeItem(`zen-revert-parent:${currentConversationIdRef.current}`);
             }
             setRevertInput({ value: content, nonce: Date.now() });
             const reverted = prev.slice(0, idx);
-            const existing = ConversationCache.get(currentConversationId);
-            ConversationCache.set(currentConversationId, {
+            const existing = ConversationCache.get(currentConversationIdRef.current);
+            ConversationCache.set(currentConversationIdRef.current, {
               messages: reverted,
-              conversationId: currentConversationId,
+              conversationId: currentConversationIdRef.current,
               backendConversationId: existing?.backendConversationId,
               currentModel: existing?.currentModel,
               currentAccount: existing?.currentAccount,
@@ -315,14 +318,20 @@ export const useConversationRestore = ({
           setIsProcessing(false);
         }
       }
+    });
+
+    return () => {
+      unsubMessageResponse();
+      unsubCommitError();
+      unsubClearChat();
+      unsubRevertError();
+      unsubReverted();
     };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [currentConversationId]);
+  }, []); // ✅ Empty dependency - handlers persist and use refs
 
   const handleClearConfirmed = async () => {
     if (currentChat) {
-      await deleteConversation(currentConversationId);
+      await deleteConversation(currentConversationIdRef.current);
       setMessages([]);
       setIsProcessing(false);
       setCurrentConversationId(Date.now().toString());
@@ -331,7 +340,7 @@ export const useConversationRestore = ({
 
   const handleRevertConversation = useCallback(
     (messageId: string, timestamp: number) => {
-      if (!currentConversationId) {
+      if (!currentConversationIdRef.current) {
         console.warn('[REVERT-DEBUG] handleRevertConversation: no currentConversationId, aborting');
         return;
       }
@@ -344,12 +353,12 @@ export const useConversationRestore = ({
       setIsLoadingConversation(true);
       extensionService.postMessage({
         command: 'revertConversation',
-        conversationId: currentConversationId,
+        conversationId: currentConversationIdRef.current,
         messageId,
         timestamp,
       });
     },
-    [currentConversationId, messagesRef],
+    [messagesRef],
   );
 
   return {

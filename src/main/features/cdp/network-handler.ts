@@ -28,7 +28,6 @@ export function handleRequestWillBeSent(this: CdpManager, params: any) {
   const { requestId, request, initiator, type } = params;
 
   if (!this.mainWindow) {
-    console.warn('[CDP] mainWindow not set, cannot send request event');
     return;
   }
 
@@ -81,7 +80,6 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
   const { requestId, response, timestamp } = params;
 
   if (!this.mainWindow) {
-    console.warn('[CDP] mainWindow not set, cannot send response event');
     return;
   }
 
@@ -90,17 +88,6 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
     if (response.url) {
       this.requestIdMap.set(`hash:${requestId}`, response.url);
     }
-  }
-
-  // [DEBUG] Có thể xóa sau khi điều tra request /query bị treo
-  if (response.url?.includes('deepseek.com/query')) {
-    console.log('[DEBUG|CDP] responseReceived for /query:', {
-      requestId,
-      url: response.url,
-      status: response.status,
-      mimeType: response.mimeType,
-      timestamp,
-    });
   }
 
   this.sendToRenderer('cdp:response', {

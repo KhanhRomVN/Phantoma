@@ -98,29 +98,23 @@ export class ReconController {
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     const ctrl = ReconController.getInstance();
 
-    console.log('[ReconController.executeTool] Tool:', toolName, 'Params:', params);
-
     try {
       switch (toolName) {
         // Tab Management
         case 'list_tabs': {
           const result = await ctrl.listTabsHandler.handle(params.targetId);
-          console.log('[ReconController.executeTool] list_tabs result:', result);
           return result;
         }
         case 'create_tab': {
           const result = await ctrl.createTabHandler.handle(params.targetId, params.url);
-          console.log('[ReconController.executeTool] create_tab result:', result);
           return result;
         }
         case 'close_tab': {
           const result = await ctrl.closeTabHandler.handle(params.targetId, params.tabId);
-          console.log('[ReconController.executeTool] close_tab result:', result);
           return result;
         }
         case 'switch_tab': {
           const result = await ctrl.switchTabHandler.handle(params.targetId, params.tabId);
-          console.log('[ReconController.executeTool] switch_tab result:', result);
           return result;
         }
 
@@ -131,29 +125,24 @@ export class ReconController {
             params.url,
             params.tabId,
           );
-          console.log('[ReconController.executeTool] navigate result:', result);
           return result;
         }
         case 'back': {
           const result = await ctrl.backHandler.handle(params.targetId, params.tabId);
-          console.log('[ReconController.executeTool] back result:', result);
           return result;
         }
         case 'forward': {
           const result = await ctrl.forwardHandler.handle(params.targetId, params.tabId);
-          console.log('[ReconController.executeTool] forward result:', result);
           return result;
         }
         case 'reload': {
           const result = await ctrl.reloadHandler.handle(params.targetId, params.tabId);
-          console.log('[ReconController.executeTool] reload result:', result);
           return result;
         }
 
         // Content Extraction
         case 'get_page_content': {
           const result = await ctrl.getPageContentHandler.handle(params.targetId, params.tabId);
-          console.log('[ReconController.executeTool] get_page_content result:', result);
           return result;
         }
         case 'list_elements': {
@@ -162,7 +151,6 @@ export class ReconController {
             params.tabId,
             params.elementType,
           );
-          console.log('[ReconController.executeTool] list_elements result:', result);
           return result;
         }
 
@@ -173,7 +161,6 @@ export class ReconController {
             params.ref,
             params.tabId,
           );
-          console.log('[ReconController.executeTool] click_element result:', result);
           return result;
         }
         case 'fill_input': {
@@ -183,7 +170,6 @@ export class ReconController {
             params.value,
             params.tabId,
           );
-          console.log('[ReconController.executeTool] fill_input result:', result);
           return result;
         }
         case 'press_key': {
@@ -192,7 +178,6 @@ export class ReconController {
             params.key,
             params.tabId,
           );
-          console.log('[ReconController.executeTool] press_key result:', result);
           return result;
         }
         case 'scroll': {
@@ -202,12 +187,10 @@ export class ReconController {
             params.amount,
             params.tabId,
           );
-          console.log('[ReconController.executeTool] scroll result:', result);
           return result;
         }
 
         default:
-          console.warn('[ReconController.executeTool] Unknown tool:', toolName);
           return { success: false, error: `Unknown recon tool: ${toolName}` };
       }
     } catch (error: any) {
@@ -265,8 +248,6 @@ export class ReconController {
   public async launchBrowser(
     targetId: string,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
-    console.log('[ReconController.launchBrowser] Called with targetId:', targetId);
-
     const target = this.targets.get(targetId);
     if (!target) {
       console.error('[ReconController.launchBrowser] Target not found:', targetId);
@@ -275,23 +256,15 @@ export class ReconController {
 
     // Check if already running
     if (this.sessions.has(targetId)) {
-      console.warn('[ReconController.launchBrowser] Browser already running for target:', targetId);
       return { success: false, error: 'Browser already running for this target' };
     }
 
     try {
-      console.log('[ReconController.launchBrowser] Calling IPC browser:launch with:', {
-        targetId,
-        email: target.email,
-      });
-
       // Call IPC to launch browser in main process
       const result = await (window as any).electron.ipcRenderer.invoke('browser:launch', {
         targetId,
         email: target.email,
       });
-
-      console.log('[ReconController.launchBrowser] IPC result:', result);
 
       if (result.success) {
         // Store session info

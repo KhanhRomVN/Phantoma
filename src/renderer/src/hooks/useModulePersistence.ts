@@ -7,11 +7,9 @@ export function useModulePersistence<T>(
   moduleId: ModuleId,
   initialState: T,
   options?: {
-    /** Khi mount, nếu có state trong store sẽ dùng thay vì initialState */
     preferSaved?: boolean;
-    /** Tự động lưu mỗi khi state thay đổi */
     autoSave?: boolean;
-  }
+  },
 ): [T, (data: Partial<T> | ((prev: T) => Partial<T>)) => void, () => void] {
   const { setModuleState, getModuleState, clearModuleState } = useModuleStore();
   const { preferSaved = true, autoSave = true } = options || {};
@@ -54,7 +52,7 @@ export function useModulePersistence<T>(
         return newState;
       });
     },
-    [autoSave, moduleId, setModuleState]
+    [autoSave, moduleId, setModuleState],
   );
 
   // Hàm clear state

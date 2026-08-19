@@ -286,7 +286,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     },
     format: () => {
       if (!editorInstance.current) {
-        console.warn('[CodeBlock] Editor instance is null');
         return;
       }
 
@@ -295,7 +294,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         const model = editor.getModel();
 
         if (!model) {
-          console.error('[CodeBlock] Editor model is null');
           return;
         }
 
@@ -679,7 +677,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           }
         })
         .catch((err) => {
-          console.warn('Monaco loading promise failed or cancelled:', err);
+          console.error('Monaco loading promise failed or cancelled:', err);
         });
     };
 

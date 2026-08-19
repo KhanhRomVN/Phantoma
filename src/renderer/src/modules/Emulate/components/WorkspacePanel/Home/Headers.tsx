@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
 // Types
-import { NetworkRequest } from '../../../../../../types/inspector';
+import { NetworkRequest } from '../../../types/inspector';
 
 interface HeadersDetailsProps {
   request: NetworkRequest;

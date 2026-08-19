@@ -2,7 +2,6 @@
  * BackBlock — Display back tool output
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface BackBlockProps {
@@ -12,12 +11,7 @@ interface BackBlockProps {
   isError?: boolean;
 }
 
-export default function BackBlock({
-  tabId,
-  targetId,
-  output,
-  isError,
-}: BackBlockProps) {
+export default function BackBlock({ tabId, targetId, output, isError }: BackBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {tabId && (
@@ -45,9 +39,7 @@ export default function BackBlock({
         </div>
       )}
 
-      {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Going back...</div>
-      )}
+      {!output && !isError && <div className="text-text-secondary opacity-60">Going back...</div>}
     </div>
   );
 }

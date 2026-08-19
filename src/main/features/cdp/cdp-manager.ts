@@ -49,9 +49,7 @@ export class CdpManager extends EventEmitter {
   }
 
   public async connect(port: number, retries = 5, delay = 1000): Promise<boolean> {
-    // Guard: nếu đã connected tới cùng port, bỏ qua reconnect
     if (this.isConnected && this.ws?.readyState === WebSocket.OPEN && this.currentPort === port) {
-      console.log('[DEBUG|CDP] Already connected to port', port, '- skipping reconnect');
       return true;
     }
 

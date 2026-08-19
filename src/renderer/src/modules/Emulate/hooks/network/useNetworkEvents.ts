@@ -7,7 +7,7 @@ import { NetworkRequest } from '../../types/inspector';
 import { usePaginatedRequests } from './usePaginatedRequests';
 
 // STORE
-import { useNetworkStore } from '../../../../stores/networkStore';
+import { useNetworkStore } from '../../stores/networkStore';
 
 // UTILS — pure network parsers (tách từ file này)
 import {
@@ -145,8 +145,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
   // Sync local requests to global store for RequestTable / Repeater
   useEffect(() => {
-    // [DEBUG] Xóa sau khi xác nhận requests giữ nguyên khi chuyển module
-    console.log('[DEBUG] Syncing requests to networkStore, count:', requests.length);
     useNetworkStore.setState({
       requests: requests.map((r) => ({
         ...r,
@@ -188,7 +186,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       if (fullReq.protocol === 'data' || fullReq.protocol === 'blob') return;
       // Skip OPTIONS preflight requests to reduce noise (they often don't complete properly in CDP)
       if (fullReq.method === 'OPTIONS') {
-        console.debug('[useNetworkEvents] Skipping OPTIONS preflight request:', fullReq.url);
         return;
       }
 
@@ -223,11 +220,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         if (!data.url) {
           return;
         }
-        console.warn('[DEBUG|NetworkEvents] Response without request, creating placeholder', {
-          id: data.id,
-          url: data.url,
-          statusCode: data.statusCode,
-        });
         const placeholder = buildPlaceholderRequest(
           data.id,
           data.statusCode,
@@ -323,7 +315,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         if (request.protocol === 'data' || request.protocol === 'blob') return;
         // Skip OPTIONS preflight requests
         if (request.method === 'OPTIONS') {
-          console.debug('[useNetworkEvents] Skipping OPTIONS preflight request:', request.url);
           return;
         }
 
@@ -336,12 +327,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         const timeoutId = setTimeout(() => {
           const existing = requestMapRef.current.get(generatedId);
           if (existing && existing.status === 0) {
-            console.warn('[DEBUG|NetworkEvents] Request timeout after 10s', {
-              id: generatedId,
-              method: existing.method,
-              url: existing.url,
-              timestamp: new Date().toISOString(),
-            });
             updateRequest(generatedId, {
               status: 0,
               responseHeaders: { 'X-Request-Status': 'Timeout' },
@@ -395,14 +380,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           if (!data.url) {
             return;
           }
-          // Response arrived before request — create placeholder
-          console.warn(
-            '[DEBUG|NetworkEvents] Proxy response without request, creating placeholder',
-            {
-              id: data.id,
-              statusCode: data.statusCode,
-            },
-          );
           const placeholder = buildPlaceholderRequest(
             data.id,
             data.statusCode,
@@ -472,12 +449,10 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   // Setup IPC listeners
   useEffect(() => {
     if (!targetId) {
-      console.debug('[useNetworkEvents] No targetId, skipping IPC listener registration');
       return;
     }
 
     if (!window.api?.on) {
-      console.warn('[useNetworkEvents] window.api.on not available');
       return;
     }
 
@@ -493,12 +468,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           const timestamp = timestampMapRef.current.get(req.id);
           if (timestamp && now - timestamp > 10000) {
             // Request pending > 10s
-            console.warn('[DEBUG|NetworkEvents] Cleaning up stale pending request', {
-              id: req.id,
-              method: req.method,
-              url: req.url,
-              age: `${Math.round((now - timestamp) / 1000)}s`,
-            });
             updateRequest(req.id, {
               status: 0,
               responseHeaders: { 'X-Request-Status': 'Stale' },
@@ -514,7 +483,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       try {
         handleCdpRequest(data);
       } catch (error) {
-        console.error('[useNetworkEvents] Error handling cdp:request:', error);
         onError?.(error);
       }
     };

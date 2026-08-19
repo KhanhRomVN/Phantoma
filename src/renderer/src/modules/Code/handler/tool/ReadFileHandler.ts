@@ -80,7 +80,6 @@ export class ReadFileHandler {
         const project = state.projects.find((p) => p.id === state.currentProjectId);
         if (project?.path) {
           resolvedPath = joinPath(project.path, pathValue);
-          console.log('[DEBUG-ReadFile] resolved:', pathValue, '→', resolvedPath);
         }
       }
 
@@ -110,29 +109,19 @@ export class ReadFileHandler {
         content = lines.slice(startLine || 0, end).join('\n');
       }
 
-      // Lấy diagnostics từ diagnosticsStore (nếu không bị skip)
       let diagnostics: any[] = [];
       if (!message.skipDiagnostics) {
-        try {
-          const { useDiagnosticsStore } = await import('../../stores/diagnosticsStore');
-          const storeState = useDiagnosticsStore.getState();
-          const storeUris = Object.keys(storeState.diagnostics);
-          console.log('[DEBUG-ReadFile] resolvedPath:', resolvedPath);
-          console.log('[DEBUG-ReadFile] store URIs count:', storeUris.length, '| first:', storeUris.slice(0, 5));
-
-          const raw = storeState.getDiagnosticsForFile(resolvedPath);
-          diagnostics = raw.map((d: any) => ({
-            severity: d.severity === 1 ? 'Error' : d.severity === 2 ? 'Warning' : 'Info',
-            message: d.message,
-            line: d.range?.start?.line ?? d.line ?? 0,
-            column: d.range?.start?.character ?? d.column ?? 0,
-            source: d.source || 'lsp',
-            code: d.code,
-          }));
-          console.log('[DEBUG-ReadFile] final diagnostics:', diagnostics.length, 'items');
-        } catch (e) {
-          console.warn('[DEBUG-ReadFile] failed to get diagnostics:', e);
-        }
+        const { useDiagnosticsStore } = await import('../../stores/diagnosticsStore');
+        const storeState = useDiagnosticsStore.getState();
+        const raw = storeState.getDiagnosticsForFile(resolvedPath);
+        diagnostics = raw.map((d: any) => ({
+          severity: d.severity === 1 ? 'Error' : d.severity === 2 ? 'Warning' : 'Info',
+          message: d.message,
+          line: d.range?.start?.line ?? d.line ?? 0,
+          column: d.range?.start?.character ?? d.column ?? 0,
+          source: d.source || 'lsp',
+          code: d.code,
+        }));
       }
 
       return {

@@ -225,12 +225,12 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
                   moduleId,
                 });
               } catch (e) {
-                console.warn('[getHistory] Failed to read conversation:', moduleId, convId, e);
+                console.error('[getHistory] Failed to read conversation:', moduleId, convId, e);
               }
             }
           }
         } catch (e) {
-          console.warn('[getHistory] Failed to list conversations:', e);
+          console.error('[getHistory] Failed to list conversations:', e);
         }
 
         // Sort by lastModified descending
@@ -598,19 +598,24 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           // Search all module directories for the conversation
           const conversationsDir = path.join(os.homedir(), '.phantoma', 'conversations');
           let foundData: any = null;
+          let foundInModuleId: string | null = null;
 
           try {
             const moduleDirs = await fs.promises.readdir(conversationsDir);
             for (const moduleId of moduleDirs) {
               const modulePath = path.join(conversationsDir, moduleId);
+
               try {
                 const stat = await fs.promises.stat(modulePath);
-                if (!stat.isDirectory()) continue;
+                if (!stat.isDirectory()) {
+                  continue;
+                }
               } catch {
                 continue;
               }
 
               const data = await storage.getConversation(moduleId, conversationId);
+
               if (data) {
                 foundData = {
                   messages: data.messages || [],
@@ -626,11 +631,15 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
                   createdAt: data.createdAt,
                   lastModified: data.lastModified,
                 };
+                foundInModuleId = moduleId;
                 break;
               }
             }
-          } catch (e) {
-            console.warn('[Main] getConversation failed to list directories:', e);
+          } catch (e: any) {
+            console.error('[Main][getConversation] Failed to list directories:', {
+              error: e.message,
+              conversationsDir,
+            });
           }
 
           sendToRenderer('messageResponse', {
@@ -639,8 +648,11 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
             data: foundData,
             error: foundData ? undefined : 'Conversation not found',
           });
-        } catch (error) {
-          console.error('[Main] getConversation error:', error);
+        } catch (error: any) {
+          console.error('[Main][getConversation] Exception occurred:', {
+            error: error.message,
+            stack: error.stack,
+          });
           sendToRenderer('messageResponse', {
             requestId,
             command: 'getConversation',
@@ -920,8 +932,54 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
       return { success: true };
     }
 
+    // ─── Save Conversation State ────────────────────────────────────
+    case 'saveConversationState': {
+      const {
+        conversationId,
+        messages,
+        backendConversationId,
+        toolOutputs,
+        singleLineReviewActions,
+        conversationFileStats,
+        metadata,
+      } = payload;
+
+      try {
+        const storage = new ConversationStorage();
+
+        // Determine moduleId from sessionId (for Code module) or metadata
+        // Code module: sessionId represents the project/target
+        // Emulate module: sessionId represents the emulate target
+        const moduleId = metadata?.sessionId?.toString() || 'unknown';
+
+        const conversationData = {
+          conversationId,
+          backendConversationId,
+          messages: messages || [],
+          toolOutputs: toolOutputs || {},
+          singleLineReviewActions: singleLineReviewActions || {},
+          conversationFileStats: conversationFileStats || {
+            totalFiles: 0,
+            totalAdditions: 0,
+            totalDeletions: 0,
+          },
+          createdAt: metadata?.createdAt || Date.now(),
+          lastModified: metadata?.lastModified || Date.now(),
+        };
+
+        await storage.saveConversation(moduleId, conversationId, conversationData);
+
+        return { success: true };
+      } catch (error: any) {
+        console.error('[Main][saveConversationState] ❌ Failed to save:', {
+          error: error.message,
+          conversationId,
+        });
+        return { success: false, error: error.message };
+      }
+    }
+
     default:
-      console.debug(`[RendererHandler] Unknown command: ${command}`);
       return { success: false, error: `Unknown command: ${command}` };
   }
 }
@@ -963,6 +1021,7 @@ export function setupRendererHandlers() {
     'loadProjectContext',
     // Conversation
     'getConversation',
+    'saveConversationState',
     'restoreSingleLineReviewActions',
     'revertConversation',
     'confirmClearChat',

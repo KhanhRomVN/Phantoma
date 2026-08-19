@@ -65,7 +65,6 @@ const DEFAULT_HEIGHT = 320;
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function BottomPanel() {
-  console.log('[DEBUG|BottomPanel] render');
   // ── Store — select riêng fields thay vì toàn bộ project ──
   const bottomPanelTab = useCodeStore((s) => {
     const p = s.projects.find((p) => p.id === s.currentProjectId);

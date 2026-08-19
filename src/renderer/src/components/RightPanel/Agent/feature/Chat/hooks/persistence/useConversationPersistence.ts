@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 /**
  * useConversationPersistence — tự động save conversation vào localStorage mỗi khi messages/toolOutputs thay đổi.
  *
@@ -47,8 +46,6 @@ export const useConversationPersistence = ({
 
   // Persist toolOutputs
   useEffect(() => {
-    const effectStartTime = performance.now();
-
     if (!currentConversationId || Object.keys(toolOutputs).length === 0) {
       return;
     }
@@ -72,12 +69,7 @@ export const useConversationPersistence = ({
 
   // Persist singleLineReviewActions
   useEffect(() => {
-    const effectStartTime = performance.now();
-
-    if (
-      !currentConversationId ||
-      Object.keys(singleLineReviewActions).length === 0
-    ) {
+    if (!currentConversationId || Object.keys(singleLineReviewActions).length === 0) {
       return;
     }
 
@@ -101,8 +93,6 @@ export const useConversationPersistence = ({
 
   // Persist conversationFileStats
   useEffect(() => {
-    const effectStartTime = performance.now();
-
     if (!currentConversationId || conversationFileStats.totalFiles === 0) {
       return;
     }

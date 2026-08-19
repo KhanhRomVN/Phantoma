@@ -449,7 +449,6 @@ interface MessageInputProps {
 
 const MessageInput: React.FC<MessageInputProps> = ({
   message,
-  setMessage,
   isHistoryMode = false,
   uploadedFiles,
   textareaRef,
@@ -458,16 +457,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   handlePaste,
   handleDragOver,
   handleDrop,
-  setShowAtMenu,
   handleFileSelect,
   fileInputRef,
-  onOpenProjectStructure,
-  showChangesDropdown,
-  setShowChangesDropdown,
-  messages,
   handleSend,
-  hasProjectContext,
-  onOpenProjectContext,
   folderPath,
   isConversationStarted,
   currentModel,
@@ -485,7 +477,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   isGitStatusVisible = false,
   showCompressButton = false,
   onCompress,
-  gitStatus,
   onOpenGitStatus,
   conversationFileStats,
   onReviewClick,
@@ -558,7 +549,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const toggleMemory = async () => {
     if (!currentAccount?.id) {
-      console.warn('No account selected, cannot toggle memory');
       return;
     }
 

@@ -1,43 +1,47 @@
 import { parseToolAction } from '../utils/ToolParser';
 import { getAllToolTypes } from '../constants/constants';
 // Tag parsers
-import { parseReadFile } from './parsers/code/ReadFileParser';
-import { parseWriteToFile } from './parsers/code/WriteToFileParser';
-import { parseReplaceInFile } from './parsers/code/ReplaceInFileParser';
-import { parseListFiles } from './parsers/code/ListFilesParser';
-import { parseFindFiles } from './parsers/code/FindFilesParser';
-import { parseGrep } from './parsers/code/GrepParser';
-import { parseDeleteFile } from './parsers/code/DeleteFileParser';
-import { parseRevertFile } from './parsers/code/RevertFileParser';
-import { parseViewReplaceHistory } from './parsers/code/ViewReplaceHistoryParser';
-import { parseRunCommand } from './parsers/code/RunCommandParser';
-import { parseGitStatus } from './parsers/code/GitStatusParser';
-import { parseGitDiff } from './parsers/code/GitDiffParser';
-import { parseListHttps } from './parsers/emulate/ListHttpsParser';
-import { parseGetHttpsDetail } from './parsers/emulate/GetHttpsDetailParser';
-import { parseListHosts } from './parsers/emulate/ListHostsParser';
-import { parseListSources } from './parsers/emulate/ListSourcesParser';
-import { parseListResources } from './parsers/emulate/ListResourcesParser';
-import { parseGetSourceDetail } from './parsers/emulate/GetSourceDetailParser';
-import { parseGetResourceContent } from './parsers/emulate/GetResourceContentParser';
-import { parseApplyFilter } from './parsers/emulate/ApplyFilterParser';
-import { parseListTabs } from './parsers/recon/ListTabsParser';
-import { parseCreateTab } from './parsers/recon/CreateTabParser';
-import { parseCloseTab } from './parsers/recon/CloseTabParser';
-import { parseSwitchTab } from './parsers/recon/SwitchTabParser';
-import { parseNavigate } from './parsers/recon/NavigateParser';
-import { parseBack } from './parsers/recon/BackParser';
-import { parseForward } from './parsers/recon/ForwardParser';
-import { parseReload } from './parsers/recon/ReloadParser';
-import { parseGetPageContent } from './parsers/recon/GetPageContentParser';
-import { parseListElements } from './parsers/recon/ListElementsParser';
-import { parseClickElement } from './parsers/recon/ClickElementParser';
-import { parseFillInput } from './parsers/recon/FillInputParser';
-import { parsePressKey } from './parsers/recon/PressKeyParser';
-import { parseScroll } from './parsers/recon/ScrollParser';
-import { parseMarkdown } from './parsers/other/MarkdownParser';
-
-import { extractThinkingBlocks } from './parsers/other/ThinkingParser';
+import {
+  parseReadFile,
+  parseWriteToFile,
+  parseReplaceInFile,
+  parseListFiles,
+  parseFindFiles,
+  parseGrep,
+  parseDeleteFile,
+  parseRevertFile,
+  parseViewReplaceHistory,
+  parseRunCommand,
+  parseGitStatus,
+  parseGitDiff,
+} from './parsers/CodeParser';
+import {
+  parseListHttps,
+  parseGetHttpsDetail,
+  parseListHosts,
+  parseListSources,
+  parseListResources,
+  parseGetSourceDetail,
+  parseGetResourceContent,
+  parseApplyFilter,
+} from './parsers/EmulateParser';
+import {
+  parseListTabs,
+  parseCreateTab,
+  parseCloseTab,
+  parseSwitchTab,
+  parseNavigate,
+  parseBack,
+  parseForward,
+  parseReload,
+  parseGetPageContent,
+  parseListElements,
+  parseClickElement,
+  parseFillInput,
+  parsePressKey,
+  parseScroll,
+} from './parsers/ReconParser';
+import { parseMarkdown, extractThinkingBlocks } from './parsers/OtherParser';
 import { findClosingTagPosition } from '../utils/TagClosingFinder';
 import { TagType } from '../types/tag-types';
 
@@ -670,31 +674,6 @@ export const parseAIResponse = (content: string): ParsedResponse => {
 
           result.contentBlocks.push({ type: 'tool', action, actionIndex });
           result.actions.push(action); // Populate legacy actions array
-
-          // Always log recon tools for debugging
-          if (
-            action.type.startsWith('list_tabs') ||
-            action.type.startsWith('create_tab') ||
-            action.type.startsWith('close_tab') ||
-            action.type.startsWith('switch_tab') ||
-            action.type.startsWith('navigate') ||
-            action.type.startsWith('back') ||
-            action.type.startsWith('forward') ||
-            action.type.startsWith('reload') ||
-            action.type.startsWith('get_page_content') ||
-            action.type.startsWith('list_elements') ||
-            action.type.startsWith('click_element') ||
-            action.type.startsWith('fill_input') ||
-            action.type.startsWith('press_key') ||
-            action.type.startsWith('scroll')
-          ) {
-            console.log(
-              '[ResponseParser] Recon tool detected:',
-              action.type,
-              'Params:',
-              action.params,
-            );
-          }
 
           if (DEBUG_PARSER) {
           }

@@ -34,7 +34,6 @@ import { cn } from '@renderer/shared/utils/cn';
 import {
   ChevronDown,
   BarChart3,
-  Bot,
   Terminal as TerminalIcon,
   Plus,
   LayoutDashboard,
@@ -63,7 +62,6 @@ type AgentSubView =
 export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) {
   const [view, setView] = useState<PanelView>('agent');
   const [agentSubView, setAgentSubView] = useState<AgentSubView>(null);
-  const [agentPanelKey, setAgentPanelKey] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -157,7 +155,8 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
               <button
                 onClick={() => {
                   setAgentSubView(null);
-                  setAgentPanelKey((k) => k + 1);
+                  // Trigger a custom event to reset AgentView to Home without remounting
+                  window.dispatchEvent(new CustomEvent('agent:resetToHome'));
                 }}
                 className={cn(
                   'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
@@ -209,7 +208,7 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
         <div className="flex-1 min-h-0 overflow-hidden relative">
           {view === 'agent' && (
             <div className={cn('h-full', agentSubView !== null && 'hidden')}>
-              <AgentPanel key={agentPanelKey} />
+              <AgentPanel />
             </div>
           )}
           {view === 'agent' && (
