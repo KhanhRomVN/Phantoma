@@ -1,6 +1,23 @@
+/**
+ * ------------------------------------------------------------------
+ * Renderer Utils
+ * ------------------------------------------------------------------
+ * Helper functions dùng chung cho các renderer trong chat UI.
+ *
+ * Main functions:
+ * - getDisplayPath()       : Lấy đường dẫn hiển thị với cắt ngắn thông minh
+ * - collectConvFilePaths() : Thu thập tất cả file paths từ messages
+ * - buildTreeFromPaths()   : Build tree structure từ flat list paths
+ * - getNextUserMessage()   : Lấy user message tiếp theo sau assistant message
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { Message } from '../types/message';
 import { FileNode } from '../types/renderer-types';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 /**
  * Lấy đường dẫn hiển thị với cắt ngắn thông minh để tránh xung đột
  */

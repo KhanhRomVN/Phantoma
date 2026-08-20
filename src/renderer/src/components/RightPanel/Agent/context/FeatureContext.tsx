@@ -13,7 +13,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 
-// Types
+// ── Types ──
 export type AgentFeature = 'emulate' | 'code' | 'recon' | null;
 
 export interface EmulateState {
@@ -53,10 +53,10 @@ const FeatureContext = createContext<FeatureContextValue>({
   setReconState: () => {},
 });
 
-// Hooks
+// ── Hooks ──
 export const useAgentFeature = () => useContext(FeatureContext);
 
-// Components
+// ── Components ──
 export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeFeature, setActiveFeature] = useState<AgentFeature>(null);
   const [emulateState, setEmulateState] = useState<EmulateState>({

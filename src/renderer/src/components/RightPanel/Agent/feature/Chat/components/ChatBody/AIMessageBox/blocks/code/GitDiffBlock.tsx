@@ -1,9 +1,28 @@
 import React, { useState } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * GitDiffBlock
+ * ------------------------------------------------------------------
+ * Block hiển thị git diff cho một file.
+ * Hiển thị added/deleted lines với syntax highlighting.
+ *
+ * Main features:
+ * - Hiển thị diff stats (added/deleted)
+ * - File path clickable với FileIcon
+ * - Partial state cho streaming
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
-import FileIcon from '@renderer/components/common/FileIcon';
 import { $ } from '@renderer/utils/color';
+
+// ── Components ──
+import FileIcon from '@renderer/components/common/FileIcon';
 import { TagHeader } from '../../TagHeader';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface GitDiffBlockProps {
   filePath: string;
   diffContent: string;

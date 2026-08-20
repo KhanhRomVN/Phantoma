@@ -1,33 +1,45 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * ReplaceInFileRenderer
+ * ------------------------------------------------------------------
+ * Renderer cho replace_in_file tool.
+ * Hiển thị diff giữa old_content và new_content, hỗ trợ merge actions.
+ *
+ * Main features:
+ * - Hiển thị diff highlight với code block
+ * - Hỗ trợ merge nhiều actions trong cùng group
+ * - Permission check trước khi hiển thị approve UI
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
-
-// Hooks
-import { useSettings } from '../../../../../../../context/SettingsContext';
-
-// Services
-import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-
-// Constants
-import { getToolLabel } from '../../../../../constants/constants';
-
-// Types
-import { MergedRendererProps, Diagnostic } from '../../../../../types/renderer-types';
-
-// UtilsS
 import { getNextUserMessage } from '../../../../../utils/renderer-utils';
 import { getPermissionDecision } from '../../../../../utils/permissionUtils';
 import { parseDiff, DiffHighlight } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
 
-// ICONS
-import FileIcon from '@renderer/components/common/FileIcon';
+// ── Hooks ──
+import { useSettings } from '../../../../../../../context/SettingsContext';
 
-// Components
+// ── Services ──
+import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+
+// ── Constants ──
+import { getToolLabel } from '../../../../../constants/constants';
+
+// ── Types ──
+import { MergedRendererProps, Diagnostic } from '../../../../../types/renderer-types';
+
+// ── Components ──
 import { TagHeader } from '../../TagHeader';
 import ActionBar from '../../ActionBar';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 import CodeBlock from '@renderer/components/common/CodeBlock';
+import FileIcon from '@renderer/components/common/FileIcon';
 
-// Helper: map file extension to language for CodeBlock header
+// ─── Helper ─────────────────────────────────────────────────────────────
 const getLanguageFromPath = (filePath: string): string | undefined => {
   const ext = filePath.split('.').pop()?.toLowerCase();
   if (!ext) return undefined;

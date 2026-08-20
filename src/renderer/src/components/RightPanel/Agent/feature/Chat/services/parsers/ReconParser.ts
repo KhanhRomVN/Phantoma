@@ -1,3 +1,19 @@
+/**
+ * ------------------------------------------------------------------
+ * Recon Parser
+ * ------------------------------------------------------------------
+ * Parse XML tags từ AI response cho các recon tools.
+ * Mỗi tool có một parse function riêng để extract params.
+ *
+ * Main functions:
+ * - parseBack()          : Parse back tag
+ * - parseClickElement()  : Parse click_element tag
+ * - parseNavigate()      : Parse navigate tag
+ * - parseScroll()        : Parse scroll tag
+ * ------------------------------------------------------------------
+ */
+
+// ─── Functions ──────────────────────────────────────────────────────────
 // ===== BackParser =====
 
 export interface BackParams {

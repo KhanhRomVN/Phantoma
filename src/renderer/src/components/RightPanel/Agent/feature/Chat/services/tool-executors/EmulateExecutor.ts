@@ -1,6 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * Emulate Executor
+ * ------------------------------------------------------------------
+ * Thực thi các emulate tools bằng cách gọi EmulateController.
+ * Mỗi executor function gọi EmulateController.executeTool() và
+ * trả về output hoặc error message.
+ *
+ * Main functions:
+ * - executeApplyFilter()        : Thực thi apply_filter tool
+ * - executeGetHttpsDetail()     : Thực thi get_https_detail tool
+ * - executeGetResourceContent() : Thực thi get_resource_content tool
+ * - executeGetSourceDetail()    : Thực thi get_source_detail tool
+ * - executeListHttps()          : Thực thi list_https tool
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Controller ──
 import { EmulateController } from '@renderer/controller/EmulateController';
+
+// ── Types ──
 import type { ApplyFilterParams } from '../parsers/EmulateParser';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 // ===== ApplyFilterExecutor =====
 
 /** Execute apply_filter tool — gọi EmulateController.executeTool() */
@@ -32,7 +54,7 @@ export async function executeGetHttpsDetail(params: GetHttpsDetailParams): Promi
 // ===== GetResourceContentExecutor =====
 
 export interface GetResourceContentParams {
-  index: number;
+  filename: string;
   start_line?: number;
   end_line?: number;
 }
@@ -42,7 +64,7 @@ export async function executeGetResourceContent(
   params: GetResourceContentParams,
 ): Promise<string | null> {
   const result = await EmulateController.executeTool('get_resource_content', {
-    index: params.index,
+    filename: params.filename,
     start_line: params.start_line,
     end_line: params.end_line,
   });
@@ -56,12 +78,12 @@ export async function executeGetResourceContent(
 // ===== GetSourceDetailExecutor =====
 
 export interface GetSourceDetailParams {
-  index: number;
+  filepath: string;
 }
 
 /** Execute get_source_detail tool — gọi EmulateController.executeTool() */
 export async function executeGetSourceDetail(params: GetSourceDetailParams): Promise<string | null> {
-  const result = await EmulateController.executeTool('get_source_detail', { index: params.index });
+  const result = await EmulateController.executeTool('get_source_detail', { filepath: params.filepath });
 
   if (!result.success) {
     return '[get_source_detail] Result: Error - ' + (result.error || '');

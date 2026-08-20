@@ -1,7 +1,7 @@
-// Constants
+// ── Constants ──
 import { ToolType } from '../constants/tools';
 
-// Types
+// ── Types ──
 import { InspectorFilter } from './filter.types';
 import { NetworkRequest } from './inspector';
 

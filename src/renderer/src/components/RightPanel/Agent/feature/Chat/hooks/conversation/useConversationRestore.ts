@@ -1,18 +1,29 @@
 /**
- * useConversationRestore — khôi phục conversation từ cache hoặc localStorage khi load/switch conversation.
+ /**
+ * ------------------------------------------------------------------
+ * useConversationRestore
+ * ------------------------------------------------------------------
+ * Hook khôi phục conversation từ cache hoặc localStorage khi
+ * load/switch conversation.
  *
- *    restoreConversation()       : Load conversation từ cache → localStorage → tạo mới nếu không tìm thấy.
- *    handleConversationNotFound(): Xử lý khi conversation không tồn tại (xóa + tạo mới).
+ * Main features:
+ * - restoreConversation()       : Load conversation từ cache → localStorage → tạo mới
+ * - handleConversationNotFound(): Xử lý khi conversation không tồn tại
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useRef, useCallback } from 'react';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 
-// TYPES
+// ── Types ──
 import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
 
-// SERVICES
+// ── Services ──
 import { ConversationCache } from '../../services/ConversationCache';
 import { deleteConversation } from '../../services/ConversationService';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';

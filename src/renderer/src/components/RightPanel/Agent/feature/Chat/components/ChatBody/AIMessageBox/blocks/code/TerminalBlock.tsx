@@ -1,10 +1,16 @@
+// ─── Imports ────────────────────────────────────────────────────────────
 import React, { useEffect, useRef, useState } from 'react';
+
+// ── Terminal ──
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
+
+// ── Utils ──
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface TerminalBlockProps {
   logs: string;
   status?: 'busy' | 'idle' | 'free';

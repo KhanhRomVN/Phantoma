@@ -1,10 +1,29 @@
+/**
+ * ------------------------------------------------------------------
+ * useApiConfiguration
+ * ------------------------------------------------------------------
+ * Hook quản lý cấu hình URL API và providers.
+ * Load API URL từ storage và fetch providers từ backend.
+ *
+ * Main returns:
+ * - apiUrl         : URL hiện tại của API backend
+ * - setApiUrl      : Setter cho API URL
+ * - isApiUrlReady  : Flag báo API URL đã load xong
+ * - providers      : Danh sách providers từ API
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect } from 'react';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
+
+// ── Services ──
 import { extensionService } from '../../../../services/ExtensionService';
 
-/**
- * Hook quản lý cấu hình URL API và providers
- */
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useApiConfiguration = () => {
   const [apiUrl, setApiUrl] = useState('http://localhost:8888');
   const [isApiUrlReady, setIsApiUrlReady] = useState(false);

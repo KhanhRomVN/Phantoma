@@ -1,11 +1,34 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * MarkdownBlock
+ * ------------------------------------------------------------------
+ * Block render markdown content với path detection.
+ * Tự động nhận diện file/folder paths và hiển thị clickable chips.
+ *
+ * Main features:
+ * - Render markdown với marked + DOMPurify
+ * - Detect absolute/relative paths thành clickable chips
+ * - Mở file/folder khi click vào path
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Markdown ──
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+
+// ── Services ──
 import { extensionService } from '../../../../../../../services/ExtensionService';
-import FileIcon from '@renderer/components/common/FileIcon';
+
+// ── Utils ──
 import { $ } from '@renderer/utils/color';
+
+// ── Components ──
+import FileIcon from '@renderer/components/common/FileIcon';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const ABSOLUTE_PATH_REGEX = /^(\/[^\s<>"'`]+|[A-Za-z]:\\[^\s<>"'`]+)/;
 const RELATIVE_PATH_WITH_FOLDERS_REGEX = /^[^\s<>"'`|*?:]+[/\\][^\s<>"'`|*?:]+\.[a-zA-Z0-9]{1,10}$/;
 const FILENAME_REGEX = /^[^\s/\\<>"'`]+\.[a-zA-Z0-9]{1,10}$/;

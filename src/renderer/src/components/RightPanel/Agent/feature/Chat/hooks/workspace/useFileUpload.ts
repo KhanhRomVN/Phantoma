@@ -1,9 +1,18 @@
 import { useCallback } from 'react';
 
 /**
+ * ------------------------------------------------------------------
+ * useFileUpload
+ * ------------------------------------------------------------------
  * Hook cung cấp hàm tải file cục bộ lên backend
  * và trả về file_ids để dùng trong các yêu cầu chat.
+ *
+ * Main returns:
+ * - uploadFiles : Upload files lên backend, trả về danh sách file_ids
+ * ------------------------------------------------------------------
  */
+
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useFileUpload = (apiUrl: string) => {
   /**
    * Uploads an array of file objects to the backend.

@@ -1,9 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * useWorkspaceData
+ * ------------------------------------------------------------------
+ * Hook quản lý dữ liệu workspace (files, folders, rules).
+ * Lắng nghe responses từ VSCode extension và load rules từ localStorage.
+ *
+ * Main returns:
+ * - availableFiles   : Danh sách files trong workspace
+ * - availableFolders : Danh sách folders trong workspace
+ * - availableRules   : Danh sách rules từ localStorage
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
+
+// ── React ──
 import { useState, useEffect, useRef } from 'react';
 
-// TYPES
+// ── Types ──
 import { Rule, WorkspaceItem } from '../../types/workspace';
 
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useWorkspaceData = () => {
   const renderCountRef = useRef(0);
   const filesUpdateCountRef = useRef(0);

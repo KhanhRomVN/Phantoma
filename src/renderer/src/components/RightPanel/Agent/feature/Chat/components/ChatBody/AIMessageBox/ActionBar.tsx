@@ -1,13 +1,31 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * ActionBar
+ * ------------------------------------------------------------------
+ * Bar hiển thị nút Accept/Reject cho tool actions.
+ * Dùng cho tool cần user approval trước khi thực thi.
+ *
+ * Main features:
+ * - Nút Accept (Check) và Reject (X)
+ * - Loading/error states
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import { Check, X } from 'lucide-react';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-// Constants
+// ── Constants ──
 import { TOOL_ACTION_TYPES } from '../../../constants/constants';
 
-// Types
+// ── Types ──
 import { ToolAction } from '../../../services/ResponseParser';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ActionBarProps {
   /** Tool action object containing type and params */
   action: ToolAction;

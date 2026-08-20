@@ -1,4 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * Recon Executor
+ * ------------------------------------------------------------------
+ * Thực thi các recon tools bằng cách gọi ReconController.
+ * Mỗi executor function gọi ReconController.executeTool() và
+ * trả về { success, output, error }.
+ *
+ * Main functions:
+ * - executeBack()          : Thực thi back tool
+ * - executeClickElement()  : Thực thi click_element tool
+ * - executeNavigate()      : Thực thi navigate tool
+ * - executeScroll()        : Thực thi scroll tool
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Controller ──
 import { ReconController } from '@renderer/controller/ReconController';
+
+// ── Types ──
 import type {
   BackParams,
   ClickElementParams,
@@ -16,6 +36,7 @@ import type {
   SwitchTabParams,
 } from '../parsers/ReconParser';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 // ===== BackExecutor =====
 
 export async function executeBack(

@@ -14,10 +14,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-// Components
+// ── Components ──
 import { AgentPanel } from './Agent';
 import HomePanel from './Agent/feature/Home';
-import SessionPanel from './Agent/feature/Session';
 import AccountPanel from './Agent/feature/Account';
 import { Analytic as AnalyticFeature } from './Agent/feature/Analytic';
 import HistoryPanel from './Agent/feature/History';
@@ -27,20 +26,19 @@ import SettingsPanel from './Agent/feature/Setting';
 // CONTEXT
 import { SettingsProvider } from './Agent/context/SettingsContext';
 
-// Types
+// ── Types ──
 import type { SubTarget } from '../../modules/Tool/types/types';
 
 // UI
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/Dropdown';
 
-// UtilsS
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import {
   ChevronDown,
   BarChart3,
   Terminal as TerminalIcon,
   Plus,
-  LayoutDashboard,
   MoreHorizontal,
   User,
   Cpu,
@@ -163,26 +161,12 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
                   window.dispatchEvent(new CustomEvent('agent:resetToHome'));
                 }}
                 className={cn(
-                  'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
-                  agentSubView === null && 'bg-primary/10 text-primary',
+                  'p-1 rounded transition-colors',
+                  agentSubView === null && ' text-primary',
                 )}
               >
                 <Plus className="w-4 h-4 text-text-secondary" />
               </button>
-              <div className="relative">
-                <button
-                  onClick={() => setAgentSubView('session')}
-                  className={cn(
-                    'p-1 rounded hover:bg-sidebar-item-hover transition-colors',
-                    agentSubView === 'session' && 'bg-primary/10 text-primary',
-                  )}
-                >
-                  <LayoutDashboard className="w-4 h-4 text-text-secondary" />
-                </button>
-                <span className="absolute -top-1 -right-1 bg-primary/80 text-text-foreground text-[10px] font-medium rounded-md min-w-[18px] h-[18px] flex items-center justify-center ">
-                  2
-                </span>
-              </div>
               <Dropdown>
                 <DropdownTrigger>
                   <button className="p-1 rounded hover:bg-sidebar-item-hover transition-colors">
@@ -219,9 +203,6 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
             <div className={cn('absolute inset-0', agentSubView !== 'home' && 'hidden')}>
               <HomePanel onSendMessage={() => {}} onLoadConversation={() => {}} />
             </div>
-          )}
-          {view === 'agent' && agentSubView === 'session' && (
-            <SessionPanel isOpen={true} onClose={() => setAgentSubView(null)} />
           )}
           {view === 'agent' && agentSubView === 'account' && (
             <AccountPanel isOpen={true} onClose={() => setAgentSubView(null)} />

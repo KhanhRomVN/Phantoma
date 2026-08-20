@@ -1,6 +1,23 @@
+/**
+ * ------------------------------------------------------------------
+ * Conversation Cache
+ * ------------------------------------------------------------------
+ * In-memory cache cho conversation data với LRU eviction.
+ * Lưu messages, toolOutputs, và singleLineReviewActions tạm thời.
+ *
+ * Main exports:
+ * - ConversationCache : Singleton object với get/set/delete/clear
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
+
+// ── Types ──
 import { Message } from '../types/message';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface CachedConversation {
   messages: Message[];
   conversationId: string;

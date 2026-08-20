@@ -1,13 +1,13 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// Constants
+// ── Constants ──
 import { TOOL_ACTION_TYPES, getToolLabel } from '../../../../../constants/constants';
 
-// Types
+// ── Types ──
 import { ToolAction } from '../../../../../services/ResponseParser';
 
-// Components
+// ── Components ──
 import { TagHeader } from '../../TagHeader';
 
 interface CommitMessageRendererProps {

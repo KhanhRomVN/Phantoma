@@ -72,7 +72,7 @@ export const ApplyFilterBlock: React.FC<ApplyFilterBlockProps> = ({
 
   if (changes.length === 0) {
     return (
-      <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]">
+      <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
         <pre
           className="p-3 text-[12px] font-mono text-text-primary whitespace-pre-wrap overflow-auto"
           style={{ maxHeight }}
@@ -85,7 +85,7 @@ export const ApplyFilterBlock: React.FC<ApplyFilterBlockProps> = ({
 
   return (
     <div
-      className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]"
+      className="mt-1 bg-background border rounded-[4px] overflow-hidden"
       style={{ maxHeight }}
     >
       <div className="px-3 py-2 text-[11px] text-text-secondary border-b border-border bg-card-background">

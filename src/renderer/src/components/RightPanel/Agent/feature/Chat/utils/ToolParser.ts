@@ -1,5 +1,22 @@
+/**
+ * ------------------------------------------------------------------
+ * Tool Parser
+ * ------------------------------------------------------------------
+ * Helper functions để parse XML tags từ AI response.
+ * Hỗ trợ extract param values và decode HTML entities.
+ *
+ * Main exports:
+ * - CONTENT_PARAMS      : Set các params chứa nội dung file nhiều dòng
+ * - extractParamValue() : Extract giá trị param từ XML tag
+ * - parseToolAction()   : Parse tool action (passthrough)
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { decodeHtmlEntities } from "./HtmlEntitiesDecoder";
 
+// ─── Constants ──────────────────────────────────────────────────────────
 /**
  * Params chứa nội dung file nhiều dòng — KHÔNG được trim để
  * newline đầu/cuối (là các dòng code có ý nghĩa) được bảo toàn

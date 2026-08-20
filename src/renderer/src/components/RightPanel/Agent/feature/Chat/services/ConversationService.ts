@@ -1,13 +1,37 @@
+/**
+ * ------------------------------------------------------------------
+ * Conversation Service
+ * ------------------------------------------------------------------
+ * Service xử lý lưu/đọc/xóa conversation trong chat.
+ * Chuyển đổi Message[] sang format của hệ thống mới và sync với backend.
+ *
+ * Main functions:
+ * - saveConversation()    : Lưu conversation hiện tại
+ * - deleteConversation()  : Xóa conversation theo ID
+ * - calculateTokens()     : Ước tính số tokens từ text
+ * - logChatToWorkspace()  : Log chat activity ra workspace
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import {
   ConversationService as NewConversationService,
   ConversationData as NewConversationData,
   generateMessageId,
 } from '../../../services/ConversationService';
 import { extensionService } from '../../../services/ExtensionService';
+
+// ── Types ──
 import { Message } from '../types/message';
+
+// ── Local ──
 import { ConversationCache } from './ConversationCache';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 /**
  * Convert Message[] from Chat to New System format
  */

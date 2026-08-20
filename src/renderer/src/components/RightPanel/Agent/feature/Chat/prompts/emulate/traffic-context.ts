@@ -36,7 +36,7 @@ export const buildTrafficContext = (data: TrafficSummary): string => {
     lines.push('Statuses: ' + data.statuses.map((s) => `${s.value}(${s.count})`).join(', '));
   }
 
-  // Types
+  // ── Types ──
   if (data.types.length > 0) {
     lines.push('Types: ' + data.types.map((t) => `${t.value}(${t.count})`).join(', '));
   }

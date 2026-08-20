@@ -1,13 +1,41 @@
 import React, { useRef, useEffect, useMemo } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * ChatBody
+ * ------------------------------------------------------------------
+ * Component chính hiển thị danh sách messages trong chat.
+ * Xử lý parsing, pagination, scroll behavior, và tool actions.
+ *
+ * Main features:
+ * - Parse AI response thành groups hiển thị
+ * - Phân trang messages với LoadMore
+ * - Auto-scroll khi có message mới
+ * - Xử lý tool actions (execute/approve/reject)
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
+
+// ── Types ──
 import { parseAIResponse, ParsedResponse, ToolAction } from '../../services/ResponseParser';
 import { Message } from '../../types/message';
+
+// ── Constants ──
 import { EXECUTION_STATUS, TOOL_ACTION_TYPES, TERMINAL_STATUS } from '../../constants/constants';
+
+// ── Hooks ──
 import { useCollapseSections } from '../../hooks/ui/useCollapseSections';
 import { useToolActions } from '../../hooks/tools/useToolActions';
 import { useScrollBehavior } from '../../hooks/ui/useScrollBehavior';
 import { useMessagePagination } from '../../hooks/ui/useMessagePagination';
+
+// ── Context ──
+import { useSettings } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
+
+// ── Components ──
 import ChatBodySkeleton from './ChatBodySkeleton';
 import { LoadMoreButton } from './LoadMoreButton';
 import ModelInfoBar from './ModelInfoBar';
@@ -16,8 +44,8 @@ import ContinuingIndicator from './ContinuingIndicatorBox';
 import ProcessingIndicator from './ProcessingIndicator';
 import UserMessageBox from './UserMessageBox';
 import AIMessageBox from './AIMessageBox';
-import { useSettings } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface ChatBodyProps {
   messages: Message[];
   isProcessing: boolean;

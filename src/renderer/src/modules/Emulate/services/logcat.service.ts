@@ -22,7 +22,7 @@
  * ------------------------------------------------------------------
  */
 
-// Types
+// ── Types ──
 import { LogEntry, LogLevel } from '../types/log.types';
 
 export interface LogcatOptions {

@@ -14,7 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 // Services

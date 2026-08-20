@@ -1,13 +1,13 @@
 import { Check, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
-// Types
+// ── Types ──
 import type { ParamItem, PayloadItem } from '../../../../../../types/repeater.types';
 
-// Hooks
+// ── Hooks ──
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 interface ParamTabProps {

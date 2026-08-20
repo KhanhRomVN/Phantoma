@@ -1,3 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * Tool Types
+ * ------------------------------------------------------------------
+ * Định nghĩa các type cho params và results của từng tool.
+ * Bao gồm code tools, emulate tools, và recon tools.
+ *
+ * Main types:
+ * - BaseToolParams      : Params chung cho các tool thao tác file
+ * - ReadFileParams      : Params cho read_file tool
+ * - WriteToFileParams   : Params cho write_to_file tool
+ * - RunCommandParams    : Params cho run_command tool
+ * - ListHttpsParams     : Params cho list_https tool
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ──────────────────────────────────────────────────────────────
 // ===== BASE PARAMS =====
 export interface BaseToolParams {
   file_path?: string;
@@ -211,11 +228,11 @@ export interface ListResourcesParams {
 }
 
 export interface GetSourceDetailParams {
-  index: number;
+  filepath: string;
 }
 
 export interface GetResourceContentParams {
-  index: number;
+  filename: string;
   start_line?: number;
   end_line?: number;
 }

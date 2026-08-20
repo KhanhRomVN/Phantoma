@@ -1,8 +1,19 @@
 /**
- * Trình phân tích git status dùng chung cho cả GitToolRenderer và ChatPanel (index.tsx).
+ * ------------------------------------------------------------------
+ * Git Utils
+ * ------------------------------------------------------------------
+ * Trình phân tích git status dùng chung cho GitToolRenderer và ChatPanel.
  * Phân tích đầu ra git status --porcelain thành mảng có cấu trúc.
+ *
+ * Main types:
+ * - GitStatusEntry : Cấu trúc một entry trong git status
+ *
+ * Main functions:
+ * - parseGitStatusOutput() : Parse git status --porcelain output
+ * ------------------------------------------------------------------
  */
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface GitStatusEntry {
   status: string;
   path: string;

@@ -1,24 +1,49 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * useToolExecution
+ * ------------------------------------------------------------------
+ * Hook thực thi tool actions với permission check và quản lý state.
+ * Xử lý execute, approve, reject, và auto-trigger cho mọi tool.
+ *
+ * Main features:
+ * - Thực thi tool với permission decision
+ * - Quản lý tool outputs và terminal status
+ * - Xử lý single-line review actions
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { Message } from '../../types/message';
 import { parseAIResponse } from '../../services/ResponseParser';
+import type { PermissionMode } from '../../types/tag-types';
+import type { ExecutorContext } from '../../types/executor-types';
+
+// ── Context ──
 import { useSettings } from '../../../../context/SettingsContext';
+
+// ── Utils ──
 export { getPermissionDecision } from '../../utils/permissionUtils';
 import { getPermissionDecision } from '../../utils/permissionUtils';
+import { logger } from '@renderer/utils/logger';
+
+// ── Constants ──
 import {
   getToolTimeout,
   TOOL_ACTION_TYPES,
   EXECUTION_STATUS,
   TERMINAL_STATUS,
 } from '../../constants/constants';
-import type { PermissionMode } from '../../types/tag-types';
+
+// ── Services ──
 import {
   extensionService,
   messageDispatcher,
 } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 import { getExecutor } from '../../services/tool-executors';
-import type { ExecutorContext } from '../../types/executor-types';
-import { logger } from '@renderer/utils/logger';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseToolExecutionProps {
   sendMessage: (
     content: string,

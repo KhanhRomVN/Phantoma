@@ -1,9 +1,9 @@
 import { Square, Send } from 'lucide-react';
 
-// Constants
+// ── Constants ──
 import { HTTP_METHODS, type HttpMethod } from '../../../../../constants/methods';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 interface RequestBarProps {

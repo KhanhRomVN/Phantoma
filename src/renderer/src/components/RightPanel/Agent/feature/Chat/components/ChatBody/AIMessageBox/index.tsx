@@ -1,7 +1,23 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * AIMessageBox
+ * ------------------------------------------------------------------
+ * Component hi���n thị message của AI trong chat.
+ * Parse content thành groups và render qua TagRouter.
+ *
+ * Main features:
+ * - Parse AI response thành content blocks
+ * - Hiển thị response metadata bar
+ * - Render tool groups qua TagRouter
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-// Constants
+// ── Constants ──
 import {
   EXECUTION_STATUS,
   TOOL_ACTION_TYPES,
@@ -9,15 +25,16 @@ import {
   type TerminalStatus,
 } from '../../../constants/constants';
 
-// Types
+// ── Types ──
 import { Message } from '../../../types/message';
 import { ParsedResponse } from '../../../services/ResponseParser';
 import { GroupType } from '../../../types/renderer-types';
 
-// Components
+// ── Components ──
 import TagRouter from './TagRouter';
 import ResponseMetadataBar from './ResponseMetadataBar';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface AIMessageBoxProps {
   message: Message;
   parsedContent: ParsedResponse;

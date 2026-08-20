@@ -14,9 +14,8 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { logger } from '@renderer/utils/logger';
 
-// Components
+// ── Components ──
 import HomePanel from './feature/Home';
 import ChatPanel from './feature/Chat';
 import AgentOverlay from './components/AgentOverlay';
@@ -25,10 +24,10 @@ import AgentOverlay from './components/AgentOverlay';
 import { ProjectProvider } from './context/ProjectContext';
 import { useAgentFeature } from './context/FeatureContext';
 
-// Types
+// ── Types ──
 import { ChatSession } from './feature/Chat/types/chat';
 
-// UtilsS (icons)
+// ── Utils ── (icons)
 import { MousePointer } from 'lucide-react';
 
 // ─── AgentView (keep-alive unit) ───────────────────────────────────────────

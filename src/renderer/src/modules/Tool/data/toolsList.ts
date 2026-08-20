@@ -1,7 +1,6 @@
 import { SecurityTool } from '../types';
 import NmapTool from '../components/Tools/Nmap';
 import AmassTool from '../components/Tools/Amass';
-import AlienvaultTool from '../components/Tools/Alienvault';
 
 export const TOOLS_LIST: SecurityTool[] = [
   {
@@ -31,19 +30,5 @@ export const TOOLS_LIST: SecurityTool[] = [
     apiEndpoint: '/api/v1/amass/scan',
     method: 'POST',
     websiteUrl: 'https://github.com/owasp-amass/amass',
-  },
-  {
-    id: 'alienvault',
-    name: 'AlienVault',
-    shortName: 'OTX',
-    description:
-      'Threat intelligence platform — tra cứu IP/domain/hash, indicators of compromise, malware C2 detection.',
-    shortDescription: 'Threat intelligence, tra cứu IOC & malware C2',
-    category: 'OSINT',
-    tags: ['threat-intel', 'ioc', 'malware', 'c2'],
-    component: AlienvaultTool,
-    apiEndpoint: '/api/v1/alienvault/scan',
-    method: 'POST',
-    websiteUrl: 'https://otx.alienvault.com',
   },
 ];

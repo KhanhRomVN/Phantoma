@@ -1,10 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 
-// Types
+// ── Types ──
 import { NetworkRequest } from '../Home/Filter';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 interface RequestListProps {

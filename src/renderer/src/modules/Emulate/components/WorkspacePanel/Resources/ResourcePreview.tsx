@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { logger } from '@renderer/utils/logger';
 import { Download, Cpu, FolderOpen, File } from 'lucide-react';
 
-// Components
+// ── Components ──
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
-// Types
+// ── Types ──
 import { ResourceItem } from '../../../../types/resource.types';
 
 // Simple hex viewer for binary files like WASM

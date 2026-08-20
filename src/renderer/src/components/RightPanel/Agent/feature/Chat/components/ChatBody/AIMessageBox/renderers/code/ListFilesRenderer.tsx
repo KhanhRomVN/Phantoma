@@ -1,16 +1,16 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// Constants
+// ── Constants ──
 import { getToolLabel } from '../../../../../constants/constants';
 
 // Services
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
-// UtilsS
+// ── Utils ──
 import { getNextUserMessage, buildTreeFromPaths } from '../../../../../utils/renderer-utils';
 
-// Components
+// ── Components ──
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
 import FileIcon from '@renderer/components/common/FileIcon';

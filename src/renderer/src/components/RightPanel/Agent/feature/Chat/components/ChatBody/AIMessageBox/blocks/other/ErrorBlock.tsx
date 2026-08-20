@@ -1,6 +1,23 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * ErrorBlock
+ * ------------------------------------------------------------------
+ * Block hiển thị lỗi trong chat.
+ * Parse error messages để hiển thị thân thiện hơn.
+ *
+ * Main features:
+ * - Parse ENOENT và common error patterns
+ * - Hiển thị error code nếu có
+ * - Collapsible cho long error messages
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ErrorBlockProps {
   content: string;
   errorCode?: string;

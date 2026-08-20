@@ -2,10 +2,10 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { logger } from '@renderer/utils/logger';
 import { Bug } from 'lucide-react';
 
-// Types
+// ── Types ──
 import type { BaseModalProps } from './index';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 type WebsiteBodyProps = Pick<

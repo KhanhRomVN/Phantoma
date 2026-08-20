@@ -14,7 +14,7 @@
  * ------------------------------------------------------------------
  */
 
-// Types
+// ── Types ──
 import { FuzzerJob } from '../types/repeater.types';
 
 export function* generatePayloads(job: FuzzerJob): Generator<string> {

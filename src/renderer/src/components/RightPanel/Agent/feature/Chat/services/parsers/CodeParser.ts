@@ -1,5 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * Code Parser
+ * ------------------------------------------------------------------
+ * Parse XML tags từ AI response cho các code tools.
+ * Mỗi tool có một parse function riêng để extract params.
+ *
+ * Main functions:
+ * - parseCommitMessage()      : Parse commit_message tag
+ * - parseDeleteFile()         : Parse delete_file tag
+ * - parseFindFiles()          : Parse find_files tag
+ * - parseGrep()               : Parse grep tag
+ * - parseReadFile()           : Parse read_file tag
+ * - parseReplaceInFile()      : Parse replace_in_file tag
+ * - parseRunCommand()         : Parse run_command tag
+ * - parseWriteToFile()        : Parse write_to_file tag
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { extractParamValue } from '../../utils/ToolParser';
 import { logger } from '@renderer/utils/logger';
+
+// ── Types ──
 import {
   CommitMessageParams,
   GitDiffParams,
@@ -7,6 +30,7 @@ import {
   RunCommandParams,
 } from '../../types/tool-types';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 // ===== CommitMessageParser =====
 
 /**

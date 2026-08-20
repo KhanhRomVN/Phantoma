@@ -2,7 +2,7 @@ import React from 'react';
 import { useMemo } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// Components
+// ── Components ──
 import { RequestTable, RequestDetails } from './Home';
 import { ResourcesPanel } from './Resources';
 import { PayloadPanel } from './Repeater';
@@ -10,13 +10,13 @@ import { SourcesPanel } from './Source';
 import { LogViewer } from './Log';
 import { DevicePanel } from './Device';
 
-// Types
+// ── Types ──
 import { NetworkRequest } from '../../types/inspector';
 
-// Constants
+// ── Constants ──
 import { ToolType, TOOLS } from '../../constants/tools';
 
-// hooks
+// ── Hooks ──
 import { CdpScriptUnpackedData } from '../../hooks/network/useNetworkEvents';
 
 interface WorkspacePanelProps {

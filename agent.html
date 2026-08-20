@@ -1,0 +1,1727 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Phantoma — Agent Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════
+   TOKENS
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --void:#07090d;
+  --bg:#0b0e13;
+  --panel:#0d1016;
+  --elevated:#11151c;
+  --card:#10131a;
+  --card-hover:#161b24;
+  --card-active:#141922;
+  --input:#0a0d12;
+  --border:rgba(150,166,199,.09);
+  --border-strong:rgba(150,166,199,.18);
+  --border-accent:rgba(58,140,255,.35);
+  --divider:rgba(150,166,199,.07);
+
+  --text-1:#dbe4f3;
+  --text-2:#8592ac;
+  --text-3:#4d5771;
+
+  --accent:#3a8cff;
+  --accent-2:#6ea8ff;
+  --accent-soft:rgba(58,140,255,.12);
+  --accent-glow:rgba(58,140,255,.28);
+
+  --success:#33d69f;
+  --success-soft:rgba(51,214,159,.12);
+  --warn:#f5a623;
+  --warn-soft:rgba(245,166,35,.12);
+  --error:#f75a6a;
+  --error-soft:rgba(247,90,106,.12);
+  --purple:#a875ff;
+  --purple-soft:rgba(168,117,255,.12);
+  --teal:#20d4d4;
+  --teal-soft:rgba(32,212,212,.12);
+  --pink:#ff6fa8;
+  --pink-soft:rgba(255,111,168,.12);
+
+  --radius-sm:6px;
+  --radius:10px;
+  --radius-lg:14px;
+  --radius-xl:18px;
+
+  --mono:'JetBrains Mono', ui-monospace, monospace;
+  --sans:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --ease: cubic-bezier(.4,0,.2,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--sans);
+  background:radial-gradient(ellipse 1200px 800px at 50% -10%, #0f1420 0%, var(--void) 60%);
+  color:var(--text-1);
+  display:flex;justify-content:center;align-items:flex-start;
+  min-height:100vh;padding:28px 0;font-size:13px;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;background:none;border:none;color:inherit;}
+input,select,textarea{font-family:inherit;}
+::selection{background:var(--accent-glow);}
+
+/* Focus visibility */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
+
+.mono{font-family:var(--mono);}
+.tabular{font-variant-numeric:tabular-nums;}
+
+/* scrollbar */
+.scroll::-webkit-scrollbar{width:6px;height:6px;}
+.scroll::-webkit-scrollbar-track{background:transparent;}
+.scroll::-webkit-scrollbar-thumb{background:rgba(150,166,199,.16);border-radius:10px;}
+.scroll::-webkit-scrollbar-thumb:hover{background:rgba(150,166,199,.28);}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes pulseRing{0%{transform:scale(.9);opacity:.6}100%{transform:scale(1.9);opacity:0}}
+
+/* ══════════════════════════════════════════════════════════════
+   SHELL
+   ══════════════════════════════════════════════════════════════ */
+.shell{
+  width:472px;height:860px;
+  background:var(--panel);
+  border:1px solid var(--border-strong);
+  border-radius:16px;
+  display:flex;flex-direction:column;overflow:hidden;position:relative;
+  box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 30px 80px -20px rgba(0,0,0,.7), 0 0 120px -60px var(--accent-glow);
+}
+
+/* ── Top status strip (signature element) ── */
+.pulse-strip{
+  height:26px;flex-shrink:0;display:flex;align-items:center;gap:8px;
+  padding:0 14px;background:linear-gradient(180deg, rgba(58,140,255,.06), transparent);
+  border-bottom:1px solid var(--divider);
+}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--success);position:relative;flex-shrink:0;}
+.pulse-dot::after{content:'';position:absolute;inset:0;border-radius:50%;background:var(--success);animation:pulseRing 1.8s ease-out infinite;}
+.pulse-label{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.06em;color:var(--text-2);text-transform:uppercase;}
+.pulse-wave{flex:1;height:14px;overflow:hidden;}
+.pulse-session{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--text-3);letter-spacing:.03em;}
+
+/* ── Header bar ── */
+.header-bar{
+  height:48px;flex-shrink:0;display:flex;align-items:center;gap:6px;
+  padding:0 10px;border-bottom:1px solid var(--divider);
+  background:var(--bg);
+}
+.mode-switch{
+  display:flex;align-items:center;gap:2px;padding:3px;
+  background:var(--input);border:1px solid var(--border);border-radius:9px;
+}
+.mode-btn{
+  display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;
+  font-size:11.5px;font-weight:600;color:var(--text-2);transition:all .18s var(--ease);
+  letter-spacing:.01em;
+}
+.mode-btn svg{width:13px;height:13px;}
+.mode-btn:hover{color:var(--text-1);}
+.mode-btn.active{background:var(--accent-soft);color:var(--accent-2);box-shadow:inset 0 0 0 1px var(--border-accent);}
+
+.header-tabs{margin-left:auto;display:flex;align-items:center;gap:2px;}
+.tab-icon-btn{
+  position:relative;width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;color:var(--text-2);
+  transition:all .16s var(--ease);
+}
+.tab-icon-btn svg{width:16px;height:16px;}
+.tab-icon-btn:hover{background:var(--card-hover);color:var(--text-1);}
+.tab-icon-btn.active{background:var(--accent-soft);color:var(--accent-2);}
+.tab-icon-btn .dot{
+  position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;
+  background:var(--error);border:1.5px solid var(--bg);
+}
+.tab-divider{width:1px;height:20px;background:var(--divider);margin:0 4px;}
+
+/* ══════════════════════════════════════════════════════════════
+   CONTENT AREA
+   ══════════════════════════════════════════════════════════════ */
+.content-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;}
+
+.view{position:absolute;inset:0;display:none;flex-direction:column;background:var(--panel);}
+.view.active{display:flex;animation:fadeIn .2s var(--ease);}
+
+/* ── generic scroll body ── */
+.view-scroll{flex:1;min-height:0;overflow-y:auto;}
+.view-inner{padding:18px 16px 20px;}
+
+/* ── Section heading ── */
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;margin-top:22px;}
+.section-head:first-child{margin-top:0;}
+.section-eyebrow{
+  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--text-3);display:flex;align-items:center;gap:6px;
+}
+.section-eyebrow .bar{width:10px;height:2px;background:var(--accent);border-radius:2px;}
+.section-action{font-size:11px;color:var(--accent-2);font-weight:600;display:flex;align-items:center;gap:3px;}
+.section-action:hover{color:var(--text-1);}
+
+/* ══════════════════════════════════════════════════════════════
+   HOME VIEW
+   ══════════════════════════════════════════════════════════════ */
+.home-hero{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:22px 10px 6px;
+}
+.home-mark{
+  width:46px;height:46px;border-radius:13px;margin-bottom:12px;
+  background:linear-gradient(140deg, var(--accent) 0%, #7c3fe0 100%);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 24px -8px var(--accent-glow);
+  position:relative;
+}
+.home-mark svg{width:22px;height:22px;color:#fff;}
+.home-title{font-family:var(--mono);font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--text-1);}
+.home-slogan-wrap{height:20px;overflow:hidden;margin-top:5px;margin-bottom:4px;}
+.home-slogan{font-size:12px;color:var(--text-2);font-weight:500;animation:slideUp .4s var(--ease);}
+
+/* quick actions */
+.quick-actions{display:flex;gap:8px;width:100%;margin-top:16px;}
+.quick-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:12px 8px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--card);transition:all .16s var(--ease);
+}
+.quick-btn:hover{border-color:var(--border-accent);background:var(--card-hover);transform:translateY(-1px);}
+.quick-btn svg{width:17px;height:17px;color:var(--accent-2);}
+.quick-btn span{font-size:10.5px;font-weight:600;color:var(--text-2);}
+
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.kpi-card{
+  padding:10px 8px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--card);transition:border-color .16s;
+}
+.kpi-card:hover{border-color:var(--border-strong);}
+.kpi-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;}
+.kpi-icon svg{width:12px;height:12px;}
+.kpi-value{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--text-1);line-height:1.1;}
+.kpi-label{font-size:9px;color:var(--text-3);margin-top:3px;font-weight:600;letter-spacing:.02em;}
+.kpi-delta{font-size:9px;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:2px;}
+.kpi-delta.up{color:var(--success);}
+.kpi-delta.down{color:var(--error);}
+
+/* card shell reused */
+.panel-card{
+  border-radius:var(--radius-lg);padding:14px;border:1px solid var(--border);
+  background:var(--card);transition:border-color .18s;
+}
+.panel-card:hover{border-color:var(--border-strong);}
+.card-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.card-title{font-size:11.5px;font-weight:700;color:var(--text-1);display:flex;align-items:center;gap:6px;}
+.card-title svg{width:13px;height:13px;color:var(--accent-2);}
+.segmented{display:flex;background:var(--input);border:1px solid var(--border);border-radius:7px;padding:2px;}
+.segmented button{font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:5px;color:var(--text-3);transition:all .15s;}
+.segmented button.active{background:var(--accent-soft);color:var(--accent-2);}
+
+/* donut + list */
+.donut-row{display:flex;gap:16px;align-items:center;}
+.donut-list{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0;}
+.donut-line{display:flex;align-items:center;gap:7px;}
+.donut-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.donut-name{font-size:11px;font-weight:600;color:var(--text-1);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.donut-bar-track{width:56px;height:4px;border-radius:3px;background:var(--input);overflow:hidden;flex-shrink:0;}
+.donut-bar-fill{height:100%;border-radius:3px;}
+.donut-pct{font-family:var(--mono);font-size:10px;color:var(--text-2);width:30px;text-align:right;flex-shrink:0;}
+
+/* activity */
+.activity-row{
+  display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:8px;
+  transition:background .15s;cursor:pointer;
+}
+.activity-row:hover{background:var(--card-hover);}
+.activity-row + .activity-row{border-top:1px solid var(--divider);}
+.activity-icon{
+  width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.activity-icon svg{width:13px;height:13px;}
+.activity-body{flex:1;min-width:0;}
+.activity-title{font-size:12px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.activity-meta{font-size:9.5px;color:var(--text-3);margin-top:1px;font-family:var(--mono);}
+.activity-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;}
+.token-pill{
+  display:flex;align-items:center;gap:3px;padding:2px 6px;border-radius:5px;
+  font-family:var(--mono);font-size:9.5px;font-weight:700;
+}
+.status-pill{font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:4px;letter-spacing:.03em;}
+
+/* tool usage bars */
+.tool-usage-row{display:flex;align-items:center;gap:10px;padding:6px 0;}
+.tool-usage-name{width:96px;flex-shrink:0;font-size:11px;font-weight:600;color:var(--text-2);font-family:var(--mono);}
+.tool-usage-track{flex:1;height:6px;border-radius:4px;background:var(--input);overflow:hidden;}
+.tool-usage-fill{height:100%;border-radius:4px;background:linear-gradient(90deg, var(--accent), var(--accent-2));}
+.tool-usage-count{width:34px;text-align:right;flex-shrink:0;font-family:var(--mono);font-size:10.5px;color:var(--text-2);}
+
+/* ── Composer ── */
+.composer-zone{flex-shrink:0;padding:10px 14px 14px;background:linear-gradient(0deg, var(--bg) 60%, transparent);border-top:1px solid var(--divider);}
+.context-chip-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+.context-chip{
+  display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:7px;
+  background:var(--card);border:1px solid var(--border);font-size:10.5px;font-weight:600;color:var(--text-2);
+}
+.context-chip svg{width:11px;height:11px;color:var(--accent-2);}
+.context-chip .x{color:var(--text-3);margin-left:2px;}
+.context-chip .x:hover{color:var(--error);}
+
+.composer{position:relative;}
+.composer-top{
+  position:absolute;left:10px;bottom:100%;z-index:5;display:flex;align-items:center;gap:8px;
+  padding:5px 10px;font-size:10.5px;font-weight:700;border:1px solid var(--border);border-bottom:none;
+  border-radius:8px 8px 0 0;background:var(--input);color:var(--text-1);margin-bottom:-1px;
+}
+.model-dot{width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0;}
+.composer-top .email{color:var(--text-3);font-weight:500;font-style:italic;}
+.composer-top .chev{width:10px;height:10px;color:var(--text-3);}
+.lang-badge{
+  position:absolute;top:8px;right:8px;z-index:3;display:flex;align-items:center;gap:4px;
+  padding:3px 7px;border-radius:6px;font-size:9.5px;font-weight:700;background:var(--card);
+  border:1px solid var(--border);color:var(--text-2);
+}
+.ta-wrap{padding:12px;background:var(--input);border:1px solid var(--border);border-radius:10px 10px 0 0;}
+.ta{
+  width:100%;min-height:22px;max-height:160px;border:none;outline:none;resize:none;
+  background:transparent;color:var(--text-1);font-size:12.5px;line-height:1.5;font-family:var(--sans);
+}
+.ta::placeholder{color:var(--text-3);}
+.composer-actions{
+  display:flex;justify-content:space-between;align-items:center;padding:7px 9px;
+  background:var(--input);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;
+}
+.left-buttons{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+.tbtn{
+  display:flex;align-items:center;gap:4px;padding:5px 8px;height:24px;border-radius:6px;
+  font-size:10.5px;font-weight:700;letter-spacing:.02em;background:rgba(150,166,199,.07);
+  color:var(--text-2);transition:all .16s;border:1px solid transparent;
+}
+.tbtn svg{width:12px;height:12px;}
+.tbtn:hover{background:rgba(150,166,199,.13);color:var(--text-1);}
+.tbtn.on.thinking{color:var(--purple);background:var(--purple-soft);border-color:rgba(168,117,255,.3);}
+.tbtn.on.search{color:var(--accent-2);background:var(--accent-soft);border-color:var(--border-accent);}
+.perm-btn{
+  display:flex;align-items:center;gap:4px;padding:5px 8px;height:24px;border-radius:6px;
+  font-size:10.5px;font-weight:700;border:1px solid rgba(245,166,35,.28);background:var(--warn-soft);color:var(--warn);
+}
+.perm-btn svg{width:11px;height:11px;}
+.icon-sq{
+  width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:rgba(150,166,199,.07);
+  color:var(--text-2);display:flex;align-items:center;justify-content:center;transition:all .16s;
+}
+.icon-sq svg{width:12px;height:12px;}
+.icon-sq:hover{background:rgba(150,166,199,.13);color:var(--text-1);}
+.send-btn{
+  width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);transition:all .18s;
+}
+.send-btn svg{width:14px;height:14px;}
+.send-btn.active{background:linear-gradient(135deg, var(--accent), #7c3fe0);color:#fff;box-shadow:0 4px 14px -4px var(--accent-glow);}
+
+/* ══════════════════════════════════════════════════════════════
+   SHARED: sub-view header + search + list rows
+   ══════════════════════════════════════════════════════════════ */
+.sub-header{
+  padding:14px 16px;border-bottom:1px solid var(--divider);flex-shrink:0;
+  display:flex;align-items:flex-start;gap:12px;
+}
+.sub-header-icon{
+  width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.sub-header-icon svg{width:16px;height:16px;}
+.sub-header-info{flex:1;min-width:0;}
+.sub-header-title{font-size:15.5px;font-weight:800;color:var(--text-1);letter-spacing:-.01em;}
+.sub-header-desc{font-size:11px;color:var(--text-2);margin-top:2px;}
+.sub-close{
+  width:28px;height:28px;border-radius:8px;border:1px solid var(--border);color:var(--text-2);
+  display:flex;align-items:center;justify-content:center;transition:all .16s;flex-shrink:0;
+}
+.sub-close svg{width:13px;height:13px;}
+.sub-close:hover{border-color:rgba(247,90,106,.4);color:var(--error);background:var(--error-soft);}
+
+.toolbar{display:flex;gap:8px;align-items:center;padding:10px 16px;flex-shrink:0;border-bottom:1px solid var(--divider);}
+.search-wrap{position:relative;flex:1;}
+.search-input{
+  width:100%;height:32px;padding:0 10px 0 30px;font-size:12px;border-radius:8px;outline:none;
+  background:var(--input);border:1px solid var(--border);color:var(--text-1);
+}
+.search-input::placeholder{color:var(--text-3);}
+.search-input:focus{border-color:var(--border-accent);}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-3);}
+.btn{
+  display:inline-flex;align-items:center;gap:5px;padding:0 10px;height:32px;font-size:11px;font-weight:700;
+  border-radius:8px;border:1px solid transparent;transition:all .16s;white-space:nowrap;
+}
+.btn-solid{background:var(--accent);color:#fff;}
+.btn-solid:hover{background:var(--accent-2);}
+.btn-outline{background:transparent;border-color:var(--border);color:var(--text-1);}
+.btn-outline:hover{background:var(--card-hover);border-color:var(--border-strong);}
+.btn-warn{border-color:rgba(245,166,35,.3);color:var(--warn);background:var(--warn-soft);}
+.btn-icon{width:32px;padding:0;justify-content:center;}
+.filter-select{
+  height:32px;background:var(--input);border:1px solid var(--border);border-radius:8px;padding:0 8px;
+  font-size:11px;color:var(--text-1);outline:none;
+}
+
+.chip-filter-row{display:flex;gap:6px;padding:0 16px 10px;flex-wrap:wrap;border-bottom:1px solid var(--divider);}
+.chip-filter{
+  padding:5px 10px;border-radius:20px;font-size:10.5px;font-weight:700;border:1px solid var(--border);
+  color:var(--text-2);transition:all .15s;
+}
+.chip-filter.active{background:var(--accent-soft);color:var(--accent-2);border-color:var(--border-accent);}
+.chip-filter:hover:not(.active){background:var(--card-hover);}
+
+/* ══════════════════════════════════════════════════════════════
+   MODEL VIEW
+   ══════════════════════════════════════════════════════════════ */
+.provider-card{border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--card);margin-bottom:12px;overflow:hidden;}
+.provider-head{
+  display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--divider);background:var(--elevated);
+}
+.provider-logo{width:22px;height:22px;border-radius:6px;flex-shrink:0;}
+.provider-name{font-size:12.5px;font-weight:700;color:var(--text-1);}
+.provider-meta{font-size:9.5px;color:var(--text-3);font-family:var(--mono);margin-top:1px;}
+.switch{
+  width:32px;height:18px;border-radius:20px;background:var(--input);border:1px solid var(--border);
+  position:relative;flex-shrink:0;transition:all .2s;margin-left:auto;
+}
+.switch::after{content:'';position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;background:var(--text-3);transition:all .2s;}
+.switch.on{background:var(--success-soft);border-color:rgba(51,214,159,.4);}
+.switch.on::after{left:15px;background:var(--success);}
+
+.model-list{padding:9px;}
+.model-item{
+  padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--panel);
+  margin-bottom:6px;transition:all .16s;cursor:pointer;
+}
+.model-item:last-child{margin-bottom:0;}
+.model-item:hover{border-color:var(--border-strong);}
+.model-item.active{background:var(--accent-soft);border-color:var(--border-accent);}
+.model-item-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.model-item-name{font-size:12px;font-weight:700;color:var(--text-1);display:flex;align-items:center;gap:6px;}
+.model-star{width:13px;height:13px;color:var(--text-3);flex-shrink:0;}
+.model-star.filled{color:var(--warn);}
+.active-check{display:flex;align-items:center;gap:3px;font-size:9.5px;font-weight:800;color:var(--success);}
+.active-check svg{width:11px;height:11px;}
+.model-item-desc{font-size:10.5px;color:var(--text-2);margin-top:4px;line-height:1.4;}
+.model-tags{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.model-tag{font-size:8.5px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(150,166,199,.09);color:var(--text-2);letter-spacing:.02em;}
+.model-stats-row{display:flex;gap:14px;margin-top:8px;padding-top:8px;border-top:1px solid var(--divider);}
+.model-stat{display:flex;flex-direction:column;gap:1px;}
+.model-stat-label{font-size:8px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.model-stat-value{font-size:11px;color:var(--text-1);font-weight:700;font-family:var(--mono);}
+.bench-track{width:100%;height:3px;border-radius:2px;background:var(--input);margin-top:8px;overflow:hidden;}
+.bench-fill{height:100%;border-radius:2px;background:linear-gradient(90deg, var(--teal), var(--accent));}
+
+.add-endpoint-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:var(--radius-lg);
+  border:1.5px dashed var(--border-strong);color:var(--text-2);font-size:11.5px;font-weight:700;
+  transition:all .16s;margin-top:4px;
+}
+.add-endpoint-btn:hover{border-color:var(--accent);color:var(--accent-2);background:var(--accent-soft);}
+.add-endpoint-btn svg{width:14px;height:14px;}
+
+/* ══════════════════════════════════════════════════════════════
+   ACCOUNT VIEW
+   ══════════════════════════════════════════════════════════════ */
+.account-card{border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--card);margin-bottom:10px;overflow:hidden;transition:border-color .16s;}
+.account-card:hover{border-color:var(--border-strong);}
+.account-main{display:flex;align-items:center;gap:11px;padding:12px 13px;}
+.account-ring-wrap{position:relative;width:40px;height:40px;flex-shrink:0;}
+.account-provider-icon{
+  position:absolute;inset:0;margin:auto;width:22px;height:22px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(150,166,199,.08);
+}
+.account-provider-icon img{width:14px;height:14px;object-fit:contain;}
+.account-info{flex:1;min-width:0;}
+.account-name-row{display:flex;align-items:center;gap:6px;}
+.account-provider{font-size:12px;font-weight:700;color:var(--text-1);}
+.account-email{font-size:10.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);}
+.account-stats-row{display:flex;gap:9px;margin-top:4px;flex-wrap:wrap;}
+.account-stat-chip{font-size:9px;color:var(--text-3);font-family:var(--mono);}
+.account-stat-chip.good{color:var(--success);}
+.account-badge{
+  display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:7px;font-size:9.5px;font-weight:700;flex-shrink:0;
+}
+.account-badge.active{background:var(--success-soft);border:1px solid rgba(51,214,159,.3);color:var(--success);}
+.account-badge.active svg{width:10px;height:10px;}
+.account-expand{border-top:1px solid var(--divider);padding:11px 13px;background:var(--elevated);display:none;}
+.account-expand.open{display:block;animation:fadeIn .15s;}
+.key-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.key-field{
+  flex:1;font-family:var(--mono);font-size:10.5px;color:var(--text-2);background:var(--input);
+  border:1px solid var(--border);border-radius:6px;padding:6px 9px;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.mini-icon-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);color:var(--text-2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .16s;}
+.mini-icon-btn:hover{background:var(--card-hover);color:var(--text-1);}
+.mini-icon-btn svg{width:12px;height:12px;}
+.quota-bar-track{width:100%;height:6px;border-radius:4px;background:var(--input);overflow:hidden;margin-top:5px;}
+.quota-bar-fill{height:100%;border-radius:4px;}
+.expand-footer-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;}
+.toggle-row-label{font-size:11px;font-weight:600;color:var(--text-1);}
+.toggle-row-desc{font-size:9.5px;color:var(--text-3);margin-top:2px;}
+
+/* ══════════════════════════════════════════════════════════════
+   HISTORY VIEW
+   ══════════════════════════════════════════════════════════════ */
+.date-group-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);
+  padding:12px 4px 6px;
+}
+.history-row{
+  display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:9px;transition:background .15s;cursor:pointer;
+}
+.history-row:hover{background:var(--card-hover);}
+.history-check{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--border-strong);flex-shrink:0;}
+.history-icon{width:28px;height:28px;border-radius:8px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.history-icon svg{width:13px;height:13px;color:var(--accent-2);}
+.history-body{flex:1;min-width:0;}
+.history-title{font-size:12px;font-weight:600;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.history-preview{font-size:10px;color:var(--text-3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.history-meta-col{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;}
+.history-time{font-size:9.5px;color:var(--text-3);font-family:var(--mono);}
+.history-model-tag{font-size:8.5px;font-weight:700;color:var(--text-2);background:rgba(150,166,199,.09);padding:1px 6px;border-radius:4px;}
+
+/* ══════════════════════════════════════════════════════════════
+   SETTING VIEW
+   ══════════════════════════════════════════════════════════════ */
+.settings-nav{display:flex;gap:4px;padding:10px 16px;border-bottom:1px solid var(--divider);overflow-x:auto;flex-shrink:0;}
+.settings-nav::-webkit-scrollbar{display:none;}
+.settings-nav-btn{
+  padding:6px 11px;border-radius:7px;font-size:11px;font-weight:700;color:var(--text-2);white-space:nowrap;transition:all .15s;
+}
+.settings-nav-btn.active{background:var(--accent-soft);color:var(--accent-2);}
+.settings-nav-btn:hover:not(.active){background:var(--card-hover);}
+
+.settings-group{margin-bottom:22px;}
+.settings-group-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px;}
+.settings-card{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);overflow:hidden;}
+.settings-row{padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.settings-row + .settings-row{border-top:1px solid var(--divider);}
+.settings-row-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(150,166,199,.08);color:var(--text-2);}
+.settings-row-icon svg{width:14px;height:14px;}
+.settings-row-body{flex:1;min-width:0;}
+.settings-row-label{font-size:12px;font-weight:600;color:var(--text-1);}
+.settings-row-desc{font-size:10px;color:var(--text-3);margin-top:1px;}
+.settings-row-control{flex-shrink:0;}
+.settings-input-field{
+  width:100%;padding:9px 11px;border-radius:8px;font-size:12px;outline:none;background:var(--input);
+  border:1px solid var(--border);color:var(--text-1);font-family:var(--mono);
+}
+.settings-input-field:focus{border-color:var(--border-accent);}
+.pill-select{
+  display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;background:var(--input);
+  border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text-1);
+}
+.pill-select svg{width:10px;height:10px;color:var(--text-3);}
+.slider-row{padding:12px 14px;}
+.slider-track{width:100%;height:4px;border-radius:3px;background:var(--input);margin-top:10px;position:relative;}
+.slider-fill{height:100%;border-radius:3px;background:linear-gradient(90deg, var(--accent), var(--accent-2));}
+.slider-thumb{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;background:var(--accent-2);border:2px solid var(--panel);transform:translate(-50%,-50%);box-shadow:0 0 0 3px var(--accent-soft);}
+.accent-swatch-row{display:flex;gap:8px;padding:12px 14px;}
+.accent-swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;position:relative;transition:all .15s;}
+.accent-swatch.selected{border-color:var(--text-1);}
+.accent-swatch.selected::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--border-strong);}
+.danger-row .settings-row-icon{background:var(--error-soft);color:var(--error);}
+
+/* ══════════════════════════════════════════════════════════════
+   ANALYTIC VIEW
+   ══════════════════════════════════════════════════════════════ */
+.analytic-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.analytic-kpi-card{padding:13px;border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--card);}
+.analytic-kpi-head{display:flex;align-items:center;gap:7px;color:var(--text-2);margin-bottom:8px;}
+.analytic-kpi-head svg{width:13px;height:13px;}
+.analytic-kpi-head span{font-size:10.5px;font-weight:700;}
+.analytic-kpi-value{font-family:var(--mono);font-size:21px;font-weight:800;color:var(--text-1);}
+.analytic-kpi-delta{font-size:9.5px;font-weight:700;margin-top:4px;}
+.analytic-kpi-delta.up{color:var(--success);}
+.analytic-kpi-delta.down{color:var(--error);}
+
+.cost-breakdown-row{display:flex;align-items:center;gap:10px;padding:8px 0;}
+.cost-model-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.cost-model-name{font-size:11px;font-weight:600;color:var(--text-1);width:130px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cost-track{flex:1;height:7px;border-radius:4px;background:var(--input);overflow:hidden;}
+.cost-fill{height:100%;border-radius:4px;}
+.cost-value{width:52px;text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--text-2);flex-shrink:0;}
+
+.analytic-table{width:100%;border-collapse:collapse;}
+.analytic-table th{
+  text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--text-3);padding:0 8px 8px;border-bottom:1px solid var(--divider);
+}
+.analytic-table td{padding:8px;font-size:11px;color:var(--text-1);border-bottom:1px solid var(--divider);}
+.analytic-table tr:last-child td{border-bottom:none;}
+.analytic-table td.mono-cell{font-family:var(--mono);color:var(--text-2);}
+
+/* Tooltip badge for view labels used across cards */
+.badge-outline{font-size:8.5px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid var(--border);color:var(--text-2);}
+
+/* Empty micro footer note */
+.foot-note{font-size:9.5px;color:var(--text-3);text-align:center;padding:14px 0 4px;}
+
+/* Responsive tiny safeguard (kept single-width mockup but avoids overflow issues) */
+@media (max-width:500px){
+  body{padding:0;}
+  .shell{width:100%;height:100vh;border-radius:0;}
+}
+</style>
+</head>
+<body>
+
+<div class="shell" id="shell">
+
+  <!-- ── Signature pulse strip ── -->
+  <div class="pulse-strip">
+    <div class="pulse-dot"></div>
+    <span class="pulse-label">Agent online</span>
+    <svg class="pulse-wave" viewBox="0 0 300 14" preserveAspectRatio="none">
+      <polyline id="pulseLine" points="0,7 20,7 26,2 32,12 38,7 60,7 66,4 72,10 78,7 300,7"
+        fill="none" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+    </svg>
+    <span class="pulse-session mono">SID · 7f2a9c</span>
+  </div>
+
+  <!-- ── Header ── -->
+  <div class="header-bar">
+    <div class="mode-switch">
+      <button class="mode-btn active" data-mode="agent" onclick="switchMode('agent')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3H4a3 3 0 0 0-2 5.2V17a4 4 0 0 0 2 7h.2a4 4 0 0 0 6.8 0h.2a4 4 0 0 0 2-7v-.2A3 3 0 0 0 15 15h-2a3 3 0 0 0-3-3V9a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3z"/></svg>
+        Agent
+      </button>
+      <button class="mode-btn" data-mode="terminal" onclick="switchMode('terminal')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Terminal
+      </button>
+    </div>
+
+    <div class="header-tabs" id="headerTabs">
+      <button class="tab-icon-btn" data-view="account" onclick="showView('account')" title="Account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+      <button class="tab-icon-btn" data-view="model" onclick="showView('model')" title="Model">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></svg>
+      </button>
+      <button class="tab-icon-btn" data-view="history" onclick="showView('history')" title="History">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </button>
+      <button class="tab-icon-btn" data-view="analytic" onclick="showView('analytic')" title="Analytics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+      </button>
+      <div class="tab-divider"></div>
+      <button class="tab-icon-btn" data-view="setting" onclick="showView('setting')" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Content ── -->
+  <div class="content-area">
+
+    <!-- ═══════════ HOME VIEW ═══════════ -->
+    <div class="view active" id="view-home" style="flex-direction:column;">
+      <div class="view-scroll scroll">
+        <div class="view-inner">
+
+          <div class="home-hero">
+            <div class="home-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3H4a3 3 0 0 0-2 5.2V17a4 4 0 0 0 2 7h.2a4 4 0 0 0 6.8 0h.2a4 4 0 0 0 2-7v-.2A3 3 0 0 0 15 15h-2a3 3 0 0 0-3-3V9a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3z"/></svg>
+            </div>
+            <h1 class="home-title">PHANTOMA</h1>
+            <div class="home-slogan-wrap"><div class="home-slogan" id="slogan">Your AI-powered coding assistant</div></div>
+
+            <div class="quick-actions">
+              <button class="quick-btn" onclick="focusComposer()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
+                <span>New Chat</span>
+              </button>
+              <button class="quick-btn" onclick="showView('history')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                <span>Continue</span>
+              </button>
+              <button class="quick-btn" onclick="showView('model')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/></svg>
+                <span>Templates</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="section-head" style="margin-top:24px;">
+            <div class="section-eyebrow"><span class="bar"></span>Overview</div>
+            <div class="segmented" id="kpiRange">
+              <button class="active" data-range="today">Today</button>
+              <button data-range="7d">7d</button>
+              <button data-range="30d">30d</button>
+            </div>
+          </div>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:var(--accent-soft);color:var(--accent-2);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+              </div>
+              <div class="kpi-value tabular" id="kpiChats">2,850</div>
+              <div class="kpi-label">Total Chats</div>
+              <div class="kpi-delta up">↑ 12.5%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:var(--success-soft);color:var(--success);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+              </div>
+              <div class="kpi-value tabular" id="kpiTools">1,247</div>
+              <div class="kpi-label">Tools Run</div>
+              <div class="kpi-delta up">↑ 6.1%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:var(--purple-soft);color:var(--purple);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              </div>
+              <div class="kpi-value tabular" id="kpiTokens">4.2M</div>
+              <div class="kpi-label">Tokens Used</div>
+              <div class="kpi-delta down">↓ 3.4%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:var(--warn-soft);color:var(--warn);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42Z"/></svg>
+              </div>
+              <div class="kpi-value tabular" id="kpiSuccess">94.8%</div>
+              <div class="kpi-label">Success Rate</div>
+              <div class="kpi-delta up">↑ 1.2%</div>
+            </div>
+          </div>
+
+          <div class="section-head">
+            <div class="section-eyebrow"><span class="bar"></span>Model distribution</div>
+            <span class="section-action" onclick="showView('model')">Manage
+              <svg style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+          </div>
+          <div class="panel-card">
+            <div class="donut-row">
+              <svg width="92" height="92" viewBox="0 0 96 96" style="flex-shrink:0;">
+                <circle cx="48" cy="48" r="40" fill="none" stroke="var(--border)" stroke-width="10"/>
+                <g transform="rotate(-90 48 48)">
+                  <circle cx="48" cy="48" r="40" fill="none" stroke="var(--accent)" stroke-width="10" stroke-dasharray="130 251" stroke-linecap="round"/>
+                  <circle cx="48" cy="48" r="40" fill="none" stroke="var(--teal)" stroke-width="10" stroke-dasharray="70 251" stroke-dashoffset="-134" stroke-linecap="round"/>
+                  <circle cx="48" cy="48" r="40" fill="none" stroke="var(--purple)" stroke-width="10" stroke-dasharray="45 251" stroke-dashoffset="-208" stroke-linecap="round"/>
+                </g>
+                <text x="48" y="45" text-anchor="middle" style="font-size:18px;font-weight:800;fill:var(--text-1);font-family:'JetBrains Mono';">3</text>
+                <text x="48" y="60" text-anchor="middle" style="font-size:9px;fill:var(--text-3);font-family:'JetBrains Mono';">models</text>
+              </svg>
+              <div class="donut-list">
+                <div class="donut-line">
+                  <div class="donut-dot" style="background:var(--accent);"></div>
+                  <span class="donut-name">Claude Sonnet 4.6</span>
+                  <div class="donut-bar-track"><div class="donut-bar-fill" style="width:52%;background:var(--accent);"></div></div>
+                  <span class="donut-pct mono">52%</span>
+                </div>
+                <div class="donut-line">
+                  <div class="donut-dot" style="background:var(--teal);"></div>
+                  <span class="donut-name">GPT-4o</span>
+                  <div class="donut-bar-track"><div class="donut-bar-fill" style="width:28%;background:var(--teal);"></div></div>
+                  <span class="donut-pct mono">28%</span>
+                </div>
+                <div class="donut-line">
+                  <div class="donut-dot" style="background:var(--purple);"></div>
+                  <span class="donut-name">Gemini 2.0 Flash</span>
+                  <div class="donut-bar-track"><div class="donut-bar-fill" style="width:20%;background:var(--purple);"></div></div>
+                  <span class="donut-pct mono">20%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-head"><div class="section-eyebrow"><span class="bar"></span>Daily activity</div></div>
+          <div class="panel-card">
+            <svg viewBox="0 0 600 64" preserveAspectRatio="none" style="width:100%;height:64px;display:block;overflow:visible;">
+              <defs>
+                <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.28"/>
+                  <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.01"/>
+                </linearGradient>
+              </defs>
+              <polygon points="0,64 0,52 26,47 52,50 78,42 104,37 130,40 156,31 182,34 208,26 234,29 260,20 286,23 312,15 338,18 365,10 391,13 417,7 443,11 469,5 495,9 521,4 547,7 573,3 573,64" fill="url(#lineGrad)"/>
+              <polyline points="0,52 26,47 52,50 78,42 104,37 130,40 156,31 182,34 208,26 234,29 260,20 286,23 312,15 338,18 365,10 391,13 417,7 443,11 469,5 495,9 521,4 547,7 573,3" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="573" cy="3" r="3" fill="var(--accent)"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;">
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">00h</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">06h</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">12h</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">18h</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">23h</span>
+            </div>
+          </div>
+
+          <div class="section-head"><div class="section-eyebrow"><span class="bar"></span>Tool usage</div></div>
+          <div class="panel-card">
+            <div class="tool-usage-row">
+              <span class="tool-usage-name">edit_file</span>
+              <div class="tool-usage-track"><div class="tool-usage-fill" style="width:88%;"></div></div>
+              <span class="tool-usage-count tabular">412</span>
+            </div>
+            <div class="tool-usage-row">
+              <span class="tool-usage-name">bash</span>
+              <div class="tool-usage-track"><div class="tool-usage-fill" style="width:71%;"></div></div>
+              <span class="tool-usage-count tabular">318</span>
+            </div>
+            <div class="tool-usage-row">
+              <span class="tool-usage-name">web_search</span>
+              <div class="tool-usage-track"><div class="tool-usage-fill" style="width:44%;"></div></div>
+              <span class="tool-usage-count tabular">196</span>
+            </div>
+            <div class="tool-usage-row">
+              <span class="tool-usage-name">read_file</span>
+              <div class="tool-usage-track"><div class="tool-usage-fill" style="width:36%;"></div></div>
+              <span class="tool-usage-count tabular">160</span>
+            </div>
+            <div class="tool-usage-row">
+              <span class="tool-usage-name">git_diff</span>
+              <div class="tool-usage-track"><div class="tool-usage-fill" style="width:22%;"></div></div>
+              <span class="tool-usage-count tabular">98</span>
+            </div>
+          </div>
+
+          <div class="section-head">
+            <div class="section-eyebrow"><span class="bar"></span>Recent activity</div>
+            <span class="section-action" onclick="showView('history')">View all
+              <svg style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+          </div>
+          <div class="panel-card" style="padding:8px;">
+            <div class="activity-row">
+              <div class="activity-icon" style="background:var(--accent-soft);color:var(--accent-2);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-title">Refactor auth middleware to use JWT rotation</div>
+                <div class="activity-meta">Claude Sonnet 4.6 · 6 files changed</div>
+              </div>
+              <div class="activity-right">
+                <div class="token-pill" style="background:var(--purple-soft);color:var(--purple);">12.5k</div>
+                <span class="status-pill" style="background:var(--success-soft);color:var(--success);">done</span>
+              </div>
+            </div>
+            <div class="activity-row">
+              <div class="activity-icon" style="background:var(--success-soft);color:var(--success);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-title">Run test suite for payments module</div>
+                <div class="activity-meta">GPT-4o · 41/43 passed</div>
+              </div>
+              <div class="activity-right">
+                <div class="token-pill" style="background:var(--teal-soft);color:var(--teal);">8.2k</div>
+                <span class="status-pill" style="background:var(--warn-soft);color:var(--warn);">2 flaky</span>
+              </div>
+            </div>
+            <div class="activity-row">
+              <div class="activity-icon" style="background:var(--teal-soft);color:var(--teal);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-title">Research rate-limit strategies for public API</div>
+                <div class="activity-meta">Gemini 2.0 Flash · 5 sources</div>
+              </div>
+              <div class="activity-right">
+                <div class="token-pill" style="background:var(--accent-soft);color:var(--accent-2);">3.5k</div>
+                <span class="status-pill" style="background:var(--success-soft);color:var(--success);">done</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="foot-note">Phantoma Agent · build 2.4.0 · local-first</div>
+        </div>
+      </div>
+
+      <!-- ── Composer ── -->
+      <div class="composer-zone">
+        <div class="context-chip-row">
+          <div class="context-chip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg>
+            auth.middleware.ts <span class="x">✕</span>
+          </div>
+          <div class="context-chip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
+            main <span class="x">✕</span>
+          </div>
+        </div>
+        <div class="composer">
+          <button class="composer-top" onclick="showView('model')">
+            <span class="model-dot"></span>
+            <span>Claude Sonnet 4.6</span>
+            <span class="email">user@phantoma.dev</span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="lang-badge">🇻🇳 VI</div>
+          <div class="ta-wrap">
+            <textarea class="ta" id="messageTextarea" placeholder="Message @agent  ·  Alt+@" rows="1"></textarea>
+          </div>
+          <div class="composer-actions">
+            <div class="left-buttons">
+              <button class="icon-sq" title="Attach files">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </button>
+              <button class="perm-btn" title="Tool permission mode">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Full Access
+              </button>
+              <button class="tbtn on thinking">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3H4a3 3 0 0 0-2 5.2V17a4 4 0 0 0 2 7h.2a4 4 0 0 0 6.8 0h.2a4 4 0 0 0 2-7v-.2A3 3 0 0 0 15 15h-2a3 3 0 0 0-3-3V9a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3z"/></svg>
+                Thinking
+              </button>
+              <button class="tbtn on search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                Search
+              </button>
+            </div>
+            <button class="send-btn active" onclick="sendMessage()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ MODEL VIEW ═══════════ -->
+    <div class="view" id="view-model">
+      <div class="sub-header">
+        <div class="sub-header-icon" style="background:var(--accent-soft);color:var(--accent-2);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></svg>
+        </div>
+        <div class="sub-header-info">
+          <div class="sub-header-title">Models</div>
+          <div class="sub-header-desc">Select the active LLM and manage providers</div>
+        </div>
+        <button class="sub-close" onclick="showView('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" class="search-input" placeholder="Search models…">
+        </div>
+        <select class="filter-select">
+          <option>All providers</option>
+          <option>Anthropic</option>
+          <option>OpenAI</option>
+          <option>Google AI</option>
+        </select>
+      </div>
+      <div class="chip-filter-row">
+        <button class="chip-filter active">All</button>
+        <button class="chip-filter">Vision</button>
+        <button class="chip-filter">Tool use</button>
+        <button class="chip-filter">Reasoning</button>
+        <button class="chip-filter">128k+ ctx</button>
+      </div>
+      <div class="view-scroll scroll">
+        <div class="view-inner" style="padding-top:14px;">
+
+          <div class="provider-card">
+            <div class="provider-head">
+              <img class="provider-logo" src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=64" alt="" onerror="this.style.visibility='hidden'">
+              <div>
+                <div class="provider-name">Anthropic</div>
+                <div class="provider-meta">2 models · $18.40 spent this month</div>
+              </div>
+              <div class="switch on"></div>
+            </div>
+            <div class="model-list">
+              <div class="model-item active">
+                <div class="model-item-top">
+                  <div class="model-item-name"><svg class="model-star filled" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Claude Sonnet 4.6</div>
+                  <div class="active-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>ACTIVE</div>
+                </div>
+                <div class="model-item-desc">Flagship reasoning model — best for agentic coding, long-context refactors and tool orchestration.</div>
+                <div class="model-tags">
+                  <span class="model-tag">VISION</span>
+                  <span class="model-tag">TOOL USE</span>
+                  <span class="model-tag">REASONING</span>
+                  <span class="model-tag">1M CTX</span>
+                </div>
+                <div class="model-stats-row">
+                  <div class="model-stat"><span class="model-stat-label">Input</span><span class="model-stat-value">$3.00/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Output</span><span class="model-stat-value">$15.00/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Latency</span><span class="model-stat-value">640ms</span></div>
+                  <div class="model-stat"><span class="model-stat-label">SWE-bench</span><span class="model-stat-value">72.3%</span></div>
+                </div>
+                <div class="bench-track"><div class="bench-fill" style="width:72%;"></div></div>
+              </div>
+              <div class="model-item">
+                <div class="model-item-top">
+                  <div class="model-item-name"><svg class="model-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Claude Haiku 4.5</div>
+                </div>
+                <div class="model-item-desc">Fast, low-cost model tuned for quick edits and lightweight tool calls.</div>
+                <div class="model-tags"><span class="model-tag">TOOL USE</span><span class="model-tag">200K CTX</span></div>
+                <div class="model-stats-row">
+                  <div class="model-stat"><span class="model-stat-label">Input</span><span class="model-stat-value">$0.80/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Output</span><span class="model-stat-value">$4.00/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Latency</span><span class="model-stat-value">210ms</span></div>
+                  <div class="model-stat"><span class="model-stat-label">SWE-bench</span><span class="model-stat-value">54.1%</span></div>
+                </div>
+                <div class="bench-track"><div class="bench-fill" style="width:54%;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="provider-card">
+            <div class="provider-head">
+              <img class="provider-logo" src="https://www.google.com/s2/favicons?domain=openai.com&sz=64" alt="" onerror="this.style.visibility='hidden'">
+              <div>
+                <div class="provider-name">OpenAI</div>
+                <div class="provider-meta">2 models · $9.15 spent this month</div>
+              </div>
+              <div class="switch on"></div>
+            </div>
+            <div class="model-list">
+              <div class="model-item">
+                <div class="model-item-top">
+                  <div class="model-item-name"><svg class="model-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>GPT-4o</div>
+                </div>
+                <div class="model-item-desc">Multimodal flagship — strong at vision tasks and broad general knowledge.</div>
+                <div class="model-tags"><span class="model-tag">VISION</span><span class="model-tag">TOOL USE</span><span class="model-tag">128K CTX</span></div>
+                <div class="model-stats-row">
+                  <div class="model-stat"><span class="model-stat-label">Input</span><span class="model-stat-value">$2.50/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Output</span><span class="model-stat-value">$10.00/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Latency</span><span class="model-stat-value">580ms</span></div>
+                  <div class="model-stat"><span class="model-stat-label">SWE-bench</span><span class="model-stat-value">48.9%</span></div>
+                </div>
+                <div class="bench-track"><div class="bench-fill" style="width:49%;"></div></div>
+              </div>
+              <div class="model-item">
+                <div class="model-item-top"><div class="model-item-name"><svg class="model-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>GPT-4 Turbo</div></div>
+                <div class="model-item-desc">Cost-effective variant with slightly lower peak reasoning quality.</div>
+                <div class="model-tags"><span class="model-tag">TOOL USE</span><span class="model-tag">128K CTX</span></div>
+                <div class="model-stats-row">
+                  <div class="model-stat"><span class="model-stat-label">Input</span><span class="model-stat-value">$1.00/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Output</span><span class="model-stat-value">$3.00/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Latency</span><span class="model-stat-value">390ms</span></div>
+                  <div class="model-stat"><span class="model-stat-label">SWE-bench</span><span class="model-stat-value">41.2%</span></div>
+                </div>
+                <div class="bench-track"><div class="bench-fill" style="width:41%;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="provider-card">
+            <div class="provider-head">
+              <img class="provider-logo" src="https://www.google.com/s2/favicons?domain=ai.google.dev&sz=64" alt="" onerror="this.style.visibility='hidden'">
+              <div>
+                <div class="provider-name">Google AI</div>
+                <div class="provider-meta">1 model · $2.60 spent this month</div>
+              </div>
+              <div class="switch on"></div>
+            </div>
+            <div class="model-list">
+              <div class="model-item">
+                <div class="model-item-top"><div class="model-item-name"><svg class="model-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Gemini 2.0 Flash</div></div>
+                <div class="model-item-desc">Fast and cheap — good default for research and search-grounded tasks.</div>
+                <div class="model-tags"><span class="model-tag">VISION</span><span class="model-tag">1M CTX</span></div>
+                <div class="model-stats-row">
+                  <div class="model-stat"><span class="model-stat-label">Input</span><span class="model-stat-value">$0.35/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Output</span><span class="model-stat-value">$1.05/M</span></div>
+                  <div class="model-stat"><span class="model-stat-label">Latency</span><span class="model-stat-value">180ms</span></div>
+                  <div class="model-stat"><span class="model-stat-label">SWE-bench</span><span class="model-stat-value">38.4%</span></div>
+                </div>
+                <div class="bench-track"><div class="bench-fill" style="width:38%;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <button class="add-endpoint-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
+            Add custom endpoint
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ ACCOUNT VIEW ═══════════ -->
+    <div class="view" id="view-account">
+      <div class="sub-header">
+        <div class="sub-header-icon" style="background:var(--teal-soft);color:var(--teal);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="sub-header-info">
+          <div class="sub-header-title">Accounts</div>
+          <div class="sub-header-desc">Manage provider API keys and usage quotas</div>
+        </div>
+        <button class="sub-close" onclick="showView('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" class="search-input" placeholder="Search by email or provider…">
+        </div>
+        <button class="btn btn-solid btn-icon" title="Add account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M5 12h14M12 5v14"/></svg>
+        </button>
+      </div>
+      <div class="view-scroll scroll">
+        <div class="view-inner" style="padding-top:14px;">
+
+          <div class="panel-card" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+            <div>
+              <div class="toggle-row-label">Auto-failover routing</div>
+              <div class="toggle-row-desc">Switch to the next healthy account when rate-limited</div>
+            </div>
+            <div class="switch on" style="margin-left:auto;"></div>
+          </div>
+
+          <div class="account-card">
+            <div class="account-main" onclick="toggleAccount(this)">
+              <div class="account-ring-wrap">
+                <svg width="40" height="40" viewBox="0 0 40 40">
+                  <circle cx="20" cy="20" r="17" fill="none" stroke="var(--border)" stroke-width="3.5"/>
+                  <circle cx="20" cy="20" r="17" fill="none" stroke="var(--success)" stroke-width="3.5" stroke-dasharray="68 107" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+                </svg>
+                <div class="account-provider-icon"><img src="https://www.google.com/s2/favicons?domain=openai.com&sz=64" alt="" onerror="this.style.visibility='hidden'"></div>
+              </div>
+              <div class="account-info">
+                <div class="account-name-row">
+                  <span class="account-provider">OpenAI</span>
+                  <span class="account-email">user@phantoma.dev</span>
+                </div>
+                <div class="account-stats-row">
+                  <span class="account-stat-chip">45 req today</span>
+                  <span class="account-stat-chip">156k tok</span>
+                  <span class="account-stat-chip good">96% success</span>
+                </div>
+              </div>
+              <div class="account-badge active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
+                Active
+              </div>
+            </div>
+            <div class="account-expand open">
+              <div class="key-row">
+                <div class="key-field">sk-proj-••••••••••••••••wX9k</div>
+                <button class="mini-icon-btn" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+                <button class="mini-icon-btn" title="Reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-3);margin-bottom:2px;">
+                <span>Monthly quota</span><span class="mono">$18.40 / $50.00</span>
+              </div>
+              <div class="quota-bar-track"><div class="quota-bar-fill" style="width:37%;background:var(--success);"></div></div>
+              <div class="expand-footer-row">
+                <span class="badge-outline">Last used 2 min ago</span>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-outline btn-sm" style="height:26px;">Edit</button>
+                  <button class="btn btn-outline btn-sm" style="height:26px;color:var(--error);border-color:rgba(247,90,106,.3);">Remove</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="account-card">
+            <div class="account-main" onclick="toggleAccount(this)">
+              <div class="account-ring-wrap">
+                <svg width="40" height="40" viewBox="0 0 40 40">
+                  <circle cx="20" cy="20" r="17" fill="none" stroke="var(--border)" stroke-width="3.5"/>
+                  <circle cx="20" cy="20" r="17" fill="none" stroke="var(--warn)" stroke-width="3.5" stroke-dasharray="48 107" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+                </svg>
+                <div class="account-provider-icon"><img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=64" alt="" onerror="this.style.visibility='hidden'"></div>
+              </div>
+              <div class="account-info">
+                <div class="account-name-row">
+                  <span class="account-provider">Anthropic</span>
+                  <span class="account-email">team@phantoma.dev</span>
+                </div>
+                <div class="account-stats-row">
+                  <span class="account-stat-chip">28 req today</span>
+                  <span class="account-stat-chip">89k tok</span>
+                  <span class="account-stat-chip good">92% success</span>
+                </div>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="event.stopPropagation()">Switch</button>
+            </div>
+            <div class="account-expand">
+              <div class="key-row">
+                <div class="key-field">sk-ant-••••••••••••••••q2Lm</div>
+                <button class="mini-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+                <button class="mini-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-3);margin-bottom:2px;">
+                <span>Monthly quota</span><span class="mono">$18.40 / $40.00</span>
+              </div>
+              <div class="quota-bar-track"><div class="quota-bar-fill" style="width:46%;background:var(--warn);"></div></div>
+              <div class="expand-footer-row">
+                <span class="badge-outline">Last used 15 min ago</span>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-outline btn-sm" style="height:26px;">Edit</button>
+                  <button class="btn btn-outline btn-sm" style="height:26px;color:var(--error);border-color:rgba(247,90,106,.3);">Remove</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="account-card">
+            <div class="account-main" onclick="toggleAccount(this)">
+              <div class="account-ring-wrap">
+                <svg width="40" height="40" viewBox="0 0 40 40">
+                  <circle cx="20" cy="20" r="17" fill="none" stroke="var(--border)" stroke-width="3.5"/>
+                  <circle cx="20" cy="20" r="17" fill="none" stroke="var(--purple)" stroke-width="3.5" stroke-dasharray="18 107" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+                </svg>
+                <div class="account-provider-icon"><img src="https://www.google.com/s2/favicons?domain=ai.google.dev&sz=64" alt="" onerror="this.style.visibility='hidden'"></div>
+              </div>
+              <div class="account-info">
+                <div class="account-name-row">
+                  <span class="account-provider">Google AI</span>
+                  <span class="account-email">dev@phantoma.dev</span>
+                </div>
+                <div class="account-stats-row">
+                  <span class="account-stat-chip">9 req today</span>
+                  <span class="account-stat-chip">22k tok</span>
+                  <span class="account-stat-chip good">100% success</span>
+                </div>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="event.stopPropagation()">Switch</button>
+            </div>
+            <div class="account-expand">
+              <div class="key-row">
+                <div class="key-field">AIza••••••••••••••••8fCq</div>
+                <button class="mini-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+                <button class="mini-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-3);margin-bottom:2px;">
+                <span>Monthly quota</span><span class="mono">$2.60 / $25.00</span>
+              </div>
+              <div class="quota-bar-track"><div class="quota-bar-fill" style="width:10%;background:var(--purple);"></div></div>
+              <div class="expand-footer-row">
+                <span class="badge-outline">Last used 1 hour ago</span>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-outline btn-sm" style="height:26px;">Edit</button>
+                  <button class="btn btn-outline btn-sm" style="height:26px;color:var(--error);border-color:rgba(247,90,106,.3);">Remove</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ HISTORY VIEW ═══════════ -->
+    <div class="view" id="view-history">
+      <div class="sub-header">
+        <div class="sub-header-icon" style="background:var(--purple-soft);color:var(--purple);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="sub-header-info">
+          <div class="sub-header-title">History</div>
+          <div class="sub-header-desc">Browse, search and manage past conversations</div>
+        </div>
+        <button class="sub-close" onclick="showView('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" class="search-input" placeholder="Search conversations…">
+        </div>
+        <button class="btn btn-warn" title="Clear all history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Clear
+        </button>
+      </div>
+      <div class="chip-filter-row">
+        <button class="chip-filter active">All</button>
+        <button class="chip-filter">Pinned</button>
+        <button class="chip-filter">Claude Sonnet</button>
+        <button class="chip-filter">GPT-4o</button>
+      </div>
+      <div class="view-scroll scroll">
+        <div class="view-inner" style="padding-top:2px;">
+
+          <div class="date-group-label">Today · 20 Aug</div>
+          <div class="history-row">
+            <div class="history-check"></div>
+            <div class="history-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+            <div class="history-body">
+              <div class="history-title">Refactor auth middleware to use JWT rotation</div>
+              <div class="history-preview">Updated 3 files, added token refresh handler and tests…</div>
+            </div>
+            <div class="history-meta-col">
+              <span class="history-time">14:22</span>
+              <span class="history-model-tag">Sonnet 4.6</span>
+            </div>
+          </div>
+          <div class="history-row">
+            <div class="history-check"></div>
+            <div class="history-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
+            <div class="history-body">
+              <div class="history-title">Run test suite for payments module</div>
+              <div class="history-preview">41 of 43 tests passed, 2 flaky timing tests flagged…</div>
+            </div>
+            <div class="history-meta-col">
+              <span class="history-time">11:04</span>
+              <span class="history-model-tag">GPT-4o</span>
+            </div>
+          </div>
+
+          <div class="date-group-label">Yesterday · 19 Aug</div>
+          <div class="history-row">
+            <div class="history-check"></div>
+            <div class="history-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
+            <div class="history-body">
+              <div class="history-title">Research rate-limit strategies for public API</div>
+              <div class="history-preview">Compared token-bucket vs sliding-window approaches…</div>
+            </div>
+            <div class="history-meta-col">
+              <span class="history-time">18:40</span>
+              <span class="history-model-tag">Gemini Flash</span>
+            </div>
+          </div>
+          <div class="history-row">
+            <div class="history-check"></div>
+            <div class="history-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg></div>
+            <div class="history-body">
+              <div class="history-title">Draft onboarding docs for new contributors</div>
+              <div class="history-preview">Outlined setup steps, env vars, and contribution flow…</div>
+            </div>
+            <div class="history-meta-col">
+              <span class="history-time">09:15</span>
+              <span class="history-model-tag">Sonnet 4.6</span>
+            </div>
+          </div>
+
+          <div class="date-group-label">This week</div>
+          <div class="history-row">
+            <div class="history-check"></div>
+            <div class="history-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></div>
+            <div class="history-body">
+              <div class="history-title">Set up CI pipeline for staging deploys</div>
+              <div class="history-preview">Configured GitHub Actions workflow with cache steps…</div>
+            </div>
+            <div class="history-meta-col">
+              <span class="history-time">Mon</span>
+              <span class="history-model-tag">GPT-4o</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ ANALYTIC VIEW ═══════════ -->
+    <div class="view" id="view-analytic">
+      <div class="sub-header">
+        <div class="sub-header-icon" style="background:var(--warn-soft);color:var(--warn);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+        </div>
+        <div class="sub-header-info">
+          <div class="sub-header-title">Analytics</div>
+          <div class="sub-header-desc">Usage, cost and performance breakdown</div>
+        </div>
+        <button class="sub-close" onclick="showView('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="view-scroll scroll">
+        <div class="view-inner">
+
+          <div class="section-head" style="margin-top:2px;">
+            <div class="section-eyebrow"><span class="bar"></span>Key metrics</div>
+            <div class="segmented">
+              <button class="active">7d</button>
+              <button>30d</button>
+              <button>90d</button>
+            </div>
+          </div>
+          <div class="analytic-kpi-grid">
+            <div class="analytic-kpi-card">
+              <div class="analytic-kpi-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Requests</span></div>
+              <div class="analytic-kpi-value tabular">2,847</div>
+              <div class="analytic-kpi-delta up">↑ 12.5% from last week</div>
+            </div>
+            <div class="analytic-kpi-card">
+              <div class="analytic-kpi-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>Avg. Latency</span></div>
+              <div class="analytic-kpi-value tabular">642ms</div>
+              <div class="analytic-kpi-delta up">↓ 8% from last week</div>
+            </div>
+            <div class="analytic-kpi-card">
+              <div class="analytic-kpi-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42Z"/></svg><span>Success Rate</span></div>
+              <div class="analytic-kpi-value tabular">94.8%</div>
+              <div class="analytic-kpi-delta up">↑ 1.2% from last week</div>
+            </div>
+            <div class="analytic-kpi-card">
+              <div class="analytic-kpi-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg><span>Est. Cost</span></div>
+              <div class="analytic-kpi-value tabular">$30.15</div>
+              <div class="analytic-kpi-delta down">↑ 4.3% from last week</div>
+            </div>
+          </div>
+
+          <div class="section-head"><div class="section-eyebrow"><span class="bar"></span>Cost by model</div></div>
+          <div class="panel-card">
+            <div class="cost-breakdown-row">
+              <div class="cost-model-dot" style="background:var(--accent);"></div>
+              <span class="cost-model-name">Claude Sonnet 4.6</span>
+              <div class="cost-track"><div class="cost-fill" style="width:61%;background:var(--accent);"></div></div>
+              <span class="cost-value mono">$18.40</span>
+            </div>
+            <div class="cost-breakdown-row">
+              <div class="cost-model-dot" style="background:var(--teal);"></div>
+              <span class="cost-model-name">GPT-4o</span>
+              <div class="cost-track"><div class="cost-fill" style="width:30%;background:var(--teal);"></div></div>
+              <span class="cost-value mono">$9.15</span>
+            </div>
+            <div class="cost-breakdown-row">
+              <div class="cost-model-dot" style="background:var(--purple);"></div>
+              <span class="cost-model-name">Gemini 2.0 Flash</span>
+              <div class="cost-track"><div class="cost-fill" style="width:9%;background:var(--purple);"></div></div>
+              <span class="cost-value mono">$2.60</span>
+            </div>
+          </div>
+
+          <div class="section-head"><div class="section-eyebrow"><span class="bar"></span>Requests over time</div></div>
+          <div class="panel-card">
+            <svg viewBox="0 0 600 70" preserveAspectRatio="none" style="width:100%;height:70px;display:block;">
+              <defs>
+                <linearGradient id="areaGrad2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--teal)" stop-opacity="0.25"/>
+                  <stop offset="100%" stop-color="var(--teal)" stop-opacity="0.01"/>
+                </linearGradient>
+              </defs>
+              <polygon points="0,70 0,40 85,50 170,28 255,35 340,15 425,22 510,8 595,18 595,70" fill="url(#areaGrad2)"/>
+              <polyline points="0,40 85,50 170,28 255,35 340,15 425,22 510,8 595,18" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="85" cy="50" r="2.5" fill="var(--teal)"/><circle cx="170" cy="28" r="2.5" fill="var(--teal)"/>
+              <circle cx="255" cy="35" r="2.5" fill="var(--teal)"/><circle cx="340" cy="15" r="2.5" fill="var(--teal)"/>
+              <circle cx="425" cy="22" r="2.5" fill="var(--teal)"/><circle cx="510" cy="8" r="2.5" fill="var(--teal)"/>
+              <circle cx="595" cy="18" r="3" fill="var(--teal)"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;">
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">Mon</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">Tue</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">Wed</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">Thu</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">Fri</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">Sat</span>
+              <span style="font-size:9px;color:var(--text-3);font-family:var(--mono);">Sun</span>
+            </div>
+          </div>
+
+          <div class="section-head"><div class="section-eyebrow"><span class="bar"></span>Top tools</div></div>
+          <div class="panel-card" style="padding:10px 14px;">
+            <table class="analytic-table">
+              <thead><tr><th>Tool</th><th>Calls</th><th>Avg time</th><th>Errors</th></tr></thead>
+              <tbody>
+                <tr><td>edit_file</td><td class="mono-cell">412</td><td class="mono-cell">80ms</td><td class="mono-cell">2</td></tr>
+                <tr><td>bash</td><td class="mono-cell">318</td><td class="mono-cell">340ms</td><td class="mono-cell">7</td></tr>
+                <tr><td>web_search</td><td class="mono-cell">196</td><td class="mono-cell">920ms</td><td class="mono-cell">1</td></tr>
+                <tr><td>read_file</td><td class="mono-cell">160</td><td class="mono-cell">40ms</td><td class="mono-cell">0</td></tr>
+                <tr><td>git_diff</td><td class="mono-cell">98</td><td class="mono-cell">65ms</td><td class="mono-cell">0</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ SETTING VIEW ═══════════ -->
+    <div class="view" id="view-setting">
+      <div class="sub-header">
+        <div class="sub-header-icon" style="background:rgba(150,166,199,.1);color:var(--text-2);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="sub-header-info">
+          <div class="sub-header-title">Settings</div>
+          <div class="sub-header-desc">Configure agent behavior and preferences</div>
+        </div>
+        <button class="sub-close" onclick="showView('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="settings-nav">
+        <button class="settings-nav-btn active" data-panel="general" onclick="switchSettingsPanel('general')">General</button>
+        <button class="settings-nav-btn" data-panel="behavior" onclick="switchSettingsPanel('behavior')">Agent behavior</button>
+        <button class="settings-nav-btn" data-panel="appearance" onclick="switchSettingsPanel('appearance')">Appearance</button>
+        <button class="settings-nav-btn" data-panel="data" onclick="switchSettingsPanel('data')">Data & privacy</button>
+      </div>
+      <div class="view-scroll scroll">
+        <div class="view-inner">
+
+          <!-- GENERAL -->
+          <div class="settings-panel" data-panel="general">
+            <div class="settings-group">
+              <div class="settings-group-title">Connection</div>
+              <div class="settings-card">
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></div>
+                  <div class="settings-row-body">
+                    <div class="settings-row-label">Backend API URL</div>
+                    <div class="settings-row-desc">Endpoint the agent connects to</div>
+                  </div>
+                </div>
+                <div style="padding:0 14px 14px;">
+                  <input type="text" class="settings-input-field" value="http://localhost:8888">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <div class="settings-group-title">Language</div>
+              <div class="settings-card">
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+                  <div class="settings-row-body">
+                    <div class="settings-row-label">AI response language</div>
+                    <div class="settings-row-desc">Language used for chat replies</div>
+                  </div>
+                  <div class="settings-row-control"><button class="pill-select">🇻🇳 Tiếng Việt<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+                </div>
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></div>
+                  <div class="settings-row-body">
+                    <div class="settings-row-label">Commit message language</div>
+                    <div class="settings-row-desc">Language used for generated commits</div>
+                  </div>
+                  <div class="settings-row-control"><button class="pill-select">🇺🇸 English<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <div class="settings-group-title">Notifications</div>
+              <div class="settings-card">
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Task complete alerts</div><div class="settings-row-desc">Notify when a long-running task finishes</div></div>
+                  <div class="settings-row-control"><div class="switch on"></div></div>
+                </div>
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Error & failure alerts</div><div class="settings-row-desc">Notify when a tool call fails</div></div>
+                  <div class="settings-row-control"><div class="switch on"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AGENT BEHAVIOR -->
+          <div class="settings-panel" data-panel="behavior" style="display:none;">
+            <div class="settings-group">
+              <div class="settings-group-title">Autonomy</div>
+              <div class="settings-card">
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Default permission mode</div><div class="settings-row-desc">How much the agent can do without asking</div></div>
+                  <div class="settings-row-control"><button class="pill-select">Full Access<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+                </div>
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3H4a3 3 0 0 0-2 5.2V17a4 4 0 0 0 2 7h.2a4 4 0 0 0 6.8 0h.2a4 4 0 0 0 2-7v-.2A3 3 0 0 0 15 15h-2a3 3 0 0 0-3-3V9a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3z"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Extended thinking</div><div class="settings-row-desc">Enable deliberate reasoning by default</div></div>
+                  <div class="settings-row-control"><div class="switch on"></div></div>
+                </div>
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Web search grounding</div><div class="settings-row-desc">Allow the agent to search the web</div></div>
+                  <div class="settings-row-control"><div class="switch on"></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="settings-group-title">Limits</div>
+              <div class="settings-card">
+                <div class="slider-row">
+                  <div style="display:flex;justify-content:space-between;">
+                    <div class="settings-row-label">Max tool iterations</div>
+                    <span class="mono" style="font-size:11px;color:var(--accent-2);font-weight:700;">25</span>
+                  </div>
+                  <div class="settings-row-desc" style="margin-bottom:2px;">Stop and ask after this many consecutive tool calls</div>
+                  <div class="slider-track"><div class="slider-fill" style="width:62%;"></div><div class="slider-thumb" style="left:62%;"></div></div>
+                </div>
+                <div class="slider-row" style="border-top:1px solid var(--divider);">
+                  <div style="display:flex;justify-content:space-between;">
+                    <div class="settings-row-label">Thinking budget</div>
+                    <span class="mono" style="font-size:11px;color:var(--accent-2);font-weight:700;">8K tok</span>
+                  </div>
+                  <div class="settings-row-desc" style="margin-bottom:2px;">Max tokens spent on internal reasoning</div>
+                  <div class="slider-track"><div class="slider-fill" style="width:40%;"></div><div class="slider-thumb" style="left:40%;"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- APPEARANCE -->
+          <div class="settings-panel" data-panel="appearance" style="display:none;">
+            <div class="settings-group">
+              <div class="settings-group-title">Theme</div>
+              <div class="settings-card">
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Interface mode</div><div class="settings-row-desc">Dark is optimized for long sessions</div></div>
+                  <div class="settings-row-control">
+                    <div class="segmented"><button class="active">Dark</button><button>Light</button><button>Auto</button></div>
+                  </div>
+                </div>
+                <div class="settings-row">
+                  <div class="settings-row-body"><div class="settings-row-label">Accent color</div><div class="settings-row-desc">Used across highlights, links and charts</div></div>
+                </div>
+                <div class="accent-swatch-row">
+                  <button class="accent-swatch selected" style="background:#3a8cff;"></button>
+                  <button class="accent-swatch" style="background:#20d4d4;"></button>
+                  <button class="accent-swatch" style="background:#a875ff;"></button>
+                  <button class="accent-swatch" style="background:#33d69f;"></button>
+                  <button class="accent-swatch" style="background:#ff6fa8;"></button>
+                  <button class="accent-swatch" style="background:#f5a623;"></button>
+                </div>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="settings-group-title">Density</div>
+              <div class="settings-card">
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Panel layout density</div><div class="settings-row-desc">Compact fits more on screen</div></div>
+                  <div class="settings-row-control"><div class="segmented"><button>Cozy</button><button class="active">Compact</button></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DATA -->
+          <div class="settings-panel" data-panel="data" style="display:none;">
+            <div class="settings-group">
+              <div class="settings-group-title">Storage</div>
+              <div class="settings-card">
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Export all data</div><div class="settings-row-desc">Download conversations, keys metadata & settings as JSON</div></div>
+                  <div class="settings-row-control"><button class="btn btn-outline btn-sm" style="height:28px;">Export</button></div>
+                </div>
+                <div class="settings-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Cache size</div><div class="settings-row-desc">Local model responses & embeddings</div></div>
+                  <div class="settings-row-control"><span class="badge-outline">184 MB</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="settings-group-title" style="color:var(--error);">Danger zone</div>
+              <div class="settings-card" style="border-color:rgba(247,90,106,.22);">
+                <div class="settings-row danger-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Clear local cache</div><div class="settings-row-desc">Frees disk space, does not affect accounts</div></div>
+                  <div class="settings-row-control"><button class="btn btn-outline btn-sm" style="height:28px;color:var(--error);border-color:rgba(247,90,106,.3);">Clear</button></div>
+                </div>
+                <div class="settings-row danger-row">
+                  <div class="settings-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></div>
+                  <div class="settings-row-body"><div class="settings-row-label">Reset all settings</div><div class="settings-row-desc">Restores every preference to defaults</div></div>
+                  <div class="settings-row-control"><button class="btn btn-outline btn-sm" style="height:28px;color:var(--error);border-color:rgba(247,90,106,.3);">Reset</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── Slogan rotation ──
+  const SLOGANS = [
+    'Your AI-powered coding assistant',
+    'Build faster with intelligent automation',
+    'Streamline your development workflow',
+    'Smart code analysis at your fingertips',
+    'From idea to implementation in seconds',
+    'Elevate your productivity with AI',
+  ];
+  let sloganIndex = 0;
+  setInterval(() => {
+    sloganIndex = (sloganIndex + 1) % SLOGANS.length;
+    const el = document.getElementById('slogan');
+    if (el) {
+      el.textContent = SLOGANS[sloganIndex];
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = 'slideUp .4s ease-out';
+    }
+  }, 3400);
+
+  // ── View routing ──
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    const target = document.getElementById('view-' + name);
+    if (target) target.classList.add('active');
+    document.querySelectorAll('.tab-icon-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  }
+
+  // ── Mode switch (Agent / Terminal) ──
+  function switchMode(mode) {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  }
+
+  // ── KPI range segmented control ──
+  document.getElementById('kpiRange').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#kpiRange button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+
+  // ── Account expand/collapse ──
+  function toggleAccount(el) {
+    const card = el.closest('.account-card');
+    const expand = card.querySelector('.account-expand');
+    const wasOpen = expand.classList.contains('open');
+    document.querySelectorAll('.account-expand.open').forEach(x => x.classList.remove('open'));
+    if (!wasOpen) expand.classList.add('open');
+  }
+
+  // ── Settings sub-nav ──
+  function switchSettingsPanel(name) {
+    document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.panel === name));
+    document.querySelectorAll('.settings-panel').forEach(p => p.style.display = (p.dataset.panel === name ? 'block' : 'none'));
+  }
+
+  // ── Composer ──
+  function focusComposer() {
+    showView('home');
+    document.getElementById('messageTextarea').focus();
+  }
+  function sendMessage() {
+    const ta = document.getElementById('messageTextarea');
+    if (ta.value.trim()) { ta.value = ''; ta.style.height = 'auto'; }
+  }
+  const ta = document.getElementById('messageTextarea');
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+  });
+
+  // ── Filter chip toggles (visual only) ──
+  document.querySelectorAll('.chip-filter-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip-filter');
+      if (!chip) return;
+      row.querySelectorAll('.chip-filter').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+
+  console.log('[Phantoma] Agent panel UI initialized');
+</script>
+</body>
+</html>

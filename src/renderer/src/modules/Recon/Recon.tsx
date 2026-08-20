@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ReconController, ReconTarget } from '../../controller/ReconController';
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 
-// Components
+// ── Components ──
 import LeftPanel from './components/LeftPanel';
 import { logger } from '@renderer/utils/logger';
 

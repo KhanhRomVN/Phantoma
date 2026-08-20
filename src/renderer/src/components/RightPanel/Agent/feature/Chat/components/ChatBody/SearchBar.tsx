@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * SearchBar
+ * ------------------------------------------------------------------
+ * Thanh tìm kiếm trong chat body.
+ * Hỗ trợ match case, whole word, và regex flags.
+ *
+ * Main features:
+ * - Tìm kiếm và highlight matches
+ * - Navigate giữa các matches
+ * - Toggle match case / whole word / regex
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface SearchBarProps {
   searchQuery: string;
   onSearchQueryChange?: (q: string) => void;

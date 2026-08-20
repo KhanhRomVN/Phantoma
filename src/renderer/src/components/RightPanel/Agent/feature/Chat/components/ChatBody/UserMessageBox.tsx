@@ -1,9 +1,30 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * UserMessageBox
+ * ------------------------------------------------------------------
+ * Component hiển thị message của người dùng trong chat.
+ * Hỗ trợ hiển thị attached files và question answers.
+ *
+ * Main features:
+ * - Hiển thị nội dung message đã clean question-answer tags
+ * - Files preview cho attached files
+ * - Revert confirm modal
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
-import FilesPreviews from '../../../../components/common/MessageInput/FilesPreviews';
+
+// ── Types ──
 import { Message } from '../../types/message';
+
+// ── Components ──
+import FilesPreviews from '../../../../components/common/MessageInput/FilesPreviews';
 import RevertConfirmModal from './RevertConfirmModal';
 
+// ─── Helper ─────────────────────────────────────────────────────────────
 /**
  * Phân tích thẻ <question-answer> từ nội dung tin nhắn người dùng
  * Trả về: { answers: Record<string, string>, cleanedContent: string }

@@ -1,9 +1,30 @@
 import React, { useState } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * TreeBlock
+ * ------------------------------------------------------------------
+ * Block hiển thị cây thư mục dạng collapsible.
+ * Dùng cho list_resources và list_files tools.
+ *
+ * Main features:
+ * - Collapsible folders với ChevronRight icon
+ * - File/folder icons theo extension
+ * - Click để mở file
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import { ChevronRight } from 'lucide-react';
-import ErrorBlock from './ErrorBlock';
+
+// ── Utils ──
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { logger } from '@renderer/utils/logger';
 
+// ── Components ──
+import ErrorBlock from './ErrorBlock';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface FileNode {
   name: string;
   type: 'file' | 'folder';
@@ -20,71 +41,128 @@ interface TreeBlockProps {
 }
 
 /**
+ * Parse text output từ ListResourcesHandler thành FileNode[].
+ * Format:
+ *   [list_resources] Total: N, Filtered: M
+ *   
+ *   - filename (type, size, content-type)
+ */
+export function parseResourceTable(text: string): FileNode[] {
+  const lines = text.split('\n');
+  const nodes: FileNode[] = [];
+
+  for (const line of lines) {
+    if (!line.startsWith('-')) continue;
+    
+    // Parse: - filename (type, size, content-type)
+    const match = line.match(/^-\s+(.+?)\s+\((.+?),\s*(.+?),\s*(.+?)\)$/);
+    if (!match) continue;
+
+    const filename = match[1].trim();
+    const type = match[2].trim();
+    const sizeStr = match[3].trim();
+
+    const node: FileNode = {
+      name: filename,
+      type: 'file',
+      path: filename,
+    };
+
+    // Parse size
+    const sizeMatch = sizeStr.match(/^([\d.]+)\s*(B|KB|MB|GB)?$/);
+    if (sizeMatch) {
+      const num = parseFloat(sizeMatch[1]);
+      const multipliers: Record<string, number> = {
+        B: 1,
+        KB: 1024,
+        MB: 1024 * 1024,
+        GB: 1024 * 1024 * 1024,
+      };
+      node.size = num * (multipliers[sizeMatch[2] || 'B'] ?? 1);
+    }
+
+    nodes.push(node);
+  }
+
+  return nodes;
+}
+
+/**
  * Parse text output từ ListSourcesHandler thành FileNode[].
  * Format:
  *   [list_sources] Total: N, Filtered: M
- *   domain.com/
- *   ├─ folder1/
- *   │  ├─ stt=1 file1.js (12.3 KB)
- *   │  └─ stt=2 file2.css
- *   └─ stt=3 index.html (2.1 KB)
+ *   
+ *   - domain.com/folder/file.js (12.3 KB)
  */
 export function parseSourceTree(text: string): FileNode[] {
   const lines = text.split('\n');
-  const treeLines = lines.filter((l) => !l.startsWith('[list_sources]'));
-  const roots: FileNode[] = [];
-  const stack: { node: FileNode; level: number }[] = [];
+  const nodes: FileNode[] = [];
+  
+  for (const line of lines) {
+    if (!line.startsWith('-')) continue;
+    
+    // Parse: - path/to/file.js (size)
+    const match = line.match(/^-\s+(.+?)(?:\s+\((.+?)\))?$/);
+    if (!match) continue;
 
-  for (const rawLine of treeLines) {
-    if (!rawLine.trim()) continue;
+    const fullPath = match[1].trim();
+    const sizeStr = match[2]?.trim();
 
-    const indent = rawLine.match(/^(\s*)/)?.[1].length ?? 0;
-    const level = Math.floor(indent / 2);
-    let content = rawLine.trim().replace(/^[├└]─\s+/, '');
+    // Split path into parts
+    const parts = fullPath.split('/');
+    if (parts.length === 0) continue;
 
-    const isFolder = content.endsWith('/');
-    let name = isFolder ? content.slice(0, -1) : content;
-    let size: number | undefined;
+    // Build tree structure
+    let currentLevel = nodes;
+    let currentPath = '';
 
-    if (!isFolder) {
-      const sttMatch = name.match(/^stt=(\d+)\s+(.+)$/);
-      if (sttMatch) name = sttMatch[2];
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const isLast = i === parts.length - 1;
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
 
-      const sizeMatch = name.match(/^(.+?)\s+\(([^)]+)\)$/);
-      if (sizeMatch) {
-        name = sizeMatch[1];
-        const sizeParts = sizeMatch[2].match(/^([\d.]+)\s*(B|KB|MB|GB)?$/);
-        if (sizeParts) {
-          const num = parseFloat(sizeParts[1]);
-          const multipliers: Record<string, number> = { B: 1, KB: 1024, MB: 1024 * 1024, GB: 1024 * 1024 * 1024 };
-          size = num * (multipliers[sizeParts[2] || 'B'] ?? 1);
+      if (isLast) {
+        // This is a file
+        const fileNode: FileNode = {
+          name: part,
+          type: 'file',
+          path: currentPath,
+        };
+
+        // Parse size
+        if (sizeStr) {
+          const sizeMatch = sizeStr.match(/^([\d.]+)\s*(B|KB|MB|GB)?$/);
+          if (sizeMatch) {
+            const num = parseFloat(sizeMatch[1]);
+            const multipliers: Record<string, number> = {
+              B: 1,
+              KB: 1024,
+              MB: 1024 * 1024,
+              GB: 1024 * 1024 * 1024,
+            };
+            fileNode.size = num * (multipliers[sizeMatch[2] || 'B'] ?? 1);
+          }
         }
+
+        currentLevel.push(fileNode);
+      } else {
+        // This is a folder
+        let folderNode = currentLevel.find((n) => n.name === part && n.type === 'folder');
+        if (!folderNode) {
+          folderNode = {
+            name: part,
+            type: 'folder',
+            path: currentPath,
+            children: [],
+          };
+          currentLevel.push(folderNode);
+        }
+        currentLevel = folderNode.children!;
       }
     }
-
-    const node: FileNode = {
-      name,
-      type: isFolder ? 'folder' : 'file',
-      path: '',
-      children: isFolder ? [] : undefined,
-    };
-    if (size !== undefined) node.size = size;
-
-    while (stack.length > 0 && stack[stack.length - 1].level >= level) stack.pop();
-
-    if (stack.length === 0) {
-      node.path = name;
-      roots.push(node);
-    } else {
-      const parent = stack[stack.length - 1].node;
-      node.path = parent.path + '/' + name;
-      parent.children!.push(node);
-    }
-
-    if (isFolder) stack.push({ node, level });
   }
 
-  return roots;
+  return nodes;
 }
 
 const TreeNode: React.FC<{
@@ -186,7 +264,7 @@ export const TreeBlock: React.FC<TreeBlockProps> = ({ files, onFileClick, maxHei
   }
 
   return (
-    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]">
+    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
       <div className="py-1" style={maxHeight ? { maxHeight, overflow: 'auto' } : undefined}>
         {files.map((file, index) => (
           <TreeNode

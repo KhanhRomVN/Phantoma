@@ -98,35 +98,21 @@ export class ListResourcesHandler {
     // Sort by timestamp (newest first)
     items.sort((a, b) => b.timestamp - a.timestamp);
 
-    // Assign stable 1-indexed IDs
-    const stableIndexMap = new Map<string, number>();
-    items.forEach((item, idx) => {
-      stableIndexMap.set(item.id, idx + 1);
-    });
-
     // Apply filter
     const filterType = filter.type?.toLowerCase();
     const filtered = filterType
       ? items.filter((item) => item.type.toLowerCase() === filterType)
       : items;
 
-    // Build text table
-    const header = `| stt | type     | filename | size | content-type |`;
-    const separator = `|-----|----------|----------|------|--------------|`;
-    const rows = filtered.map((item) => {
-      const stableIndex = stableIndexMap.get(item.id) || 0;
-      const type = item.type.padEnd(8);
-      const filename = item.filename.substring(0, 40).padEnd(40);
-      const size = String(item.size).padEnd(10);
-      const contentType = item.contentType.substring(0, 30);
-      return `| ${String(stableIndex).padEnd(3)} | ${type} | ${filename} | ${size} | ${contentType} |`;
+    // Build text list (simple format for AI to read)
+    const lines = filtered.map((item) => {
+      return `- ${item.filename} (${item.type}, ${item.size}, ${item.contentType})`;
     });
 
     const text = [
       `[list_resources] Total: ${items.length}, Filtered: ${filtered.length}`,
-      header,
-      separator,
-      ...rows,
+      '',
+      ...lines,
     ].join('\n');
 
     return {

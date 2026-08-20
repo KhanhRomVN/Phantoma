@@ -2,7 +2,7 @@ import React, { useState, useCallback, memo } from 'react';
 import { logger } from '@renderer/utils/logger';
 import { Plus, Play, Square, Trash2, Pencil } from 'lucide-react';
 
-// Components
+// ── Components ──
 import {
   Dropdown,
   DropdownContent,
@@ -12,13 +12,13 @@ import {
 import { Button } from '@renderer/components/ui/Button';
 import { RunningOptionTargetModal } from './RunningOptionTargetModal';
 
-// Types
+// ── Types ──
 import { TargetTab } from '../../types/target.types';
 
-// Constants
+// ── Constants ──
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { getTargetPlatform, getTargetFavicon } from '.';
 

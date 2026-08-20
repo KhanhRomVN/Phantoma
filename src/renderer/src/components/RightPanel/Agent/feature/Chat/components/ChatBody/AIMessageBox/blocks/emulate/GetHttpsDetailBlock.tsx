@@ -197,7 +197,7 @@ export const GetHttpsDetailBlock: React.FC<GetHttpsDetailBlockProps> = ({ conten
 
   if (!parsed.method && !parsed.url) {
     return (
-      <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px] p-3">
+      <div className="mt-1 bg-background border rounded-[4px] overflow-hidden p-3">
         <pre className="text-[12px] font-mono text-text-secondary whitespace-pre-wrap break-all">
           {content || 'No data available.'}
         </pre>
@@ -206,7 +206,7 @@ export const GetHttpsDetailBlock: React.FC<GetHttpsDetailBlockProps> = ({ conten
   }
 
   return (
-    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]">
+    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
       {/* Header */}
       <div className="px-3 py-2 bg-card-background border-b border-border flex items-center gap-2 flex-wrap">
         <span className="text-[10px] text-text-secondary opacity-60 font-mono">

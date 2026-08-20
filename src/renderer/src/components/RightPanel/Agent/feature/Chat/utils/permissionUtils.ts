@@ -1,6 +1,22 @@
+/**
+ * ------------------------------------------------------------------
+ * Permission Utils
+ * ------------------------------------------------------------------
+ * Helper functions để quyết định quyền thực thi cho từng tool.
+ *
+ * Main functions:
+ * - getPermissionDecision() : Trả về quyết định quyền (allow/confirm/reject)
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Constants ──
 import { TAG_REGISTRY } from "../constants/constants";
+
+// ── Types ──
 import { PermissionMode, PermissionValue } from "../types/tag-types";
 
+// ─── Functions ──────────────────────────────────────────────────────────
 /**
  * Trả về quyết định quyền cho một loại tool và chế độ quyền đã cho.
  * - "allow"   → thực thi ngay không cần hỏi

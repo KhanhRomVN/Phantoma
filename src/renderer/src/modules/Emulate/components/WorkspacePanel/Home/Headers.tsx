@@ -2,10 +2,10 @@ import { useMemo } from 'react';
 
 import { logger } from '@renderer/utils/logger';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-// Types
+// ── Types ──
 import { NetworkRequest } from '../../../types/inspector';
 
 interface HeadersDetailsProps {
@@ -232,28 +232,38 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
               Missing Headers
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {analysis.headers.missing.map((h: { name: string; severity: string; description: string; recommendation: string }, i: number) => (
-                <div
-                  key={i}
-                  className="flex flex-col bg-warning/5 hover:bg-warning/10 transition-colors border border-warning/20 p-2 rounded text-xs relative group"
-                >
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="font-bold font-mono text-xs">{h.name}</span>
-                    <span className="text-[9px] bg-warning/10 text-warning px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
-                      {h.severity}
-                    </span>
+              {analysis.headers.missing.map(
+                (
+                  h: {
+                    name: string;
+                    severity: string;
+                    description: string;
+                    recommendation: string;
+                  },
+                  i: number,
+                ) => (
+                  <div
+                    key={i}
+                    className="flex flex-col bg-warning/5 hover:bg-warning/10 transition-colors border border-warning/20 p-2 rounded text-xs relative group"
+                  >
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="font-bold font-mono text-xs">{h.name}</span>
+                      <span className="text-[9px] bg-warning/10 text-warning px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                        {h.severity}
+                      </span>
+                    </div>
+                    <div className="text-text-secondary text-[10px] leading-relaxed mb-1.5 flex-grow">
+                      {h.description}
+                    </div>
+                    <div className="mt-auto pt-1.5 border-t border-warning/10 text-[10px] font-medium text-warning/90 flex gap-1">
+                      <span className="shrink-0 font-bold uppercase text-[9px] opacity-70 mt-px">
+                        Fix:
+                      </span>
+                      <span>{h.recommendation}</span>
+                    </div>
                   </div>
-                  <div className="text-text-secondary text-[10px] leading-relaxed mb-1.5 flex-grow">
-                    {h.description}
-                  </div>
-                  <div className="mt-auto pt-1.5 border-t border-warning/10 text-[10px] font-medium text-warning/90 flex gap-1">
-                    <span className="shrink-0 font-bold uppercase text-[9px] opacity-70 mt-px">
-                      Fix:
-                    </span>
-                    <span>{h.recommendation}</span>
-                  </div>
-                </div>
-              ))}
+                ),
+              )}
             </div>
           </div>
         )}

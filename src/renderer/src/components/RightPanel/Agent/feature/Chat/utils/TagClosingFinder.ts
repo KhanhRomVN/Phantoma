@@ -1,4 +1,17 @@
 /**
+ * ------------------------------------------------------------------
+ * Tag Closing Finder
+ * ------------------------------------------------------------------
+ * Tìm vị trí thẻ đóng trong XML content, tôn trọng ngữ cảnh backtick,
+ * comment, và string để tránh phát hiện nhầm thẻ đóng trong code blocks.
+ *
+ * Main functions:
+ * - findClosingTagPosition() : Tìm vị trí thẻ đóng thực sự
+ * ------------------------------------------------------------------
+ */
+
+// ─── Functions ──────────────────────────────────────────────────────────
+/**
  * Tìm vị trí của thẻ đóng trong khi tôn trọng ngữ cảnh backtick, comment và string.
  * Điều này đảm bảo các thẻ đóng bên trong code blocks, comments hoặc strings không bị
  * phát hiện nhầm là thẻ đóng thực sự.

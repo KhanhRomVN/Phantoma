@@ -60,7 +60,7 @@ export const ListHttpsBlock: React.FC<ListHttpsBlockProps> = ({
   // Fallback: nếu không parse được, hiển thị nguyên bản
   if (dataRows.length === 0) {
     return (
-      <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]">
+      <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
         <pre className="p-3 text-[12px] font-mono text-text-primary whitespace-pre-wrap overflow-auto" style={{ maxHeight }}>
           {content}
         </pre>
@@ -69,7 +69,7 @@ export const ListHttpsBlock: React.FC<ListHttpsBlockProps> = ({
   }
 
   return (
-    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]">
+    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
       {/* Summary line */}
       {summaryLine && !summaryLine.startsWith('|') && (
         <div className="px-3 py-2 text-[11px] text-text-secondary border-b border-border bg-card-background">

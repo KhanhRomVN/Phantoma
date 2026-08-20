@@ -1,5 +1,21 @@
+/**
+ * ------------------------------------------------------------------
+ * useCollapseSections
+ * ------------------------------------------------------------------
+ * Hook quản lý trạng thái collapse cho các section trong chat UI.
+ *
+ * Main returns:
+ * - collapsedSections     : Set các section đang collapse
+ * - toggleCollapse        : Toggle collapse cho một section
+ * - setInitiallyCollapsed : Set collapse ban đầu cho nhiều sections
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useCallback, useRef } from 'react';
 
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useCollapseSections = () => {
   const renderCountRef = useRef(0);
   const toggleCountRef = useRef(0);

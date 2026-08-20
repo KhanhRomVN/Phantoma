@@ -1,3 +1,16 @@
+/**
+ * ------------------------------------------------------------------
+ * Tool Output Types
+ * ------------------------------------------------------------------
+ * Định nghĩa cấu trúc dữ liệu cho output của tool execution.
+ *
+ * Main types:
+ * - ToolOutput  : Output của một tool execution
+ * - ToolOutputs : Map từ actionId sang ToolOutput
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ToolOutput {
   output: string;
   isError: boolean;

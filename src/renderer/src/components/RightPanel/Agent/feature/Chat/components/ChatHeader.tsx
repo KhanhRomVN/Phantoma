@@ -1,6 +1,23 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * ChatHeader
+ * ------------------------------------------------------------------
+ * Header component cho chat — hiển thị model info, context usage,
+ * và tìm kiếm toggle.
+ *
+ * Main features:
+ * - Hiển thị model provider favicon và tên model
+ * - Hiển thị context usage (prompt/completion/total tokens)
+ * - Toggle tìm kiếm
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface ChatHeaderProps {
   displayedModel: any;
   currentAccount: any;

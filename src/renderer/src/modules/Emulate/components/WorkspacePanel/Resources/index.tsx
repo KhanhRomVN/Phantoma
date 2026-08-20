@@ -1,16 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
-// Components
+// ── Components ──
 import { ResourceList } from './ResourceList';
 import { ResourcePreview } from './ResourcePreview';
 
-// Types
+// ── Types ──
 import { NetworkRequest } from '../Home/Filter';
 import { ResourceItem, ResourceType } from '../../../types/resource.types';
 
-// Constants
+// ── Constants ──
 import { detectResourceType } from '../../../constants/resource';
 
-// Utils
+// ── Utils ──
 import { formatSize } from '../../../utils/source-tree.util';
 import { detectWasm } from '../../../utils/wasm-detector.util';
 

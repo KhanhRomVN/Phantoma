@@ -20,7 +20,7 @@
 // TYPES
 import { ChatRequest, ChatStreamChunk, Provider, Account } from '../types';
 
-// CONSTANTS
+// ── Constants ──
 import { MOCK_PROVIDERS, MOCK_ACCOUNTS } from '../constants';
 import { logger } from '@renderer/utils/logger';
 

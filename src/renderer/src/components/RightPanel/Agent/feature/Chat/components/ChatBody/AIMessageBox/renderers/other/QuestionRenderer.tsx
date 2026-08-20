@@ -1,11 +1,26 @@
 import React from 'react';
 
-// Types
+/**
+ * ------------------------------------------------------------------
+ * QuestionRenderer
+ * ------------------------------------------------------------------
+ * Renderer cho block câu hỏi/tùy chọn.
+ * Xử lý cả định dạng tùy chọn đơn và nhiều câu hỏi.
+ *
+ * Main features:
+ * - Render QuestionAnswerBlock với questions/options
+ * - Hỗ trợ disabled state
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { Question, QuestionAnswer } from '../../../../../types/message';
 
-// Components
+// ── Components ──
 import QuestionAnswerBlock from '../../blocks/other/QuestionAnswerBlock';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface QuestionRendererProps {
   questions?: Question[];
   options?: string[];

@@ -1,9 +1,30 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * GitStatusBlock
+ * ------------------------------------------------------------------
+ * Block hiển thị git status với danh sách files thay đổi.
+ * Hỗ trợ confirm/cancel cho commit operations.
+ *
+ * Main features:
+ * - Hiển thị staged/unstaged files với icons
+ * - Nút Confirm/Cancel cho git operations
+ * - Processing state
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import { Check, X } from 'lucide-react';
-import FileIcon from '@renderer/components/common/FileIcon';
+
+// ── Utils ──
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
 
+// ── Components ──
+import FileIcon from '@renderer/components/common/FileIcon';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface GitStatusItem {
   status: string;
   path: string;

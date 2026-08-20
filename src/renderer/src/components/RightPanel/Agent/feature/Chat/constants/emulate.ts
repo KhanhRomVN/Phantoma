@@ -1,6 +1,19 @@
+/**
+ * ------------------------------------------------------------------
+ * Emulate Tool Tag Registry
+ * ------------------------------------------------------------------
+ * Định nghĩa metadata cho các tool thuộc module Emulate.
+ * Bao gồm cấu hình permission và timeout cho từng tool.
+ *
+ * Main exports:
+ * - EMULATE_TAG_REGISTRY : Registry chứa định nghĩa 8 emulate tools
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
 import type { TagDefinition } from "../types/tag-types";
 
-// ===== EMULATE TOOL TAG REGISTRY =====
+// ─── Constants ──────────────────────────────────────────────────────────
 export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
   list_https: {
     id: "list_https",

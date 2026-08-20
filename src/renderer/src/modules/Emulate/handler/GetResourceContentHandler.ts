@@ -3,7 +3,7 @@
  *
  * Usage:
  *   const handler = new GetResourceContentHandler();
- *   const result = handler.handle(requests, 5, { startLine: 1, endLine: 100 });
+ *   const result = handler.handle(requests, 'manifest.json', { startLine: 1, endLine: 100 });
  *
  * Hỗ trợ line range cho text-based resources (fonts, SVG, etc.)
  * Binary resources (images, videos) trả về metadata only.
@@ -29,14 +29,14 @@ export interface GetResourceContentResult {
 
 export class GetResourceContentHandler {
   /**
-   * Get resource content by stable index (1-indexed) with optional line range.
-   * @param requests     - All requests array
-   * @param stableIndex  - 1-indexed position from list_resources output
-   * @param options      - Optional line range { startLine, endLine }
+   * Get resource content by filename with optional line range.
+   * @param requests  - All requests array
+   * @param filename  - Filename from list_resources output
+   * @param options   - Optional line range { startLine, endLine }
    */
   public handle(
     requests: NetworkRequest[],
-    stableIndex: number,
+    filename: string,
     options: GetResourceContentOptions = {},
   ): GetResourceContentResult {
     // Build resource items (same logic as ListResourcesHandler)
@@ -103,17 +103,15 @@ export class GetResourceContentHandler {
     // Sort by timestamp (newest first) to match list_resources order
     items.sort((a, b) => b.timestamp - a.timestamp);
 
-    // Convert 1-indexed stable index to 0-indexed array position
-    const arrayIndex = stableIndex - 1;
+    // Find item by filename
+    const item = items.find((it) => it.filename === filename);
 
-    if (arrayIndex < 0 || arrayIndex >= items.length) {
+    if (!item) {
       return {
-        text: `[get_resource_content] Error: index ${stableIndex} out of range (1-${items.length})`,
+        text: `[get_resource_content] Error: resource file "${filename}" not found. Available files: ${items.map((it) => it.filename).join(', ')}`,
         found: false,
       };
     }
-
-    const item = items[arrayIndex];
 
     // Check if resource has text content
     const isTextResource =
@@ -128,7 +126,7 @@ export class GetResourceContentHandler {
       // Binary resource - return metadata only
       return {
         text: [
-          `[get_resource_content] Resource #${stableIndex}`,
+          `[get_resource_content] Resource: ${filename}`,
           `Type: ${item.type}`,
           `Filename: ${item.filename}`,
           `Content-Type: ${item.contentType}`,
@@ -149,7 +147,7 @@ export class GetResourceContentHandler {
     if (!content) {
       return {
         text: [
-          `[get_resource_content] Resource #${stableIndex}`,
+          `[get_resource_content] Resource: ${filename}`,
           `Type: ${item.type}`,
           `Filename: ${item.filename}`,
           `Content-Type: ${item.contentType}`,
@@ -193,7 +191,7 @@ export class GetResourceContentHandler {
     }
 
     const text = [
-      `[get_resource_content] Resource #${stableIndex}`,
+      `[get_resource_content] Resource: ${filename}`,
       `Type: ${item.type}`,
       `Filename: ${item.filename}`,
       `Content-Type: ${item.contentType}`,

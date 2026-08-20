@@ -1,5 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * Shared Constants & Helpers
+ * ------------------------------------------------------------------
+ * Định nghĩa các hằng số dùng chung, UI tag registry, và các helper
+ * functions tra cứu metadata cho toàn bộ hệ thống tag/tool.
+ *
+ * Main exports:
+ * - TOOL_ACTION_TYPES     : Các loại action (accept/reject)
+ * - EXECUTION_STATUS      : Trạng thái thực thi tool
+ * - PERMISSION_MODE       : Metadata cho các chế độ permission
+ * - SHARED_TAG_REGISTRY   : Registry cho UI tags (markdown, thinking, question)
+ * - getTagDef()           : Tra cứu định nghĩa tag
+ * - requiresConfirmation() : Kiểm tra tool có cần xác nhận không
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import React from "react";
+
+// ── UI ──
 import { Zap, ShieldCheck } from "lucide-react";
+
+// ── Types ──
 import type {
   PermissionMode,
   PermissionValue,
@@ -10,6 +33,7 @@ import type {
   TagType,
 } from "../types/tag-types";
 
+// ─── Re-exports ─────────────────────────────────────────────────────────
 // Re-export types for backward compatibility
 export type {
   PermissionMode,
@@ -21,6 +45,7 @@ export type {
   TagType,
 };
 
+// ─── Constants ──────────────────────────────────────────────────────────
 export const STREAM_BOX_HEIGHT = 154;
 
 // Whitelist of allowed file extensions for external files

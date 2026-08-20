@@ -3,7 +3,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '../../../../../constants/constants';
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
-import ListResourcesBlock from '../../blocks/emulate/ListResourcesBlock';
+import TreeBlock, { parseResourceTable } from '../../blocks/other/TreeBlock';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 
 export const ListResourcesRenderer: React.FC<BaseRendererProps> = ({
@@ -65,7 +65,7 @@ export const ListResourcesRenderer: React.FC<BaseRendererProps> = ({
       )}
 
       {output && !isError && !isCollapsed && (
-        <ListResourcesBlock content={output} maxHeight="400px" />
+        <TreeBlock files={parseResourceTable(output)} maxHeight="400px" />
       )}
     </div>
   );

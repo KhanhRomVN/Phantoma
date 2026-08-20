@@ -1,10 +1,24 @@
 import { useMemo, useRef } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * useMessageParsing
+ * ------------------------------------------------------------------
+ * Hook phân tích messages với cache nâng cao để tối ưu hiệu năng.
+ * Sử dụng incremental parsing và cache để tránh re-parse không cần thiết.
+ *
+ * Main returns:
+ * - parsedMessages : Mảng messages đã được parse thành structured data
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { Message } from '../../types/message';
+
+// ── Services ──
 import { parseAIResponse } from '../../services/ResponseParser';
 
-/**
- * Hook phân tích messages với cache nâng cao để tối ưu hiệu năng
- */
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useMessageParsing = (messages: Message[], isStreaming: boolean) => {
   // Parse cache — reuse results across renders, avoiding redundant re-parses
   // when only unrelated state changes (same messages array, same content).

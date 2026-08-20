@@ -1,4 +1,4 @@
-// Types for Nmap Tool
+// ── Types ── for Nmap Tool
 
 export interface NmapScanParams {
   target: string;

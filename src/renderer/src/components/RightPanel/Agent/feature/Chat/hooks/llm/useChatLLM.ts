@@ -1,26 +1,56 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * useChatLLM
+ * ------------------------------------------------------------------
+ * Hook chính quản lý toàn bộ chat LLM flow.
+ * Xử lý send message, streaming response, và tool execution.
+ *
+ * Main features:
+ * - sendMessage          : Gửi message và xử lý streaming response
+ * - stopGeneration       : Dừng generation đang chạy
+ * - Tool auto-execution  : Tự động thực thi tool sau khi AI response
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { Message, QuestionAnswer } from '../../types/message';
 import { ToolAction, parseAIResponse } from '../../services/ResponseParser';
+import { ChatSession } from '../../types/chat';
+import { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
+
+// ── Context ──
+import { useSettings } from '../../../../context/SettingsContext';
+import { useProject } from '../../../../context/ProjectContext';
+
+// ── Hooks ──
+import { useFileUpload } from '../workspace/useFileUpload';
+import { useStreamingState } from './useStreamingState';
+import { useConversationRefs } from './useConversationRefs';
+import { useMessageHandlers } from './useMessageHandlers';
+
+// ── Services ──
 import {
   logChatToWorkspace,
   saveConversation,
   calculateTokens,
   deleteConversation,
 } from '../../services/ConversationService';
-import { useSettings } from '../../../../context/SettingsContext';
-import { useProject } from '../../../../context/ProjectContext';
-import { useFileUpload } from '../workspace/useFileUpload';
-import { ChatSession } from '../../types/chat';
-import { useStreamingState } from './useStreamingState';
-import { useConversationRefs } from './useConversationRefs';
-import { useMessageHandlers } from './useMessageHandlers';
 import { PromptBuilder } from '../../services/PromptBuilder';
 import { StreamingService } from '../../services/StreamingService';
-import { TOOL_ACTION_TYPES } from '../../constants/constants';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
-import { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
+
+// ── Constants ──
+import { TOOL_ACTION_TYPES } from '../../constants/constants';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
+
+// ── Controllers ──
 import { EmulateController } from '@renderer/controller/EmulateController';
+
+// ── Prompts ──
 import {
   buildTrafficContext,
   buildEmptyTrafficContext,
@@ -28,6 +58,7 @@ import {
   buildEmptyFilterContext,
 } from '../../prompts/emulate';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseChatLLMProps {
   apiUrl: string;
   selectedTab: ChatSession | null;

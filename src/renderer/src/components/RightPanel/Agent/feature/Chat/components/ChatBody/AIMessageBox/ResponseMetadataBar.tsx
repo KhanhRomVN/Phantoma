@@ -1,9 +1,30 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * ResponseMetadataBar
+ * ------------------------------------------------------------------
+ * Hiển thị thống kê sử dụng token và số phản hồi.
+ * Hỗ trợ xem nội dung thô (request/response) và parse debug info.
+ *
+ * Main features:
+ * - Hiển thị token usage thống kê
+ * - Xem raw request/response content
+ * - Retry và revert conversation
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
+
+// ── Types ──
 import { Message } from '../../../types/message';
+
+// ── Components ──
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import RevertConfirmModal from '../RevertConfirmModal';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface ResponseMetadataBarProps {
   responseNumber: number;
   message: Message;

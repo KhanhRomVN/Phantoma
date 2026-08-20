@@ -1,4 +1,4 @@
-// Types
+// ── Types ──
 import type { SecurityIssue } from '../../Tool/utils/securityScanner';
 
 export { SecurityIssue };

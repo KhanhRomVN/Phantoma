@@ -1,8 +1,19 @@
 /**
- * Export tập trung cho tất cả renderer components
- * Giúp việc import renderers gọn gàng và dễ bảo trì hơn
+ * ------------------------------------------------------------------
+ * Renderers Index
+ * ------------------------------------------------------------------
+ * Export tập trung cho tất cả renderer components.
+ * Giúp việc import renderers gọn gàng và dễ bảo trì.
+ *
+ * Main exports:
+ * - 12 code renderers
+ * - 8 emulate renderers
+ * - 14 recon renderers
+ * - 4 other renderers (markdown, question, error, warning)
+ * ------------------------------------------------------------------
  */
 
+// ─── Exports ────────────────────────────────────────────────────────────
 export { ReadFileRenderer } from './code/ReadFileRenderer';
 export { WriteToFileRenderer } from './code/WriteToFileRenderer';
 export { ReplaceInFileRenderer } from './code//ReplaceInFileRenderer';

@@ -1,4 +1,25 @@
+/**
+ * ------------------------------------------------------------------
+ * Code Executor
+ * ------------------------------------------------------------------
+ * Thực thi các code tools bằng cách gọi CodeController.
+ * Mỗi executor function gọi CodeController.executeTool() và
+ * trả về output hoặc error message.
+ *
+ * Main functions:
+ * - executeReadFile()      : Thực thi read_file tool
+ * - executeWriteToFile()   : Thực thi write_to_file tool
+ * - executeReplaceInFile() : Thực thi replace_in_file tool
+ * - executeGrep()          : Thực thi grep tool
+ * - executeRunCommand()    : Thực thi run_command tool
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Controller ──
 import { CodeController } from '@renderer/controller/CodeController';
+
+// ── Types ──
 import {
   DeleteFileParams,
   GrepParams,
@@ -12,6 +33,7 @@ import {
 } from '../../types/tool-types';
 import { FindFilesParams } from '../parsers/CodeParser';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 // ===== DeleteFileExecutor =====
 
 export const executeDeleteFile = async (params: DeleteFileParams): Promise<string | null> => {

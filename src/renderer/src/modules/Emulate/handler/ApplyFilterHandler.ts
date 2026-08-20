@@ -38,7 +38,7 @@ export class ApplyFilterHandler {
       }
     }
 
-    // Types
+    // ── Types ──
     if (params.types) {
       for (const { action, value } of params.types) {
         const key = value as keyof typeof result.type;

@@ -1,3 +1,18 @@
+/**
+ * ------------------------------------------------------------------
+ * Prompt Builder
+ * ------------------------------------------------------------------
+ * Xây dựng system prompt và context cho LLM requests.
+ * Chọn prompt module phù hợp theo feature và merge với system info.
+ *
+ * Main functions:
+ * - buildPrompt()         : Build full prompt payload cho request
+ * - getShallowTree()      : Rút gọn cây thư mục cho context
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Prompts ──
 import {
   getDefaultPrompt as getCodeDefaultPrompt,
   combinePrompts as combineCodePrompts,
@@ -10,10 +25,17 @@ import {
   getDefaultPrompt as getReconDefaultPrompt,
   combinePrompts as combineReconPrompts,
 } from '../prompts/recon';
+
+// ── Services ──
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+
+// ── Types ──
 import type { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface PromptBuilderOptions {
   content: string;
   isReq1: boolean;

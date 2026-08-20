@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 // Services
@@ -106,7 +106,9 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
     return () => {
       if (removeListener) window.api.off('mobile:logcat-output', removeListener);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      logcatService.stop(emulatorSerial).catch((err) => logger.warn('[LogViewer] Failed to stop logcat:', err));
+      logcatService
+        .stop(emulatorSerial)
+        .catch((err) => logger.warn('[LogViewer] Failed to stop logcat:', err));
       setIsRunning(false);
     };
   }, [emulatorSerial, isPaused]);

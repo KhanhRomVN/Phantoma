@@ -1,4 +1,4 @@
-// Types
+// ── Types ──
 import { NetworkRequest } from '../../../types/inspector';
 
 interface CookieDetailsProps {

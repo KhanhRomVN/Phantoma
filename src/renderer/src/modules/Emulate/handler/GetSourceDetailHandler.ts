@@ -3,7 +3,7 @@
  *
  * Usage:
  *   const handler = new GetSourceDetailHandler();
- *   const result = handler.handle(requests, unpackedScripts, 3);
+ *   const result = handler.handle(requests, unpackedScripts, 'example.com/assets/main.js');
  *
  * Ưu tiên unpacked source nếu có, fallback về responseBody.
  */
@@ -24,44 +24,49 @@ export interface GetSourceDetailResult {
 
 export class GetSourceDetailHandler {
   /**
-   * Get source file detail by stable index (1-indexed).
+   * Get source file detail by file path.
    * @param requests - All requests array
    * @param unpackedScripts - Unpacked script sources map
-   * @param stableIndex - 1-indexed position from list_sources output
+   * @param filePath - File path from list_sources output (e.g., 'example.com/assets/main.js')
    */
   public handle(
     requests: NetworkRequest[],
     unpackedScripts: Map<string, CdpScriptUnpackedData> | undefined,
-    stableIndex: number,
+    filePath: string,
   ): GetSourceDetailResult {
-    // Build unfiltered flat file list with stable indices (same logic as ListSourcesHandler)
+    // Build unfiltered flat file list with their full paths
     const allRequests = requests.filter((r) => r.url && r.url.length > 0);
     const tree = buildSourceTree(allRequests as any);
-    const flatFiles: SourceNode[] = [];
+    const flatFiles: { node: SourceNode; fullPath: string }[] = [];
 
-    const flatten = (nodes: SourceNode[]) => {
-      for (const node of nodes) {
-        if (node.type === 'file') {
-          flatFiles.push(node);
-        }
+    const collectFiles = (node: SourceNode, parentPath: string) => {
+      if (node.type === 'domain' || node.type === 'folder') {
+        const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
         if (node.children) {
-          flatten(node.children);
+          for (const child of node.children) {
+            collectFiles(child, currentPath);
+          }
         }
+      } else if (node.type === 'file') {
+        const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+        flatFiles.push({ node, fullPath });
       }
     };
-    flatten(tree.roots);
+    for (const root of tree.roots) {
+      collectFiles(root, '');
+    }
 
-    // Convert 1-indexed stable index to 0-indexed array position
-    const arrayIndex = stableIndex - 1;
+    // Find file by path
+    const match = flatFiles.find((f) => f.fullPath === filePath);
 
-    if (arrayIndex < 0 || arrayIndex >= flatFiles.length) {
+    if (!match) {
       return {
-        text: `[get_source_detail] Error: index ${stableIndex} out of range (1-${flatFiles.length})`,
+        text: `[get_source_detail] Error: source file "${filePath}" not found. Available files: ${flatFiles.map((f) => f.fullPath).slice(0, 10).join(', ')}${flatFiles.length > 10 ? '...' : ''}`,
         found: false,
       };
     }
 
-    const file = flatFiles[arrayIndex];
+    const file = match.node;
 
     // Tìm request gốc để lấy responseBody
     const request = requests.find((r) => r.url === file.url);
@@ -101,7 +106,8 @@ export class GetSourceDetailHandler {
     }
 
     const text = [
-      `[get_source_detail] File: ${file.name} (stt=${stableIndex})`,
+      `[get_source_detail] File: ${file.name}`,
+      `Path: ${filePath}`,
       `URL: ${file.url || 'N/A'}`,
       `Size: ${file.size ? formatFileSize(file.size) : 'unknown'}`,
       `Source: ${sourceLabel}`,

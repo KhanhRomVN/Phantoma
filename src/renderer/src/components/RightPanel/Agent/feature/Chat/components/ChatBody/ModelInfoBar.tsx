@@ -1,16 +1,31 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * ModelInfoBar
+ * ------------------------------------------------------------------
+ * Component message box độc lập hiển thị thông tin model.
+ * Hiển thị provider, model ID, email, và website URL.
+ *
+ * Main features:
+ * - Parse __MODEL_SWITCH__:: system message
+ * - Hiển thị provider favicon
+ * - Hiển thị model info dạng bar trong chat
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
+
+// ── Types ──
 import { Message } from '../../types/message';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface ModelInfoBarProps {
   message: Message;
 }
 
-/**
- * ModelInfoBar là một component message box độc lập hiển thị
- * thông tin model (provider, model ID, email, website URL).
- * Nó xuất hiện như một thanh độc lập trong chat, tương tự UserMessageBox và AIMessageBox.
- */
+// ─── Component ──────────────────────────────────────────────────────────
 const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
   const [faviconError, setFaviconError] = React.useState(false);
 

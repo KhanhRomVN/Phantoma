@@ -1,4 +1,4 @@
-// Types for Amass Tool
+// ── Types ── for Amass Tool
 
 export interface AmassScanParams {
   target: string;

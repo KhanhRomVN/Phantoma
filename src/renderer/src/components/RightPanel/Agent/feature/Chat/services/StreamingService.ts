@@ -1,7 +1,26 @@
+/**
+ * ------------------------------------------------------------------
+ * Streaming Service
+ * ------------------------------------------------------------------
+ * Xử lý SSE streaming từ LLM backend.
+ * Parse chunks, extract metadata/usage/content/thinking, và flush batch.
+ *
+ * Main functions:
+ * - streamChat() : Stream chat response từ API với SSE
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { Message } from '../types/message';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
+
+// ── Local ──
 import { calculateTokens } from './ConversationService';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface StreamConfig {
   apiUrl: string;
   model: any;

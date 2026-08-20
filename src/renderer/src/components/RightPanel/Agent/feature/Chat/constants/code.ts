@@ -1,6 +1,19 @@
+/**
+ * ------------------------------------------------------------------
+ * Code Tool Tag Registry
+ * ------------------------------------------------------------------
+ * Định nghĩa metadata cho các tool thao tác với code/filesystem.
+ * Bao gồm cấu hình permission, timeout, và features cho từng tool.
+ *
+ * Main exports:
+ * - CODE_TAG_REGISTRY : Registry chứa định nghĩa 13 code tools
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
 import type { TagDefinition } from "../types/tag-types";
 
-// ===== CODE TOOL TAG REGISTRY =====
+// ─── Constants ──────────────────────────────────────────────────────────
 export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
   read_file: {
     id: "read_file",

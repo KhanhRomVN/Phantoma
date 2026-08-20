@@ -1,7 +1,27 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * ChatFooter
+ * ------------------------------------------------------------------
+ * Footer component cho chat — chứa MessageInput và FilesPreviews.
+ * Xử lý gửi message, file upload, và các dropdown liên quan.
+ *
+ * Main features:
+ * - Message input với textarea và file previews
+ * - Project structure drawer toggle
+ * - Changes dropdown cho file mutations
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Components ──
 import FilesPreviews from '../../../components/common/MessageInput/FilesPreviews';
 import MessageInput from '../../../components/common/MessageInput';
+
+// ── Types ──
 import { type FileMutationTool } from '../constants/constants';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface ChatFooterProps {
   message: string;
   setMessage: React.Dispatch<React.SetStateAction<string>>;

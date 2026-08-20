@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Clock, Trash2, Eye } from 'lucide-react';
 
-// Types
+// ── Types ──
 import type { HistoryEntry, PayloadItem } from '../../../../../../types/repeater.types';
 
-// Constants
+// ── Constants ──
 import { getStatusColor, getStatusBgColor } from '../../../../../../constants/status';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 interface HistoryTabProps {

@@ -1,7 +1,29 @@
+/**
+ * ------------------------------------------------------------------
+ * Other Parser
+ * ------------------------------------------------------------------
+ * Parse các tag không thuộc code/emulate/recon.
+ * Bao gồm markdown, question, và thinking blocks.
+ *
+ * Main functions:
+ * - parseMarkdown()          : Parse markdown content
+ * - parseQuestion()          : Parse question tag thành structured data
+ * - parseThinking()          : Parse thinking content
+ * - extractThinkingBlocks()  : Pre-extract thinking blocks từ content
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import type { Question, QuestionType } from '../../types/message';
+
+// ── Utils ──
 import { findClosingTagPosition } from '../../utils/TagClosingFinder';
+
+// ── Constants ──
 import { getAllToolTypes } from '../../constants/constants';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 // ===== MarkdownParser =====
 
 export const parseMarkdown = (innerContent: string): string => {

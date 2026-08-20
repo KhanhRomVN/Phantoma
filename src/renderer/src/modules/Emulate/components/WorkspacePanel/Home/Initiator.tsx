@@ -1,9 +1,9 @@
 import { GitBranch, FileCode } from 'lucide-react';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-// Types
+// ── Types ──
 import { NetworkRequest } from '../../../types/inspector';
 
 interface InitiatorDetailsProps {

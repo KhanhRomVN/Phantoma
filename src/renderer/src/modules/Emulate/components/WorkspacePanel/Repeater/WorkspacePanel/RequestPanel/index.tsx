@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-// Components
+// ── Components ──
 import { ParamTab } from './TabContent/ParamTab';
 import { HeaderTab } from './TabContent/HeaderTab';
 import { BodyTab } from './TabContent/BodyTab';
@@ -12,7 +12,7 @@ import { PayloadResultModal } from '../ResponsePanel/modal/PayloadResultModal';
 import { RequestBar } from './RequestBar';
 import { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
-// Types
+// ── Types ──
 import { NetworkRequest } from '../../../Home/Filter';
 import type {
   ParamItem,
@@ -22,10 +22,10 @@ import type {
   RunResult,
 } from '../../../../../types/repeater.types';
 
-// Hooks
+// ── Hooks ──
 import { useRepeaterPersistence } from '../../../../../hooks/repeater/useRepeaterPersistence';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 // Services

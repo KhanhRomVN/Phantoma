@@ -1,10 +1,10 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// Constants
+// ── Constants ──
 import { getToolLabel } from '../../../../../constants/constants';
 
-// Types
+// ── Types ──
 import { BaseRendererProps, DiffStats } from '../../../../../types/renderer-types';
 import {
   getDisplayPath,
@@ -15,7 +15,7 @@ import {
 // ICONS
 import FileIcon from '@renderer/components/common/FileIcon';
 
-// Components
+// ── Components ──
 import { TagHeader } from '../../TagHeader';
 import ActionBar from '../../ActionBar';
 import ErrorBlock from '../../blocks/other/ErrorBlock';

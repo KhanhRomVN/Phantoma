@@ -1,4 +1,26 @@
+/**
+ * ------------------------------------------------------------------
+ * Emulate Parser
+ * ------------------------------------------------------------------
+ * Parse XML tags từ AI response cho các emulate tools.
+ * Mỗi tool có một parse function riêng để extract params.
+ *
+ * Main functions:
+ * - parseApplyFilter()        : Parse apply_filter tag
+ * - parseGetHttpsDetail()     : Parse get_https_detail tag
+ * - parseGetResourceContent() : Parse get_resource_content tag
+ * - parseGetSourceDetail()    : Parse get_source_detail tag
+ * - parseListHttps()          : Parse list_https tag
+ * - parseListResources()      : Parse list_resources tag
+ * - parseListSources()        : Parse list_sources tag
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { extractParamValue } from '../../utils/ToolParser';
+
+// ── Types ──
 import {
   GetHttpsDetailParams,
   GetResourceContentParams,
@@ -9,6 +31,7 @@ import {
   ListSourcesParams,
 } from '../../types/tool-types';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 // ===== ApplyFilterParser =====
 
 export interface ApplyFilterParams {
@@ -115,18 +138,17 @@ export function parseGetHttpsDetail(innerContent: string): GetHttpsDetailParams 
  * Parse get_resource_content tag from AI response.
  * Format:
  *   <get_resource_content>
- *     <index>3</index>
+ *     <filename>manifest.json</filename>
  *     <start_line>1</start_line>
  *     <end_line>100</end_line>
  *   </get_resource_content>
  */
 export function parseGetResourceContent(innerContent: string): GetResourceContentParams {
-  const params: GetResourceContentParams = { index: -1 };
+  const params: GetResourceContentParams = { filename: '' };
 
-  const indexParam = extractParamValue(innerContent, 'index');
-  if (indexParam) {
-    const parsed = parseInt(indexParam, 10);
-    if (!isNaN(parsed)) params.index = parsed;
+  const filenameParam = extractParamValue(innerContent, 'filename');
+  if (filenameParam) {
+    params.filename = filenameParam.trim();
   }
 
   const startLineParam = extractParamValue(innerContent, 'start_line');
@@ -148,15 +170,14 @@ export function parseGetResourceContent(innerContent: string): GetResourceConten
 
 /**
  * Parse get_source_detail tag from AI response.
- * Format: <get_source_detail><index>5</index></get_source_detail>
+ * Format: <get_source_detail><filepath>example.com/assets/main.js</filepath></get_source_detail>
  */
 export function parseGetSourceDetail(innerContent: string): GetSourceDetailParams {
-  const params: GetSourceDetailParams = { index: -1 };
+  const params: GetSourceDetailParams = { filepath: '' };
 
-  const indexParam = extractParamValue(innerContent, 'index');
-  if (indexParam) {
-    const parsed = parseInt(indexParam, 10);
-    if (!isNaN(parsed)) params.index = parsed;
+  const filepathParam = extractParamValue(innerContent, 'filepath');
+  if (filepathParam) {
+    params.filepath = filepathParam.trim();
   }
 
   return params;

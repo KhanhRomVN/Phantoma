@@ -1,10 +1,26 @@
 import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * ErrorRenderer
+ * ------------------------------------------------------------------
+ * Renderer cho block lỗi trong chat.
+ * Hiển thị lỗi với ngữ cảnh tên tool tùy chọn.
+ *
+ * Main features:
+ * - Hiển thị ErrorBlock với tool name context
+ * - Status dot màu error
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { $ } from '@renderer/utils/color';
 
-// Components
+// ── Components ──
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 import { TagHeader } from '../../TagHeader';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface ErrorRendererProps {
   content: string;
   errorCode?: string;

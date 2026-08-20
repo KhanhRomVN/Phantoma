@@ -1,5 +1,23 @@
+/**
+ * ------------------------------------------------------------------
+ * Message Types
+ * ------------------------------------------------------------------
+ * Định nghĩa cấu trúc dữ liệu cho message trong chat.
+ * Bao gồm Message, Question, và các type liên quan.
+ *
+ * Main types:
+ * - Message         : Core message type cho một lượt chat
+ * - Question        : Câu hỏi hiển thị cho người dùng
+ * - QuestionAnswer  : Câu trả lời của người dùng cho question
+ * - QuestionType    : Loại câu hỏi (single/multi/text/confirm)
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import type { ParsedResponse } from "../services/ResponseParser";
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export type QuestionType = "single" | "multi" | "text" | "confirm";
 
 export interface Question {

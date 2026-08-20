@@ -1,8 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * MarkdownRenderer
+ * ------------------------------------------------------------------
+ * Renderer cho block nội dung markdown.
+ * Bọc MarkdownBlock với style chuẩn.
+ *
+ * Main features:
+ * - Render markdown với path detection
+ * - ClassName tùy chỉnh
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
 
-// Components
+// ── Components ──
 import MarkdownBlock from '../../blocks/other/MarkdownBlock';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface MarkdownRendererProps {
   content: string;
   knownFilePaths?: Map<string, string>;

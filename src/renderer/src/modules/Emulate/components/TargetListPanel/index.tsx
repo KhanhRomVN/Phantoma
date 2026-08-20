@@ -2,19 +2,19 @@ import React, { useState, useCallback, useMemo } from 'react';
 
 import { logger } from '@renderer/utils/logger';
 
-// Components
+// ── Components ──
 import TargetList from './TargetList';
 
-// Types
+// ── Types ──
 import { TargetTab } from '../../types/target.types';
 
-// Constants
+// ── Constants ──
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
 // Services
 import { logcatService } from '../../services/logcat.service';
 
-// Utils
+// ── Utils ──
 import { getFaviconUrl } from '../../../../shared/utils/faviconUtils';
 
 export function getTargetPlatform(tab: TargetTab): AppPlatform {

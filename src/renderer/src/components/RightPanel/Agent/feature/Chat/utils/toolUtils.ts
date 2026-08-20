@@ -1,7 +1,15 @@
 /**
- * Trả về tên hiển thị ngắn cho một action — tên file cho công cụ file,
- * hoặc chuỗi lệnh rút gọn cho run_command.
+ * ------------------------------------------------------------------
+ * Tool Utils
+ * ------------------------------------------------------------------
+ * Helper functions dùng chung cho tool actions.
+ *
+ * Main functions:
+ * - getFilename() : Trả về tên hiển thị ngắn cho một action
+ * ------------------------------------------------------------------
  */
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export const getFilename = (action: any): string => {
   if (action.type === "run_command") {
     const id = action.params.terminal_id || "";

@@ -31,7 +31,7 @@ import {
 import { useDebounce } from 'use-debounce';
 import type { SecurityIssue } from '../../../../Tool/utils/securityScanner';
 
-// Components
+// ── Components ──
 import {
   Dropdown,
   DropdownTrigger,
@@ -40,17 +40,17 @@ import {
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
 
-// Hooks
+// ── Hooks ──
 import { filterRequestsByConfig } from '../../../hooks/network/useRequestFilter';
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
 // STORE
 import { useNetworkStore } from '../../../stores/networkStore';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-// Types
+// ── Types ──
 import { InspectorFilter } from '../../../types/filter.types';
 import { NetworkRequest } from './Filter';
 

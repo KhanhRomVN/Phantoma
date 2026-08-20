@@ -1,13 +1,27 @@
-import { useState, useRef, useEffect } from 'react';
-import { logger } from '@renderer/utils/logger';
-import { extensionService } from '../../../../services/ExtensionService';
-
 /**
- * Quản lý trạng thái draft message cho chat footer, bao gồm:
+ * ------------------------------------------------------------------
+ * useDraftManagement
+ * ------------------------------------------------------------------
+ * Quản lý trạng thái draft message cho chat footer.
+ *
+ * Main features:
  * - Lưu/khôi phục draft bền vững cho mỗi hội thoại
  * - Ngăn xếp undo/redo cho textarea
- * - Khôi phục input (khôi phục nội dung khi revert hội thoại)
+ * - Khôi phục input khi revert hội thoại
+ * ------------------------------------------------------------------
  */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useRef, useEffect } from 'react';
+
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+
+// ── Services ──
+import { extensionService } from '../../../../services/ExtensionService';
+
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useDraftManagement = (
   conversationId: string,
   revertInput: { value: string; nonce: number } | null,

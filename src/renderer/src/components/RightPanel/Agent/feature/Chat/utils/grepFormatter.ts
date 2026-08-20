@@ -1,5 +1,18 @@
-// src/webview-ui/src/features/chat/utils/grepFormatter.ts
+/**
+ * ------------------------------------------------------------------
+ * Grep Formatter
+ * ------------------------------------------------------------------
+ * Format kết quả grep thành văn bản dạng XML gọn nhẹ để giảm token LLM.
+ *
+ * Main types:
+ * - GrepResultData : Cấu trúc dữ liệu kết quả grep
+ *
+ * Main functions:
+ * - formatGrepResultCompact() : Format kết quả grep thành XML compact
+ * ------------------------------------------------------------------
+ */
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface GrepResultData {
   searchTerm: string;
   results: Record<

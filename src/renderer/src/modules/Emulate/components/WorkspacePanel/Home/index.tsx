@@ -14,7 +14,7 @@ import {
   GitBranch,
 } from 'lucide-react';
 
-// Components
+// ── Components ──
 import { HeadersDetails } from './Headers';
 import { BodyDetails, BodyDetailsRef } from './Body';
 import CodeBlock from '@renderer/components/common/CodeBlock';
@@ -23,13 +23,13 @@ import { InitiatorDetails } from './Initiator';
 import { RequestTable } from './RequestTable';
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 
-// Types
+// ── Types ──
 import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } from './Filter';
 
-// Hooks
+// ── Hooks ──
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 

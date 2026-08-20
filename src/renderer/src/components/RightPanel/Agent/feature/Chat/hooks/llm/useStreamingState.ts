@@ -1,11 +1,21 @@
 /**
- * useStreamingState — reducer quản lý trạng thái streaming (processing/streaming/continuing) gộp chung để giảm re-render.
+ * ------------------------------------------------------------------
+ * useStreamingState
+ * ------------------------------------------------------------------
+ * Reducer quản lý trạng thái streaming (processing/streaming/continuing)
+ * gộp chung để giảm re-render.
  *
- *    streamingReducer() : Reducer xử lý SET_PROCESSING, SET_STREAMING, SET_CONTINUING, RESET_STREAMING, STOP_ALL.
+ * Main exports:
+ * - StreamingState     : Interface trạng thái streaming
+ * - useStreamingState  : Hook quản lý streaming state
+ * ------------------------------------------------------------------
  */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useReducer, useRef, useCallback } from 'react';
 
-// TYPES
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface StreamingState {
   isProcessing: boolean;
   isStreaming: boolean;

@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { logger } from '@renderer/utils/logger';
 import { Search } from 'lucide-react';
 
-// Components
+// ── Components ──
 import { RequestPanel } from './WorkspacePanel/RequestPanel';
 import { RequestList } from './RequestList';
 
-// Types
+// ── Types ──
 import type { HistoryEntry } from '../../../types/repeater.types';
 import type { NetworkRequest } from '../Home/Filter';
 

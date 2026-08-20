@@ -1,8 +1,25 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
-// TYPES
+/**
+ * ------------------------------------------------------------------
+ * useMessagePagination
+ * ------------------------------------------------------------------
+ * Hook quản lý phân trang cho messages trong chat.
+ * Giới hạn số lượng messages hiển thị và hỗ trợ load thêm.
+ *
+ * Main returns:
+ * - visibleMessages   : Messages hiển thị hiện tại
+ * - hiddenCount       : Số messages bị ẩn
+ * - loadMore          : Load thêm messages
+ * - hasHiddenMessages : Có messages bị ẩn không
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { Message } from '../../types/message';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseMessagePaginationProps {
   messages: Message[];
   messagesPerPage?: number;

@@ -1,12 +1,19 @@
 /**
- * Central constants — re-exports from split files for backward compatibility.
+ * ------------------------------------------------------------------
+ * Central Constants
+ * ------------------------------------------------------------------
+ * Re-export tổng hợp từ các file constants tách rời để giữ backward
+ * compatibility. Cung cấp TAG_REGISTRY hợp nhất và các wrapper functions.
  *
- * Structure:
- *   shared.ts  — shared enums, helpers, UI tags, permission metadata
- *   code.ts    — code tool TAG_REGISTRY (read_file, write_to_file, ...)
- *   emulate.ts — emulate tool TAG_REGISTRY (list_https, get_https_detail)
+ * Main exports:
+ * - TAG_REGISTRY           : Registry hợp nhất từ shared + code + emulate + recon
+ * - getTagDef()            : Tra cứu định nghĩa tag theo type
+ * - requiresConfirmation() : Kiểm tra tool có cần xác nhận không
+ * - FILE_MUTATION_TOOLS    : Danh sách tool có thay đổi file
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
 // Re-export raw values
 export {
   STREAM_BOX_HEIGHT,

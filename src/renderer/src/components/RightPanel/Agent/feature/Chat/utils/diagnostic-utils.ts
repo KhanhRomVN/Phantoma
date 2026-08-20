@@ -1,3 +1,15 @@
+/**
+ * ------------------------------------------------------------------
+ * Diagnostic Utils
+ * ------------------------------------------------------------------
+ * Helper functions để format diagnostics output từ tool execution.
+ *
+ * Main functions:
+ * - formatDiagnostics() : Format mảng diagnostics thành text hiển thị
+ * ------------------------------------------------------------------
+ */
+
+// ─── Functions ──────────────────────────────────────────────────────────
 // Helper function to format diagnostics output
 export function formatDiagnostics(
   diagnostics: any[],

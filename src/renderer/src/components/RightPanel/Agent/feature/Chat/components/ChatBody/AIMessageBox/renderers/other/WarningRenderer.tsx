@@ -1,10 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * WarningRenderer
+ * ------------------------------------------------------------------
+ * Renderer cho block cảnh báo.
+ * Hiển thị thông điệp cảnh báo với hiệu ứng nhấp nháy tùy chọn.
+ *
+ * Main features:
+ * - TagHeader với warning color
+ * - WarningBlock với message
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
+
+// ── Utils ──
 import { $ } from '@renderer/utils/color';
 
-// Components
+// ── Components ──
 import WarningBlock from '../../blocks/other/WarningBlock';
 import { TagHeader } from '../../TagHeader';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface WarningRendererProps {
   label: string;
   message: string;

@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react';
-// Components
+// ── Components ──
 import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
-// Hooks
+// ── Hooks ──
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 interface ResponsePanelProps {

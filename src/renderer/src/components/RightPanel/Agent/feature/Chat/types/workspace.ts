@@ -1,3 +1,17 @@
+/**
+ * ------------------------------------------------------------------
+ * Workspace Types
+ * ------------------------------------------------------------------
+ * Định nghĩa các type cho workspace-related data.
+ *
+ * Main types:
+ * - WorkspaceItem : File hoặc folder trong workspace
+ * - ExternalFile  : File từ external path (ngoài workspace)
+ * - Rule          : User-defined rule trong system prompt
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ──────────────────────────────────────────────────────────────
 /** A file or folder in the workspace. */
 export interface WorkspaceItem {
   path: string;

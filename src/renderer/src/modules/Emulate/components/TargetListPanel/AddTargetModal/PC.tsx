@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'r
 import { logger } from '@renderer/utils/logger';
 import { Search, Loader2, Monitor, RefreshCw } from 'lucide-react';
 
-// Types
+// ── Types ──
 import type { BaseModalProps } from './index';
 import { DiscoveredApp } from '../../../types/apps';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 // Services

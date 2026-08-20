@@ -1,9 +1,30 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * QuestionAnswerBlock
+ * ------------------------------------------------------------------
+ * Block hiển thị câu hỏi tương tác cho người dùng.
+ * Hỗ trợ cả legacy format (options array) và paginated format (questions array).
+ *
+ * Main features:
+ * - Hiển thị single/multi/text/confirm questions
+ * - Pagination qua các câu hỏi
+ * - Custom values cho multi-select
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ───���────────────────────────────────────────────────────────
+// ── Types ──
 import { Question, QuestionAnswer, QuestionType } from '../../../../../types/message';
+
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
+
+// ── Components ──
 import { TagHeader } from '../../TagHeader';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface QuestionAnswerBlockProps {
   questions?: Question[];
   options?: string[];

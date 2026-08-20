@@ -1,10 +1,31 @@
 import React, { useState } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * GrepBlock
+ * ------------------------------------------------------------------
+ * Block hiển thị kết quả grep search.
+ * Hiển thị matches theo file với line numbers và syntax coloring.
+ *
+ * Main features:
+ * - Hiển thị matches theo từng file
+ * - Click để mở file tại dòng tương ứng
+ * - Error hiển thị qua ErrorBlock
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+
+// ── Utils ──
 import { $ } from '@renderer/utils/color';
-import ErrorBlock from '../other/ErrorBlock';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { logger } from '@renderer/utils/logger';
 
+// ── Components ──
+import ErrorBlock from '../other/ErrorBlock';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface GrepBlockProps {
   action: any;
   actionId: string;
@@ -248,7 +269,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
 
   return (
     <div
-      className="max-h-[320px] overflow-y-auto mt-0.5 ml-[29px] pl-3 pr-2.5 py-1.5 bg-background border rounded-[4px]"
+      className="max-h-[320px] overflow-y-auto mt-0.5 pl-3 pr-2.5 py-1.5 bg-background border rounded-[4px]"
       style={{
         scrollbarWidth: 'thin',
         scrollbarColor: 'rgba(128,128,128,0.4) transparent',

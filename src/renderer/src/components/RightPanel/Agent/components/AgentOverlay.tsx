@@ -12,7 +12,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-// UtilsS (icons)
+// ── Utils ── (icons)
 import { ShieldAlert } from 'lucide-react';
 
 interface AgentOverlayProps {

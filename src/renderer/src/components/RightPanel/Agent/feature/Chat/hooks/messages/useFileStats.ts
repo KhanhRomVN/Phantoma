@@ -1,15 +1,32 @@
+/**
+ * ------------------------------------------------------------------
+ * useFileStats
+ * ------------------------------------------------------------------
+ * Hook tính toán thống kê file hội thoại với tính toán tăng dần.
+ * Scan write_to_file và str_replace để tính additions/deletions.
+ *
+ * Main returns:
+ * - totalFiles     : Tổng số file bị thay đổi
+ * - totalAdditions : Tổng số dòng được thêm
+ * - totalDeletions : Tổng số dòng bị xóa
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useMemo, useRef } from 'react';
+
+// ── Types ──
 import { Message } from '../../types/message';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface FileStats {
   totalFiles: number;
   totalAdditions: number;
   totalDeletions: number;
 }
 
-/**
- * Hook tính toán thống kê file hội thoại với tính toán tăng dần
- */
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useFileStats = (
   messages: Message[],
   loadedConversationFileStats: FileStats | null,

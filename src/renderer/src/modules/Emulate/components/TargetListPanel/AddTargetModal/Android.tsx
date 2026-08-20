@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'r
 import { logger } from '@renderer/utils/logger';
 import { Search, Smartphone, Monitor, Loader2, RefreshCw, Check } from 'lucide-react';
 
-// Types
+// ── Types ──
 import type { BaseModalProps } from './index';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 type AndroidBodyProps = Pick<BaseModalProps, 'isOpen' | 'onAdd' | 'existingApps'>;

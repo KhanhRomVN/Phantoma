@@ -1,5 +1,22 @@
+/**
+ * ------------------------------------------------------------------
+ * useTextareaHandlers
+ * ------------------------------------------------------------------
+ * Hook xử lý textarea events với performance optimizations.
+ * Debounce checkMentions và state updates cho text rất lớn.
+ *
+ * Main returns:
+ * - handleTextareaChange : Xử lý thay đổi nội dung textarea
+ * - handleKeyDown        : Xử lý phím tắt (undo/redo)
+ * - handleOpenImage      : Mở ảnh từ attached file
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useCallback, useRef, useEffect } from 'react';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseTextareaHandlersProps {
   setMessage: (value: string) => void;
   checkMentions: (value: string) => void;

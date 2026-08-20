@@ -1,10 +1,32 @@
 // ============= GROUP TYPES =============
 
+/**
+ * ------------------------------------------------------------------
+ * Renderer Types
+ * ------------------------------------------------------------------
+ * Định nghĩa các type cho hệ thống renderer trong chat UI.
+ * Bao gồm group types, content blocks, và props cho từng renderer.
+ *
+ * Main types:
+ * - GroupType          : Các loại content group hiển thị trong chat
+ * - ContentBlock       : Block content trước khi gán key
+ * - BaseRendererProps  : Props chung cho mọi renderer
+ * - MergedRendererProps: Props cho renderer hỗ trợ merge actions
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Constants ──
 import { TOOL_ACTION_TYPES } from '../constants/constants';
+
+// ── Services ──
 import { ToolAction } from '../services/ResponseParser';
+
+// ── Types ──
 import { Message, Question } from './message';
 import { ToolOutputs } from './tool-outputs';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 /**
  * Represents different types of content groups that can be rendered in the chat
  */

@@ -1,9 +1,27 @@
 import { useCallback, useRef, useEffect } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * useMessageHandlers
+ * ------------------------------------------------------------------
+ * Hook quản lý message sending và stopping handlers.
+ * Xử lý gửi message, stop generation, và các thao tác liên quan.
+ *
+ * Main returns:
+ * - sendMessage       : Gửi message hiện tại
+ * - stopGeneration    : Dừng generation đang chạy
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
+
+// ── Services ──
 import { extensionService } from '../../../../services/ExtensionService';
 import { saveConversation } from '../../services/ConversationService';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseMessageHandlersProps {
   message: string;
   setMessage: (value: string) => void;

@@ -1,15 +1,25 @@
 /**
- * useConversationRefs — tập trung tất cả useRef dùng trong ChatLLM (messages, conversationId, model, abort...).
+ * ------------------------------------------------------------------
+ * useConversationRefs
+ * ------------------------------------------------------------------
+ * Tập trung tất cả useRef dùng trong ChatLLM.
  *
- *    Trả về object chứa các ref: messagesRef, currentConversationIdRef, backendConversationIdRef,
- *    lastUsedModelRef, lastUsedAccountRef, abortControllerRef, qwenParentIdRef, userRequestCountRef.
+ * Main returns:
+ * - messagesRef               : Ref cho danh sách messages
+ * - currentConversationIdRef  : Ref cho conversation ID hiện tại
+ * - backendConversationIdRef  : Ref cho backend conversation ID
+ * - abortControllerRef        : Ref cho AbortController
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useRef } from 'react';
 
-// TYPES
+// ── Types ──
 import { Message } from '../../types/message';
 
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useConversationRefs = () => {
   const messagesRef = useRef<Message[]>([]);
   const currentConversationIdRef = useRef<string>('');

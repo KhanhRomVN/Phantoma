@@ -1,10 +1,10 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// Constants
+// ── Constants ──
 import { getToolLabel } from '../../../../../constants/constants';
 
-// Components
+// ── Components ──
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
 import ListHttpsBlock from '../../blocks/emulate/ListHttpsBlock';

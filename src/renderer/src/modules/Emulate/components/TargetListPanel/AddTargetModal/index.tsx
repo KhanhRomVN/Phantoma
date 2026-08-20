@@ -1,13 +1,13 @@
 import React, { useRef, useCallback } from 'react';
 
-// Components
+// ── Components ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Website } from './Website';
 import { Android } from './Android';
 import { PC } from './PC';
 import { CLI } from './CLI';
 
-// Types
+// ── Types ──
 import type { AppPlatform, AppMode } from '../../../types/apps';
 
 export interface BaseModalProps {

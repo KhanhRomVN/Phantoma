@@ -30,41 +30,41 @@ Use XML tags for all tool calls:
 - No parameters.
 - Returns: A numbered list of unique hosts with \`stt\` (index), \`host\`, and \`count\` (number of requests to that host).
 - Example: \`<list_hosts />\` — list all unique hosts
-**list_sources**: List source files (scripts, stylesheets) from captured traffic, organized as a directory tree.
+**list_sources**: List source files (scripts, stylesheets) from captured traffic, organized as a simple list.
 - \`filter\`: (optional) Filter source files. Available filter attributes:
   - \`host\`: Filter by domain (case-insensitive partial match)
   - \`type\`: Filter by resource type — exact match. Values: \`js\`, \`css\`, \`doc\`, \`other\`
-- Returns: A directory tree view with indented structure showing domains → folders → files. Each file has \`stt\` (index for use with \`get_source_detail\`), name, size, and optional unpacked indicator.
+- Returns: A simple list with full file paths and sizes. Format: \`- domain.com/path/to/file.js (size)\`
 - Examples:
-  - \`<list_sources />\` — list all source files as a tree
+  - \`<list_sources />\` — list all source files
   - \`<list_sources><filter><host>cdn.example.com</host></filter></list_sources>\` — sources from a specific host
   - \`<list_sources><filter><type>js</type></filter></list_sources>\` — only JavaScript files
-- ⚠ SOURCE-BEFORE-DETAIL: Always call \`list_sources\` before \`get_source_detail\`. The index must come from a \`list_sources\` result.
-**get_source_detail**: Get the full source code of a specific file from the sources tree.
-- \`index\`: The \`stt\` (index) of the file from a previous \`list_sources\` result (required).
+- ⚠ SOURCE-BEFORE-DETAIL: Always call \`list_sources\` before \`get_source_detail\`. The filepath must come from a \`list_sources\` result.
+**get_source_detail**: Get the full source code of a specific file.
+- \`filepath\`: The full file path from a previous \`list_sources\` result (required). Example: \`example.com/assets/main.js\`
 - Returns: The file URL, size, and the source code (prettified if minified). If the file has an unpacked version (from debugger), returns the unpacked source instead.
-- Example: \`<get_source_detail><index>5</index></get_source_detail>\` — get source for file stt=5
-- ⚠ SOURCE-BEFORE-DETAIL: Always call \`list_sources\` before \`get_source_detail\`. The index must come from a \`list_sources\` result.
+- Example: \`<get_source_detail><filepath>example.com/assets/main.js</filepath></get_source_detail>\` — get source for main.js
+- ⚠ SOURCE-BEFORE-DETAIL: Always call \`list_sources\` before \`get_source_detail\`. The filepath must come from a \`list_sources\` result.
 
 **list_resources**: List all captured resource files (images, videos, audios, fonts, documents, wasm).
 - \`filter\`: (optional) Filter resources by type. Available filter attributes:
   - \`type\`: Filter by resource type — exact match. Values: \`image\`, \`video\`, \`audio\`, \`font\`, \`document\`, \`wasm\`
-- Returns: A numbered list with \`stt\` (stable index), \`type\`, \`filename\`, \`size\`, and \`content-type\`.
+- Returns: A simple list with filename, type, size, and content-type.
 - Examples:
   - \`<list_resources />\` — list all resources
   - \`<list_resources><filter><type>image</type></filter></list_resources>\` — only images
   - \`<list_resources><filter><type>wasm</type></filter></list_resources>\` — only WebAssembly modules
-- ⚠ RESOURCE-BEFORE-CONTENT: Always call \`list_resources\` before \`get_resource_content\`. The index must come from a \`list_resources\` result.
+- ⚠ RESOURCE-BEFORE-CONTENT: Always call \`list_resources\` before \`get_resource_content\`. The filename must come from a \`list_resources\` result.
 
 **get_resource_content**: Get the content of a specific resource file (with optional line range for text resources).
-- \`index\`: The \`stt\` (index) of the resource from a previous \`list_resources\` result (required).
+- \`filename\`: The filename of the resource from a previous \`list_resources\` result (required).
 - \`start_line\`: (optional) Starting line number (1-indexed, inclusive). Only for text-based resources.
 - \`end_line\`: (optional) Ending line number (1-indexed, inclusive). Only for text-based resources.
 - Returns: For text resources (fonts, SVG, documents): file metadata + content (full or line range). For binary resources (images, videos): metadata only (content viewing not supported).
 - Examples:
-  - \`<get_resource_content><index>3</index></get_resource_content>\` — get full content of resource stt=3
-  - \`<get_resource_content><index>5</index><start_line>1</start_line><end_line>100</end_line></get_resource_content>\` — get lines 1-100 of resource stt=5
-- ⚠ RESOURCE-BEFORE-CONTENT: Always call \`list_resources\` before \`get_resource_content\`. The index must come from a \`list_resources\` result.
+  - \`<get_resource_content><filename>manifest.json</filename></get_resource_content>\` — get full content of manifest.json
+  - \`<get_resource_content><filename>manifest.json</filename><start_line>1</start_line><end_line>100</end_line></get_resource_content>\` — get lines 1-100 of manifest.json
+- ⚠ RESOURCE-BEFORE-CONTENT: Always call \`list_resources\` before \`get_resource_content\`. The filename must come from a \`list_resources\` result.
 
 **apply_filter**: Modify the current request table filter. Check <filter_context> for current state first.
 - Child tags with action attribute:

@@ -1,6 +1,19 @@
+/**
+ * ------------------------------------------------------------------
+ * Recon Tool Tag Registry
+ * ------------------------------------------------------------------
+ * Định nghĩa metadata cho các tool thuộc module Recon.
+ * Bao gồm cấu hình permission và timeout cho từng tool.
+ *
+ * Main exports:
+ * - RECON_TAG_REGISTRY : Registry chứa định nghĩa 14 recon tools
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
 import type { TagDefinition } from '../types/tag-types';
 
-// ===== RECON TOOL TAG REGISTRY =====
+// ─── Constants ──────────────────────────────────────────────────────────
 export const RECON_TAG_REGISTRY: Record<string, TagDefinition> = {
   list_tabs: {
     id: 'list_tabs',

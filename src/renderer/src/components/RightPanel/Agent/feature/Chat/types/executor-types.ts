@@ -1,6 +1,26 @@
+/**
+ * ------------------------------------------------------------------
+ * Executor Types
+ * ------------------------------------------------------------------
+ * Định nghĩa các type cho tool executor system.
+ * Bao gồm context, options, và interface chuẩn cho mọi executor.
+ *
+ * Main types:
+ * - ExecutorContext : Context dùng chung cho tất cả executors
+ * - ToolExecutor    : Interface chuẩn cho mọi tool executor
+ * - ExecutorOptions : Options tùy chọn khi thực thi tool
+ * - Diagnostic      : Thông tin diagnostic từ tool execution
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import type { ToolOutput } from './tool-outputs';
+
+// ── Services ──
 import { extensionService } from '../../../services/ExtensionService';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 // Common diagnostic type
 export interface Diagnostic {
   severity: string;

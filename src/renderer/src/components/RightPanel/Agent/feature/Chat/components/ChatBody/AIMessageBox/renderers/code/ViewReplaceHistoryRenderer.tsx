@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// Constants
+// ── Constants ──
 import { getToolLabel } from '../../../../../constants/constants';
 
-// Types
+// ── Types ──
 import { BaseRendererProps } from '../../../../../types/renderer-types';
 
 // ICONS
 import FileIcon from '@renderer/components/common/FileIcon';
 
-// Components
+// ── Components ──
 import { TagHeader } from '../../TagHeader';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 

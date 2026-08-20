@@ -53,7 +53,7 @@ export const ListHostsBlock: React.FC<ListHostsBlockProps> = ({
 
   if (dataRows.length === 0) {
     return (
-      <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]">
+      <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
         <pre className="p-3 text-[12px] font-mono text-text-primary whitespace-pre-wrap overflow-auto" style={{ maxHeight }}>
           {content}
         </pre>
@@ -62,7 +62,7 @@ export const ListHostsBlock: React.FC<ListHostsBlockProps> = ({
   }
 
   return (
-    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden ml-[29px]">
+    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
       {summaryLine && !summaryLine.startsWith('|') && (
         <div className="px-3 py-2 text-[11px] text-text-secondary border-b border-border bg-card-background">
           {summaryLine.replace(/^\[list_hosts\]\s*/, '')}

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-// Components
+// ── Components ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
-// Types
+// ── Types ──
 import type { RunResult } from '../../../../../../types/repeater.types';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
 interface PayloadResultModalProps {

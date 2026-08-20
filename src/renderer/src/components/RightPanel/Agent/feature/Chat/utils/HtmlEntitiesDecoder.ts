@@ -1,7 +1,15 @@
 /**
+ * ------------------------------------------------------------------
+ * HTML Entities Decoder
+ * ------------------------------------------------------------------
  * Giải mã các thực thể HTML phổ biến trở lại ký tự gốc.
- * (Trợ giúp nội bộ — không export)
+ *
+ * Main functions:
+ * - decodeHtmlEntities() : Giải mã HTML entities trong text
+ * ------------------------------------------------------------------
  */
+
+// ─── Functions ──────────────────────────────────────────────────────────
 const decodeHtmlEntities = (text: string): string => {
   return text
     .replace(/&/g, "&")

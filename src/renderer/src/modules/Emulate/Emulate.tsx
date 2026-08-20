@@ -7,25 +7,25 @@ import { useAgentFeature } from '../../components/RightPanel/Agent/context/Featu
 import { EmulateController } from '../../controller/EmulateController';
 import { ipcService } from '../../services/ipc.service';
 
-// Components
+// ── Components ──
 import { initialFilterState } from './components/WorkspacePanel/Home';
 import WorkspacePanel from './components/WorkspacePanel';
 import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
 import TargetSidebar from './components/TargetListPanel';
 
-// Hooks
+// ── Hooks ──
 import useTargetData from '../../hooks/useTargetData';
 import { useRequestFilter } from './hooks/network/useRequestFilter';
 import useNetworkEvents from './hooks/network/useNetworkEvents';
 
-// Types
+// ── Types ──
 import { NetworkRequest } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 
 // Stores
 import { useTimerStore } from './stores/timerStore';
 
-// Constants
+// ── Constants ──
 import { ToolType, DEFAULT_TOOL } from './constants/tools';
 
 export default React.memo(function Emulate({

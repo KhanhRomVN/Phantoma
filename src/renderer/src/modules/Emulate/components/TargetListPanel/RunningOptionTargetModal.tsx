@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Square, Shield, Monitor, Smartphone, Syringe } from 'lucide-react';
 
-// Components
+// ── Components ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
 
-// Types
+// ── Types ──
 import { TargetTab } from '../../types/target.types';
 
-// Constants
+// ── Constants ──
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
-// Utils
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { getTargetFavicon } from '.';
 

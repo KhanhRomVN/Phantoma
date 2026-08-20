@@ -27,7 +27,7 @@ export interface ListSourcesResult {
 
 export class ListSourcesHandler {
   public handle(requests: NetworkRequest[], filter: ListSourcesFilter = {}): ListSourcesResult {
-    // Step 1: Build unfiltered flat file list and assign stable indices (1-indexed)
+    // Step 1: Build unfiltered flat file list
     const allRequests = requests.filter((r) => r.url && r.url.length > 0);
     const unfilteredTree = buildSourceTree(allRequests as any);
     
@@ -46,14 +46,6 @@ export class ListSourcesHandler {
       flattenUnfiltered([root]);
     }
 
-    // Create stable index map: URL -> stable index (1-indexed)
-    const stableIndexMap = new Map<string, number>();
-    allFlatFiles.forEach((file, idx) => {
-      if (file.url) {
-        stableIndexMap.set(file.url, idx + 1);
-      }
-    });
-
     // Step 2: Apply filters
     let filtered = allRequests;
 
@@ -70,45 +62,33 @@ export class ListSourcesHandler {
     // Step 3: Build filtered tree
     const tree = buildSourceTree(filtered as any);
 
-    // Step 4: Render tree with stable indices
+    // Step 4: Collect all filtered files with their full paths
     const lines: string[] = [];
     let visibleCount = 0;
 
-    const renderNode = (node: SourceNode, depth: number, prefix: string) => {
-      const indent = '  '.repeat(depth);
-      if (node.type === 'domain') {
-        lines.push(`${indent}${prefix}${node.name}/`);
+    const collectFiles = (node: SourceNode, parentPath: string) => {
+      if (node.type === 'domain' || node.type === 'folder') {
+        const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
         if (node.children) {
-          for (let i = 0; i < node.children.length; i++) {
-            const child = node.children[i];
-            const isLast = i === node.children.length - 1;
-            renderNode(child, depth + 1, isLast ? '└─ ' : '├─ ');
-          }
-        }
-      } else if (node.type === 'folder') {
-        lines.push(`${indent}${prefix}${node.name}/`);
-        if (node.children) {
-          for (let i = 0; i < node.children.length; i++) {
-            const child = node.children[i];
-            const isLast = i === node.children.length - 1;
-            renderNode(child, depth + 1, isLast ? '└─ ' : '├─ ');
+          for (const child of node.children) {
+            collectFiles(child, currentPath);
           }
         }
       } else if (node.type === 'file') {
-        const stableIndex = node.url ? stableIndexMap.get(node.url) || 0 : 0;
+        const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
         const sizeStr = node.size ? ` (${formatFileSize(node.size)})` : '';
-        const line = `${indent}${prefix}stt=${stableIndex} ${node.name}${sizeStr}`;
-        lines.push(line);
+        lines.push(`- ${fullPath}${sizeStr}`);
         visibleCount++;
       }
     };
 
     for (const root of tree.roots) {
-      renderNode(root, 0, '');
+      collectFiles(root, '');
     }
 
     const text = [
       `[list_sources] Total: ${allFlatFiles.length}, Filtered: ${visibleCount}`,
+      '',
       ...lines
     ].join('\n');
 

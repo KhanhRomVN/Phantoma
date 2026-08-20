@@ -1,8 +1,22 @@
+/**
+ * ------------------------------------------------------------------
+ * useUIState
+ * ------------------------------------------------------------------
+ * Hook quản lý toàn bộ state liên quan đến UI (modals, dropdowns, tìm kiếm).
+ *
+ * Main returns:
+ * - isSearchOpen / searchQuery       : Trạng thái tìm kiếm
+ * - autoScrollPaused                 : Auto-scroll bị pause
+ * - showProjectStructureDrawer       : Drawer project structure
+ * - projectContext                   : Context của project hiện tại
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useRef } from 'react';
 
-/**
- * Hook quản lý toàn bộ state liên quan đến UI (modals, dropdowns, tìm kiếm)
- */
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useUIState = () => {
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;

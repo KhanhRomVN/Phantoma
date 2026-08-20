@@ -1,6 +1,31 @@
 import { parseToolAction } from '../utils/ToolParser';
+/**
+ * ------------------------------------------------------------------
+ * Response Parser
+ * ------------------------------------------------------------------
+ * Parse AI response để extract tool actions và content blocks.
+ * Hỗ trợ interleaved text và tool calls trong cùng response.
+ *
+ * Main exports:
+ * - ParsedResponse : Cấu trúc kết quả parse
+ * - ToolAction     : Action của một tool call
+ * - parseAIResponse() : Parse AI response thành structured data
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Constants ──
 import { getAllToolTypes } from '../constants/constants';
-// Tag parsers
+
+// ── Types ──
+import { TagType } from '../types/tag-types';
+import type { ContentBlock } from '../types/renderer-types';
+
+// ── Utils ──
+import { findClosingTagPosition } from '../utils/TagClosingFinder';
+import { logger } from '@renderer/utils/logger';
+
+// ── Parsers ──
 import {
   parseReadFile,
   parseWriteToFile,
@@ -42,9 +67,8 @@ import {
   parseScroll,
 } from './parsers/ReconParser';
 import { parseMarkdown, extractThinkingBlocks } from './parsers/OtherParser';
-import { findClosingTagPosition } from '../utils/TagClosingFinder';
-import { TagType } from '../types/tag-types';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ParsedResponse {
   followupQuestion: string | null;
   followupOptions: string[] | null;
@@ -64,9 +88,6 @@ export interface ToolAction {
   errorMessage?: string;
   errorCode?: string;
 }
-
-import type { ContentBlock } from '../types/renderer-types';
-import { logger } from '@renderer/utils/logger';
 
 /**
  * Parse AI response to extract tool actions

@@ -1,8 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * useMessageHandlers (LLM)
+ * ------------------------------------------------------------------
+ * Hook xử lý external messages liên quan đến action click/reject.
+ * Lắng nghe VSCode messages và cập nhật state tương ứng.
+ *
+ * Main features:
+ * - Xử lý markActionClicked → cập nhật clickedActions
+ * - Xử lý markActionRejected → cập nhật rejectedActions
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect } from 'react';
+
+// ── Types ──
 import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
+
+// ── Services ──
 import { saveConversation } from '../../services/ConversationService';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseMessageHandlersProps {
   selectedTab: ChatSession | null;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;

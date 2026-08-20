@@ -1,9 +1,27 @@
+/**
+ * ------------------------------------------------------------------
+ * useExternalMessages
+ * ------------------------------------------------------------------
+ * Hook xử lý external messages từ VSCode extension.
+ *
+ * PERFORMANCE: Sử dụng refs để tránh tạo lại event listeners
+ * khi messages thay đổi.
+ *
+ * Main features:
+ * - Nhận project context từ VSCode
+ * - Nhận attached items từ VSCode
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useRef } from 'react';
 
-// TYPES
+// ── Types ──
 import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseExternalMessagesProps {
   currentChat: ChatSession | null;
   currentConversationId: string | null;

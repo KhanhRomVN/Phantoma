@@ -1,16 +1,27 @@
 /**
- * useConversationPersistence — tự động save conversation vào localStorage mỗi khi messages/toolOutputs thay đổi.
+ /**
+ * ------------------------------------------------------------------
+ * useConversationPersistence
+ * ------------------------------------------------------------------
+ * Tự động save conversation vào localStorage mỗi khi messages/toolOutputs
+ * thay đổi. Debounce 500ms trước khi save để tránh ghi quá nhiều.
  *
- *    Debounce 500ms trước khi save để tránh ghi quá nhiều.
+ * Main features:
+ * - Persist toolOutputs khi thay đổi
+ * - Persist singleLineReviewActions khi thay đổi
+ * - Persist conversationFileStats khi thay đổi
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useRef } from 'react';
 
-// TYPES
+// ── Types ──
 import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
 
-// SERVICES
+// ── Services ──
 import { saveConversation } from '../../services/ConversationService';
 
 interface UseConversationPersistenceProps {

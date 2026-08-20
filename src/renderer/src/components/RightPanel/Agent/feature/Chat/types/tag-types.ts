@@ -1,10 +1,19 @@
 /**
- * Định nghĩa kiểu Tag và Tool
- * 
- * File này chứa tất cả định nghĩa kiểu liên quan đến tags, tools và permissions.
- * Được tách từ constants.ts để phân tách trách nhiệm tốt hơn.
+ * ------------------------------------------------------------------
+ * Tag Types
+ * ------------------------------------------------------------------
+ * Định nghĩa các type cho hệ thống tag và tool.
+ * Bao gồm permission types, tag definition, và tool type unions.
+ *
+ * Main types:
+ * - PermissionMode  : Chế độ permission (fullAccess/approval)
+ * - TagDefinition   : Cấu trúc metadata cho một tag/tool
+ * - ToolType        : Union type cho các tool
+ * - TagCategory     : Phân loại tag (tool/ui)
+ * ------------------------------------------------------------------
  */
 
+// ─── Types ──────────────────────────────────────────────────────────────
 // ============= PERMISSION TYPES =============
 
 export type PermissionMode = "fullAccess" | "approval";

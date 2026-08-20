@@ -17,17 +17,13 @@ export class GetFilterHandler {
     const lines: string[] = [];
 
     // Available values từ requests (giống Filter.tsx)
-    const availableMethods = new Set(
-      requests.map((r) => r.method?.toUpperCase()).filter(Boolean),
-    );
+    const availableMethods = new Set(requests.map((r) => r.method?.toUpperCase()).filter(Boolean));
     const availableStatuses = new Set(
       requests
         .filter((r) => r.protocol === 'https' && typeof r.status === 'number')
         .map((r) => r.status as number),
     );
-    const availableTypes = new Set(
-      requests.map((r) => getRequestCategory(r)).filter(Boolean),
-    );
+    const availableTypes = new Set(requests.map((r) => getRequestCategory(r)).filter(Boolean));
 
     // Methods — liệt kê tất cả available, disabled kèm (hide)
     if (availableMethods.size > 0) {
@@ -60,7 +56,7 @@ export class GetFilterHandler {
       lines.push(`Statuses: ${statusList.join(', ')}`);
     }
 
-    // Types — liệt kê tất cả available, disabled kèm (hide)
+    // ── Types ── — liệt kê tất cả available, disabled kèm (hide)
     if (availableTypes.size > 0) {
       const typeList: string[] = [];
       for (const type of availableTypes) {

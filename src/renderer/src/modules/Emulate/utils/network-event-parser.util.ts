@@ -21,7 +21,7 @@
 import { NetworkRequest } from '../types/inspector';
 
 // =============================================================================
-// Constants
+// ── Constants ──
 // =============================================================================
 
 /** Map CDP resourceType → shorthand type string dùng trong UI. */

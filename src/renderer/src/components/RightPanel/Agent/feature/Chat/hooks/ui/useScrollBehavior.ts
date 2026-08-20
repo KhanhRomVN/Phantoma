@@ -1,5 +1,19 @@
 import { useState, useEffect, useRef, RefObject, useCallback } from 'react';
 
+/**
+ * ------------------------------------------------------------------
+ * useScrollBehavior
+ * ------------------------------------------------------------------
+ * Hook quản lý scroll behavior cho chat UI.
+ * Tự động scroll xuống cuối khi có message mới, hỗ trợ pause.
+ *
+ * Main returns:
+ * - isAtBottom        : Đang ở cuối chat không
+ * - autoScrollPaused  : Auto-scroll bị pause không
+ * ------------------------------------------------------------------
+ */
+
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useScrollBehavior = (
   messagesEndRef: RefObject<HTMLDivElement>,
   scrollContainerRef: RefObject<HTMLDivElement>,

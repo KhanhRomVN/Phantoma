@@ -1,3 +1,15 @@
+/**
+ * ------------------------------------------------------------------
+ * Chat Types
+ * ------------------------------------------------------------------
+ * Định nghĩa type cho chat session.
+ *
+ * Main types:
+ * - ChatSession : Thông tin phiên chat hiện tại
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ChatSession {
   sessionId: number;          // unique identifier for the chat session
   folderPath: string | null;  // workspace folder path

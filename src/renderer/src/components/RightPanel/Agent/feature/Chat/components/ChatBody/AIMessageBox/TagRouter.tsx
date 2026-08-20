@@ -1,14 +1,32 @@
 import React, { useState, useEffect } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * TagRouter
+ * ------------------------------------------------------------------
+ * Router component điều hướng tool types → renderer components.
+ * Xử lý tất cả các loại group (markdown, code, question, error, tools)
+ * và render đúng component cho từng tool type.
+ *
+ * Main features:
+ * - Xử lý error tool actions với ErrorBlock + ActionBar
+ * - Render 28 standard tools qua allToolRenderers map
+ * - Xử lý 7 tool phức tạp với logic riêng (write, replace, run_command...)
+ * - Git diff và git status rendering
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
-// Hooks
+// ── Hooks ──
 import { useProject } from '../../../../../context/ProjectContext';
 
-// Services
+// ── Services ──
 import { extensionService } from '../../../../../services/ExtensionService';
 
-// Constants
+// ── Constants ──
 import {
   shouldShowFileStats,
   shouldValidateFuzzyMatch,
@@ -19,15 +37,15 @@ import {
   TAG_REGISTRY,
 } from '../../../constants/constants';
 
-// Types
+// ── Types ──
 import { ToolAction } from '../../../services/ResponseParser';
 import { Message } from '../../../types/message';
 import { GroupType } from '../../../types/renderer-types';
 
-// UtilsS
+// ── Utils ──
 import { formatActionForDisplay } from '../../../services/ResponseParser';
 
-// Components
+// ── Components ──
 import {
   CommitMessageRenderer,
   DeleteFileRenderer,
@@ -654,424 +672,62 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     );
   }
 
-  if (toolType === 'list_https') {
-    return (
-      <ListHttpsRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
+  const allToolRenderers: Record<string, React.FC<any>> = {
+    // Code tools
+    read_file: ReadFileRenderer,
+    list_files: ListFilesRenderer,
+    find_files: FindFilesRenderer,
+    grep: GrepRenderer,
+    delete_file: DeleteFileRenderer,
+    revert_file: RevertFileRenderer,
+    // Emulate tools
+    list_https: ListHttpsRenderer,
+    list_hosts: ListHostsRenderer,
+    list_sources: ListSourcesRenderer,
+    get_source_detail: GetSourceDetailRenderer,
+    get_https_detail: GetHttpsDetailRenderer,
+    apply_filter: ApplyFilterRenderer,
+    list_resources: ListResourcesRenderer,
+    get_resource_content: GetResourceContentRenderer,
+    // Recon tools
+    list_tabs: ListTabsRenderer,
+    create_tab: CreateTabRenderer,
+    close_tab: CloseTabRenderer,
+    switch_tab: SwitchTabRenderer,
+    navigate: NavigateRenderer,
+    back: BackRenderer,
+    forward: ForwardRenderer,
+    reload: ReloadRenderer,
+    get_page_content: GetPageContentRenderer,
+    list_elements: ListElementsRenderer,
+    click_element: ClickElementRenderer,
+    fill_input: FillInputRenderer,
+    press_key: PressKeyRenderer,
+    scroll: ScrollRenderer,
+  };
 
-  if (toolType === 'list_hosts') {
+  const ToolRenderer = allToolRenderers[toolType];
+  if (ToolRenderer) {
     return (
-      <ListHostsRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'list_sources') {
-    return (
-      <ListSourcesRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'get_source_detail') {
-    return (
-      <GetSourceDetailRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'get_https_detail') {
-    return (
-      <GetHttpsDetailRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(messageId + '-action-' + toolGroup[0].index)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'apply_filter') {
-    const actionId1 = messageId + '-action-' + toolGroup[0].index;
-    return (
-      <ApplyFilterRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(actionId1)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'list_resources') {
-    return (
-      <ListResourcesRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'get_resource_content') {
-    return (
-      <GetResourceContentRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  // ── Recon tools ───────────────────────────────────────────────
-
-  if (toolType === 'list_tabs') {
-    return (
-      <ListTabsRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'create_tab') {
-    return (
-      <CreateTabRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'close_tab') {
-    return (
-      <CloseTabRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'switch_tab') {
-    return (
-      <SwitchTabRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'navigate') {
-    return (
-      <NavigateRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'back') {
-    return (
-      <BackRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'forward') {
-    return (
-      <ForwardRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'reload') {
-    return (
-      <ReloadRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'get_page_content') {
-    return (
-      <GetPageContentRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'list_elements') {
-    return (
-      <ListElementsRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'click_element') {
-    return (
-      <ClickElementRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'fill_input') {
-    return (
-      <FillInputRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'press_key') {
-    return (
-      <PressKeyRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
-    );
-  }
-
-  if (toolType === 'scroll') {
-    return (
-      <ScrollRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        allMessages={allMessages}
-        onToolClick={onToolClick}
-        conversationId={conversationId}
-      />
+      <>
+        {toolGroup.map(({ action, index }) => (
+          <ToolRenderer
+            key={index}
+            action={action}
+            actionIndex={index}
+            messageId={messageId}
+            isActionClicked={clickedActions.has(`${messageId}-action-${index}`)}
+            isActiveGroup={isActiveGroup && index === toolGroup[0].index}
+            isLastMessage={isLastMessage}
+            isLastItemInList={isLastItemInList && index === toolGroup[toolGroup.length - 1].index}
+            toolOutputs={toolOutputs}
+            allMessages={allMessages}
+            fileStatsMap={fileStatsMap}
+            onToolClick={onToolClick}
+            conversationId={conversationId}
+          />
+        ))}
+      </>
     );
   }
 
@@ -1152,41 +808,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
           }}
         />
       </div>
-    );
-  }
-
-  // Handle read_file, list_files, find_files, grep, delete_file, revert_file
-  const fileToolRenderers: Record<string, React.FC<any>> = {
-    read_file: ReadFileRenderer,
-    list_files: ListFilesRenderer,
-    find_files: FindFilesRenderer,
-    grep: GrepRenderer,
-    delete_file: DeleteFileRenderer,
-    revert_file: RevertFileRenderer,
-  };
-
-  const FileRenderer = fileToolRenderers[toolType];
-  if (FileRenderer) {
-    return (
-      <>
-        {toolGroup.map(({ action, index }) => (
-          <FileRenderer
-            key={index}
-            action={action}
-            actionIndex={index}
-            messageId={messageId}
-            isActionClicked={clickedActions.has(`${messageId}-action-${index}`)}
-            isActiveGroup={isActiveGroup && index === toolGroup[0].index}
-            isLastMessage={isLastMessage}
-            isLastItemInList={isLastItemInList && index === toolGroup[toolGroup.length - 1].index}
-            toolOutputs={toolOutputs}
-            allMessages={allMessages}
-            fileStatsMap={fileStatsMap}
-            onToolClick={onToolClick}
-            conversationId={conversationId}
-          />
-        ))}
-      </>
     );
   }
 

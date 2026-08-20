@@ -40,10 +40,10 @@ import { useExternalMessages } from './hooks/events/useExternalMessages';
 import { useConversationCache } from './hooks/cache/useConversationCache';
 import { useConversationPersistence } from './hooks/persistence/useConversationPersistence';
 
-// Types
+// ── Types ──
 import { ChatSession } from './types/chat';
 
-// Components
+// ── Components ──
 import ChatHeader from './components/ChatHeader';
 import ChatBody from './components/ChatBody';
 import ChatFooter from './components/ChatFooter';

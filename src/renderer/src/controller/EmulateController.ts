@@ -93,19 +93,19 @@ export class EmulateController {
           return { success: true, data: { output: ctrl.listResourcesText(params.filter || {}) } };
         }
         case 'get_source_detail': {
-          if (params.index === undefined) return { success: false, error: 'index is required' };
-          return { success: true, data: { output: ctrl.getSourceDetailText(params.index) } };
+          if (!params.filepath) return { success: false, error: 'filepath is required' };
+          return { success: true, data: { output: ctrl.getSourceDetailText(params.filepath) } };
         }
         case 'get_https_detail': {
           if (params.index === undefined) return { success: false, error: 'index is required' };
           return { success: true, data: { output: ctrl.getHttpsDetailText(params.index) } };
         }
         case 'get_resource_content': {
-          if (params.index === undefined) return { success: false, error: 'index is required' };
+          if (!params.filename) return { success: false, error: 'filename is required' };
           const options: GetResourceContentOptions = {};
           if (params.start_line !== undefined) options.startLine = params.start_line;
           if (params.end_line !== undefined) options.endLine = params.end_line;
-          return { success: true, data: { output: ctrl.getResourceContentText(params.index, options) } };
+          return { success: true, data: { output: ctrl.getResourceContentText(params.filename, options) } };
         }
         case 'apply_filter': {
           const currentFilter = ctrl.getFilter();
@@ -145,9 +145,9 @@ export class EmulateController {
   public listHostsText(): string { return this.listHostsHandler.handle(this.requests).text; }
   public listSourcesText(filter: ListSourcesFilter = {}): string { return this.listSourcesHandler.handle(this.requests, filter).text; }
   public listResourcesText(filter: ListResourcesFilter = {}): string { return this.listResourcesHandler.handle(this.requests, filter).text; }
-  public getSourceDetailText(index: number): string { return this.getSourceDetailHandler.handle(this.requests, this.unpackedScripts, index).text; }
+  public getSourceDetailText(filepath: string): string { return this.getSourceDetailHandler.handle(this.requests, this.unpackedScripts, filepath).text; }
   public getHttpsDetailText(index: number): string { return this.getHttpsDetailHandler.handle(this.requests, index).text; }
-  public getResourceContentText(index: number, options: GetResourceContentOptions = {}): string { return this.getResourceContentHandler.handle(this.requests, index, options).text; }
+  public getResourceContentText(filename: string, options: GetResourceContentOptions = {}): string { return this.getResourceContentHandler.handle(this.requests, filename, options).text; }
   public getTrafficSummary(): TrafficSummary { return this.getTrafficSummaryHandler.handle(this.requests); }
   public setFilter(filter: InspectorFilter): void { this.filter = filter; }
   public getFilter(): InspectorFilter | undefined { return this.filter; }

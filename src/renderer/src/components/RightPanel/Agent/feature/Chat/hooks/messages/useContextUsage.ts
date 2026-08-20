@@ -1,15 +1,32 @@
+/**
+ * ------------------------------------------------------------------
+ * useContextUsage
+ * ------------------------------------------------------------------
+ * Hook tính toán mức sử dụng token ngữ cảnh với tính toán tăng dần.
+ * Chỉ scan message mới thay vì toàn bộ để tối ưu performance.
+ *
+ * Main returns:
+ * - prompt     : Tổng prompt tokens
+ * - completion : Tổng completion tokens
+ * - total      : Tổng tokens
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useMemo, useRef } from 'react';
+
+// ── Types ──
 import { Message } from '../../types/message';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface ContextUsage {
   prompt: number;
   completion: number;
   total: number;
 }
 
-/**
- * Hook tính toán mức sử dụng token ngữ cảnh với tính toán tăng dần
- */
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useContextUsage = (messages: Message[]): ContextUsage => {
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;

@@ -1,7 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * useConversationCache
+ * ------------------------------------------------------------------
+ * Hook quản lý cập nhật cache hội thoại.
+ * Tối ưu hóa để giảm re-render không cần thiết và thao tác cache.
+ *
+ * Main features:
+ * - Debounce cache updates khi streaming
+ * - Memoize messages signature để tránh re-render
+ * - Skip cache update khi đang streaming
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useRef, useMemo, useState } from 'react';
+
+// ── Types ──
 import { Message } from '../../types/message';
+
+// ── Services ──
 import { ConversationCache } from '../../services/ConversationCache';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseConversationCacheProps {
   currentConversationId: string | null;
   messages: Message[];

@@ -1,7 +1,24 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * TagHeader
+ * ------------------------------------------------------------------
+ * Header component cho tool action blocks trong chat.
+ * Hiển thị title, status dot, file path, và các action buttons.
+ *
+ * Main features:
+ * - Hiển thị status color dựa trên trạng thái tool
+ * - Collapse/expand cho tool block
+ * - File path clickable với FileIcon
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
+// ─── Types ─────────────────────────────────────────────────────���────────
 interface TagHeaderProps {
   title: React.ReactNode;
   subTitle?: React.ReactNode;
