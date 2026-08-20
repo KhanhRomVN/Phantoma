@@ -2,6 +2,7 @@
 // Panel — Reusable panel wrapper with accent header
 // ============================================================================
 
+import { $ } from '@renderer/utils/color';
 import React from 'react';
 
 interface PanelProps {

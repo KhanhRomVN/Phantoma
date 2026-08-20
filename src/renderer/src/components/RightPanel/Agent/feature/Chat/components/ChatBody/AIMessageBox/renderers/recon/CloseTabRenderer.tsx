@@ -1,5 +1,5 @@
 /**
- * CloseTabRenderer — Renderer for close_tab tool
+ * CloseTabRenderer — Renderer cho tool close_tab
  */
 
 import React from 'react';

@@ -311,6 +311,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
       });
       return () => window.removeEventListener('message', handleMessage);
     }
+    return;
   }, [nextUserMessage?.id, runCommandAction?.action.params.command, messageId, storedOutput]);
 
   // Validate fuzzy match & fetch file stats

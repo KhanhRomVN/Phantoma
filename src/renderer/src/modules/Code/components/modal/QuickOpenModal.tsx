@@ -19,7 +19,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 // ── UI ──
 import { Search, ArrowUp, ArrowDown, CornerDownLeft, Loader } from 'lucide-react';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { Loader2, X, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { useSettings } from '../../../context/SettingsContext';
 import { getFaviconUrl } from '../utils';
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';

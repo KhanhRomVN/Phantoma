@@ -1,5 +1,5 @@
 /**
- * FillInputRenderer — Renderer for fill_input tool
+ * FillInputRenderer — Renderer cho tool fill_input
  */
 
 import React from 'react';

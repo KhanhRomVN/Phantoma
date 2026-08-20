@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 
 /**
- * Hook to manage all UI-related state (modals, dropdowns, search)
+ * Hook quản lý toàn bộ state liên quan đến UI (modals, dropdowns, tìm kiếm)
  */
 export const useUIState = () => {
   const renderCountRef = useRef(0);

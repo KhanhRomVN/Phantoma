@@ -1,4 +1,5 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 export interface TooltipState {
   text: string;
@@ -8,18 +9,25 @@ export interface TooltipState {
 
 interface TooltipProps {
   tooltip: TooltipState | null;
-  accentColor: string;
+  accentColor?: string;
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ tooltip }) => {
+const Tooltip: React.FC<TooltipProps> = ({ tooltip, accentColor }) => {
   if (!tooltip) return null;
 
   return (
     <div
-      className="fixed z-[1000] max-w-[280px] pointer-events-none whitespace-normal font-inherit bg-tooltip-background text-text-primary text-[11px] px-3 py-1.5 rounded shadow-lg border border-border"
+      className="fixed z-[1000] max-w-[280px] pointer-events-none whitespace-normal font-inherit"
       style={{
         top: tooltip.y,
         left: tooltip.x,
+        background: $('--card-background'),
+        color: $('--text-primary'),
+        fontSize: 11,
+        padding: '6px 12px',
+        borderRadius: 4,
+        border: `1px solid ${accentColor ? accentColor + '50' : $('--border')}`,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
       }}
     >
       {tooltip.text}

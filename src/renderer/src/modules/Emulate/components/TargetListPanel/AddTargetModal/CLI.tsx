@@ -1,5 +1,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 
+import { logger } from '@renderer/utils/logger';
+
 // Types
 import type { BaseModalProps } from './index';
 
@@ -66,7 +68,7 @@ export const CLI = forwardRef<CLIRef, CLIBodyProps>(function CLI(
     try {
       await onAdd({ name, executablePath: command, mode: 'intercept', platform: 'cli' });
     } catch (error) {
-      console.error('[CLI] Add target failed:', error);
+      logger.error('[CLI] Add target failed:', error);
     }
   };
 

@@ -1,5 +1,5 @@
 /**
- * ListTabsRenderer — Renderer for list_tabs tool
+ * ListTabsRenderer — Renderer cho tool list_tabs
  */
 
 import React from 'react';

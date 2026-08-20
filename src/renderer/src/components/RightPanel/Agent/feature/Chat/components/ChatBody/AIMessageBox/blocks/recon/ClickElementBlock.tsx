@@ -1,8 +1,7 @@
 /**
- * ClickElementBlock — Display click_element tool output
+ * ClickElementBlock — Hiển thị output của tool click_element
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface ClickElementBlockProps {

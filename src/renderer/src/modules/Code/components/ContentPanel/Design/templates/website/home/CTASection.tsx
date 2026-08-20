@@ -17,12 +17,12 @@ export function CTASection({ onNavigate }: CTASectionProps) {
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-900 to-zinc-950 dark:from-zinc-900 dark:to-black px-8 py-16 text-center">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.18),transparent_50%),radial-gradient(circle_at_bottom_left,rgba(167,139,250,0.18),transparent_50%)]" />
           <div className="relative">
-            <h2 className="font-[Space_Grotesk] text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Sẵn sàng thiết kế nhanh hơn 10 lần?
             </h2>
             <p className="text-zinc-400 max-w-xl mx-auto mb-8">
-              Bắt đầu miễn phí, không cần thẻ thanh toán. Kết nối design system hiện có chỉ
-              trong vài phút.
+              Bắt đầu miễn phí, không cần thẻ thanh toán. Kết nối design system hiện có chỉ trong
+              vài phút.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button size="lg" onClick={() => onNavigate('contact')}>

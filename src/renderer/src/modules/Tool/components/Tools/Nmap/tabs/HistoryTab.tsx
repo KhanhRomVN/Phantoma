@@ -16,6 +16,7 @@ import { ScanResult, ContextMenuState, TooltipState } from '../types';
 import { groupHistoryByDate } from '../utils';
 import ScanCard from '../components/ScanCard';
 import PortsTable from '../components/PortsTable';
+import { $ } from '@renderer/utils/color';
 
 import { parseNmapXML, formatDuration } from '../nmapParser';
 

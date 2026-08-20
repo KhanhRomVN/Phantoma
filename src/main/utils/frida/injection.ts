@@ -1,16 +1,36 @@
 import { exec, execSync, spawn } from 'child_process';
+/**
+ * ------------------------------------------------------------------
+ * Chèn Frida
+ * ------------------------------------------------------------------
+ * Chèn script Frida vào ứng dụng Android để vượt qua SSL pinning
+ * và thực thi script tùy chỉnh.
+ *
+ * Hàm chính:
+ * - injectSSLBypass()    : Chèn script vượt qua SSL pinning
+ * - injectCustomScript() : Chèn script Frida tùy chỉnh
+ * - listRunningProcesses(): Liệt kê tiến trình ứng dụng đang chạy
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// ── Electron ──
 import { app } from 'electron';
+
+// ── Internal ──
 import { ELECTRON_SSL_BYPASS_SCRIPT, SSL_PINNING_BYPASS_SCRIPT } from './scripts';
 import { isFridaRunning, startFridaServer } from './manager';
+import { logger } from '../logger';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const execAsync = promisify(exec);
 
-/**
- * Inject SSL pinning bypass into app
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 export async function injectSSLBypass(
   serial: string,
   packageName: string,
@@ -74,7 +94,7 @@ export async function injectSSLBypass(
         clearTimeout(timeout);
         const msg = err.message || '';
         onLog?.(`ERROR: ${msg}`);
-        console.error('Frida process error:', err);
+        logger.error('Frida process error:', err);
         reject(err);
       });
 
@@ -90,7 +110,7 @@ export async function injectSSLBypass(
     }
 
     onLog?.(`ERROR: ${error.message}`);
-    console.error('Failed to inject SSL bypass:', error);
+    logger.error('Failed to inject SSL bypass:', error);
     throw error;
   }
 }
@@ -121,7 +141,7 @@ export async function injectLocalSSLBypass(
         const cmdline = fs.readFileSync(cmdlinePath, 'utf8').replace(/\0/g, ' ');
         onLog?.(`[Frida] Process cmdline: ${cmdline}`);
       }
-      
+
       // Get executable path
       const exePath = `/proc/${pid}/exe`;
       if (fs.existsSync(exePath)) {
@@ -132,7 +152,7 @@ export async function injectLocalSSLBypass(
           onLog?.(`[Frida] Failed to read exe link: ${e}`);
         }
       }
-      
+
       // Get process cwd
       const cwdPath = `/proc/${pid}/cwd`;
       if (fs.existsSync(cwdPath)) {
@@ -143,7 +163,7 @@ export async function injectLocalSSLBypass(
           onLog?.(`[Frida] Failed to read cwd: ${e}`);
         }
       }
-      
+
       // Get process status
       const statusPath = `/proc/${pid}/status`;
       if (fs.existsSync(statusPath)) {
@@ -157,7 +177,7 @@ export async function injectLocalSSLBypass(
           onLog?.(`[Frida] Parent PID: ${ppidMatch[1]}`);
         }
       }
-      
+
       // Get process arguments from /proc/pid/environ if available
       const environPath = `/proc/${pid}/environ`;
       if (fs.existsSync(environPath)) {
@@ -196,7 +216,7 @@ export async function injectLocalSSLBypass(
         // Try to get executable path from /proc with multiple methods
         let executablePath = '';
         let executablePathSource = '';
-        
+
         // Method 1: readlink /proc/<pid>/exe (gives actual executable)
         try {
           const exeLink = `/proc/${pid}/exe`;
@@ -210,21 +230,29 @@ export async function injectLocalSSLBypass(
         }
 
         // Method 2: fallback to cmdline if readlink failed or returned shell
-        if (!executablePath || executablePath === '' || 
-            executablePath.includes('/sh') || executablePath.includes('/bash') ||
-            executablePath.includes('/dash')) {
+        if (
+          !executablePath ||
+          executablePath === '' ||
+          executablePath.includes('/sh') ||
+          executablePath.includes('/bash') ||
+          executablePath.includes('/dash')
+        ) {
           onLog?.(`[Frida] Readlink returned shell, trying cmdline...`);
           try {
             const procPath = `/proc/${pid}/cmdline`;
             if (fs.existsSync(procPath)) {
               // Read cmdline and split by null bytes (each argument is null-terminated)
               const rawCmdline = fs.readFileSync(procPath, 'utf8');
-              const parts = rawCmdline.split('\0').filter(s => s.length > 0);
+              const parts = rawCmdline.split('\0').filter((s) => s.length > 0);
               onLog?.(`[Frida] Raw cmdline parts: ${JSON.stringify(parts)}`);
-              
+
               // Skip if it's /bin/sh or /bin/bash
               const firstPart = parts[0] || '';
-              if (firstPart.includes('/sh') || firstPart.includes('/bash') || firstPart.includes('/dash')) {
+              if (
+                firstPart.includes('/sh') ||
+                firstPart.includes('/bash') ||
+                firstPart.includes('/dash')
+              ) {
                 onLog?.(`[Frida] First part is shell: ${firstPart}`);
                 // Try to get the real executable from command line arguments
                 for (const part of parts) {
@@ -238,9 +266,13 @@ export async function injectLocalSSLBypass(
                     cleanPart = cleanPart.slice(0, -1) + ' ';
                   }
                   onLog?.(`[Frida] Checking part: ${part} -> cleaned: ${cleanPart}`);
-                  
-                  if (cleanPart.includes('/opt/') || cleanPart.includes('/usr/') || 
-                      cleanPart.includes('/home/') || cleanPart.includes('/Applications/')) {
+
+                  if (
+                    cleanPart.includes('/opt/') ||
+                    cleanPart.includes('/usr/') ||
+                    cleanPart.includes('/home/') ||
+                    cleanPart.includes('/Applications/')
+                  ) {
                     executablePath = cleanPart;
                     executablePathSource = 'cmdline_arg';
                     onLog?.(`[Frida] Found executable in args: ${executablePath}`);
@@ -287,13 +319,20 @@ export async function injectLocalSSLBypass(
           executablePath = executablePath.trim();
         }
 
-        onLog?.(`[Frida] Final executable path: ${executablePath} (source: ${executablePathSource})`);
+        onLog?.(
+          `[Frida] Final executable path: ${executablePath} (source: ${executablePathSource})`,
+        );
 
-        if (executablePath && executablePath !== '/bin/sh' && executablePath !== '/bin/bash' && executablePath !== '/bin/dash') {
+        if (
+          executablePath &&
+          executablePath !== '/bin/sh' &&
+          executablePath !== '/bin/bash' &&
+          executablePath !== '/bin/dash'
+        ) {
           // Use spawn mode: frida -f <executable> -l script.js (without --enable-api)
           const spawnArgs = ['-f', executablePath, '-l', scriptPath];
           onLog?.(`[Frida] Spawning with: frida ${spawnArgs.join(' ')}`);
-          
+
           const spawnProcess = spawn('frida', spawnArgs, {
             stdio: ['ignore', 'pipe', 'pipe'],
             env: { ...process.env, PATH: process.env.PATH },
@@ -323,7 +362,7 @@ export async function injectLocalSSLBypass(
           spawnProcess.stderr.on('data', (data) => {
             const output = data.toString();
             if (!output.includes('Frida') && !output.includes('Help')) {
-              console.error(`[Frida Stderr] ${output}`);
+              logger.error(`[Frida Stderr] ${output}`);
               // If spawn fails, maybe the executable path is wrong
               if (output.includes('Cannot spawn')) {
                 onLog?.(`❌ Spawn failed: ${output}`);
@@ -341,7 +380,7 @@ export async function injectLocalSSLBypass(
               resolved = true;
               clearTimeout(spawnTimeout);
               onLog?.(`ERROR: ${err.message}`);
-              console.error('Frida spawn error:', err);
+              logger.error('Frida spawn error:', err);
               resolve(false);
             }
           });
@@ -383,7 +422,7 @@ export async function injectLocalSSLBypass(
           !output.includes('Help') &&
           !output.includes('Attaching')
         ) {
-          console.error(`[Frida Stderr] ${output}`);
+          logger.error(`[Frida Stderr] ${output}`);
           // Check if stderr contains process not found
           if (output.includes('process not found')) {
             attachFailed = true;
@@ -402,7 +441,7 @@ export async function injectLocalSSLBypass(
           resolved = true;
           clearTimeout(timeout);
           onLog?.(`ERROR: ${err.message}`);
-          console.error('Frida attach error:', err);
+          logger.error('Frida attach error:', err);
           onLog?.('⚠️ Attach failed, aborting injection...');
           resolve(false);
         }
@@ -477,7 +516,7 @@ export async function injectCustomScript(
         clearTimeout(timeout);
         const msg = err.message || '';
         onLog?.(`ERROR: ${msg}`);
-        console.error('Frida process error:', err);
+        logger.error('Frida process error:', err);
         resolve(false);
       });
 
@@ -485,7 +524,7 @@ export async function injectCustomScript(
     });
   } catch (error: any) {
     onLog?.(`ERROR: ${error.message}`);
-    console.error('Failed to inject custom script:', error);
+    logger.error('Failed to inject custom script:', error);
     return false;
   }
 }

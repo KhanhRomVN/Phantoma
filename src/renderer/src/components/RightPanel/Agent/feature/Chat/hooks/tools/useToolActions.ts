@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from 'react';
 /**
  * useToolActions — quản lý hành vi của tool actions trong chat (execute, approve, reject, auto-trigger...).
  *
@@ -8,8 +8,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
  *    retryTool()     : Thử lại tool đã fail.
  *    autoTrigger()   : Tự động trigger tool action khi điều kiện đúng.
  */
-
-import { useCallback } from 'react';
 
 // TYPES
 import { ToolAction } from '../../services/ResponseParser';
@@ -23,6 +21,7 @@ import { getPermissionDecision } from './useToolExecution';
 
 // CONSTANTS
 import { isToolClickable, TOOL_ACTION_TYPES } from '../../constants/constants';
+import { logger } from '@renderer/utils/logger';
 
 interface UseToolActionsProps {
   onSendToolRequest?: (
@@ -51,9 +50,7 @@ export const useToolActions = ({
   const { permissionMode } = useSettings();
   const [clickedActions, setClickedActions] = useState<Set<string>>(new Set());
   const [failedActions, setFailedActions] = useState<Set<string>>(new Set());
-  const [rejectedActions, setRejectedActions] = useState<Set<string>>(
-    new Set(),
-  );
+  const [rejectedActions, setRejectedActions] = useState<Set<string>>(new Set());
   const triggeredIdsRef = useRef<Set<string>>(new Set());
 
   // Sync ref with state to catch updates from anywhere
@@ -87,9 +84,7 @@ export const useToolActions = ({
 
     if (historicalClicked.size > 0) {
       setClickedActions((prev) => {
-        const hasNew = Array.from(historicalClicked).some(
-          (id) => !prev.has(id),
-        );
+        const hasNew = Array.from(historicalClicked).some((id) => !prev.has(id));
         if (hasNew) {
           const next = new Set(prev);
           historicalClicked.forEach((id) => next.add(id));
@@ -100,9 +95,7 @@ export const useToolActions = ({
     }
     if (historicalRejected.size > 0) {
       setRejectedActions((prev) => {
-        const hasNew = Array.from(historicalRejected).some(
-          (id) => !prev.has(id),
-        );
+        const hasNew = Array.from(historicalRejected).some((id) => !prev.has(id));
         if (hasNew) {
           const next = new Set(prev);
           historicalRejected.forEach((id) => next.add(id));
@@ -117,7 +110,7 @@ export const useToolActions = ({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const { command, actionId } = event.data;
-      if (command === "removeClickedAction" && actionId) {
+      if (command === 'removeClickedAction' && actionId) {
         setClickedActions((prev: Set<string>) => {
           const newSet = new Set(prev);
           newSet.delete(actionId);
@@ -126,7 +119,7 @@ export const useToolActions = ({
         });
       }
 
-      if (command === "markActionClicked" && actionId) {
+      if (command === 'markActionClicked' && actionId) {
         setClickedActions((prev: Set<string>) => {
           const newSet = new Set(prev);
           newSet.add(actionId);
@@ -135,7 +128,7 @@ export const useToolActions = ({
         });
       }
 
-      if (command === "markActionFailed" && actionId) {
+      if (command === 'markActionFailed' && actionId) {
         setClickedActions((prev: Set<string>) => {
           const newSet = new Set(prev);
           newSet.add(actionId);
@@ -145,13 +138,13 @@ export const useToolActions = ({
         setFailedActions((prev: Set<string>) => new Set(prev).add(actionId));
       }
 
-      if (command === "markActionRejected" && actionId) {
+      if (command === 'markActionRejected' && actionId) {
         setRejectedActions((prev: Set<string>) => new Set(prev).add(actionId));
       }
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   const handleToolClick = useCallback(
@@ -166,18 +159,12 @@ export const useToolActions = ({
       }
 
       const actionIdBase = `${message.id}-action-`;
-      const actionId = `${actionIdBase}${actionIndex}`;
 
       if (type === TOOL_ACTION_TYPES.REJECT) {
         const actions = Array.isArray(actionOrActions)
           ? actionOrActions.map((a) => ({ ...a, _index: actionIndex }))
           : [{ ...actionOrActions, _index: actionIndex }];
-        onSendToolRequest(
-          actions as any,
-          message,
-          false,
-          TOOL_ACTION_TYPES.REJECT,
-        );
+        onSendToolRequest(actions as any, message, false, TOOL_ACTION_TYPES.REJECT);
         return;
       }
 
@@ -191,14 +178,11 @@ export const useToolActions = ({
         );
 
         if (!targetAction) {
-          console.warn(
-            `[Zen][handleToolClick] Cannot find action at index ${actionIndex}`,
-            {
-              actionIndex,
-              availableIndices: actionOrActions.map((a: any) => a._index),
-              messageId: message.id,
-            },
-          );
+          logger.warn(`[Zen][handleToolClick] Cannot find action at index ${actionIndex}`, {
+            actionIndex,
+            availableIndices: actionOrActions.map((a: any) => a._index),
+            messageId: message.id,
+          });
           return;
         }
 
@@ -241,8 +225,7 @@ export const useToolActions = ({
 
   useEffect(() => {
     // Check if permission mode changed
-    const permissionModeChanged =
-      prevPermissionModeRef.current !== permissionMode;
+    const permissionModeChanged = prevPermissionModeRef.current !== permissionMode;
     if (permissionModeChanged) {
       prevPermissionModeRef.current = permissionMode;
     }
@@ -269,7 +252,7 @@ export const useToolActions = ({
     }
 
     const lastMessage = parsedMessages[parsedMessages.length - 1];
-    if (lastMessage.role !== "assistant") {
+    if (lastMessage.role !== 'assistant') {
       return;
     }
     if (lastMessage.isCancelled) {
@@ -290,7 +273,7 @@ export const useToolActions = ({
       const actionId = `${lastMessage.id}-action-${idx}`;
 
       // Skip display-only tools - they should not be auto-executed
-      if (action.type === "git_status" || action.type === "commit_message") {
+      if (action.type === 'git_status' || action.type === 'commit_message') {
         return;
       }
 
@@ -305,21 +288,18 @@ export const useToolActions = ({
 
       // SEQUENTIAL BLOCK CHECK:
       const actionBlockIdx = contentBlocks.findIndex(
-        (b: any) => b.type === "tool" && b.actionIndex === idx,
+        (b: any) => b.type === 'tool' && b.actionIndex === idx,
       );
 
       const isBlocked =
         actionBlockIdx !== -1 &&
         contentBlocks.slice(0, actionBlockIdx).some((prevBlock: any) => {
-          if (prevBlock.type === "question" && !prevBlock.optional) {
+          if (prevBlock.type === 'question' && !prevBlock.optional) {
             return !selectedOption;
           }
-          if (prevBlock.type === "tool") {
+          if (prevBlock.type === 'tool') {
             const prevActionId = `${lastMessage.id}-action-${prevBlock.actionIndex}`;
-            return (
-              !clickedActions.has(prevActionId) &&
-              !triggeredIdsRef.current.has(prevActionId)
-            );
+            return !clickedActions.has(prevActionId) && !triggeredIdsRef.current.has(prevActionId);
           }
           return false;
         });
@@ -330,7 +310,7 @@ export const useToolActions = ({
 
       // Check if settings specify this tool runs auto or deny
       const decision = getPermissionDecision(permissionMode, action.type);
-      if (decision === "allow" || decision === TOOL_ACTION_TYPES.REJECT) {
+      if (decision === 'allow' || decision === TOOL_ACTION_TYPES.REJECT) {
         // Collect for batch update
         actionsToMarkTriggered.push(actionId);
         actionsToRun.push({ ...action, actionId, _index: idx } as any);
@@ -358,12 +338,7 @@ export const useToolActions = ({
 
       // Send REJECT actions first (to generate error feedback)
       if (rejectActions.length > 0) {
-        onSendToolRequest(
-          rejectActions as any,
-          lastMessage,
-          true,
-          TOOL_ACTION_TYPES.REJECT,
-        );
+        onSendToolRequest(rejectActions as any, lastMessage, true, TOOL_ACTION_TYPES.REJECT);
       }
 
       // Then send ACCEPT actions

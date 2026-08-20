@@ -1,9 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * IPC handler proxy
+ * ------------------------------------------------------------------
+ * IPC handler cho quản lý phiên proxy. Đăng ký các thao tác
+ * proxy: cho tạo phiên, chặn bắt, breakpoint
+ * và fetch nội bộ sử dụng module net của Electron.
+ *
+ * Hàm chính:
+ * - setupProxyHandlers() : Đăng ký IPC handler proxy: và phantoma:
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain, net } from 'electron';
+
+// ── Internal ──
 import { proxyManager } from '../shared/proxy-state';
 import { closeAllGenericWebWindows } from '../features/generic-web';
 import { appState } from '../shared/state';
 import { cleanup } from '../lifecycle';
+import { logger } from '../utils/logger';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export function setupProxyHandlers() {
   // Phantoma internal fetch — bypass proxy, dùng electron net module
   ipcMain.handle('phantoma:fetch', async (_, url: string, method: string, body?: string) => {
@@ -17,6 +36,7 @@ export function setupProxyHandlers() {
       const text = await response.text();
       return { ok: response.ok, status: response.status, body: text };
     } catch (e: any) {
+      logger.error('[Proxy] phantoma:fetch failed:', e);
       return { ok: false, status: 0, body: '', error: e?.message ?? String(e) };
     }
   });

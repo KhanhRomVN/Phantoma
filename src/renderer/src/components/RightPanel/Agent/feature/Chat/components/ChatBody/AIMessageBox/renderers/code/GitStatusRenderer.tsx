@@ -38,20 +38,13 @@ interface GitStatusRendererProps {
   branch?: string;
 }
 
-/**
- * Renderer for git_status tool type
- * Displays git repository status with file changes
- */
 export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
   action,
   actionIndex,
   messageId,
-  isActionClicked = false,
   isActiveGroup = false,
-  isLastMessage = false,
   isLastItemInList = true,
   toolOutputs,
-  onToolClick,
   onConfirm,
   onCancel,
   gitStatusItems = [],

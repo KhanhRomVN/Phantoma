@@ -1,8 +1,30 @@
+/**
+ * ------------------------------------------------------------------
+ * Bộ xử lý response
+ * ------------------------------------------------------------------
+ * Xử lý body response HTTP cho proxy. Xử lý giải nén nội dung,
+ * phát hiện nhị phân, cache media và chèn script HTML.
+ *
+ * Hàm chính:
+ * - decompressResponseBody() : Giải mã body response dựa trên encoding
+ * - processResponseBody()    : Xử lý và cache nội dung response
+ * - injectHTMLScript()       : Chèn script Phantoma vào HTML
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import * as zlib from 'zlib';
+
+// ── External ──
 import { decompress } from '@mongodb-js/zstd';
+
+// ── Internal ──
 import { INJECT_SCRIPT } from './injection';
 import { mediaCache } from './mediaCache';
+import { logger } from '../utils/logger';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ResponseProcessingResult {
   body: string;
   size: string;
@@ -10,6 +32,7 @@ export interface ResponseProcessingResult {
   contentType: string;
 }
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export function decompressResponseBody(
   buffer: Buffer,
   contentEncoding: string,
@@ -130,7 +153,7 @@ export function injectHTMLScript(
 
     return { buffer: Buffer.from(body, 'utf8'), modified: true };
   } catch (e) {
-    console.error('[Proxy] Injection failed:', e);
+    logger.error('[Proxy] Injection failed:', e);
     return { buffer, modified: false };
   }
 }

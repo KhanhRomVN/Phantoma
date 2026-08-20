@@ -1,5 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * Trình xử lý yêu cầu Inspector
+ * ------------------------------------------------------------------
+ * Gửi yêu cầu HTTP qua module net của Electron thay mặt cho
+ * tính năng inspector của renderer. Lọc các header không an toàn và
+ * trả về metadata phản hồi kèm thời gian và body.
+ *
+ * Hàm chính:
+ * - handleInspectorRequest() : Thực thi yêu cầu HTTP và định dạng phản hồi
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { net } from 'electron';
 
+// ── Internal ──
+import { logger } from '../utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface InspectorRequestPayload {
   url: string;
   method: string;
@@ -17,6 +36,7 @@ export interface InspectorResponsePayload {
   error?: string;
 }
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export async function handleInspectorRequest(
   payload: InspectorRequestPayload,
 ): Promise<InspectorResponsePayload> {
@@ -73,6 +93,7 @@ export async function handleInspectorRequest(
       size: new Blob([responseBody]).size, // Approximate size in bytes
     };
   } catch (error: any) {
+    logger.error('[Inspector] Request failed:', error);
     return {
       error: error.message || 'Unknown error occurred',
     };

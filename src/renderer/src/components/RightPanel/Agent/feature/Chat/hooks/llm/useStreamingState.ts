@@ -1,12 +1,9 @@
-import { useReducer, useRef, useCallback } from "react";
-
 /**
  * useStreamingState — reducer quản lý trạng thái streaming (processing/streaming/continuing) gộp chung để giảm re-render.
  *
  *    streamingReducer() : Reducer xử lý SET_PROCESSING, SET_STREAMING, SET_CONTINUING, RESET_STREAMING, STOP_ALL.
  */
-
-import { useReducer, useCallback } from 'react';
+import { useReducer, useRef, useCallback } from 'react';
 
 // TYPES
 export interface StreamingState {
@@ -16,30 +13,27 @@ export interface StreamingState {
 }
 
 type StreamingAction =
-  | { type: "SET_PROCESSING"; payload: boolean }
-  | { type: "SET_STREAMING"; payload: boolean }
-  | { type: "SET_CONTINUING"; payload: boolean }
-  | { type: "RESET_STREAMING" }
-  | { type: "STOP_ALL" };
+  | { type: 'SET_PROCESSING'; payload: boolean }
+  | { type: 'SET_STREAMING'; payload: boolean }
+  | { type: 'SET_CONTINUING'; payload: boolean }
+  | { type: 'RESET_STREAMING' }
+  | { type: 'STOP_ALL' };
 
-const streamingReducer = (
-  state: StreamingState,
-  action: StreamingAction,
-): StreamingState => {
+const streamingReducer = (state: StreamingState, action: StreamingAction): StreamingState => {
   switch (action.type) {
-    case "SET_PROCESSING":
+    case 'SET_PROCESSING':
       return { ...state, isProcessing: action.payload };
-    case "SET_STREAMING":
+    case 'SET_STREAMING':
       return { ...state, isStreaming: action.payload };
-    case "SET_CONTINUING":
+    case 'SET_CONTINUING':
       return { ...state, isContinuing: action.payload };
-    case "RESET_STREAMING":
+    case 'RESET_STREAMING':
       return {
         ...state,
         isStreaming: false,
         isContinuing: false,
       };
-    case "STOP_ALL":
+    case 'STOP_ALL':
       return {
         isProcessing: false,
         isStreaming: false,
@@ -62,12 +56,12 @@ export const useStreamingState = () => {
 
   const setIsProcessingSync = useCallback((val: boolean) => {
     isProcessingRef.current = val;
-    dispatchStreaming({ type: "SET_PROCESSING", payload: val });
+    dispatchStreaming({ type: 'SET_PROCESSING', payload: val });
   }, []);
 
   const setIsContinuingSync = useCallback((val: boolean) => {
     isContinuingRef.current = val;
-    dispatchStreaming({ type: "SET_CONTINUING", payload: val });
+    dispatchStreaming({ type: 'SET_CONTINUING', payload: val });
   }, []);
 
   return {

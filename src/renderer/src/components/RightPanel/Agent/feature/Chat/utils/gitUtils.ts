@@ -1,6 +1,6 @@
 /**
- * Shared git status parser used by both GitToolRenderer and ChatPanel (index.tsx).
- * Parses git status --porcelain output into a structured array.
+ * Trình phân tích git status dùng chung cho cả GitToolRenderer và ChatPanel (index.tsx).
+ * Phân tích đầu ra git status --porcelain thành mảng có cấu trúc.
  */
 
 export interface GitStatusEntry {

@@ -1,6 +1,27 @@
-import { BrowserWindow, session } from 'electron';
-import { CloudflareBypasser } from '../utils/cloudflare-bypass';
+/**
+ * ------------------------------------------------------------------
+ * Cửa sổ web generic
+ * ------------------------------------------------------------------
+ * Tạo và quản lý các phiên bản BrowserWindow cho duyệt web
+ * qua proxy. Hỗ trợ session theo từng cửa sổ, user agent tùy chỉnh,
+ * cấu hình proxy và tùy chọn bypass Cloudflare.
+ *
+ * Hàm chính:
+ * - createGenericWebWindow()  : Tạo hoặc focus cửa sổ web qua proxy
+ * - closeGenericWebWindow()   : Đóng một cửa sổ theo ID
+ * - closeAllGenericWebWindows(): Đóng tất cả các cửa sổ generic đang hoạt động
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
+import { BrowserWindow, session } from 'electron';
+
+// ── Internal ──
+import { CloudflareBypasser } from '../utils/cloudflare-bypass';
+import { logger } from '../utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface GenericWebWindowOptions {
   title?: string;
   width?: number;
@@ -12,13 +33,12 @@ export interface GenericWebWindowOptions {
   backgroundColor?: string;
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────
 // Keep track of windows by ID or Partition to prevent duplicates if needed
 // For now, simpler to just store active windows in a map if we want named singleton behavior
 const activeWindows: Map<string, BrowserWindow> = new Map();
 
-/**
- * Create or focus a Generic Web Window
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 export async function createGenericWebWindow(
   id: string,
   url: string,
@@ -76,7 +96,7 @@ export async function createGenericWebWindow(
       await ses.clearCache();
       await ses.clearStorageData();
     } catch (e) {
-      console.error(`[GenericWebWindow:${id}] Failed to clear session data:`, e);
+      logger.error(`[GenericWebWindow:${id}] Failed to clear session data:`, e);
     }
   }
 
@@ -87,7 +107,7 @@ export async function createGenericWebWindow(
       proxyBypassRules: '<-loopback>',
     });
   } catch (error) {
-    console.error(`[GenericWebWindow:${id}] Failed to set proxy:`, error);
+    logger.error(`[GenericWebWindow:${id}] Failed to set proxy:`, error);
     window.close();
     return null;
   }
@@ -117,7 +137,7 @@ export async function createGenericWebWindow(
   window.webContents.on('did-finish-load', () => {});
 
   window.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
-    console.error(`[GenericWebWindow:${id}] Failed to load:`, errorCode, errorDescription);
+    logger.error(`[GenericWebWindow:${id}] Failed to load:`, errorCode, errorDescription);
   });
 
   return window;

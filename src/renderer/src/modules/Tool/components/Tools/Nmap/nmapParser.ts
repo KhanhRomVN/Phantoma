@@ -34,7 +34,7 @@ export const parseNmapXML = (xmlString: string): ParsedNmapScan | null => {
     // Check for parsing errors
     const parseError = xmlDoc.querySelector('parsererror');
     if (parseError) {
-      console.error('XML parsing error:', parseError.textContent);
+      logger.error('XML parsing error:', parseError.textContent);
       return null;
     }
 
@@ -55,7 +55,8 @@ export const parseNmapXML = (xmlString: string): ParsedNmapScan | null => {
 
     // Get host information
     const host = xmlDoc.querySelector('host');
-    const status = host?.querySelector('status')?.getAttribute('state') as 'up' | 'down' || 'down';
+    const status =
+      (host?.querySelector('status')?.getAttribute('state') as 'up' | 'down') || 'down';
     const ip = host?.querySelector('address[addrtype="ipv4"]')?.getAttribute('addr') || '';
     const hostname = host?.querySelector('hostname')?.getAttribute('name') || undefined;
     const mac = host?.querySelector('address[addrtype="mac"]')?.getAttribute('addr') || undefined;
@@ -106,7 +107,7 @@ export const parseNmapXML = (xmlString: string): ParsedNmapScan | null => {
       ports,
     };
   } catch (error) {
-    console.error('Error parsing Nmap XML:', error);
+    logger.error('Error parsing Nmap XML:', error);
     return null;
   }
 };
@@ -161,7 +162,11 @@ export const getPortRisk = (port: number, service: string): string => {
     if (port === 8080 || port === 8443 || port === 8000) return 'high';
     return 'medium';
   }
-  if (serviceLower.includes('sql') || serviceLower.includes('mysql') || serviceLower.includes('postgres')) {
+  if (
+    serviceLower.includes('sql') ||
+    serviceLower.includes('mysql') ||
+    serviceLower.includes('postgres')
+  ) {
     return 'critical';
   }
   if (serviceLower.includes('smb') || serviceLower.includes('netbios')) return 'high';

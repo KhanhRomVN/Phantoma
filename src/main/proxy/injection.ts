@@ -1,3 +1,17 @@
+/**
+ * ------------------------------------------------------------------
+ * Script chèn proxy
+ * ------------------------------------------------------------------
+ * JavaScript được chèn vào các trang đi qua proxy. Thêm overlay tạm dừng,
+ * trạng thái chặn bắt WebSocket và bắt giữ stack trace cho
+ * các yêu cầu fetch/XHR.
+ *
+ * Hằng số chính:
+ * - INJECT_SCRIPT : Nguồn script chèn
+ * ------------------------------------------------------------------
+ */
+
+// ─── Constants ──────────────────────────────────────────────────────────
 export const INJECT_SCRIPT = `
 (function() {
   // ── Intercept Overlay ──────────────────────────────────────────────────────

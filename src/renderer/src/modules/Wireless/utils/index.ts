@@ -5,6 +5,7 @@
 import React from 'react';
 import type { Encryption } from '../types';
 import { ENC_PALETTE, OUI_MAP } from '../constants';
+import { $ } from '@renderer/utils/color';
 
 export function encBadge(enc: Encryption): React.ReactElement {
   const p = ENC_PALETTE[enc];

@@ -71,8 +71,10 @@ export function Showcase({ onNavigate }: ShowcaseProps) {
             <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/60 p-10 flex flex-col items-center justify-center gap-8 min-h-[420px]">
               <button
                 onClick={() => setSelected('heading')}
-                className={`font-[Space_Grotesk] text-3xl font-bold text-zinc-900 dark:text-white text-center rounded-lg px-2 transition-all ${
-                  selected === 'heading' ? 'ring-2 ring-cyan-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900' : 'hover:ring-1 hover:ring-cyan-500/40'
+                className={`text-3xl font-bold text-zinc-900 dark:text-white text-center rounded-lg px-2 transition-all ${
+                  selected === 'heading'
+                    ? 'ring-2 ring-cyan-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900'
+                    : 'hover:ring-1 hover:ring-cyan-500/40'
                 }`}
               >
                 Thiết kế giao diện,
@@ -83,7 +85,9 @@ export function Showcase({ onNavigate }: ShowcaseProps) {
               <button
                 onClick={() => setSelected('card')}
                 className={`w-72 rounded-2xl bg-white dark:bg-zinc-800 border border-black/5 dark:border-white/5 shadow-lg p-6 text-left transition-all ${
-                  selected === 'card' ? 'ring-2 ring-cyan-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900' : 'hover:ring-1 hover:ring-cyan-500/40'
+                  selected === 'card'
+                    ? 'ring-2 ring-cyan-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900'
+                    : 'hover:ring-1 hover:ring-cyan-500/40'
                 }`}
               >
                 <div className="h-20 rounded-lg bg-gradient-to-br from-cyan-400/30 to-violet-400/30 mb-4" />
@@ -94,7 +98,9 @@ export function Showcase({ onNavigate }: ShowcaseProps) {
               <button
                 onClick={() => setSelected('button')}
                 className={`rounded-full px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-violet-500 transition-all ${
-                  selected === 'button' ? 'ring-2 ring-cyan-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900' : 'hover:ring-1 hover:ring-cyan-500/40'
+                  selected === 'button'
+                    ? 'ring-2 ring-cyan-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900'
+                    : 'hover:ring-1 hover:ring-cyan-500/40'
                 }`}
               >
                 Bắt đầu thiết kế

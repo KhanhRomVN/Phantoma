@@ -1,5 +1,5 @@
 /**
- * ClickElementRenderer — Renderer for click_element tool
+ * ClickElementRenderer — Renderer cho tool click_element
  */
 
 import React from 'react';

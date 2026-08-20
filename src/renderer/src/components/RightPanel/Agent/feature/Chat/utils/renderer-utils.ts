@@ -2,7 +2,7 @@ import { Message } from '../types/message';
 import { FileNode } from '../types/renderer-types';
 
 /**
- * Get display path with smart truncation to avoid conflicts
+ * Lấy đường dẫn hiển thị với cắt ngắn thông minh để tránh xung đột
  */
 export const getDisplayPath = (fullPath: string, allPaths: string[]): string => {
   const sep = /[/\\]/;

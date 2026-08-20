@@ -27,7 +27,7 @@ export function DetailMode({
   onElementSelect,
   selectedElement,
 }: DetailModeProps) {
-  const [hoveredElement, setHoveredElement] = useState<string | null>(null);
+  const [, setHoveredElement] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);

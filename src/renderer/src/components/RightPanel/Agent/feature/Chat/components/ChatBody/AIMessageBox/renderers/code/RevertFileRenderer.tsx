@@ -24,8 +24,8 @@ import ErrorBlock from '../../blocks/other/ErrorBlock';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 /**
- * Renderer for revert_file tool type
- * Shows diff stats similar to ReplaceInFileRenderer
+ * Renderer cho loại tool revert_file
+ * Hiển thị thống kê diff tương tự ReplaceInFileRenderer
  */
 export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
   action,

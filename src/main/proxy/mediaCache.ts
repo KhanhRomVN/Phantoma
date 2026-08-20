@@ -1,11 +1,32 @@
+/**
+ * ------------------------------------------------------------------
+ * Cache media
+ * ------------------------------------------------------------------
+ * Lưu trữ bền vững cho các phân đoạn media (ví dụ file .ts) để chúng
+ * vẫn khả dụng ngay cả sau khi URL gốc hết hạn. Duy trì
+ * một manifest JSON của nội dung đã cache.
+ *
+ * Hàm chính:
+ * - has()        : Kiểm tra xem ID yêu cầu có trong cache
+ * - get()        : Lấy nội dung đã cache theo ID yêu cầu
+ * - save()       : Lưu nội dung media vào cache
+ * - clear()      : Xóa tất cả media đã cache
+ * - getManifest(): Trả về manifest cache đầy đủ
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { app } from 'electron';
+
+// ── Node.js ──
 import * as fs from 'fs';
 import * as path from 'path';
 
-/**
- * MediaCache handles persistent storage of media segments (like .ts files)
- * to ensure they are available even if the original URL expires.
- */
+// ── Internal ──
+import { logger } from '../utils/logger';
+
+// ─── Class ──────────────────────────────────────────────────────────────
 class MediaCache {
   private cacheDir: string;
   private manifestFile: string;
@@ -26,7 +47,7 @@ class MediaCache {
       try {
         this.manifest = JSON.parse(fs.readFileSync(this.manifestFile, 'utf-8'));
       } catch (e) {
-        console.error('[MediaCache] Failed to load manifest:', e);
+        logger.error('[MediaCache] Failed to load manifest:', e);
         this.manifest = {};
       }
     } else {
@@ -38,7 +59,7 @@ class MediaCache {
     try {
       fs.writeFileSync(this.manifestFile, JSON.stringify(this.manifest, null, 2));
     } catch (e) {
-      console.error('[MediaCache] Failed to save manifest:', e);
+      logger.error('[MediaCache] Failed to save manifest:', e);
     }
   }
 
@@ -65,7 +86,7 @@ class MediaCache {
       const buffer = fs.readFileSync(filePath);
       return { buffer, contentType: entry.contentType };
     } catch (e) {
-      console.error(`[MediaCache] Failed to read cached file ${requestId}:`, e);
+      logger.error(`[MediaCache] Failed to read cached file ${requestId}:`, e);
       return null;
     }
   }
@@ -85,7 +106,7 @@ class MediaCache {
       };
       this.saveManifest();
     } catch (e) {
-      console.error(`[MediaCache] Failed to save media ${requestId}:`, e);
+      logger.error(`[MediaCache] Failed to save media ${requestId}:`, e);
     }
   }
 
@@ -101,7 +122,7 @@ class MediaCache {
       this.manifest = {};
       this.saveManifest();
     } catch (e) {
-      console.error('[MediaCache] Failed to clear cache:', e);
+      logger.error('[MediaCache] Failed to clear cache:', e);
     }
   }
 
@@ -113,4 +134,5 @@ class MediaCache {
   }
 }
 
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const mediaCache = new MediaCache();

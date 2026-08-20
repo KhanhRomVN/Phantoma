@@ -1,5 +1,5 @@
 /**
- * BackBlock — Display back tool output
+ * BackBlock — Hiển thị output của tool back
  */
 
 import { $ } from '@renderer/utils/color';

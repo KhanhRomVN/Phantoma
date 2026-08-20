@@ -48,7 +48,6 @@ const NmapTool: React.FC<NmapToolProps> = ({
     selectedScanForDetail,
     setSelectedScanForDetail,
     targetHistory,
-    setTargetHistory,
     deleteScan,
     filteredHistory,
   } = useHistory();
@@ -80,9 +79,7 @@ const NmapTool: React.FC<NmapToolProps> = ({
 
   return (
     <div className="flex flex-col gap-3 relative font-mono">
-      {activeTab === 'information' && (
-        <MarkdownBlock content={NMAP_DOC} accentColor={accentColor} />
-      )}
+      {activeTab === 'information' && <MarkdownBlock content={NMAP_DOC} />}
 
       {activeTab === 'execution' && (
         <ExecutionTab

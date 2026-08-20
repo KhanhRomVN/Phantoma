@@ -1,8 +1,7 @@
 /**
- * FillInputBlock — Display fill_input tool output
+ * FillInputBlock — Hiển thị output của tool fill_input
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface FillInputBlockProps {

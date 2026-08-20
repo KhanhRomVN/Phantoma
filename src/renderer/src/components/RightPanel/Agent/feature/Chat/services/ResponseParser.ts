@@ -66,6 +66,7 @@ export interface ToolAction {
 }
 
 import type { ContentBlock } from '../types/renderer-types';
+import { logger } from '@renderer/utils/logger';
 
 /**
  * Parse AI response to extract tool actions
@@ -76,8 +77,6 @@ const DEBUG_PARSER =
   typeof window !== 'undefined' && window.localStorage?.getItem('zen_debug_parser') === 'true';
 
 export const parseAIResponse = (content: string): ParsedResponse => {
-  const _parseStartTime = performance.now();
-
   // Track parsing sequence for debugging
   const parsingSequence: { index: number; tag: string; subTags?: string[] }[] = [];
   let sequenceCounter = 0;
@@ -113,7 +112,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
     !content.includes('</thinking>'); // No closing tag yet
 
   if (remainingContent.trim().length === 0 && content.trim().length > 100 && !isLikelyStreaming) {
-    console.warn('[Zen][Parser] ⚠️ All content consumed by thinking extraction!', {
+    logger.warn('[Zen][Parser] ⚠️ All content consumed by thinking extraction!', {
       originalLength: content.length,
       thinkingBlocks: thinkingBlocks.length,
     });
@@ -316,9 +315,6 @@ export const parseAIResponse = (content: string): ParsedResponse => {
           let hasNewSchema = false;
           const content = innerContent || '';
 
-          // Count total <q> tags found (both self-closing and non-self-closing)
-          const qTagCount = (content.match(/<q\s+id=/gi) || []).length;
-
           // Find all <q> tags using a more reliable approach
           // We'll process each tag by finding the opening <q and then finding the matching closing </q> or />
           let searchIndex = 0;
@@ -332,7 +328,6 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             // Find the end of the opening tag (> or />)
             let tagEnd = -1;
             let isSelfClosing = false;
-            let depth = 0;
             let i = qStart + 2;
 
             while (i < content.length) {
@@ -425,7 +420,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             // For text/confirm, no options needed - skip validation
             if (qType === 'single' || qType === 'multi') {
               if (qOptions.length < 2) {
-                console.warn(
+                logger.warn(
                   `[Zen][Question] ⚠️ SKIPPING question "${qId}" - type ${qType} needs at least 2 options, got ${qOptions.length}`,
                 );
                 searchIndex = closeTagEnd;
@@ -599,72 +594,72 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             // ── Recon tools ──────────────────────────────────────
             case 'list_tabs': {
               const params = parseListTabs(innerContent || '');
-              action = { type: 'list_tabs' as const, params, rawXml };
+              action = { type: 'list_tabs' as const, params: params || {}, rawXml };
               break;
             }
             case 'create_tab': {
               const params = parseCreateTab(innerContent || '');
-              action = { type: 'create_tab' as const, params, rawXml };
+              action = { type: 'create_tab' as const, params: params || {}, rawXml };
               break;
             }
             case 'close_tab': {
               const params = parseCloseTab(innerContent || '');
-              action = { type: 'close_tab' as const, params, rawXml };
+              action = { type: 'close_tab' as const, params: params || {}, rawXml };
               break;
             }
             case 'switch_tab': {
               const params = parseSwitchTab(innerContent || '');
-              action = { type: 'switch_tab' as const, params, rawXml };
+              action = { type: 'switch_tab' as const, params: params || {}, rawXml };
               break;
             }
             case 'navigate': {
               const params = parseNavigate(innerContent || '');
-              action = { type: 'navigate' as const, params, rawXml };
+              action = { type: 'navigate' as const, params: params || {}, rawXml };
               break;
             }
             case 'back': {
               const params = parseBack(innerContent || '');
-              action = { type: 'back' as const, params, rawXml };
+              action = { type: 'back' as const, params: params || {}, rawXml };
               break;
             }
             case 'forward': {
               const params = parseForward(innerContent || '');
-              action = { type: 'forward' as const, params, rawXml };
+              action = { type: 'forward' as const, params: params || {}, rawXml };
               break;
             }
             case 'reload': {
               const params = parseReload(innerContent || '');
-              action = { type: 'reload' as const, params, rawXml };
+              action = { type: 'reload' as const, params: params || {}, rawXml };
               break;
             }
             case 'get_page_content': {
               const params = parseGetPageContent(innerContent || '');
-              action = { type: 'get_page_content' as const, params, rawXml };
+              action = { type: 'get_page_content' as const, params: params || {}, rawXml };
               break;
             }
             case 'list_elements': {
               const params = parseListElements(innerContent || '');
-              action = { type: 'list_elements' as const, params, rawXml };
+              action = { type: 'list_elements' as const, params: params || {}, rawXml };
               break;
             }
             case 'click_element': {
               const params = parseClickElement(innerContent || '');
-              action = { type: 'click_element' as const, params, rawXml };
+              action = { type: 'click_element' as const, params: params || {}, rawXml };
               break;
             }
             case 'fill_input': {
               const params = parseFillInput(innerContent || '');
-              action = { type: 'fill_input' as const, params, rawXml };
+              action = { type: 'fill_input' as const, params: params || {}, rawXml };
               break;
             }
             case 'press_key': {
               const params = parsePressKey(innerContent || '');
-              action = { type: 'press_key' as const, params, rawXml };
+              action = { type: 'press_key' as const, params: params || {}, rawXml };
               break;
             }
             case 'scroll': {
               const params = parseScroll(innerContent || '');
-              action = { type: 'scroll' as const, params, rawXml };
+              action = { type: 'scroll' as const, params: params || {}, rawXml };
               break;
             }
             default:
@@ -749,7 +744,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
   // 🔍 ALWAYS log if contentBlocks is empty (potential bug)
   const isPartialTag = /^<[\/]?[a-zA-Z0-9_]*$/.test(content.trim());
   if (result.contentBlocks.length === 0 && content.trim().length > 0 && !isPartialTag) {
-    console.warn('[Zen][Parser] ⚠️ No contentBlocks generated!', {
+    logger.warn('[Zen][Parser] ⚠️ No contentBlocks generated!', {
       contentLength: content.length,
       contentPreview: content.substring(0, 200),
       remainingAfterThinking: remainingContent.substring(0, 100),
@@ -767,7 +762,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
   if (hasThinkingBlocks && !hasOtherContent && content.trim().length > 100) {
     // Only mark if content is substantial (> 100 chars) to avoid false positives
     result.onlyThinkingDetected = true;
-    console.warn('[Zen][Parser] ⚠️ ONLY-THINKING response detected!', {
+    logger.warn('[Zen][Parser] ⚠️ ONLY-THINKING response detected!', {
       thinkingBlocksCount: thinkingBlocks.length,
       contentLength: content.length,
       totalBlocks: result.contentBlocks.length,
@@ -777,11 +772,10 @@ export const parseAIResponse = (content: string): ParsedResponse => {
 
   // 📊 Final parse summary
   if (DEBUG_PARSER) {
-    const parseTime = performance.now() - _parseStartTime;
     const errorActions = result.actions.filter((a) => a.isError);
 
     if (errorActions.length > 0) {
-      console.warn(
+      logger.warn(
         '[Zen][Parser] ⚠️ Error actions summary:',
         errorActions.map((a) => ({
           type: a.type,

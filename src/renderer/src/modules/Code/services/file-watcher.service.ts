@@ -29,6 +29,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── Services ──
 import { lspClientManager } from './lsp-client.service';
 
@@ -88,7 +89,7 @@ class FileWatcherService {
       try {
         listener(event);
       } catch (err) {
-        console.error('[FileWatcherService] ❌ Listener error:', err);
+        logger.error('[FileWatcherService] ❌ Listener error:', err);
       }
     });
   }
@@ -149,7 +150,7 @@ class FileWatcherService {
     try {
       await window.api.invoke('fs:watch-file', filePath);
     } catch (err) {
-      console.error('[FileWatcherService] ❌ Failed to start watch:', filePath, err);
+      logger.error('[FileWatcherService] ❌ Failed to start watch:', filePath, err);
       return;
     }
 
@@ -189,7 +190,7 @@ class FileWatcherService {
             mtime: data.mtime,
           });
         } catch (err) {
-          console.error('[FileWatcherService] ❌ Error handling file change:', err);
+          logger.error('[FileWatcherService] ❌ Error handling file change:', err);
         }
       },
     );
@@ -240,7 +241,7 @@ class FileWatcherService {
     try {
       await window.api.invoke('fs:unwatch-file', filePath);
     } catch (err) {
-      console.error('[FileWatcherService] ❌ Error unwatching:', err);
+      logger.error('[FileWatcherService] ❌ Error unwatching:', err);
     }
 
     // Send didClose to LSP server to free memory
@@ -248,7 +249,7 @@ class FileWatcherService {
     try {
       await lspClientManager.notifyDocumentClosed(watched.language, uri);
     } catch (err) {
-      console.error('[FileWatcherService] ❌ Error sending didClose:', err);
+      logger.error('[FileWatcherService] ❌ Error sending didClose:', err);
     }
     this.watchedFiles.delete(filePath);
   }

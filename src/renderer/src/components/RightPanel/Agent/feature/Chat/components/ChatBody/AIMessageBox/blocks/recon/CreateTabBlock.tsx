@@ -1,8 +1,7 @@
 /**
- * CreateTabBlock — Display create_tab tool output
+ * CreateTabBlock — Hiển thị output của tool create_tab
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface CreateTabBlockProps {
@@ -12,12 +11,7 @@ interface CreateTabBlockProps {
   isError?: boolean;
 }
 
-export default function CreateTabBlock({
-  url,
-  targetId,
-  output,
-  isError,
-}: CreateTabBlockProps) {
+export default function CreateTabBlock({ url, targetId, output, isError }: CreateTabBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {url && (
@@ -45,9 +39,7 @@ export default function CreateTabBlock({
         </div>
       )}
 
-      {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Creating tab...</div>
-      )}
+      {!output && !isError && <div className="text-text-secondary opacity-60">Creating tab...</div>}
     </div>
   );
 }

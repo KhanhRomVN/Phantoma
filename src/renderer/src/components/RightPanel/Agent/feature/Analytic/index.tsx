@@ -1,3 +1,16 @@
+/**
+ * ------------------------------------------------------------------
+ * Analytic
+ * ------------------------------------------------------------------
+ * Panel hiển thị thống kê sử dụng: requests, latency, active sessions.
+ *
+ * Main features:
+ * - Hiển thị số liệu requests và avg latency
+ * - Hiển thị active sessions
+ * - Hiển thị recent activity
+ * ------------------------------------------------------------------
+ */
+
 import { Activity, TrendingUp, Users } from 'lucide-react';
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
 

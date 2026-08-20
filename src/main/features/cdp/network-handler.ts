@@ -1,6 +1,29 @@
-import WebSocket from 'ws';
-import { CdpManager } from './cdp-manager';
+/**
+ * ------------------------------------------------------------------
+ * Trình xử lý mạng CDP
+ * ------------------------------------------------------------------
+ * Xử lý các sự kiện domain Network của CDP và chuyển tiếp chúng đến
+ * renderer. Bắt giữ requests, responses, trạng thái tải và
+ * truy xuất nguồn script.
+ *
+ * Hàm chính:
+ * - handleNetworkEvent()      : Định tuyến sự kiện mạng theo phương thức
+ * - handleRequestWillBeSent() : Chuyển tiếp dữ liệu request đến renderer
+ * - handleResponseReceived()  : Chuyển tiếp dữ liệu response và lấy body
+ * - handleLoadingFinished()   : Lấy body và nguồn đã giải nén
+ * - handleLoadingFailed()     : Chuyển tiếp lỗi tải
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── External ──
+import WebSocket from 'ws';
+
+// ── Internal ──
+import { CdpManager } from './cdp-manager';
+import { logger } from '../../utils/logger';
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export function handleNetworkEvent(this: CdpManager, method: string, params: any) {
   if (!this.mainWindow) {
     return;
@@ -123,6 +146,7 @@ export async function handleResponseReceived(this: CdpManager, params: any) {
         }
       } catch (e: any) {
         // Ignore
+        logger.warn(`[CDP] Failed to get response body for ${requestId}:`, e.message);
       }
     }, 50);
   }
@@ -170,8 +194,10 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
       break;
     } catch (e: any) {
       if (e.code === -32000 && e.message?.includes('No resource')) {
+        logger.warn(`[CDP] No resource for ${requestId}, skipping body fetch`);
         break;
       }
+      logger.warn(`[CDP] Failed to get response body for ${requestId} (attempt ${attempt + 1}):`, e.message);
     }
   }
 
@@ -230,6 +256,7 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
       }
     } catch (e: any) {
       // Ignore
+      logger.warn(`[CDP] Failed to get script source for ${requestId}:`, e.message);
     }
   }
 

@@ -32,7 +32,7 @@ export function Home({ onNavigate }: HomeProps) {
               </span>
             </div>
 
-            <h1 className="font-[Space_Grotesk] text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] text-zinc-900 dark:text-white mb-6 text-balance">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] text-zinc-900 dark:text-white mb-6 text-balance">
               Hover vào element.
               <br />
               <span className="bg-gradient-to-r from-cyan-500 to-violet-500 bg-clip-text text-transparent">
@@ -41,9 +41,9 @@ export function Home({ onNavigate }: HomeProps) {
             </h1>
 
             <p className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed mb-8 max-w-lg">
-              Phantoma biến canvas thiết kế thành một inspector sống động — trỏ chuột vào bất
-              kỳ đâu, chỉnh vị trí, màu sắc, radius theo thời gian thực, với gợi ý từ AI được
-              huấn luyện trên chính design system của bạn.
+              Phantoma biến canvas thiết kế thành một inspector sống động — trỏ chuột vào bất kỳ
+              đâu, chỉnh vị trí, màu sắc, radius theo thời gian thực, với gợi ý từ AI được huấn
+              luyện trên chính design system của bạn.
             </p>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8">

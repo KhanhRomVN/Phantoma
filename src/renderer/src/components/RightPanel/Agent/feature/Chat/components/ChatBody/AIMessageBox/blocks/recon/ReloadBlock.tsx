@@ -1,8 +1,7 @@
 /**
- * ReloadBlock — Display reload tool output
+ * ReloadBlock — Hiển thị output của tool reload
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface ReloadBlockProps {
@@ -12,12 +11,7 @@ interface ReloadBlockProps {
   isError?: boolean;
 }
 
-export default function ReloadBlock({
-  tabId,
-  targetId,
-  output,
-  isError,
-}: ReloadBlockProps) {
+export default function ReloadBlock({ tabId, targetId, output, isError }: ReloadBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {tabId && (

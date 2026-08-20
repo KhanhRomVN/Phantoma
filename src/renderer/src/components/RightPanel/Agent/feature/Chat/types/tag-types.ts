@@ -1,8 +1,8 @@
 /**
- * Tag and Tool Type Definitions
+ * Định nghĩa kiểu Tag và Tool
  * 
- * This file contains all type definitions related to tags, tools, and permissions.
- * Extracted from constants.ts for better separation of concerns.
+ * File này chứa tất cả định nghĩa kiểu liên quan đến tags, tools và permissions.
+ * Được tách từ constants.ts để phân tách trách nhiệm tốt hơn.
  */
 
 // ============= PERMISSION TYPES =============

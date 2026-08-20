@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { Search } from 'lucide-react';
 
 // Components
@@ -71,10 +72,14 @@ const mapDbToNetworkRequest = (r: RepeaterRequest): NetworkRequest => {
   let path = '';
   try {
     host = new URL(r.url).host;
-  } catch {}
+  } catch {
+    logger.warn('[Repeater] Invalid URL host:', r.url);
+  }
   try {
     path = new URL(r.url).pathname + new URL(r.url).search;
-  } catch {}
+  } catch {
+    logger.warn('[Repeater] Invalid URL path:', r.url);
+  }
   return {
     id: r.id,
     method: r.method,

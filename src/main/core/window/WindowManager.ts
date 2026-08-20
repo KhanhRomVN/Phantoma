@@ -1,8 +1,31 @@
-import { BrowserWindow, shell } from 'electron';
-import { join } from 'path';
-import { is } from '@electron-toolkit/utils';
-import { windowConfig } from '../config';
+/**
+ * ------------------------------------------------------------------
+ * Quản lý cửa sổ
+ * ------------------------------------------------------------------
+ * Tạo và quản lý BrowserWindow chính của Electron. Xử lý
+ * kích thước cửa sổ, cấu hình thanh tiêu đề tùy chỉnh, xử lý liên kết ngoài,
+ * và logic tải dev/prod.
+ *
+ * Hàm chính:
+ * - createMainWindow() : Tạo và hiển thị cửa sổ chính
+ * - getMainWindow()    : Trả về tham chiếu cửa sổ hiện tại hoặc null
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
+import { BrowserWindow, shell } from 'electron';
+
+// ── Node.js ──
+import { join } from 'path';
+
+// ── External ──
+import { is } from '@electron-toolkit/utils';
+
+// ── Internal ──
+import { windowConfig } from '../config/window.config';
+
+// ─── Class ──────────────────────────────────────────────────────────────
 export class WindowManager {
   private mainWindow: BrowserWindow | null = null;
 
@@ -68,4 +91,5 @@ export class WindowManager {
   }
 }
 
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const windowManager = new WindowManager();

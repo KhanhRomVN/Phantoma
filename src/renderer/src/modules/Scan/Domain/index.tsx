@@ -10,8 +10,9 @@ import { DnsBruteforce } from './components/DnsBruteforce';
 import { DnsEnumeration } from './components/DnsEnumeration';
 import { DnsMisconfig } from './components/DnsMisconfig';
 
-import { ChevronDown, Search as SearchIcon, Play, Square, RefreshCw } from 'lucide-react';
+import { ChevronDown, Search as SearchIcon, Play, RefreshCw } from 'lucide-react';
 import { getTabIcon } from './constants/icons';
+import { logger } from '@renderer/utils/logger';
 
 interface DomainSession {
   id: string;
@@ -94,7 +95,7 @@ export default function DomainScan({ initialDomain = 'phantoma.com' }: DomainSca
           DATA_CACHE['phantoma.com'] = data;
           loadData(data);
         })
-        .catch((err) => console.error('Failed to load scan data:', err));
+        .catch((err) => logger.error('Failed to load scan data:', err));
     }
   }, [activeDomain, loadData]);
 

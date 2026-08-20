@@ -6,8 +6,8 @@ interface WarningBlockProps {
 }
 
 /**
- * WarningBlock component - displays warning message content only.
- * Header is handled by WarningRenderer using TagHeader.
+ * WarningBlock component — chỉ hiển thị nội dung thông điệp cảnh báo.
+ * Header được xử lý bởi WarningRenderer sử dụng TagHeader.
  */
 const WarningBlock: React.FC<WarningBlockProps> = ({
   message,

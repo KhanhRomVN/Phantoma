@@ -1,11 +1,36 @@
+/**
+ * ------------------------------------------------------------------
+ * Trình xử lý sự kiện hội thoại
+ * ------------------------------------------------------------------
+ * IPC handler để lưu trữ bền vững các hội thoại chat trong tiến trình chính.
+ * Lưu hội thoại dưới dạng file JSON trong thư mục home của người dùng,
+ * hỗ trợ đầy đủ thao tác CRUD cùng lịch sử và giới hạn kích thước.
+ *
+ * Hàm chính:
+ * - setupConversationHandlers() : Đăng ký tất cả IPC handler chat:
+ * - getProjectDir()             : Xác định thư mục lưu trữ hội thoại
+ * - ensureDir()                 : Tạo thư mục lưu trữ nếu thiếu
+ * - enforceLimit()              : Giới hạn lịch sử còn MAX_HISTORY mục
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain } from 'electron';
+
+// ── Node.js ──
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+// ── Internal ──
+import { logger } from '../../utils/logger';
+
+// ─── Constants ──────────────────────────────────────────────────────────
 const CONTEXT_ROOT = path.join(os.homedir(), 'khanhromvn-phantoma');
 const MAX_HISTORY = 50;
 
+// ─── Functions ──────────────────────────────────────────────────────────
 function getProjectDir(): string {
   // No workspace concept in Electron — use a single global dir
   return path.join(CONTEXT_ROOT, 'conversations');
@@ -27,12 +52,15 @@ export function setupConversationHandlers() {
         const raw = fs.readFileSync(filePath, 'utf-8');
         const parsed = JSON.parse(raw);
         messages = Array.isArray(parsed) ? parsed : parsed.messages || [];
-      } catch {}
+      } catch {
+        logger.warn(`[Conversation] Failed to read existing conversation ${conversationId}, starting fresh`);
+      }
       messages.push({ ...message, timestamp: message.timestamp || Date.now() });
       fs.writeFileSync(filePath, JSON.stringify(messages, null, 2));
       enforceLimit(dir);
       return { success: true };
     } catch (e: any) {
+      logger.error('[Conversation] Failed to log message:', e);
       return { success: false, error: String(e) };
     }
   });
@@ -49,6 +77,7 @@ export function setupConversationHandlers() {
         enforceLimit(dir);
         return { success: true };
       } catch (e: any) {
+        logger.error('[Conversation] Failed to save conversation:', e);
         return { success: false, error: String(e) };
       }
     },
@@ -70,6 +99,7 @@ export function setupConversationHandlers() {
         },
       };
     } catch (e: any) {
+      logger.error('[Conversation] Failed to get conversation:', e);
       return { success: false, error: String(e) };
     }
   });
@@ -100,13 +130,16 @@ export function setupConversationHandlers() {
               messageCount: parsed.length,
             });
           }
-        } catch {}
+        } catch {
+          logger.warn(`[Conversation] Failed to read history file: ${file}`);
+        }
       }
       history.sort(
         (a, b) => (b.lastModified || b.timestamp || 0) - (a.lastModified || a.timestamp || 0),
       );
       return { success: true, data: history };
     } catch (e: any) {
+      logger.error('[Conversation] Failed to get history:', e);
       return { success: false, error: String(e) };
     }
   });
@@ -118,6 +151,7 @@ export function setupConversationHandlers() {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       return { success: true };
     } catch (e: any) {
+      logger.error('[Conversation] Failed to delete conversation:', e);
       return { success: false, error: String(e) };
     }
   });
@@ -131,6 +165,7 @@ export function setupConversationHandlers() {
       for (const f of files) fs.unlinkSync(path.join(dir, f));
       return { success: true };
     } catch (e: any) {
+      logger.error('[Conversation] Failed to delete all conversations:', e);
       return { success: false, error: String(e) };
     }
   });
@@ -147,5 +182,7 @@ function enforceLimit(dir: string) {
     for (const f of files.slice(MAX_HISTORY)) {
       fs.unlinkSync(path.join(dir, f.name));
     }
-  } catch {}
+  } catch {
+    logger.warn('[Conversation] Failed to enforce history limit');
+  }
 }

@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ReconController, ReconTarget } from '../../controller/ReconController';
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 
 // Components
 import LeftPanel from './components/LeftPanel';
+import { logger } from '@renderer/utils/logger';
 
 export interface ReconProps {
   activeAppId?: string;
 }
 
-export function Recon({ activeAppId = '' }: ReconProps) {
+export function Recon({}: ReconProps) {
   const { setReconState } = useAgentFeature();
   const [targets, setTargets] = useState<ReconTarget[]>([]);
   const [activeTargetId, setActiveTargetId] = useState<string | null>(null);
@@ -69,7 +70,7 @@ export function Recon({ activeAppId = '' }: ReconProps) {
     const result = await controller.launchBrowser(targetId);
 
     if (!result.success) {
-      console.error('Failed to launch browser:', result.error);
+      logger.error('Failed to launch browser:', result.error);
       // TODO: Show error toast
     }
   }, []);
@@ -80,7 +81,7 @@ export function Recon({ activeAppId = '' }: ReconProps) {
     const result = await controller.closeBrowser(targetId);
 
     if (!result.success) {
-      console.error('Failed to close browser:', result.error);
+      logger.error('Failed to close browser:', result.error);
       // TODO: Show error toast
     }
   }, []);
@@ -107,9 +108,7 @@ export function Recon({ activeAppId = '' }: ReconProps) {
                   {targets.find((t) => t.id === activeTargetId)?.email}
                 </span>
               </div>
-              <div className="text-sm opacity-60">
-                Use the Agent panel to control the browser →
-              </div>
+              <div className="text-sm opacity-60">Use the Agent panel to control the browser →</div>
             </div>
           ) : (
             <div className="text-sm opacity-60">Select a target to begin</div>

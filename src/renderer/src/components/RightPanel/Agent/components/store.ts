@@ -1,7 +1,16 @@
 /**
- * useAgentStore — zustand store cho Agent settings, persist API URL + model/account selection.
+ * ------------------------------------------------------------------
+ * Agent Store
+ * ------------------------------------------------------------------
+ * Zustand store cho Agent settings, persist API URL + model/account
+ * selection qua localStorage key 'agent-store'.
  *
- *    Persist qua localStorage key 'agent-store', chỉ lưu: apiUrl, language, aiLanguage, activeModelId, activeAccountId.
+ * Main actions:
+ * - setApiUrl()         : Cập nhật URL backend server
+ * - setActiveModelId()  : Chọn model đang active
+ * - setActiveAccountId(): Chọn account đang active
+ * - reset()             : Reset về trạng thái mặc định
+ * ------------------------------------------------------------------
  */
 
 // STORES

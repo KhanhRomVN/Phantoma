@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { ConversationItem } from '../types';
 import ConversationService from '../../../services/ConversationService';
 
@@ -30,7 +31,7 @@ export const useConversationHistory = (isOpen: boolean) => {
   const loadHistory = useCallback(async () => {
     const moduleId = getCurrentModuleId();
     if (!moduleId) {
-      console.warn('[useConversationHistory] No active moduleId, cannot load history');
+      logger.warn('[useConversationHistory] No active moduleId, cannot load history');
       return;
     }
 
@@ -38,7 +39,7 @@ export const useConversationHistory = (isOpen: boolean) => {
     try {
       // Get list of conversation IDs
       const conversationIds = await ConversationService.list(moduleId);
-      
+
       // Load each conversation's data
       const conversationsData = await Promise.all(
         conversationIds.map(async (id) => {
@@ -49,7 +50,10 @@ export const useConversationHistory = (isOpen: boolean) => {
             // Convert to ConversationItem format
             const firstMessage = data.messages[0];
             const title = firstMessage?.content.substring(0, 100) || 'New Conversation';
-            const preview = data.messages.slice(0, 3).map(m => m.content.substring(0, 50)).join(' ');
+            const preview = data.messages
+              .slice(0, 3)
+              .map((m) => m.content.substring(0, 50))
+              .join(' ');
 
             return {
               id: data.conversationId,
@@ -61,19 +65,22 @@ export const useConversationHistory = (isOpen: boolean) => {
               messageCount: data.messages.length,
               sessionId: -1, // Legacy field, not used in new system
               folderPath: null, // Legacy field, not used in new system
+              tabId: -1,
+              totalRequests: 0,
+              totalTokenUsage: 0,
             } as ConversationItem;
           } catch (error) {
-            console.error(`[useConversationHistory] Failed to load conversation ${id}:`, error);
+            logger.warn(`[useConversationHistory] Failed to load conversation ${id}:`, error);
             return null;
           }
-        })
+        }),
       );
 
       // Filter out nulls
       const validConversations = conversationsData.filter((c): c is ConversationItem => c !== null);
       setConversations(validConversations);
     } catch (error) {
-      console.error('[useConversationHistory] Failed to load history:', error);
+      logger.error('[useConversationHistory] Failed to load history:', error);
       setConversations([]);
     } finally {
       setIsLoading(false);
@@ -89,7 +96,7 @@ export const useConversationHistory = (isOpen: boolean) => {
   const deleteConversation = useCallback(async (id: string) => {
     const moduleId = getCurrentModuleId();
     if (!moduleId) {
-      console.warn('[useConversationHistory] No active moduleId, cannot delete conversation');
+      logger.warn('[useConversationHistory] No active moduleId, cannot delete conversation');
       return;
     }
 
@@ -97,14 +104,14 @@ export const useConversationHistory = (isOpen: boolean) => {
       await ConversationService.delete(moduleId, id);
       setConversations((prev) => prev.filter((c) => c.id !== id));
     } catch (error) {
-      console.error('[useConversationHistory] Failed to delete conversation:', error);
+      logger.error('[useConversationHistory] Failed to delete conversation:', error);
     }
   }, []);
 
   const clearAllHistory = useCallback(async () => {
     const moduleId = getCurrentModuleId();
     if (!moduleId) {
-      console.warn('[useConversationHistory] No active moduleId, cannot clear history');
+      logger.warn('[useConversationHistory] No active moduleId, cannot clear history');
       return;
     }
 
@@ -112,7 +119,7 @@ export const useConversationHistory = (isOpen: boolean) => {
       await ConversationService.deleteAll(moduleId);
       setConversations([]);
     } catch (error) {
-      console.error('[useConversationHistory] Failed to clear all history:', error);
+      logger.error('[useConversationHistory] Failed to clear all history:', error);
     }
   }, []);
 

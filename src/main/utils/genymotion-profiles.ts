@@ -1,8 +1,33 @@
 import * as fs from 'fs';
+/**
+ * ------------------------------------------------------------------
+ * Hồ sơ Genymotion
+ * ------------------------------------------------------------------
+ * Lưu trữ và quản lý hồ sơ trình giả lập Genymotion bền vững.
+ * Cung cấp thao tác CRUD với lưu trữ JSON dưới userData.
+ *
+ * Hàm chính:
+ * - loadProfiles()        : Tải hồ sơ từ bộ lưu trữ
+ * - saveProfiles()        : Lưu hồ sơ xuống đĩa
+ * - getProfileById()      : Lấy hồ sơ theo ID
+ * - createProfile()       : Tạo hồ sơ mới
+ * - updateProfile()       : Cập nhật hồ sơ hiện có
+ * - deleteProfile()       : Xóa hồ sơ
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import * as path from 'path';
-import { app } from 'electron';
 import { randomUUID } from 'crypto';
 
+// ── Electron ──
+import { app } from 'electron';
+
+// ── Internal ──
+import { logger } from './logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface GenymotionProfile {
   id: string;
   name: string;
@@ -23,6 +48,7 @@ export interface GenymotionProfile {
   updatedAt: number;
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const PROFILES_FILE = 'genymotion-profiles.json';
 
 interface ProfilesData {
@@ -30,9 +56,7 @@ interface ProfilesData {
   profiles: GenymotionProfile[];
 }
 
-/**
- * Get path to profiles storage file
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 function getProfilesPath(): string {
   const profilesDir = path.join(app.getPath('userData'), 'profiles');
   fs.mkdirSync(profilesDir, { recursive: true });
@@ -57,7 +81,7 @@ export function loadProfiles(): GenymotionProfile[] {
     const profilesData: ProfilesData = JSON.parse(data);
     return profilesData.profiles || [];
   } catch (error) {
-    console.error('Failed to load profiles:', error);
+    logger.error('Failed to load profiles:', error);
     return [];
   }
 }
@@ -77,7 +101,7 @@ export function saveProfiles(profiles: GenymotionProfile[]): boolean {
     fs.writeFileSync(profilesPath, JSON.stringify(profilesData, null, 2), 'utf-8');
     return true;
   } catch (error) {
-    console.error('Failed to save profiles:', error);
+    logger.error('Failed to save profiles:', error);
     return false;
   }
 }
@@ -285,7 +309,7 @@ export function exportProfile(profileId: string, exportPath: string): boolean {
     fs.writeFileSync(exportPath, JSON.stringify(profile, null, 2), 'utf-8');
     return true;
   } catch (error) {
-    console.error('Failed to export profile:', error);
+    logger.error('Failed to export profile:', error);
     return false;
   }
 }
@@ -301,7 +325,7 @@ export function importProfile(importPath: string): GenymotionProfile | null {
     // Validate imported data
     const validation = validateProfile(profileData);
     if (!validation.valid) {
-      console.error('Invalid profile data:', validation.errors);
+      logger.error('Invalid profile data:', validation.errors);
       return null;
     }
 
@@ -325,7 +349,7 @@ export function importProfile(importPath: string): GenymotionProfile | null {
 
     return newProfile;
   } catch (error) {
-    console.error('Failed to import profile:', error);
+    logger.error('Failed to import profile:', error);
     return null;
   }
 }

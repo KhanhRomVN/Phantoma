@@ -1,19 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * ConversationService
+ * ------------------------------------------------------------------
+ * Quản lý persist conversations qua localStorage (keyed theo moduleId).
+ *
+ * Main functions:
+ * - list()             : Lấy danh sách conversation IDs
+ * - get()              : Load 1 conversation
+ * - save()             : Lưu conversation
+ * - delete()           : Xóa 1 conversation
+ * - deleteAll()        : Xóa tất cả conversations
+ * - addMessage()       : Thêm message vào conversation
+ * - updateTokenUsage() : Cập nhật token usage
+ * ------------------------------------------------------------------
+ */
+
 import { logger } from '@renderer/utils/logger';
 
 // Access conversation API through window.api
 const conversationAPI = window.api.conversation;
-
-/**
- * ConversationService — quản lý persist conversations qua localStorage (keyed theo moduleId).
- *
- *    listConversations()       : Lấy danh sách conversation IDs.
- *    getConversation(id)       : Load 1 conversation.
- *    saveConversation(data)    : Lưu conversation.
- *    deleteConversation(id)    : Xóa 1 conversation.
- *    deleteAllConversations()  : Xóa tất cả.
- *    addMessage(id, msg)       : Thêm message vào conversation.
- *    updateTokenUsage(id, ...) : Cập nhật token usage.
- */
 
 // TYPES
 export interface ConversationData {

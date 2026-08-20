@@ -1,6 +1,18 @@
 /**
- * SSL Pinning Bypass script for Electron/Linux (BoringSSL/Chromium)
+ /**
+ * ------------------------------------------------------------------
+ * Script Frida
+ * ------------------------------------------------------------------
+ * Script Frida dựng sẵn để vượt qua SSL pinning trên nền tảng
+ * Electron/Linux và Android.
+ *
+ * Hằng số chính:
+ * - ELECTRON_SSL_BYPASS_SCRIPT : Vượt qua cho Electron/Chromium
+ * - SSL_PINNING_BYPASS_SCRIPT  : Vượt qua cho ứng dụng Android
+ * ------------------------------------------------------------------
  */
+
+// ─── Constants ──────────────────────────────────────────────────────────
 export const ELECTRON_SSL_BYPASS_SCRIPT = `
 // Electron/Linux SSL Pinning Bypass with Debug Logging + Anti-Anti-Debug
 // Targets BoringSSL primitives used by Chromium

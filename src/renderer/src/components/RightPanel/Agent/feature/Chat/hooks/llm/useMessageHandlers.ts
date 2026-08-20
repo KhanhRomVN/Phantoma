@@ -48,9 +48,7 @@ export const useMessageHandlers = ({
               folderPath,
               updated,
               currentConversationIdRef.current,
-              selectedTab || undefined,
-              true, // skipTimestampUpdate
-              undefined,
+              true,
               backendConversationIdRef.current,
             );
 
@@ -83,9 +81,7 @@ export const useMessageHandlers = ({
               folderPath,
               updated,
               currentConversationIdRef.current,
-              selectedTab || undefined,
               true,
-              undefined,
               backendConversationIdRef.current,
             );
 

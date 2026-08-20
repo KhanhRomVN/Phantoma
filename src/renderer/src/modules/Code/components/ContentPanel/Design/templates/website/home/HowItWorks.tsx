@@ -50,7 +50,7 @@ export function HowItWorks() {
                     {idx + 1}
                   </span>
                 </div>
-                <h3 className="font-[Space_Grotesk] text-lg font-bold text-zinc-900 dark:text-white mb-2">
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">
                   {step.title}
                 </h3>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">

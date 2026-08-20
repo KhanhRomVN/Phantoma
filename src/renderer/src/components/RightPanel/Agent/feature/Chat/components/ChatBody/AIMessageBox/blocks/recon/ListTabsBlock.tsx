@@ -1,8 +1,7 @@
 /**
- * ListTabsBlock — Display list_tabs tool output
+ * ListTabsBlock — Hiển thị output của tool list_tabs
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface ListTabsBlockProps {
@@ -11,11 +10,7 @@ interface ListTabsBlockProps {
   isError?: boolean;
 }
 
-export default function ListTabsBlock({
-  targetId,
-  output,
-  isError,
-}: ListTabsBlockProps) {
+export default function ListTabsBlock({ targetId, output, isError }: ListTabsBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {targetId && (
@@ -37,9 +32,7 @@ export default function ListTabsBlock({
         </div>
       )}
 
-      {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Listing tabs...</div>
-      )}
+      {!output && !isError && <div className="text-text-secondary opacity-60">Listing tabs...</div>}
     </div>
   );
 }

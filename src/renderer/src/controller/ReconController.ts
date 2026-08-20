@@ -36,6 +36,7 @@ import { ClickElementHandler } from '../modules/Recon/handler/ClickElementHandle
 import { FillInputHandler } from '../modules/Recon/handler/FillInputHandler';
 import { PressKeyHandler } from '../modules/Recon/handler/PressKeyHandler';
 import { ScrollHandler } from '../modules/Recon/handler/ScrollHandler';
+import { logger } from '@renderer/utils/logger';
 
 export class ReconController {
   private static instance: ReconController;
@@ -194,7 +195,7 @@ export class ReconController {
           return { success: false, error: `Unknown recon tool: ${toolName}` };
       }
     } catch (error: any) {
-      console.error('[ReconController.executeTool] Error executing tool:', toolName, error);
+      logger.error('[ReconController.executeTool] Error executing tool:', toolName, error);
       return { success: false, error: error.message || 'Tool execution failed' };
     }
   }
@@ -250,7 +251,7 @@ export class ReconController {
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     const target = this.targets.get(targetId);
     if (!target) {
-      console.error('[ReconController.launchBrowser] Target not found:', targetId);
+      logger.error('[ReconController.launchBrowser] Target not found:', targetId);
       return { success: false, error: `Target not found: ${targetId}` };
     }
 
@@ -292,11 +293,11 @@ export class ReconController {
           },
         };
       } else {
-        console.error('[ReconController.launchBrowser] IPC call failed:', result.error);
+        logger.error('[ReconController.launchBrowser] IPC call failed:', result.error);
         return { success: false, error: result.error || 'Failed to launch browser' };
       }
     } catch (error: any) {
-      console.error('[ReconController.launchBrowser] Exception:', error);
+      logger.error('[ReconController.launchBrowser] Exception:', error);
       return { success: false, error: error.message || 'Failed to launch browser' };
     }
   }

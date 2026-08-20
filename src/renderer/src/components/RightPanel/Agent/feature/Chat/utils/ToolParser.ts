@@ -1,9 +1,9 @@
 import { decodeHtmlEntities } from "./HtmlEntitiesDecoder";
 
 /**
- * Params that carry multi-line file content — must NOT be trimmed so that
- * leading/trailing newlines (which are meaningful code lines) are preserved
- * when an SSE stream is split across multiple chunks.
+ * Params chứa nội dung file nhiều dòng — KHÔNG được trim để
+ * newline đầu/cuối (là các dòng code có ý nghĩa) được bảo toàn
+ * khi stream SSE bị chia thành nhiều chunk.
  */
 export const CONTENT_PARAMS = new Set(["content", "diff"]);
 

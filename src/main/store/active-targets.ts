@@ -1,8 +1,34 @@
+/**
+ * ------------------------------------------------------------------
+ * Kho lưu trữ target đang hoạt động
+ * ------------------------------------------------------------------
+ * Kho lưu trữ bền vững cho các tab target đang hoạt động trong tiến trình chính.
+ * Lưu danh sách target và ID tab đang hoạt động vào file JSON trong
+ * thư mục userData của Electron.
+ *
+ * Hàm chính:
+ * - getTargets()   : Lấy tất cả các tab target đang hoạt động
+ * - getActiveId()  : Lấy ID tab đang hoạt động
+ * - setTargets()   : Thay thế tất cả target và lưu
+ * - addTarget()    : Thêm một target mới với ID được tạo
+ * - removeTarget() : Xóa một target theo ID
+ * - clear()        : Xóa tất cả target
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { app } from 'electron';
+
+// ── Node.js ──
 import * as path from 'path';
 import * as fs from 'fs';
 import { randomUUID } from 'crypto';
 
+// ── Internal ──
+import { logger } from '../utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ActiveTargetTab {
   id: string;
   title: string;
@@ -10,6 +36,7 @@ export interface ActiveTargetTab {
   url?: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 class ActiveTargetStore {
   private path: string;
   private targets: ActiveTargetTab[] = [];
@@ -33,7 +60,7 @@ class ActiveTargetStore {
         this.save();
       }
     } catch (error) {
-      console.error('[ActiveTargetStore] Failed to load targets:', error);
+      logger.error('[ActiveTargetStore] Failed to load targets:', error);
       this.targets = [];
       this.activeId = null;
     }
@@ -57,7 +84,7 @@ class ActiveTargetStore {
         ),
       );
     } catch (error) {
-      console.error('[ActiveTargetStore] Failed to save targets:', error);
+      logger.error('[ActiveTargetStore] Failed to save targets:', error);
     }
   }
 
@@ -110,4 +137,5 @@ class ActiveTargetStore {
   }
 }
 
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const activeTargetStore = new ActiveTargetStore();

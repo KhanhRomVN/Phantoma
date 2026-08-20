@@ -1,3 +1,19 @@
+/**
+ * ------------------------------------------------------------------
+ * AccountPanel
+ * ------------------------------------------------------------------
+ * Panel quản lý tài khoản API (thêm, xóa, tìm kiếm, filter, import).
+ * Hiển thị danh sách accounts với phân trang.
+ *
+ * Main features:
+ * - Tìm kiếm và filter accounts theo provider
+ * - Thêm account mới qua AddAccountDrawer
+ * - Xóa account (đơn lẻ hoặc hàng loạt)
+ * - Import accounts từ JSON
+ * - Switch account đang active
+ * ------------------------------------------------------------------
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   Loader2,
@@ -7,7 +23,6 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Smartphone,
   Users,
 } from 'lucide-react';
 import AccountCard from './components/AccountCard';
@@ -16,10 +31,10 @@ import ConfirmDeleteDrawer from './components/ConfirmDeleteDrawer';
 import ProviderFilterDropdown from './components/ProviderFilterDropdown';
 import { useAccounts } from './hooks/useAccounts';
 import { getFaviconUrl } from './utils';
+import { logger } from '@renderer/utils/logger';
 import { extensionService } from '../../services/ExtensionService';
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
-import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 interface AccountPanelProps {
@@ -33,7 +48,6 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
 
   const {
     accounts,
-    allAccounts,
     loading,
     providerConfigs,
     searchQuery,
@@ -52,8 +66,6 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
     toggleAll,
     providerFilter,
     setProviderFilter,
-    emailFilter,
-    setEmailFilter,
     switchKiroAccount,
   } = useAccounts(isOpen);
 
@@ -69,7 +81,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
       extensionService.postMessage({ command: 'importAccounts' });
       setTimeout(() => fetchAccounts(pagination.page, pagination.limit, true), 800);
     } catch (error) {
-      console.error('Failed to import:', error);
+      logger.error('Failed to import:', error);
     }
     setShowDropdown(false);
   };

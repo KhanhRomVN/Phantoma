@@ -1,8 +1,3 @@
-/**
- * ScrollBlock — Display scroll tool output
- */
-
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface ScrollBlockProps {

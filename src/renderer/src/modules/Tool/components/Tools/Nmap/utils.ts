@@ -1,5 +1,9 @@
 import { PortResult, ScanResult } from './types';
 import { SCAN_TYPES } from './constants';
+import {
+  saveTargetHistory as saveTargetHistoryShared,
+  saveScanHistory as saveScanHistoryShared,
+} from '@renderer/modules/Tool/utils/history';
 
 export const buildCommand = (params: any): string => {
   const parts = ['nmap'];
@@ -34,7 +38,6 @@ export const buildFlags = (params: any): string[] => {
   if (!hasOX) {
     flags.push('-oX', '-');
   }
-  // Add stats flag for real-time progress if not already present
   const hasStats = flags.some((f) => f === '--stats-every');
   if (!hasStats) {
     flags.push('--stats-every', '1s');
@@ -48,68 +51,13 @@ export const stateColor = (state: PortResult['state']) => {
   return '#374151';
 };
 
-export const getDateLabel = (timestamp: number): string => {
-  if (!timestamp || isNaN(timestamp) || timestamp <= 0) {
-    return 'Unknown date';
-  }
+// Re-export shared history utilities (đã gộp từ utils chung)
+export { getDateLabel, groupHistoryByDate } from '@renderer/modules/Tool/utils/history';
 
-  const now = new Date();
-  const scanDate = new Date(timestamp);
-
-  if (isNaN(scanDate.getTime())) {
-    return 'Unknown date';
-  }
-
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const scanDay = new Date(scanDate.getFullYear(), scanDate.getMonth(), scanDate.getDate());
-
-  const formatDate = (date: Date): string => {
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  if (scanDay.getTime() === today.getTime()) {
-    return 'Today';
-  } else if (scanDay.getTime() === yesterday.getTime()) {
-    return `Yesterday - ${formatDate(scanDate)}`;
-  } else {
-    return formatDate(scanDate);
-  }
-};
-
-export const groupHistoryByDate = (history: ScanResult[]) => {
-  return history.reduce(
-    (groups, scan) => {
-      const timestamp = scan.timestamp || Date.now();
-      const label = getDateLabel(timestamp);
-      if (!groups[label]) {
-        groups[label] = [];
-      }
-      if (!scan.timestamp) {
-        scan.timestamp = timestamp;
-      }
-      groups[label].push(scan);
-      return groups;
-    },
-    {} as Record<string, ScanResult[]>,
-  );
-};
-
-export const saveTargetHistory = (target: string, setTargetHistory: React.Dispatch<React.SetStateAction<string[]>>) => {
-  if (!target.trim()) return;
-  setTargetHistory((prev) => {
-    const filtered = prev.filter((t) => t !== target);
-    const updated = [target, ...filtered].slice(0, 20);
-    localStorage.setItem('nmap_target_history', JSON.stringify(updated));
-    return updated;
-  });
+export const saveTargetHistory = (target: string, setTargetHistory: any) => {
+  saveTargetHistoryShared(target, setTargetHistory, 'nmap_target_history');
 };
 
 export const saveScanHistory = (history: ScanResult[]) => {
-  localStorage.setItem('nmap_scan_history', JSON.stringify(history));
+  saveScanHistoryShared(history, 'nmap_scan_history');
 };

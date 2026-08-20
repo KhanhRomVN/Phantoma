@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import type { DataPoint } from '../types/scan-data-point';
 import type { SmartCategoryGroup } from '../types/scan-result';
 import { SectionHeader } from './shared/SectionHeader';

@@ -1,14 +1,32 @@
 // ─── Renderer IPC Handlers ──────────────────────────────────────────────
-// Handles commands sent from the renderer process via window.api.invoke()
-// Previously handled by VS Code extension host.
-// ──────────────────────────────────────────────────────────────────────────
+/**
+ * ------------------------------------------------------------------
+ * IPC handler renderer
+ * ------------------------------------------------------------------
+ * Xử lý các lệnh gửi từ tiến trình renderer qua
+ * window.api.invoke(). Cung cấp tiện ích hệ thống file, tạo
+ * tree view, tìm kiếm và truy cập lưu trữ hội thoại.
+ *
+ * Hàm chính:
+ * - getMainWindow()     : Xác định BrowserWindow đang hoạt động
+ * - generateTreeView()  : Xây dựng chuỗi cây thư mục
+ * - searchFiles()       : Tìm kiếm đệ quy nội dung file
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain, BrowserWindow, dialog } from 'electron';
+
+// ── Node.js ──
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { exec as execCallback } from 'child_process';
+
+// ── Internal ──
 import { ConversationStorage } from '../services/ConversationStorage';
+import { logger } from '../utils/logger';
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
@@ -71,6 +89,7 @@ function generateTreeView(dirPath: string, maxDepth: number, depth = 0): string 
 
     return lines.join('\n');
   } catch {
+    logger.warn(`[RendererHandler] Failed to read directory: ${dirPath}`);
     return `${'  '.repeat(depth)}[Error reading directory]`;
   }
 }
@@ -105,16 +124,16 @@ function searchFiles(
                 });
               }
             } catch {
-              // Skip regex errors
+              logger.warn('[RendererHandler] Invalid regex pattern, skipping');
             }
           }
         } catch {
-          // Skip binary/unreadable files
+          logger.warn(`[RendererHandler] Skipping unreadable file: ${fullPath}`);
         }
       }
     }
   } catch {
-    // Skip inaccessible directories
+    logger.warn(`[RendererHandler] Skipping inaccessible directory: ${dirPath}`);
   }
   return results;
 }
@@ -190,7 +209,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           try {
             moduleDirs = await fs.promises.readdir(conversationsDir);
           } catch {
-            // Directory doesn't exist yet — return empty
+            logger.warn('[RendererHandler] Conversations directory does not exist yet');
             sendToRenderer('historyResult', { requestId, history: [] });
             return { success: true };
           }
@@ -201,6 +220,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
               const stat = await fs.promises.stat(modulePath);
               if (!stat.isDirectory()) continue;
             } catch {
+              logger.warn(`[RendererHandler] Failed to stat module directory: ${modulePath}`);
               continue;
             }
 
@@ -225,12 +245,12 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
                   moduleId,
                 });
               } catch (e) {
-                console.error('[getHistory] Failed to read conversation:', moduleId, convId, e);
+                logger.error('[getHistory] Failed to read conversation:', moduleId, convId, e);
               }
             }
           }
         } catch (e) {
-          console.error('[getHistory] Failed to list conversations:', e);
+          logger.error('[getHistory] Failed to list conversations:', e);
         }
 
         // Sort by lastModified descending
@@ -241,7 +261,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           history: allConversations,
         });
       } catch (error) {
-        console.error('[getHistory] Error:', error);
+        logger.error('[getHistory] Error:', error);
         sendToRenderer('historyResult', {
           requestId,
           history: [],
@@ -277,7 +297,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           const { shell } = await import('electron');
           await shell.openPath(filePath);
         } catch (e) {
-          console.error('[RendererHandler] Failed to open file:', e);
+          logger.error('[RendererHandler] Failed to open file:', e);
         }
       }
       return { success: true };
@@ -290,7 +310,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           const { shell } = await import('electron');
           await shell.openPath(filePath);
         } catch (e) {
-          console.error('[RendererHandler] Failed to open workspace file:', e);
+          logger.error('[RendererHandler] Failed to open workspace file:', e);
         }
       }
       return { success: true };
@@ -303,7 +323,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           const { shell } = await import('electron');
           await shell.openPath(folderPath);
         } catch (e) {
-          console.error('[RendererHandler] Failed to open folder:', e);
+          logger.error('[RendererHandler] Failed to open folder:', e);
         }
       }
       return { success: true };
@@ -323,7 +343,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           const { shell } = await import('electron');
           await shell.openPath(tmpPath);
         } catch (e) {
-          console.error('[RendererHandler] Failed to open temp image:', e);
+          logger.error('[RendererHandler] Failed to open temp image:', e);
         }
       }
       return { success: true };
@@ -611,6 +631,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
                   continue;
                 }
               } catch {
+                logger.warn(`[RendererHandler] Failed to stat module directory: ${modulePath}`);
                 continue;
               }
 
@@ -636,7 +657,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
               }
             }
           } catch (e: any) {
-            console.error('[Main][getConversation] Failed to list directories:', {
+            logger.error('[Main][getConversation] Failed to list directories:', {
               error: e.message,
               conversationsDir,
             });
@@ -649,7 +670,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
             error: foundData ? undefined : 'Conversation not found',
           });
         } catch (error: any) {
-          console.error('[Main][getConversation] Exception occurred:', {
+          logger.error('[Main][getConversation] Exception occurred:', {
             error: error.message,
             stack: error.stack,
           });
@@ -694,7 +715,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
 
     // ─── Notifications / Info ───────────────────────────────────────
     case 'showError': {
-      console.error('[RendererHandler] showError:', payload?.message || payload?.error);
+      logger.error('[RendererHandler] showError:', payload?.message || payload?.error);
       return { success: true };
     }
 
@@ -792,7 +813,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           const { shell } = await import('electron');
           await shell.openPath(filePath);
         } catch (e) {
-          console.error('[RendererHandler] Failed to open file at line:', e);
+          logger.error('[RendererHandler] Failed to open file at line:', e);
         }
       }
       return { success: true };
@@ -805,7 +826,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           const { shell } = await import('electron');
           await shell.openPath(folderPath);
         } catch (e) {
-          console.error('[RendererHandler] Failed to open folder:', e);
+          logger.error('[RendererHandler] Failed to open folder:', e);
         }
       }
       return { success: true };
@@ -826,7 +847,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
         }
         return { success: false, canceled: true };
       } catch (e: any) {
-        console.error('[RendererHandler] selectFile error:', e);
+        logger.error('[RendererHandler] selectFile error:', e);
         return { success: false, error: e.message };
       }
     }
@@ -842,7 +863,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
         }
         return { success: false, canceled: true };
       } catch (e: any) {
-        console.error('[RendererHandler] selectFolder error:', e);
+        logger.error('[RendererHandler] selectFolder error:', e);
         return { success: false, error: e.message };
       }
     }
@@ -864,7 +885,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
         }
         return { success: false, canceled: true };
       } catch (e: any) {
-        console.error('[RendererHandler] showSaveDialog error:', e);
+        logger.error('[RendererHandler] showSaveDialog error:', e);
         return { success: false, error: e.message };
       }
     }
@@ -971,7 +992,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
 
         return { success: true };
       } catch (error: any) {
-        console.error('[Main][saveConversationState] ❌ Failed to save:', {
+        logger.error('[Main][saveConversationState] ❌ Failed to save:', {
           error: error.message,
           conversationId,
         });
@@ -1050,7 +1071,7 @@ export function setupRendererHandlers() {
       try {
         return await handleRendererCommand(cmd, payload || {});
       } catch (e: any) {
-        console.error(`[RendererHandler] Error handling ${cmd}:`, e);
+        logger.error(`[RendererHandler] Error handling ${cmd}:`, e);
         return { success: false, error: e.message };
       }
     });

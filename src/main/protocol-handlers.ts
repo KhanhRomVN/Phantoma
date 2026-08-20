@@ -1,9 +1,28 @@
 import { protocol, net, BrowserWindow } from 'electron';
-import { getCachedHeaders } from './proxy/headerCache';
-import { mediaCache } from './proxy/mediaCache';
+/**
+ * ------------------------------------------------------------------
+ * Protocol Handlers
+ * ------------------------------------------------------------------
+ * Registers custom protocol handlers for media serving. Supports
+ * local caching, CORS bypass, and media scheme registration.
+ *
+ * Main functions:
+ * - registerMediaProtocol() : Register the media:// protocol handler
+ * - registerMediaScheme()   : Register the media scheme
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import * as path from 'path';
 import * as fs from 'fs';
 
+// ── Internal ──
+import { getCachedHeaders } from './proxy/headerCache';
+import { mediaCache } from './proxy/mediaCache';
+import { logger } from './utils/logger';
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export function registerMediaProtocol() {
   // Register 'media' protocol for serving local and remote files (bypassing CORS/CORP)
   protocol.handle('media', async (request) => {
@@ -132,7 +151,7 @@ export function registerMediaProtocol() {
       }
 
       if (!response.ok && response.status !== 304) {
-        console.error(`[Protocol Media] Upstream error ${response.status} for ${actualUrl}`);
+        logger.error(`[Protocol Media] Upstream error ${response.status} for ${actualUrl}`);
       }
 
       // 3. Create a response with stripped restrictive headers to fix CORS/CORP/COEP/COOP
@@ -183,7 +202,7 @@ export function registerMediaProtocol() {
         headers: cleanHeaders,
       });
     } catch (error: any) {
-      console.error(`[Protocol Media] Load Error for ${request.url}:`, error);
+      logger.error(`[Protocol Media] Load Error for ${request.url}:`, error);
 
       if (mainWindow) {
         mainWindow.webContents.send('proxy:response', {

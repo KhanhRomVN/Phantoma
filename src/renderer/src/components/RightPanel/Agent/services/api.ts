@@ -1,31 +1,38 @@
-// ─── AIWeb2API Client ───────────────────────────────────────────────────────
-
 /**
- * AgentAPI — client giao tiếp với backend Agent server (checkStatus, chat, stream, providers, accounts, models).
+ * ------------------------------------------------------------------
+ * AgentAPI
+ * ------------------------------------------------------------------
+ * Client giao tiếp với backend Agent server (checkStatus, chat,
+ * stream, providers, accounts, models).
  *
- *    checkStatus()          : Kiểm tra server online.
- *    chat()                 : Gửi chat request (non-streaming).
- *    chatStream()           : Gửi chat request (SSE streaming).
- *    getProviders()         : Lấy danh sách providers.
- *    getAccounts()          : Lấy danh sách accounts.
- *    getModels()            : Lấy danh sách models.
+ * Main functions:
+ * - checkStatus()  : Kiểm tra server online
+ * - chat()         : Gửi chat request (non-streaming)
+ * - chatStream()   : Gửi chat request (SSE streaming)
+ * - getProviders() : Lấy danh sách providers
+ * - getAccounts()  : Lấy danh sách accounts
+ * - getModels()    : Lấy danh sách models
+ * ------------------------------------------------------------------
  */
 
+// ─── AIWeb2API Client ───────────────────────────────────────────────────────
+
 // TYPES
-import { ChatRequest, ChatStreamChunk, Provider, Account } from '../types'
+import { ChatRequest, ChatStreamChunk, Provider, Account } from '../types';
 
 // CONSTANTS
-import { MOCK_PROVIDERS, MOCK_ACCOUNTS } from '../constants'
+import { MOCK_PROVIDERS, MOCK_ACCOUNTS } from '../constants';
+import { logger } from '@renderer/utils/logger';
 
 export class AgentAPI {
-  private baseUrl: string
+  private baseUrl: string;
 
   constructor(baseUrl: string = 'http://localhost:8888') {
-    this.baseUrl = baseUrl
+    this.baseUrl = baseUrl;
   }
 
   setBaseUrl(url: string): void {
-    this.baseUrl = url
+    this.baseUrl = url;
   }
 
   /**
@@ -36,10 +43,10 @@ export class AgentAPI {
       const response = await fetch(`${this.baseUrl}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(3000),
-      })
-      return response.ok
+      });
+      return response.ok;
     } catch {
-      return false
+      return false;
     }
   }
 
@@ -51,18 +58,18 @@ export class AgentAPI {
       const response = await fetch(`${this.baseUrl}/providers`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-      })
+      });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch providers: ${response.status}`)
+        throw new Error(`Failed to fetch providers: ${response.status}`);
       }
 
-      const data = await response.json()
-      return data.providers || []
+      const data = await response.json();
+      return data.providers || [];
     } catch (error) {
-      console.warn('Failed to fetch providers, using mock data:', error)
+      logger.warn('Failed to fetch providers, using mock data:', error);
       // Fallback to mock data for development
-      return MOCK_PROVIDERS
+      return MOCK_PROVIDERS;
     }
   }
 
@@ -74,17 +81,17 @@ export class AgentAPI {
       const response = await fetch(`${this.baseUrl}/accounts`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-      })
+      });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch accounts: ${response.status}`)
+        throw new Error(`Failed to fetch accounts: ${response.status}`);
       }
 
-      const data = await response.json()
-      return data.accounts || []
+      const data = await response.json();
+      return data.accounts || [];
     } catch (error) {
-      console.warn('Failed to fetch accounts, using mock data:', error)
-      return MOCK_ACCOUNTS
+      logger.warn('Failed to fetch accounts, using mock data:', error);
+      return MOCK_ACCOUNTS;
     }
   }
 
@@ -96,14 +103,14 @@ export class AgentAPI {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider_id: providerId, email, credential }),
-    })
+    });
 
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`Failed to add account: ${error}`)
+      const error = await response.text();
+      throw new Error(`Failed to add account: ${error}`);
     }
 
-    return response.json()
+    return response.json();
   }
 
   /**
@@ -112,11 +119,11 @@ export class AgentAPI {
   async deleteAccount(accountId: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/accounts/${accountId}`, {
       method: 'DELETE',
-    })
+    });
 
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`Failed to delete account: ${error}`)
+      const error = await response.text();
+      throw new Error(`Failed to delete account: ${error}`);
     }
   }
 
@@ -139,42 +146,42 @@ export class AgentAPI {
           stream: true,
         }),
         signal,
-      })
+      });
 
       if (!response.ok) {
-        const errorText = await response.text()
-        onError(`Server error: ${response.status} - ${errorText}`)
-        return
+        const errorText = await response.text();
+        onError(`Server error: ${response.status} - ${errorText}`);
+        return;
       }
 
-      const reader = response.body?.getReader()
+      const reader = response.body?.getReader();
       if (!reader) {
-        onError('No response body')
-        return
+        onError('No response body');
+        return;
       }
 
-      const decoder = new TextDecoder()
-      let buffer = ''
+      const decoder = new TextDecoder();
+      let buffer = '';
 
       while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+        const { done, value } = await reader.read();
+        if (done) break;
 
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim()
+            const data = line.slice(6).trim();
             if (data === '[DONE]') {
-              onDone()
-              return
+              onDone();
+              return;
             }
 
             try {
-              const chunk = JSON.parse(data) as ChatStreamChunk
-              onChunk(chunk)
+              const chunk = JSON.parse(data) as ChatStreamChunk;
+              onChunk(chunk);
             } catch {
               // Ignore parse errors for malformed chunks
             }
@@ -182,13 +189,13 @@ export class AgentAPI {
         }
       }
 
-      onDone()
+      onDone();
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        onError('Stream aborted')
-        return
+        onError('Stream aborted');
+        return;
       }
-      onError(error instanceof Error ? error.message : 'Unknown error')
+      onError(error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
@@ -200,52 +207,55 @@ export class AgentAPI {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
-    })
+    });
 
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`Chat failed: ${error}`)
+      const error = await response.text();
+      throw new Error(`Chat failed: ${error}`);
     }
 
-    const data = await response.json()
-    return data.content || data.response || ''
+    const data = await response.json();
+    return data.content || data.response || '';
   }
 
   /**
    * Execute a tool call
    */
-  async executeTool(toolName: string, params: Record<string, unknown>): Promise<{ output: string; isError: boolean }> {
+  async executeTool(
+    toolName: string,
+    params: Record<string, unknown>,
+  ): Promise<{ output: string; isError: boolean }> {
     try {
       const response = await fetch(`${this.baseUrl}/tools/${toolName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
-      })
+      });
 
       if (!response.ok) {
-        const error = await response.text()
-        return { output: error, isError: true }
+        const error = await response.text();
+        return { output: error, isError: true };
       }
 
-      const data = await response.json()
-      return { output: data.output || JSON.stringify(data), isError: false }
+      const data = await response.json();
+      return { output: data.output || JSON.stringify(data), isError: false };
     } catch (error) {
       return {
         output: error instanceof Error ? error.message : 'Tool execution failed',
         isError: true,
-      }
+      };
     }
   }
 }
 
 // Singleton instance
-let apiInstance: AgentAPI | null = null
+let apiInstance: AgentAPI | null = null;
 
 export function getAgentAPI(baseUrl?: string): AgentAPI {
   if (!apiInstance) {
-    apiInstance = new AgentAPI(baseUrl)
+    apiInstance = new AgentAPI(baseUrl);
   } else if (baseUrl) {
-    apiInstance.setBaseUrl(baseUrl)
+    apiInstance.setBaseUrl(baseUrl);
   }
-  return apiInstance
+  return apiInstance;
 }

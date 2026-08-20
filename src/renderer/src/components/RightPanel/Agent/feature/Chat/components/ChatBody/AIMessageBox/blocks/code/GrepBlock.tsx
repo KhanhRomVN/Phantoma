@@ -3,6 +3,7 @@ import { extensionService } from '@renderer/components/RightPanel/Agent/services
 import { $ } from '@renderer/utils/color';
 import ErrorBlock from '../other/ErrorBlock';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { logger } from '@renderer/utils/logger';
 
 interface GrepBlockProps {
   action: any;
@@ -162,7 +163,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
       if (parsed.success && parsed.data) return parsed.data as GrepResultData;
       return null;
     } catch (e) {
-      console.warn('[GrepBlock] Failed to parse output:', e);
+      logger.warn('[GrepBlock] Failed to parse output:', e);
       return null;
     }
   }, [actionId, toolOutputs]);

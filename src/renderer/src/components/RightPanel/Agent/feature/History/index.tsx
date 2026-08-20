@@ -1,3 +1,18 @@
+/**
+ * ------------------------------------------------------------------
+ * HistoryPanel
+ * ------------------------------------------------------------------
+ * Panel hiển thị lịch sử conversation, hỗ trợ tìm kiếm, xóa từng
+ * conversation hoặc xóa toàn bộ.
+ *
+ * Main features:
+ * - Tìm kiếm conversations
+ * - Load conversation khi click
+ * - Xóa conversation đơn lẻ hoặc toàn bộ
+ * - Hiển thị ngày theo nhóm (Today, Yesterday, ...)
+ * ------------------------------------------------------------------
+ */
+
 import React, { useCallback, useState } from 'react';
 import HistoryCard from './components/HistoryCard';
 import { FolderOpen, Loader2, Search } from 'lucide-react';
@@ -16,12 +31,9 @@ interface HistoryPanelProps {
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConversation }) => {
   const {
     conversations,
-    totalCount,
     isLoading,
     searchQuery,
     setSearchQuery,
-    selectedSort,
-    setSelectedSort,
     deleteConversation,
     clearAllHistory,
   } = useConversationHistory(isOpen);

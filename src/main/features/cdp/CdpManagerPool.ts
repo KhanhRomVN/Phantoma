@@ -1,7 +1,34 @@
+/**
+ * ------------------------------------------------------------------
+ * Pool quản lý CDP
+ * ------------------------------------------------------------------
+ * Quản lý nhiều phiên bản CdpManager, mỗi phiên bản cho một target được giám sát.
+ * Xử lý vòng đời kết nối, kiểm tra heartbeat, dọn dẹp idle,
+ * và phát sự kiện cấp pool khi trạng thái target thay đổi.
+ *
+ * Hàm chính:
+ * - getOrCreateManager()    : Lấy manager hiện có hoặc tạo mới
+ * - disconnectManager()     : Ngắt kết nối một target
+ * - reconnectManager()      : Kết nối lại target với thử lại
+ * - reconnectAll()          : Kết nối lại tất cả target đang hoạt động
+ * - cleanupInactiveTargets(): Vô hiệu hóa các target idle
+ * - removeTarget()          : Xóa một target khỏi pool
+ * - destroy()               : Dọn dẹp tất cả kết nối và timer
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { BrowserWindow } from 'electron';
-import { CdpManager } from './cdp-manager';
+
+// ── Node.js ──
 import { EventEmitter } from 'events';
 
+// ── Internal ──
+import { CdpManager } from './cdp-manager';
+import { logger } from '../../utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface CdpTargetInfo {
   id: string;
   port: number;
@@ -12,6 +39,7 @@ export interface CdpTargetInfo {
   lastActivity: number;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class CdpManagerPool extends EventEmitter {
   private managers: Map<string, CdpManager> = new Map();
   private targetInfo: Map<string, CdpTargetInfo> = new Map();
@@ -41,7 +69,7 @@ export class CdpManagerPool extends EventEmitter {
         info.port = port;
         this.targetInfo.set(targetId, info);
         // Reconnect with new port
-        this.connectManager(targetId, port).catch(console.error);
+        this.connectManager(targetId, port).catch(logger.error);
       }
       return manager;
     }
@@ -64,7 +92,7 @@ export class CdpManagerPool extends EventEmitter {
 
     // Auto-connect
 
-    this.connectManager(targetId, port).catch(console.error);
+    this.connectManager(targetId, port).catch(logger.error);
 
     this.emit('manager-created', { targetId, port });
     return manager;
@@ -93,7 +121,7 @@ export class CdpManagerPool extends EventEmitter {
     } catch (error) {
       info.connected = false;
       this.targetInfo.set(targetId, info);
-      console.error(`[CDP Pool] Failed to connect target ${targetId}:`, error);
+      logger.error(`[CDP Pool] Failed to connect target ${targetId}:`, error);
       return false;
     }
   }
@@ -109,7 +137,7 @@ export class CdpManagerPool extends EventEmitter {
       manager.isConnected = false;
       manager.ws = null;
     } catch (error) {
-      console.error(`[CDP Pool] Error disconnecting target ${targetId}:`, error);
+      logger.error(`[CDP Pool] Error disconnecting target ${targetId}:`, error);
     }
 
     const info = this.targetInfo.get(targetId);
@@ -172,6 +200,7 @@ export class CdpManagerPool extends EventEmitter {
             this.targetInfo.set(targetId, info);
           } catch (error) {
             // Connection might be dead, attempt reconnect
+            logger.warn(`[CDP Pool] Heartbeat failed for ${targetId}, attempting reconnect`);
             await this.reconnectManager(targetId);
           }
         }
@@ -217,5 +246,5 @@ export class CdpManagerPool extends EventEmitter {
   }
 }
 
-// Singleton instance
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const cdpManagerPool = new CdpManagerPool();

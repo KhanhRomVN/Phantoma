@@ -16,8 +16,8 @@ interface ErrorRendererProps {
 }
 
 /**
- * Renderer for error blocks
- * Handles error display with optional tool name context
+ * Renderer cho block lỗi
+ * Xử lý hiển thị lỗi với ngữ cảnh tên tool tùy chọn
  */
 export const ErrorRenderer: React.FC<ErrorRendererProps> = ({
   content,

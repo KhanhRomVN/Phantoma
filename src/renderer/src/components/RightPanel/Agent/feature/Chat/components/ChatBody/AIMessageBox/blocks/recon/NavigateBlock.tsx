@@ -1,8 +1,7 @@
 /**
- * NavigateBlock — Display navigate tool output
+ * NavigateBlock — Hiển thị output của tool navigate
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface NavigateBlockProps {
@@ -53,9 +52,7 @@ export default function NavigateBlock({
         </div>
       )}
 
-      {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Navigating...</div>
-      )}
+      {!output && !isError && <div className="text-text-secondary opacity-60">Navigating...</div>}
     </div>
   );
 }

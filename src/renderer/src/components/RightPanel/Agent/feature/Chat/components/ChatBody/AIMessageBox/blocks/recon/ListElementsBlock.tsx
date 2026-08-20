@@ -1,8 +1,7 @@
 /**
- * ListElementsBlock — Display list_elements tool output
+ * ListElementsBlock — Hiển thị output của tool list_elements
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface ListElementsBlockProps {

@@ -8,7 +8,7 @@ interface FileStats {
 }
 
 /**
- * Hook to calculate conversation file statistics with incremental computation
+ * Hook tính toán thống kê file hội thoại với tính toán tăng dần
  */
 export const useFileStats = (
   messages: Message[],

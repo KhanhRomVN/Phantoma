@@ -18,6 +18,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── React ──
 import { useState, useEffect, memo } from 'react';
 import type { ReactNode } from 'react';
@@ -220,7 +221,7 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
     try {
       await window.api.invoke('openFolder', { path });
     } catch (err) {
-      console.error('[BinaryPreview] Failed to open:', err);
+      logger.error('[BinaryPreview] Failed to open:', err);
     }
   };
 
@@ -338,14 +339,14 @@ export const ContentPanel = memo(function ContentPanel() {
               setFileMtimes((prev) => ({ ...prev, [fileId]: stat.mtime }));
             })
             .catch((err: any) => {
-              console.error(`[ContentPanel] ❌ Load failed: ${fileName}`, err);
+              logger.error(`[ContentPanel] ❌ Load failed: ${fileName}`, err);
               setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
             });
         };
         doRead(1);
       })
       .catch((err: any) => {
-        console.error(`[ContentPanel] ⚠️  fs:stat failed for ${fileName}:`, err);
+        logger.warn(`[ContentPanel] ⚠️  fs:stat failed for ${fileName}:`, err);
       });
   }, [activeFileTabId, showFile]);
 
@@ -441,7 +442,7 @@ export const ContentPanel = memo(function ContentPanel() {
             if (stat) setFileMtimes((prev) => ({ ...prev, [fileId]: stat.mtime }));
           })
           .catch((err: any) => {
-            console.error(`[ContentPanel] ❌ Failed: ${fileNode.path}`, err);
+            logger.error(`[ContentPanel] ❌ Failed: ${fileNode.path}`, err);
             setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
             setLoadingFiles((prev) => {
               const next = new Set(prev);
@@ -450,7 +451,7 @@ export const ContentPanel = memo(function ContentPanel() {
             });
           });
       } else {
-        console.error(`[ContentPanel] ⚠️ No path/content: ${fileNode.name}`);
+        logger.warn(`[ContentPanel] ⚠️ No path/content: ${fileNode.name}`);
         setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
       }
     });

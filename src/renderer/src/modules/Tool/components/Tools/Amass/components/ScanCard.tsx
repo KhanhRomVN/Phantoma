@@ -1,5 +1,7 @@
 import React from 'react';
 import { AmassScanResult } from '../types';
+import { $ } from '@renderer/utils/color';
+import { formatDate } from '@renderer/modules/Tool/utils/history';
 
 interface ScanCardProps {
   scan: AmassScanResult;
@@ -10,16 +12,6 @@ interface ScanCardProps {
   accentColor: string;
   glow: string;
 }
-
-const formatDate = (timestamp: number): string => {
-  const d = new Date(timestamp);
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${day}/${month}/${year} - ${hours}:${minutes}`;
-};
 
 const ScanCard: React.FC<ScanCardProps> = ({
   scan,

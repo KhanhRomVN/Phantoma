@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+import { logger } from '@renderer/utils/logger';
+
 /**
- * Manages browser session state for the zai-browser provider.
- * Checks session status on mount and polls every 5 seconds.
+ * Quản lý trạng thái phiên trình duyệt cho provider zai-browser.
+ * Kiểm tra trạng thái phiên khi mount và polling mỗi 5 giây.
  * 
- * PERFORMANCE: Uses refs to prevent unnecessary re-renders from polling.
+ * PERFORMANCE: Sử dụng refs để tránh re-render không cần thiết từ polling.
  */
 export const useBrowserSession = (
   currentModel: any,
@@ -69,7 +71,7 @@ export const useBrowserSession = (
         setShowBrowserWarning(true);
       }
     } catch (error) {
-      console.error("Failed to check browser session:", error);
+      logger.error("Failed to check browser session:", error);
       setIsBrowserSessionReady(false);
       setShowBrowserWarning(true);
     }
@@ -92,10 +94,10 @@ export const useBrowserSession = (
         setIsBrowserSessionReady(true);
         setShowBrowserWarning(false);
       } else {
-        console.error("Failed to launch browser:", result.message);
+        logger.error("Failed to launch browser:", result.message);
       }
     } catch (error) {
-      console.error("Failed to launch browser:", error);
+      logger.error("Failed to launch browser:", error);
     } finally {
       setIsLaunchingBrowser(false);
     }
@@ -143,7 +145,7 @@ export const useBrowserSession = (
           }
         }
       } catch (error) {
-        console.error("Polling browser status failed:", error);
+        logger.warn("Polling browser status failed:", error);
       }
     };
     

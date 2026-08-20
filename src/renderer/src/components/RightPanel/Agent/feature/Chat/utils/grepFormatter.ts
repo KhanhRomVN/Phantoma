@@ -16,10 +16,10 @@ export interface GrepResultData {
 }
 
 /**
- * Format grep result data as compact XML-like text to minimize LLM token usage.
- * Instead of JSON (with braces, quotes, commas), uses a structured tag format.
+ * Định dạng dữ liệu kết quả grep thành văn bản dạng XML gọn nhẹ để giảm thiểu token LLM.
+ * Thay vì JSON (với ngoặc, trích dẫn, dấu phẩy), sử dụng định dạng thẻ có cấu trúc.
  *
- * Example output:
+ * Ví dụ đầu ra:
  * <grep_results search="foo" total_matches="12" files="3">
  * <file path="src/a.ts" matches="2" errors="1" warnings="2">
  *   3: const foo = 1

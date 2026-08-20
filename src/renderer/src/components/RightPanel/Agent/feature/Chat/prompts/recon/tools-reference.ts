@@ -1,6 +1,6 @@
 /**
- * Recon Tools Reference
- * Documentation for browser reconnaissance and control tools
+ * Tham chiếu công cụ Recon
+ * Tài liệu cho các công cụ điều khiển và trinh sát trình duyệt
  */
 
 export const RECON_TOOLS_REFERENCE = `

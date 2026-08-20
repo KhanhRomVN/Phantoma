@@ -4,8 +4,8 @@ import { useAmassScan } from './hooks/useAmassScan';
 import { useHistory } from './hooks/useHistory';
 import ExecutionTab from './tabs/ExecutionTab';
 import HistoryTab from './tabs/HistoryTab';
-import Tooltip from './components/Tooltip';
-import { TooltipState, ContextMenuState } from './types';
+import Tooltip from '../../common/Tooltip';
+import { TooltipState, ContextMenuState, AmassScanParams } from './types';
 import { AMASS_DOC } from './constants';
 import MarkdownBlock from '@renderer/components/common/MarkdownBlock';
 
@@ -45,15 +45,20 @@ const AmassTool: React.FC<AmassToolProps> = ({
     selectedScanForDetail,
     setSelectedScanForDetail,
     targetHistory,
-    setTargetHistory,
     deleteScan,
     filteredHistory,
   } = useHistory();
+
+  const [savedProfiles, setSavedProfiles] = useState<Array<{ params: AmassScanParams }>>([]);
 
   const glow = accentColor + '25';
 
   const handleScan = () => {
     scanHandler(setHistory, setExpandedCardIndex);
+  };
+
+  const handleSaveProfile = () => {
+    setSavedProfiles((prev) => [...prev, { params }]);
   };
 
   const handleDeleteScan = (scan: any) => {
@@ -74,9 +79,7 @@ const AmassTool: React.FC<AmassToolProps> = ({
         position: 'relative',
       }}
     >
-      {activeTab === 'information' && (
-        <MarkdownBlock content={AMASS_DOC} accentColor={accentColor} />
-      )}
+      {activeTab === 'information' && <MarkdownBlock content={AMASS_DOC} />}
 
       {activeTab === 'execution' && (
         <ExecutionTab
@@ -86,10 +89,12 @@ const AmassTool: React.FC<AmassToolProps> = ({
           progress={progress}
           logOutput={logOutput}
           onScan={handleScan}
+          onSaveProfile={handleSaveProfile}
           accentColor={accentColor}
           glow={glow}
           targetHistory={targetHistory}
           onTooltipShow={setTooltip}
+          savedProfiles={savedProfiles}
         />
       )}
 

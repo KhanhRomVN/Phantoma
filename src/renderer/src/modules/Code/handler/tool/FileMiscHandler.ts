@@ -9,6 +9,7 @@
  * ------------------------------------------------------------------
  */
 
+import { logger } from '@renderer/utils/logger';
 import { BaseParams, BaseResult } from './FileHandlerTypes';
 
 interface FileMiscParams extends BaseParams {
@@ -71,7 +72,7 @@ export class FileMiscHandler {
         diagnostics: fileDiagnostics.length > 0 ? fileDiagnostics : [],
       };
     } catch (e: any) {
-      console.error('[DEBUG-Diagnostics] error:', e);
+      logger.warn('[DEBUG-Diagnostics] error:', e);
       return {
         command: 'getDiagnosticsResult',
         requestId: message.requestId,

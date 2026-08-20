@@ -67,7 +67,7 @@ export const useConversationRestore = ({
   useEffect(() => {
     if (isLoadingConversation) {
       loadingTimeoutRef.current = setTimeout(() => {
-        console.warn(
+        logger.warn(
           '[useConversationRestore] Loading timeout reached! Forcing loading state to false',
         );
         setIsLoadingConversation(false);
@@ -122,7 +122,7 @@ export const useConversationRestore = ({
       // Handle getConversation response
       if (data?.command === 'getConversation') {
         if (data?.error) {
-          console.error('[useConversationRestore][getConversation] Error:', data.error);
+          logger.error('[useConversationRestore][getConversation] Error:', data.error);
           setIsLoadingConversation(false);
           setIsProcessing(false);
           return;
@@ -257,7 +257,7 @@ export const useConversationRestore = ({
       'conversationRevertedError',
       (data: any) => {
         if (data.conversationId === currentConversationIdRef.current) {
-          console.error(
+          logger.warn(
             '[REVERT-DEBUG] Received conversationRevertedError from extension:',
             data.error,
           );
@@ -341,7 +341,7 @@ export const useConversationRestore = ({
   const handleRevertConversation = useCallback(
     (messageId: string, timestamp: number) => {
       if (!currentConversationIdRef.current) {
-        console.warn('[REVERT-DEBUG] handleRevertConversation: no currentConversationId, aborting');
+        logger.warn('[REVERT-DEBUG] handleRevertConversation: no currentConversationId, aborting');
         return;
       }
       const visibleUserMessages = messagesRef.current.filter(

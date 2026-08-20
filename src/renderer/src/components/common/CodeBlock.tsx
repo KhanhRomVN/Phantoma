@@ -1,14 +1,41 @@
+/**
+ * ------------------------------------------------------------------
+ * CodeBlock
+ * ------------------------------------------------------------------
+ * Trình soạn thảo code dựa trên Monaco Editor, hỗ trợ syntax
+ * highlighting, LSP integration, tìm kiếm và highlight dòng/đoạn.
+ * Sử dụng trong các block code của chat và module Code editor.
+ *
+ * Main features:
+ * - Tích hợp Monaco Editor với TypeScript/JavaScript và nhiều ngôn ngữ khác
+ * - Hỗ trợ LSP (diagnostics, auto-complete, go-to-definition)
+ * - Tìm kiếm và highlight kết quả trong editor
+ * - Highlight dòng/đoạn theo range chỉ định
+ * - Format code tự động
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { useTheme } from '../../theme/ThemeProvider';
+
+// ── Services ──
+import { logger } from '@renderer/utils/logger';
 import {
   lspClientManager,
   autoStartLanguageServer,
 } from '../../modules/Code/services/lsp-client.service';
-import { useCodeStore } from '../../modules/Code/hooks/useCodeStore';
 import { lspManager } from '../../modules/Code/services/lsp-manager.service';
 import { documentManager } from '../../modules/Code/services/document-manager.service';
 import { fileWatcherService } from '../../modules/Code/services/file-watcher.service';
-// Define Window interface to include require for AMD loader
+
+// ── Hooks ──
+import { useCodeStore } from '../../modules/Code/hooks/useCodeStore';
+
+// ── Theme ──
+import { useTheme } from '../../theme/ThemeProvider';
+// ─── Global Declarations ────────────────────────────────────────────────
+// Khai báo interface Window để hỗ trợ AMD loader cho Monaco
 declare global {
   interface Window {
     require: any;
@@ -18,6 +45,7 @@ declare global {
   }
 }
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface CodeBlockThemeRule {
   token: string;
   foreground?: string;
@@ -67,7 +95,8 @@ interface CodeBlockProps {
   projectRoot?: string;
 }
 
-// Helper to convert theme to Monaco format
+// ─── Helpers ─────────────────────────────────────────────────────────────
+// Chuyển đổi theme sang định dạng Monaco
 const convertThemeToMonaco = (theme: any) => {
   const monacoTheme = theme.monaco;
   // Type assertion to handle Monaco's base type requirements
@@ -211,6 +240,7 @@ function detectLanguageId(
   return 'plaintext';
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
   const {
     code,
@@ -230,10 +260,13 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     projectRoot,
   } = props;
 
+  // ── Store ──
   const { currentPreset } = useTheme();
   const markFileAsUnsaved = useCodeStore((s) => s.markFileAsUnsaved);
   const markFileAsSaved = useCodeStore((s) => s.markFileAsSaved);
   const setOriginalContent = useCodeStore((s) => s.setOriginalContent);
+
+  // ── Refs ──
   const editorRef = useRef<HTMLDivElement>(null);
   const editorInstance = useRef<any>(null);
   const modelRef = useRef<any>(null);
@@ -243,16 +276,20 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
   const decorationsRef = useRef<string[]>([]);
   const lineDecorationsRef = useRef<string[]>([]);
   const rangeDecorationsRef = useRef<string[]>([]);
-  const [isEditorReady, setIsEditorReady] = React.useState(false);
-  const isExternalUpdateRef = useRef<boolean>(false); // Track if update is from external source
-  const previousCodeRef = useRef<string>(code); // Track previous code value to detect external changes
+  const isExternalUpdateRef = useRef<boolean>(false); // Theo dõi update từ nguồn bên ngoài
+  const previousCodeRef = useRef<string>(code); // Theo dõi giá trị code trước đó
 
-  // Memoize themeConfig to prevent unnecessary re-renders
+  // ── State ──
+  const [isEditorReady, setIsEditorReady] = React.useState(false);
+
+  // ── Derived ──
+  // Memoize themeConfig để tránh re-render không cần thiết
   const themeConfigStr = JSON.stringify(themeConfig);
   const stableThemeConfig = React.useMemo(() => {
     return themeConfig;
   }, [themeConfigStr]);
 
+  // ── Callbacks ──
   useImperativeHandle(ref, () => ({
     getMatchCount: () => {
       if (!editorInstance.current || !searchTerm) return 0;
@@ -318,17 +355,20 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
               }
             })
             .catch((error: Error) => {
-              console.error('[CodeBlock] Format action failed:', error);
+              logger.error('[CodeBlock] Format action failed:', error);
               // Restore readOnly even on error
               if (isReadOnly) {
                 editor.updateOptions({ readOnly: true });
               }
             });
         } else {
-          console.error('[CodeBlock] Format action not available - this may happen if:');
-          console.error('  1. Language server not loaded for:', model.getLanguageId());
-          console.error('  2. Monaco editor modules not fully initialized');
-          console.error('  3. No formatter registered for this language');
+          logger.warn(
+            '[CodeBlock] Format action not available - this may happen if:',
+            '1. Language server not loaded for:',
+            model.getLanguageId(),
+            '2. Monaco editor modules not fully initialized',
+            '3. No formatter registered for this language',
+          );
 
           // Restore readOnly
           if (isReadOnly) {
@@ -336,11 +376,12 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           }
         }
       } catch (error) {
-        console.error('[CodeBlock] Error during format:', error);
+        logger.error('[CodeBlock] Error during format:', error);
       }
     },
   }));
 
+  // ── Effects ──
   useEffect(() => {
     let mounted = true;
 
@@ -500,7 +541,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                     await lspClientManager.notifyDocumentClosed(languageId, uri);
                     await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
                   } catch (err) {
-                    console.error('[CodeBlock] ❌ LSP document sync failed:', err);
+                    logger.error('[CodeBlock] ❌ LSP document sync failed:', err);
                   }
                 }
 
@@ -511,13 +552,13 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                     .watchFile(filePath, languageId, text)
                     .then(() => {})
                     .catch((err) => {
-                      console.error('[CodeBlock] ❌ File watcher failed:', err);
+                      logger.error('[CodeBlock] ❌ File watcher failed:', err);
                     });
                 }
               }
             })
             .catch((err) => {
-              console.error('[CodeBlock] ❌ LSP server start failed:', err);
+              logger.error('[CodeBlock] ❌ LSP server start failed:', err);
             });
         } else {
           // No LSP integration
@@ -569,7 +610,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                   markFileAsSaved(fileId);
                 })
                 .catch((err: Error) => {
-                  console.error('[CodeBlock] ❌ Failed to save file:', err);
+                  logger.error('[CodeBlock] ❌ Failed to save file:', err);
                 });
             }
           },
@@ -626,7 +667,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           onEditorMounted(editorInstance.current);
         }
       } catch (error) {
-        console.error('[CodeBlock] ❌ Failed to create editor:', error);
+        logger.error('[CodeBlock] ❌ Failed to create editor:', error);
       }
     };
 
@@ -671,13 +712,13 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                 if (mounted) initMonaco();
               },
               (err: any) => {
-                console.error('Failed to load monaco editor modules:', err);
+                logger.error('Failed to load monaco editor modules:', err);
               },
             );
           }
         })
         .catch((err) => {
-          console.error('Monaco loading promise failed or cancelled:', err);
+          logger.warn('Monaco loading promise failed or cancelled:', err);
         });
     };
 
@@ -788,7 +829,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           const { MidnightBlue } = await import('../../theme/themes/MidnightBlue');
           monacoTheme = convertThemeToMonaco(MidnightBlue);
         } catch (e) {
-          console.warn('Failed to load MidnightBlue theme:', e);
           return;
         }
       }
@@ -842,9 +882,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                 setTimeout(tryTokenize, pollInterval);
               }
             }
-          } catch (e) {
-            console.warn('[CodeBlock] ⚠️ Tokenization check failed:', e);
-          }
+          } catch (e) {}
         };
 
         setTimeout(tryTokenize, 300);
@@ -979,6 +1017,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     }
   }, [stableThemeConfig?.highlightLine, showLineNumbers]);
 
+  // ── Render ──
   return <div ref={editorRef} className={`w-full h-full min-h-[200px] ${className || ''}`} />;
 });
 

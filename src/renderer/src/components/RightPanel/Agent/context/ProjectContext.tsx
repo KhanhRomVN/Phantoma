@@ -1,8 +1,14 @@
 /**
- * ProjectContext — cung cấp thông tin workspace (rootPath, homedir, workspace, treeView) từ extension.
+ * ------------------------------------------------------------------
+ * ProjectContext
+ * ------------------------------------------------------------------
+ * Cung cấp thông tin workspace (rootPath, homedir, workspace, treeView)
+ * từ extension qua postMessage.
  *
- *    ProjectProvider : Provider bọc ngoài, lấy project context qua postMessage.
- *    useProject()    : Hook trả về { rootPath, homedir, workspace, treeView }.
+ * Main features:
+ * - ProjectProvider : Provider lấy project context qua postMessage
+ * - useProject()    : Hook trả về thông tin workspace
+ * ------------------------------------------------------------------
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';

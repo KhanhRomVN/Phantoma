@@ -3,6 +3,7 @@ import { AlertCircle, FolderOpen, Save, File, FolderPlus, Eye, ChevronDown } fro
 import { useServerHealth } from '../../../../providers/ServerHealthProvider';
 import { apiService } from '@renderer/services/api.service';
 import databaseService from '@renderer/services/database.service';
+import { logger } from '@renderer/utils/logger';
 
 // Helper function to get directory name from a file path (cross-platform)
 // Works without Node.js path module
@@ -49,7 +50,7 @@ const General: React.FC = () => {
         setNewDbPath(path);
       } catch (err) {
         setDbError(err instanceof Error ? err.message : 'Failed to load database path');
-        console.error('Failed to load database path:', err);
+        logger.error('Failed to load database path:', err);
       } finally {
         setIsLoading(false);
       }
@@ -99,7 +100,7 @@ const General: React.FC = () => {
       }
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to open folder');
-      console.error('Failed to open folder:', err);
+      logger.error('Failed to open folder:', err);
     }
   };
 
@@ -120,7 +121,7 @@ const General: React.FC = () => {
       }
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to select file');
-      console.error('Failed to select file:', err);
+      logger.error('Failed to select file:', err);
     }
   };
 
@@ -139,7 +140,7 @@ const General: React.FC = () => {
       }
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to select folder');
-      console.error('Failed to select folder:', err);
+      logger.error('Failed to select folder:', err);
     }
   };
 
@@ -174,7 +175,7 @@ const General: React.FC = () => {
       setNewDbPath(updatedPath);
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to update database path');
-      console.error('Failed to update database path:', err);
+      logger.error('Failed to update database path:', err);
       setNewDbPath(dbPath);
     } finally {
       setIsUpdating(false);
@@ -194,7 +195,7 @@ const General: React.FC = () => {
       setNewDbPath(updatedPath);
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to update database path');
-      console.error('Failed to update database path:', err);
+      logger.error('Failed to update database path:', err);
       // Revert newDbPath to current dbPath on error
       setNewDbPath(dbPath);
     } finally {

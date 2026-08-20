@@ -1,4 +1,5 @@
 import React from 'react';
+import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 import { X, Zap, ShieldCheck, PlusIcon, SendIcon } from 'lucide-react';
@@ -437,7 +438,7 @@ interface MessageInputProps {
       {
         additions: number;
         deletions: number;
-        toolType?: 'write_to_file' | 'replace_in_file';
+        toolType?: 'write_to_file' | 'replace_in_file' | 'revert_file';
         content?: string;
         oldContent?: string;
         newContent?: string;
@@ -445,6 +446,19 @@ interface MessageInputProps {
     >;
   }>;
   onOpenModelDrawer?: () => void;
+  onRevertConversation?: (messageId: string, timestamp: number) => void;
+  onModelSwitch?: (
+    newModel: any,
+    newAccount: any,
+    contextData: {
+      fileChanges: Array<{
+        path: string;
+        additions: number;
+        deletions: number;
+      }>;
+      userMessages: Array<{ content: string; responseNumber: number }>;
+    },
+  ) => void;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -532,7 +546,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
       const next = !prev;
       try {
         localStorage.setItem('zen-thinking-enabled', String(next));
-      } catch {}
+      } catch {
+        logger.warn('[MessageInput] Failed to save thinking toggle');
+      }
       return next;
     });
   };
@@ -542,7 +558,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
       const next = !prev;
       try {
         localStorage.setItem('zen-search-enabled', String(next));
-      } catch {}
+      } catch {
+        logger.warn('[MessageInput] Failed to save search toggle');
+      }
       return next;
     });
   };
@@ -566,12 +584,12 @@ const MessageInput: React.FC<MessageInputProps> = ({
       if (!result.success) {
         setIsMemory(!newState);
         localStorage.setItem('zen-memory-enabled', String(!newState));
-        console.error('Failed to update memory state on server:', result.message);
+        logger.error('Failed to update memory state on server:', result.message);
       }
     } catch (error) {
       setIsMemory(!newState);
       localStorage.setItem('zen-memory-enabled', String(!newState));
-      console.error('Failed to sync memory state with server:', error);
+      logger.error('Failed to sync memory state with server:', error);
     }
   };
 
@@ -648,13 +666,17 @@ const MessageInput: React.FC<MessageInputProps> = ({
       setIsThinking(false);
       try {
         localStorage.setItem('zen-thinking-enabled', 'false');
-      } catch {}
+      } catch {
+        logger.warn('[MessageInput] Failed to reset thinking toggle');
+      }
     }
     if (!hasSearch && isSearch) {
       setIsSearch(false);
       try {
         localStorage.setItem('zen-search-enabled', 'false');
-      } catch {}
+      } catch {
+        logger.warn('[MessageInput] Failed to reset search toggle');
+      }
     }
   }, [currentModel, currentModelConfig, currentProviderConfig, providers, isThinking, isSearch]);
 
@@ -677,7 +699,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
       if (result.success) {
         setProviders(result.data.filter((p: any) => p.is_enabled));
       }
-    } catch (error) {}
+    } catch (error) {
+      logger.warn('[MessageInput] Failed to fetch providers:', error);
+    }
   }, [apiUrl]);
 
   React.useEffect(() => {
@@ -718,7 +742,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 applyCache(saved);
                 try {
                   localStorage.setItem(key, res.value);
-                } catch {}
+                } catch {
+                  logger.warn('[MessageInput] Failed to cache model selection');
+                }
               }
               setIsLoadingCache(false);
             })
@@ -749,7 +775,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
       const dataStr = JSON.stringify(data);
       try {
         localStorage.setItem(key, dataStr);
-      } catch (e) {}
+      } catch (e) {
+        logger.warn('[MessageInput] Failed to save model selection:', e);
+      }
 
       const storage = (window as any).storage;
       if (storage) {
@@ -778,7 +806,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
               pendingAccountIdRef.current = null;
             }
           }
-        } catch (error) {}
+        } catch (error) {
+          logger.warn('[MessageInput] Failed to fetch accounts for provider:', error);
+        }
       };
       fetchAccountsForProvider();
     }
@@ -1073,7 +1103,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
                   }
 
                   if (!currentModel) {
-                    console.warn('[Zen] MessageInput send: no model selected, aborting');
                     return;
                   }
                   handleSend(currentModel, currentAccount);

@@ -1,14 +1,20 @@
-import { useState, useRef } from 'react';
 /**
- * useFileHandling — hook quản lý upload file (local + external) và chuyển đổi thành AttachedItem.
+ * ------------------------------------------------------------------
+ * useFileHandling
+ * ------------------------------------------------------------------
+ * Hook quản lý việc upload file (paste, select, drag-drop) và
+ * external files cho Agent Chat.
  *
- *    uploadFileToServer()    : Upload file local lên server, theo dõi progress.
- *    addExternalFile()       : Thêm external file (từ workspace) vào danh sách.
- *    removeFile()            : Xóa file khỏi danh sách.
- *    clearFiles()            : Xóa tất cả files.
+ * Main features:
+ * - Upload file lên server với progress tracking
+ * - Hỗ trợ paste ảnh từ clipboard
+ * - Validate file extension và đọc nội dung text
+ * - Quản lý external files với drag-drop
+ * ------------------------------------------------------------------
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import { logger } from '@renderer/utils/logger';
+import React, { useState, useRef } from 'react';
 
 // CONTEXT
 import { useSettings } from '../context/SettingsContext';
@@ -327,7 +333,9 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
           type: 'external',
         };
         onAddAttachedItem(attachedItem);
-      } catch (error) {}
+      } catch (error) {
+        logger.warn('[useFileHandling] Failed to add attached item:', error);
+      }
     }
   };
 

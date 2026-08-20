@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import { Mail, Github, MessageSquare, Send } from 'lucide-react';
+import { Mail, GitBranch, MessageSquare, Send } from 'lucide-react';
 import { SectionHeading } from '../components/SectionHeading';
 import { Button } from '../components/Button';
 
@@ -15,7 +15,7 @@ const CHANNELS = [
     tone: 'cyan' as const,
   },
   {
-    icon: Github,
+    icon: GitBranch,
     title: 'GitHub',
     value: 'github.com/KhanhRomVN',
     tone: 'violet' as const,
@@ -80,7 +80,7 @@ export function Contact() {
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 mb-4">
                   <Send className="h-6 w-6" />
                 </div>
-                <h3 className="font-[Space_Grotesk] text-xl font-bold text-zinc-900 dark:text-white mb-2">
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
                   Đã gửi thành công
                 </h3>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">

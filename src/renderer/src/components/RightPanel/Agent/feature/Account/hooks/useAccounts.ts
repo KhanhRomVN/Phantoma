@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { logger } from '@renderer/utils/logger';
 import { FlatAccount, Pagination } from "../types";
 import { useSettings } from "../../../context/SettingsContext";
 
@@ -55,7 +56,7 @@ export const useAccounts = (isOpen: boolean) => {
               setProviderConfigs(pResult.data);
             }
           } catch (err) {
-            console.error("Failed to fetch providers:", err);
+            logger.error("Failed to fetch providers:", err);
           }
         }
 
@@ -109,7 +110,7 @@ export const useAccounts = (isOpen: boolean) => {
                   is_active_cli: acc.is_active_cli,
                 };
               } catch (err) {
-                console.error(
+                logger.warn(
                   `Failed to fetch stats for account ${acc.id}:`,
                   err,
                 );
@@ -139,7 +140,7 @@ export const useAccounts = (isOpen: boolean) => {
           });
         }
       } catch (err) {
-        console.error("Failed to fetch accounts:", err);
+        logger.error("Failed to fetch accounts:", err);
       } finally {
         if (!silent) setLoading(false);
       }
@@ -185,7 +186,7 @@ export const useAccounts = (isOpen: boolean) => {
       setDeleteItem(null);
       fetchAccounts(pagination.page, pagination.limit, true);
     } catch (err) {
-      console.error("Failed to delete accounts:", err);
+      logger.error("Failed to delete accounts:", err);
     } finally {
       setDeleteLoading(false);
     }
@@ -219,7 +220,7 @@ export const useAccounts = (isOpen: boolean) => {
         fetchAccounts(pagination.page, pagination.limit, true);
       }
     } catch (err) {
-      console.error("Failed to switch account:", err);
+      logger.error("Failed to switch account:", err);
     }
   };
 

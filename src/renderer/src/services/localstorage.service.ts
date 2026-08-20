@@ -15,6 +15,8 @@
  * ------------------------------------------------------------------
  */
 
+import { logger } from '@renderer/utils/logger';
+
 class LocalStorageService {
   get<T>(key: string, defaultValue?: T): T | null {
     try {
@@ -30,7 +32,7 @@ class LocalStorageService {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error(`[LocalStorage] Failed to set ${key}:`, error);
+      logger.error(`[LocalStorage] Failed to set ${key}:`, error);
     }
   }
 
@@ -38,7 +40,7 @@ class LocalStorageService {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.error(`[LocalStorage] Failed to remove ${key}:`, error);
+      logger.error(`[LocalStorage] Failed to remove ${key}:`, error);
     }
   }
 
@@ -79,7 +81,7 @@ class LocalStorageService {
       }
       keysToRemove.forEach((key) => localStorage.removeItem(key));
     } catch (error) {
-      console.error(`[LocalStorage] Failed to clear ${prefix}:`, error);
+      logger.error(`[LocalStorage] Failed to clear ${prefix}:`, error);
     }
   }
 }

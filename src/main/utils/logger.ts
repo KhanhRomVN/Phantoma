@@ -1,6 +1,23 @@
 import * as fs from 'fs';
+/**
+ * ------------------------------------------------------------------
+ * Logger
+ * ------------------------------------------------------------------
+ * Logger tiến trình chính ghi vào file log và ghi đè
+ * phương thức console để ghi log thống nhất. Hỗ trợ chuyển tiếp
+ * log từ renderer qua IPC.
+ *
+ * Hàm chính:
+ * - writeLogFromRenderer() : Ghi mục log từ renderer
+ * - writeToLog()           : Ghi một mục log đã định dạng vào file
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import * as path from 'path';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const LOG_FILE = path.join(process.cwd(), 'log.log');
 
 // ─── Write stream (single open, many writes, no per-call open/close overhead) ─
@@ -70,48 +87,91 @@ function writeLogFromRenderer(level: string, args: any[]): void {
   writeToLog(`RENDERER_${level}`, ...args);
 }
 
-// ─── Console override ───────────────────────────────────────────────────────
+// ─── Original console (module scope) ────────────────────────────────────────
 
-// Flag to prevent duplicate capture: when console.* is calling originalLog,
-// the resulting stdout/stderr write should NOT be captured again.
+const originalConsole = {
+  log: console.log.bind(console),
+  error: console.error.bind(console),
+  warn: console.warn.bind(console),
+  info: console.info.bind(console),
+  debug: console.debug.bind(console),
+};
+
+// Flag to prevent duplicate capture: when console.* or logger.* is calling
+// originalConsole, the resulting stdout/stderr write should NOT be captured again.
 let inConsoleCall = false;
 
-function setupLogger(): void {
-  // Save originals
-  const originalLog = console.log;
-  const originalError = console.error;
-  const originalWarn = console.warn;
-  const originalInfo = console.info;
-  const originalDebug = console.debug;
+function mirrorAndWrite(level: string, consoleFn: (...args: any[]) => void, args: any[]): void {
+  writeToLog(level, ...args);
+  inConsoleCall = true;
+  try {
+    consoleFn(...args);
+  } finally {
+    inConsoleCall = false;
+  }
+}
 
+/**
+ * Main-process logger. Writes to log.log and mirrors to the original console.
+ */
+export const logger = {
+  info: (...args: any[]) => mirrorAndWrite('INFO', originalConsole.info, args),
+  warn: (...args: any[]) => mirrorAndWrite('WARN', originalConsole.warn, args),
+  error: (...args: any[]) => mirrorAndWrite('ERROR', originalConsole.error, args),
+  debug: (...args: any[]) => mirrorAndWrite('DEBUG', originalConsole.debug, args),
+};
+
+// ─── Console override ───────────────────────────────────────────────────────
+
+function setupLogger(): void {
   console.log = (...args: any[]) => {
     writeToLog('LOG', ...args);
     inConsoleCall = true;
-    try { originalLog(...args); } finally { inConsoleCall = false; }
+    try {
+      originalConsole.log(...args);
+    } finally {
+      inConsoleCall = false;
+    }
   };
 
   console.error = (...args: any[]) => {
     writeToLog('ERROR', ...args);
     inConsoleCall = true;
-    try { originalError(...args); } finally { inConsoleCall = false; }
+    try {
+      originalConsole.error(...args);
+    } finally {
+      inConsoleCall = false;
+    }
   };
 
   console.warn = (...args: any[]) => {
-    writeToLog('WARN', ...args);  
+    writeToLog('WARN', ...args);
     inConsoleCall = true;
-    try { originalWarn(...args); } finally { inConsoleCall = false; }
+    try {
+      originalConsole.warn(...args);
+    } finally {
+      inConsoleCall = false;
+    }
   };
 
   console.info = (...args: any[]) => {
     writeToLog('INFO', ...args);
     inConsoleCall = true;
-    try { originalInfo(...args); } finally { inConsoleCall = false; }
+    try {
+      originalConsole.info(...args);
+    } finally {
+      inConsoleCall = false;
+    }
   };
 
   console.debug = (...args: any[]) => {
     writeToLog('DEBUG', ...args);
     inConsoleCall = true;
-    try { originalDebug(...args); } finally { inConsoleCall = false; }
+    try {
+      originalConsole.debug(...args);
+    } finally {
+      inConsoleCall = false;
+    }
   };
 
   // ── Capture direct stdout/stderr writes (child processes, native modules) ──
@@ -153,7 +213,11 @@ function setupLogger(): void {
     writeToLog('EXIT', `Process exited with code ${code}`);
     // Close stream to flush any buffered data
     if (logStream) {
-      try { logStream.end(); } catch { /* ignore */ }
+      try {
+        logStream.end();
+      } catch {
+        /* ignore */
+      }
       logStream = null;
     }
   });

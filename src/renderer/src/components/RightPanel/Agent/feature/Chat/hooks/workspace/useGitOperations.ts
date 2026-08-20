@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 /**
  * useGitOperations — xử lý các thao tác Git trong chat (generate commit message, parse git status).
  *
@@ -6,6 +6,7 @@ import { useState, useCallback, useMemo } from 'react';
  *    parseAndDisplayGitStatus(): Parse git status output và hiển thị dạng block.
  */
 
+import { logger } from '@renderer/utils/logger';
 import { useCallback } from 'react';
 
 // TYPES
@@ -88,7 +89,7 @@ export const useGitOperations = ({
     try {
       const vscodeApi = (window as any).vscodeApi;
       if (!vscodeApi) {
-        console.error('[Git] vscodeApi not available');
+        logger.warn('[Git] vscodeApi not available');
         setGitError('Không thể kết nối với VSCode API');
         setGitLoading(false);
         return;
@@ -134,14 +135,14 @@ export const useGitOperations = ({
 
       const result = await promise;
       if (result.error && result.error !== 'Timeout') {
-        console.error('[Git] Error from git status:', result.error);
+        logger.error('[Git] Error from git status:', result.error);
         setGitError(result.error);
         setGitLoading(false);
         return;
       }
 
       if (result.error === 'Timeout') {
-        console.error('[Git] Timeout waiting for git status');
+        logger.warn('[Git] Timeout waiting for git status');
         setGitError('Git status timeout. Vui lòng thử lại.');
         setGitLoading(false);
         return;
@@ -224,7 +225,7 @@ ${statusMessage}
       }));
       setGitLoading(false);
     } catch (err) {
-      console.error('[Git] Exception in handleGitPullRequest:', err);
+      logger.error('[Git] Exception in handleGitPullRequest:', err);
       setGitError(err instanceof Error ? err.message : 'Unknown error');
       setGitLoading(false);
     }

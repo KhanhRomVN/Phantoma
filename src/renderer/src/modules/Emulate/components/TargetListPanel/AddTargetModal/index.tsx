@@ -8,7 +8,7 @@ import { PC } from './PC';
 import { CLI } from './CLI';
 
 // Types
-import type { AppPlatform, AppMode } from '../../../../../../types/apps';
+import type { AppPlatform, AppMode } from '../../../types/apps';
 
 export interface BaseModalProps {
   isOpen: boolean;

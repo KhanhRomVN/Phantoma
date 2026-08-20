@@ -1,3 +1,16 @@
+/**
+ * ------------------------------------------------------------------
+ * Barrel export IPC
+ * ------------------------------------------------------------------
+ * Tái xuất tất cả hàm thiết lập IPC handler từ thư mục ipc
+ * để cung cấp một điểm import duy nhất cho tiến trình chính.
+ *
+ * Export chính:
+ * - setup*Handlers()        : Các hàm đăng ký IPC handler riêng lẻ
+ * - closeAllBrowserSessions : Trợ giúp dọn dẹp trình duyệt
+ * ------------------------------------------------------------------
+ */
+
 export * from './proxy.handlers';
 export * from './cdp.handlers';
 export * from './app.handlers';

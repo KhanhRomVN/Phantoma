@@ -1,13 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
-/**
- * useToolExecution — thực thi tool actions từ LLM, quản lý permission, timeout, retry, terminal output.
- */
-
 import { Message } from '../../types/message';
-
 import { parseAIResponse } from '../../services/ResponseParser';
 import { useSettings } from '../../../../context/SettingsContext';
-import { formatGrepResultCompact } from '../../utils/grepFormatter';
 export { getPermissionDecision } from '../../utils/permissionUtils';
 import { getPermissionDecision } from '../../utils/permissionUtils';
 import {
@@ -23,6 +17,7 @@ import {
 } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 import { getExecutor } from '../../services/tool-executors';
 import type { ExecutorContext } from '../../types/executor-types';
+import { logger } from '@renderer/utils/logger';
 
 interface UseToolExecutionProps {
   sendMessage: (
@@ -82,7 +77,7 @@ export const useToolExecution = ({
   >({});
 
   const [clickedActions, setClickedActions] = useState<Set<string>>(new Set());
-  const [rejectedActions, setRejectedActions] = useState<Set<string>>(new Set());
+  const [, setRejectedActions] = useState<Set<string>>(new Set());
 
   const [singleLineReviewActions, setSingleLineReviewActions] = useState<
     Record<string, { action: any; actionId: string; messageId: string; messageObj: Message }>
@@ -94,7 +89,7 @@ export const useToolExecution = ({
   const earlyCommandResults = useRef<Map<string, any>>(new Map());
   const handleSendMessageRef = useRef(sendMessage);
 
-  const [availableToolResultsBuffer, setAvailableToolResultsBuffer] = useState<{
+  const [, setAvailableToolResultsBuffer] = useState<{
     [messageId: string]: string[];
   }>({});
 
@@ -239,7 +234,7 @@ export const useToolExecution = ({
 
       const executor = getExecutor(action.type);
       if (!executor) {
-        console.warn(`[Zen][tool] No executor for type: "${action.type}"`);
+        logger.warn(`[Zen][tool] No executor for type: "${action.type}"`);
         return null;
       }
 

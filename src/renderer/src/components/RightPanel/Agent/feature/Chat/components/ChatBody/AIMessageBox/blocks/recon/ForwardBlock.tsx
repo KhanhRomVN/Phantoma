@@ -1,8 +1,7 @@
 /**
- * ForwardBlock — Display forward tool output
+ * ForwardBlock — Hiển thị output của tool forward
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface ForwardBlockProps {
@@ -12,12 +11,7 @@ interface ForwardBlockProps {
   isError?: boolean;
 }
 
-export default function ForwardBlock({
-  tabId,
-  targetId,
-  output,
-  isError,
-}: ForwardBlockProps) {
+export default function ForwardBlock({ tabId, targetId, output, isError }: ForwardBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {tabId && (

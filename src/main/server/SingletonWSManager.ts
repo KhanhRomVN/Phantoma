@@ -1,8 +1,34 @@
-import * as http from 'http';
-import { WebSocket, WebSocketServer } from 'ws';
-import { BrowserWindow } from 'electron';
-import { findAvailablePort } from '../utils/net';
+/**
+ * ------------------------------------------------------------------
+ * Quản lý WS Singleton
+ * ------------------------------------------------------------------
+ * Máy chủ WebSocket singleton cho trạng thái intercept proxy và
+ * nhắn tin tương thích Zen. Phát sự kiện client đến renderer
+ * và quản lý ping keep-alive.
+ *
+ * Hàm chính:
+ * - getInstance()    : Lấy phiên bản singleton
+ * - initialize()     : Khởi động máy chủ WebSocket
+ * - sendToClients()  : Phát một thông điệp đến tất cả client đã kết nối
+ * - stop()           : Dừng máy chủ và dọn dẹp
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
+import * as http from 'http';
+
+// ── Electron ──
+import { BrowserWindow } from 'electron';
+
+// ── External ──
+import { WebSocket, WebSocketServer } from 'ws';
+
+// ── Internal ──
+import { findAvailablePort } from '../utils/net';
+import { logger } from '../utils/logger';
+
+// ─── Class ──────────────────────────────────────────────────────────────
 export class SingletonWSManager {
   private static DEFAULT_PORT = 6742;
   private static instance: SingletonWSManager | null = null;
@@ -37,7 +63,7 @@ export class SingletonWSManager {
       this._currentPort = await this.startServer();
       return this._currentPort;
     } catch (error) {
-      console.error('[SingletonWSManager] ❌ Failed to start server:', error);
+      logger.error('[SingletonWSManager] ❌ Failed to start server:', error);
       throw error;
     }
   }
@@ -49,7 +75,7 @@ export class SingletonWSManager {
         this._httpServer = http.createServer();
 
         this._httpServer.on('error', (error: any) => {
-          console.error('[SingletonWSManager] HTTP Server Error:', error);
+          logger.error('[SingletonWSManager] HTTP Server Error:', error);
           reject(error);
         });
 
@@ -113,7 +139,7 @@ export class SingletonWSManager {
           });
 
           ws.on('error', (e: Error) => {
-            console.error('[SingletonWSManager] WS Client Error:', e);
+            logger.error('[SingletonWSManager] WS Client Error:', e);
             clearInterval(pingInterval);
           });
         });

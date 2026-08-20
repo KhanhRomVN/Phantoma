@@ -1,4 +1,5 @@
 import React from 'react';
+import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
 
 // Constants
@@ -27,12 +28,9 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
   messageId,
   isActionClicked,
   isActiveGroup,
-  isLastMessage,
   isLastItemInList,
   toolOutputs,
   allMessages,
-  onToolClick,
-  conversationId,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
 
@@ -58,7 +56,9 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
       if (match) {
         fileCount = parseInt(match[1], 10);
       }
-    } catch (err) {}
+    } catch (err) {
+      logger.warn('[FindFilesRenderer] Failed to parse file count:', err);
+    }
   }
 
   return (

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Severity } from '../../types/scan-data-point';
 
 interface SeverityBadgeProps {

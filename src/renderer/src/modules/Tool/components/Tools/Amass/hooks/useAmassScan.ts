@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { AmassScanParams, AmassScanResult, SubdomainResult } from '../types';
 import { buildFlags, parseAmassOutput, saveScanHistory, saveTargetHistory } from '../utils';
 import { MODES } from '../constants';
+import { logger } from '@renderer/utils/logger';
 
 export const useAmassScan = (
   getFullUrl: (path: string) => string,
@@ -139,7 +140,7 @@ export const useAmassScan = (
       if (error?.name === 'AbortError') {
         setLogOutput((prev) => prev + '\n[Scan aborted by user]\n');
       } else {
-        console.error('Amass scan failed:', error);
+        logger.error('Amass scan failed:', error);
         setLogOutput((prev) => prev + `\n[Error: ${error?.message || 'Unknown error'}]\n`);
       }
 

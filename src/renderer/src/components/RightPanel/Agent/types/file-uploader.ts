@@ -1,3 +1,16 @@
+/**
+ * ------------------------------------------------------------------
+ * File Uploader Types
+ * ------------------------------------------------------------------
+ * Type definitions cho file upload và attach trong Agent Chat.
+ *
+ * Main types:
+ * - AttachedItem : Item được attach vào chat input
+ * - UploadedFile : File user upload lên backend
+ * - ExternalFile : File từ đường dẫn bên ngoài workspace
+ * ------------------------------------------------------------------
+ */
+
 /** An item attached to the chat input (file, folder, or external). */
 export interface AttachedItem {
   id: string;

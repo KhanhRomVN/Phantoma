@@ -1,10 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
-/**
- * useWorkspaceData — lắng nghe workspace files/folders/rules từ extension qua postMessage.
- *
- *    Trả về: availableFiles, availableFolders, availableRules.
- */
-
+import { logger } from '@renderer/utils/logger';
 import { useState, useEffect, useRef } from 'react';
 
 // TYPES
@@ -54,14 +48,15 @@ export const useWorkspaceData = () => {
 
   // Load rules from localStorage
   useEffect(() => {
-    const loadStartTime = performance.now();
     const stored = localStorage.getItem('zen-rules');
 
     if (stored) {
       try {
         const rules = JSON.parse(stored);
         setAvailableRules(rules);
-      } catch (error) {}
+      } catch (error) {
+        logger.warn('[useWorkspaceData] Failed to parse rules:', error);
+      }
     }
   }, []);
 

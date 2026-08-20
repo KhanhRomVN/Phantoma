@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 
+import { logger } from '@renderer/utils/logger';
+
 // Utils
 import { cn } from '@renderer/shared/utils/cn';
 
@@ -37,7 +39,7 @@ function HighlightText({ text, searchTerm, className, highlightClassName }: High
         return { text: part, highlight: isMatch };
       });
     } catch (e) {
-      console.error('HighlightText error:', e);
+      logger.warn('HighlightText error:', e);
       return [{ text, highlight: false }];
     }
   }, [text, searchTerm]);
@@ -230,7 +232,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
               Missing Headers
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {analysis.headers.missing.map((h, i) => (
+              {analysis.headers.missing.map((h: { name: string; severity: string; description: string; recommendation: string }, i: number) => (
                 <div
                   key={i}
                   className="flex flex-col bg-warning/5 hover:bg-warning/10 transition-colors border border-warning/20 p-2 rounded text-xs relative group"

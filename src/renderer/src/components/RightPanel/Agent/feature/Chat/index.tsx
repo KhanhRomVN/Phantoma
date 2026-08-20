@@ -1,3 +1,19 @@
+/**
+ * ------------------------------------------------------------------
+ * ChatPanel
+ * ------------------------------------------------------------------
+ * Panel chat chính của Agent, quản lý gửi/nhận message, streaming,
+ * tool execution, git operations và browser session.
+ *
+ * Main features:
+ * - Gửi message với streaming response
+ * - Tích hợp tool execution và git operations
+ * - Quản lý browser session cho ZAI Browser model
+ * - Restore conversation từ history
+ * - Quản lý draft và file upload
+ * ------------------------------------------------------------------
+ */
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 
@@ -51,7 +67,7 @@ interface ChatPanelProps {
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
-currentChat,
+  currentChat,
   onBack,
   feature,
   onLoadConversation,
@@ -62,13 +78,6 @@ currentChat,
   const renderCountRef = useRef(0);
   const prevPropsRef = useRef<any>({});
   renderCountRef.current++;
-
-  // DEBUG: Log render
-  console.log('[ChatPanel] 🎨 Rendering:', {
-    renderCount: renderCountRef.current,
-    sessionId: currentChat?.sessionId,
-    conversationId: (currentChat as any)?.conversationId,
-  });
 
   // DEBUG: Log what caused this render
   useEffect(() => {
@@ -169,14 +178,12 @@ currentChat,
 
   // --- Refs ---
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const mentionDropdownRef = useRef<HTMLDivElement>(null);
   const scrollToBottomRef = useRef<(() => void) | null>(null);
   const hasProcessedInitial = useRef(false);
-  const wasPaused = useRef(false);
   const isStoppedRef = useRef(false);
 
   // --- Mention helpers (simplified - no mention system in Electron) ---
-  const [showAtMenu, setShowAtMenu] = useState(false);
+  const [, setShowAtMenu] = useState(false);
   const checkMentions = useCallback((_value: string) => {}, []);
 
   // Revert state
@@ -210,8 +217,6 @@ currentChat,
     resetSession,
     setBackendConversationId,
     conversationToolOverrides,
-    setConversationToolOverrides,
-    handleToolAction,
     handleSelectOption,
   } = useChatLLM({
     apiUrl,
@@ -249,10 +254,6 @@ currentChat,
     if (prev.currentConversationId !== currentConversationId) changes.push(`currentConversationId`);
     if (prev.isContinuing !== isContinuing) changes.push(`isContinuing: ${isContinuing}`);
 
-    if (changes.length > 0) {
-      console.log('[ChatPanel] 📊 State changed:', changes.join(', '));
-    }
-
     prevChatStateRef.current = {
       messages,
       isProcessing,
@@ -273,7 +274,6 @@ currentChat,
     handleKeyDown: handleDraftKeyDown,
     undoStackRef,
     undoIndexRef,
-  storage,
   } = useDraftManagement(currentConversationId, revertInput);
 
   // --- Attached Items ---
@@ -294,13 +294,11 @@ currentChat,
   // --- File Handling ---
   const {
     uploadedFiles,
-    externalFiles,
     invalidExternalFiles,
     fileInputRef,
     externalFileInputRef,
     handlePaste,
     handleFileSelect,
-    handleExternalFileSelect,
     handleFileInputChange,
     removeFile,
     handleExternalFileInputChange,
@@ -316,12 +314,7 @@ currentChat,
   });
 
   // --- Browser Session ---
-  const {
-    isBrowserSessionReady,
-    showBrowserWarning,
-    isLaunchingBrowser,
-    launchBrowserSession,
-  } = useBrowserSession(
+  const { showBrowserWarning, isLaunchingBrowser, launchBrowserSession } = useBrowserSession(
     currentModel,
     currentAccount,
     apiUrl,
@@ -390,21 +383,13 @@ currentChat,
   const {
     gitStatus,
     gitLoading,
-    gitError,
     showGitStatusBlock,
-    gitCommitMessage,
     gitCommitLoading,
-    gitCommitInput,
-    setGitCommitInput,
     setShowGitStatusBlock,
-    setGitError,
-    setGitCommitMessage,
     enrichedModel,
     handleGitPullRequest,
     handleGitConfirm,
     handleGitCancel,
-    handleGitRetry,
-    handleGitCommit,
     handleGitCommitMessageDetected,
   } = useGitOperations({
     currentModel,
@@ -418,14 +403,8 @@ currentChat,
   });
 
   // --- Conversation Restore ---
-  const {
-    isLoadingConversation,
-    isRestored,
-    setIsRestored,
-    setIsLoadingConversation,
-    handleRevertConversation,
-    handleClearConfirmed,
-  } = useConversationRestore({
+  const { isLoadingConversation, isRestored, setIsRestored, handleRevertConversation } =
+    useConversationRestore({
       currentChat,
       currentConversationId,
       currentConversationIdRef,
@@ -617,23 +596,12 @@ currentChat,
 
   const firstRequestMessage = messages.find((m) => m.role === 'user');
   const displayedModel = enrichedModel ?? currentModel;
-  const totalTokens = contextUsage?.total ?? 0;
   const footerPaddingBottom =
     showBrowserWarning && currentModel?.providerId === 'zai-browser' ? '20px' : '8px';
 
-  // Wrap removeAttachedItem to also update localStorage cache
-  const handleRemoveAttachedItem = useCallback(
-    (itemId: string) => {
-      removeAttachedItem(itemId);
-    },
-    [removeAttachedItem],
-  );
-
   // --- Render ---
   return (
-    <div
-      className="flex flex-col h-full bg-background text-text-primary"
-    >
+    <div className="flex flex-col h-full bg-background text-text-primary">
       {/* ─── ChatHeader ─── */}
       <ChatHeader
         displayedModel={displayedModel}
@@ -648,46 +616,43 @@ currentChat,
 
       {/* ─── ChatBody ─── */}
       <ChatBody
-          messages={parsedMessages}
-          isProcessing={isProcessing}
-          isContinuing={isContinuing}
-          onSendToolRequest={memoizedHandleToolRequest}
-          onSendMessage={memoizedWrappedSendMessage}
-          executionState={executionState}
-          toolOutputs={toolOutputs}
-          terminalStatus={terminalStatus}
-          firstRequestMessageId={firstRequestMessage?.id}
-          onLoadConversation={onLoadConversation}
-          conversationId={currentConversationId}
-          onToolAction={(_actionId: string, actionType: any, toolName?: string) =>
-            handleToolAction(actionType as any, toolName as any)
-          }
-          onSelectOption={handleSelectOption}
-          isRestored={isRestored}
-          onContinue={() => setIsRestored(false)}
-          hasInitialMessage={!!initialMessageData}
-          onRevertConversation={handleRevertConversation}
-          onAutoScrollPausedChange={setAutoScrollPaused}
-          scrollToBottomRef={scrollToBottomRef}
-          singleLineReviewActions={singleLineReviewActions}
-          onConfirmSingleLineAction={confirmSingleLineAction}
-          onRejectSingleLineAction={rejectSingleLineAction}
-          isSearchOpen={isSearchOpen}
-          searchQuery={searchQuery}
-          onSearchQueryChange={setSearchQuery}
-          onCloseSearch={() => {
-            setIsSearchOpen(false);
-            setSearchQuery('');
-          }}
-          onGitConfirm={handleGitConfirm}
-          onGitCancel={handleGitCancel}
-          gitStatusItems={gitStatus?.items || []}
-          gitStatusBranch={gitStatus?.branch || ''}
-          isGitProcessing={gitCommitLoading}
-          isGitStatusVisible={showGitStatusBlock}
-          onBackToHome={handleBackToHome}
-          isLoadingConversation={isLoadingConversation}
-        />
+        messages={parsedMessages}
+        isProcessing={isProcessing}
+        isContinuing={isContinuing}
+        onSendToolRequest={memoizedHandleToolRequest}
+        onSendMessage={memoizedWrappedSendMessage}
+        executionState={executionState}
+        toolOutputs={toolOutputs}
+        terminalStatus={terminalStatus}
+        firstRequestMessageId={firstRequestMessage?.id}
+        onLoadConversation={onLoadConversation}
+        conversationId={currentConversationId}
+        onSelectOption={handleSelectOption}
+        isRestored={isRestored}
+        onContinue={() => setIsRestored(false)}
+        hasInitialMessage={!!initialMessageData}
+        onRevertConversation={handleRevertConversation}
+        onAutoScrollPausedChange={setAutoScrollPaused}
+        scrollToBottomRef={scrollToBottomRef}
+        singleLineReviewActions={singleLineReviewActions}
+        onConfirmSingleLineAction={confirmSingleLineAction}
+        onRejectSingleLineAction={rejectSingleLineAction}
+        isSearchOpen={isSearchOpen}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        onCloseSearch={() => {
+          setIsSearchOpen(false);
+          setSearchQuery('');
+        }}
+        onGitConfirm={handleGitConfirm}
+        onGitCancel={handleGitCancel}
+        gitStatusItems={gitStatus?.items || []}
+        gitStatusBranch={gitStatus?.branch || ''}
+        isGitProcessing={gitCommitLoading}
+        isGitStatusVisible={showGitStatusBlock}
+        onBackToHome={handleBackToHome}
+        isLoadingConversation={isLoadingConversation}
+      />
       {/* ─── ChatFooter ─── */}
       <ChatFooter
         message={message}
@@ -735,9 +700,7 @@ currentChat,
         gitStatus={gitStatus}
         onOpenGitStatus={() => setShowGitStatusBlock(true)}
         loadedConversationFileStats={loadedConversationFileStats}
-        autoScrollPaused={autoScrollPaused}
         footerPaddingBottom={footerPaddingBottom}
-        scrollToBottom={scrollToBottomRef.current || undefined}
       />
     </div>
   );

@@ -31,6 +31,7 @@ export interface ReplaceInFileHistory {
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 const STORAGE_PREFIX = 'replace_history:';
 
 // ─── Class ──────────────────────────────────────────────────────────────
@@ -73,7 +74,7 @@ export class ReplaceInFileHistoryManager {
       const key = this.getStorageKey(filePath);
       localStorage.setItem(key, JSON.stringify(versions));
     } catch (e) {
-      console.error('[ReplaceInFileHistoryManager] Failed to write versions:', e);
+      logger.error('[ReplaceInFileHistoryManager] Failed to write versions:', e);
     }
   }
 

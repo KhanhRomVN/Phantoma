@@ -1,11 +1,23 @@
 /**
- * TabHandler — Handle tab operations for browser automation
- * 
- * This handler manages tab-related operations including listing, creating,
- * closing, and switching tabs in the browser session.
+ * ------------------------------------------------------------------
+ * Trình xử lý tab
+ * ------------------------------------------------------------------
+ * Xử lý các thao tác tab cho tự động hóa trình duyệt. Quản lý đăng ký
+ * page, theo dõi tab đang hoạt động, liệt kê tab và dọn dẹp.
+ *
+ * Hàm chính:
+ * - registerTab()   : Đăng ký một page/tab mới
+ * - unregisterTab() : Xóa một page/tab
+ * - getTab()        : Lấy page theo ID tab
+ * - getActiveTab()  : Lấy tab đang hoạt động
+ * - setActiveTab()  : Đặt tab đang hoạt động
+ * - listTabs()      : Liệt kê tất cả tab với thông tin
+ * - closeAll()      : Đóng tất cả tab
+ * ------------------------------------------------------------------
  */
 
 import type { Page } from 'puppeteer';
+import { logger } from '../../utils/logger';
 
 export interface TabInfo {
   tabId: string;
@@ -82,7 +94,7 @@ export class TabHandler {
         });
       } catch (error) {
         // Page might be closed or invalid
-        console.error(`Error getting info for tab ${tabId}:`, error);
+        logger.error(`Error getting info for tab ${tabId}:`, error);
       }
     }
 
@@ -101,7 +113,7 @@ export class TabHandler {
    */
   public async closeAll(): Promise<void> {
     const closePromises = Array.from(this.pages.values()).map(page => 
-      page.close().catch(err => console.error('Error closing page:', err))
+      page.close().catch(err => logger.error('Error closing page:', err))
     );
     await Promise.all(closePromises);
     this.pages.clear();

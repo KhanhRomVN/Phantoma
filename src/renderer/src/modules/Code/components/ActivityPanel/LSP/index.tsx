@@ -18,6 +18,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── React ──
 import { useState, useEffect } from 'react';
 
@@ -87,7 +88,7 @@ export function LSPPanel() {
       markLSPInstalled(server.id);
       loadServers();
     } catch (err) {
-      console.error('[LSP] Failed to install', server.name, ':', err);
+      logger.error('[LSP] Failed to install', server.name, ':', err);
       setError(`Failed to install ${server.name}`);
     } finally {
       setLoading(false);
@@ -109,7 +110,7 @@ export function LSPPanel() {
 
       loadServers();
     } catch (err) {
-      console.error('[LSP] Failed to uninstall', serverId, ':', err);
+      logger.error('[LSP] Failed to uninstall', serverId, ':', err);
       setError(`Failed to uninstall server`);
     } finally {
       setLoading(false);

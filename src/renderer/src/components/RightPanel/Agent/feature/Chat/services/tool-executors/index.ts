@@ -49,6 +49,7 @@ export {
   executeScroll,
 } from './ReconExecutor';
 
+import { logger } from '@renderer/utils/logger';
 // ═══════════════════════════════════════════════════════════════════════
 // Imports
 // ═══════════════════════════════════════════════════════════════════════
@@ -366,7 +367,7 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       return null;
 
     default:
-      console.warn('[tool] No executor found for: "' + actionType + '"');
+      logger.warn('[tool] No executor found for: "' + actionType + '"');
       return null;
   }
 }

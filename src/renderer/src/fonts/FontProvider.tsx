@@ -8,6 +8,7 @@ import {
   getFontById,
   initFontSystem,
 } from './index';
+import { logger } from '@renderer/utils/logger';
 
 interface FontProviderState {
   currentFont: FontDefinition | null;
@@ -57,7 +58,7 @@ export const FontProvider: React.FC<FontProviderProps> = ({
         setCurrentFont(font);
         applyFont(font.fontFamily);
       } else {
-        console.error('🔤 [FontProvider] No font available!');
+        logger.error('🔤 [FontProvider] No font available!');
       }
 
       setIsLoading(false);
@@ -72,7 +73,7 @@ export const FontProvider: React.FC<FontProviderProps> = ({
       setCurrentFont(font);
       setStoredFont(font.fontFamily);
     } else {
-      console.error('🔤 [FontProvider] Font not found for ID:', fontId);
+      logger.error('🔤 [FontProvider] Font not found for ID:', fontId);
     }
   };
 

@@ -40,6 +40,7 @@ import {
 } from '../modules/Code/handler/terminal/TerminalHandlers';
 import { StorageHandler } from '../modules/Code/handler/storage/StorageHandler';
 import { FileLockManager } from '../modules/Code/managers/FileLockManager';
+import { logger } from '@renderer/utils/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -195,7 +196,7 @@ export class CodeController {
       try {
         fn(result);
       } catch (e) {
-        console.error('[CodeController] listener error:', e);
+        logger.error('[CodeController] listener error:', e);
       }
     });
   }
@@ -372,7 +373,7 @@ export class CodeController {
           break;
         }
         case 'showError':
-          console.error('[CodeController] showError:', msg.message);
+          logger.error('[CodeController] showError:', msg.message);
           break;
         default:
           this.emitResult({
@@ -382,7 +383,7 @@ export class CodeController {
           });
       }
     } catch (error: any) {
-      console.error('[CodeController] handleMessage error for "' + command + '":', error);
+      logger.error('[CodeController] handleMessage error for "' + command + '":', error);
       this.emitResult({
         command: 'error',
         requestId: msg.requestId,

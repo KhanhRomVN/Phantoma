@@ -11,8 +11,7 @@ import { extensionService } from '@renderer/components/RightPanel/Agent/services
 import { getToolLabel } from '../../../../../constants/constants';
 
 // UtilsS
-import { collectConvFilePaths, getNextUserMessage } from '../../../../../utils/renderer-utils';
-import { getPermissionDecision } from '../../../../../utils/permissionUtils';
+import { getNextUserMessage } from '../../../../../utils/renderer-utils';
 
 // ICONS
 import FileIcon from '@renderer/components/common/FileIcon';
@@ -29,7 +28,6 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
   messageId,
   isActionClicked,
   isActiveGroup,
-  isLastMessage,
   isLastItemInList,
   toolOutputs,
   allMessages,
@@ -38,14 +36,12 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
   onConfirmSingleLineAction,
   onRejectSingleLineAction,
 }) => {
-  const [isCollapsed, setIsCollapsed] = React.useState(true);
-  const { permissionMode } = useSettings();
+  const [, setIsCollapsed] = React.useState(true);
+  useSettings();
 
   const actionId = `${messageId}-action-${actionIndex}`;
   const rawPath = action.params.file_path || action.params.path || '';
   const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
-
-  const allPaths = React.useMemo(() => collectConvFilePaths(allMessages || []), [allMessages]);
 
   const nextUserMessage = getNextUserMessage(allMessages || [], messageId);
 
@@ -64,7 +60,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
   const hasValidationError = !!action.isError;
 
   const handleToolClickWithLog = React.useCallback(
-    (e: React.MouseEvent, type: any) => {
+    (_e: React.MouseEvent, type: any) => {
       onToolClick(action, messageId, actionIndex, type);
     },
     [action, messageId, actionIndex, onToolClick, actionId, rawPath],

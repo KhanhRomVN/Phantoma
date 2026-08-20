@@ -4,6 +4,7 @@
 
 import { useRef, useEffect } from 'react';
 import { Btn } from '../shared/Btn';
+import { $ } from '@renderer/utils/color';
 
 interface LogTabProps {
   messages: string[];
@@ -44,7 +45,7 @@ export function LogTab({ messages }: LogTabProps) {
               : isError
                 ? $('--error')
                 : isWarn
-                  ? ($('--yellow') || '#eab308')
+                  ? $('--yellow') || '#eab308'
                   : $('--text-secondary');
             return (
               <div key={i} className="text-[9px] mb-0.5 tracking-[0.02em]" style={{ color }}>

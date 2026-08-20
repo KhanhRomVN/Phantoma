@@ -1,8 +1,31 @@
+/**
+ * ------------------------------------------------------------------
+ * MarkdownBlock
+ * ------------------------------------------------------------------
+ * Render nội dung Markdown thành React components, hỗ trợ syntax
+ * highlighting cho code blocks và nhận diện file path thành chip.
+ *
+ * Main features:
+ * - Parse Markdown sang HTML (sanitized bằng DOMPurify)
+ * - Render code blocks bằng CodeBlock component
+ * - Nhận diện và hiển thị file path dưới dạng chip có icon
+ * - Xử lý bảng với file path (rút gọn đường dẫn)
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
+
+// ── UI ──
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+
+// ── Components ──
 import FileIcon from '@renderer/components/common/FileIcon';
 import CodeBlock from '@renderer/components/common/CodeBlock';
+
+// ── Utils ──
 import { $ } from '@renderer/utils/color';
 
 const ABSOLUTE_PATH_REGEX = /^(\/[^\s<>"'`]+|[A-Za-z]:\\[^\s<>"'`]+)/;

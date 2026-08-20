@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 import { emulateApi } from './services/emulate-api.service';
 import { useModulePersistence } from '../../hooks/useModulePersistence';
@@ -121,7 +122,7 @@ export default React.memo(function Emulate({
         setIsAddModalOpen(false);
         setEditingApp(null);
       } catch (error) {
-        console.error('[Emulate] Add target failed:', error);
+        logger.error('[Emulate] Add target failed:', error);
         alert(
           'Failed to add target: ' + (error instanceof Error ? error.message : 'Unknown error'),
         );
@@ -157,7 +158,7 @@ export default React.memo(function Emulate({
         });
         await refreshTargets();
       } catch (error) {
-        console.error('[Emulate] removeTargetTab error:', error);
+        logger.error('[Emulate] removeTargetTab error:', error);
       }
     },
     [deleteTarget, setState, refreshTargets],
@@ -167,7 +168,7 @@ export default React.memo(function Emulate({
     (id: string | null) => {
       if (id) {
         emulateApi.updateLastUsed(id).catch((err) => {
-          console.error('[Emulate] Failed to update last_used_at:', err);
+          logger.warn('[Emulate] Failed to update last_used_at:', err);
         });
       }
       setState((prev) => ({ ...prev, activeTargetId: id }));
@@ -305,7 +306,7 @@ export default React.memo(function Emulate({
           updateFilter(mergedFilter);
         }
       } catch (error) {
-        console.error('[Emulate] Failed to load filter from API:', error);
+        logger.error('[Emulate] Failed to load filter from API:', error);
       }
     };
 
@@ -405,7 +406,7 @@ export default React.memo(function Emulate({
       useEnvInject?: boolean,
     ) => {
       if (!window.api || typeof window.api.invoke !== 'function') {
-        console.error('[Emulate] window.api is not available.');
+        logger.warn('[Emulate] window.api is not available.');
         return;
       }
 
@@ -432,7 +433,7 @@ export default React.memo(function Emulate({
           setActiveTarget(appId);
         }
       } catch (e) {
-        console.error('[Emulate] Launch failed:', e);
+        logger.error('[Emulate] Launch failed:', e);
       }
     },
     [targetTabs, addTargetTab, setActiveTarget],

@@ -1,3 +1,18 @@
+/**
+ * ------------------------------------------------------------------
+ * Models
+ * ------------------------------------------------------------------
+ * Panel chọn model LLM cho Agent, hiển thị danh sách providers
+ * và models với tìm kiếm và filter.
+ *
+ * Main features:
+ * - Hiển thị providers và models từ backend
+ * - Tìm kiếm models theo tên
+ * - Filter theo provider
+ * - Chọn model active
+ * ------------------------------------------------------------------
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Search, CheckCircle, AlertCircle } from 'lucide-react';
 import { Provider } from '../../types';

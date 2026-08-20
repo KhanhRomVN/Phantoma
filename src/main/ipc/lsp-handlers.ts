@@ -1,11 +1,29 @@
 /**
- * LSP IPC Handlers
- * Main process handlers for Language Server Protocol communication
+ * ------------------------------------------------------------------
+ * IPC handler LSP
+ * ------------------------------------------------------------------
+ * Handler tiến trình chính cho giao tiếp Language Server Protocol.
+ * Quản lý tiến trình language server, nhắn tin JSON-RPC và
+ * chuyển tiếp chẩn đoán đến renderer.
+ *
+ * Hàm chính:
+ * - sendRequest()      : Gửi yêu cầu JSON-RPC và chờ phản hồi
+ * - sendNotification() : Gửi thông báo JSON-RPC (không phản hồi)
+ * - setupMessageParser(): Phân tích thông điệp LSP từ stdout
+ * - stopAllLSPServers(): Kết thúc tất cả server đang hoạt động khi tắt máy
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain, BrowserWindow } from 'electron';
+
+// ── Node.js ──
 import { spawn, ChildProcess } from 'child_process';
 import { join } from 'path';
+
+// ── Internal ──
+import { logger } from '../utils/logger';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -82,7 +100,7 @@ function sendNotification(server: LSPServer, method: string, params: any): void 
   try {
     server.process.stdin?.write(header + message, 'utf8');
   } catch (error) {
-    console.error('[LSP] Failed to send notification:', error);
+    logger.error('[LSP] Failed to send notification:', error);
   }
 }
 
@@ -111,13 +129,13 @@ function setupMessageParser(server: LSPServer, mainWindow: any) {
         const message = JSON.parse(messageContent);
         handleMessage(server, message, mainWindow);
       } catch (error) {
-        console.error('[LSP] Failed to parse message:', error);
+        logger.error('[LSP] Failed to parse message:', error);
       }
     }
   });
 
   server.process.stderr?.on('data', (data: Buffer) => {
-    console.error(`[LSP:${server.language}]`, data.toString());
+    logger.error(`[LSP:${server.language}]`, data.toString());
   });
 }
 
@@ -209,7 +227,7 @@ function handleServerRequest(server: LSPServer, message: any, mainWindow: any) {
       try {
         server.process.stdin?.write(header + responseMessage, 'utf8');
       } catch (error) {
-        console.error(`[LSP:Main] ❌ Failed to send workspace configuration response:`, error);
+        logger.error(`[LSP:Main] ❌ Failed to send workspace configuration response:`, error);
       }
       break;
 
@@ -225,7 +243,7 @@ function handleServerRequest(server: LSPServer, message: any, mainWindow: any) {
       try {
         server.process.stdin?.write(hdr + msg, 'utf8');
       } catch (error) {
-        console.error(`[LSP:Main] ❌ Failed to send response:`, error);
+        logger.error(`[LSP:Main] ❌ Failed to send response:`, error);
       }
       break;
   }
@@ -245,7 +263,7 @@ function handleNotification(server: LSPServer, message: any, mainWindow: any) {
       });
 
       if (!mainWindow) {
-        console.error(
+        logger.error(
           '[LSP:Main] ❌ mainWindow is null/undefined - cannot send diagnostics to renderer!',
         );
       }
@@ -289,6 +307,7 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
       existingServer.process.kill();
       activeServers.delete(language);
     } catch (e) {
+      logger.warn(`[LSP:Main] Failed to gracefully stop existing server for ${language}:`, e);
       activeServers.delete(language);
     }
   }
@@ -309,12 +328,12 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
     // Log stderr immediately for early errors
     serverProcess.stderr?.on('data', (data: Buffer) => {
       const errorMsg = data.toString();
-      console.error(`[LSP:${language} stderr]`, errorMsg);
+      logger.error(`[LSP:${language} stderr]`, errorMsg);
     });
 
     // Handle spawn errors
     serverProcess.on('error', (err) => {
-      console.error(`[LSP:Main] ❌ Process spawn error for ${language}:`, err);
+      logger.error(`[LSP:Main] ❌ Process spawn error for ${language}:`, err);
       activeServers.delete(language);
     });
 
@@ -337,7 +356,7 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
     // Setup message parsing - get main window instead of using event.sender
     const mainWindow = BrowserWindow.getAllWindows()[0];
     if (!mainWindow) {
-      console.error('[LSP:Main] ❌ No main window found!');
+      logger.error('[LSP:Main] ❌ No main window found!');
       throw new Error('No main window available');
     }
 
@@ -418,8 +437,8 @@ ipcMain.handle('lsp:start-server', async (event, args) => {
       capabilities: server.capabilities,
     };
   } catch (error: any) {
-    console.error(`[LSP:Main] ❌ Failed to start server for ${language}:`, error);
-    console.error(`[LSP:Main] Stack:`, error.stack);
+    logger.error(`[LSP:Main] ❌ Failed to start server for ${language}:`, error);
+    logger.error(`[LSP:Main] Stack:`, error.stack);
 
     // Remove from active servers on failure
     activeServers.delete(language);
@@ -456,7 +475,7 @@ ipcMain.handle('lsp:stop-server', async (event, args) => {
 
     return { success: true };
   } catch (error: any) {
-    console.error(`[LSP] Error stopping server for ${language}:`, error);
+    logger.error(`[LSP] Error stopping server for ${language}:`, error);
     return { success: false, error: error.message };
   }
 });
@@ -470,7 +489,7 @@ ipcMain.handle('lsp:get-active-servers', async () => {
     const servers = Array.from(activeServers.keys());
     return { success: true, servers };
   } catch (error: any) {
-    console.error('[LSP:Main] ❌ get-active-servers error:', error);
+    logger.error('[LSP:Main] ❌ get-active-servers error:', error);
     return { success: false, error: error.message, servers: [] };
   }
 });
@@ -498,7 +517,7 @@ ipcMain.handle('lsp:didOpen', async (event, args) => {
 
     return { success: true };
   } catch (error: any) {
-    console.error(`[LSP:Main] ❌ Error sending didOpen:`, error);
+    logger.error(`[LSP:Main] ❌ Error sending didOpen:`, error);
     return { success: false, error: error.message };
   }
 });
@@ -522,7 +541,7 @@ ipcMain.handle('lsp:didSave', async (event, args) => {
 
     return { success: true };
   } catch (error: any) {
-    console.error(`[LSP:Main] ❌ Error sending didSave:`, error);
+    logger.error(`[LSP:Main] ❌ Error sending didSave:`, error);
     return { success: false, error: error.message };
   }
 });
@@ -545,7 +564,7 @@ ipcMain.handle('lsp:didClose', async (event, args) => {
 
     return { success: true };
   } catch (error: any) {
-    console.error(`[LSP:Main] ❌ Error sending didClose:`, error);
+    logger.error(`[LSP:Main] ❌ Error sending didClose:`, error);
     return { success: false, error: error.message };
   }
 });
@@ -577,7 +596,7 @@ ipcMain.handle('lsp:didChange', async (event, args) => {
 
     return { success: true };
   } catch (error: any) {
-    console.error(`[LSP:Main] ❌ Error sending didChange:`, error);
+    logger.error(`[LSP:Main] ❌ Error sending didChange:`, error);
     return { success: false, error: error.message };
   }
 });
@@ -608,7 +627,7 @@ ipcMain.handle('lsp:completion', async (event, args) => {
 
     return result;
   } catch (error) {
-    console.error('[LSP] Completion error:', error);
+    logger.error('[LSP] Completion error:', error);
     return null;
   }
 });
@@ -637,7 +656,7 @@ ipcMain.handle('lsp:hover', async (event, args) => {
 
     return result;
   } catch (error) {
-    console.error('[LSP] Hover error:', error);
+    logger.error('[LSP] Hover error:', error);
     return null;
   }
 });
@@ -666,7 +685,7 @@ ipcMain.handle('lsp:definition', async (event, args) => {
 
     return result;
   } catch (error) {
-    console.error('[LSP] Definition error:', error);
+    logger.error('[LSP] Definition error:', error);
     return null;
   }
 });
@@ -695,7 +714,7 @@ ipcMain.handle('lsp:signature-help', async (event, args) => {
 
     return result;
   } catch (error) {
-    console.error('[LSP] Signature help error:', error);
+    logger.error('[LSP] Signature help error:', error);
     return null;
   }
 });
@@ -724,7 +743,7 @@ ipcMain.handle('lsp:format', async (event, args) => {
 
     return result;
   } catch (error) {
-    console.error('[LSP] Format error:', error);
+    logger.error('[LSP] Format error:', error);
     return null;
   }
 });
@@ -755,7 +774,7 @@ ipcMain.handle('lsp:pullDiagnostics', async (event, args) => {
 
     return { success: true, diagnostics: result };
   } catch (error: any) {
-    console.error(`[LSP:Main] ❌ Error requesting pull diagnostics:`, error);
+    logger.error(`[LSP:Main] ❌ Error requesting pull diagnostics:`, error);
     return { success: false, error: error.message };
   }
 });
@@ -792,7 +811,7 @@ export function stopAllLSPServers() {
     try {
       server.process.kill();
     } catch (error) {
-      console.error(`[LSP] Error stopping server for ${language}:`, error);
+      logger.error(`[LSP] Error stopping server for ${language}:`, error);
     }
   }
   activeServers.clear();

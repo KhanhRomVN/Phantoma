@@ -1,6 +1,25 @@
-import WebSocket from 'ws';
-import { CdpManager } from './cdp-manager';
+/**
+ * ------------------------------------------------------------------
+ * Kết nối CDP
+ * ------------------------------------------------------------------
+ * Trợ giúp kết nối WebSocket cấp thấp cho CDP Manager.
+ * Xử lý kết nối với heartbeat, logic thử lại và thiết lập domain CDP.
+ *
+ * Hàm chính:
+ * - connectToTarget()  : Kết nối đến URL WebSocket CDP với thử lại
+ * - initializeNetwork(): Bật các domain Page, Debugger, Runtime, Network
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── External ──
+import WebSocket from 'ws';
+
+// ── Internal ──
+import { CdpManager } from './cdp-manager';
+import { logger } from '../../utils/logger';
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export async function connectToTarget(
   this: CdpManager,
   wsUrl: string,
@@ -43,7 +62,7 @@ export async function connectToTarget(
           try {
             this.ws.ping();
           } catch {
-            // Ignore
+            logger.warn('[CDP] Failed to send ping');
           }
 
           if (pongTimeout) clearTimeout(pongTimeout);
@@ -52,7 +71,7 @@ export async function connectToTarget(
               try {
                 this.ws.terminate();
               } catch {
-                // Ignore
+                logger.warn('[CDP] Failed to terminate WebSocket after pong timeout');
               }
               this.isConnected = false;
               this.ws = null;
@@ -73,7 +92,7 @@ export async function connectToTarget(
       await new Promise((resolve) => setTimeout(resolve, 300));
       // Double-check WebSocket is still open
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-        console.error('[CDP] WebSocket not open after delay');
+        logger.error('[CDP] WebSocket not open after delay');
         resolve(false);
         return;
       }
@@ -81,7 +100,7 @@ export async function connectToTarget(
         await this.initializeNetwork();
         resolve(true);
       } catch (err) {
-        console.error('[CDP] Failed to initialize network:', err);
+        logger.error('[CDP] Failed to initialize network:', err);
         resolve(false);
       }
     });
@@ -114,7 +133,7 @@ export async function connectToTarget(
     });
 
     this.ws.on('error', (err) => {
-      console.error('[CDP] WebSocket error:', err);
+      logger.error('[CDP] WebSocket error:', err);
       if (!resolved) {
         resolved = true;
         if (retries > 0) {
@@ -143,19 +162,19 @@ export async function initializeNetwork(this: CdpManager) {
   try {
     await this.send('Page.enable', {});
   } catch (e) {
-    // Ignore
+    logger.warn('[CDP] Failed to enable Page:', e);
   }
 
   try {
     await this.send('Debugger.enable', {});
   } catch (e) {
-    // Ignore
+    logger.warn('[CDP] Failed to enable Debugger:', e);
   }
 
   try {
     await this.send('Runtime.enable', {});
   } catch (e) {
-    // Ignore
+    logger.warn('[CDP] Failed to enable Runtime:', e);
   }
 
   try {
@@ -167,7 +186,7 @@ export async function initializeNetwork(this: CdpManager) {
   } catch (e) {
     const errorDetail =
       e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : e;
-    console.error('[CDP] Failed to enable network:', {
+    logger.error('[CDP] Failed to enable network:', {
       error: errorDetail,
       wsReadyState: this.ws?.readyState,
       wsOpen: this.ws?.readyState === WebSocket.OPEN,
@@ -180,12 +199,12 @@ export async function initializeNetwork(this: CdpManager) {
       encodings: ['gzip', 'br', 'deflate'],
     });
   } catch (e) {
-    // Ignore
+    logger.warn('[CDP] Failed to set accepted encodings:', e);
   }
 
   try {
     await this.send('Network.setBypassServiceWorker', { bypass: true });
   } catch (e) {
-    // Ignore
+    logger.warn('[CDP] Failed to set bypass service worker:', e);
   }
 }

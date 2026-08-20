@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 
+import { logger } from '@renderer/utils/logger';
+
 // Components
 import TargetList from './TargetList';
 
@@ -104,7 +106,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
       const detected = await logcatService.detectEmulators();
       setDeviceList(detected);
     } catch (e) {
-      console.error('[TargetListPanel] Failed to load devices:', e);
+      logger.error('[TargetListPanel] Failed to load devices:', e);
     } finally {
       setIsLoadingDevices(false);
     }

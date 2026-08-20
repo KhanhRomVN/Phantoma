@@ -1,5 +1,5 @@
 /**
- * ListElementsRenderer — Renderer for list_elements tool
+ * ListElementsRenderer — Renderer cho tool list_elements
  */
 
 import React from 'react';

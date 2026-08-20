@@ -85,6 +85,7 @@ export class IPCMessageReader implements MessageReader {
   private onCloseEmitter = new Emitter<void>();
   private languageId: string;
   private disposed = false;
+  private ipcMessageHandler: ((_event: any, message: Message) => void) | null = null;
 
   constructor(languageId: string) {
     this.languageId = languageId;
@@ -119,7 +120,10 @@ export class IPCMessageReader implements MessageReader {
     this.onCloseEmitter.dispose();
 
     // Remove IPC listener
-    window.api.off(`lsp:message:${this.languageId}`);
+    if (this.ipcMessageHandler) {
+      window.api.off(`lsp:message:${this.languageId}`, this.ipcMessageHandler);
+      this.ipcMessageHandler = null;
+    }
   }
 
   /**
@@ -128,7 +132,7 @@ export class IPCMessageReader implements MessageReader {
   private setupIPCListener(): void {
     const eventName = `lsp:message:${this.languageId}`;
 
-    window.api.on(eventName, (_event: any, message: Message) => {
+    this.ipcMessageHandler = (_event: any, message: Message) => {
       if (this.disposed) return;
 
       try {
@@ -136,7 +140,8 @@ export class IPCMessageReader implements MessageReader {
       } catch (error) {
         this.onErrorEmitter.fire(error as Error);
       }
-    });
+    };
+    window.api.on(eventName, this.ipcMessageHandler);
   }
 }
 

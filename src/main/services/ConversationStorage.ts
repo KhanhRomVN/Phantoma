@@ -1,7 +1,29 @@
+/**
+ * ------------------------------------------------------------------
+ * Lưu trữ hội thoại
+ * ------------------------------------------------------------------
+ * Lưu trữ bền vững cho các hội thoại trong thư mục home của người dùng.
+ * Xử lý CRUD file JSON cho dữ liệu hội thoại theo từng module.
+ *
+ * Hàm chính:
+ * - saveConversation()      : Ghi một hội thoại xuống đĩa
+ * - getConversation()       : Đọc một hội thoại theo ID
+ * - listConversations()     : Liệt kê các ID hội thoại cho một module
+ * - deleteConversation()    : Xóa một hội thoại đơn lẻ
+ * - deleteAllConversations(): Xóa tất cả hội thoại cho một module
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+// ── Internal ──
+import { logger } from '../utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ConversationData {
   conversationId: string;
   backendConversationId?: string;
@@ -33,6 +55,7 @@ export interface ConversationData {
   lastModified: number;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ConversationStorage {
   private readonly baseDir: string;
 
@@ -92,6 +115,7 @@ export class ConversationStorage {
       return JSON.parse(content) as ConversationData;
     } catch (error: any) {
       // File not found or read error
+      logger.warn(`[ConversationStorage] Failed to read conversation ${conversationId}:`, error.message);
       return null;
     }
   }
@@ -107,6 +131,7 @@ export class ConversationStorage {
         .filter((entry) => entry.endsWith('.json'))
         .map((entry) => entry.replace('.json', ''));
     } catch (error) {
+      logger.warn(`[ConversationStorage] Failed to list conversations for ${moduleId}:`, error);
       return [];
     }
   }
@@ -120,6 +145,7 @@ export class ConversationStorage {
       await fs.promises.unlink(filePath);
     } catch (error) {
       // Ignore if file doesn't exist
+      logger.warn(`[ConversationStorage] Failed to delete conversation ${conversationId}:`, error);
     }
   }
 
@@ -132,6 +158,7 @@ export class ConversationStorage {
       await fs.promises.rm(dirPath, { recursive: true, force: true });
     } catch (error) {
       // Ignore if directory doesn't exist
+      logger.warn(`[ConversationStorage] Failed to delete all conversations for ${moduleId}:`, error);
     }
   }
 }

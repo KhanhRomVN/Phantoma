@@ -27,14 +27,13 @@ interface CommitMessageRendererProps {
 }
 
 /**
- * Renderer for commit_message tool type
- * Shows commit message with Accept/Reject buttons
+ * Renderer cho loại tool commit_message
+ * Hiển thị commit message với nút Accept/Reject
  */
 export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
   action,
   actionIndex,
   messageId,
-  isActionClicked = false,
   isRejected = false,
   isLastItemInList = true,
   onToolClick,

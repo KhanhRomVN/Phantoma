@@ -48,7 +48,7 @@ const setCachedFavicon = (domain: string, base64Data: string): void => {
     };
     localStorage.setItem(`${CACHE_PREFIX}${domain}`, JSON.stringify(cacheData));
   } catch (error) {
-    console.error('Failed to cache favicon:', error);
+    logger.error('Failed to cache favicon:', error);
   }
 };
 

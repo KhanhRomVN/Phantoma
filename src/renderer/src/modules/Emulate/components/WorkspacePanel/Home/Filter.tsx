@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { X, Globe } from 'lucide-react';
 
 // Types
@@ -333,7 +334,7 @@ export function NetworkFilter({
           onChange(mergedFilter);
         }
       } catch (error) {
-        console.error('[Filter] ❌ Exception while loading filter:', error);
+        logger.error('[Filter] ❌ Exception while loading filter:', error);
       } finally {
         setIsLoadingFilter(false);
       }
@@ -377,7 +378,7 @@ export function NetworkFilter({
       };
       localStorage.setItem(key, JSON.stringify(dataToSave));
     } catch (error) {
-      console.error('[Filter] ❌ Failed to save to localStorage:', error);
+      logger.error('[Filter] ❌ Failed to save to localStorage:', error);
     }
   }, [filter, targetId]);
 
@@ -395,7 +396,7 @@ export function NetworkFilter({
           type: JSON.stringify(filter.type),
         });
       } catch (error) {
-        console.error('[Filter] ❌ Exception while saving filter:', error);
+        logger.error('[Filter] ❌ Exception while saving filter:', error);
       }
     };
 

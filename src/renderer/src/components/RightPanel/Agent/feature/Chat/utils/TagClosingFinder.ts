@@ -1,12 +1,12 @@
 /**
- * Find the position of a closing tag while respecting backtick, comment, and string contexts.
- * This ensures that closing tags inside code blocks, comments, or strings are not mistakenly
- * detected as actual closing tags.
+ * Tìm vị trí của thẻ đóng trong khi tôn trọng ngữ cảnh backtick, comment và string.
+ * Điều này đảm bảo các thẻ đóng bên trong code blocks, comments hoặc strings không bị
+ * phát hiện nhầm là thẻ đóng thực sự.
  * 
- * @param content The full content string to search in
- * @param startPos The position to start searching from (after the opening tag)
- * @param closingTag The closing tag to search for (e.g., "</thinking>", "</write_to_file>")
- * @returns The position of the real closing tag, or -1 if not found
+ * @param content Chuỗi nội dung đầy đủ để tìm kiếm
+ * @param startPos Vị trí bắt đầu tìm kiếm (sau thẻ mở)
+ * @param closingTag Thẻ đóng cần tìm (ví dụ: "</thinking>", "</write_to_file>")
+ * @returns Vị trí của thẻ đóng thực sự, hoặc -1 nếu không tìm thấy
  */
 export function findClosingTagPosition(
   content: string,

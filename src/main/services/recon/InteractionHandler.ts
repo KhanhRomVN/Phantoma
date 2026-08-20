@@ -1,11 +1,21 @@
 /**
- * InteractionHandler — Handle page interactions for browser automation
- * 
- * This handler manages user interactions including clicking elements,
- * filling inputs, pressing keys, and scrolling.
+ * ------------------------------------------------------------------
+ * Trình xử lý tương tác
+ * ------------------------------------------------------------------
+ * Xử lý tương tác trang cho tự động hóa trình duyệt. Quản lý click,
+ * điền input, nhấn phím, cuộn trang và truy vấn phần tử.
+ *
+ * Hàm chính:
+ * - clickByRef()        : Click một phần tử theo tham chiếu
+ * - fillByRef()         : Điền vào input theo tham chiếu
+ * - scroll()            : Cuộn trang
+ * - getElementText()    : Lấy nội dung văn bản phần tử
+ * - getElementAttribute(): Lấy giá trị thuộc tính phần tử
+ * ------------------------------------------------------------------
  */
 
 import type { Page } from 'puppeteer';
+import { logger } from '../../utils/logger';
 
 export class InteractionHandler {
   /**
@@ -26,10 +36,12 @@ export class InteractionHandler {
       await page.click(selector, { timeout: 5000 });
     } catch {
       // If ID doesn't work, try as text content
+      logger.warn(`[InteractionHandler] Click by ID failed for ${ref}, trying text selector`);
       try {
         await page.click(`text/${ref}`, { timeout: 5000 });
       } catch {
         // Try XPath for text
+        logger.warn(`[InteractionHandler] Click by text failed for ${ref}, trying XPath`);
         const elements = await page.$x(`//*[contains(text(), '${ref}')]`);
         if (elements.length > 0) {
           await elements[0].click();
@@ -60,6 +72,7 @@ export class InteractionHandler {
       await page.type(selector, value, { delay: 10 });
     } catch {
       // Try as placeholder
+      logger.warn(`[InteractionHandler] Fill by ID failed for ${ref}, trying placeholder`);
       await page.type(`[placeholder="${ref}"]`, value, { delay: 10 });
     }
   }

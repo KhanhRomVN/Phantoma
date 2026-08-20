@@ -159,7 +159,7 @@ export const useNmapScan = (
       if (error?.name === 'AbortError') {
         setLogOutput((prev) => prev + '\n[Scan aborted by user]\n');
       } else {
-        console.error('Nmap scan failed:', error);
+        logger.error('Nmap scan failed:', error);
         setLogOutput((prev) => prev + `\n[Error: ${error?.message || 'Unknown error'}]\n`);
       }
 
@@ -201,7 +201,7 @@ export const useNmapScan = (
         body: JSON.stringify({ scanId }),
       });
     } catch (err) {
-      console.error('[Nmap] Cancel API call failed:', err);
+      logger.error('[Nmap] Cancel API call failed:', err);
     }
 
     // Abort the fetch request

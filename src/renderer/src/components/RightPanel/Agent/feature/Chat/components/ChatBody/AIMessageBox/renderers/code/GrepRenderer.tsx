@@ -1,4 +1,5 @@
 import React from 'react';
+import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
 
 // Constants
@@ -111,7 +112,9 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
                   if (match) totalMatches = parseInt(match[1], 10);
                   const fileMatch = output.match(/files="(\d+)"/);
                   if (fileMatch) fileCount = parseInt(fileMatch[1], 10);
-                } catch {}
+                } catch {
+                  logger.warn('[GrepRenderer] Failed to parse match counts');
+                }
                 if (totalMatches === 0 && fileCount === 0) {
                   return (
                     <span className="opacity-50 text-[10px] text-text-secondary italic shrink-0 ml-auto">
@@ -163,7 +166,9 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
               if (matchResult) meta.matchCount = parseInt(matchResult[1], 10);
               const fileResult = output.match(/files="(\d+)"/);
               if (fileResult) meta.fileCount = parseInt(fileResult[1], 10);
-            } catch {}
+            } catch {
+              logger.warn('[GrepRenderer] Failed to parse tooltip meta');
+            }
           }
 
           return meta;

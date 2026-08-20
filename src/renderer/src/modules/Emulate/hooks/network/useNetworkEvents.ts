@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 
+import { logger } from '@renderer/utils/logger';
+
 // TYPE
 import { NetworkRequest } from '../../types/inspector';
 
@@ -151,7 +153,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         status: r.status ?? 0,
         size: typeof r.size === 'number' ? String(r.size) : (r.size ?? '0 B'),
         time: typeof r.time === 'number' ? String(r.time) : (r.time ?? '0ms'),
-      })) as unknown as import('../../../../stores/networkStore').NetworkRequest[],
+      })) as unknown as import('../../stores/networkStore').NetworkRequest[],
     });
   }, [requests]);
 
@@ -233,7 +235,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       } else {
         // Only log if status code indicates error (4xx, 5xx)
         if (data.statusCode >= 400) {
-          console.error('[DEBUG|NetworkEvents] CDP Response error', {
+          logger.warn('[DEBUG|NetworkEvents] CDP Response error', {
             id: data.id,
             statusCode: data.statusCode,
             url: existing.url,
@@ -359,7 +361,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         if (existing) {
           // Only log if status code indicates error (4xx, 5xx)
           if (data.statusCode >= 400) {
-            console.error('[DEBUG|NetworkEvents] Proxy Response error', {
+            logger.warn('[DEBUG|NetworkEvents] Proxy Response error', {
               id: data.id,
               statusCode: data.statusCode,
               url: existing.url,

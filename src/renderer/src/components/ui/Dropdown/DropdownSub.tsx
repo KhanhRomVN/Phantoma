@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect, createContext, useContext } from 'react';
-import { cn } from '@renderer/shared/utils/cn';
 
 interface DropdownSubContextType {
   open: boolean;
   setOpen: (open: boolean) => void;
   close: () => void;
-  triggerRef: React.RefObject<HTMLDivElement>;
-  contentRef: React.RefObject<HTMLDivElement>;
+  triggerRef: React.RefObject<HTMLDivElement | null>;
+  contentRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const DropdownSubContext = createContext<DropdownSubContextType | null>(null);

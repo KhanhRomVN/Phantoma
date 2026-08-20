@@ -51,7 +51,6 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   className,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

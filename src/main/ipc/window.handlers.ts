@@ -1,5 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * IPC handler cửa sổ
+ * ------------------------------------------------------------------
+ * IPC handler cho điều khiển cửa sổ chính: thu nhỏ, phóng to,
+ * khôi phục, đóng và kiểm tra trạng thái phóng to.
+ *
+ * Hàm chính:
+ * - setupWindowHandlers() : Đăng ký IPC handler window:
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { BrowserWindow, ipcMain } from 'electron';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export function setupWindowHandlers(): void {
   // Minimize window
   ipcMain.handle('window:minimize', () => {

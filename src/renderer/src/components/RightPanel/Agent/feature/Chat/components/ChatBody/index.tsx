@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
 import { parseAIResponse, ParsedResponse, ToolAction } from '../../services/ResponseParser';
 import { Message } from '../../types/message';
@@ -111,7 +112,7 @@ class MessageBoxErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('[MessageBox] Render error caught:', error, info);
+    logger.error('[MessageBox] Render error caught:', error, info);
   }
 
   render() {
@@ -272,7 +273,6 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   toolOutputs,
   terminalStatus,
   firstRequestMessageId,
-  onLoadConversation,
   activeTerminalIds,
   attachedTerminalIds,
   conversationId,
@@ -305,24 +305,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  // DEBUG: Log when ChatBody receives messages prop
-  useEffect(() => {
-    console.log('[ChatBody] 📨 Messages prop received:', {
-      messageCount: messages.length,
-      isLoadingConversation,
-      conversationId,
-      firstMessageId: messages[0]?.id,
-      lastMessageId: messages[messages.length - 1]?.id,
-    });
-  }, [messages, isLoadingConversation, conversationId]);
-
-  const {
-    visibleMessages: paginatedMessages,
-    hiddenCount,
-    loadMore,
-    loadAll,
-    hasHiddenMessages,
-  } = useMessagePagination({
+  const { hiddenCount, loadMore, loadAll, hasHiddenMessages } = useMessagePagination({
     messages,
     messagesPerPage: 10,
   });
@@ -331,8 +314,6 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   const lastParsedMessagesRef = useRef<any[]>([]);
 
   const parsedMessages = useMemo(() => {
-    const startTime = performance.now();
-
     if (messages.length > 0 && messages[0].parsed !== undefined) {
       const messagesUnchanged =
         lastParsedMessagesRef.current.length === messages.length &&
@@ -361,12 +342,6 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
       return { ...msg, parsed: cache.get(msg.content)! };
     });
 
-    const elapsed = performance.now() - startTime;
-    if (elapsed > 10 || messages.length > 10) {
-      console.warn(
-        `[ChatBody] parsedMessages recalculated - messages: ${messages.length}, cacheSize: ${cache.size}, time: ${elapsed.toFixed(1)}ms`,
-      );
-    }
     lastParsedMessagesRef.current = result;
     return result;
   }, [messages]);

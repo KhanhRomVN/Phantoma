@@ -1,10 +1,27 @@
+/**
+ * ------------------------------------------------------------------
+ * Trình xử lý WebSocket
+ * ------------------------------------------------------------------
+ * Đường hầm WebSocket và phân tích frame cho proxy. Bắt giữ
+ * thông điệp WebSocket và chuyển tiếp chúng đến renderer.
+ *
+ * Hàm chính:
+ * - parseWebSocketFrame() : Phân tích frame WebSocket và trích xuất metadata
+ * - setupWebSocketTunnel() : Thiết lập đường hầm và bắt giữ thông điệp
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { BrowserWindow } from 'electron';
+
+// ── Node.js ──
 import * as net from 'net';
 
-/**
- * Parse a WebSocket frame and extract metadata
- * Returns null if the data doesn't look like a valid WebSocket frame
- */
+// ── Internal ──
+import { logger } from '../utils/logger';
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export function parseWebSocketFrame(
   data: Buffer,
   _direction: 'client' | 'server',
@@ -83,6 +100,7 @@ export function parseWebSocketFrame(
       try {
         payloadStr = payload.toString('utf8');
       } catch {
+        logger.warn('[ProxyServer WS] Failed to decode UTF-8 payload');
         payloadStr = null;
       }
     } else if (isControl) {
@@ -96,6 +114,7 @@ export function parseWebSocketFrame(
 
     return { isBinary, isControl, payload: payloadStr, opcode };
   } catch {
+    logger.warn('[ProxyServer WS] Failed to parse WebSocket frame');
     return null;
   }
 }
@@ -254,13 +273,13 @@ export function setupWebSocketTunnel(
 
       conn.on('error', (err: any) => {
         if (err.code !== 'ECONNRESET') {
-          console.error(`[ProxyServer WS] Server error:`, err);
+          logger.error(`[ProxyServer WS] Server error:`, err);
         }
       });
 
       socket.on('error', (err: any) => {
         if (err.code !== 'ECONNRESET') {
-          console.error(`[ProxyServer WS] Client error:`, err);
+          logger.error(`[ProxyServer WS] Client error:`, err);
         }
       });
     });
@@ -268,7 +287,7 @@ export function setupWebSocketTunnel(
 
   conn.on('error', (err: any) => {
     if (err.code !== 'ECONNRESET') {
-      console.error(`[ProxyServer WS] Connection error:`, err);
+      logger.error(`[ProxyServer WS] Connection error:`, err);
     }
     sendToRenderer('ws:close', {
       id: wsId,

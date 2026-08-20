@@ -1,3 +1,18 @@
+/**
+ * ------------------------------------------------------------------
+ * HomePanel
+ * ------------------------------------------------------------------
+ * Trang chủ của Agent, hiển thị dashboard thống kê (stats, model
+ * distribution, daily usage, recent activity) và ô nhập message.
+ *
+ * Main features:
+ * - Hiển thị stats grid và model distribution
+ * - Hiển thị recent activity từ conversation history
+ * - Ô nhập message với model/account selection
+ * - Slogan xoay vòng tự động
+ * ------------------------------------------------------------------
+ */
+
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import StatsGrid from './components/StatsGrid';
 import RecentActivity from './components/RecentActivity';
@@ -10,6 +25,7 @@ import MessageInput from '../../components/common/MessageInput';
 import FilesPreviews from '../../components/common/MessageInput/FilesPreviews';
 import { useFileHandling } from '../../hooks/useFileHandling';
 import ConversationService from '../../services/ConversationService';
+import { logger } from '@renderer/utils/logger';
 
 /**
  * Get moduleId from current context
@@ -51,7 +67,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
   initialValue,
 }) => {
   // Instance ID
-  const instanceId = React.useRef(`home-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
   const renderCount = React.useRef(0);
   renderCount.current += 1;
   const { apiUrl } = useSettings();
@@ -62,14 +77,18 @@ const HomePanel: React.FC<HomePanelProps> = ({
     try {
       const saved = localStorage.getItem('zen_last_model');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) {
+      logger.warn('[Home] Failed to parse saved model:', e);
+    }
     return null;
   });
   const [currentAccount, setCurrentAccount] = useState<any>(() => {
     try {
       const saved = localStorage.getItem('zen_last_account');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) {
+      logger.warn('[Home] Failed to parse saved account:', e);
+    }
     return null;
   });
   const [message, setMessage] = useState(initialValue || '');
@@ -87,7 +106,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
         setProviders(result.data.filter((p: any) => p.is_enabled));
       }
     } catch (error) {
-      console.error('[Phantoma][Home] Failed to fetch providers:', error);
+      logger.error('[Phantoma][Home] Failed to fetch providers:', error);
     }
   }, [apiUrl]);
 
@@ -134,7 +153,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
     const loadHistory = async () => {
       const moduleId = getCurrentModuleId();
       if (!moduleId) {
-        console.warn('[Home] No active moduleId, cannot load history');
+        logger.warn('[Home] No active moduleId, cannot load history');
         setIsLoading(false);
         return;
       }
@@ -142,10 +161,11 @@ const HomePanel: React.FC<HomePanelProps> = ({
       try {
         // Get list of conversation IDs
         const conversationIds = await ConversationService.list(moduleId);
-        
+
         // Load each conversation's data
         const conversationsData = await Promise.all(
-          conversationIds.slice(0, 10).map(async (id) => { // Load first 10 for home
+          conversationIds.slice(0, 10).map(async (id) => {
+            // Load first 10 for home
             try {
               const data = await ConversationService.get(moduleId, id);
               if (!data) return null;
@@ -153,7 +173,10 @@ const HomePanel: React.FC<HomePanelProps> = ({
               // Convert to ConversationItem format
               const firstMessage = data.messages[0];
               const title = firstMessage?.content.substring(0, 100) || 'New Conversation';
-              const preview = data.messages.slice(0, 3).map(m => m.content.substring(0, 50)).join(' ');
+              const preview = data.messages
+                .slice(0, 3)
+                .map((m) => m.content.substring(0, 50))
+                .join(' ');
 
               return {
                 id: data.conversationId,
@@ -163,20 +186,22 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 lastModified: data.lastModified,
                 createdAt: data.createdAt,
                 messageCount: data.messages.length,
-                sessionId: -1,
+                tabId: -1,
+                totalRequests: 0,
+                totalTokenUsage: 0,
                 folderPath: null,
               } as ConversationItem;
             } catch (error) {
-              console.error(`[Home] Failed to load conversation ${id}:`, error);
+              logger.warn(`[Home] Failed to load conversation ${id}:`, error);
               return null;
             }
-          })
+          }),
         );
 
         const validHistory = conversationsData.filter((c): c is ConversationItem => c !== null);
         setConversations(validHistory);
       } catch (error) {
-        console.error('[Home] Failed to load history:', error);
+        logger.error('[Home] Failed to load history:', error);
         setConversations([]);
       } finally {
         setIsLoading(false);
@@ -222,13 +247,17 @@ const HomePanel: React.FC<HomePanelProps> = ({
               if (p.provider_id && p.website) {
                 try {
                   favicons[p.provider_id] = `${new URL(p.website).origin}/favicon.ico`;
-                } catch {}
+                } catch {
+                  logger.warn('[Home] Invalid website URL for favicon:', p.website);
+                }
               }
             });
             setProviderFavicons(favicons);
           }
         }
-      } catch {}
+      } catch (err) {
+        logger.warn('[Home] Failed to fetch stats:', err);
+      }
     };
     fetchStats();
   }, [apiUrl]);
@@ -447,7 +476,9 @@ const HomePanel: React.FC<HomePanelProps> = ({
             if (prov?.website) {
               try {
                 faviconUrl = `${new URL(prov.website).origin}/favicon.ico`;
-              } catch {}
+              } catch {
+                logger.warn('[Home] Invalid website URL for favicon:', prov.website);
+              }
             }
 
             const newModel = {

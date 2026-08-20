@@ -12,7 +12,7 @@ interface ResponseRange {
     {
       additions: number;
       deletions: number;
-      toolType?: 'write_to_file' | 'replace_in_file';
+      toolType?: 'write_to_file' | 'replace_in_file' | 'revert_file';
       content?: string;
       oldContent?: string;
       newContent?: string;
@@ -60,7 +60,7 @@ const DiffSummaryBar: React.FC<DiffSummaryBarProps> = ({
   const handleFileClick = (
     filePath: string,
     fileData?: {
-      toolType?: 'write_to_file' | 'replace_in_file';
+      toolType?: 'write_to_file' | 'replace_in_file' | 'revert_file';
       content?: string;
       oldContent?: string;
       newContent?: string;

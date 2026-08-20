@@ -1,3 +1,14 @@
+/**
+ * ------------------------------------------------------------------
+ * Chat Types
+ * ------------------------------------------------------------------
+ * Type definitions cho tab info trong Agent.
+ *
+ * Main types:
+ * - TabInfo : Thông tin tab trong browser session
+ * ------------------------------------------------------------------
+ */
+
 export interface TabInfo {
   tabId: number;
   containerName: string;

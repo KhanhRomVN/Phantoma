@@ -1,8 +1,18 @@
 /**
- * NavigationHandler — Handle navigation operations for browser automation
- * 
- * This handler manages navigation-related operations including navigating to URLs,
- * going back/forward in history, and reloading pages.
+ * ------------------------------------------------------------------
+ * Trình xử lý điều hướng
+ * ------------------------------------------------------------------
+ * Xử lý các thao tác điều hướng cho tự động hóa trình duyệt:
+ * điều hướng URL, quay lại/tiến tới, tải lại và truy vấn thông tin trang.
+ *
+ * Hàm chính:
+ * - navigate()          : Điều hướng đến URL
+ * - back()              : Quay lại lịch sử
+ * - forward()           : Tiến tới trong lịch sử
+ * - reload()            : Tải lại trang
+ * - getCurrentUrl()     : Lấy URL trang hiện tại
+ * - getTitle()          : Lấy tiêu đề trang
+ * ------------------------------------------------------------------
  */
 
 import type { Page } from 'puppeteer';

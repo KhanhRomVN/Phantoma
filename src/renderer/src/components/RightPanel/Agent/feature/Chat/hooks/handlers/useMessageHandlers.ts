@@ -1,8 +1,8 @@
-import { useCallback, useRef, useEffect } from "react";
-import { Message } from "../../types/message";
-import { ChatSession } from "../../types/chat";
-import { extensionService } from "../../../../services/ExtensionService";
-import { saveConversation } from "../../services/ConversationService";
+import { useCallback, useRef, useEffect } from 'react';
+import { Message } from '../../types/message';
+import { ChatSession } from '../../types/chat';
+import { extensionService } from '../../../../services/ExtensionService';
+import { saveConversation } from '../../services/ConversationService';
 
 interface UseMessageHandlersProps {
   message: string;
@@ -107,7 +107,6 @@ export const useMessageHandlers = ({
 
   const handleSend = useCallback(
     (model: any, account: any) => {
-      const callStartTime = performance.now();
       sendCountRef.current += 1;
 
       // 🚀 PERF: Read from refs instead of closure
@@ -119,10 +118,10 @@ export const useMessageHandlers = ({
       // Check for invalid external files before sending
       if (currentInvalidFiles && currentInvalidFiles.length > 0) {
         const vscodeApi = (window as any).vscodeApi;
-        const message = `Cannot send message due to invalid file(s):\n${currentInvalidFiles.map((f) => `• ${f.name}: ${f.reason}`).join("\n")}\n\nPlease remove these files and try again.`;
+        const message = `Cannot send message due to invalid file(s):\n${currentInvalidFiles.map((f) => `• ${f.name}: ${f.reason}`).join('\n')}\n\nPlease remove these files and try again.`;
         if (vscodeApi) {
           vscodeApi.postMessage({
-            command: "showError",
+            command: 'showError',
             message: message,
           });
         } else {
@@ -131,11 +130,7 @@ export const useMessageHandlers = ({
         return;
       }
 
-      if (
-        currentMessage.trim() ||
-        currentFiles.length > 0 ||
-        currentItems.length > 0
-      ) {
+      if (currentMessage.trim() || currentFiles.length > 0 || currentItems.length > 0) {
         // Filter out images with errors before sending
         const validFiles = currentFiles.filter((file: any) => !file.error);
         const errorFiles = currentFiles.filter((file: any) => file.error);
@@ -160,7 +155,7 @@ export const useMessageHandlers = ({
           undefined,
           undefined,
         );
-        setMessageRef.current("");
+        setMessageRef.current('');
         clearDraftRef.current();
         clearFilesRef.current();
         clearAttachedItemsRef.current();
@@ -168,7 +163,7 @@ export const useMessageHandlers = ({
         undoStackRef.current = [];
         undoIndexRef.current = -1;
         if (textareaRef.current) {
-          textareaRef.current.style.height = "auto";
+          textareaRef.current.style.height = 'auto';
         }
       }
     },
@@ -183,18 +178,14 @@ export const useMessageHandlers = ({
   );
 
   const handleStopGeneration = useCallback(() => {
-    const callStartTime = performance.now();
     stopCountRef.current += 1;
 
     isStoppedRef.current = true;
     stopGeneration();
     setIsProcessing(false);
     setMessages((prev: any) => {
-      const markStartTime = performance.now();
-
       const lastAssistantIdx = [...prev].reduceRight(
-        (found, m, i) =>
-          found === -1 && m.role === "assistant" && !m.isCancelled ? i : found,
+        (found, m, i) => (found === -1 && m.role === 'assistant' && !m.isCancelled ? i : found),
         -1,
       );
 
@@ -215,8 +206,8 @@ export const useMessageHandlers = ({
         folderPath,
         updated,
         currentConversationId ?? undefined,
-        currentChat || undefined,
         true,
+        currentChat?.conversationId || undefined,
       );
 
       return updated;
@@ -232,7 +223,7 @@ export const useMessageHandlers = ({
 
   const handleClearChat = useCallback(() => {
     extensionService.postMessage({
-      command: "confirmClearChat",
+      command: 'confirmClearChat',
       conversationId: currentConversationId,
     });
   }, [currentConversationId]);

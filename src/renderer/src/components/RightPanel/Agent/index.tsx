@@ -1,13 +1,16 @@
 /**
- * AgentPanel — panel chính của Agent, quản lý chuyển đổi giữa Home và Chat view.
+ * ------------------------------------------------------------------
+ * AgentPanel
+ * ------------------------------------------------------------------
+ * Panel chính của Agent, quản lý chuyển đổi giữa Home và Chat view.
+ * Sử dụng keep-alive để bảo toàn state khi chuyển giữa các target/project.
  *
- *    Keep-alive: mỗi target/project có một AgentView riêng, được giữ mounted
- *    nhưng ẩn/hiện bằng CSS. Khi chuyển qua lại, toàn bộ state (chat, messages,
- *    streaming, tools) được bảo toàn.
- *
- *    handleHomeSendMessage()   : Nhận message từ Home, tạo ChatSession mới.
- *    handleBack()              : Quay về Home từ Chat, giữ lại nội dung dang dở.
- *    handleLoadConversation()  : Load conversation từ history vào Chat view.
+ * Main features:
+ * - Keep-alive: mỗi target/project có một AgentView riêng, giữ mounted
+ * - handleHomeSendMessage()  : Nhận message từ Home, tạo ChatSession mới
+ * - handleBack()             : Quay về Home từ Chat, giữ nội dung dang dở
+ * - handleLoadConversation() : Load conversation từ history vào Chat view
+ * ------------------------------------------------------------------
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
@@ -46,15 +49,6 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
 
-  // DEBUG: Log AgentView render
-  console.log('[AgentView] 🎨 Rendering:', {
-    feature,
-    isVisible,
-    hasCurrentChat: !!currentChat,
-    sessionId: currentChat?.sessionId,
-    conversationId: (currentChat as any)?.conversationId,
-  });
-
   const handleHomeSendMessage = useCallback(
     (content: string, files: any[], model: any, account: any) => {
       setInitialMessageData({ content, files, model, account });
@@ -71,12 +65,10 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
   );
 
   const handleBack = useCallback((contentToReturn?: string) => {
-    console.log('[AgentView] 🔙 handleBack called:', { contentToReturn });
     setCurrentChat(null);
     setHomeInitialValue(
       typeof contentToReturn === 'string' && contentToReturn.trim() ? contentToReturn : '',
     );
-    console.log('[AgentView] ✅ handleBack: currentChat set to null');
   }, []);
 
   const handleLoadConversation = useCallback(
@@ -90,7 +82,6 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
         conversationId,
         canAccept: true,
       };
-      console.log('[AgentView] 🔄 Setting currentChat:', newSession);
       setCurrentChat(newSession);
     },
     [],
@@ -116,12 +107,6 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
       style={{ display: isVisible ? 'flex' : 'none' }}
     >
       {(() => {
-        console.log('[AgentView] 🖼️ Rendering content:', {
-          hasCurrentChat: !!currentChat,
-          sessionId: currentChat?.sessionId,
-          conversationId: (currentChat as any)?.conversationId,
-          willRenderChatPanel: !!currentChat,
-        });
         return null;
       })()}
       {currentChat ? (
@@ -162,14 +147,6 @@ export function AgentPanel() {
   const openedKeysRef = useRef<Set<string>>(new Set());
   const [, forceUpdate] = useState(0);
 
-  console.log('[AgentPanel] 🎨 Rendering:', {
-    activeFeature,
-    activeTargetId,
-    isTargetActive,
-    openedKeysCount: openedKeysRef.current.size,
-    openedKeys: Array.from(openedKeysRef.current),
-  });
-
   // Xác định active key dựa trên feature
   const activeKey = useMemo(() => {
     let key: string | null = null;
@@ -190,8 +167,6 @@ export function AgentPanel() {
       (window as any).__activeFeature = 'recon';
       (window as any).__activeTargetId = reconActiveTargetId;
     }
-
-    console.log('[AgentPanel] 🔑 Active key computed:', { key });
     return key;
   }, [activeFeature, activeTargetId, isTargetActive, currentProjectId, reconActiveTargetId]);
 
@@ -279,11 +254,6 @@ export function AgentPanel() {
           <div className="flex-1 overflow-hidden bg-background flex flex-col">
             {(() => {
               const keys = Array.from(openedKeysRef.current);
-              console.log('[AgentPanel] 🖼️ Rendering AgentViews:', {
-                keysCount: keys.length,
-                keys,
-                activeKey,
-              });
               return keys.map((key) => {
                 const feature = key.startsWith('emulate:')
                   ? 'emulate'
@@ -291,10 +261,6 @@ export function AgentPanel() {
                     ? 'recon'
                     : 'code';
                 const isVisible = key === activeKey;
-                console.log(`[AgentPanel] 📦 Rendering AgentView key="${key}":`, {
-                  feature,
-                  isVisible,
-                });
                 return <AgentView key={key} feature={feature} isVisible={isVisible} />;
               });
             })()}

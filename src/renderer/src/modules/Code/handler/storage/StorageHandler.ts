@@ -15,6 +15,7 @@
  */
 
 // ─── Types ──────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 
 interface StorageResult {
   command: string;
@@ -102,7 +103,7 @@ export class StorageHandler {
     try {
       localStorage.setItem(STORAGE_PREFIX + key, value);
     } catch (e) {
-      console.error('[StorageHandler] localStorage set failed:', key, e);
+      logger.error('[StorageHandler] localStorage set failed:', key, e);
     }
   }
 
@@ -110,7 +111,7 @@ export class StorageHandler {
     try {
       localStorage.removeItem(STORAGE_PREFIX + key);
     } catch (e) {
-      console.error('[StorageHandler] localStorage delete failed:', key, e);
+      logger.error('[StorageHandler] localStorage delete failed:', key, e);
     }
   }
 

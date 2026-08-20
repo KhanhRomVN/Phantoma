@@ -1,12 +1,18 @@
-// ─── ExtensionService — Electron IPC Bridge ────────────────────────────
 /**
- * ExtensionService — cầu nối IPC giữa renderer và Electron main process (thay thế acquireVsCodeApi).
+ * ------------------------------------------------------------------
+ * ExtensionService
+ * ------------------------------------------------------------------
+ * Cầu nối IPC giữa renderer và Electron main process (thay thế
+ * acquireVsCodeApi).
  *
- *    postMessage()     : Gửi message qua window.api.invoke.
- *    onMessage()       : Lắng nghe message từ main process.
- *    MessageDispatcher : Class quản lý handler + timeout cho request-response pattern.
+ * Main features:
+ * - postMessage()     : Gửi message qua window.api.invoke
+ * - onMessage()       : Lắng nghe message từ main process
+ * - MessageDispatcher : Class quản lý handler + timeout
+ * ------------------------------------------------------------------
  */
 
+// ─── ExtensionService — Electron IPC Bridge ────────────────────────────
 //
 // Electron IPC bridge: uses window.api.invoke / window.api.on
 // for IPC, and localStorage for storage operations.
@@ -14,6 +20,8 @@
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 // window.api is exposed by preload (see src/preload/index.d.ts)
+
+import { logger } from '@renderer/utils/logger';
 
 // ─── MessageDispatcher ────────────────────────────────────────────────
 // Kept for backward compatibility with code that uses the old
@@ -89,7 +97,9 @@ function getApi() {
     if (api && typeof api.invoke === 'function') {
       return api;
     }
-  } catch {}
+  } catch {
+    logger.warn('[ExtensionService] window.api not available');
+  }
   return null;
 }
 
@@ -128,14 +138,16 @@ function ipcInvoke(channel: string, payload: any = {}, timeoutMs = 5000): Promis
 function ipcOn(channel: string, listener: (...args: any[]) => void): () => void {
   const api = getApi();
   if (!api) {
-    console.warn(`[ExtensionService] IPC not available, cannot listen on channel: ${channel}`);
+    logger.warn(`[ExtensionService] IPC not available, cannot listen on channel: ${channel}`);
     return () => {};
   }
   api.on(channel, listener);
   return () => {
     try {
       api.off(channel, listener);
-    } catch {}
+    } catch {
+      logger.warn('[ExtensionService] Failed to remove listener for channel:', channel);
+    }
   };
 }
 
@@ -150,7 +162,7 @@ function storageGet(key: string): Promise<{ key: string; value: string } | null>
       return Promise.resolve({ key, value: raw });
     }
   } catch (e) {
-    console.warn('[ExtensionService] localStorage get failed:', key, e);
+    logger.warn('[ExtensionService] localStorage get failed:', key, e);
   }
   return Promise.resolve(null);
 }
@@ -159,7 +171,7 @@ function storageSet(key: string, value: string): Promise<{ key: string; value: s
   try {
     localStorage.setItem(STORAGE_PREFIX + key, value);
   } catch (e) {
-    console.warn('[ExtensionService] localStorage set failed:', key, e);
+    logger.warn('[ExtensionService] localStorage set failed:', key, e);
   }
   return Promise.resolve({ key, value });
 }
@@ -169,7 +181,7 @@ function storageDelete(key: string): Promise<{ key: string; deleted: boolean }> 
     localStorage.removeItem(STORAGE_PREFIX + key);
     return Promise.resolve({ key, deleted: true });
   } catch (e) {
-    console.warn('[ExtensionService] localStorage delete failed:', key, e);
+    logger.warn('[ExtensionService] localStorage delete failed:', key, e);
     return Promise.resolve({ key, deleted: false });
   }
 }
@@ -186,7 +198,7 @@ function storageList(prefix?: string): Promise<{ keys: string[] }> {
     }
     return Promise.resolve({ keys });
   } catch (e) {
-    console.error('[ExtensionService] localStorage list failed:', prefix, e);
+    logger.warn('[ExtensionService] localStorage list failed:', prefix, e);
     return Promise.resolve({ keys: [] });
   }
 }
@@ -217,7 +229,7 @@ class ExtensionService {
     api.invoke(channel, message).catch((err: any) => {
       // Only warn for non-trivial errors (not "no handler")
       if (err?.message && !err.message.includes('No handler')) {
-        console.error(`[ExtensionService] postMessage error on "${channel}":`, err.message);
+        logger.warn(`[ExtensionService] postMessage error on "${channel}":`, err.message);
       }
     });
   }
@@ -246,7 +258,7 @@ class ExtensionService {
       const result = await ipcInvoke('getSystemInfo', {}, 3000);
       if (result) return result;
     } catch (e) {
-      console.error('[ExtensionService] getSystemInfo via IPC failed, using fallback:', e);
+      logger.warn('[ExtensionService] getSystemInfo via IPC failed, using fallback:', e);
     }
 
     // Fallback: collect info from renderer

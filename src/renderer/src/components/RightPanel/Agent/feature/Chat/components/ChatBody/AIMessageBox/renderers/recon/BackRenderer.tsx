@@ -1,5 +1,5 @@
 /**
- * BackRenderer — Renderer for back tool
+ * BackRenderer — Renderer cho tool back
  */
 
 import React from 'react';

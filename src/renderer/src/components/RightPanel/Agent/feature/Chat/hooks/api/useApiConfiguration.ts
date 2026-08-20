@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { extensionService } from '../../../../services/ExtensionService';
 
 /**
- * Hook to manage API URL and providers configuration
+ * Hook quản lý cấu hình URL API và providers
  */
 export const useApiConfiguration = () => {
   const [apiUrl, setApiUrl] = useState('http://localhost:8888');
@@ -22,7 +23,7 @@ export const useApiConfiguration = () => {
         setIsApiUrlReady(true);
       })
       .catch((err: any) => {
-        console.warn('[Zen] ChatPanel failed to load apiUrl from storage:', err);
+        logger.warn('[Zen] ChatPanel failed to load apiUrl from storage:', err);
         setIsApiUrlReady(true);
       });
   }, []);
@@ -36,7 +37,9 @@ export const useApiConfiguration = () => {
         const data = Array.isArray(res) ? res : res?.data;
         if (Array.isArray(data)) setProviders(data);
       })
-      .catch(() => {});
+      .catch((err: any) => {
+        logger.warn('[useApiConfiguration] Failed to fetch providers:', err);
+      });
   }, [apiUrl]);
 
   return {

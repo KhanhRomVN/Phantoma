@@ -2,7 +2,7 @@
  * Footer - dùng chung cho mọi page
  */
 
-import { Wand2, Github, Twitter, Linkedin } from 'lucide-react';
+import { Wand2, GitBranch, AtSign, Briefcase } from 'lucide-react';
 import type { Page } from '../index';
 
 interface FooterProps {
@@ -36,15 +36,15 @@ export function Footer({ onNavigate }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-10">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 font-[Space_Grotesk] text-lg font-bold text-zinc-900 dark:text-white mb-3">
+            <div className="flex items-center gap-2 text-lg font-bold text-zinc-900 dark:text-white mb-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-violet-500 text-white">
                 <Wand2 className="h-4 w-4" />
               </span>
               Phantoma
             </div>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm leading-relaxed">
-              Công cụ thiết kế UI/UX kết hợp AI — hover vào bất kỳ element nào để chỉnh sửa
-              thuộc tính trực tiếp, không cần rời canvas.
+              Công cụ thiết kế UI/UX kết hợp AI — hover vào bất kỳ element nào để chỉnh sửa thuộc
+              tính trực tiếp, không cần rời canvas.
             </p>
             <div className="flex items-center gap-3 mt-5">
               <a
@@ -54,21 +54,21 @@ export function Footer({ onNavigate }: FooterProps) {
                 aria-label="GitHub"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 dark:border-white/10 text-zinc-500 dark:text-zinc-400 hover:text-cyan-500 hover:border-cyan-500/40 transition-colors"
               >
-                <Github className="h-4 w-4" />
+                <GitBranch className="h-4 w-4" />
               </a>
               <a
                 href="#"
                 aria-label="Twitter"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 dark:border-white/10 text-zinc-500 dark:text-zinc-400 hover:text-cyan-500 hover:border-cyan-500/40 transition-colors"
               >
-                <Twitter className="h-4 w-4" />
+                <AtSign className="h-4 w-4" />
               </a>
               <a
                 href="#"
                 aria-label="LinkedIn"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 dark:border-white/10 text-zinc-500 dark:text-zinc-400 hover:text-cyan-500 hover:border-cyan-500/40 transition-colors"
               >
-                <Linkedin className="h-4 w-4" />
+                <Briefcase className="h-4 w-4" />
               </a>
             </div>
           </div>

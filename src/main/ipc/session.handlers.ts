@@ -1,8 +1,28 @@
+/**
+ * ------------------------------------------------------------------
+ * IPC handler phiên
+ * ------------------------------------------------------------------
+ * IPC handler cho truy cập cổng WebSocket, manifest cache media,
+ * và quản lý phiên Electron (xóa dữ liệu, lấy thông tin).
+ *
+ * Hàm chính:
+ * - setupSessionHandlers() : Đăng ký handler ws:, media:, session:
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain, session } from 'electron';
-import { wsManager } from '../shared/ws-state';
-import { mediaCache } from '../proxy/mediaCache';
+
+// ── Node.js ──
 import * as fs from 'fs';
 
+// ── Internal ──
+import { wsManager } from '../shared/ws-state';
+import { mediaCache } from '../proxy/mediaCache';
+import { logger } from '../utils/logger';
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export function setupSessionHandlers() {
   // WebSocket Port IPC
   ipcMain.handle('ws:get-port', () => {
@@ -28,7 +48,7 @@ export function setupSessionHandlers() {
       await ses.clearCache();
       return true;
     } catch (e: any) {
-      console.error(`[Session] Failed to clear data for ${appId}:`, e);
+      logger.error(`[Session] Failed to clear data for ${appId}:`, e);
       throw e;
     }
   });
@@ -62,7 +82,7 @@ export function setupSessionHandlers() {
         })),
       };
     } catch (e: any) {
-      console.error(`[Session] Failed to get info for ${appId}:`, e);
+      logger.error(`[Session] Failed to get info for ${appId}:`, e);
       throw e;
     }
   });

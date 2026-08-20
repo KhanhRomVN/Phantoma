@@ -19,6 +19,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── XTerm ──
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -103,7 +104,7 @@ export function Terminal() {
       try {
         await window.api.invoke('terminal:kill', terminalId);
       } catch (err) {
-        console.error('[Terminal] ❌ Kill failed:', err);
+        logger.error('[Terminal] ❌ Kill failed:', err);
       }
 
       // Cleanup
@@ -276,7 +277,7 @@ export function Terminal() {
         );
       } catch (err: any) {
         if (isUnmountingRef.current) return;
-        console.error('[Terminal] ❌ Failed to spawn shell:', err);
+        logger.error('[Terminal] ❌ Failed to spawn shell:', err);
         term.writeln(`\x1b[1;31m✖\x1b[0m Failed to spawn shell: ${err.message}`);
       }
     });

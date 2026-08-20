@@ -1,10 +1,29 @@
+/**
+ * ------------------------------------------------------------------
+ * Điểm vào chính
+ * ------------------------------------------------------------------
+ * Điểm vào tiến trình chính Electron. Khởi tạo logging, trạng thái
+ * chia sẻ, IPC handler, phiên proxy và cửa sổ chính.
+ *
+ * Hàm chính:
+ * - app.whenReady() : Thiết lập và khởi chạy ứng dụng
+ * - cleanup()       : Dọn dẹp khi tắt máy (tái xuất)
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { app, BrowserWindow } from 'electron';
+
+// ── External ──
 import { electronApp, optimizer } from '@electron-toolkit/utils';
+
+// ── Node.js ──
 import * as path from 'path';
 import * as fs from 'fs';
 
 // Setup file logger FIRST to capture all logs
-import { setupLogger } from './utils/logger';
+import { setupLogger, logger } from './utils/logger';
 setupLogger();
 
 // Import shared state
@@ -12,7 +31,7 @@ import { proxyManager } from './shared/proxy-state';
 import { wsManager } from './shared/ws-state';
 
 // Import core modules
-import { windowManager } from './core/window';
+import { windowManager } from './core/window/WindowManager';
 import { setupEventHandlers } from './core/events';
 import { mediaCache } from './proxy/mediaCache';
 import { cdpManager } from './features/cdp';
@@ -54,7 +73,7 @@ try {
     fs.mkdirSync(certDir, { recursive: true });
   }
 } catch (e) {
-  console.error('[Cert] Failed to create certificate directory:', e);
+  logger.error('[Cert] Failed to create certificate directory:', e);
 }
 
 // This method will be called when Electron has finished
@@ -115,7 +134,7 @@ app.whenReady().then(async () => {
     try {
       const { installSystemCA } = await import('./ipc/fs.handlers');
       installSystemCA().catch((e) => {
-        console.error('[Cert] Auto-install failed:', e);
+        logger.error('[Cert] Auto-install failed:', e);
       });
     } catch (e) {
       // Silently fail - user can install manually

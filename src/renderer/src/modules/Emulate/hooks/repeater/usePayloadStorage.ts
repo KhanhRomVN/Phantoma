@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { PayloadItem } from '../../types/repeater.types';
 import { STORAGE_KEYS, getRepeaterStorageKey, getPayloadStorageKey } from '../../constants/storageKeys';
 
@@ -27,7 +28,7 @@ export function usePayloadStorage(options: UsePayloadStorageOptions = {}) {
         setPayloads([]);
       }
     } catch (error) {
-      console.error('Failed to load payloads:', error);
+      logger.error('Failed to load payloads:', error);
       setPayloads([]);
     } finally {
       setIsLoading(false);
@@ -42,7 +43,7 @@ export function usePayloadStorage(options: UsePayloadStorageOptions = {}) {
           : STORAGE_KEYS.REPEATER_PAYLOADS;
         localStorage.setItem(key, JSON.stringify(newPayloads));
       } catch (error) {
-        console.error('Failed to save payloads:', error);
+        logger.error('Failed to save payloads:', error);
       }
     },
     [targetId],
@@ -147,7 +148,7 @@ export function usePayloadValues(payloadName: string, targetId?: string | null) 
       const key = getPayloadStorageKey(targetId || 'default', payloadName, 'files');
       localStorage.setItem(key, JSON.stringify(newValues));
       setValues(newValues);
-    } catch (error) { console.error('Failed to save payload values:', error); }
+    } catch (error) { logger.error('Failed to save payload values:', error); }
   }, [targetId, payloadName]);
 
   useEffect(() => { loadValues(); }, [loadValues]);

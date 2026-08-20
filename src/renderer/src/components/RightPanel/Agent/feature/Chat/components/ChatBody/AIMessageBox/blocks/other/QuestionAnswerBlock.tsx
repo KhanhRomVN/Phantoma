@@ -353,7 +353,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
             placeholder={placeholder}
             disabled={isDisabled}
             className={cn(
-              'flex-1 p-0 bg-transparent text-text-primary border-none outline-none text-[13px] font-[inherit] min-w-0',
+              'flex-1 p-0 bg-transparent text-text-primary border-none outline-none text-[13px]  min-w-0',
               isSelected ? 'font-semibold' : 'font-normal',
             )}
           />
@@ -498,7 +498,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
                       }}
                       placeholder="Khác (ý kiến của bạn)"
                       disabled={isDisabled}
-                      className="flex-1 py-0.5 px-2 bg-transparent text-text-primary border-none outline-none text-[13px] font-[inherit] min-w-[60px]"
+                      className="flex-1 py-0.5 px-2 bg-transparent text-text-primary border-none outline-none text-[13px]  min-w-[60px]"
                       onFocus={(e) => e.target.select()}
                     />
                   </>
@@ -525,7 +525,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           onKeyDown={handleKeyDown}
           placeholder="Nhập câu trả lời của bạn..."
           disabled={isDisabled}
-          className="w-full min-h-[80px] bg-input-background text-text-primary border border-border rounded-[4px] p-2 text-[13px] font-[inherit] resize-y outline-none"
+          className="w-full min-h-[80px] bg-input-background text-text-primary border border-border rounded-[4px] p-2 text-[13px]  resize-y outline-none"
         />
       </div>
     );
@@ -566,7 +566,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
     };
 
     const renderOptionBar = (value: boolean, label: string, color: string, isSelected: boolean) => {
-      const borderColor = isSelected ? color : $('--secondary-text');
       const bgColor = isSelected ? `color-mix(in srgb, ${color} 20%, transparent)` : 'transparent';
 
       return (
@@ -646,7 +645,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
             placeholder="Ý kiến khác..."
             disabled={isDisabled}
             className={cn(
-              'flex-1 p-0 bg-transparent text-text-primary border-none outline-none text-[13px] font-[inherit] min-w-0',
+              'flex-1 p-0 bg-transparent text-text-primary border-none outline-none text-[13px]  min-w-0',
               customValue.trim() ? 'font-semibold' : 'font-normal',
             )}
           />

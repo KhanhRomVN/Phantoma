@@ -86,7 +86,6 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   nextUserMessage,
   allMessages,
   conversationId,
-  previousAssistantMessage,
   isGenerating,
   onSendMessage,
   onSelectOption,
@@ -118,8 +117,6 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   } | null>(null);
 
   const previousUserMessage = React.useMemo((): Message | null => {
-    const startTime = performance.now();
-
     if (!allMessages || !message) return null;
 
     // Use cached result if messages array hasn't changed structurally
@@ -159,8 +156,6 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   } | null>(null);
 
   const knownFilePaths = React.useMemo((): Map<string, string> => {
-    const _startTime = performance.now();
-
     if (!allMessages) return new Map();
 
     // Use cached result if messages array hasn't changed structurally
@@ -178,9 +173,8 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
     const filePathRegex = /(?:^|\s)([\/~][\w\-\.\/]+\.\w+)(?:\s|$)/g;
     let totalMatches = 0;
 
-    allMessages.forEach((msg, msgIndex) => {
+    allMessages.forEach((msg) => {
       if (!msg.content) return;
-      const msgStartTime = performance.now();
       const matches = msg.content.matchAll(filePathRegex);
       let matchCount = 0;
       for (const match of matches) {
@@ -226,10 +220,6 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
             key: 'response-number',
           });
         }
-
-        const isCommitMessage =
-          message.content?.includes('[COMMIT_MESSAGE_REQUEST]') ||
-          message.content?.includes('<commit_message>');
 
         let currentToolGroup: { action: any; index: number }[] = [];
         const blocks = parsedContent.contentBlocks || [];
@@ -460,8 +450,6 @@ const AIMessageBox = React.memo(AIMessageBoxInternal, (prevProps, nextProps) => 
   // Performance optimization: shallow comparison of props
   // Only re-render if these critical props change
 
-  const startTime = performance.now();
-
   // Message identity check
   if (prevProps.message.id !== nextProps.message.id) {
     return false; // Different message, re-render
@@ -505,8 +493,6 @@ const AIMessageBox = React.memo(AIMessageBoxInternal, (prevProps, nextProps) => 
     sameClickedActions &&
     sameToolOutputs &&
     sameTerminalStatus;
-
-  const checkDuration = performance.now() - startTime;
 
   if (!shouldSkipRender) {
     const changedProps = [];

@@ -1,4 +1,5 @@
 import { extractParamValue } from '../../utils/ToolParser';
+import { logger } from '@renderer/utils/logger';
 import {
   CommitMessageParams,
   GitDiffParams,
@@ -157,7 +158,7 @@ export const parseGrep = (innerContent: string): GrepParams => {
   const validationError = validateRegexPattern(searchTermValue);
 
   if (validationError) {
-    console.error('[Zen][GrepParser] Invalid regex pattern:', {
+    logger.warn('[Zen][GrepParser] Invalid regex pattern:', {
       pattern: searchTermValue,
       error: validationError,
       innerContent: innerContent.substring(0, 200), // Log first 200 chars for debug
@@ -311,10 +312,10 @@ export const parseWriteToFile = (innerContent: string): WriteToFileParams => {
 
   if (DEBUG_PARSER) {
     if (!filePath) {
-      console.warn('[Zen][WriteToFileParser] ⚠️ file_path is missing or empty!');
+      logger.warn('[Zen][WriteToFileParser] ⚠️ file_path is missing or empty!');
     }
     if (!content) {
-      console.warn('[Zen][WriteToFileParser] ⚠️ content is missing or empty!');
+      logger.warn('[Zen][WriteToFileParser] ⚠️ content is missing or empty!');
     }
   }
 

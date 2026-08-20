@@ -1,6 +1,6 @@
 /**
- * Returns a short display name for an action — the filename for file tools,
- * or a truncated command string for run_command.
+ * Trả về tên hiển thị ngắn cho một action — tên file cho công cụ file,
+ * hoặc chuỗi lệnh rút gọn cho run_command.
  */
 export const getFilename = (action: any): string => {
   if (action.type === "run_command") {

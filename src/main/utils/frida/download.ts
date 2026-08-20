@@ -1,10 +1,31 @@
+/**
+ * ------------------------------------------------------------------
+ * Tải Frida
+ * ------------------------------------------------------------------
+ * Tải và giải nén nhị phân máy chủ Frida cho các kiến trúc
+ * Android. Cache nhị phân dưới userData/frida-servers.
+ *
+ * Hàm chính:
+ * - getFridaServerPath()  : Xác định đường dẫn nhị phân máy chủ
+ * - downloadFridaServer() : Tải và giải nén máy chủ Frida
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import { exec, execSync } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
+
+// ── Electron ──
 import { app } from 'electron';
 
+// ── Internal ──
+import { logger } from '../logger';
+
+// ─── Constants ──────────────────────────────────────────────────────────
 const execAsync = promisify(exec);
 
 // Frida server download URLs by architecture
@@ -90,15 +111,16 @@ export async function downloadFridaServer(
           });
         })
         .on('error', (err) => {
+          logger.warn(`[Frida Download] Failed to download ${downloadUrl}:`, err.message);
           try {
             file.close();
           } catch {
-            // Ignore errors
+            logger.warn('[Frida Download] Failed to close file handle');
           }
           try {
             fs.unlinkSync(destination);
           } catch {
-            // Ignore errors
+            logger.warn('[Frida Download] Failed to remove partial download');
           }
           reject(err);
         });
@@ -114,6 +136,7 @@ export async function downloadFridaServer(
     fs.chmodSync(serverPath, 0o755);
     return serverPath;
   } catch (error) {
+    logger.error('[Frida Download] Failed to decompress Frida server:', error);
     throw new Error(`Failed to decompress Frida server: ${error}`);
   }
 }

@@ -1,3 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * Agent Constants
+ * ------------------------------------------------------------------
+ * Các hằng số dùng chung cho Agent: system prompt, tabs, settings
+ * mặc định, welcome suggestions, mock data cho providers và accounts.
+ *
+ * Main exports:
+ * - SYSTEM_PROMPT       : Prompt hệ thống cho AI Agent
+ * - TABS                : Danh sách tab trong Agent UI
+ * - DEFAULT_SETTINGS    : Cấu hình mặc định
+ * - WELCOME_SUGGESTIONS : Gợi ý câu hỏi khi bắt đầu
+ * - MOCK_PROVIDERS      : Mock data cho providers (development)
+ * - MOCK_ACCOUNTS       : Mock data cho accounts (development)
+ * ------------------------------------------------------------------
+ */
+
 // ─── Agent Constants ─────────────────────────────────────────────────────────
 
 export const SYSTEM_PROMPT = `You are Phantoma AI Agent, a specialized assistant for network traffic analysis, penetration testing, and security auditing.

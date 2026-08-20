@@ -19,6 +19,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── Stores ──
 import { useDiagnosticsStore, type Diagnostic } from '../stores/diagnosticsStore';
 
@@ -124,7 +125,7 @@ class LSPManager {
     // Server error
     window.api.on('lsp:server:error', (_ipcEvent: any, eventData: any) => {
       const { language, error } = eventData;
-      console.error(`[LSPManager] ❌ Server error: ${language}`, error);
+      logger.error(`[LSPManager] ❌ Server error: ${language}`, error);
 
       this.servers.set(language, {
         language,
@@ -141,17 +142,16 @@ class LSPManager {
    * ✨ OPTIMIZATION: Debounce rapid diagnostics updates to prevent unnecessary re-renders
    */
   private handleDiagnosticsEvent(_language: string, event: any) {
-    const handleStart = performance.now();
     const { uri, diagnostics } = event;
 
     // Process immediately — diagnostics appear in Problems with minimal delay
-    this.processDiagnostics(uri, diagnostics, handleStart);
+    this.processDiagnostics(uri, diagnostics);
   }
 
   /**
    * Process diagnostics (called after debounce delay)
    */
-  private processDiagnostics(uri: string, diagnostics: Diagnostic[], _startTime: number) {
+  private processDiagnostics(uri: string, diagnostics: Diagnostic[]) {
     // Create diagnostics event
     const diagEvent: DiagnosticsEvent = {
       uri,
@@ -218,7 +218,7 @@ class LSPManager {
         try {
           listener(event);
         } catch (error) {
-          console.error('[LSPManager] ❌ Listener error:', error);
+          logger.error('[LSPManager] ❌ Listener error:', error);
         }
       });
     }

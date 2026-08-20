@@ -36,7 +36,7 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
           {/* Logo */}
           <button
             onClick={() => handleNavigate('home')}
-            className="flex items-center gap-2 font-[Space_Grotesk] text-lg font-bold text-zinc-900 dark:text-white"
+            className="flex items-center gap-2 text-lg font-bold text-zinc-900 dark:text-white"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-violet-500 text-white">
               <Wand2 className="h-4 w-4" />

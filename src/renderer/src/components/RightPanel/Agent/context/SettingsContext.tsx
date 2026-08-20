@@ -1,10 +1,17 @@
 /**
- * SettingsContext — quản lý toàn bộ settings của Agent (API URL, permission mode, tool permissions, ngôn ngữ...).
+ * ------------------------------------------------------------------
+ * SettingsContext
+ * ------------------------------------------------------------------
+ * Quản lý toàn bộ settings của Agent (API URL, permission mode,
+ * tool permissions, ngôn ngữ...). Persist qua extensionService storage.
  *
- *    SettingsProvider : Provider bọc ngoài, persist settings qua extensionService storage.
- *    useSettings()    : Hook trả về toàn bộ settings + setters.
+ * Main features:
+ * - SettingsProvider : Provider persist settings qua extensionService
+ * - useSettings()    : Hook trả về toàn bộ settings + setters
+ * ------------------------------------------------------------------
  */
 
+import { logger } from '@renderer/utils/logger';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Services
@@ -73,7 +80,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (savedAiLanguage) {
         setAiLanguageState(savedAiLanguage);
       }
-    } catch (e) {}
+    } catch (e) {
+      logger.warn('[SettingsContext] Failed to load settings from localStorage:', e);
+    }
     const storage = extensionService.getStorage();
 
     storage.get('backend-api-url').then((res: any) => {
@@ -105,7 +114,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const parsed = JSON.parse(res.value);
           setToolPermissionsState({ ...defaultToolPermissions, ...parsed });
         } catch (e) {
-          // Fallback to default if parsing fails
+          logger.warn('[SettingsContext] Failed to parse tool permissions, using default:', e);
         }
       }
     });
@@ -145,35 +154,45 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsSimpleModeState(value);
     try {
       localStorage.setItem('zen-simple-mode', String(value));
-    } catch (e) {}
+    } catch (e) {
+      logger.warn('[SettingsContext] Failed to save simple mode:', e);
+    }
   };
 
   const setLiveWritePreview = (value: boolean) => {
     setLiveWritePreviewState(value);
     try {
       localStorage.setItem('zen-live-write-preview', String(value));
-    } catch (e) {}
+    } catch (e) {
+      logger.warn('[SettingsContext] Failed to save live write preview:', e);
+    }
   };
 
   const setCommitMessageLanguage = (value: 'en' | 'vi') => {
     setCommitMessageLanguageState(value);
     try {
       localStorage.setItem('zen-commit-message-language', value);
-    } catch (e) {}
+    } catch (e) {
+      logger.warn('[SettingsContext] Failed to save commit message language:', e);
+    }
   };
 
   const setLanguage = (value: string) => {
     setLanguageState(value);
     try {
       localStorage.setItem('zen-language', value);
-    } catch (e) {}
+    } catch (e) {
+      logger.warn('[SettingsContext] Failed to save language:', e);
+    }
   };
 
   const setAiLanguage = (value: string) => {
     setAiLanguageState(value);
     try {
       localStorage.setItem('zen-ai-language', value);
-    } catch (e) {}
+    } catch (e) {
+      logger.warn('[SettingsContext] Failed to save AI language:', e);
+    }
   };
 
   return (

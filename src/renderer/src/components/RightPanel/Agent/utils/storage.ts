@@ -1,16 +1,22 @@
-// ─── Chat Storage ────────────────────────────────────────────────────────────
-
 /**
- * storage — helpers lưu/đọc messages + sessions từ localStorage.
+ * ------------------------------------------------------------------
+ * Storage
+ * ------------------------------------------------------------------
+ * Helpers lưu/đọc messages + sessions từ localStorage.
  *
- *    saveMessages()        : Lưu messages cho 1 conversation.
- *    loadMessages()        : Load messages từ localStorage.
- *    deleteMessages()      : Xóa messages của 1 conversation.
- *    saveSessions()        : Lưu danh sách sessions.
- *    loadSessions()        : Load danh sách sessions.
+ * Main functions:
+ * - saveMessages()   : Lưu messages cho 1 conversation
+ * - loadMessages()   : Load messages từ localStorage
+ * - deleteMessages() : Xóa messages của 1 conversation
+ * - saveSessions()   : Lưu danh sách sessions
+ * - loadSessions()   : Load danh sách sessions
+ * ------------------------------------------------------------------
  */
 
+// ─── Chat Storage ────────────────────────────────────────────────────────────
+
 // TYPES
+import { logger } from '@renderer/utils/logger';
 import { Message, ChatSession, STORAGE_KEYS } from '../types';
 
 /**
@@ -21,7 +27,7 @@ export function saveMessages(conversationId: string, messages: Message[]): void 
     const key = `agent-conversation-${conversationId}`;
     localStorage.setItem(key, JSON.stringify(messages));
   } catch (e) {
-    console.error('Failed to save messages:', e);
+    logger.error('Failed to save messages:', e);
   }
 }
 
@@ -35,7 +41,7 @@ export function loadMessages(conversationId: string): Message[] {
     if (!data) return [];
     return JSON.parse(data);
   } catch (e) {
-    console.error('Failed to load messages:', e);
+    logger.error('Failed to load messages:', e);
     return [];
   }
 }
@@ -48,7 +54,7 @@ export function deleteConversation(conversationId: string): void {
     const key = `agent-conversation-${conversationId}`;
     localStorage.removeItem(key);
   } catch (e) {
-    console.error('Failed to delete conversation:', e);
+    logger.error('Failed to delete conversation:', e);
   }
 }
 
@@ -73,7 +79,7 @@ export function saveSessions(sessions: ChatSession[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
   } catch (e) {
-    console.error('Failed to save sessions:', e);
+    logger.error('Failed to save sessions:', e);
   }
 }
 

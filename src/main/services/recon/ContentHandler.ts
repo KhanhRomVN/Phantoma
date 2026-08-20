@@ -1,8 +1,16 @@
 /**
- * ContentHandler — Handle content extraction for browser automation
- * 
- * This handler manages extracting page content, converting to markdown,
- * and listing interactive elements with references for AI interaction.
+ /**
+ * ------------------------------------------------------------------
+ * Trình xử lý nội dung
+ * ------------------------------------------------------------------
+ * Xử lý trích xuất nội dung cho tự động hóa trình duyệt. Trích xuất
+ * nội dung trang dưới dạng markdown và liệt kê các phần tử tương tác có ref.
+ *
+ * Hàm chính:
+ * - getPageContent()            : Lấy nội dung trang dưới dạng markdown
+ * - extractMarkdown()           : Chuyển DOM thành chuỗi markdown
+ * - extractInteractiveElements(): Liệt kê các phần tử tương tác
+ * ------------------------------------------------------------------
  */
 
 import type { Page } from 'puppeteer';

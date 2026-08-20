@@ -1,5 +1,5 @@
 /**
- * NavigateRenderer — Renderer for navigate tool
+ * NavigateRenderer — Renderer cho tool navigate
  */
 
 import React from 'react';

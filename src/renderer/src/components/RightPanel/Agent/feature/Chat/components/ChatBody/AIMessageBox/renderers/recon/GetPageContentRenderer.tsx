@@ -1,5 +1,5 @@
 /**
- * GetPageContentRenderer — Renderer for get_page_content tool
+ * GetPageContentRenderer — Renderer cho tool get_page_content
  */
 
 import React from 'react';

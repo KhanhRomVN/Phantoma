@@ -23,6 +23,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── Store ──
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -655,7 +656,7 @@ export const useCodeStore = create<CodeState>()(
             get().setOriginalContent(fileId, fileNode.content);
             get().markFileAsSaved(fileId);
           } catch (err) {
-            console.error('[CodeStore] Failed to save file ' + fileNode.path + ':', err);
+            logger.error('[CodeStore] Failed to save file ' + fileNode.path + ':', err);
             throw err;
           }
         },

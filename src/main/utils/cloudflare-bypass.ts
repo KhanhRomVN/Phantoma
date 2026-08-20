@@ -1,5 +1,22 @@
 import { BrowserWindow } from 'electron';
+/**
+ * ------------------------------------------------------------------
+ * Bypass Cloudflare
+ * ------------------------------------------------------------------
+ * Cố gắng vượt qua thử thách "Just a moment" của Cloudflare bằng cách
+ * nhấp liên tục vào nút xác minh qua script được chèn.
+ *
+ * Hàm chính:
+ * - start()                 : Bắt đầu các lần thử bypass
+ * - clickVerificationButton(): Chèn JS để nhấp vào nút thử thách
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Internal ──
+import { logger } from './logger';
+
+// ─── Class ──────────────────────────────────────────────────────────────
 export class CloudflareBypasser {
   private window: BrowserWindow;
   private maxRetries: number;
@@ -187,7 +204,7 @@ export class CloudflareBypasser {
             return false;
             
         } catch (e) {
-            console.error('Bypass script error', e);
+            logger.error('Bypass script error', e);
             return false;
         }
       })();
@@ -197,7 +214,7 @@ export class CloudflareBypasser {
       const result = await this.window.webContents.executeJavaScript(code);
       return !!result;
     } catch (e) {
-      console.error('[CloudflareBypasser] Script execution failed:', e);
+      logger.error('[CloudflareBypasser] Script execution failed:', e);
       return false;
     }
   }

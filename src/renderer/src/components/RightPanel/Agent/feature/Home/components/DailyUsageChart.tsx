@@ -49,10 +49,6 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title }) => {
     .map((h) => `${xOf(h)},${yOf(h)}`)
     .join(' ');
 
-  const futurePoints = HOURS.filter((h) => h >= currentHour)
-    .map((h) => `${xOf(h)},${CHART_H}`)
-    .join(' ');
-
   const areaPoints = [
     `${xOf(0)},${CHART_H}`,
     ...HOURS.filter((h) => h <= currentHour).map((h) => `${xOf(h)},${yOf(h)}`),

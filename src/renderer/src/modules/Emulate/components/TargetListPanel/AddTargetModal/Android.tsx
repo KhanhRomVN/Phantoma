@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { Search, Smartphone, Monitor, Loader2, RefreshCw, Check } from 'lucide-react';
 
 // Types
@@ -53,7 +54,7 @@ export const Android = forwardRef<AndroidRef, AndroidBodyProps>(function Android
       });
       setDevices(list);
     } catch (e) {
-      console.error('Failed to load devices:', e);
+      logger.error('Failed to load devices:', e);
     } finally {
       setLoading(false);
     }
@@ -114,7 +115,7 @@ export const Android = forwardRef<AndroidRef, AndroidBodyProps>(function Android
         emulatorSerial: selectedDevice.serial,
       });
     } catch (error) {
-      console.error('[Android] Add target failed:', error);
+      logger.error('[Android] Add target failed:', error);
     }
   };
 

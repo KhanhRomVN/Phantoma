@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type RefObject } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { FileCode, AlignLeft, Loader2 } from 'lucide-react';
 
 import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
@@ -39,7 +40,7 @@ function SourceView({
       if (needsFormatting) {
         setIsFormatting(true);
         try {
-          const result = await prettifyCode(content, language || 'javascript');
+          const result = await prettifyCode(content);
           if (result.error) {
             setDisplayContent(content);
           } else {
@@ -137,7 +138,9 @@ export function FileContentSection({ selectedContent }: FileContentSectionProps)
           onClick={() => {
             try {
               codeBlockRef.current?.format();
-            } catch {}
+            } catch {
+              logger.warn('[FileContentSection] Format action failed');
+            }
           }}
           className="p-1 hover:bg-secondary rounded text-text-secondary hover:text-text-primary transition-colors"
           title="Format Document (Ctrl+Shift+F)"

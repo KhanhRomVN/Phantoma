@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { emulateApi } from '../../services/emulate-api.service';
 import type { ParamItem, PayloadItem, HistoryEntry, RunResult } from '../../types/repeater.types';
 
@@ -41,14 +42,14 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
         setCurrentRequestId(req.id);
         let loadedParams: ParamItem[] = [];
         let loadedHeaders: ParamItem[] = [];
-        try { loadedParams = JSON.parse(req.params || '[]'); } catch (e) {}
-        try { loadedHeaders = JSON.parse(req.headers || '[]'); } catch (e) {}
+        try { loadedParams = JSON.parse(req.params || '[]'); } catch (e) { logger.warn('[RepeaterPersist] Failed to parse params:', e); }
+        try { loadedHeaders = JSON.parse(req.headers || '[]'); } catch (e) { logger.warn('[RepeaterPersist] Failed to parse headers:', e); }
         const payloadsRes = await emulateApi.listPayloads(targetId, req.id);
         let loadedPayloads: PayloadItem[] = [];
         if (payloadsRes.success && payloadsRes.data) {
           loadedPayloads = payloadsRes.data.map((p: any) => ({
             id: p.id, name: p.name, description: '',
-            values: (() => { try { return JSON.parse(p.payload_values); } catch { return []; } })(),
+            values: (() => { try { return JSON.parse(p.payload_values); } catch (e) { logger.warn('[RepeaterPersist] Failed to parse payload values:', e); return []; } })(),
             enabled: p.enabled === 1,
           }));
         }
@@ -75,7 +76,7 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
           if (res.success && res.data) setCurrentRequestId(res.data.id);
         }
         lastSavedRef.current = snapshot;
-      } catch (err) { console.error('[RepeaterPersist] Save failed:', err); }
+      } catch (err) { logger.error('[RepeaterPersist] Save failed:', err); }
       finally { setIsSaving(false); }
     }, 1000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };

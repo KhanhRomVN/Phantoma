@@ -1,6 +1,27 @@
+/**
+ * ------------------------------------------------------------------
+ * IPC handler Git
+ * ------------------------------------------------------------------
+ * IPC handler cho các thao tác Git trong tiến trình chính. Bọc
+ * Git CLI cho các thao tác status, diff và commit.
+ *
+ * Hàm chính:
+ * - setupGitHandlers() : Đăng ký IPC handler git:
+ * - runGit()           : Thực thi lệnh git và thu thập đầu ra
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain } from 'electron';
+
+// ── Node.js ──
 import { exec as execCallback } from 'child_process';
 
+// ── Internal ──
+import { logger } from '../utils/logger';
+
+// ─── Functions ──────────────────────────────────────────────────────────
 function runGit(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; error?: any }> {
   return new Promise((resolve) => {
     const cmd = 'git ' + args.join(' ');
@@ -50,6 +71,7 @@ export function setupGitHandlers(): void {
 
       return { output: statusResult.stdout, diffStats, unpushedCommits, branch };
     } catch (e: any) {
+      logger.error('[git:status] Error:', e);
       return { error: e.message || String(e) };
     }
   });
@@ -62,6 +84,7 @@ export function setupGitHandlers(): void {
       if (result.error) return { error: result.stderr || result.error.message };
       return { output: result.stdout };
     } catch (e: any) {
+      logger.error('[git:diff] Error:', e);
       return { error: e.message || String(e) };
     }
   });
@@ -75,6 +98,7 @@ export function setupGitHandlers(): void {
       if (result.error) return { error: result.stderr || result.error.message };
       return { success: true, output: result.stdout };
     } catch (e: any) {
+      logger.error('[git:commit] Error:', e);
       return { error: e.message || String(e) };
     }
   });

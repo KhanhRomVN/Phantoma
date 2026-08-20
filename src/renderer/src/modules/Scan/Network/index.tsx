@@ -89,7 +89,7 @@ export default function NetworkScan({ initialTarget = '104.18.32.0/24' }: Networ
           DATA_CACHE['104.18.32.0/24'] = data;
           loadData(data);
         })
-        .catch((err) => console.error('Failed to load network scan data:', err));
+        .catch((err) => logger.error('Failed to load network scan data:', err));
     }
   }, [activeTarget, loadData]);
 

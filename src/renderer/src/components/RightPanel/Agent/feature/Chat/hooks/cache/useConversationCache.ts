@@ -1,6 +1,6 @@
-import { useEffect, useRef, useMemo, useState } from "react";
-import { Message } from "../../types/message";
-import { ConversationCache } from "../../services/ConversationCache";
+import { useEffect, useRef, useMemo, useState } from 'react';
+import { Message } from '../../types/message';
+import { ConversationCache } from '../../services/ConversationCache';
 
 interface UseConversationCacheProps {
   currentConversationId: string | null;
@@ -34,8 +34,8 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 /**
- * Hook to manage conversation cache updates
- * Optimized to reduce unnecessary re-renders and cache operations
+ * Hook quản lý cập nhật cache hội thoại
+ * Tối ưu hóa để giảm re-render không cần thiết và thao tác cache
  */
 export const useConversationCache = ({
   currentConversationId,
@@ -53,10 +53,9 @@ export const useConversationCache = ({
   renderCountRef.current += 1;
 
   const messagesSignature = useMemo(() => {
-    const startTime = performance.now();
-    if (messages.length === 0) return "empty";
+    if (messages.length === 0) return 'empty';
     const lastMessage = messages[messages.length - 1];
-    const signature = `${messages.length}-${lastMessage.id || "unknown"}-${
+    const signature = `${messages.length}-${lastMessage.id || 'unknown'}-${
       lastMessage.content?.length || 0
     }`;
     return signature;
@@ -77,14 +76,13 @@ export const useConversationCache = ({
     messagesSignature: string;
     conversationId: string | null;
     isStreaming: boolean;
-  }>({ messagesSignature: "", conversationId: null, isStreaming: false });
+  }>({ messagesSignature: '', conversationId: null, isStreaming: false });
 
   // Debounce cache updates when streaming to reduce spam
   const debouncedIsStreaming = useDebounce(isStreaming, 100);
 
   useEffect(() => {
     effectRunCountRef.current += 1;
-    const effectStartTime = performance.now();
 
     // Skip if streaming or no conversation
     if (!currentConversationId || messages.length === 0) {
@@ -97,7 +95,6 @@ export const useConversationCache = ({
     }
 
     // Update cache
-    const cacheStartTime = performance.now();
     const existing = ConversationCache.get(currentConversationId);
 
     ConversationCache.set(currentConversationId, {
@@ -107,9 +104,7 @@ export const useConversationCache = ({
       currentModel: currentModel || existing?.currentModel,
       currentAccount: currentAccount || existing?.currentAccount,
       toolOutputs: hasToolOutputs ? toolOutputs : existing?.toolOutputs,
-      conversationFileStats: hasFileStats
-        ? conversationFileStats
-        : existing?.conversationFileStats,
+      conversationFileStats: hasFileStats ? conversationFileStats : existing?.conversationFileStats,
     });
 
     cacheUpdateCountRef.current += 1;

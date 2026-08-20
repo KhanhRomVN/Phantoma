@@ -4,6 +4,7 @@ import { buildCommand } from '../utils';
 import { SCAN_TYPES, TIMING_LABELS, COMMON_FLAGS } from '../constants';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import { Play, Save, Square } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
 
 // ─── Flag Accordion ────────────────────────────────────────────────────────────
 
@@ -13,97 +14,6 @@ interface FlagCategory {
   icon: React.ReactNode;
   flags: Array<{ value: string; label: string; desc: string }>;
 }
-
-interface FlagAccordionProps {
-  category: FlagCategory;
-  activeFlags: string;
-  onToggle: (flagValue: string) => void;
-  accentColor: string;
-  glow: string;
-  onTooltipShow: (tooltip: TooltipState | null) => void;
-}
-
-const FlagAccordion: React.FC<FlagAccordionProps> = ({
-  category,
-  activeFlags,
-  onToggle,
-  accentColor,
-  glow,
-  onTooltipShow,
-}) => {
-  const activeCount = category.flags.filter((f) => activeFlags.includes(f.value)).length;
-
-  const showTooltip = (text: string, e: React.MouseEvent<HTMLElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    onTooltipShow({ text, x: rect.left, y: rect.bottom + 6 });
-  };
-
-  return (
-    <div>
-      <div className="flex items-center gap-2.5 py-2">
-        <span className="flex-1 text-xs font-bold tracking-wide text-text-primary">
-          <span
-            onMouseEnter={(e) => {
-              const flagList = category.flags.map((f) => f.value).join(', ');
-              showTooltip(`${category.label}: ${flagList}`, e);
-            }}
-            onMouseLeave={() => onTooltipShow(null)}
-          >
-            {category.label}
-          </span>
-        </span>
-        {activeCount > 0 && (
-          <span
-            className="text-[9px] font-bold rounded-full px-2 py-0.5"
-            style={{
-              color: accentColor,
-              background: accentColor + '20',
-              border: `1px solid ${accentColor}40`,
-            }}
-          >
-            {activeCount}
-          </span>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-1.5 pb-3">
-        {category.flags.map((flag) => {
-          const active = activeFlags.includes(flag.value);
-          return (
-            <button
-              key={flag.value}
-              onClick={() => onToggle(flag.value)}
-              onMouseEnter={(e) => {
-                if (!active) {
-                  e.currentTarget.style.borderColor = accentColor + '50';
-                  e.currentTarget.style.color = $('--text-primary');
-                  e.currentTarget.style.background = accentColor + '08';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!active) {
-                  e.currentTarget.style.borderColor = $('--input-border-default') || '';
-                  e.currentTarget.style.color = $('--text-secondary');
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
-              className="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded text-xs font-semibold font-mono whitespace-nowrap transition-all duration-100"
-              style={{
-                border: `1px solid ${active ? accentColor + '60' : $('--input-border-default') || ''}`,
-                background: active ? $('--primary-10') || '' : 'transparent',
-                color: active ? accentColor : $('--text-secondary'),
-              }}
-            >
-              <span>{flag.label}</span>
-              <span className="text-[9px] opacity-70 font-normal whitespace-nowrap text-text-secondary">
-                {flag.desc}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
@@ -140,15 +50,6 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({
 }) => {
   const [showTargetSuggestions, setShowTargetSuggestions] = useState(false);
   const targetInputRef = useRef<HTMLInputElement>(null);
-
-  const toggleFlag = (flagValue: string) => {
-    const flags = params.additionalFlags.split(' ').filter(Boolean);
-    if (flags.includes(flagValue)) {
-      setParams({ ...params, additionalFlags: flags.filter((f) => f !== flagValue).join(' ') });
-    } else {
-      setParams({ ...params, additionalFlags: [...flags, flagValue].join(' ') });
-    }
-  };
 
   const showTooltip = (text: string, e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();

@@ -1,5 +1,5 @@
 /**
- * ScrollRenderer — Renderer for scroll tool
+ * ScrollRenderer — Renderer cho tool scroll
  */
 
 import React from 'react';

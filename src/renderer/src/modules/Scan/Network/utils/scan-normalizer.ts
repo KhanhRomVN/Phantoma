@@ -1,10 +1,10 @@
 /**
  * Network Scan Data Normalizer — transforms raw data into DataPoints.
  */
-import type { DataPoint, DataSource, Severity } from '../types/scan-data-point';
+import type { DataPoint, DataSource } from '../types/scan-data-point';
 import type { HostDiscoveryResult } from '../types/host-discovery';
-import type { PortScanResult, PortInfo } from '../types/port-scan';
-import type { ServiceVersionResult, ServiceInfo } from '../types/service-version';
+import type { PortScanResult } from '../types/port-scan';
+import type { ServiceVersionResult } from '../types/service-version';
 import type { OsDetectionResult } from '../types/os-detection';
 
 let _dpCounter = 0;
@@ -24,7 +24,8 @@ function createDataPoint(
     category,
     label,
     value,
-    displayValue: typeof value === 'string' ? value.substring(0, 200) : String(value).substring(0, 200),
+    displayValue:
+      typeof value === 'string' ? value.substring(0, 200) : String(value).substring(0, 200),
     confidence: 0.5,
     source,
     relevance: 0.5,
@@ -35,37 +36,25 @@ function createDataPoint(
   };
 }
 
-export function normalizeHostDiscovery(
-  result: HostDiscoveryResult,
-  source: DataSource,
-): DataPoint {
+export function normalizeHostDiscovery(result: HostDiscoveryResult, source: DataSource): DataPoint {
   const category = result.status === 'up' ? 'host_up' : 'host_down';
   const latency = result.latency_ms ? `${result.latency_ms}ms` : 'N/A';
 
-  return createDataPoint(
-    category,
-    `Host ${result.status.toUpperCase()}`,
-    result.ip,
-    source,
-    {
-      displayValue: `${result.ip} (${result.method}, ${latency})`,
-      confidence: result.method === 'icmp' ? 0.95 : 0.85,
-      relevance: result.status === 'up' ? 0.9 : 0.2,
-      severity: result.status === 'up' ? 'info' : 'low',
-      tags: [result.status === 'up' ? 'host_up' : 'host_down', result.method],
-      metadata: {
-        method: result.method,
-        latency_ms: result.latency_ms,
-        status: result.status,
-      },
+  return createDataPoint(category, `Host ${result.status.toUpperCase()}`, result.ip, source, {
+    displayValue: `${result.ip} (${result.method}, ${latency})`,
+    confidence: result.method === 'icmp' ? 0.95 : 0.85,
+    relevance: result.status === 'up' ? 0.9 : 0.2,
+    severity: result.status === 'up' ? 'info' : 'low',
+    tags: [result.status === 'up' ? 'host_up' : 'host_down', result.method],
+    metadata: {
+      method: result.method,
+      latency_ms: result.latency_ms,
+      status: result.status,
     },
-  );
+  });
 }
 
-export function normalizePortScan(
-  result: PortScanResult,
-  source: DataSource,
-): DataPoint[] {
+export function normalizePortScan(result: PortScanResult, source: DataSource): DataPoint[] {
   const dps: DataPoint[] = [];
 
   for (const port of result.ports) {
@@ -78,7 +67,8 @@ export function normalizePortScan(
       else if (serviceLower === 'ssh') category = 'port_ssh';
       else if (serviceLower === 'mysql') category = 'port_mysql';
       else if (serviceLower === 'redis') category = 'port_redis';
-      else if (serviceLower === 'smtp' || serviceLower === 'smtp-submission') category = 'port_smtp';
+      else if (serviceLower === 'smtp' || serviceLower === 'smtp-submission')
+        category = 'port_smtp';
       else if (serviceLower === 'ftp') category = 'port_ftp';
       else if (serviceLower === 'domain') category = 'port_dns';
       else category = 'port_open';
@@ -171,10 +161,7 @@ export function normalizeServiceVersion(
   return dps;
 }
 
-export function normalizeOsDetection(
-  result: OsDetectionResult,
-  source: DataSource,
-): DataPoint {
+export function normalizeOsDetection(result: OsDetectionResult, source: DataSource): DataPoint {
   let category = 'os_unknown';
   const osLower = result.operatingSystem.toLowerCase();
 
@@ -185,24 +172,18 @@ export function normalizeOsDetection(
 
   const isHighAccuracy = result.accuracy >= 85;
 
-  return createDataPoint(
-    category,
-    'OS Detection',
-    result.ip,
-    source,
-    {
-      displayValue: `${result.ip}: ${result.operatingSystem} (${result.accuracy}% accuracy)`,
-      confidence: result.accuracy / 100,
-      relevance: isHighAccuracy ? 0.9 : 0.6,
-      severity: 'info',
-      tags: ['os_detection', isHighAccuracy ? 'os_high_accuracy' : 'os_low_accuracy'],
-      metadata: {
-        ip: result.ip,
-        operatingSystem: result.operatingSystem,
-        accuracy: result.accuracy,
-        cpe: result.cpe,
-        fingerprintRaw: result.fingerprintRaw?.substring(0, 100),
-      },
+  return createDataPoint(category, 'OS Detection', result.ip, source, {
+    displayValue: `${result.ip}: ${result.operatingSystem} (${result.accuracy}% accuracy)`,
+    confidence: result.accuracy / 100,
+    relevance: isHighAccuracy ? 0.9 : 0.6,
+    severity: 'info',
+    tags: ['os_detection', isHighAccuracy ? 'os_high_accuracy' : 'os_low_accuracy'],
+    metadata: {
+      ip: result.ip,
+      operatingSystem: result.operatingSystem,
+      accuracy: result.accuracy,
+      cpe: result.cpe,
+      fingerprintRaw: result.fingerprintRaw?.substring(0, 100),
     },
-  );
+  });
 }

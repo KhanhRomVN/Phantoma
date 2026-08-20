@@ -1,13 +1,4 @@
-import { useState, useEffect, useRef, RefObject, useCallback } from "react";
-
-/**
- * useScrollBehavior — quản lý auto-scroll xuống cuối khi có message mới, pause khi user scroll lên.
- *
- *    Tự động scroll khi isProcessing hoặc message cuối thay đổi nội dung.
- *    Nếu user scroll lên quá 100px → pause auto-scroll.
- */
-
-import { useEffect, useRef, useCallback, RefObject } from 'react';
+import { useState, useEffect, useRef, RefObject, useCallback } from 'react';
 
 export const useScrollBehavior = (
   messagesEndRef: RefObject<HTMLDivElement>,
@@ -25,7 +16,7 @@ export const useScrollBehavior = (
     isProcessing: boolean;
   }>({
     messagesLength: 0,
-    lastMessageId: "",
+    lastMessageId: '',
     lastContentLength: 0,
     isProcessing: false,
   });
@@ -40,10 +31,8 @@ export const useScrollBehavior = (
   // Track real changes
   const messagesLength = Array.isArray(messages) ? messages.length : 0;
   const lastMessage =
-    Array.isArray(messages) && messages.length > 0
-      ? messages[messages.length - 1]
-      : null;
-  const lastMessageId = lastMessage?.id || "";
+    Array.isArray(messages) && messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastMessageId = lastMessage?.id || '';
   const lastContentLength = lastMessage?.content?.length || 0;
 
   const depsChanged =
@@ -83,7 +72,7 @@ export const useScrollBehavior = (
     autoScrollRafRef.current = requestAnimationFrame(() => {
       autoScrollRafRef.current = null;
       isProgrammaticScrollRef.current = true;
-      messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
 
       // Reset flag after a short delay so user-scroll detection still works
       setTimeout(() => {
@@ -130,21 +119,17 @@ export const useScrollBehavior = (
       }
 
       // If user manually scrolled DOWN back to bottom, resume
-      if (
-        atBottom &&
-        !isProgrammaticScrollRef.current &&
-        scrollTop > lastScrollTop
-      ) {
+      if (atBottom && !isProgrammaticScrollRef.current && scrollTop > lastScrollTop) {
         setAutoScrollPaused(false);
       }
 
       lastScrollTop = scrollTop;
     };
 
-    container.addEventListener("scroll", handleScroll, { passive: true });
+    container.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      container.removeEventListener("scroll", handleScroll);
+      container.removeEventListener('scroll', handleScroll);
     };
   }, [scrollContainerRef]);
 
@@ -152,7 +137,7 @@ export const useScrollBehavior = (
     setAutoScrollPaused(false);
     isProgrammaticScrollRef.current = true;
     // Manual scroll-to-bottom uses smooth for nice UX
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
 
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;

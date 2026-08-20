@@ -2,10 +2,10 @@ import { TAG_REGISTRY } from "../constants/constants";
 import { PermissionMode, PermissionValue } from "../types/tag-types";
 
 /**
- * Returns the permission decision for a given tool type and permission mode.
- * - "allow"   → execute immediately without prompting
- * - "confirm" → pause and ask the user (hiển thị Accept/Reject buttons)
- * - "reject"  → block execution entirely
+ * Trả về quyết định quyền cho một loại tool và chế độ quyền đã cho.
+ * - "allow"   → thực thi ngay không cần hỏi
+ * - "confirm" → tạm dừng và hỏi người dùng (hiển thị nút Accept/Reject)
+ * - "reject"  → chặn thực thi hoàn toàn
  */
 export const getPermissionDecision = (
   mode: PermissionMode,

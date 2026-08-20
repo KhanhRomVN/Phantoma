@@ -10,8 +10,8 @@ interface MarkdownRendererProps {
 }
 
 /**
- * Renderer for markdown content blocks
- * Wraps MarkdownBlock with standard styling
+ * Renderer cho block nội dung markdown
+ * Bọc MarkdownBlock với style chuẩn
  */
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,

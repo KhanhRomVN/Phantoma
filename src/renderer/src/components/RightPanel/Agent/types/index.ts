@@ -1,3 +1,19 @@
+/**
+ * ------------------------------------------------------------------
+ * Agent Types
+ * ------------------------------------------------------------------
+ * Toàn bộ type definitions dùng chung cho Agent: messages, tools,
+ * providers, accounts, chat requests.
+ *
+ * Main types:
+ * - Message         : Message trong conversation
+ * - Provider        : Thông tin provider (OpenAI, Anthropic, ...)
+ * - Account         : Account của provider
+ * - ChatRequest     : Request gửi tới chat API
+ * - ChatStreamChunk : Chunk dữ liệu streaming
+ * ------------------------------------------------------------------
+ */
+
 // ─── Agent Types ─────────────────────────────────────────────────────────────
 
 export type MessageRole = 'user' | 'assistant' | 'system'

@@ -1,10 +1,35 @@
+/**
+ * ------------------------------------------------------------------
+ * IPC handler terminal
+ * ------------------------------------------------------------------
+ * IPC handler cho các phiên terminal dựa trên PTY. Tạo tiến trình
+ * node-pty và truyền I/O giữa renderer và shell.
+ *
+ * Hàm chính:
+ * - setupTerminalHandlers() : Đăng ký IPC handler terminal:
+ * - getDefaultShell()       : Xác định shell mặc định của người dùng
+ * - getShellArgs()          : Lấy tham số khởi chạy shell
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain } from 'electron';
-import * as pty from 'node-pty';
+
+// ── Node.js ──
 import * as os from 'os';
 
+// ── External ──
+import * as pty from 'node-pty';
+
+// ── Internal ──
+import { logger } from '../utils/logger';
+
+// ─── Constants ──────────────────────────────────────────────────────────
 // Track active PTY processes: Map<terminalId, PTY>
 const activePTYs = new Map<string, pty.IPty>();
 
+// ─── Functions ──────────────────────────────────────────────────────────
 function getDefaultShell(): string {
   // Prefer $SHELL, fallback to platform-appropriate shell
   if (process.env.SHELL) {
@@ -97,6 +122,7 @@ export function setupTerminalHandlers(): void {
           ptyProcess.resize(payload.cols, payload.rows);
         } catch {
           // PTY may have already exited
+          logger.warn(`[Terminal] Failed to resize PTY ${payload.terminalId}, it may have exited`);
         }
       }
     },

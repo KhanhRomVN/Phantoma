@@ -1,4 +1,5 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { Bug } from 'lucide-react';
 
 // Types
@@ -204,7 +205,7 @@ export const Website = forwardRef<WebsiteRef, WebsiteBodyProps>(function Website
     try {
       await onAdd({ name, url, mode: 'intercept', platform: 'web' });
     } catch (error) {
-      console.error('[Website] Add target failed:', error);
+      logger.error('[Website] Add target failed:', error);
     }
   };
 

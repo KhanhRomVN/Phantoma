@@ -1,4 +1,5 @@
 import { Message } from '../types/message';
+import { logger } from '@renderer/utils/logger';
 import { calculateTokens } from './ConversationService';
 
 export interface StreamConfig {
@@ -58,7 +59,9 @@ export class StreamingService {
         const msg = typeof raw === 'string' ? raw : JSON.stringify(raw);
         errorDetail = msg || errorDetail;
         if (errBody.error_code) errorDetail = `[${errBody.error_code}] ${errorDetail}`;
-      } catch {}
+      } catch {
+        logger.warn('[StreamingService] Failed to parse error body');
+      }
       throw new Error(errorDetail);
     }
 
@@ -236,7 +239,9 @@ export class StreamingService {
         if (data.thinking) {
           assistantMessage.thinking = (assistantMessage.thinking || '') + data.thinking;
         }
-      } catch (e) {}
+      } catch (e) {
+        logger.warn('[StreamingService] Failed to parse stream data:', e);
+      }
     }
 
     // Fallback token calculation

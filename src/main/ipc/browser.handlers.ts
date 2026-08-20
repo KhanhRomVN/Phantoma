@@ -1,15 +1,33 @@
 /**
- * Browser IPC Handlers for Recon Module
- * Handle browser launch/close operations using Puppeteer
+ * ------------------------------------------------------------------
+ * IPC handler trình duyệt
+ * ------------------------------------------------------------------
+ * IPC handler cho tự động hóa trình duyệt dựa trên Puppeteer trong
+ * module Recon. Quản lý phiên trình duyệt, tab, điều hướng,
+ * trích xuất nội dung và tương tác phần tử.
+ *
+ * Hàm chính:
+ * - setupBrowserHandlers()    : Đăng ký tất cả IPC handler browser:
+ * - getBrowserSession()       : Lấy phiên hoạt động theo ID target
+ * - closeAllBrowserSessions() : Đóng tất cả phiên khi tắt máy
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain } from 'electron';
+
+// ── External ──
 import type { Browser, Page } from 'puppeteer';
+
+// ── Internal ──
 import { TabHandler } from '../services/recon/TabHandler';
 import { NavigationHandler } from '../services/recon/NavigationHandler';
 import { ContentHandler } from '../services/recon/ContentHandler';
 import { InteractionHandler } from '../services/recon/InteractionHandler';
+import { logger } from '../utils/logger';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface BrowserSession {
   browser: Browser;
   page: Page;
@@ -21,12 +39,14 @@ interface BrowserSession {
   interactionHandler: InteractionHandler;
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────
 // Store active browser sessions
 const activeSessions = new Map<string, BrowserSession>();
 
 // Lazily load puppeteer to avoid ERR_REQUIRE_ESM in CommonJS main process
 let puppeteerModule: typeof import('puppeteer') | null = null;
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export function setupBrowserHandlers(): void {
   /**
    * Launch browser for a target
@@ -50,7 +70,7 @@ export function setupBrowserHandlers(): void {
           try {
             await existingSession.browser.close();
           } catch (e) {
-            console.error('[Browser] Failed to close existing session:', e);
+            logger.error('[Browser] Failed to close existing session:', e);
           }
           activeSessions.delete(targetId);
         }
@@ -110,7 +130,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Launch failed:', error);
+        logger.error('[Browser] Launch failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to launch browser',
@@ -146,7 +166,7 @@ export function setupBrowserHandlers(): void {
         },
       };
     } catch (error: any) {
-      console.error('[Browser] Close failed:', error);
+      logger.error('[Browser] Close failed:', error);
       return {
         success: false,
         error: error.message || 'Failed to close browser',
@@ -184,7 +204,7 @@ export function setupBrowserHandlers(): void {
         data: sessions,
       };
     } catch (error: any) {
-      console.error('[Browser] Status check failed:', error);
+      logger.error('[Browser] Status check failed:', error);
       return {
         success: false,
         error: error.message || 'Failed to get browser status',
@@ -225,7 +245,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Navigation failed:', error);
+        logger.error('[Browser] Navigation failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to navigate browser',
@@ -259,6 +279,7 @@ export function setupBrowserHandlers(): void {
         },
       };
     } catch (error: any) {
+      logger.error('[Browser] Get page failed:', error);
       return {
         success: false,
         error: error.message || 'Failed to get browser page',
@@ -287,7 +308,7 @@ export function setupBrowserHandlers(): void {
         data: { tabs },
       };
     } catch (error: any) {
-      console.error('[Browser] List tabs failed:', error);
+      logger.error('[Browser] List tabs failed:', error);
       return {
         success: false,
         error: error.message || 'Failed to list tabs',
@@ -342,7 +363,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Create tab failed:', error);
+        logger.error('[Browser] Create tab failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to create tab',
@@ -396,7 +417,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Close tab failed:', error);
+        logger.error('[Browser] Close tab failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to close tab',
@@ -450,7 +471,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Switch tab failed:', error);
+        logger.error('[Browser] Switch tab failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to switch tab',
@@ -500,7 +521,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Back navigation failed:', error);
+        logger.error('[Browser] Back navigation failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to navigate back',
@@ -550,7 +571,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Forward navigation failed:', error);
+        logger.error('[Browser] Forward navigation failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to navigate forward',
@@ -600,7 +621,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Reload failed:', error);
+        logger.error('[Browser] Reload failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to reload page',
@@ -648,7 +669,7 @@ export function setupBrowserHandlers(): void {
           data: content,
         };
       } catch (error: any) {
-        console.error('[Browser] Get page content failed:', error);
+        logger.error('[Browser] Get page content failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to get page content',
@@ -697,7 +718,7 @@ export function setupBrowserHandlers(): void {
           data: { elements },
         };
       } catch (error: any) {
-        console.error('[Browser] List elements failed:', error);
+        logger.error('[Browser] List elements failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to list elements',
@@ -748,7 +769,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Click element failed:', error);
+        logger.error('[Browser] Click element failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to click element',
@@ -801,7 +822,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Fill input failed:', error);
+        logger.error('[Browser] Fill input failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to fill input',
@@ -852,7 +873,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Press key failed:', error);
+        logger.error('[Browser] Press key failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to press key',
@@ -904,7 +925,7 @@ export function setupBrowserHandlers(): void {
           },
         };
       } catch (error: any) {
-        console.error('[Browser] Scroll failed:', error);
+        logger.error('[Browser] Scroll failed:', error);
         return {
           success: false,
           error: error.message || 'Failed to scroll',
@@ -930,7 +951,7 @@ export async function closeAllBrowserSessions(): Promise<void> {
     try {
       await session.browser.close();
     } catch (error) {
-      console.error(`[Browser] Failed to close session for ${session.targetId}:`, error);
+      logger.error(`[Browser] Failed to close session for ${session.targetId}:`, error);
     }
   });
 

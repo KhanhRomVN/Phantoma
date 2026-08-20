@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect } from 'react';
 
 interface UseTextareaHandlersProps {
   setMessage: (value: string) => void;
@@ -19,14 +19,10 @@ export const useTextareaHandlers = ({
   const keyDownCountRef = useRef(0);
 
   // 🚀 PERF FIX: Debounce checkMentions to avoid expensive regex on every keystroke
-  const checkMentionsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const checkMentionsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 🚀 NEW: Debounce state updates for very large text
-  const setMessageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const setMessageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 🚀 PERF FIX #2: Store callback dependencies in refs to stabilize useCallback
   const checkMentionsRef = useRef(checkMentions);
@@ -44,10 +40,9 @@ export const useTextareaHandlers = ({
 
   const handleTextareaChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const changeStart = performance.now();
       changeCountRef.current += 1;
       const value = e.target.value;
-      const hasAtSymbol = value.includes("@");
+      const hasAtSymbol = value.includes('@');
       const isVeryLargeText = value.length > 50000;
 
       // 🚀 OPTIMIZATION: For very large text, use debounced state update
@@ -96,7 +91,7 @@ export const useTextareaHandlers = ({
     const vscodeApi = (window as any).vscodeApi;
     if (vscodeApi) {
       vscodeApi.postMessage({
-        command: "openTempImage",
+        command: 'openTempImage',
         content: file.content,
         filename: file.name,
       });

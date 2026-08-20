@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { extensionService } from '../../../../services/ExtensionService';
 
 /**
- * Manages the draft message state for the chat footer, including:
- * - Persistent draft save/restore per conversation
- * - Undo/redo stack for the textarea
- * - Revert input (restoring content when reverting a conversation)
+ * Quản lý trạng thái draft message cho chat footer, bao gồm:
+ * - Lưu/khôi phục draft bền vững cho mỗi hội thoại
+ * - Ngăn xếp undo/redo cho textarea
+ * - Khôi phục input (khôi phục nội dung khi revert hội thoại)
  */
 export const useDraftManagement = (
   conversationId: string,
@@ -29,8 +30,6 @@ export const useDraftManagement = (
 
   // Restore draft on conversation change
   useEffect(() => {
-    const effectStartTime = performance.now();
-
     if (!conversationId) {
       return;
     }
@@ -50,7 +49,7 @@ export const useDraftManagement = (
         isDraftRestoredRef.current = true;
       })
       .catch((err: unknown) => {
-        console.error('[useDraftManagement] ❌ Error restoring draft:', err);
+        logger.error('[useDraftManagement] ❌ Error restoring draft:', err);
         isDraftRestoredRef.current = true;
       });
   }, [conversationId]);
@@ -67,7 +66,6 @@ export const useDraftManagement = (
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
 
     draftTimerRef.current = setTimeout(() => {
-      const saveStartTime = performance.now();
       saveCountRef.current += 1;
 
       const draftKey = `draft:${conversationId}`;
@@ -76,14 +74,14 @@ export const useDraftManagement = (
           .set(draftKey, message)
           .then(() => {})
           .catch((err: unknown) => {
-            console.error('[useDraftManagement] ❌ Error saving draft:', err);
+            logger.error('[useDraftManagement] ❌ Error saving draft:', err);
           });
       } else {
         storage
           .delete(draftKey)
           .then(() => {})
           .catch((err: unknown) => {
-            console.error('[useDraftManagement] ❌ Error deleting draft:', err);
+            logger.error('[useDraftManagement] ❌ Error deleting draft:', err);
           });
       }
     }, 500);
@@ -108,7 +106,7 @@ export const useDraftManagement = (
         .delete(draftKey)
         .then(() => {})
         .catch((err: unknown) => {
-          console.error('[useDraftManagement] ❌ Error clearing draft:', err);
+          logger.error('[useDraftManagement] ❌ Error clearing draft:', err);
         });
     }
     undoStackRef.current = [];

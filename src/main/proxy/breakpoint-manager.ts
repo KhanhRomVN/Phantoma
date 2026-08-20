@@ -1,5 +1,27 @@
+/**
+ * ------------------------------------------------------------------
+ * Quản lý breakpoint
+ * ------------------------------------------------------------------
+ * Quản lý quy tắc breakpoint proxy và các giải pháp breakpoint đang chờ.
+ * Phát sự kiện khi request/response khớp tiêu chí breakpoint.
+ *
+ * Hàm chính:
+ * - setBreakpointRules()       : Cập nhật quy tắc breakpoint đang hoạt động
+ * - matchesBreakpoint()        : Kiểm tra xem request có khớp quy tắc
+ * - waitForBreakpointResolution(): Chờ renderer giải quyết
+ * - forwardRequest()           : Tiếp tục một request đang chờ
+ * - dropRequest()              : Hủy một request đang chờ
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import { EventEmitter } from 'events';
 
+// ── Internal ──
+import { logger } from '../utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface BreakpointRule {
   id: string;
   urlPattern: string; // substring or regex string
@@ -18,6 +40,7 @@ export interface PendingBreakpoint {
   statusCode?: number;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class BreakpointManager extends EventEmitter {
   private breakpointRules: BreakpointRule[] = [];
   private pendingBreakpoints: Map<string, (edited: PendingBreakpoint | null) => void> = new Map();
@@ -53,6 +76,7 @@ export class BreakpointManager extends EventEmitter {
       try {
         return new RegExp(rule.urlPattern, 'i').test(url);
       } catch {
+        logger.warn(`[BreakpointManager] Invalid regex pattern "${rule.urlPattern}", falling back to substring match`);
         return url.includes(rule.urlPattern);
       }
     });

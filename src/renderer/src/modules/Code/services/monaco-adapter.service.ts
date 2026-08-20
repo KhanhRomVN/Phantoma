@@ -13,6 +13,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── Types ──
 import type { Diagnostic } from '../stores/diagnosticsStore';
 
@@ -48,7 +49,7 @@ class MonacoAdapter {
       // Use 'lsp' as owner (not language-specific) to avoid conflicts
       window.monaco.editor.setModelMarkers(model, 'lsp', monacoMarkers);
     } catch (error) {
-      console.error('[MonacoAdapter] ❌ Failed to sync markers:', error);
+      logger.error('[MonacoAdapter] ❌ Failed to sync markers:', error);
     }
   }
 
@@ -64,7 +65,7 @@ class MonacoAdapter {
         window.monaco.editor.setModelMarkers(model, 'lsp', []);
       }
     } catch (error) {
-      console.error('[MonacoAdapter] ❌ Failed to clear markers:', error);
+      logger.error('[MonacoAdapter] ❌ Failed to clear markers:', error);
     }
   }
 

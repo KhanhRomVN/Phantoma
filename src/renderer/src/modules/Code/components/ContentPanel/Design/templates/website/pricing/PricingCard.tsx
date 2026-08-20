@@ -40,15 +40,11 @@ export function PricingCard({
         </span>
       )}
 
-      <h3 className="font-[Space_Grotesk] text-lg font-bold text-zinc-900 dark:text-white mb-1">
-        {name}
-      </h3>
+      <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-1">{name}</h3>
       <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">{description}</p>
 
       <div className="mb-6">
-        <span className="font-[Space_Grotesk] text-4xl font-bold text-zinc-900 dark:text-white">
-          {price}
-        </span>
+        <span className="text-4xl font-bold text-zinc-900 dark:text-white">{price}</span>
         {price !== 'Liên hệ' && (
           <span className="text-sm text-zinc-500 dark:text-zinc-400"> {period}</span>
         )}

@@ -19,6 +19,7 @@ import { StreamingService } from '../../services/StreamingService';
 import { TOOL_ACTION_TYPES } from '../../constants/constants';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 import { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
+import { logger } from '@renderer/utils/logger';
 import { EmulateController } from '@renderer/controller/EmulateController';
 import {
   buildTrafficContext,
@@ -90,13 +91,11 @@ export const useChatLLM = ({
   feature,
   onConversationIdChange,
   onToolRequest,
-  onMalformedTool,
 }: UseChatLLMProps) => {
   const {
     streamingState,
     dispatchStreaming,
     isProcessingRef,
-    isContinuingRef,
     setIsProcessingSync,
     setIsContinuingSync,
   } = useStreamingState();
@@ -111,10 +110,8 @@ export const useChatLLM = ({
     qwenParentIdRef,
     userRequestCountRef,
     renderCountRef,
-    prevDepsRef,
   } = useConversationRefs();
 
-  const renderStartTime = performance.now();
   renderCountRef.current++;
 
   const { aiLanguage, permissionMode } = useSettings();
@@ -378,9 +375,7 @@ export const useChatLLM = ({
         folderPath,
         updatedMessages,
         effectiveChatUuid,
-        selectedTab || undefined,
         false,
-        undefined,
         backendConversationIdRef.current,
       );
 
@@ -422,12 +417,14 @@ export const useChatLLM = ({
         !skipFirstRequestLogic && oldAccount && finalAccount && oldAccount.id !== finalAccount.id;
 
       if (modelSwitched || accountSwitched) {
-        console.warn(`[Zen] Model/account switched — resetting backend conversationId`);
+        logger.warn(`[Zen] Model/account switched — resetting backend conversationId`);
         backendConversationIdRef.current = '';
         qwenParentIdRef.current = undefined;
         try {
           sessionStorage.removeItem(`zen-backend-conv:${effectiveChatUuid}`);
-        } catch {}
+        } catch {
+          logger.warn('[useChatLLM] Failed to remove backend conversation from sessionStorage');
+        }
       }
 
       try {
@@ -567,7 +564,9 @@ export const useChatLLM = ({
           backendConversationIdRef.current = backendConversationId;
           try {
             sessionStorage.setItem(`zen-backend-conv:${effectiveChatUuid}`, backendConversationId);
-          } catch {}
+          } catch {
+            logger.warn('[useChatLLM] Failed to save backend conversation to sessionStorage');
+          }
         }
 
         try {
@@ -595,7 +594,9 @@ export const useChatLLM = ({
             ...assistantMessage,
             conversationId: finalConversationId,
           });
-        } catch (logErr) {}
+        } catch (logErr) {
+          logger.warn('[useChatLLM] Failed to log chat to workspace:', logErr);
+        }
 
         setMessages([...updatedMessages, assistantMessage]);
         setIsProcessingSync(false);
@@ -603,32 +604,14 @@ export const useChatLLM = ({
         abortControllerRef.current = null;
 
         const { parseAIResponse } = await import('../../services/ResponseParser');
-        let toolSequence = '';
         let parsed: any = null;
         let hasParsingError = false;
 
         try {
           parsed = parseAIResponse(assistantMessage.content);
-          toolSequence = parsed.contentBlocks
-            .map((block: any, idx: number) => {
-              if (block.type === 'tool') {
-                return `[${idx + 1}]. ${block.action.type}`;
-              } else if (block.type === 'thinking') {
-                return `[${idx + 1}]. thinking`;
-              } else if (block.type === 'markdown') {
-                return `[${idx + 1}]. markdown`;
-              } else if (block.type === 'code') {
-                return `[${idx + 1}]. code`;
-              } else if (block.type === 'question') {
-                return `[${idx + 1}]. question`;
-              }
-              return null;
-            })
-            .filter(Boolean)
-            .join(' ');
         } catch (parseError) {
           hasParsingError = true;
-          console.error('[Zen] Response parsing failed:', parseError);
+          logger.warn('[Zen] Response parsing failed:', parseError);
 
           const errorDetails =
             parseError instanceof Error ? parseError.message : 'Unknown parsing error';
@@ -650,16 +633,14 @@ export const useChatLLM = ({
           folderPath,
           [...updatedMessages, assistantMessage],
           effectiveChatUuid,
-          selectedTab || undefined,
           false,
-          undefined,
           backendConversationId || backendConversationIdRef.current,
         );
 
         if (!hasParsingError && parsed && onToolRequest && parsed.actions?.length > 0) {
           onToolRequest(parsed.actions, assistantMessage, false, TOOL_ACTION_TYPES.ACCEPT);
         } else if (parsed && parsed.actions?.length > 0 && hasParsingError) {
-          console.warn(`[Zen][sendMessage] Skipping onToolRequest due to parsing error`);
+          logger.warn(`[Zen][sendMessage] Skipping onToolRequest due to parsing error`);
         }
       } catch (error) {
         dispatchStreaming({ type: 'RESET_STREAMING' });
@@ -670,7 +651,7 @@ export const useChatLLM = ({
           return;
         }
 
-        console.error('[Zen sendMessage] error:', error);
+        logger.error('[Zen sendMessage] error:', error);
         const errorMessage: Message = {
           id: `msg-${Date.now()}-error`,
           role: 'assistant',
@@ -693,12 +674,12 @@ export const useChatLLM = ({
               folderPath,
               messagesWithError,
               effectiveChatUuid,
-              selectedTab || undefined,
               false,
-              undefined,
               backendConversationIdRef.current,
             );
-          } catch (saveErr) {}
+          } catch (saveErr) {
+            logger.warn('[useChatLLM] Failed to save conversation:', saveErr);
+          }
         }
 
         setIsProcessingSync(false);
@@ -718,21 +699,10 @@ export const useChatLLM = ({
     ],
   );
 
-  const handleToolAction = useCallback(
-    (
-      actionId: string,
-      actionType: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
-      toolName?: string,
-    ) => {
-      // accept_all logic removed — only accept_once (now just "accept") is kept
-    },
-    [],
-  );
-
   const handleSelectOption = useCallback(
     (messageId: string, option: string) => {
       if (isProcessingRef.current) {
-        console.warn(
+        logger.warn(
           `[Zen][handleSelectOption] BLOCKED - already processing, skipping option selection`,
         );
         return;
@@ -757,7 +727,9 @@ export const useChatLLM = ({
               m.id === messageId ? { ...m, selectedOption: option } : m,
             );
           }
-        } catch (e) {}
+        } catch (e) {
+          logger.warn('[useChatLLM] Failed to parse option:', e);
+        }
 
         let convId = currentConversationIdRef.current;
         if (!convId) {
@@ -774,21 +746,18 @@ export const useChatLLM = ({
           folderPath,
           updatedMessages,
           convId,
-          selectedTab || undefined,
           true,
-          undefined,
           backendConversationIdRef.current,
         );
 
         if (parsedPayload && parsedPayload.answers) {
           if (isProcessingRef.current) {
-            console.warn(`[Zen][handleSelectOption] Race condition detected - canceling auto-send`);
             return updatedMessages;
           }
 
           setTimeout(() => {
             if (isProcessingRef.current) {
-              console.warn(`[Zen][handleSelectOption] Timeout guard: still processing, canceling`);
+              logger.warn(`[Zen][handleSelectOption] Timeout guard: still processing, canceling`);
               return;
             }
 
@@ -857,7 +826,6 @@ export const useChatLLM = ({
       },
       conversationToolOverrides,
       setConversationToolOverrides,
-      handleToolAction,
       handleSelectOption,
     }),
     [
@@ -869,7 +837,6 @@ export const useChatLLM = ({
       resetSession,
       setIsProcessingSync,
       conversationToolOverrides,
-      handleToolAction,
       handleSelectOption,
     ],
   );

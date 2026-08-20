@@ -1,6 +1,6 @@
 /**
- * Decode common HTML entities back to their original characters.
- * (Internal helper — not exported)
+ * Giải mã các thực thể HTML phổ biến trở lại ký tự gốc.
+ * (Trợ giúp nội bộ — không export)
  */
 const decodeHtmlEntities = (text: string): string => {
   return text

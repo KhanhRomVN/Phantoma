@@ -13,8 +13,8 @@ interface ResponseMetadataBarProps {
 }
 
 /**
- * ResponseMetadataBar displays token usage statistics and response number.
- * Shows request/response token counts with expandable raw content view.
+ * ResponseMetadataBar hiển thị thống kê sử dụng token và số phản hồi.
+ * Hiển thị số lượng token request/response với chế độ xem nội dung thô có thể mở rộng.
  */
 export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
   responseNumber,

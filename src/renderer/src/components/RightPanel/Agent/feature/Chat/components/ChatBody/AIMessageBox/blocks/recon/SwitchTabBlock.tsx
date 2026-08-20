@@ -1,8 +1,7 @@
 /**
- * SwitchTabBlock — Display switch_tab tool output
+ * SwitchTabBlock — Hiển thị output của tool switch_tab
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface SwitchTabBlockProps {
@@ -12,12 +11,7 @@ interface SwitchTabBlockProps {
   isError?: boolean;
 }
 
-export default function SwitchTabBlock({
-  tabId,
-  targetId,
-  output,
-  isError,
-}: SwitchTabBlockProps) {
+export default function SwitchTabBlock({ tabId, targetId, output, isError }: SwitchTabBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {tabId && (

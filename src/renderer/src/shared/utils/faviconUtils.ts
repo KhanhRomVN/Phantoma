@@ -1,9 +1,39 @@
-// src/renderer/src/shared/utils/faviconUtils.ts
+/**
+ * ------------------------------------------------------------------
+ * Favicon Utilities
+ * ------------------------------------------------------------------
+ * Tập hợp các tiện ích và React component dùng để tải, kiểm tra
+ * và hiển thị favicon cho URL. Hỗ trợ nhiều nguồn dự phòng
+ * (Google S2, DuckDuckGo, Yandex) và tự động fallback về icon mặc định.
+ *
+ * Main functions & features:
+ * - getFaviconUrl()      : Tạo URL favicon từ domain (Google S2)
+ * - getFaviconSources()  : Liệt kê nhiều nguồn favicon dự phòng
+ * - validateImageUrl()   : Kiểm tra URL ảnh có tải được không
+ * - useFavicon()         : Hook tải favicon với cơ chế fallback
+ * - Favicon              : Component hiển thị favicon kèm trạng thái loading/error
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import React, { useState, useEffect } from 'react';
 
-/**
- * Get favicon URL from various sources
- */
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
+export interface FaviconProps {
+  url?: string;
+  size?: number;
+  className?: string;
+  alt?: string;
+  fallbackIcon?: React.ReactNode;
+  onError?: () => void;
+  onLoad?: () => void;
+}
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export const getFaviconUrl = (url?: string, size: number = 32): string => {
   if (!url) return '/favicon-fallback.png';
 
@@ -16,9 +46,6 @@ export const getFaviconUrl = (url?: string, size: number = 32): string => {
   }
 };
 
-/**
- * Get multiple favicon sources for fallback
- */
 export const getFaviconSources = (url?: string, size: number = 32): string[] => {
   if (!url) return ['/favicon-fallback.png'];
 
@@ -38,9 +65,6 @@ export const getFaviconSources = (url?: string, size: number = 32): string[] => 
   }
 };
 
-/**
- * Check if an image URL is valid and loads successfully
- */
 export const validateImageUrl = (url: string): Promise<boolean> => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -68,14 +92,14 @@ export const validateImageUrl = (url: string): Promise<boolean> => {
   });
 };
 
-/**
- * Hook for loading favicon with fallback sources
- */
+// ─── Hook ───────────────────────────────────────────────────────────────
 export const useFavicon = (url?: string, size: number = 32) => {
+  // ── State ──
   const [faviconUrl, setFaviconUrl] = useState<string>('/favicon-fallback.png');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Effects ──
   useEffect(() => {
     if (!url) {
       setIsLoading(false);
@@ -99,7 +123,7 @@ export const useFavicon = (url?: string, size: number = 32) => {
               return;
             }
           } catch (err) {
-            console.error(`Failed to load favicon from ${src}:`, err);
+            logger.error(`Failed to load favicon from ${src}:`, err);
             continue;
           }
         }
@@ -121,22 +145,7 @@ export const useFavicon = (url?: string, size: number = 32) => {
   return { faviconUrl, isLoading, error };
 };
 
-/**
- * React component props for favicon
- */
-export interface FaviconProps {
-  url?: string;
-  size?: number;
-  className?: string;
-  alt?: string;
-  fallbackIcon?: React.ReactNode;
-  onError?: () => void;
-  onLoad?: () => void;
-}
-
-/**
- * React component for displaying favicons with fallback
- */
+// ─── Component ──────────────────────────────────────────────────────────
 export const Favicon: React.FC<FaviconProps> = ({
   url,
   size = 32,
@@ -146,9 +155,11 @@ export const Favicon: React.FC<FaviconProps> = ({
   onError,
   onLoad,
 }) => {
+  // ── State ──
   const { faviconUrl, isLoading } = useFavicon(url, size);
   const [hasErrored, setHasErrored] = useState(false);
 
+  // ── Handlers ──
   const handleError = () => {
     setHasErrored(true);
     onError?.();
@@ -159,6 +170,7 @@ export const Favicon: React.FC<FaviconProps> = ({
     onLoad?.();
   };
 
+  // ── Render ──
   if (isLoading) {
     return React.createElement('div', {
       className: `animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`,

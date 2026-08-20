@@ -1,41 +1,32 @@
 import { app, BrowserWindow } from 'electron';
-import { spawn } from 'child_process';
+/**
+ * ------------------------------------------------------------------
+ * Trình khởi chạy ứng dụng
+ * ------------------------------------------------------------------
+ * Khởi chạy các ứng dụng đích với hỗ trợ proxy, CDP và Frida.
+ * Hỗ trợ các chế độ khởi chạy browser, Electron, native và CDP.
+ *
+ * Hàm chính:
+ * - launchApp() : Khởi chạy ứng dụng với cấu hình đã cho
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
+import { spawn, execSync as execSyncChild } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// ── Internal ──
 import { cdpManager } from './features/cdp';
 import { findAvailablePort } from './utils/net';
 import { appState } from './shared/state';
 import { injectLocalSSLBypass } from './utils/frida';
-import { execSync as execSyncChild } from 'child_process';
+import { logger } from './utils/logger';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 /** CDP port used during launch — exposed for IPC handlers to retrieve */
 export let launchCdpPort: number | null = null;
-
-// Web Apps - only browser mode
-const webApps: Record<string, string> = {
-  'deepseek-browser': 'https://chat.deepseek.com',
-  'chatgpt-browser': 'https://chatgpt.com',
-  'google-aistudio': 'https://aistudio.google.com/prompts/new_chat',
-  'gemini-browser': 'https://gemini.google.com/app?hl=vi',
-  'kimi-browser': 'https://www.kimi.com/',
-  'duckduckgo-browser': 'https://duckduckgo.com/?q=DuckDuckGo+AI+Chat&ia=chat&duckai=1',
-  'qwen-browser': 'https://chat.qwen.ai/',
-  'groq-browser': 'https://console.groq.com/playground',
-  'grok-browser': 'https://grok.com/',
-  'cohere-browser': 'https://dashboard.cohere.com/playground/chat',
-  'mistral-browser': 'https://console.mistral.ai/build/playground',
-  'perplexity-browser': 'https://www.perplexity.ai/',
-  'phind-browser': 'https://www.phind.com/',
-  'context7-browser': 'https://context7.com/chat',
-  'askcodi-browser': 'https://www.askcodi.com/chat',
-  'deepseek-r1-together-browser':
-    'https://api.together.ai/playground/deepseek-ai/DeepSeek-R1-0528-tput',
-  'zai-browser': 'https://chat.z.ai/',
-  'huggingface-browser': 'https://huggingface.co/chat/',
-  'poe-browser': 'https://poe.com/',
-  'elicit-browser': 'https://elicit.com/',
-  'lmarena-browser': 'https://lmarena.ai/vi/c/new?mode=direct',
-};
 
 // Helper to launch browser
 function launchBrowser(
@@ -69,12 +60,13 @@ function launchBrowser(
       executable = result.trim();
       break;
     } catch {
+      logger.warn(`[AppLauncher] Browser not found: ${b}`);
       continue;
     }
   }
 
   if (!executable) {
-    console.error('[AppLauncher] No browser executable found! Tried:', browsers);
+    logger.error('[AppLauncher] No browser executable found! Tried:', browsers);
     return false;
   }
 
@@ -120,7 +112,7 @@ function launchBrowser(
   });
 
   child.on('error', (err) => {
-    console.error('[AppLauncher] Browser process error:', err);
+    logger.error('[AppLauncher] Browser process error:', err);
   });
 
   child.unref();
@@ -191,7 +183,7 @@ export async function launchApp(
       try {
         await cdpManager.connect(debugPort);
       } catch {
-        // CDP connection failed silently
+        logger.warn('[AppLauncher] CDP connection failed silently');
       }
     }, 3000);
 
@@ -264,7 +256,7 @@ export async function launchApp(
               });
             }
           } catch {
-            // Failed to find child processes
+            logger.warn('[AppLauncher] Failed to find child processes');
           }
         }, 3000);
       }, 2000);
@@ -302,7 +294,7 @@ export async function launchApp(
           if (win) cdpManager.setMainWindow(win);
           await cdpManager.connect(cdpPort);
         } catch (err) {
-          console.error('[AppLauncher] CDP connection failed:', err);
+          logger.error('[AppLauncher] CDP connection failed:', err);
         }
       }, 2000);
     }
@@ -316,8 +308,8 @@ export async function launchApp(
     return result;
   }
 
-  // Determine URL: use customUrl if provided, else lookup in webApps
-  const url = customUrl || webApps[appName];
+  // Determine URL: use customUrl if provided
+  const url = customUrl;
   if (url) {
     const cdpPort = forceMode === 'cdp' ? await findAvailablePort(9222) : undefined;
     if (cdpPort) {
@@ -332,7 +324,7 @@ export async function launchApp(
           if (win) cdpManager.setMainWindow(win);
           await cdpManager.connect(cdpPort);
         } catch (err) {
-          console.error('[AppLauncher] CDP connection failed:', err);
+          logger.error('[AppLauncher] CDP connection failed:', err);
         }
       }, 2000);
     }
@@ -367,7 +359,7 @@ export async function launchApp(
 
     let normalizedPath = possibleExePath.replace(/\\ /g, ' ');
     if (!fs.existsSync(normalizedPath)) {
-      console.error(`[AppLauncher] Executable not found: ${normalizedPath}`);
+      logger.error(`[AppLauncher] Executable not found: ${normalizedPath}`);
       return false;
     }
 
@@ -392,7 +384,7 @@ export async function launchApp(
     });
 
     child.on('error', (err) => {
-      console.error('[AppLauncher] Native app error:', err);
+      logger.error('[AppLauncher] Native app error:', err);
     });
 
     child.unref();
@@ -422,7 +414,7 @@ export async function launchApp(
               });
             }
           } catch {
-            // Failed to find child processes
+            logger.warn('[AppLauncher] Failed to find child processes');
           }
         }, 3000);
       }, 2000);
@@ -431,7 +423,7 @@ export async function launchApp(
     return true;
   }
 
-  console.error(
+  logger.error(
     `[AppLauncher] Cannot launch app: ${appName} - not found in webApps and not a valid path`,
   );
   return false;

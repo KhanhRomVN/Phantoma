@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, Pencil, Trash2, Plus, Move, HelpCircle, FolderOpen } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import FileIcon from '@renderer/components/common/FileIcon';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
@@ -34,37 +34,6 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
         filePath: path,
       });
     }
-  };
-
-  const getStatusIcon = (status: string): React.ReactNode => {
-    const iconMap: Record<string, React.ReactNode> = {
-      M: <Pencil size={14} strokeWidth={2} />,
-      MM: <Pencil size={14} strokeWidth={2} />,
-      AM: <Pencil size={14} strokeWidth={2} />,
-      A: <Plus size={14} strokeWidth={2} />,
-      D: <Trash2 size={14} strokeWidth={2} />,
-      R: <Move size={14} strokeWidth={2} />,
-      C: <Move size={14} strokeWidth={2} />,
-      '?': <HelpCircle size={14} strokeWidth={2} />,
-      '!': <FolderOpen size={14} strokeWidth={2} />,
-      U: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 19V5" />
-          <path d="M5 12l7-7 7 7" />
-        </svg>
-      ),
-    };
-    return iconMap[status] || <FolderOpen size={14} strokeWidth={2} />;
   };
 
   const getStatusColor = (status: string): string => {

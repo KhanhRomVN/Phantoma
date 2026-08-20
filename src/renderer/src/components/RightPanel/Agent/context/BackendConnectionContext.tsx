@@ -1,8 +1,13 @@
 /**
- * BackendConnectionContext — theo dõi trạng thái kết nối đến backend server qua health check.
+ * ------------------------------------------------------------------
+ * BackendConnectionContext
+ * ------------------------------------------------------------------
+ * Theo dõi trạng thái kết nối đến backend server qua health check.
  *
- *    BackendConnectionProvider : Provider bọc ngoài, polling health endpoint mỗi 5s.
- *    useBackendConnection()    : Hook trả về { isConnected, isChecking, checkConnection, apiUrl, setApiUrl }.
+ * Main features:
+ * - BackendConnectionProvider : Provider polling health endpoint mỗi 5s
+ * - useBackendConnection()    : Hook trả về trạng thái kết nối và API URL
+ * ------------------------------------------------------------------
  */
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';

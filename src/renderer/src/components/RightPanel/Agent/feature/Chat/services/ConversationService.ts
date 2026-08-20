@@ -6,7 +6,6 @@ import {
 import { extensionService } from '../../../services/ExtensionService';
 import { Message } from '../types/message';
 import { ConversationCache } from './ConversationCache';
-import { ChatSession } from '../types/chat';
 import { logger } from '@renderer/utils/logger';
 
 /**
@@ -64,7 +63,9 @@ export const logChatToWorkspace = (chatUuid: string, message: any) => {
       chatUuid,
       logEntry,
     });
-  } catch (err) {}
+  } catch (err) {
+    logger.warn('[ConversationService] Failed to log chat:', err);
+  }
 };
 
 export const calculateTokens = (text: string): number => {
@@ -78,7 +79,6 @@ export const saveConversation = async (
   messages: Message[],
   conversationId?: string,
   skipTimestampUpdate?: boolean,
-  title?: string,
   backendConversationId?: string,
   toolOutputs?: Record<string, { output: string; isError: boolean; terminalId?: string }>,
   singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>,
@@ -151,7 +151,7 @@ export const saveConversation = async (
 
     // Update cache
     ConversationCache.set(convId, {
-      messages: convertedMessages,
+      messages: convertedMessages as Message[],
       conversationId: convId,
       backendConversationId: newData.backendConversationId,
       toolOutputs: mergedToolOutputs,
@@ -173,7 +173,6 @@ export const saveConversation = async (
     return convId;
   } catch (error: any) {
     logger.error('[ConversationService][saveConversation] ❌ Error:', error);
-    console.error('[ConversationService][saveConversation] ❌ Error:', error);
     return '';
   }
 };

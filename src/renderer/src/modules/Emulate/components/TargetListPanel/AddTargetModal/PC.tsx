@@ -1,15 +1,16 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { Search, Loader2, Monitor, RefreshCw } from 'lucide-react';
 
 // Types
-import type { DiscoveredApp } from '../../../../../types/apps';
 import type { BaseModalProps } from './index';
+import { DiscoveredApp } from '../../../types/apps';
 
 // Utils
 import { cn } from '@renderer/shared/utils/cn';
 
 // Services
-import { apiService } from '../../../../../services/api.service';
+import { ipcService } from '../../../../../services/ipc.service';
 
 type PCBodyProps = Pick<BaseModalProps, 'isOpen' | 'onAdd' | 'existingApps'>;
 
@@ -31,11 +32,11 @@ export const PC = forwardRef<PCRef, PCBodyProps>(function PC(
   const loadPcApps = async () => {
     setPcLoading(true);
     try {
-      const res = await apiService.scanPcApps();
+      const res = await ipcService.scanPcApps();
       const apps: DiscoveredApp[] = res.success ? (res.data as DiscoveredApp[]) : [];
       setDiscoveredApps(apps);
     } catch (e) {
-      console.error('[PC] Error loading apps:', e);
+      logger.error('[PC] Error loading apps:', e);
       setDiscoveredApps([]);
     } finally {
       setPcLoading(false);
@@ -94,7 +95,7 @@ export const PC = forwardRef<PCRef, PCBodyProps>(function PC(
         icon: selectedPcApp.icon,
       });
     } catch (error) {
-      console.error('[PC] Add target failed:', error);
+      logger.error('[PC] Add target failed:', error);
     }
   };
 

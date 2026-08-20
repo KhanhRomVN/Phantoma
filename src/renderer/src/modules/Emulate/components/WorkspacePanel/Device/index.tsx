@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@renderer/utils/logger';
 import {
   Smartphone,
   Monitor,
@@ -56,7 +57,7 @@ export function DevicePanel() {
         await checkDeviceStatus(device.serial);
       }
     } catch (e) {
-      console.error('Failed to load devices:', e);
+      logger.error('Failed to load devices:', e);
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,7 @@ export function DevicePanel() {
         },
       }));
     } catch (e) {
-      console.error('Failed to check device status:', e);
+      logger.error('Failed to check device status:', e);
     }
   };
 

@@ -2,6 +2,8 @@
 // Btn — Styled button component
 // ============================================================================
 
+import { $ } from '@renderer/utils/color';
+
 interface BtnProps {
   label: string;
   color?: string;

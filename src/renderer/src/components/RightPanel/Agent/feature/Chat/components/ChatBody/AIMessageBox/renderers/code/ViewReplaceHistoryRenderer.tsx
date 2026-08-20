@@ -15,8 +15,8 @@ import { TagHeader } from '../../TagHeader';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 
 /**
- * Renderer for view_replace_history tool type
- * Shows history of replace operations for a file
+ * Renderer cho loại tool view_replace_history
+ * Hiển thị lịch sử các thao tác replace cho một file
  */
 export const ViewReplaceHistoryRenderer: React.FC<BaseRendererProps> = ({
   action,

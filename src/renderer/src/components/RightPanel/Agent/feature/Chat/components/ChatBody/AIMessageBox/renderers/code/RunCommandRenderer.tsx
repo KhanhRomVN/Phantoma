@@ -56,7 +56,6 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
   isActionClicked,
   isRejected: isRejectedProp,
   isActiveGroup,
-  isLastMessage,
   toolOutputs,
   terminalStatus,
   nextUserMessage,
@@ -66,7 +65,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isRejectedLocal, setIsRejectedLocal] = React.useState(false);
-  const { permissionMode } = useSettings();
+  useSettings();
   const actionId = `${messageId}-action-${actionIndex}`;
   const outputData = toolOutputs?.[actionId];
 

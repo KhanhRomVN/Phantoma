@@ -1,13 +1,36 @@
 import { exec, execSync, spawn } from 'child_process';
+/**
+ * ------------------------------------------------------------------
+ * Trình khởi chạy trình giả lập
+ * ------------------------------------------------------------------
+ * Khởi chạy trình giả lập Genymotion và Waydroid với thiết lập
+ * proxy và Frida. Cung cấp phát hiện cài đặt và liệt kê VM.
+ *
+ * Hàm chính:
+ * - isGenymotionInstalled()     : Kiểm tra xem Genymotion đã cài đặt
+ * - isWaydroidInstalled()       : Kiểm tra xem Waydroid đã cài đặt
+ * - listGenymotionVMs()         : Liệt kê các VM khả dụng
+ * - launchGenymotionWithProfile(): Khởi chạy VM với proxy/Frida
+ * - launchWaydroidWithConfig()  : Khởi chạy Waydroid với cấu hình
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// ── Internal ──
 import { GenymotionProfile } from './genymotion-profiles';
 import { setupCompleteProxy } from './mobile-proxy-config';
 import { installFridaServer, startFridaServer } from './frida';
+import { logger } from './logger';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const execAsync = promisify(exec);
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface LaunchOptions {
   profile?: GenymotionProfile;
   proxyHost?: string;
@@ -16,9 +39,7 @@ export interface LaunchOptions {
   skipFrida?: boolean;
 }
 
-/**
- * Check if Genymotion is installed
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 export async function isGenymotionInstalled(): Promise<boolean> {
   try {
     // Check for player binary
@@ -83,7 +104,7 @@ export async function listGenymotionVMs(): Promise<string[]> {
       }
     }
   } catch (error) {
-    console.error('Failed to list Genymotion deployed VMs:', error);
+    logger.error('Failed to list Genymotion deployed VMs:', error);
   }
 
   return Array.from(vms);
@@ -156,7 +177,7 @@ export async function startGenymotionVM(
 
         return true;
       } catch (spawnError) {
-        console.error('Failed to spawn player:', spawnError);
+        logger.error('Failed to spawn player:', spawnError);
         // Fallthrough to VBox fallback
       }
     }
@@ -166,7 +187,7 @@ export async function startGenymotionVM(
     await execAsync(`vboxmanage startvm "${vmName}" --type ${vboxType}`);
     return true;
   } catch (error) {
-    console.error(`Failed to start Genymotion VM '${vmName}':`, error);
+    logger.error(`Failed to start Genymotion VM '${vmName}':`, error);
     return false;
   }
 }
@@ -179,7 +200,7 @@ export async function stopGenymotionVM(vmName: string): Promise<boolean> {
     await execAsync(`vboxmanage controlvm "${vmName}" poweroff`);
     return true;
   } catch (error) {
-    console.error('Failed to stop VM:', error);
+    logger.error('Failed to stop VM:', error);
     return false;
   }
 }
@@ -200,7 +221,7 @@ export async function startWaydroid(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Failed to start Waydroid:', error);
+    logger.error('Failed to start Waydroid:', error);
     return false;
   }
 }
@@ -213,7 +234,7 @@ export async function stopWaydroid(): Promise<boolean> {
     await execAsync('waydroid session stop');
     return true;
   } catch (error) {
-    console.error('Failed to stop Waydroid:', error);
+    logger.error('Failed to stop Waydroid:', error);
     return false;
   }
 }
@@ -274,7 +295,7 @@ export async function launchGenymotionWithProfile(
     onProgress?.('Emulator ready!');
     return { success: true, serial };
   } catch (error: any) {
-    console.error('Failed to launch Genymotion with profile:', error);
+    logger.error('Failed to launch Genymotion with profile:', error);
     onProgress?.(`Error: ${error.message}`);
     return { success: false };
   }
@@ -325,7 +346,7 @@ export async function launchWaydroidWithConfig(
     onProgress?.('Waydroid ready!');
     return { success: true, serial };
   } catch (error: any) {
-    console.error('Failed to launch Waydroid:', error);
+    logger.error('Failed to launch Waydroid:', error);
     onProgress?.(`Error: ${error.message}`);
     return { success: false };
   }

@@ -1,4 +1,14 @@
-import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * SessionPanel
+ * ------------------------------------------------------------------
+ * Panel quản lý active sessions của Agent (placeholder cho UI tương lai).
+ *
+ * Main features:
+ * - Hiển thị placeholder cho session management
+ * ------------------------------------------------------------------
+ */
+
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
 
 interface SessionPanelProps {

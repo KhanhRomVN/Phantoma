@@ -1,3 +1,17 @@
+/**
+ * ------------------------------------------------------------------
+ * SettingsPanel
+ * ------------------------------------------------------------------
+ * Panel cấu hình preferences của Agent: API URL, ngôn ngữ response,
+ * ngôn ngữ commit message.
+ *
+ * Main features:
+ * - Cấu hình backend API URL
+ * - Chọn ngôn ngữ AI response (English/Vietnamese)
+ * - Chọn ngôn ngữ commit message (English/Vietnamese)
+ * ------------------------------------------------------------------
+ */
+
 import React, { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';

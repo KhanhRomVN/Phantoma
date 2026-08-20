@@ -19,6 +19,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── React ──
 import { useState, useEffect, useCallback } from 'react';
 
@@ -137,7 +138,7 @@ export const scanDirectory = async (dirPath: string, depth: number = 0): Promise
     }
     return nodes;
   } catch (err) {
-    console.error(`[scanDirectory] Error scanning ${dirPath}:`, err);
+    logger.error(`[scanDirectory] Error scanning ${dirPath}:`, err);
     return [];
   }
 };

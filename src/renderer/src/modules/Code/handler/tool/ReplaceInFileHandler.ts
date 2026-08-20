@@ -14,6 +14,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── Utils ──
 import { SecurityValidator } from '../../utils/security';
 import { FuzzyMatcher } from '../../utils/FuzzyMatcher';
@@ -82,7 +83,7 @@ export class ReplaceInFileHandler {
     this.replaceQueue = this.replaceQueue
       .then(() => operation())
       .catch((err) => {
-        console.error('[ReplaceInFileHandler] Queue error:', err);
+        logger.error('[ReplaceInFileHandler] Queue error:', err);
         throw err;
       }) as Promise<void>;
     return this.replaceQueue as Promise<T>;

@@ -1,11 +1,32 @@
+/**
+ * ------------------------------------------------------------------
+ * Vòng đời
+ * ------------------------------------------------------------------
+ * Quản lý vòng đời ứng dụng cho tiến trình chính. Thiết lập
+ * tùy chọn DNS, chuyển đổi dòng lệnh, xử lý lỗi chứng chỉ
+ * và các quy trình dọn dẹp.
+ *
+ * Hàm chính:
+ * - cleanup()                : Dừng tất cả dịch vụ và dọn dẹp trạng thái
+ * - setupLifecycleHandlers(): Đăng ký handler activate/quit
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { app, BrowserWindow } from 'electron';
+
+// ── Node.js ──
 import * as dns from 'dns';
+import { execSync } from 'child_process';
+
+// ── Internal ──
 import { proxyManager } from './shared/proxy-state';
 import { closeAllGenericWebWindows } from './features/generic-web';
-import { execSync } from 'child_process';
 import { appState, clearActiveState } from './shared/state';
 import { stopAllLSPServers } from './ipc/lsp-handlers';
 import { closeAllBrowserSessions } from './ipc/browser.handlers';
+import { logger } from './utils/logger';
 
 // Fix EAI_AGAIN DNS errors by preferring IPv4
 try {
@@ -13,7 +34,7 @@ try {
     dns.setDefaultResultOrder('ipv4first');
   }
 } catch (e) {
-  // Ignore errors
+  logger.warn('[Lifecycle] Failed to set DNS result order:', e);
 }
 
 // Ignore all certificate errors globally (fixes Proxy CA issues)
@@ -48,7 +69,7 @@ export async function cleanup() {
     } catch (e: any) {
       // pkill returns exit code 1 if no matched processes are found, which is fine
       if (e.status !== 1) {
-        console.error('Failed to pkill process during cleanup:', e);
+        logger.error('Failed to pkill process during cleanup:', e);
       }
     }
     appState.activeProxyUrl = null;

@@ -14,7 +14,7 @@ import { getToolLabel } from '../../../../../constants/constants';
 import { MergedRendererProps, Diagnostic } from '../../../../../types/renderer-types';
 
 // UtilsS
-import { collectConvFilePaths, getNextUserMessage } from '../../../../../utils/renderer-utils';
+import { getNextUserMessage } from '../../../../../utils/renderer-utils';
 import { getPermissionDecision } from '../../../../../utils/permissionUtils';
 import { parseDiff, DiffHighlight } from '@renderer/components/RightPanel/Agent/utils/diffUtils';
 
@@ -69,24 +69,20 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   messageId,
   isActionClicked,
   isActiveGroup,
-  isLastMessage,
   isLastItemInList,
   toolOutputs,
   allMessages,
   onToolClick,
   mergedItems,
-  conversationId,
   rejectedActions,
 }) => {
-  const [isCollapsed, setIsCollapsed] = React.useState(true);
-  const [cachedDiagnostics, setCachedDiagnostics] = React.useState<Diagnostic[] | null>(null);
+  const [, setIsCollapsed] = React.useState(true);
+  const [, setCachedDiagnostics] = React.useState<Diagnostic[] | null>(null);
   const { permissionMode } = useSettings();
 
   const actionId = `${messageId}-action-${actionIndex}`;
   const rawPath = action.params.file_path || action.params.path || '';
   const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
-
-  const allPaths = React.useMemo(() => collectConvFilePaths(allMessages || []), [allMessages]);
 
   const nextUserMessage = getNextUserMessage(allMessages || [], messageId);
 
@@ -487,7 +483,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
             actionIndex={actionIndex}
             hasError={hasValidationError || isError}
             isCompleted={isCompleted}
-            onAction={(e, type) => {
+            onAction={(_e, type) => {
               onToolClick(action, messageId, actionIndex, type);
             }}
           />

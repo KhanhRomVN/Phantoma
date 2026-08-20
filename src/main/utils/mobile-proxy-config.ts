@@ -1,13 +1,35 @@
 import { exec, execSync } from 'child_process';
+/**
+ * ------------------------------------------------------------------
+ * Cấu hình proxy di động
+ * ------------------------------------------------------------------
+ * Cấu hình cài đặt proxy trên trình giả lập/thiết bị Android. Xử lý
+ * thiết lập proxy HTTP, cài đặt APK, quản lý ứng dụng và cài đặt
+ * chứng chỉ CA qua ADB.
+ *
+ * Hàm chính:
+ * - configureEmulatorProxy() : Đặt proxy HTTP toàn cục
+ * - clearEmulatorProxy()     : Xóa cài đặt proxy
+ * - setupCompleteProxy()     : Quy trình thiết lập proxy đầy đủ
+ * - installAPK()             : Cài đặt APK
+ * - uninstallApp()           : Gỡ cài đặt ứng dụng
+ * - setupProxyCertificate()  : Cài đặt chứng chỉ CA
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// ── Internal ──
+import { logger } from './logger';
+
+// ─── Constants ──────────────────────────────────────────────────────────
 const execAsync = promisify(exec);
 
-/**
- * Configure HTTP/HTTPS proxy on Android emulator
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 export async function configureEmulatorProxy(
   serial: string,
   proxyHost: string,
@@ -19,7 +41,7 @@ export async function configureEmulatorProxy(
     try {
       await execAsync(`adb -s "${serial}" reverse tcp:${proxyPort} tcp:${proxyPort}`);
     } catch (e) {
-      console.error(
+      logger.error(
         '[ProxyConfig] adb reverse failed (network might be unreachable if not using special IP aliases):',
         e,
       );
@@ -38,7 +60,7 @@ export async function configureEmulatorProxy(
 
     return true;
   } catch (error) {
-    console.error('[ProxyConfig] Failed to configure proxy:', error);
+    logger.error('[ProxyConfig] Failed to configure proxy:', error);
     return false;
   }
 }
@@ -57,7 +79,7 @@ export async function clearEmulatorProxy(serial: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Failed to clear proxy:', error);
+    logger.error('Failed to clear proxy:', error);
     return false;
   }
 }
@@ -139,7 +161,7 @@ export async function installCACertificate(
     onProgress?.('Certificate installation complete');
     return true;
   } catch (error) {
-    console.error('Failed to install certificate:', error);
+    logger.error('Failed to install certificate:', error);
     onProgress?.(`Error: ${error}`);
     return false;
   }
@@ -167,7 +189,7 @@ export async function setupProxyCertificate(
 
     return await installCACertificate(serial, pemPath, onProgress);
   } catch (error) {
-    console.error('Failed to setup proxy certificate:', error);
+    logger.error('Failed to setup proxy certificate:', error);
     onProgress?.(`Error: ${error}`);
     return false;
   }
@@ -223,7 +245,7 @@ export async function setupCompleteProxy(
     onProgress?.('Proxy setup complete!');
     return true;
   } catch (error) {
-    console.error('Failed to setup complete proxy:', error);
+    logger.error('Failed to setup complete proxy:', error);
     onProgress?.(`Error: ${error}`);
     return false;
   }
@@ -241,7 +263,7 @@ export async function restartNetworkServices(serial: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Failed to restart network services:', error);
+    logger.error('Failed to restart network services:', error);
     return false;
   }
 }
@@ -257,7 +279,7 @@ export async function disableBatteryOptimization(
     await execAsync(`adb -s "${serial}" shell "dumpsys deviceidle whitelist +${packageName}"`);
     return true;
   } catch (error) {
-    console.error('Failed to disable battery optimization:', error);
+    logger.error('Failed to disable battery optimization:', error);
     return false;
   }
 }
@@ -286,7 +308,7 @@ export async function installAPK(
     onProgress?.('APK installed successfully');
     return true;
   } catch (error: any) {
-    console.error('Failed to install APK:', error);
+    logger.error('Failed to install APK:', error);
     onProgress?.(`Error: ${error.message}`);
     return false;
   }
@@ -300,7 +322,7 @@ export async function uninstallApp(serial: string, packageName: string): Promise
     await execAsync(`adb -s "${serial}" uninstall ${packageName}`);
     return true;
   } catch (error) {
-    console.error('Failed to uninstall app:', error);
+    logger.error('Failed to uninstall app:', error);
     return false;
   }
 }
@@ -326,7 +348,7 @@ export async function launchApp(serial: string, packageName: string): Promise<bo
 
     return true;
   } catch (error) {
-    console.error('Failed to launch app:', error);
+    logger.error('Failed to launch app:', error);
     return false;
   }
 }
@@ -339,7 +361,7 @@ export async function stopApp(serial: string, packageName: string): Promise<bool
     await execAsync(`adb -s "${serial}" shell "am force-stop ${packageName}"`);
     return true;
   } catch (error) {
-    console.error('Failed to stop app:', error);
+    logger.error('Failed to stop app:', error);
     return false;
   }
 }

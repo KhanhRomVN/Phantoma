@@ -1,8 +1,7 @@
 /**
- * GetPageContentBlock — Display get_page_content tool output
+ * GetPageContentBlock — Hiển thị output của tool get_page_content
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface GetPageContentBlockProps {

@@ -11,7 +11,7 @@ import { extensionService } from '@renderer/components/RightPanel/Agent/services
 import { BaseRendererProps, Diagnostic } from '../../../../../types/renderer-types';
 
 // UtilsS
-import { collectConvFilePaths, getNextUserMessage } from '../../../../../utils/renderer-utils';
+import { getNextUserMessage } from '../../../../../utils/renderer-utils';
 
 // ICONS
 import FileIcon from '@renderer/components/common/FileIcon';
@@ -26,22 +26,16 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
   messageId,
   isActionClicked,
   isActiveGroup,
-  isLastMessage,
   isLastItemInList,
   toolOutputs,
   allMessages,
-  onToolClick,
-  conversationId,
 }) => {
-  const [isCollapsed, setIsCollapsed] = React.useState(true);
-  const [cachedDiagnostics, setCachedDiagnostics] = React.useState<Diagnostic[] | null>(null);
+  const [, setIsCollapsed] = React.useState(true);
+  const [, setCachedDiagnostics] = React.useState<Diagnostic[] | null>(null);
 
   const actionId = `${messageId}-action-${actionIndex}`;
   const rawPath = action.params.file_path || action.params.path || action.params.symbol || '';
   const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
-
-  const allPaths = React.useMemo(() => collectConvFilePaths(allMessages || []), [allMessages]);
-
   const nextUserMessage = getNextUserMessage(allMessages || [], messageId);
 
   const isPartial = false;

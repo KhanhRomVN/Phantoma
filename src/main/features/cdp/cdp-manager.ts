@@ -1,6 +1,34 @@
+/**
+ * ------------------------------------------------------------------
+ * Quản lý CDP
+ * ------------------------------------------------------------------
+ * Quản lý một kết nối Chrome DevTools Protocol đến một target.
+ * Bọc giao tiếp WebSocket với theo dõi request/response dựa trên promise,
+ * ánh xạ ID script và các trợ giúp điều khiển trang.
+ *
+ * Hàm chính:
+ * - connect()                  : Thiết lập kết nối CDP đến một cổng
+ * - send()                     : Gửi lệnh CDP và chờ kết quả
+ * - handleMessage()            : Định tuyến thông điệp/sự kiện đến
+ * - navigate()                 : Điều hướng đến URL
+ * - reload()                   : Tải lại trang hiện tại
+ * - injectMonitoringBorder()   : Chèn overlay giám sát trực quan
+ * - removeMonitoringBorder()   : Xóa overlay giám sát
+ * - cleanup()                  : Đóng kết nối và xóa trạng thái
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── External ──
 import WebSocket from 'ws';
+
+// ── Electron ──
 import { BrowserWindow } from 'electron';
+
+// ── Node.js ──
 import { EventEmitter } from 'events';
+
+// ── Internal ──
 import { connectToTarget, initializeNetwork } from './connection';
 import {
   handleNetworkEvent,
@@ -10,13 +38,16 @@ import {
   handleLoadingFailed,
 } from './network-handler';
 import { handleScriptParsed } from './script-handler';
+import { logger } from '../../utils/logger';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface CdpRequest {
   id: number;
   method: string;
   params?: any;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class CdpManager extends EventEmitter {
   public ws: WebSocket | null = null;
   public requestId = 0;
@@ -89,7 +120,7 @@ export class CdpManager extends EventEmitter {
 
       return this.connectToTarget(pageTarget.webSocketDebuggerUrl, retries, delay);
     } catch (error) {
-      console.error('[CDP DEBUG] Error in connect():', error);
+      logger.error('[CDP DEBUG] Error in connect():', error);
       if (retries > 0) {
         await new Promise((r) => setTimeout(r, delay));
         return this.connect(port, retries - 1, delay);
@@ -118,7 +149,7 @@ export class CdpManager extends EventEmitter {
           this.ws.close();
         }
       } catch {
-        // Ignore
+        logger.warn('[CDP] Failed to close WebSocket during cleanup');
       }
       this.ws = null;
     }
@@ -169,7 +200,7 @@ export class CdpManager extends EventEmitter {
         }
       }
     } catch {
-      // Silently ignore message parsing errors
+      logger.warn('[CDP] Failed to parse message, silently ignoring');
     }
   }
 
@@ -188,6 +219,7 @@ export class CdpManager extends EventEmitter {
       await this.send('Page.navigate', { url });
       return true;
     } catch {
+      logger.warn('[CDP] Failed to navigate to:', url);
       return false;
     }
   }
@@ -200,6 +232,7 @@ export class CdpManager extends EventEmitter {
       await this.send('Page.reload', { ignoreCache: true });
       return true;
     } catch {
+      logger.warn('[CDP] Failed to reload page');
       return false;
     }
   }
@@ -261,6 +294,7 @@ export class CdpManager extends EventEmitter {
 
       return true;
     } catch {
+      logger.warn('[CDP] Failed to inject monitoring border');
       return false;
     }
   }
@@ -284,6 +318,7 @@ export class CdpManager extends EventEmitter {
       });
       return true;
     } catch {
+      logger.warn('[CDP] Failed to remove monitoring border');
       return false;
     }
   }
@@ -295,4 +330,5 @@ export class CdpManager extends EventEmitter {
   }
 }
 
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const cdpManager = new CdpManager();

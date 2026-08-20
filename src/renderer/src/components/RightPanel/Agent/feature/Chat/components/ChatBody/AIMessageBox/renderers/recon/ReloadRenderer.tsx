@@ -1,5 +1,5 @@
 /**
- * ReloadRenderer — Renderer for reload tool
+ * ReloadRenderer — Renderer cho tool reload
  */
 
 import React from 'react';

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 /**
- * Measures available px width and truncates text to fit, with "..." suffix
+ * Đo chiều rộng px khả dụng và cắt ngắn văn bản cho vừa, với hậu tố "..."
  */
 export const useTruncatedText = (fullText: string, fontStyle: string) => {
   const containerRef = useRef<HTMLDivElement>(null);

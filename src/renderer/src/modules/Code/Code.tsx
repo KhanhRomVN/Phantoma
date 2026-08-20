@@ -19,6 +19,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── React ──
 import { useEffect, useRef, useState } from 'react';
 
@@ -99,7 +100,7 @@ export function Code() {
             hydrateProjectFiles(project.id, files);
           })
           .catch((err) => {
-            console.error('[Code] Failed to scan directory:', err);
+            logger.error('[Code] Failed to scan directory:', err);
           });
       }
     });
@@ -149,7 +150,7 @@ export function Code() {
           }
           await state.saveFile(activeFileId);
         } catch (err) {
-          console.error('[Code] Ctrl+S save failed:', err);
+          logger.error('[Code] Ctrl+S save failed:', err);
         }
         return;
       }
@@ -184,7 +185,7 @@ export function Code() {
           if (!result || result.canceled || !result.filePath) return;
           await window.api.invoke('fs:write-file', result.filePath, content);
         } catch (err) {
-          console.error('[Code] Ctrl+Shift+S save-as failed:', err);
+          logger.error('[Code] Ctrl+Shift+S save-as failed:', err);
         }
         return;
       }

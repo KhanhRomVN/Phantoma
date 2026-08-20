@@ -1,13 +1,35 @@
+/**
+ * ------------------------------------------------------------------
+ * IPC handler CDP
+ * ------------------------------------------------------------------
+ * Đăng ký IPC handler cho các thao tác Chrome DevTools Protocol:
+ * kết nối/ngắt kết nối, điều hướng, overlay giám sát, yêu cầu
+ * inspector và tải WASM.
+ *
+ * Hàm chính:
+ * - setupCDPHandlers() : Đăng ký IPC handler cdp: và inspector:
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain } from 'electron';
+
+// ── Node.js ──
+import * as zlib from 'zlib';
+
+// ── Internal ──
 import { cdpManager } from '../features/cdp';
 import { handleInspectorRequest } from '../features/inspector';
 import { launchCdpPort } from '../app-launcher';
-import * as zlib from 'zlib';
+import { logger } from '../utils/logger';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 // CDP state
 let cdpConnected = false;
 let cdpPort = 0;
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export function setupCDPHandlers() {
   ipcMain.handle('cdp:get-launch-port', async () => {
     return { port: launchCdpPort };
@@ -23,7 +45,7 @@ export function setupCDPHandlers() {
       }
       return { success: false, error: 'Connection failed' };
     } catch (e: any) {
-      console.error('[CDP] Connection error:', e);
+      logger.error('[CDP] Connection error:', e);
       return { success: false, error: e.message };
     }
   });
@@ -40,6 +62,7 @@ export function setupCDPHandlers() {
       cdpPort = 0;
       return { success: true };
     } catch (e: any) {
+      logger.error('[CDP] Disconnect error:', e);
       return { success: false, error: e.message };
     }
   });
@@ -64,7 +87,7 @@ export function setupCDPHandlers() {
       const result = await cdpManager.navigate(url);
       return { success: result };
     } catch (e: any) {
-      console.error('[IPC] cdp:navigate error:', e);
+      logger.error('[IPC] cdp:navigate error:', e);
       return { success: false, error: e.message };
     }
   });
@@ -74,7 +97,7 @@ export function setupCDPHandlers() {
       const result = await cdpManager.reload();
       return { success: result };
     } catch (e: any) {
-      console.error('[IPC] cdp:reload error:', e);
+      logger.error('[IPC] cdp:reload error:', e);
       return { success: false, error: e.message };
     }
   });
@@ -84,7 +107,7 @@ export function setupCDPHandlers() {
       const result = await cdpManager.injectMonitoringBorder();
       return { success: result };
     } catch (e: any) {
-      console.error('[IPC] cdp:inject-border error:', e);
+      logger.error('[IPC] cdp:inject-border error:', e);
       return { success: false, error: e.message };
     }
   });
@@ -94,7 +117,7 @@ export function setupCDPHandlers() {
       const result = await cdpManager.removeMonitoringBorder();
       return { success: result };
     } catch (e: any) {
-      console.error('[IPC] cdp:remove-border error:', e);
+      logger.error('[IPC] cdp:remove-border error:', e);
       return { success: false, error: e.message };
     }
   });
@@ -116,7 +139,7 @@ export function setupCDPHandlers() {
         try {
           buffer = zlib.gunzipSync(buffer);
         } catch (decompressionError) {
-          console.error('[WASM Fetch] Decompression failed:', decompressionError);
+          logger.error('[WASM Fetch] Decompression failed:', decompressionError);
           // Continue with original buffer if decompression fails
         }
       }
@@ -124,7 +147,7 @@ export function setupCDPHandlers() {
       // Return as Uint8Array (serializable)
       return new Uint8Array(buffer);
     } catch (error: any) {
-      console.error('Failed to fetch WASM:', error);
+      logger.error('Failed to fetch WASM:', error);
       throw new Error(error.message);
     }
   });

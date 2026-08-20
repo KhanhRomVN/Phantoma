@@ -19,7 +19,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   contextUsage,
   isSearchOpen,
   setIsSearchOpen,
-  searchQuery,
   setSearchQuery,
 }) => {
   const formatTokens = (num: number) => {

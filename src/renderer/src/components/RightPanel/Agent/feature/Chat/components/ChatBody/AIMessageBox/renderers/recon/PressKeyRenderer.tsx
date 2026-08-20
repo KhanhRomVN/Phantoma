@@ -1,5 +1,5 @@
 /**
- * PressKeyRenderer — Renderer for press_key tool
+ * PressKeyRenderer — Renderer cho tool press_key
  */
 
 import React from 'react';

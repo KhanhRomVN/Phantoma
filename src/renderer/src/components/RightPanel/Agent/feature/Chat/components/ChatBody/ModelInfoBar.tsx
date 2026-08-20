@@ -1,4 +1,5 @@
 import React from 'react';
+import { logger } from '@renderer/utils/logger';
 import { Message } from '../../types/message';
 
 interface ModelInfoBarProps {
@@ -6,9 +7,9 @@ interface ModelInfoBarProps {
 }
 
 /**
- * ModelInfoBar is a standalone message box component that displays
- * model information (provider, model ID, email, website URL).
- * It appears as an independent bar in the chat, similar to UserMessageBox and AIMessageBox.
+ * ModelInfoBar là một component message box độc lập hiển thị
+ * thông tin model (provider, model ID, email, website URL).
+ * Nó xuất hiện như một thanh độc lập trong chat, tương tự UserMessageBox và AIMessageBox.
  */
 const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
   const [faviconError, setFaviconError] = React.useState(false);
@@ -31,7 +32,7 @@ const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
     email = data.email;
     websiteUrl = data.websiteUrl;
   } catch (e) {
-    console.error('Failed to parse model switch message:', e);
+    logger.error('Failed to parse model switch message:', e);
     return null;
   }
 

@@ -1,5 +1,21 @@
-import { CdpManager } from './cdp-manager';
+/**
+ * ------------------------------------------------------------------
+ * Trình xử lý script CDP
+ * ------------------------------------------------------------------
+ * Xử lý sự kiện Debugger.scriptParsed từ CDP. Ánh xạ ID script
+ * sang URL và lấy nguồn script đã giải nén cho renderer.
+ *
+ * Hàm chính:
+ * - handleScriptParsed() : Lưu ánh xạ script và gửi nguồn
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Internal ──
+import { CdpManager } from './cdp-manager';
+import { logger } from '../../utils/logger';
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export async function handleScriptParsed(this: CdpManager, params: any) {
   const { scriptId, url, embedderName, hasSourceURL, sourceMapURL } = params;
 
@@ -29,5 +45,7 @@ export async function handleScriptParsed(this: CdpManager, params: any) {
         sourceMapURL,
       });
     }
-  } catch (e: any) {}
+  } catch (e: any) {
+    logger.warn(`[CDP] Failed to get script source for ${scriptId}:`, e.message);
+  }
 }

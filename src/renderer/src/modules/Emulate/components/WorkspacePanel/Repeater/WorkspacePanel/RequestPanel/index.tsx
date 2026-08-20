@@ -29,7 +29,7 @@ import { useRepeaterPersistence } from '../../../../../hooks/repeater/useRepeate
 import { cn } from '@renderer/shared/utils/cn';
 
 // Services
-import { apiService } from '../../../../../../../services/api.service';
+import { ipcService } from '../../../../../../../services/ipc.service';
 
 interface SendRequestResult {
   status: number;
@@ -318,7 +318,7 @@ export function RequestPanel({
     const startTime = Date.now();
 
     try {
-      const res = await apiService.sendRequest({
+      const res = await ipcService.sendRequest({
         url: executionUrl,
         method,
         headers: finalHeaders,

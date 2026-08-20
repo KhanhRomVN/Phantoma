@@ -1,7 +1,12 @@
 /**
+ import { logger } from '@renderer/utils/logger';
+
+/**
  * Code prettify utility
  * Formats JavaScript, TypeScript, HTML, CSS, and JSON code
  */
+
+import { logger } from '@renderer/utils/logger';
 
 /**
  * Simple JavaScript beautifier (fallback when Prettier fails)
@@ -141,7 +146,7 @@ export async function prettifyCode(code: string): Promise<{ formatted: string; e
 
     return { formatted };
   } catch (error) {
-    console.error('[Prettify] Error formatting code:', error);
+    logger.warn('[Prettify] Error formatting code:', error);
     return {
       formatted: code,
       error: error instanceof Error ? error.message : 'Unknown error',

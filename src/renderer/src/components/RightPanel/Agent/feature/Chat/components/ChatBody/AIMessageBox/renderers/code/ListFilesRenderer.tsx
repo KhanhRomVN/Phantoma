@@ -8,11 +8,7 @@ import { getToolLabel } from '../../../../../constants/constants';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 
 // UtilsS
-import {
-  collectConvFilePaths,
-  getNextUserMessage,
-  buildTreeFromPaths,
-} from '../../../../../utils/renderer-utils';
+import { getNextUserMessage, buildTreeFromPaths } from '../../../../../utils/renderer-utils';
 
 // Components
 import { TagHeader } from '../../TagHeader';
@@ -30,16 +26,12 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   isLastItemInList,
   toolOutputs,
   allMessages,
-  onToolClick,
-  conversationId,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
 
   const actionId = `${messageId}-action-${actionIndex}`;
   const rawPath = action.params.folder_path || action.params.path || '';
   const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
-
-  const allPaths = React.useMemo(() => collectConvFilePaths(allMessages || []), [allMessages]);
 
   const nextUserMessage = getNextUserMessage(allMessages || [], messageId);
 

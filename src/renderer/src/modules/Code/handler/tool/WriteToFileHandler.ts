@@ -13,6 +13,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── Utils ──
 import { SecurityValidator } from '../../utils/security';
 
@@ -57,7 +58,7 @@ export class WriteToFileHandler {
     this.writeQueue = this.writeQueue
       .then(() => operation())
       .catch((err) => {
-        console.error('[WriteToFileHandler] Queue error:', err);
+        logger.error('[WriteToFileHandler] Queue error:', err);
         throw err;
       }) as Promise<void>;
     return this.writeQueue as Promise<T>;

@@ -8,7 +8,7 @@ interface ContextUsage {
 }
 
 /**
- * Hook to calculate context token usage with incremental computation
+ * Hook tính toán mức sử dụng token ngữ cảnh với tính toán tăng dần
  */
 export const useContextUsage = (messages: Message[]): ContextUsage => {
   const renderCountRef = useRef(0);

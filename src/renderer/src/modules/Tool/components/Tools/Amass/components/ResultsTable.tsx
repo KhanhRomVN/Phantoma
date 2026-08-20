@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SubdomainResult } from '../types';
+import { $ } from '@renderer/utils/color';
 
 interface ResultsTableProps {
   subdomains: SubdomainResult[];

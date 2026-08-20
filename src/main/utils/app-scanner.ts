@@ -1,6 +1,26 @@
+/**
+ * ------------------------------------------------------------------
+ * Quét ứng dụng
+ * ------------------------------------------------------------------
+ * Quét hệ thống để tìm ứng dụng đã cài đặt bằng cách phân tích file
+ * .desktop. Giải quyết biểu tượng và loại bỏ trùng lặp theo tên và lệnh exec.
+ *
+ * Hàm chính:
+ * - scanInstalledApps() : Quét và trả về các ứng dụng đã phát hiện
+ * - findIconPath()      : Xác định đường dẫn biểu tượng từ thư mục theme
+ * - parseDesktopFile()  : Phân tích file .desktop thành mục nhập
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import * as fs from 'fs';
 import * as path from 'path';
 
+// ── Internal ──
+import { logger } from './logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface DiscoveredApp {
   name: string;
   exec: string;
@@ -9,6 +29,7 @@ export interface DiscoveredApp {
   path: string; // Path to the .desktop file
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const APPLICATIONS_PATHS = [
   '/usr/share/applications',
   path.join(process.env.HOME || '', '.local/share/applications'),
@@ -87,11 +108,11 @@ export const scanInstalledApps = async (): Promise<DiscoveredApp[]> => {
             }
           }
         } catch (e) {
-          // Ignore read errors for individual files
+          logger.warn(`[AppScanner] Failed to read desktop file: ${filePath}`);
         }
       }
     } catch (e) {
-      console.error(`Failed to scan directory ${dir}:`, e);
+      logger.error(`Failed to scan directory ${dir}:`, e);
     }
   }
   // Sort by name

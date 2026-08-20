@@ -17,12 +17,14 @@ const VALUES = [
   {
     icon: Target,
     title: 'Tốc độ trước hết',
-    description: 'Mọi tính năng đều được đo bằng số mili-giây nó tiết kiệm được cho người thiết kế.',
+    description:
+      'Mọi tính năng đều được đo bằng số mili-giây nó tiết kiệm được cho người thiết kế.',
   },
   {
     icon: Compass,
     title: 'AI đồng hành, không thay thế',
-    description: 'AI chỉ đề xuất dựa trên design system thật của bạn, quyết định cuối cùng luôn thuộc về con người.',
+    description:
+      'AI chỉ đề xuất dựa trên design system thật của bạn, quyết định cuối cùng luôn thuộc về con người.',
   },
   {
     icon: Heart,
@@ -40,13 +42,13 @@ export function About({ onNavigate }: AboutProps) {
           <span className="font-mono text-xs tracking-[0.2em] uppercase text-cyan-600 dark:text-cyan-400">
             // về chúng tôi
           </span>
-          <h1 className="font-[Space_Grotesk] text-4xl md:text-5xl font-bold mt-4 mb-6 text-zinc-900 dark:text-white text-balance">
+          <h1 className="text-4xl md:text-5xl font-bold mt-4 mb-6 text-zinc-900 dark:text-white text-balance">
             Chúng tôi xây Phantoma vì ghét việc chờ đợi
           </h1>
           <p className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-2xl mx-auto">
-            Phantoma bắt đầu từ một câu hỏi đơn giản: tại sao chỉnh một thuộc tính CSS lại phải
-            rời canvas, mở devtools, rồi quay lại? Chúng tôi tin thiết kế nên diễn ra ở đúng nơi
-            bạn đang nhìn vào — ngay trên element đó.
+            Phantoma bắt đầu từ một câu hỏi đơn giản: tại sao chỉnh một thuộc tính CSS lại phải rời
+            canvas, mở devtools, rồi quay lại? Chúng tôi tin thiết kế nên diễn ra ở đúng nơi bạn
+            đang nhìn vào — ngay trên element đó.
           </p>
           <div className="flex flex-wrap justify-center gap-2 mt-8">
             <PropertyChip label="thành lập" value="2023" tone="cyan" />
@@ -72,7 +74,7 @@ export function About({ onNavigate }: AboutProps) {
                   <div className="inline-flex p-3 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 mb-5">
                     <Icon className="w-6 h-6" />
                   </div>
-                  <h3 className="font-[Space_Grotesk] text-lg font-bold text-zinc-900 dark:text-white mb-2">
+                  <h3 className=" text-lg font-bold text-zinc-900 dark:text-white mb-2">
                     {v.title}
                   </h3>
                   <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">

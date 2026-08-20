@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { HistoryEntry } from '../../types/repeater.types';
 import { STORAGE_KEYS, getRepeaterStorageKey } from '../../constants/storageKeys';
 
@@ -23,7 +24,7 @@ export function useRepeaterHistory(options: UseRepeaterHistoryOptions = {}) {
         : STORAGE_KEYS.REPEATER_HISTORY;
       const data = localStorage.getItem(key);
       if (data) { setHistory(JSON.parse(data)); } else { setHistory([]); }
-    } catch (error) { console.error('Failed to load history:', error); setHistory([]); }
+    } catch (error) { logger.error('Failed to load history:', error); setHistory([]); }
     finally { setIsLoading(false); }
   }, [targetId]);
 
@@ -33,7 +34,7 @@ export function useRepeaterHistory(options: UseRepeaterHistoryOptions = {}) {
         ? getRepeaterStorageKey(targetId, STORAGE_KEYS.REPEATER_HISTORY)
         : STORAGE_KEYS.REPEATER_HISTORY;
       localStorage.setItem(key, JSON.stringify(newHistory));
-    } catch (error) { console.error('Failed to save history:', error); }
+    } catch (error) { logger.error('Failed to save history:', error); }
   }, [targetId]);
 
   const addEntry = useCallback((entry: Omit<HistoryEntry, 'id'>) => {

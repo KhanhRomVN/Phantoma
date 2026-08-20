@@ -1,15 +1,32 @@
 /**
- * Language Server Manager
+ * ------------------------------------------------------------------
+ * Quản lý Language Server
+ * ------------------------------------------------------------------
+ * Quản l�� các language server TypeScript/JavaScript/Python trong
+ * tiến trình chính. Chuyển tiếp thông điệp LSP giữa renderer và
+ * language server qua IPC.
  *
- * Manages TypeScript/JavaScript language servers in Main Process.
- * Forwards LSP messages between Renderer and Language Server via IPC.
+ * Hàm chính:
+ * - initialize()          : Thiết lập IPC handler
+ * - startLanguageServer() : Khởi động language server cho một ngôn ngữ
+ * - stopLanguageServer()  : Dừng một language server
+ * - stopAll()             : Dừng tất cả language server đang hoạt động
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import { spawn, ChildProcess } from 'child_process';
-import { ipcMain, BrowserWindow } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 
+// ── Electron ──
+import { ipcMain, BrowserWindow } from 'electron';
+
+// ── Internal ──
+import { logger } from '../utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface LanguageServerConfig {
   languageId: string;
   command: string;
@@ -67,7 +84,7 @@ class LanguageServerProcess {
 
         // Handle stderr (logs/errors)
         this.process.stderr?.on('data', (data: Buffer) => {
-          console.error(`[LanguageServer:${this.languageId}] Error:`, data.toString());
+          logger.error(`[LanguageServer:${this.languageId}] Error:`, data.toString());
         });
 
         // Handle process exit
@@ -77,13 +94,13 @@ class LanguageServerProcess {
 
         // Handle process error
         this.process.on('error', (error) => {
-          console.error(`[LanguageServer:${this.languageId}] Process error:`, error);
+          logger.error(`[LanguageServer:${this.languageId}] Process error:`, error);
           reject(error);
         });
 
         resolve();
       } catch (error) {
-        console.error(`[LanguageServer] Failed to start ${this.languageId} server:`, error);
+        logger.error(`[LanguageServer] Failed to start ${this.languageId} server:`, error);
         reject(error);
       }
     });
@@ -113,7 +130,7 @@ class LanguageServerProcess {
         const message: LSPMessage = JSON.parse(messageContent);
         this.sendMessageToRenderer(message);
       } catch (error) {
-        console.error(`[LanguageServer:${this.languageId}] Failed to parse message:`, error);
+        logger.error(`[LanguageServer:${this.languageId}] Failed to parse message:`, error);
       }
     }
   }
@@ -134,7 +151,7 @@ class LanguageServerProcess {
    */
   sendMessageToServer(message: LSPMessage): void {
     if (!this.process || !this.process.stdin) {
-      console.error(`[LanguageServer:${this.languageId}] Server process not available`);
+      logger.error(`[LanguageServer:${this.languageId}] Server process not available`);
       return;
     }
 
@@ -322,6 +339,5 @@ class LanguageServerManager {
   }
 }
 
-// ─── Singleton Instance ─────────────────────────────────────────────────────
-
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const languageServerManager = new LanguageServerManager();

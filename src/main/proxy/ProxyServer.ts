@@ -1,17 +1,42 @@
 import { BrowserWindow } from 'electron';
+/**
+ * ------------------------------------------------------------------
+ * Máy chủ proxy
+ * ------------------------------------------------------------------
+ * Triển khai máy chủ proxy MITM để chặn bắt và sửa đổi
+ * lưu lượng HTTP/HTTPS. Quản lý máy chủ WebSocket, quy tắc breakpoint,
+ * chèn script HTML và cache media cho một phiên đích.
+ *
+ * Hàm chính:
+ * - start()         : Khởi động máy chủ proxy và WebSocket
+ * - stop()          : Dừng proxy và dọn dẹp tài nguyên
+ * - setWindow()     : Gắn cửa sổ chính để giao tiếp renderer
+ * - setIntercept()  : Bật/tắt chặn bắt yêu cầu
+ * - setupListeners(): Đăng ký trình xử lý sự kiện proxy
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import { EventEmitter } from 'events';
-import { INJECT_SCRIPT } from './injection';
 import * as zlib from 'zlib';
-import { cacheHeaders } from './headerCache';
-import { mediaCache } from './mediaCache';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Proxy } from 'http-mitm-proxy';
-import { decompress } from '@mongodb-js/zstd';
 import * as net from 'net';
 import * as http from 'http';
+
+// ── External ──
+import { Proxy } from 'http-mitm-proxy';
+import { decompress } from '@mongodb-js/zstd';
 import { WebSocketServer, WebSocket as WS } from 'ws';
 
+// ── Internal ──
+import { INJECT_SCRIPT } from './injection';
+import { cacheHeaders } from './headerCache';
+import { mediaCache } from './mediaCache';
+import { logger } from '../utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface BreakpointRule {
   id: string;
   urlPattern: string; // substring or regex string
@@ -30,6 +55,7 @@ export interface PendingBreakpoint {
   statusCode?: number;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ProxyServer extends EventEmitter {
   private proxy: any;
   private isRunning: boolean = false;
@@ -50,7 +76,7 @@ export class ProxyServer extends EventEmitter {
       this.proxy = new Proxy();
       this.proxy.use(Proxy.gunzip);
     } catch (e) {
-      // Ignore errors
+      logger.warn('[ProxyServer] Failed to initialize proxy:', e);
     }
   }
 
@@ -90,7 +116,7 @@ export class ProxyServer extends EventEmitter {
       await this.startWss(port + 1);
       this.setupListeners();
       this.proxy.onError((_ctx: any, err: any) => {
-        console.error(`[ProxyServer] Error on proxy:`, err || _ctx);
+        logger.error(`[ProxyServer] Error on proxy:`, err || _ctx);
         reject(err || _ctx);
       });
       this.proxy.listen({ port, host: '0.0.0.0' }, () => {
@@ -113,7 +139,7 @@ export class ProxyServer extends EventEmitter {
           this.wss!.close(() => resolve());
         });
       } catch (e) {
-        console.error('[ProxyServer] Error closing WSS:', e);
+        logger.error('[ProxyServer] Error closing WSS:', e);
       }
       this.wss = null;
     }
@@ -139,12 +165,12 @@ export class ProxyServer extends EventEmitter {
           });
         } catch (e) {
           clearTimeout(timeout);
-          console.error('[ProxyServer] Error calling proxy.close():', e);
+          logger.error('[ProxyServer] Error calling proxy.close():', e);
           done();
         }
       });
     } catch (e) {
-      console.error('[ProxyServer] Error during stop:', e);
+      logger.error('[ProxyServer] Error during stop:', e);
     }
   }
 
@@ -231,9 +257,9 @@ export class ProxyServer extends EventEmitter {
       ) {
         return;
       }
-      console.error('[ProxyServer Error]', error);
+      logger.error('[ProxyServer Error]', error);
       if (ctxOrErr && ctxOrErr.clientToProxyRequest) {
-        console.error(`[ProxyServer Error] URL: ${ctxOrErr.clientToProxyRequest.url}`);
+        logger.error(`[ProxyServer Error] URL: ${ctxOrErr.clientToProxyRequest.url}`);
       }
     });
 
@@ -376,13 +402,13 @@ export class ProxyServer extends EventEmitter {
 
             conn.on('error', (err: any) => {
               if (err.code !== 'ECONNRESET') {
-                console.error(`[ProxyServer WS] Server error:`, err);
+                logger.error(`[ProxyServer WS] Server error:`, err);
               }
             });
 
             socket.on('error', (err: any) => {
               if (err.code !== 'ECONNRESET') {
-                console.error(`[ProxyServer WS] Client error:`, err);
+                logger.error(`[ProxyServer WS] Client error:`, err);
               }
             });
           });
@@ -390,7 +416,7 @@ export class ProxyServer extends EventEmitter {
 
         conn.on('error', (err: any) => {
           if (err.code !== 'ECONNRESET') {
-            console.error(`[ProxyServer WS] Connection error:`, err);
+            logger.error(`[ProxyServer WS] Connection error:`, err);
           }
           this.sendToRenderer('ws:close', {
             id: wsId,
@@ -450,12 +476,12 @@ export class ProxyServer extends EventEmitter {
 
         conn.on('error', (err: any) => {
           if (err.code !== 'ECONNRESET') {
-            console.error(`[ProxyServer Connect Tunnel Error] Host: ${hostUrl}`, err);
+            logger.error(`[ProxyServer Connect Tunnel Error] Host: ${hostUrl}`, err);
           }
         });
         socket.on('error', (err: any) => {
           if (err.code !== 'ECONNRESET') {
-            console.error(`[ProxyServer Connect Client Socket Error] Host: ${hostUrl}`, err);
+            logger.error(`[ProxyServer Connect Client Socket Error] Host: ${hostUrl}`, err);
           }
         });
 
@@ -801,21 +827,21 @@ export class ProxyServer extends EventEmitter {
               try {
                 body = zlib.gunzipSync(buffer).toString('utf8');
               } catch (e) {
-                console.error('[Proxy] Failed to decompress gzip request:', e);
+                logger.error('[Proxy] Failed to decompress gzip request:', e);
                 decompressionFailed = true;
               }
             } else if (contentEncoding === 'br') {
               try {
                 body = zlib.brotliDecompressSync(buffer).toString('utf8');
               } catch (e) {
-                console.error('[Proxy] Failed to decompress brotli request:', e);
+                logger.error('[Proxy] Failed to decompress brotli request:', e);
                 decompressionFailed = true;
               }
             } else if (contentEncoding === 'deflate') {
               try {
                 body = zlib.inflateSync(buffer).toString('utf8');
               } catch (e) {
-                console.error('[Proxy] Failed to decompress deflate request:', e);
+                logger.error('[Proxy] Failed to decompress deflate request:', e);
                 decompressionFailed = true;
               }
             } else if (contentEncoding === 'zstd') {
@@ -824,7 +850,7 @@ export class ProxyServer extends EventEmitter {
                 const decompressed = await decompress(buffer);
                 body = Buffer.from(decompressed).toString('utf8');
               } catch (e) {
-                console.error('[Proxy] ZSTD decompress failed:', e);
+                logger.error('[Proxy] ZSTD decompress failed:', e);
                 decompressionFailed = true;
               }
             }
@@ -888,7 +914,7 @@ export class ProxyServer extends EventEmitter {
               });
             }
           } catch (err) {
-            console.error('Error processing request body:', err);
+            logger.error('Error processing request body:', err);
           }
           return callback();
         });
@@ -908,7 +934,9 @@ export class ProxyServer extends EventEmitter {
           });
         })
           .then(() => proceed())
-          .catch(() => {});
+          .catch((e: any) => {
+            logger.warn('[ProxyServer] Breakpoint resolution failed:', e);
+          });
       } else {
         proceed();
       }
@@ -1012,7 +1040,7 @@ export class ProxyServer extends EventEmitter {
             res.headers['content-length'] = newBuffer.length;
             ctx.proxyToClientResponse.write(newBuffer);
           } catch (e) {
-            console.error('[Proxy] Injection failed:', e);
+            logger.error('[Proxy] Injection failed:', e);
             ctx.proxyToClientResponse.write(buffer);
           }
         }
@@ -1093,7 +1121,7 @@ export class ProxyServer extends EventEmitter {
             contentType: res?.headers['content-type'] || '',
           });
         } catch (err) {
-          console.error('Error processing response body:', err);
+          logger.error('Error processing response body:', err);
           // Return valid error message instead of raw binary
           const encodingHeader = res?.headers['content-encoding'];
           const contentEncoding = Array.isArray(encodingHeader)
@@ -1202,6 +1230,7 @@ export class ProxyServer extends EventEmitter {
         try {
           payloadStr = payload.toString('utf8');
         } catch {
+          logger.warn('[ProxyServer WS] Failed to decode UTF-8 payload');
           payloadStr = null;
         }
       } else if (isControl) {
@@ -1215,6 +1244,7 @@ export class ProxyServer extends EventEmitter {
 
       return { isBinary, isControl, payload: payloadStr, opcode };
     } catch {
+      logger.warn('[ProxyServer WS] Failed to parse WebSocket frame');
       return null;
     }
   }

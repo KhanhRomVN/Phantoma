@@ -5,8 +5,8 @@ import { Message } from '../../types/message';
 import RevertConfirmModal from './RevertConfirmModal';
 
 /**
- * Parse <question-answer> tag from user message content
- * Returns: { answers: Record<string, string>, cleanedContent: string }
+ * Phân tích thẻ <question-answer> từ nội dung tin nhắn người dùng
+ * Trả về: { answers: Record<string, string>, cleanedContent: string }
  */
 const parseQuestionAnswerFromContent = (
   content: string,

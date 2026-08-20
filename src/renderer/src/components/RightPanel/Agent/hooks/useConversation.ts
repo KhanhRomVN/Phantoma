@@ -1,15 +1,22 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
 /**
- * useConversation — hook quản lý toàn bộ vòng đời conversation (CRUD, messages, token usage).
+ * ------------------------------------------------------------------
+ * useConversation
+ * ------------------------------------------------------------------
+ * Hook quản lý toàn bộ vòng đời conversation (CRUD, messages,
+ * token usage).
  *
- *    loadConversations()      : Load danh sách tất cả conversations.
- *    loadConversation(id)     : Load 1 conversation + messages.
- *    createConversation(msg?) : Tạo conversation mới, trả về id.
- *    deleteConversation(id)   : Xóa 1 conversation.
- *    deleteAllConversations() : Xóa tất cả conversations.
- *    addMessage(...)          : Thêm message vào conversation hiện tại.
- *    updateTokenUsage(...)    : Cập nhật token usage.
+ * Main actions:
+ * - loadConversations()      : Load danh sách tất cả conversations
+ * - loadConversation(id)     : Load 1 conversation + messages
+ * - createConversation(msg?) : Tạo conversation mới, trả về id
+ * - deleteConversation(id)   : Xóa 1 conversation
+ * - deleteAllConversations() : Xóa tất cả conversations
+ * - addMessage(...)          : Thêm message vào conversation hiện tại
+ * - updateTokenUsage(...)    : Cập nhật token usage
+ * ------------------------------------------------------------------
  */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // SERVICES
 import ConversationService, { ConversationData } from '../services/ConversationService';

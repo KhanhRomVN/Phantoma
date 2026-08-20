@@ -171,13 +171,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     }
   }, [availableColumns, newFilterColumn]);
 
-  const handleNewFilterChange = (column: string, operator: Operator, value: string) => {
-    setNewFilterColumn(column);
-    setNewFilterOperator(operator);
-    setNewFilterValue(value);
-    setHasChanges(true);
-  };
-
   const handleApplyFilter = () => {
     handleAddFilter();
     setHasChanges(false);

@@ -531,4 +531,4 @@ State → Store → Refs → Derived → Callbacks → Effects → Handlers → 
 - [ ] **Top-level sections** (`// ─── X ───`) group major code blocks
 - [ ] **Import sub-groups** use `// ── X ──` format (not bare `// X`)
 - [ ] **Sub-sections** (`// ── X ──`) organize logic inside components/hooks (State, Effects, Render...)
-- [ ] All comments are in **English**
+- [ ] **File header comment** is written in **Vietnamese** (comments inside code body may be in English or Vietnamese)

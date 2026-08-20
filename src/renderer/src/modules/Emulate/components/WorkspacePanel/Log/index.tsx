@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { logger } from '@renderer/utils/logger';
 import {
   Search,
   Trash2,
@@ -97,7 +98,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
         };
         rafRef.current = requestAnimationFrame(flushLogs);
       } catch (e) {
-        console.error('[LogViewer] Failed to start logcat:', e);
+        logger.error('[LogViewer] Failed to start logcat:', e);
       }
     };
     startLogcat();
@@ -105,7 +106,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
     return () => {
       if (removeListener) window.api.off('mobile:logcat-output', removeListener);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      logcatService.stop(emulatorSerial).catch(console.error);
+      logcatService.stop(emulatorSerial).catch((err) => logger.warn('[LogViewer] Failed to stop logcat:', err));
       setIsRunning(false);
     };
   }, [emulatorSerial, isPaused]);
@@ -117,7 +118,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
         const packages = await logcatService.listPackages(emulatorSerial);
         setInstalledPackages(packages.sort());
       } catch (e) {
-        console.error(e);
+        logger.error('[LogViewer] Failed to list packages:', e);
       }
     };
     fetchPackages();

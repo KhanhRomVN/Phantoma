@@ -20,8 +20,8 @@ interface QuestionRendererProps {
 }
 
 /**
- * Renderer for question/option blocks
- * Handles both single-option and multi-question formats
+ * Renderer cho block câu hỏi/tùy chọn
+ * Xử lý cả định dạng tùy chọn đơn và nhiều câu hỏi
  */
 export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   questions,
@@ -44,7 +44,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
       title={title}
       optional={optional}
       selectedOption={!hasQuestions ? selectedOption : undefined}
-      questionAnswers={hasQuestions ? questionAnswers : undefined}
+      initialAnswers={hasQuestions ? questionAnswers : undefined}
       disabled={disabled}
       onAnswer={(questionId, value) => {
         if (!hasQuestions) return;

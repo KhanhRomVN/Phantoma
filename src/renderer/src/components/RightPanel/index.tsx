@@ -1,17 +1,21 @@
 /**
- * RightPanel — panel bên phải, chứa Agent / Analytic / Terminal với dropdown chuyển view.
+ * ------------------------------------------------------------------
+ * RightPanel
+ * ------------------------------------------------------------------
+ * Panel bên phải của giao diện chính, chứa các view: Agent, Analytic,
+ * Terminal. Hỗ trợ chuyển đổi giữa các view và các sub-view của Agent.
  *
- *    AgentPanel sub-views: Home, Session, Account, History, Model, Setting, Analytic.
- *    Dropdown chính chuyển giữa 3 panel view (Agent, Analytic, Terminal).
- *    Ellipsis menu chứa các sub-view của Agent.
+ * Main features:
+ * - Chuyển đổi giữa các view chính: Agent, Analytic, Terminal
+ * - Dropdown chọn view và menu ellipsis cho các sub-view của Agent
+ * - Quản lý trạng thái sub-view của Agent (Home, Session, Account, ...)
+ * ------------------------------------------------------------------
  */
 
 import { useState, useRef, useEffect } from 'react';
 
 // Components
 import { AgentPanel } from './Agent';
-import { Analytic } from './Analytic';
-import { Terminal } from './Terminal';
 import HomePanel from './Agent/feature/Home';
 import SessionPanel from './Agent/feature/Session';
 import AccountPanel from './Agent/feature/Account';
@@ -234,8 +238,6 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
           {view === 'agent' && agentSubView === 'setting' && (
             <SettingsPanel isOpen={true} onClose={() => setAgentSubView(null)} />
           )}
-          {view === 'analytic' && <Analytic />}
-          {view === 'terminal' && <Terminal />}
         </div>
       </div>
     </SettingsProvider>

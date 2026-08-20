@@ -1,8 +1,7 @@
 /**
- * CloseTabBlock — Display close_tab tool output
+ * CloseTabBlock — Hiển thị output của tool close_tab
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface CloseTabBlockProps {
@@ -12,12 +11,7 @@ interface CloseTabBlockProps {
   isError?: boolean;
 }
 
-export default function CloseTabBlock({
-  tabId,
-  targetId,
-  output,
-  isError,
-}: CloseTabBlockProps) {
+export default function CloseTabBlock({ tabId, targetId, output, isError }: CloseTabBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {tabId && (
@@ -45,9 +39,7 @@ export default function CloseTabBlock({
         </div>
       )}
 
-      {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Closing tab...</div>
-      )}
+      {!output && !isError && <div className="text-text-secondary opacity-60">Closing tab...</div>}
     </div>
   );
 }

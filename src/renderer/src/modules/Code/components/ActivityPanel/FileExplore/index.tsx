@@ -19,6 +19,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── React ──
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
@@ -80,7 +81,7 @@ export function FileExplore() {
     projectPathRef.current = projectPath;
 
     window.api.invoke('fs:watch-dir', projectPath).catch((err) => {
-      console.error('[FileExplore] Failed to start watcher:', err);
+      logger.error('[FileExplore] Failed to start watcher:', err);
     });
 
     const handler = (_event: any, payload: { dirPath: string }) => {
@@ -196,7 +197,7 @@ export function FileExplore() {
           await window.api.invoke('fs:delete-file', item.path);
         }
       } catch (err) {
-        console.error(`[FileExplore] Failed to delete ${item.path}:`, err);
+        logger.error(`[FileExplore] Failed to delete ${item.path}:`, err);
         errorCount++;
       }
     }
@@ -319,7 +320,7 @@ export function FileExplore() {
           await window.api.invoke('fs:copy', { src: srcPath, dest: destPath });
         }
       } catch (err) {
-        console.error(`[FileExplore] Failed to paste ${srcPath}:`, err);
+        logger.error(`[FileExplore] Failed to paste ${srcPath}:`, err);
         errorCount++;
       }
     }
@@ -346,7 +347,7 @@ export function FileExplore() {
       await window.api.invoke('fs:rename', { oldPath: node.path, newPath });
       await refreshProjectTree(p.id, p.path);
     } catch (err) {
-      console.error('[FileExplore] Failed to rename:', err);
+      logger.error('[FileExplore] Failed to rename:', err);
     }
   }, [selectedNodeIds]);
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AmassScanResult } from '../types';
 import { saveScanHistory } from '../utils';
+import { logger } from '@renderer/utils/logger';
 
 export const useHistory = () => {
   const [history, setHistory] = useState<AmassScanResult[]>([]);
@@ -16,7 +17,7 @@ export const useHistory = () => {
       try {
         setTargetHistory(JSON.parse(saved));
       } catch (e) {
-        console.error('Failed to load target history', e);
+        logger.error('Failed to load target history', e);
       }
     }
     const savedHistory = localStorage.getItem('amass_scan_history');
@@ -27,7 +28,7 @@ export const useHistory = () => {
           setHistory(parsed);
         }
       } catch (e) {
-        console.error('Failed to load scan history', e);
+        logger.error('Failed to load scan history', e);
       }
     }
   }, []);

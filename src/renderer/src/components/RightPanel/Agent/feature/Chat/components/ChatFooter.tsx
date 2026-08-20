@@ -66,8 +66,6 @@ interface ChatFooterProps {
     },
   ) => void;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
-  autoScrollPaused?: boolean;
-  scrollToBottom?: () => void;
 }
 
 const ChatFooter: React.FC<ChatFooterProps> = ({
@@ -116,11 +114,8 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   gitStatus,
   onOpenGitStatus,
   loadedConversationFileStats,
-  footerPaddingBottom,
   onModelSwitch,
   onRevertConversation,
-  autoScrollPaused = false,
-  scrollToBottom,
 }) => {
   // Calculate response range - count all assistant responses in the conversation
   const responseRange = React.useMemo(() => {
@@ -187,7 +182,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   }, [messages]);
 
   // Calculate file changes from conversation messages
-  const { conversationFileStats, fileChangesMap } = React.useMemo(() => {
+  const { conversationFileStats } = React.useMemo(() => {
     const fileChanges = new Map<
       string,
       { additions: number; deletions: number; toolType?: FileMutationTool }
@@ -351,8 +346,6 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
           responseRanges={responseRanges}
           onRevertConversation={onRevertConversation}
           onModelSwitch={onModelSwitch}
-          autoScrollPaused={autoScrollPaused}
-          scrollToBottom={scrollToBottom}
         />
       </div>
     </div>

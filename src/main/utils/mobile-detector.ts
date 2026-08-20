@@ -1,11 +1,34 @@
 import { exec, execSync } from 'child_process';
+/**
+ * ------------------------------------------------------------------
+ * Phát hiện thiết bị di động
+ * ------------------------------------------------------------------
+ * Phát hiện trình giả lập di động và thiết bị vật lý qua ADB. Cung cấp
+ * thông tin thiết bị, độ phân giải trình giả lập và trợ giúp quản lý package.
+ *
+ * Hàm chính:
+ * - checkADBAvailability() : Kiểm tra xem ADB có khả dụng
+ * - detectAllEmulators()   : Phát hiện trình giả lập/thiết bị đang chạy
+ * - getEmulatorDetails()   : Lấy chi tiết cho một trình giả lập
+ * - isAppInstalled()       : Kiểm tra xem ứng dụng đã cài đặt
+ * - resolveEmulatorSerial(): Xác định serial của trình giả lập
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
-import { listGenymotionVMs } from './emulator-launcher';
 
+// ── Internal ──
+import { listGenymotionVMs } from './emulator-launcher';
+import { logger } from './logger';
+
+// ─── Constants ──────────────────────────────────────────────────────────
 const execAsync = promisify(exec);
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export type EmulatorType = 'genymotion' | 'waydroid' | 'physical';
 
 export interface MobileEmulator {
@@ -20,9 +43,7 @@ export interface MobileEmulator {
   status: 'running' | 'offline' | 'booting';
 }
 
-/**
- * Check if ADB is available on the system
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 export async function checkADBAvailability(): Promise<{
   available: boolean;
   path?: string;
@@ -52,6 +73,7 @@ export async function checkADBAvailability(): Promise<{
         version,
       };
     } catch (e) {
+      logger.warn('[MobileDetector] Failed to get ADB version:', e);
       return {
         available: true,
         path: adbPath,
@@ -59,6 +81,7 @@ export async function checkADBAvailability(): Promise<{
       };
     }
   } catch (error) {
+    logger.warn('[MobileDetector] ADB not found:', error);
     return {
       available: false,
       message:
@@ -99,12 +122,12 @@ export async function detectAndroidDevices(): Promise<MobileEmulator[]> {
               vboxVMs.set(name, ipMatch[1]);
             }
           } catch {
-            // Ignore errors
+            logger.warn(`[MobileDetector] Failed to get IP for VM ${name}`);
           }
         }
       }
     } catch {
-      // Ignore errors
+      logger.warn('[MobileDetector] Failed to list running VMs');
     }
 
     // Strategy 2: Process Scanning (QEMU/KVM for Genymotion)
@@ -152,7 +175,7 @@ export async function detectAndroidDevices(): Promise<MobileEmulator[]> {
         }
       }
     } catch (e) {
-      console.error('Failed to scan processes:', e);
+      logger.error('Failed to scan processes:', e);
     }
 
     // Now scan ADB devices to find matches
@@ -265,7 +288,7 @@ export async function detectAndroidDevices(): Promise<MobileEmulator[]> {
           status: bootComplete === '1' ? 'running' : 'booting',
         });
       } catch (e) {
-        console.error(`Failed to probe device ${serial}:`, e);
+        logger.error(`Failed to probe device ${serial}:`, e);
       }
     }
 
@@ -286,7 +309,7 @@ export async function detectAndroidDevices(): Promise<MobileEmulator[]> {
       }
     }
   } catch (error) {
-    console.error('Failed to detect Android devices:', error);
+    logger.error('Failed to detect Android devices:', error);
   }
 
   try {
@@ -315,7 +338,7 @@ export async function detectAndroidDevices(): Promise<MobileEmulator[]> {
       }
     }
   } catch (error) {
-    // Ignore errors
+    logger.warn('[MobileDetector] Failed to list Genymotion VMs:', error);
   }
 
   const deduplicatedEmulators: MobileEmulator[] = [];
@@ -400,6 +423,7 @@ export async function detectWaydroidEmulators(): Promise<MobileEmulator[]> {
     try {
       execSync('which waydroid', { stdio: 'ignore' });
     } catch {
+      logger.warn('[MobileDetector] Waydroid not installed');
       return [];
     }
 
@@ -448,6 +472,7 @@ export async function detectWaydroidEmulators(): Promise<MobileEmulator[]> {
         status: isBooted ? 'running' : 'booting',
       });
     } catch (e) {
+      logger.warn('[MobileDetector] Failed to get Waydroid details via ADB:', e);
       // If ADB fails, add with limited info
       emulators.push({
         type: 'waydroid',
@@ -461,7 +486,7 @@ export async function detectWaydroidEmulators(): Promise<MobileEmulator[]> {
       });
     }
   } catch (error) {
-    console.error('Failed to detect Waydroid:', error);
+    logger.error('Failed to detect Waydroid:', error);
   }
 
   return emulators;
@@ -526,7 +551,7 @@ export async function getEmulatorDetails(serial: string): Promise<{
       architecture: architecture.stdout.trim(),
     };
   } catch (error) {
-    console.error('Failed to get emulator details:', error);
+    logger.error('Failed to get emulator details:', error);
     return null;
   }
 }
@@ -539,6 +564,7 @@ export async function isAppInstalled(serial: string, packageName: string): Promi
     const { stdout } = await execAsync(`adb -s "${serial}" shell pm list packages ${packageName}`);
     return stdout.includes(packageName);
   } catch {
+    logger.warn(`[MobileDetector] Failed to check if app ${packageName} is installed`);
     return false;
   }
 }
@@ -556,6 +582,7 @@ export async function getInstalledPackages(serial: string): Promise<string[]> {
       .filter((pkg) => pkg.length > 0);
     return packages;
   } catch {
+    logger.warn(`[MobileDetector] Failed to list installed packages for ${serial}`);
     return [];
   }
 }

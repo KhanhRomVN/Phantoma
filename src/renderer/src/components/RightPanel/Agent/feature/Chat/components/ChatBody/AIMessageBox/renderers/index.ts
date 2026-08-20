@@ -1,6 +1,6 @@
 /**
- * Centralized export for all renderer components
- * Makes importing renderers cleaner and more maintainable
+ * Export tập trung cho tất cả renderer components
+ * Giúp việc import renderers gọn gàng và dễ bảo trì hơn
  */
 
 export { ReadFileRenderer } from './code/ReadFileRenderer';

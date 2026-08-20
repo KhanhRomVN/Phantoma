@@ -1,5 +1,5 @@
 /**
- * CreateTabRenderer — Renderer for create_tab tool
+ * CreateTabRenderer — Renderer cho tool create_tab
  */
 
 import React from 'react';

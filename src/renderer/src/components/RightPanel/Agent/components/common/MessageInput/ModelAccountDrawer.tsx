@@ -5,6 +5,7 @@ import { Tooltip } from '@renderer/components/ui/Tooltip';
 import { Input } from '@renderer/components/ui/Input';
 import { Button } from '@renderer/components/ui/Button';
 import { cn } from '@renderer/shared/utils/cn';
+import { logger } from '@renderer/utils/logger';
 
 interface Provider {
   provider_id: string;
@@ -125,10 +126,10 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
             }
             setAccountCountMap(map);
           } else {
-            console.warn('[Phantoma][Drawer] Accounts fetch failed or empty:', result);
+            logger.warn('[Phantoma][Drawer] Accounts fetch failed or empty:', result);
           }
         })
-        .catch((err) => console.error('[Phantoma][Drawer] Accounts fetch error:', err))
+        .catch((err) => logger.error('[Phantoma][Drawer] Accounts fetch error:', err))
         .finally(() => setIsLoadingAccountMap(false));
     }
   }, [isOpen, apiUrl]);
@@ -144,10 +145,10 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
           if (isMounted && result.success && result.data?.accounts) {
             setProviderAccounts(result.data.accounts);
           } else if (isMounted) {
-            console.warn('[Phantoma][Drawer] No accounts in response:', result);
+            logger.warn('[Phantoma][Drawer] No accounts in response:', result);
           }
         })
-        .catch((err) => console.error('[Phantoma][Drawer] Provider accounts fetch error:', err))
+        .catch((err) => logger.error('[Phantoma][Drawer] Provider accounts fetch error:', err))
         .finally(() => {
           if (isMounted) setIsLoadingAccounts(false);
         });

@@ -8,6 +8,7 @@
  * ------------------------------------------------------------------
  */
 
+import { logger } from '@renderer/utils/logger';
 import { useMemo } from 'react';
 import * as Babel from '@babel/standalone';
 import * as React from 'react';
@@ -84,7 +85,7 @@ export function useRuntimeComponent(
     try {
       return getRuntimeComponent(componentPath, files);
     } catch (error) {
-      console.error('[runtimeComponent] Failed to load', componentPath, error);
+      logger.error('[runtimeComponent] Failed to load', componentPath, error);
       return () => <div>Failed to load component</div>;
     }
   }, [componentPath, files]);

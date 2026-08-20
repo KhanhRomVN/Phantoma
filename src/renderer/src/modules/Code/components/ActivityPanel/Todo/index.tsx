@@ -24,12 +24,10 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  XCircle,
   Edit2,
   Trash2,
   ChevronRight,
   Search,
-  Filter,
 } from 'lucide-react';
 
 // ── Hooks ──
@@ -265,9 +263,7 @@ export function TodoPanel() {
               <label className="text-xs text-text-secondary mb-1 block">Trạng thái</label>
               <select
                 value={formData.status}
-                onChange={(e) =>
-                  setFormData({ ...formData, status: e.target.value as TaskStatus })
-                }
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
                 className="w-full px-3 py-2 bg-background border border-border rounded text-sm text-text-primary focus:outline-none focus:border-primary"
               >
                 {Object.entries(STATUS_CONFIG).map(([key, config]) => (
@@ -310,9 +306,7 @@ export function TodoPanel() {
 
         <div className="flex flex-col gap-3">
           <div className="p-3 bg-background border border-border rounded">
-            <h4 className="text-sm font-medium text-text-primary mb-2">
-              {reviewingTask.title}
-            </h4>
+            <h4 className="text-sm font-medium text-text-primary mb-2">{reviewingTask.title}</h4>
             {reviewingTask.description && (
               <p className="text-xs text-text-secondary">{reviewingTask.description}</p>
             )}

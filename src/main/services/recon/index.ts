@@ -1,6 +1,14 @@
 /**
- * Recon Handlers Index
- * Export all handler classes for browser automation
+ * ------------------------------------------------------------------
+ * Barrel export Recon
+ * ------------------------------------------------------------------
+ * Tái xuất tất cả các lớp xử lý và kiểu dữ liệu recon cho
+ * tự động hóa trình duyệt.
+ *
+ * Export chính:
+ * - TabHandler, NavigationHandler, ContentHandler, InteractionHandler
+ * - Types: TabInfo, PageContent, InteractiveElement
+ * ------------------------------------------------------------------
  */
 
 export { TabHandler } from './TabHandler';

@@ -1,8 +1,31 @@
+/**
+ * ------------------------------------------------------------------
+ * IPC handler hệ thống file
+ * ------------------------------------------------------------------
+ * IPC handler hệ thống file cho renderer. Cung cấp đọc-ghi file/thư mục,
+ * liệt kê, tìm kiếm, lệnh shell, theo dõi file và
+ * cài đặt CA hệ thống.
+ *
+ * Hàm chính:
+ * - setupFSHandlers()   : Đăng ký tất cả IPC handler fs:/shell:/cert:
+ * - installSystemCA()   : Cài đặt CA Phantoma vào kho tin cậy hệ thống
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain } from 'electron';
+
+// ── Node.js ──
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec as execCallback } from 'child_process';
+
+// ── External ──
 import chokidar, { FSWatcher } from 'chokidar';
+
+// ── Internal ──
+import { logger } from '../utils/logger';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -12,6 +35,7 @@ function matchPattern(name: string, pattern: string): boolean {
   try {
     return new RegExp('^' + regexStr + '$', 'i').test(name);
   } catch {
+    logger.warn(`[fs] Invalid glob pattern: ${pattern}, falling back to substring match`);
     return name.includes(pattern);
   }
 }
@@ -48,7 +72,7 @@ function startWatching(projectPath: string, sender: Electron.WebContents): void 
   });
 
   watcher.on('error', (err) => {
-    console.error('[fs:watcher] Error watching ' + projectPath + ':', err.message);
+    logger.error('[fs:watcher] Error watching ' + projectPath + ':', err.message);
   });
 
   watchers.set(projectPath, watcher);
@@ -79,11 +103,13 @@ function startWatchingFile(filePath: string, sender: Electron.WebContents): void
     try {
       const stat = fs.statSync(filePath);
       sender.send('fs:file-changed', { filePath, mtime: stat.mtimeMs });
-    } catch {}
+    } catch {
+      logger.warn(`[fs:file-watcher] Failed to stat changed file: ${filePath}`);
+    }
   });
 
   watcher.on('error', (err: Error) => {
-    console.error(`[fs:file-watcher] Error watching ${filePath}:`, err.message);
+    logger.error(`[fs:file-watcher] Error watching ${filePath}:`, err.message);
   });
 
   fileWatchers.set(filePath, watcher);
@@ -115,7 +141,7 @@ export async function installSystemCA(): Promise<boolean> {
       execCallback(command, (error: any, _stdout: any, stderr: any) => {
         clearTimeout(timeout);
         if (error) {
-          console.error('[Cert] Failed:', error.message, stderr);
+          logger.error('[Cert] Failed:', error.message, stderr);
           resolve(false);
           return;
         }
@@ -123,7 +149,7 @@ export async function installSystemCA(): Promise<boolean> {
       });
     });
   } catch (e: any) {
-    console.error('[Cert] Error:', e);
+    logger.error('[Cert] Error:', e);
     return false;
   }
 }
@@ -183,6 +209,7 @@ export function setupFSHandlers() {
         type = stats.isDirectory() ? 'folder' : 'file';
         size = stats.size;
       } catch {
+        logger.warn(`[fs] Failed to stat file: ${fullPath}`);
         /* keep defaults */
       }
       return { name: file, type, size };
@@ -248,11 +275,11 @@ export function setupFSHandlers() {
             if (stat.isDirectory()) walk(fullPath, depth + 1);
             else if (matchPattern(entry, pattern)) results.push(fullPath);
           } catch {
-            /* skip */
+            logger.warn(`[fs] Skipping inaccessible path: ${fullPath}`);
           }
         }
       } catch {
-        /* skip */
+        logger.warn(`[fs] Skipping inaccessible directory: ${currentDir}`);
       }
     };
     walk(dirPath, 0);
@@ -279,7 +306,7 @@ export function setupFSHandlers() {
         }
         if (matches.length > 0) results[filePath] = { matches };
       } catch {
-        /* skip */
+        logger.warn(`[fs] Skipping unreadable file: ${filePath}`);
       }
     };
 
@@ -298,11 +325,11 @@ export function setupFSHandlers() {
               if (s.isDirectory()) walk(fullPath, depth + 1);
               else if (s.isFile()) searchInFile(fullPath);
             } catch {
-              /* skip */
+              logger.warn(`[fs] Skipping inaccessible path: ${fullPath}`);
             }
           }
         } catch {
-          /* skip */
+          logger.warn(`[fs] Skipping inaccessible directory: ${dir}`);
         }
       };
       walk(targetPath, 0);

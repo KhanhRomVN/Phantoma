@@ -12,6 +12,7 @@ import {
 } from '../prompts/recon';
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
 import type { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
+import { logger } from '@renderer/utils/logger';
 
 export interface PromptBuilderOptions {
   content: string;
@@ -73,7 +74,6 @@ export class PromptBuilder {
       treeView,
       workspace,
       files,
-      userRequestCount,
       feature,
       trafficContext,
       filterContext,
@@ -133,7 +133,7 @@ export class PromptBuilder {
         };
       }
     } catch (e) {
-      console.warn('[PromptBuilder] Failed to fetch system info:', e);
+      logger.warn('[PromptBuilder] Failed to fetch system info:', e);
     }
 
     const effectiveLang = aiLanguage;

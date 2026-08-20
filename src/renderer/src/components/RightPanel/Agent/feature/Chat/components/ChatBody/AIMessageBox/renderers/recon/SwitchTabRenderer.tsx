@@ -1,5 +1,5 @@
 /**
- * SwitchTabRenderer — Renderer for switch_tab tool
+ * SwitchTabRenderer — Renderer cho tool switch_tab
  */
 
 import React from 'react';

@@ -12,6 +12,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── Utils ──
 import { SecurityValidator } from '../../utils/security';
 
@@ -77,7 +78,7 @@ export class GrepHandler {
 
       return await this.executeGrep(action);
     } catch (e: any) {
-      console.error(`[GrepHandler] Grep failed:`, { requestId, error: e.message });
+      logger.error(`[GrepHandler] Grep failed:`, { requestId, error: e.message });
       return { success: false, error: e.message };
     }
   }

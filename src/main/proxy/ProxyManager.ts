@@ -1,13 +1,37 @@
-import { ProxyServer, BreakpointRule, PendingBreakpoint } from './ProxyServer';
-import { findAvailablePort } from '../utils/net';
+/**
+ * ------------------------------------------------------------------
+ * Quản lý proxy
+ * ------------------------------------------------------------------
+ * Quản lý nhiều phiên ProxyServer, mỗi phiên cho một ứng dụng đích.
+ * Xử lý vòng đời phiên, cấp phát cổng và chuyển tiếp
+ * lệnh chặn bắt/breakpoint đến phiên đúng.
+ *
+ * Hàm chính:
+ * - createSession()      : Khởi động phiên proxy mới cho một ứng dụng
+ * - stopSession()        : Dừng một phiên đơn lẻ
+ * - stopAll()            : Dừng tất cả phiên đang hoạt động
+ * - setIntercept()       : Bật/tắt chặn bắt cho một phiên
+ * - setBreakpointRules() : Cập nhật quy tắc breakpoint cho tất cả phiên
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { BrowserWindow } from 'electron';
 
+// ── Internal ──
+import { ProxyServer, BreakpointRule, PendingBreakpoint } from './ProxyServer';
+import { findAvailablePort } from '../utils/net';
+import { logger } from '../utils/logger';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface ProxySession {
   id: string; // usually appId
   port: number;
   server: ProxyServer;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ProxyManager {
   private sessions: Map<string, ProxySession> = new Map();
   private mainWindow: BrowserWindow | null = null;
@@ -53,6 +77,7 @@ export class ProxyManager {
         if (!err.message?.includes('EADDRINUSE')) {
           throw err;
         }
+        logger.warn(`[ProxyManager] Port ${startPort} in use, retrying...`);
       }
     }
 
@@ -76,7 +101,7 @@ export class ProxyManager {
     for (const [, session] of this.sessions) {
       stopPromises.push(
         session.server.stop().catch((err) => {
-          console.error(`[ProxyManager] Error stopping session:`, err);
+          logger.error(`[ProxyManager] Error stopping session:`, err);
         })
       );
     }

@@ -1,4 +1,5 @@
 import { Bell, Settings, User, PanelRightClose, PanelRightOpen, Minus, Square, X } from 'lucide-react';
+import { logger } from '@renderer/utils/logger';
 import { useEffect, useState } from 'react';
 
 interface HeaderBarProps {
@@ -17,7 +18,7 @@ export function HeaderBar({ isRightPanelOpen = true, onToggleRightPanel }: Heade
         const maximized = await window.api.invoke('window:isMaximized');
         setIsMaximized(maximized);
       } catch (error) {
-        console.error('Failed to check window state:', error);
+        logger.error('Failed to check window state:', error);
       }
     };
     checkMaximized();
@@ -36,19 +37,19 @@ export function HeaderBar({ isRightPanelOpen = true, onToggleRightPanel }: Heade
   }, []);
 
   const handleMinimize = () => {
-    window.api.invoke('window:minimize').catch(console.error);
+    window.api.invoke('window:minimize').catch((err) => logger.error('Failed to minimize window:', err));
   };
 
   const handleMaximize = () => {
     if (isMaximized) {
-      window.api.invoke('window:unmaximize').catch(console.error);
+      window.api.invoke('window:unmaximize').catch((err) => logger.error('Failed to unmaximize window:', err));
     } else {
-      window.api.invoke('window:maximize').catch(console.error);
+      window.api.invoke('window:maximize').catch((err) => logger.error('Failed to maximize window:', err));
     }
   };
 
   const handleClose = () => {
-    window.api.invoke('window:close').catch(console.error);
+    window.api.invoke('window:close').catch((err) => logger.error('Failed to close window:', err));
   };
 
   return (

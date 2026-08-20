@@ -1,8 +1,7 @@
 /**
- * PressKeyBlock — Display press_key tool output
+ * PressKeyBlock — Hiển thị output của tool press_key
  */
 
-import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 interface PressKeyBlockProps {
@@ -53,9 +52,7 @@ export default function PressKeyBlock({
         </div>
       )}
 
-      {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Pressing key...</div>
-      )}
+      {!output && !isError && <div className="text-text-secondary opacity-60">Pressing key...</div>}
     </div>
   );
 }

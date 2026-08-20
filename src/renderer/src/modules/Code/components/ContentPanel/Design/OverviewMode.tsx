@@ -72,7 +72,7 @@ export function OverviewMode({ project, onOpenPage }: OverviewModeProps) {
     () => ({
       pageNode: PageNodeComponent,
     }),
-    []
+    [],
   );
 
   return (
@@ -90,9 +90,7 @@ export function OverviewMode({ project, onOpenPage }: OverviewModeProps) {
         proOptions={{ hideAttribution: true }}
       >
         <Background color="hsl(var(--border))" gap={22} size={1} />
-        <Controls
-          className="!bg-sidebar-background !border-border [&_button]:!bg-sidebar-item-hover [&_button]:!border-border [&_button]:!text-text-secondary hover:[&_button]:!bg-primary/10 hover:[&_button]:!text-primary"
-        />
+        <Controls className="!bg-sidebar-background !border-border [&_button]:!bg-sidebar-item-hover [&_button]:!border-border [&_button]:!text-text-secondary hover:[&_button]:!bg-primary/10 hover:[&_button]:!text-primary" />
         <MiniMap
           className="!bg-sidebar-background !border-border"
           nodeColor="hsl(var(--border))"
@@ -113,7 +111,7 @@ interface PageNodeComponentProps {
 }
 
 function PageNodeComponent({ data }: PageNodeComponentProps) {
-  const { page, project, onOpenPage } = data;
+  const { page, onOpenPage } = data;
 
   // Dynamically load the page component
   // componentPath already includes full path (e.g., "luma-coffee/Home")

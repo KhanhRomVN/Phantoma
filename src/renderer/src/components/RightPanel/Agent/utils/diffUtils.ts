@@ -1,11 +1,16 @@
-export interface DiffHighlight {
-  /**
- * diffUtils — parse unified diff string thành code highlighted + stats.
+/**
+ * ------------------------------------------------------------------
+ * diffUtils
+ * ------------------------------------------------------------------
+ * Parse unified diff string thành code highlighted + stats.
  *
- *    parseDiff()         : Parse unified diff text → { code, lineHighlights, stats }.
- *    LineDiffHighlighter : Class highlight từng dòng thêm/xóa trong diff.
+ * Main features:
+ * - parseDiff()         : Parse unified diff text → code + highlights
+ * - LineDiffHighlighter : Class highlight từng dòng thêm/xóa
+ * ------------------------------------------------------------------
  */
 
+export interface DiffHighlight {
   startLine: number;
   endLine: number;
   type: "added" | "removed";

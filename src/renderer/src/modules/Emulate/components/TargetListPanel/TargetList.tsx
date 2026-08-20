@@ -1,4 +1,5 @@
 import React, { useState, useCallback, memo } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { Plus, Play, Square, Trash2, Pencil } from 'lucide-react';
 
 // Components
@@ -289,7 +290,7 @@ const TargetList: React.FC<TargetListProps> = ({
           await new Promise((resolve) => setTimeout(resolve, 3000));
           // Get the actual CDP port from the launch process
           if (!window.api || typeof window.api.invoke !== 'function') {
-            console.error('[TargetList] window.api is not available');
+            logger.warn('[TargetList] window.api is not available');
             return;
           }
           const portRes = await ipcService.getCdpLaunchPort();
@@ -356,7 +357,7 @@ const TargetList: React.FC<TargetListProps> = ({
           }
         })
         .catch((err: unknown) => {
-          console.error('[TargetList] Failed to create proxy session:', err);
+          logger.error('[TargetList] Failed to create proxy session:', err);
           onStopTarget();
         });
     },

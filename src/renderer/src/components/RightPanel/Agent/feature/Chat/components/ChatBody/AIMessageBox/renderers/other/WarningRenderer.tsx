@@ -13,8 +13,8 @@ interface WarningRendererProps {
 }
 
 /**
- * Renderer for warning blocks
- * Displays warning messages with optional pulsing animation
+ * Renderer cho block cảnh báo
+ * Hiển thị thông điệp cảnh báo với hiệu ứng nhấp nháy tùy chọn
  */
 export const WarningRenderer: React.FC<WarningRendererProps> = ({
   label,

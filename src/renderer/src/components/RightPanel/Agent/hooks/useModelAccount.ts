@@ -1,15 +1,21 @@
-import { useState, useEffect, useRef } from "react";
-
 /**
- * useModelAccount — hook tập trung cho state model + account selection, persist qua localStorage theo workspace.
+ * ------------------------------------------------------------------
+ * useModelAccount
+ * ------------------------------------------------------------------
+ * Hook tập trung cho state model + account selection, persist qua
+ * localStorage theo workspace.
  *
- *    getKey() : Tạo cache key scoped theo folderPath.
+ * Main features:
+ * - getKey() : Tạo cache key scoped theo folderPath
+ * - Persist model/account selection theo workspace
+ * ------------------------------------------------------------------
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@renderer/utils/logger';
+import { useState, useEffect, useRef } from 'react';
 
 function getKey(base: string, folderPath: string | null | undefined): string {
-  return `${base}:${folderPath || "global"}`;
+  return `${base}:${folderPath || 'global'}`;
 }
 
 interface UseModelAccountOptions {
@@ -48,27 +54,31 @@ export function useModelAccount(
   const [currentModel, setCurrentModel] = useState<any>(() => {
     if (initialRef.current.initialModel) return initialRef.current.initialModel;
     try {
-      const key = getKey("zen_last_model", folderPath);
+      const key = getKey('zen_last_model', folderPath);
       const saved = localStorage.getItem(key);
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch {
+      logger.warn('[useModelAccount] Failed to parse saved model');
+    }
     return null;
   });
 
   const [currentAccount, setCurrentAccount] = useState<any>(() => {
     if (initialRef.current.initialAccount) return initialRef.current.initialAccount;
     try {
-      const key = getKey("zen_last_account", folderPath);
+      const key = getKey('zen_last_account', folderPath);
       const saved = localStorage.getItem(key);
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch {
+      logger.warn('[useModelAccount] Failed to parse saved account');
+    }
     return null;
   });
 
   // Persist model changes
   useEffect(() => {
     if (currentModel) {
-      const key = getKey("zen_last_model", folderPath);
+      const key = getKey('zen_last_model', folderPath);
       localStorage.setItem(key, JSON.stringify(currentModel));
     }
   }, [currentModel, folderPath]);
@@ -76,7 +86,7 @@ export function useModelAccount(
   // Persist account changes
   useEffect(() => {
     if (currentAccount) {
-      const key = getKey("zen_last_account", folderPath);
+      const key = getKey('zen_last_account', folderPath);
       localStorage.setItem(key, JSON.stringify(currentAccount));
     }
   }, [currentAccount, folderPath]);

@@ -2,9 +2,9 @@ import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
 /**
- * ContinuingIndicatorBox displays a pulsing indicator when the AI response
- * is being continued after an interruption. This is a standalone component
- * used in ChatBody to show that content is being fetched.
+ * ContinuingIndicatorBox hiển thị chỉ báo nhấp nháy khi phản hồi AI
+ * đang được tiếp tục sau khi bị gián đoạn. Đây là component độc lập
+ * dùng trong ChatBody để hiển thị nội dung đang được tải.
  */
 export const ContinuingIndicatorBox: React.FC = () => {
   return (

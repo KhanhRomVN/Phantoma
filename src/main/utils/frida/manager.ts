@@ -1,14 +1,33 @@
 import { exec, execSync } from 'child_process';
+/**
+ * ------------------------------------------------------------------
+ * Quản lý Frida
+ * ------------------------------------------------------------------
+ * Quản lý vòng đời máy chủ Frida trên trình giả lập/thiết bị Android.
+ * Xử lý cài đặt, khởi động/dừng và phát hiện trạng thái đang chạy.
+ *
+ * Hàm chính:
+ * - isFridaRunning()        : Kiểm tra xem máy chủ Frida có đang chạy
+ * - isFridaServerInstalled(): Kiểm tra xem máy chủ Frida đã cài đặt
+ * - installFridaServer()    : Cài đặt máy chủ Frida vào trình giả lập
+ * - startFridaServer()      : Khởi động máy chủ Frida
+ * - stopFridaServer()       : Dừng máy chủ Frida
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import { promisify } from 'util';
 import * as fs from 'fs';
-import { downloadFridaServer } from './download';
 
+// ── Internal ──
+import { downloadFridaServer } from './download';
+import { logger } from '../logger';
+
+// ─── Constants ──────────────────────────────────────────────────────────
 const execAsync = promisify(exec);
 
-/**
- * Check if Frida server is running on emulator
- * Uses multiple detection methods for compatibility with Android 8.0+
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 export async function isFridaRunning(serial: string): Promise<boolean> {
   try {
     // Method 1: Check for frida-server process using pidof (most reliable on modern Android)
@@ -18,7 +37,7 @@ export async function isFridaRunning(serial: string): Promise<boolean> {
         return true;
       }
     } catch {
-      // Continue to next method
+      logger.warn('[Frida] pidof method failed, trying netstat');
     }
 
     // Method 2: Check if port 27042 (default Frida port) is listening
@@ -30,7 +49,7 @@ export async function isFridaRunning(serial: string): Promise<boolean> {
         return true;
       }
     } catch {
-      // Continue to next method
+      logger.warn('[Frida] netstat method failed, trying ps -A');
     }
 
     // Method 3: Fallback to ps -A (works on newer Android versions)
@@ -38,7 +57,7 @@ export async function isFridaRunning(serial: string): Promise<boolean> {
       const { stdout } = await execAsync(`adb -s "${serial}" shell "ps -A | grep frida-server"`);
       return stdout.includes('frida-server');
     } catch {
-      // Continue to final fallback
+      logger.warn('[Frida] ps -A method failed, trying ps');
     }
 
     // Method 4: Final fallback to original ps | grep (for older Android)
@@ -46,11 +65,12 @@ export async function isFridaRunning(serial: string): Promise<boolean> {
       const { stdout } = await execAsync(`adb -s "${serial}" shell "ps | grep frida-server"`);
       return stdout.includes('frida-server');
     } catch {
-      // All methods failed
+      logger.warn('[Frida] All detection methods failed');
     }
 
     return false;
   } catch {
+    logger.warn('[Frida] Failed to check if Frida is running');
     return false;
   }
 }
@@ -65,6 +85,7 @@ export async function isFridaServerInstalled(serial: string): Promise<boolean> {
     await execAsync(`adb -s "${serial}" shell "ls /data/local/tmp/frida-server"`);
     return true;
   } catch {
+    logger.warn('[Frida] Frida server not installed');
     return false;
   }
 }
@@ -98,7 +119,7 @@ export async function installFridaServer(
     onProgress?.('Frida server installed successfully');
     return true;
   } catch (error) {
-    console.error('Failed to install Frida server:', error);
+    logger.error('Failed to install Frida server:', error);
     onProgress?.(`Error: ${error}`);
     return false;
   }
@@ -120,6 +141,7 @@ export async function startFridaServer(serial: string): Promise<boolean> {
         `adb -s "${serial}" shell "su -c '/data/local/tmp/frida-server > /dev/null 2>&1 &'"`,
       );
     } catch (rootError) {
+      logger.warn('[Frida] Root start failed, trying without root');
       await execAsync(`adb -s "${serial}" shell "/data/local/tmp/frida-server > /dev/null 2>&1 &"`);
     }
 
@@ -130,12 +152,12 @@ export async function startFridaServer(serial: string): Promise<boolean> {
     const isRunning = await isFridaRunning(serial);
     if (isRunning) {
     } else {
-      console.error('Frida server failed to start');
+      logger.error('Frida server failed to start');
     }
 
     return isRunning;
   } catch (error) {
-    console.error('Failed to start Frida server:', error);
+    logger.error('Failed to start Frida server:', error);
     return false;
   }
 }
@@ -148,7 +170,7 @@ export async function stopFridaServer(serial: string): Promise<boolean> {
     await execAsync(`adb -s "${serial}" shell "pkill frida-server"`);
     return true;
   } catch (error) {
-    console.error('Failed to stop Frida server:', error);
+    logger.error('Failed to stop Frida server:', error);
     return false;
   }
 }
@@ -180,7 +202,7 @@ export async function listRunningProcesses(serial: string): Promise<
 
     return processes;
   } catch (error) {
-    console.error('Failed to list processes:', error);
+    logger.error('Failed to list processes:', error);
     return [];
   }
 }
@@ -209,10 +231,12 @@ export async function ensurePtraceScope(onLog?: (msg: string) => void): Promise<
       onLog?.('✅ Permission granted. ptrace_scope set to 0.');
       return true;
     } catch (err) {
+      logger.warn('[Frida] Failed to change ptrace_scope, permission denied');
       onLog?.('❌ Failed to change ptrace_scope. Root permission denied/cancelled.');
       return false;
     }
   } catch (e: any) {
+    logger.warn('[Frida] Error checking ptrace_scope:', e.message);
     onLog?.(`Error checking ptrace_scope: ${e.message}`);
     return false;
   }

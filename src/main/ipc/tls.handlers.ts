@@ -1,5 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * IPC handler TLS
+ * ------------------------------------------------------------------
+ * IPC handler cho kiểm tra chứng chỉ TLS. Kết nối đến một host
+ * và trích xuất chi tiết giao thức, cipher và chứng chỉ.
+ *
+ * Hàm chính:
+ * - setupTLSHandlers() : Đăng ký IPC handler tls:scan
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain } from 'electron';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export function setupTLSHandlers() {
   ipcMain.handle('tls:scan', async (_, host: string) => {
     const tls = await import('tls');

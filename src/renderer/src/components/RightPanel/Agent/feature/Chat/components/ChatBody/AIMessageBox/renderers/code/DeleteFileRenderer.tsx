@@ -24,21 +24,17 @@ import ActionBar from '../../ActionBar';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 
 /**
- * Renderer for delete_file tool type
+ * Renderer cho loại tool delete_file
  */
 export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
   messageId,
   isActionClicked,
-  isActiveGroup,
-  isLastMessage,
   isLastItemInList,
   toolOutputs,
   allMessages,
-  fileStatsMap,
   onToolClick,
-  conversationId,
 }) => {
   const toolType = action.type;
   const actionId = `${messageId}-action-${actionIndex}`;
@@ -96,7 +92,7 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
             actionIndex={actionIndex}
             hasError={hasValidationError || isError}
             isCompleted={isCompleted}
-            onAction={(e, type) => onToolClick(action, messageId, actionIndex, type)}
+            onAction={(_e, type) => onToolClick(action, messageId, actionIndex, type)}
           />
         </div>
       )}

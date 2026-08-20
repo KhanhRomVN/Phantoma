@@ -18,6 +18,7 @@ import { FilterBar } from './FilterBar';
 import { DataTable } from './DataTable';
 import { exportToJson, exportToCsv, exportToXlsx } from '../../utils/export';
 import { ROWS_PER_PAGE } from '../../constants/database';
+import { logger } from '@renderer/utils/logger';
 
 const DatabaseViewer: React.FC = () => {
   const {
@@ -244,7 +245,7 @@ const DatabaseViewer: React.FC = () => {
       setRowSelection({}); // Clear selection after deletion
       setShowDeleteModal(false);
     } catch (err) {
-      console.error('Delete failed:', err);
+      logger.error('Delete failed:', err);
       alert(`Failed to delete records: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setShowDeleteModal(false);
     }
@@ -256,7 +257,7 @@ const DatabaseViewer: React.FC = () => {
         await deleteRecords([rowId]);
         setRowSelection({});
       } catch (err) {
-        console.error('Delete failed:', err);
+        logger.error('Delete failed:', err);
         alert(`Failed to delete record: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
     },
@@ -273,7 +274,7 @@ const DatabaseViewer: React.FC = () => {
         const jsonString = JSON.stringify(data, null, 2);
         navigator.clipboard.writeText(jsonString);
       } catch (err) {
-        console.error('Copy failed:', err);
+        logger.error('Copy failed:', err);
         alert('Failed to copy as JSON');
       }
     },
@@ -303,7 +304,7 @@ const DatabaseViewer: React.FC = () => {
         const markdownContent = rows.join('\n');
         navigator.clipboard.writeText(markdownContent);
       } catch (err) {
-        console.error('Copy failed:', err);
+        logger.error('Copy failed:', err);
         alert('Failed to copy as Markdown');
       }
     },
@@ -325,7 +326,7 @@ const DatabaseViewer: React.FC = () => {
         const jsonString = JSON.stringify(data, null, 2);
         navigator.clipboard.writeText(jsonString);
       } catch (err) {
-        console.error('Copy failed:', err);
+        logger.error('Copy failed:', err);
         alert('Failed to copy selected records as JSON');
       }
     },
@@ -359,7 +360,7 @@ const DatabaseViewer: React.FC = () => {
         const markdownContent = output.join('\n');
         navigator.clipboard.writeText(markdownContent);
       } catch (err) {
-        console.error('Copy failed:', err);
+        logger.error('Copy failed:', err);
         alert('Failed to copy selected records as Markdown');
       }
     },

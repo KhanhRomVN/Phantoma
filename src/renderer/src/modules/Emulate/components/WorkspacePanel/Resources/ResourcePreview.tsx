@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { logger } from '@renderer/utils/logger';
 import { Download, Cpu, FolderOpen, File } from 'lucide-react';
 
 // Components
@@ -148,7 +149,7 @@ export function ResourcePreview({ item }: ResourcePreviewProps) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.error('Failed to download:', e);
+      logger.error('Failed to download:', e);
     }
   };
 

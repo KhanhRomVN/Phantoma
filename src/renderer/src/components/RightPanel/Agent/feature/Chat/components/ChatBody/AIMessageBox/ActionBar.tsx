@@ -30,17 +30,7 @@ export interface ActionBarProps {
   toolColor?: string;
 }
 
-/**
- * Smart ActionBar that automatically decides which buttons to show based on action state:
- * - If hasError=true: Show "Skip this tool because of error" button
- * - If isLoading=true: Show spinner
- * - If isCompleted=true: Show nothing (or checkmark in future)
- * - Otherwise: Show "Accept" + "Reject" buttons for approval
- */
 const ActionBar: React.FC<ActionBarProps> = ({
-  action,
-  messageId,
-  actionIndex,
   onAction,
   isCompleted = false,
   hasError = false,

@@ -11,7 +11,6 @@ import ListHttpsBlock from '../../blocks/emulate/ListHttpsBlock';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 
 export const ListHttpsRenderer: React.FC<BaseRendererProps> = ({
-  action,
   actionIndex,
   messageId,
   isActionClicked,

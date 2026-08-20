@@ -32,7 +32,7 @@ export function detectWasm(requests: NetworkRequest[]): WasmItem[] {
     }
     // Method 2: Check content-type header
     else if (request.responseHeaders) {
-      const contentType = request.responseHeaders['content-type'] || request.contentType || '';
+      const contentType = request.responseHeaders['content-type'] || '';
       if (contentType.toLowerCase().includes('application/wasm')) {
         detectionMethod = 'MIME Type';
         const urlParts = url.split('/');

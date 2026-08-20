@@ -1,5 +1,25 @@
-import { ipcMain, BrowserWindow } from 'electron';
-import { windowManager } from '../core/window';
+/**
+ * ------------------------------------------------------------------
+ * IPC handler di động
+ * ------------------------------------------------------------------
+ * IPC handler cho quản lý trình giả lập di động. Bao gồm kiểm tra ADB,
+ * kết nối không dây, khởi chạy trình giả lập, chèn Frida, cấu hình
+ * proxy, quản lý ứng dụng và phát trực tuyến logcat.
+ *
+ * Hàm chính:
+ * - setupMobileHandlers() : Đăng ký tất cả IPC handler mobile:
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
+import { ipcMain } from 'electron';
+
+// ── Node.js ──
+import { ChildProcess, spawn } from 'child_process';
+
+// ── Internal ──
+import { windowManager } from '../core/window/WindowManager';
 import {
   checkADBAvailability,
   detectAllEmulators,
@@ -47,12 +67,14 @@ import {
   launchWaydroidWithConfig,
   getInstallInstructions,
 } from '../utils/emulator-launcher';
-import { ChildProcess, spawn } from 'child_process';
+import { logger } from '../utils/logger';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 // Logcat state
 let activeLogcatProcess: ChildProcess | null = null;
 let lastLogcatRequestTime = 0;
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export function setupMobileHandlers() {
   // Mobile System Check
   ipcMain.handle('mobile:check-adb', async () => {
@@ -109,7 +131,9 @@ export function setupMobileHandlers() {
             );
             ip = ipOutput.trim();
             if (ip) break;
-          } catch (err) {}
+          } catch (err) {
+            logger.warn('[ADB Wireless] Failed to get IP via ip -f inet addr');
+          }
 
           try {
             const { stdout: altIpOutput } = await execAsync(
@@ -118,13 +142,15 @@ export function setupMobileHandlers() {
             );
             ip = altIpOutput.trim();
             if (ip) break;
-          } catch (err) {}
+          } catch (err) {
+            logger.warn('[ADB Wireless] Failed to get IP via ip addr show wlan0');
+          }
 
           if (!ip && i < retries - 1) {
             await new Promise((resolve) => setTimeout(resolve, 2000));
           }
         } catch (e) {
-          console.error(`[ADB Wireless] Retry ${i + 1} error:`, e);
+          logger.error(`[ADB Wireless] Retry ${i + 1} error:`, e);
         }
       }
 
@@ -143,7 +169,7 @@ export function setupMobileHandlers() {
         };
       }
     } catch (e: any) {
-      console.error('[ADB Wireless] Error:', e);
+      logger.error('[ADB Wireless] Error:', e);
       return { success: false, error: e.message || 'Failed to enable wireless ADB' };
     }
   });
@@ -218,7 +244,7 @@ export function setupMobileHandlers() {
   ipcMain.handle('mobile:install-frida', async (_, serial: string) => {
     const resolvedSerial = await resolveEmulatorSerial(serial);
     if (!resolvedSerial) {
-      console.error(`Could not resolve emulator serial from: ${serial}`);
+      logger.error(`Could not resolve emulator serial from: ${serial}`);
       return false;
     }
 
@@ -331,7 +357,7 @@ export function setupMobileHandlers() {
         if (win) win.webContents.send('mobile:install-cert-progress', status);
       });
     } catch (e) {
-      console.error('Failed to install CA cert:', e);
+      logger.error('Failed to install CA cert:', e);
       return false;
     }
   });
@@ -409,8 +435,8 @@ export function setupMobileHandlers() {
       }
 
       if (!resolvedSerial) {
-        console.error('[Logcat] ERROR: Could not resolve emulator serial!');
-        console.error(`[Logcat] Input was: "${serial}"`);
+        logger.error('[Logcat] ERROR: Could not resolve emulator serial!');
+        logger.error(`[Logcat] Input was: "${serial}"`);
         throw new Error('Emulator serial not found');
       }
 
@@ -443,7 +469,7 @@ export function setupMobileHandlers() {
               if (win && !win.isDestroyed()) {
                 win.webContents.send('mobile:logcat-output', line);
               } else {
-                console.error('[Logcat] ERROR: Main window not available!');
+                logger.error('[Logcat] ERROR: Main window not available!');
               }
             }
 
@@ -451,12 +477,12 @@ export function setupMobileHandlers() {
           }
         });
       } else {
-        console.error('[Logcat] ERROR: Process stdout is null!');
+        logger.error('[Logcat] ERROR: Process stdout is null!');
       }
 
       if (activeLogcatProcess.stderr) {
         activeLogcatProcess.stderr.on('data', (data) => {
-          console.error('[Logcat Error]', data.toString());
+          logger.error('[Logcat Error]', data.toString());
         });
       }
 
@@ -465,11 +491,11 @@ export function setupMobileHandlers() {
       });
 
       activeLogcatProcess.on('error', (err) => {
-        console.error('[Logcat] Process error:', err);
+        logger.error('[Logcat] Process error:', err);
       });
       return true;
     } catch (e) {
-      console.error('[Logcat] Failed to start:', e);
+      logger.error('[Logcat] Failed to start:', e);
       return false;
     }
   });

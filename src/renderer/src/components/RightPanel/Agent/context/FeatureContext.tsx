@@ -1,8 +1,14 @@
 /**
- * FeatureContext — quản lý feature đang active (emulate/code) và EmulateState toàn cục.
+ * ------------------------------------------------------------------
+ * FeatureContext
+ * ------------------------------------------------------------------
+ * Quản lý feature đang active (emulate/code/recon) và state toàn cục
+ * cho từng feature.
  *
- *    FeatureProvider     : Provider bọc ngoài, giữ state activeFeature + emulateState.
- *    useAgentFeature()   : Hook tiêu thụ context, trả về { activeFeature, setActiveFeature, emulateState, setEmulateState }.
+ * Main features:
+ * - FeatureProvider   : Provider giữ state activeFeature + các state con
+ * - useAgentFeature() : Hook trả về activeFeature và các setter
+ * ------------------------------------------------------------------
  */
 
 import React, { createContext, useContext, useState } from 'react';

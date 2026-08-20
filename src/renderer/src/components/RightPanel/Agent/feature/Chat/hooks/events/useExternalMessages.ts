@@ -1,11 +1,4 @@
-import { useEffect, useRef } from "react";
-/**
- * useExternalMessages — lắng nghe external messages từ extension (gửi file, workspace context...).
- *
- *    Xử lý message command: addToCrypto, addFileToChat, addFolderToChat, addRulesToChat, externalFiles.
- */
-
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 // TYPES
 import { Message } from '../../types/message';
@@ -22,7 +15,7 @@ interface UseExternalMessagesProps {
 
 /**
  * Hook to handle external messages from VSCode extension
- * 
+ *
  * PERFORMANCE: Uses refs to avoid recreating event listeners on every message change
  */
 export const useExternalMessages = ({
@@ -46,7 +39,7 @@ export const useExternalMessages = ({
   const setMessagesRef = useRef(setMessages);
   const setProjectContextRef = useRef(setProjectContext);
   const addAttachedItemRef = useRef(addAttachedItem);
-  
+
   // Update refs when values change
   useEffect(() => {
     currentChatRef.current = currentChat;
@@ -55,12 +48,19 @@ export const useExternalMessages = ({
     setMessagesRef.current = setMessages;
     setProjectContextRef.current = setProjectContext;
     addAttachedItemRef.current = addAttachedItem;
-  }, [currentChat, currentConversationId, messages, setMessages, setProjectContext, addAttachedItem]);
+  }, [
+    currentChat,
+    currentConversationId,
+    messages,
+    setMessages,
+    setProjectContext,
+    addAttachedItem,
+  ]);
 
   useEffect(() => {
     const vscodeApi = (window as any).vscodeApi;
     if (vscodeApi) {
-      vscodeApi.postMessage({ command: "loadProjectContext" });
+      vscodeApi.postMessage({ command: 'loadProjectContext' });
     }
 
     const handleMessage = (event: MessageEvent) => {
@@ -68,27 +68,26 @@ export const useExternalMessages = ({
 
       const message = event.data;
 
-      if (message.command === "projectContextResponse") {
+      if (message.command === 'projectContextResponse') {
         setProjectContextRef.current(message.context);
-      } else if (message.command === "addAttachedItem") {
+      } else if (message.command === 'addAttachedItem') {
         attachCountRef.current += 1;
 
         const isFolder =
-          message.itemType === "folder" ||
-          (!message.uri.includes(".") && !message.itemType);
+          message.itemType === 'folder' || (!message.uri.includes('.') && !message.itemType);
 
         addAttachedItemRef.current({
           id: Math.random().toString(36).substring(7),
           path: message.uri,
-          type: isFolder ? "folder" : "file",
+          type: isFolder ? 'folder' : 'file',
         });
       }
     };
 
-    window.addEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
 
     return () => {
-      window.removeEventListener("message", handleMessage);
+      window.removeEventListener('message', handleMessage);
     };
   }, []);
 };

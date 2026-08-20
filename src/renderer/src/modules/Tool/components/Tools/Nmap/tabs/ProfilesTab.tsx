@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Play } from 'lucide-react';
 import { NmapScanParams } from '../types';
+import { logger } from '@renderer/utils/logger';
 
 interface SavedProfile {
   id: string;
@@ -19,12 +20,22 @@ interface ProfilesTabProps {
   onSaveDialogClosed?: () => void;
 }
 
-const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accentColor, onProfilesChange, openSaveDialog, onSaveDialogClosed }) => {
+const ProfilesTab: React.FC<ProfilesTabProps> = ({
+  params,
+  onLoadProfile,
+  onProfilesChange,
+  openSaveDialog,
+  onSaveDialogClosed,
+}) => {
   const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [expandedProfileId, setExpandedProfileId] = useState<string | null>(null);
-  const [contextMenuState, setContextMenuState] = useState<{ x: number; y: number; profileId: string } | null>(null);
+  const [contextMenuState, setContextMenuState] = useState<{
+    x: number;
+    y: number;
+    profileId: string;
+  } | null>(null);
   const [currentPageMap, setCurrentPageMap] = useState<{ [target: string]: number }>({});
 
   // Close context menu when clicking outside
@@ -35,12 +46,12 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
         setContextMenuState(null);
       }
     };
-    
+
     if (contextMenuState) {
       document.addEventListener('click', handleClickOutside);
       document.addEventListener('contextmenu', handleClickOutside);
     }
-    
+
     return () => {
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('contextmenu', handleClickOutside);
@@ -58,7 +69,7 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
           onProfilesChange(parsed);
         }
       } catch (e) {
-        console.error('Failed to parse saved profiles', e);
+        logger.error('Failed to parse saved profiles', e);
       }
     }
   }, []);
@@ -85,11 +96,11 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
   const handleSaveCurrentProfile = () => {
     const target = params.target.trim();
     if (!target) return;
-    
+
     const finalName = profileName.trim() || target;
-    
+
     // Check if profile with same name already exists
-    const existingProfile = savedProfiles.find(p => p.name === finalName);
+    const existingProfile = savedProfiles.find((p) => p.name === finalName);
     if (existingProfile) {
       // Update existing profile
       const updated: SavedProfile = {
@@ -97,7 +108,7 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
         params: { ...params },
         updatedAt: Date.now(),
       };
-      saveToLocalStorage(savedProfiles.map(p => p.id === existingProfile.id ? updated : p));
+      saveToLocalStorage(savedProfiles.map((p) => (p.id === existingProfile.id ? updated : p)));
     } else {
       // Create new profile
       const newProfile: SavedProfile = {
@@ -118,7 +129,7 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
   };
 
   const handleDeleteProfile = (id: string) => {
-    saveToLocalStorage(savedProfiles.filter(s => s.id !== id));
+    saveToLocalStorage(savedProfiles.filter((s) => s.id !== id));
   };
 
   return (
@@ -142,9 +153,7 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
               />
             </div>
             <div className="mb-4">
-              <label className="block text-xs font-bold text-text-secondary mb-1.5">
-                Target
-              </label>
+              <label className="block text-xs font-bold text-text-secondary mb-1.5">Target</label>
               <div className="p-2 rounded bg-input-background border border-border text-text-primary font-mono text-sm">
                 {params.target || 'No target'}
               </div>
@@ -181,21 +190,24 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
           {(() => {
             // Group profiles by target
             const groups: { [target: string]: SavedProfile[] } = {};
-            savedProfiles.forEach(profile => {
+            savedProfiles.forEach((profile) => {
               const target = profile.params.target;
               if (!groups[target]) {
                 groups[target] = [];
               }
               groups[target].push(profile);
             });
-            
+
             return Object.entries(groups).map(([target, profiles]) => {
               const isExpanded = expandedProfileId === target;
-              const isDomain = !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(target) && 
-                               !target.includes('/') &&
-                               target.includes('.');
-              const faviconUrl = isDomain ? `https://www.google.com/s2/favicons?domain=${target}&sz=16` : null;
-              
+              const isDomain =
+                !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(target) &&
+                !target.includes('/') &&
+                target.includes('.');
+              const faviconUrl = isDomain
+                ? `https://www.google.com/s2/favicons?domain=${target}&sz=16`
+                : null;
+
               // Build command for display
               const buildCommandDisplay = (profile: SavedProfile): string => {
                 let cmd = 'nmap';
@@ -209,7 +221,7 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
                 cmd += ` ${target}`;
                 return cmd;
               };
-              
+
               return (
                 <div
                   key={target}
@@ -236,12 +248,10 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
                           {profiles.length} profile{profiles.length !== 1 ? 's' : ''}
                         </span>
                       </div>
-                      <div className="flex gap-1">
-                        {/* Icons removed from main card */}
-                      </div>
+                      <div className="flex gap-1">{/* Icons removed from main card */}</div>
                     </div>
                   </div>
-                  
+
                   {isExpanded && (
                     <div className="border-t border-border">
                       <div className="space-y-1">
@@ -250,18 +260,28 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
                           const currentPage = currentPageMap[target] || 1;
                           const totalPages = Math.ceil(profiles.length / itemsPerPage);
                           const startIndex = (currentPage - 1) * itemsPerPage;
-                          const paginatedProfiles = profiles.slice(startIndex, startIndex + itemsPerPage);
-                          
-                          const handleContextMenu = (e: React.MouseEvent, profile: SavedProfile) => {
+                          const paginatedProfiles = profiles.slice(
+                            startIndex,
+                            startIndex + itemsPerPage,
+                          );
+
+                          const handleContextMenu = (
+                            e: React.MouseEvent,
+                            profile: SavedProfile,
+                          ) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            setContextMenuState({ x: e.clientX, y: e.clientY, profileId: profile.id });
+                            setContextMenuState({
+                              x: e.clientX,
+                              y: e.clientY,
+                              profileId: profile.id,
+                            });
                           };
-                          
+
                           const setPage = (page: number) => {
-                            setCurrentPageMap(prev => ({ ...prev, [target]: page }));
+                            setCurrentPageMap((prev) => ({ ...prev, [target]: page }));
                           };
-                          
+
                           return (
                             <>
                               {paginatedProfiles.map((profile, idx) => {
@@ -318,7 +338,9 @@ const ProfilesTab: React.FC<ProfilesTabProps> = ({ params, onLoadProfile, accent
                       onContextMenu={(e) => e.preventDefault()}
                     >
                       {(() => {
-                        const profile = savedProfiles.find(p => p.id === contextMenuState.profileId);
+                        const profile = savedProfiles.find(
+                          (p) => p.id === contextMenuState.profileId,
+                        );
                         if (!profile) return null;
                         return (
                           <>

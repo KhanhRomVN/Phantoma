@@ -63,11 +63,9 @@ export function ScanTab({
   setExpandedRow,
   onTooltipShow,
 }: ScanTabProps) {
-  const [sortKey, setSortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crackProbability'>(
-    'signal',
-  );
+  const [sortKey] = useState<'signal' | 'ssid' | 'encryption' | 'crackProbability'>('signal');
   const [filterEnc, setFilterEnc] = useState<string>('all');
-  const [filterVuln, setFilterVuln] = useState(false);
+  const [filterVuln] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; netId: string } | null>(
     null,

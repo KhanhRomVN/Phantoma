@@ -1,7 +1,13 @@
 /**
- * AgentOverlay — overlay hiển thị khi Agent không khả dụng (module không hỗ trợ hoặc chưa chọn target).
+ * ------------------------------------------------------------------
+ * AgentOverlay
+ * ------------------------------------------------------------------
+ * Overlay hiển thị khi Agent không khả dụng (module không hỗ trợ
+ * hoặc chưa chọn target).
  *
- *    Hiển thị icon + title + description với hiệu ứng fade-in.
+ * Main features:
+ * - Hiển thị icon + title + description với hiệu ứng fade-in
+ * ------------------------------------------------------------------
  */
 
 import React, { useEffect, useState } from 'react';

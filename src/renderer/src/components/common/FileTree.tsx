@@ -1,12 +1,25 @@
+/**
+ * ------------------------------------------------------------------
+ * FileTree
+ * ------------------------------------------------------------------
+ * Cây thư mục/file hiển thị trong sidebar, hỗ trợ lazy loading,
+ * context menu (tạo, đổi tên, xóa, copy, paste), và multi-select.
+ *
+ * Main features:
+ * - Hiển thị cây thư mục/file với lazy loading khi expand
+ * - Context menu đầy đủ: New File/Folder, Cut, Copy, Paste, Rename, Delete
+ * - Multi-select với Ctrl/Shift click
+ * - Tạo file/thư mục inline ngay trong cây
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useCallback, useRef, useEffect, createContext, useContext, memo } from 'react';
 
+// ── UI ──
 import { ChevronRight, Loader, File, Folder } from 'lucide-react';
-
 import { Kbd } from '@renderer/components/ui/Kbd';
-import { useCodeStore, type FileNode } from '@renderer/modules/Code/hooks/useCodeStore';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
-import { cn } from '@renderer/shared/utils/cn';
-
 import {
   Dropdown,
   DropdownTrigger,
@@ -14,6 +27,14 @@ import {
   DropdownItem,
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
+
+// ── Hooks ──
+import { useCodeStore, type FileNode } from '@renderer/modules/Code/hooks/useCodeStore';
+
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { cn } from '@renderer/shared/utils/cn';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 let lazyFileIdCounter = 100000;
@@ -156,7 +177,7 @@ export function InlineNewInput({
       }
       onCreated();
     } catch (err) {
-      console.error(`[FileExplore] Failed to create ${type}:`, err);
+      logger.error(`[FileExplore] Failed to create ${type}:`, err);
       onCancel();
     }
   };
@@ -188,7 +209,6 @@ export function InlineNewInput({
 // ─── TreeNode Render Counter (DEBUG) ────────────────────────────────────────
 let treeNodeRenderCount = 0;
 const renderedNodeNames: string[] = [];
-let lastRenderLogTime = 0;
 
 function bumpRenderCount(name: string) {
   treeNodeRenderCount++;
@@ -197,12 +217,10 @@ function bumpRenderCount(name: string) {
   }
 }
 
-function logRenderCountAndReset(label: string) {
+function logRenderCountAndReset(_label: string) {
   setTimeout(() => {
     treeNodeRenderCount = 0;
     renderedNodeNames.length = 0;
-    const now = performance.now();
-    lastRenderLogTime = now;
   }, 50);
 }
 
@@ -293,19 +311,13 @@ const TreeNode = memo(function TreeNode({
   // Auto-load children
   useEffect(() => {
     if (isFolder && expanded && !hasChildren && node.path && lazyChildren === null && !loading) {
-      const t0 = performance.now();
       setLoading(true);
       fetchDirChildren(node.path)
         .then((kids) => {
           setLazyChildren(kids);
           setLoading(false);
         })
-        .catch((err) => {
-          const elapsed = (performance.now() - t0).toFixed(1);
-          console.error(
-            `[FileExplore|DEBUG] auto-load FAIL: "${node.name}" after ${elapsed}ms`,
-            err,
-          );
+        .catch(() => {
           setLoading(false);
         });
     }
@@ -313,7 +325,6 @@ const TreeNode = memo(function TreeNode({
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      const tClick = performance.now();
       onNodeClick(node.id, e.ctrlKey || e.metaKey, e.shiftKey);
 
       // Chỉ mở file/folder khi không có multi-select modifier
@@ -325,7 +336,6 @@ const TreeNode = memo(function TreeNode({
         }
 
         if (expanded) {
-          clickTimeRef.current = performance.now();
           toggleFolderExpand(projectId, node.id);
           setTimeout(() => logRenderCountAndReset(`COLLAPSE "${node.name}"`), 100);
           return;
@@ -333,18 +343,13 @@ const TreeNode = memo(function TreeNode({
 
         if (!hasChildren && node.path && lazyChildren === null) {
           setLoading(true);
-          clickTimeRef.current = performance.now();
           toggleFolderExpand(projectId, node.id);
           setTimeout(() => logRenderCountAndReset(`EXPAND+FETCH "${node.name}"`), 100);
-          const tFetch = performance.now();
           fetchDirChildren(node.path).then((kids) => {
-            const elapsed = (performance.now() - tFetch).toFixed(1);
-            const total = (performance.now() - tClick).toFixed(1);
             setLazyChildren(kids);
             setLoading(false);
           });
         } else {
-          clickTimeRef.current = performance.now();
           toggleFolderExpand(projectId, node.id);
           setTimeout(() => logRenderCountAndReset(`EXPAND_CACHED "${node.name}"`), 100);
         }
@@ -370,7 +375,9 @@ const TreeNode = memo(function TreeNode({
     if (selectedNodeIds.size > 0) {
       onCopyAbsolutePath();
     } else if (node.path) {
-      navigator.clipboard.writeText(node.path).catch(() => {});
+      navigator.clipboard.writeText(node.path).catch(() => {
+        logger.warn('[FileTree] Failed to copy path to clipboard');
+      });
     }
   }, [node.path, selectedNodeIds, onCopyAbsolutePath]);
 
@@ -384,7 +391,9 @@ const TreeNode = memo(function TreeNode({
         const relative = node.path.startsWith(rootPath)
           ? node.path.substring(rootPath.length)
           : node.path;
-        navigator.clipboard.writeText(relative).catch(() => {});
+        navigator.clipboard.writeText(relative).catch(() => {
+          logger.warn('[FileTree] Failed to copy relative path to clipboard');
+        });
       }
     }
   }, [node.path, selectedNodeIds, onCopyRelativePath]);
@@ -405,7 +414,7 @@ const TreeNode = memo(function TreeNode({
       const p = useCodeStore.getState().projects.find((pr) => pr.id === projectId);
       if (p?.path) await refreshProjectTree(projectId, p.path);
     } catch (err) {
-      console.error('[FileExplore] Failed to rename:', err);
+      logger.error('[FileExplore] Failed to rename:', err);
     }
   }, [node.path, node.name, projectId]);
 

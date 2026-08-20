@@ -1,4 +1,5 @@
-import { Message } from "../types/message";
+import { logger } from '@renderer/utils/logger';
+import { Message } from '../types/message';
 
 export interface CachedConversation {
   messages: Message[];
@@ -6,14 +7,8 @@ export interface CachedConversation {
   backendConversationId?: string;
   currentModel?: any;
   currentAccount?: any;
-  toolOutputs?: Record<
-    string,
-    { output: string; isError: boolean; terminalId?: string }
-  >;
-  singleLineReviewActions?: Record<
-    string,
-    { action: any; actionId: string; messageId: string }
-  >;
+  toolOutputs?: Record<string, { output: string; isError: boolean; terminalId?: string }>;
+  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>;
   questionAnswers?: Record<string, Record<string, any>>;
   conversationFileStats?: {
     totalFiles: number;
@@ -27,10 +22,7 @@ const cacheKeys: string[] = [];
 const cache: Record<string, CachedConversation> = {};
 
 // Global persistent store for questionAnswers (bypasses cache overwrite issues)
-const questionAnswersStore: Record<
-  string,
-  Record<string, Record<string, any>>
-> = {};
+const questionAnswersStore: Record<string, Record<string, Record<string, any>>> = {};
 
 export const ConversationCache = {
   get: (conversationId: string): CachedConversation | undefined => {
@@ -56,18 +48,13 @@ export const ConversationCache = {
       cacheKeys.push(conversationId);
     }
     cache[conversationId] = data;
-    if (
-      cacheKeys.length > 15 ||
-      Object.keys(questionAnswersStore).length > 10
-    ) {
-      console.warn(
+    if (cacheKeys.length > 15 || Object.keys(questionAnswersStore).length > 10) {
+      logger.warn(
         `[ConversationCache] set - key: ${conversationId}, cacheSize: ${cacheKeys.length}, questionStoreSize: ${Object.keys(questionAnswersStore).length}`,
       );
     }
   },
-  getQuestionAnswers: (
-    conversationId: string,
-  ): Record<string, Record<string, any>> | undefined => {
+  getQuestionAnswers: (conversationId: string): Record<string, Record<string, any>> | undefined => {
     return questionAnswersStore[conversationId];
   },
   delete: (conversationId: string) => {

@@ -1,4 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * IPC handler ứng dụng
+ * ------------------------------------------------------------------
+ * Đăng ký IPC handler cho các thao tác cấp ứng dụng: kết thúc,
+ * quét ứng dụng PC, sử dụng bộ nhớ và khởi chạy ứng dụng.
+ *
+ * Hàm chính:
+ * - setupAppHandlers() : Đăng ký IPC handler app: với ipcMain
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Electron ──
 import { ipcMain } from 'electron';
+
+// ── Internal ──
 import { proxyManager } from '../shared/proxy-state';
 import { closeAllGenericWebWindows } from '../features/generic-web';
 import { appState } from '../shared/state';
@@ -6,6 +22,7 @@ import { cdpManager } from '../features/cdp';
 import { launchApp } from '../app-launcher';
 import { scanInstalledApps } from '../utils/app-scanner';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export function setupAppHandlers() {
   ipcMain.handle('app:terminate', async () => {
     closeAllGenericWebWindows();

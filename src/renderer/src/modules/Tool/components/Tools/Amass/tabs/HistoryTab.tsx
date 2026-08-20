@@ -15,43 +15,7 @@ import { AmassScanResult, ContextMenuState, TooltipState } from '../types';
 import { groupHistoryByDate } from '../utils';
 import ScanCard from '../components/ScanCard';
 import ResultsTable from '../components/ResultsTable';
-
-export interface ExportButtonConfig {
-  label: string;
-  onClick: () => void;
-  title?: string;
-  icon?: string;
-}
-
-interface ExportButtonsProps {
-  buttons: ExportButtonConfig[];
-  accentColor: string;
-}
-
-const ExportButtons: React.FC<ExportButtonsProps> = ({ buttons, accentColor }) => {
-  const buttonStyle = {
-    background: $('--card-background'),
-    border: `1px solid ${accentColor}30`,
-    color: accentColor,
-  };
-
-  return (
-    <div className="flex gap-2">
-      {buttons.map((btn, idx) => (
-        <button
-          key={idx}
-          onClick={btn.onClick}
-          className="px-3 py-1.5 rounded text-[11px] font-bold font-inherit cursor-pointer transition-all hover:opacity-80"
-          style={buttonStyle}
-          title={btn.title}
-        >
-          {btn.icon && <span className="mr-1">{btn.icon}</span>}
-          {btn.label}
-        </button>
-      ))}
-    </div>
-  );
-};
+import { $ } from '@renderer/utils/color';
 
 interface HistoryTabProps {
   history: AmassScanResult[];
@@ -88,7 +52,6 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
   contextMenu,
   accentColor,
   glow,
-  onTooltipShow,
 }) => {
   const historyContainerRef = useRef<HTMLDivElement>(null);
   const groupedHistory = groupHistoryByDate(filteredHistory);
@@ -139,7 +102,6 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             <ArrowLeft size={14} />
             BACK TO HISTORY
           </button>
-          <ExportButtons scan={scan} accentColor={accentColor} />
         </div>
 
         {/* Scan Header */}
@@ -287,7 +249,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             >
               {dateLabel}
             </div>
-            {scans.map((scan, idx) => {
+            {scans.map((scan) => {
               const globalIdx = history.findIndex((h) => h.timestamp === scan.timestamp);
               const isExpanded = expandedCardIndex === globalIdx;
               return (

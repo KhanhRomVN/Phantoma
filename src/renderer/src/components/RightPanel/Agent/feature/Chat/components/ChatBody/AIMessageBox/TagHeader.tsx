@@ -120,7 +120,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
   const pathSpanRef = useRef<HTMLSpanElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [pathContainerWidth, setPathContainerWidth] = useState<number>(0);
-  const [pathSpanWidth, setPathSpanWidth] = useState<number>(0);
+  const [, setPathSpanWidth] = useState<number>(0);
 
   useEffect(() => {
     const styleId = 'circle-ring-spin-animation';

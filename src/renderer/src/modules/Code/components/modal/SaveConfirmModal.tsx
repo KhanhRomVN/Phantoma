@@ -17,6 +17,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 // ── React ──
 import { useState, useMemo } from 'react';
 
@@ -90,7 +91,7 @@ export function SaveConfirmModal() {
       setPendingAction(null);
     } catch (err) {
       setError('Failed to save some files. Please try again.');
-      console.error('[SaveConfirmModal] Save failed:', err);
+      logger.error('[SaveConfirmModal] Save failed:', err);
     } finally {
       setIsSaving(false);
     }

@@ -1,6 +1,25 @@
+/**
+ * ------------------------------------------------------------------
+ * Tiện ích mạng
+ * ------------------------------------------------------------------
+ * Trợ giúp mạng cho tiến trình chính: phát hiện IP cục bộ và
+ * tìm cổng khả dụng.
+ *
+ * Hàm chính:
+ * - getLocalIp()         : Lấy địa chỉ IPv4 cục bộ
+ * - findAvailablePort()  : Tìm một cặp cổng khả dụng
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
 import * as net from 'net';
 import * as os from 'os';
 
+// ── Internal ──
+import { logger } from './logger';
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export const getLocalIp = (): string => {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
@@ -24,6 +43,7 @@ export const findAvailablePort = async (startPort: number = 8081): Promise<numbe
         resolve(true);
       });
       server.on('error', () => {
+        logger.warn(`[Net] Port ${port} is not available`);
         resolve(false);
       });
     });

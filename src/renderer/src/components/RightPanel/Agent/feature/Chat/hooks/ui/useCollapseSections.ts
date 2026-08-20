@@ -1,12 +1,3 @@
-import { useState, useCallback, useRef } from "react";
-
-/**
- * useCollapseSections — quản lý trạng thái collapse/expand cho các section trong chat (tool outputs, code blocks...).
- *
- *    toggleCollapse() : Bật/tắt collapse cho 1 section.
- *    isCollapsed()    : Kiểm tra section có đang collapsed không.
- */
-
 import { useState, useCallback, useRef } from 'react';
 
 export const useCollapseSections = () => {
@@ -15,9 +6,7 @@ export const useCollapseSections = () => {
 
   renderCountRef.current += 1;
 
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    new Set(),
-  );
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const toggleCollapse = useCallback((sectionId: string) => {
     toggleCountRef.current += 1;

@@ -9,8 +9,8 @@ export interface CommitMessageBlockProps {
 }
 
 /**
- * Pure content block for commit message.
- * Header is managed by ToolRouter/ToolHeader (consistent with other tools).
+ * Block nội dung thuần cho commit message.
+ * Header được quản lý bởi ToolRouter/ToolHeader (nhất quán với các tool khác).
  */
 const CommitMessageBlock: React.FC<CommitMessageBlockProps> = ({
   message,

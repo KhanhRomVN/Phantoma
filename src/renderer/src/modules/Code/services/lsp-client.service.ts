@@ -26,6 +26,7 @@
  */
 
 // ─── Helpers ────────────────────────────────────────────────────────────
+import { logger } from '@renderer/utils/logger';
 
 function getServerLanguage(languageId: string): string {
   const mapping: Record<string, string> = {
@@ -115,15 +116,15 @@ class LSPClientManager {
           window.dispatchEvent(new CustomEvent('lsp:init:complete'));
         }, 100);
       } else {
-        console.error(`[LSPClient] ❌ Failed to start server:`, result.error);
+        logger.error(`[LSPClient] ❌ Failed to start server:`, result.error);
         window.dispatchEvent(new CustomEvent('lsp:init:complete'));
         throw new Error(`Failed to start language server: ${result.error}`);
       }
     } catch (error) {
-      console.error(`[LSPClient] ❌ Exception starting server for ${config.language}:`, error);
+      logger.error(`[LSPClient] ❌ Exception starting server for ${config.language}:`, error);
       window.dispatchEvent(new CustomEvent('lsp:init:complete'));
       if (error instanceof Error) {
-        console.error('[LSPClient] Stack:', error.stack);
+        logger.error('[LSPClient] Stack:', error.stack);
       }
     }
   }
@@ -133,7 +134,7 @@ class LSPClientManager {
    */
   private setupLanguageFeatures(language: string, capabilities: any) {
     if (!this.monaco) {
-      console.error('[LSPClient] ❌ Monaco not initialized!');
+      logger.error('[LSPClient] ❌ Monaco not initialized!');
       return;
     }
 
@@ -211,7 +212,7 @@ class LSPClientManager {
       const suggestions = result.items.map((item: any) => this.convertCompletionItem(item));
       return { suggestions };
     } catch (error) {
-      console.error('[LSPClient] Completion error:', error);
+      logger.error('[LSPClient] Completion error:', error);
       return { suggestions: [] };
     }
   }
@@ -288,7 +289,7 @@ class LSPClientManager {
         range: result.range,
       };
     } catch (error) {
-      console.error('[LSPClient] Hover error:', error);
+      logger.error('[LSPClient] Hover error:', error);
       return null;
     }
   }
@@ -321,7 +322,7 @@ class LSPClientManager {
         range: result.range,
       };
     } catch (error) {
-      console.error('[LSPClient] Definition error:', error);
+      logger.error('[LSPClient] Definition error:', error);
       return null;
     }
   }
@@ -351,7 +352,7 @@ class LSPClientManager {
         dispose: () => {},
       };
     } catch (error) {
-      console.error('[LSPClient] Signature help error:', error);
+      logger.error('[LSPClient] Signature help error:', error);
       return null;
     }
   }
@@ -374,7 +375,7 @@ class LSPClientManager {
 
       return result;
     } catch (error) {
-      console.error('[LSPClient] Format error:', error);
+      logger.error('[LSPClient] Format error:', error);
       return null;
     }
   }
@@ -413,7 +414,7 @@ class LSPClientManager {
       await window.api.invoke('lsp:stop-server', { language });
       this.activeServers.delete(language);
     } catch (error) {
-      console.error(`[LSPClient] Failed to stop server for ${language}:`, error);
+      logger.error(`[LSPClient] Failed to stop server for ${language}:`, error);
     }
   }
 
@@ -467,11 +468,11 @@ class LSPClientManager {
           version,
         })
         .catch((err: Error) => {
-          console.error(`[LSPClient] ❌ didOpen failed:`, err);
+          logger.error(`[LSPClient] ❌ didOpen failed:`, err);
           throw err;
         });
     } catch (error) {
-      console.error(`[LSPClient] ❌ didOpen exception:`, error);
+      logger.error(`[LSPClient] ❌ didOpen exception:`, error);
       return Promise.reject(error);
     }
   }
@@ -502,10 +503,10 @@ class LSPClientManager {
             version,
           })
           .catch((err: Error) => {
-            console.error(`[LSPClient] ❌ didChange failed:`, err);
+            logger.error(`[LSPClient] ❌ didChange failed:`, err);
           });
       } catch (error) {
-        console.error(`[LSPClient] ❌ didChange exception:`, error);
+        logger.error(`[LSPClient] ❌ didChange exception:`, error);
       }
 
       this.pendingChanges.delete(key);
@@ -528,10 +529,10 @@ class LSPClientManager {
           text,
         })
         .catch((err: Error) => {
-          console.error(`[LSPClient] ❌ didSave failed:`, err);
+          logger.error(`[LSPClient] ❌ didSave failed:`, err);
         });
     } catch (error) {
-      console.error(`[LSPClient] ❌ didSave exception:`, error);
+      logger.error(`[LSPClient] ❌ didSave exception:`, error);
     }
   }
 
@@ -548,7 +549,7 @@ class LSPClientManager {
         uri,
       });
     } catch (error) {
-      console.error(`[LSPClient] ❌ didClose exception:`, error);
+      logger.error(`[LSPClient] ❌ didClose exception:`, error);
     }
   }
 }
@@ -666,7 +667,7 @@ export async function autoStartLanguageServer(
       return;
     }
   } catch (err) {
-    console.error(`[LSPClient] ⚠️  Failed to sync active servers from main:`, err);
+    logger.warn(`[LSPClient] ⚠️  Failed to sync active servers from main:`, err);
   }
 
   const existingPromise = startingServers.get(serverLanguage);
