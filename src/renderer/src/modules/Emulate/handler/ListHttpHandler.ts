@@ -36,19 +36,23 @@ export class ListHttpHandler {
     requests: NetworkRequest[],
     filter: ListHttpFilter = {},
     limit: number = 50,
+    allRequests?: NetworkRequest[],
   ): ListHttpResult {
     const lowerMethod = filter.method?.toUpperCase();
     const lowerHost = filter.host?.toLowerCase();
     const lowerPath = filter.path?.toLowerCase();
     const filterStatus = filter.status;
 
-    // Create stable index map: request.id -> original position (1-indexed)
+    // Create stable index map from the original unfiltered list so hidden
+    // requests keep their original position instead of being renumbered.
+    const baseRequests = allRequests ?? requests;
     const stableIndexMap = new Map<string, number>();
-    requests.forEach((r, idx) => {
+    baseRequests.forEach((r, idx) => {
       stableIndexMap.set(r.id, idx + 1);
     });
 
     let filtered = requests;
+
 
     if (lowerMethod) {
       filtered = filtered.filter((r) => r.method.toUpperCase() === lowerMethod);
@@ -66,22 +70,19 @@ export class ListHttpHandler {
     const total = requests.length;
     const limited = filtered.slice(0, limit);
 
-    // Build text table
-    const header = `| stt | method | status | host | path |`;
-    const separator = `|-----|--------|--------|------|------|`;
+    // Build text list
     const rows = limited.map((r) => {
       const stableIndex = stableIndexMap.get(r.id) || 0; // Use stable index instead of array position
-      const method = r.method.padEnd(6);
-      const status = String(r.status ?? '---').padEnd(6);
-      const host = (r.host || '').substring(0, 30).padEnd(30);
-      const path = (r.path || '').substring(0, 60);
-      return `| ${String(stableIndex).padEnd(3)} | ${method} | ${status} | ${host} | ${path} |`;
+      const method = r.method;
+      const status = String(r.status ?? '---');
+      const host = r.host || '';
+      const path = r.path || '';
+      const size = r.size || 'Unknown';
+      return `- request_${stableIndex} | ${method} | ${status} | ${host} | ${path} | ${size}`;
     });
 
     const text = [
       `[list_https] Total: ${total}, Filtered: ${filtered.length}, Showing: ${limited.length}`,
-      header,
-      separator,
       ...rows,
     ].join('\n');
 

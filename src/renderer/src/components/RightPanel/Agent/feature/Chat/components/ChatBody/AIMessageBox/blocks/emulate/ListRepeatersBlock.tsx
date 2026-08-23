@@ -1,15 +1,15 @@
 import React from 'react';
 
-interface ListHostsBlockProps {
+interface ListRepeatersBlockProps {
   content: string;
   maxHeight?: string;
 }
 
 /**
- * Block hiển thị danh sách hosts dạng list.
- * Mỗi dòng: host (count)
+ * Block hiển thị danh sách request trong Repeater.
+ * Mỗi dòng: repeater_N | method | host | path
  */
-export const ListHostsBlock: React.FC<ListHostsBlockProps> = ({
+export const ListRepeatersBlock: React.FC<ListRepeatersBlockProps> = ({
   content,
   maxHeight = '400px',
 }) => {
@@ -20,7 +20,10 @@ export const ListHostsBlock: React.FC<ListHostsBlockProps> = ({
   if (dataLines.length === 0) {
     return (
       <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
-        <pre className="p-3 text-[12px] font-mono text-text-primary whitespace-pre-wrap overflow-auto" style={{ maxHeight }}>
+        <pre
+          className="p-3 text-[12px] font-mono text-text-primary whitespace-pre-wrap overflow-auto"
+          style={{ maxHeight }}
+        >
           {content}
         </pre>
       </div>
@@ -31,7 +34,7 @@ export const ListHostsBlock: React.FC<ListHostsBlockProps> = ({
     <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
       {summaryLine && !summaryLine.startsWith('-') && (
         <div className="px-3 py-2 text-[11px] text-text-secondary border-b border-border bg-card-background">
-          {summaryLine.replace(/^\[list_hosts\]\s*/, '')}
+          {summaryLine.replace(/^\[list_repeaters\]\s*/, '')}
         </div>
       )}
       <div className="overflow-auto" style={{ maxHeight }}>
@@ -48,4 +51,4 @@ export const ListHostsBlock: React.FC<ListHostsBlockProps> = ({
   );
 };
 
-export default ListHostsBlock;
+export default ListRepeatersBlock;

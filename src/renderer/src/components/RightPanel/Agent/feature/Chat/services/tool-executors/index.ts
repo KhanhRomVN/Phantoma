@@ -92,6 +92,11 @@ import {
   executeGetResourceContent,
   executeGetHttpsDetail,
   executeApplyFilter,
+  executeSendToRepeater,
+  executeListRepeaters,
+  executeDeleteRepeater,
+  executeGetRepeaterDetail,
+  executeUpdateRepeaterContent,
 } from './EmulateExecutor';
 
 // ── Recon tool executors ────────────────────────────────────────────
@@ -268,6 +273,36 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           return executeApplyFilter(action.params || {});
+        },
+      };
+    case 'send_to_repeater':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeSendToRepeater(action.params || {});
+        },
+      };
+    case 'list_repeaters':
+      return {
+        execute: async (_action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeListRepeaters();
+        },
+      };
+    case 'delete_repeater':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeDeleteRepeater(action.params || {});
+        },
+      };
+    case 'get_repeater_detail':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeGetRepeaterDetail(action.params || {});
+        },
+      };
+    case 'update_repeater_content':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeUpdateRepeaterContent(action.params || {});
         },
       };
 

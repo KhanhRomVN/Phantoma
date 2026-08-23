@@ -8,7 +8,10 @@ import type { BaseModalProps } from './index';
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-type AndroidBodyProps = Pick<BaseModalProps, 'isOpen' | 'onAdd' | 'existingApps'>;
+type AndroidBodyProps = Pick<
+  BaseModalProps,
+  'isOpen' | 'onAdd' | 'existingApps' | 'onCanSubmitChange'
+>;
 
 interface Device {
   name: string;
@@ -22,7 +25,7 @@ export interface AndroidRef {
 }
 
 export const Android = forwardRef<AndroidRef, AndroidBodyProps>(function Android(
-  { isOpen, onAdd, existingApps = [] },
+  { isOpen, onAdd, existingApps = [], onCanSubmitChange },
   ref,
 ) {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -122,6 +125,10 @@ export const Android = forwardRef<AndroidRef, AndroidBodyProps>(function Android
   const canSubmit = !!selectedDevice && !duplicateError;
 
   useImperativeHandle(ref, () => ({ submit: handleSubmit, canSubmit }), [handleSubmit, canSubmit]);
+
+  useEffect(() => {
+    onCanSubmitChange?.(canSubmit);
+  }, [canSubmit, onCanSubmitChange]);
 
   return (
     <div className="flex flex-col" style={{ height: '50vh' }}>

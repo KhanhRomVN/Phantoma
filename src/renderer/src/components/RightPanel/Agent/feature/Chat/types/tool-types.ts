@@ -237,6 +237,29 @@ export interface GetResourceContentParams {
   end_line?: number;
 }
 
+export interface SendToRepeaterParams {
+  index: number;
+}
+
+export interface ListRepeatersParams {
+  // Không có params
+}
+
+export interface DeleteRepeaterParams {
+  repeater_id: string;
+}
+
+export interface GetRepeaterDetailParams {
+  repeater_id: string;
+}
+
+export interface UpdateRepeaterContentParams {
+  repeater_id: string;
+  target: 'params' | 'headers' | 'body';
+  old_content: string;
+  new_content: string;
+}
+
 // ===== RECON TOOLS =====
 export interface LaunchBrowserParams {
   targetId?: string;

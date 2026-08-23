@@ -83,7 +83,7 @@ func Close() {
 }
 
 // runMigrations chạy migration tự động bằng embedded migrations.
-func runMigrations(dbPath string) error {
+func runMigrations(_ string) error {
 	// Sử dụng AutoMigrate với embedded migrations
 	if err := AutoMigrate(DB); err != nil {
 		return fmt.Errorf("auto-migrate failed: %w", err)

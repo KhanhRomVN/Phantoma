@@ -25,6 +25,13 @@ import { InspectorFilter } from '../modules/Emulate/types/filter.types';
 import type { ApplyFilterParams } from '../components/RightPanel/Agent/feature/Chat/services/parsers/EmulateParser';
 import type { TrafficSummary } from '../components/RightPanel/Agent/feature/Chat/prompts/emulate';
 import { filterRequestsByConfig } from '@renderer/modules/Emulate/hooks/network/useRequestFilter';
+import { SendToRepeaterHandler } from '../modules/Emulate/handler/SendToRepeaterHandler';
+import { ListRepeatersHandler } from '../modules/Emulate/handler/ListRepeatersHandler';
+import { DeleteRepeaterHandler } from '../modules/Emulate/handler/DeleteRepeaterHandler';
+import { GetRepeaterDetailHandler } from '../modules/Emulate/handler/GetRepeaterDetailHandler';
+import { UpdateRepeaterContentHandler } from '../modules/Emulate/handler/UpdateRepeaterContentHandler';
+import { ListPayloadsHandler } from '../modules/Emulate/handler/ListPayloadsHandler';
+import { SetRepeaterPayloadValuesHandler } from '../modules/Emulate/handler/SetRepeaterPayloadValuesHandler';
 import type { CdpScriptUnpackedData } from '@renderer/shared/types/network';
 
 export class EmulateController {
@@ -45,6 +52,13 @@ export class EmulateController {
   private getTrafficSummaryHandler: GetTrafficSummaryHandler;
   private getFilterHandler: GetFilterHandler;
   private applyFilterHandler: ApplyFilterHandler;
+  private sendToRepeaterHandler: SendToRepeaterHandler;
+  private listRepeatersHandler: ListRepeatersHandler;
+  private deleteRepeaterHandler: DeleteRepeaterHandler;
+  private getRepeaterDetailHandler: GetRepeaterDetailHandler;
+  private updateRepeaterContentHandler: UpdateRepeaterContentHandler;
+  private listPayloadsHandler: ListPayloadsHandler;
+  private setRepeaterPayloadValuesHandler: SetRepeaterPayloadValuesHandler;
 
   private constructor() {
     this.listHttpHandler = new ListHttpHandler();
@@ -57,6 +71,13 @@ export class EmulateController {
     this.getTrafficSummaryHandler = new GetTrafficSummaryHandler();
     this.getFilterHandler = new GetFilterHandler();
     this.applyFilterHandler = new ApplyFilterHandler();
+    this.sendToRepeaterHandler = new SendToRepeaterHandler();
+    this.listRepeatersHandler = new ListRepeatersHandler();
+    this.deleteRepeaterHandler = new DeleteRepeaterHandler();
+    this.getRepeaterDetailHandler = new GetRepeaterDetailHandler();
+    this.updateRepeaterContentHandler = new UpdateRepeaterContentHandler();
+    this.listPayloadsHandler = new ListPayloadsHandler();
+    this.setRepeaterPayloadValuesHandler = new SetRepeaterPayloadValuesHandler();
   }
 
   // ── Singleton ─────────────────────────────────────────────────────
@@ -123,6 +144,36 @@ export class EmulateController {
 
           return { success: true, data: { output: '[apply_filter] Applied: ' + (changes.join('; ') || 'no changes') } };
         }
+        case 'send_to_repeater': {
+          if (params.index === undefined) return { success: false, error: 'index is required' };
+          return { success: true, data: { output: ctrl.sendToRepeaterText(params.index) } };
+        }
+        case 'list_repeaters': {
+          return { success: true, data: { output: ctrl.listRepeatersText() } };
+        }
+        case 'delete_repeater': {
+          if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
+          return { success: true, data: { output: ctrl.deleteRepeaterText(params.repeater_id) } };
+        }
+        case 'get_repeater_detail': {
+          if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
+          return { success: true, data: { output: ctrl.getRepeaterDetailText(params.repeater_id) } };
+        }
+        case 'update_repeater_content': {
+          if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
+          if (!params.target) return { success: false, error: 'target is required' };
+          return {
+            success: true,
+            data: {
+              output: ctrl.updateRepeaterContentText(
+                params.repeater_id,
+                params.target,
+                params.old_content || '',
+                params.new_content || '',
+              ),
+            },
+          };
+        }
         default:
           return { success: false, error: 'Unknown emulate tool: ' + toolName };
       }
@@ -137,9 +188,10 @@ export class EmulateController {
   public setUnpackedScripts(scripts: Map<string, CdpScriptUnpackedData> | undefined): void { this.unpackedScripts = scripts; }
 
   public listHttps(filter: ListHttpFilter = {}, limit: number = 50): ListHttpResult {
-    let requests = this.requests;
-    if (this.filter) requests = filterRequestsByConfig(requests, this.filter, '');
-    return this.listHttpHandler.handle(requests, filter, limit);
+    const allRequests = this.requests;
+    let filteredRequests = allRequests;
+    if (this.filter) filteredRequests = filterRequestsByConfig(allRequests, this.filter, '');
+    return this.listHttpHandler.handle(filteredRequests, filter, limit, allRequests);
   }
   public listHttpsText(filter: ListHttpFilter = {}, limit: number = 50): string { return this.listHttps(filter, limit).text; }
   public listHostsText(): string { return this.listHostsHandler.handle(this.requests).text; }
@@ -148,6 +200,26 @@ export class EmulateController {
   public getSourceDetailText(filepath: string): string { return this.getSourceDetailHandler.handle(this.requests, this.unpackedScripts, filepath).text; }
   public getHttpsDetailText(index: number): string { return this.getHttpsDetailHandler.handle(this.requests, index).text; }
   public getResourceContentText(filename: string, options: GetResourceContentOptions = {}): string { return this.getResourceContentHandler.handle(this.requests, filename, options).text; }
+  public sendToRepeaterText(index: number): string {
+    return this.sendToRepeaterHandler.handle(this.requests, index).text;
+  }
+  public listRepeatersText(): string {
+    return this.listRepeatersHandler.handle(this.requests).text;
+  }
+  public deleteRepeaterText(repeaterId: string): string {
+    return this.deleteRepeaterHandler.handle(this.requests, repeaterId).text;
+  }
+  public getRepeaterDetailText(repeaterId: string): string {
+    return this.getRepeaterDetailHandler.handle(this.requests, repeaterId).text;
+  }
+  public updateRepeaterContentText(
+    repeaterId: string,
+    target: 'params' | 'headers' | 'body',
+    oldContent: string,
+    newContent: string,
+  ): string {
+    return this.updateRepeaterContentHandler.handle(this.requests, repeaterId, target, oldContent, newContent).text;
+  }
   public getTrafficSummary(): TrafficSummary { return this.getTrafficSummaryHandler.handle(this.requests); }
   public setFilter(filter: InspectorFilter): void { this.filter = filter; }
   public getFilter(): InspectorFilter | undefined { return this.filter; }

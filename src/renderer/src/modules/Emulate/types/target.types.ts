@@ -16,6 +16,8 @@ export interface TargetTab {
   startupArgs?: string;
   environment?: Record<string, string>;
   emulatorSerial?: string; // For Android targets
+  httpsCount?: number;
+  dataUsed?: string;
 }
 
 export interface TargetState {

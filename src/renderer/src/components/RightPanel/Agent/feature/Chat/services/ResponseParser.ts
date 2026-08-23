@@ -49,6 +49,11 @@ import {
   parseGetSourceDetail,
   parseGetResourceContent,
   parseApplyFilter,
+  parseSendToRepeater,
+  parseListRepeaters,
+  parseDeleteRepeater,
+  parseGetRepeaterDetail,
+  parseUpdateRepeaterContent,
 } from './parsers/EmulateParser';
 import {
   parseListTabs,
@@ -610,6 +615,31 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'apply_filter': {
               const params = parseApplyFilter(innerContent || '');
               action = { type: 'apply_filter' as const, params, rawXml };
+              break;
+            }
+            case 'send_to_repeater': {
+              const params = parseSendToRepeater(innerContent || '');
+              action = { type: 'send_to_repeater' as const, params, rawXml };
+              break;
+            }
+            case 'list_repeaters': {
+              const params = parseListRepeaters(innerContent || '');
+              action = { type: 'list_repeaters' as const, params, rawXml };
+              break;
+            }
+            case 'delete_repeater': {
+              const params = parseDeleteRepeater(innerContent || '');
+              action = { type: 'delete_repeater' as const, params, rawXml };
+              break;
+            }
+            case 'get_repeater_detail': {
+              const params = parseGetRepeaterDetail(innerContent || '');
+              action = { type: 'get_repeater_detail' as const, params, rawXml };
+              break;
+            }
+            case 'update_repeater_content': {
+              const params = parseUpdateRepeaterContent(innerContent || '');
+              action = { type: 'update_repeater_content' as const, params, rawXml };
               break;
             }
             // ── Recon tools ──────────────────────────────────────

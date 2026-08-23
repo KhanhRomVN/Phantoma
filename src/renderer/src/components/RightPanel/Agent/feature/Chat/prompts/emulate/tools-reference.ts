@@ -19,12 +19,12 @@ Use XML tags for all tool calls:
 </apply_filter>
 **list_https**: List captured HTTPS requests.
 - \`limit\`: (optional) Max number of requests to return. If omitted, returns all captured requests up to a default limit.
-- Returns: A numbered list of requests with \`stt\` (index), \`method\`, \`host\`, \`path\`, \`status\`, \`type\`, and optional summary.
+- Returns: A numbered list of requests with \`request_<number>\` (stable index based on original capture order, unaffected by filters), \`method\`, \`host\`, \`path\`, \`status\`, \`type\`, and optional summary.
 - Example: \`<list_https><limit>20</limit></list_https>\` — list up to 20 most recent requests
 **get_https_detail**: Get full request/response detail for a specific captured HTTPS request.
-- \`index\`: The \`stt\` (index) of the request from a previous \`list_https\` result (required).
+- \`index\`: The index from a previous \`list_https\` result (required). Accepts a number or \`request_<number>\` (e.g. \`request_3\`). The number is the stable original position, unaffected by filters.
 - Returns: Full detail including request method, URL, headers, body, response status, response headers, and response body.
-- Example: \`<get_https_detail><index>3</index></get_https_detail>\` — get detail for request stt=3
+- Example: \`<get_https_detail><index>request_3</index></get_https_detail>\` — get detail for request request_3
 - ⚠ LIST-BEFORE-DETAIL: Always call \`list_https\` before \`get_https_detail\`. The index must come from a \`list_https\` result.
 **list_hosts**: List all unique hosts from captured HTTPS traffic with request counts.
 - No parameters.
@@ -80,6 +80,31 @@ Use XML tags for all tool calls:
   - \`<apply_filter><method action="hide">OPTIONS</method><type action="hide">css</type></apply_filter>\` — hide OPTIONS method and CSS types
   - \`<apply_filter><host action="add">api.example.com</host></apply_filter>\` — add host to whitelist
   - \`<apply_filter><status action="show">404</status></apply_filter>\` — show previously hidden 404
+
+**send_to_repeater**: Add a captured HTTPS request to the Repeater.
+- \`index\`: The index from a previous \`list_https\` result (required). Accepts a number or \`request_<number>\` (e.g. \`request_3\`). The number is the stable original position, unaffected by filters.
+- Returns: Confirmation message.
+- Example: \`<send_to_repeater><index>request_3</index></send_to_repeater>\` — add request request_3 to repeater
+- ⚠ LIST-BEFORE-SEND: Always call \`list_https\` before \`send_to_repeater\`. The index must come from a \`list_https\` result.
+
+**list_repeaters**: List all requests currently saved in the Repeater.
+- No parameters.
+- Returns: A numbered list with \`repeater_N\` (index), \`method\`, \`host\`, and \`path\`.
+- Example: \`<list_repeaters />\` — list all repeater requests
+
+**delete_repeater**: Remove a request from the Repeater.
+- \`repeater_id\`: The repeater index from a previous \`list_repeaters\` result (required). Format: \`repeater_<number>\`.
+- Returns: Confirmation message.
+- Example: \`<delete_repeater><repeater_id>repeater_1</repeater_id></delete_repeater>\` — remove repeater_1
+- ⚠ LIST-BEFORE-DELETE: Always call \`list_repeaters\` before \`delete_repeater\`. The repeater_id must come from a \`list_repeaters\` result.
+
+**get_repeater_detail**: Get params, headers, and body of a request in the Repeater.
+- \`repeater_id\`: The repeater index from a previous \`list_repeaters\` result (required). Format: \`repeater_<number>\`.
+- Returns: JSON with \`params\`, \`headers\`, and \`body\`.
+- Example: \`<get_repeater_detail><repeater_id>repeater_1</repeater_id></get_repeater_detail>\` — get detail for repeater_1
+- ⚠ LIST-BEFORE-DETAIL: Always call \`list_repeaters\` before \`get_repeater_detail\`.
+
+Bearer xyz
 
 # RESPONSE TAGS
 <thinking>your private two-pass (or three-pass, see WORKFLOW) reasoning and planning</thinking>

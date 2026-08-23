@@ -12,7 +12,10 @@ import { cn } from '@renderer/shared/utils/cn';
 // Services
 import { ipcService } from '../../../../../services/ipc.service';
 
-type PCBodyProps = Pick<BaseModalProps, 'isOpen' | 'onAdd' | 'existingApps'>;
+type PCBodyProps = Pick<
+  BaseModalProps,
+  'isOpen' | 'onAdd' | 'existingApps' | 'onCanSubmitChange'
+>;
 
 export interface PCRef {
   submit: () => Promise<void>;
@@ -20,7 +23,7 @@ export interface PCRef {
 }
 
 export const PC = forwardRef<PCRef, PCBodyProps>(function PC(
-  { isOpen, onAdd, existingApps = [] },
+  { isOpen, onAdd, existingApps = [], onCanSubmitChange },
   ref,
 ) {
   const [discoveredApps, setDiscoveredApps] = useState<DiscoveredApp[]>([]);
@@ -103,10 +106,14 @@ export const PC = forwardRef<PCRef, PCBodyProps>(function PC(
 
   useImperativeHandle(ref, () => ({ submit: handleSubmit, canSubmit }), [handleSubmit, canSubmit]);
 
+  useEffect(() => {
+    onCanSubmitChange?.(canSubmit);
+  }, [canSubmit, onCanSubmitChange]);
+
   return (
     <div className="flex flex-row" style={{ height: '50vh' }}>
       {/* Left Panel - App List */}
-      <div className="w-1/2 flex flex-col pr-3 border-r border-border">
+      <div className="w-[37.5%] flex flex-col pr-3 border-r border-border">
         <div className="pb-3 flex gap-2 shrink-0">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
@@ -182,6 +189,17 @@ export const PC = forwardRef<PCRef, PCBodyProps>(function PC(
                       <div className="text-[10px] text-text-secondary truncate">
                         {app.description || 'System Application'}
                       </div>
+                      <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-text-secondary">
+                        <span className="px-1.5 py-0 rounded-md bg-text-secondary/10 text-text-secondary">
+                          {app.appSize || 'N/A'}
+                        </span>
+                        <span className="px-1.5 py-0 rounded-md bg-text-secondary/10 text-text-secondary">
+                          {app.lastUsed || 'Never used'}
+                        </span>
+                        <span className="px-1.5 py-0 rounded-md bg-text-secondary/10 text-text-secondary">
+                          {app.addedToTarget ? 'Added' : 'New'}
+                        </span>
+                      </div>
                     </div>
                   </button>
                 );
@@ -221,21 +239,11 @@ export const PC = forwardRef<PCRef, PCBodyProps>(function PC(
                 <h3 className="text-sm font-bold text-text-primary truncate">
                   {selectedPcApp.name}
                 </h3>
-                <p className="text-[11px] text-text-secondary">{selectedPcApp.platform || 'pc'}</p>
+                <p className="text-[11px] text-text-secondary">
+                  {selectedPcApp.description || 'System Application'}
+                </p>
               </div>
             </div>
-
-            {/* Description */}
-            {selectedPcApp.description && (
-              <div>
-                <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">
-                  Description
-                </p>
-                <p className="text-xs text-text-primary leading-relaxed">
-                  {selectedPcApp.description}
-                </p>
-              </div>
-            )}
 
             {/* Executable Path */}
             <div>
@@ -246,6 +254,28 @@ export const PC = forwardRef<PCRef, PCBodyProps>(function PC(
                 {(selectedPcApp as any).exec || 'N/A'}
               </p>
             </div>
+
+            {/* Package Name */}
+            {selectedPcApp.packageName && (
+              <div>
+                <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">
+                  Package Name
+                </p>
+                <p className="text-xs text-text-primary font-mono break-all">
+                  {selectedPcApp.packageName}
+                </p>
+              </div>
+            )}
+
+            {/* URL */}
+            {selectedPcApp.url && (
+              <div>
+                <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">
+                  URL
+                </p>
+                <p className="text-xs text-text-primary break-all">{selectedPcApp.url}</p>
+              </div>
+            )}
 
             {/* Source */}
             <div>

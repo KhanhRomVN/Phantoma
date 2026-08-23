@@ -18,6 +18,9 @@ import useTargetData from '../../hooks/useTargetData';
 import { useRequestFilter } from './hooks/network/useRequestFilter';
 import useNetworkEvents from './hooks/network/useNetworkEvents';
 
+// ── Utils ──
+import { formatResponseSize } from './utils/network-event-parser.util';
+
 // ── Types ──
 import { NetworkRequest } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
@@ -251,6 +254,34 @@ export default React.memo(function Emulate({
     },
   });
 
+  // Cập nhật httpsCount/dataUsed từ data network thật
+  useEffect(() => {
+    if (!activeTargetId) return;
+
+    const httpsCount = requests.filter(
+      (r) => r.protocol === 'https' || r.url.startsWith('https://'),
+    ).length;
+
+    const totalBytes = requests.reduce((sum, r) => {
+      const { sizeBytes } = formatResponseSize(r.size);
+      return sum + sizeBytes;
+    }, 0);
+
+    const dataUsed =
+      totalBytes >= 1024 * 1024
+        ? `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`
+        : totalBytes > 0
+          ? `${(totalBytes / 1024).toFixed(1)} KB`
+          : '0 B';
+
+    setState((prev) => ({
+      ...prev,
+      targetTabs: prev.targetTabs.map((tab) =>
+        tab.id === activeTargetId ? { ...tab, httpsCount, dataUsed } : tab,
+      ),
+    }));
+  }, [requests, activeTargetId, setState]);
+
   // Sync requests to EmulateController
   useEffect(() => {
     EmulateController.getInstance().setRequests(requests);
@@ -446,8 +477,27 @@ export default React.memo(function Emulate({
       });
       setFuzzerTargetId(req.id);
       handleSetSelectedTool('repeater');
+
+      // Gửi API tạo bản ghi repeater request nếu có activeTargetId
+      if (activeTargetId) {
+        const bodyStr =
+          typeof req.requestBody === 'string'
+            ? req.requestBody
+            : req.requestBody
+              ? JSON.stringify(req.requestBody)
+              : '';
+        emulateApi
+          .createRequest(activeTargetId, {
+            method: req.method || 'GET',
+            url: req.url,
+            body: bodyStr,
+            params: JSON.stringify([]),
+            headers: JSON.stringify(req.requestHeaders ?? {}),
+          })
+          .catch((e) => logger.error('[Emulate] Send to Repeater createRequest failed:', e));
+      }
     },
-    [handleSetSelectedTool],
+    [activeTargetId, handleSetSelectedTool],
   );
 
   const handleStopSession = useCallback(

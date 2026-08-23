@@ -102,4 +102,59 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
       fullAccess: "allow",
     },
   },
+
+  send_to_repeater: {
+    id: "send_to_repeater",
+    title: "SEND TO REPEATER",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  list_repeaters: {
+    id: "list_repeaters",
+    title: "LIST REPEATERS",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  delete_repeater: {
+    id: "delete_repeater",
+    title: "DELETE REPEATER",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  get_repeater_detail: {
+    id: "get_repeater_detail",
+    title: "GET REPEATER DETAIL",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  update_repeater_content: {
+    id: "update_repeater_content",
+    title: "UPDATE REPEATER CONTENT",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
 };

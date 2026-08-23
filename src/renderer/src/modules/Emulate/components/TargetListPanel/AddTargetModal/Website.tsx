@@ -10,7 +10,7 @@ import { cn } from '@renderer/shared/utils/cn';
 
 type WebsiteBodyProps = Pick<
   BaseModalProps,
-  'isOpen' | 'onAdd' | 'existingApps' | 'editApp' | 'onEdit'
+  'isOpen' | 'onAdd' | 'existingApps' | 'editApp' | 'onEdit' | 'onCanSubmitChange'
 >;
 
 export interface WebsiteRef {
@@ -19,7 +19,7 @@ export interface WebsiteRef {
 }
 
 export const Website = forwardRef<WebsiteRef, WebsiteBodyProps>(function Website(
-  { isOpen, onAdd, existingApps = [], editApp, onEdit },
+  { isOpen, onAdd, existingApps = [], editApp, onEdit, onCanSubmitChange },
   ref,
 ) {
   const [name, setName] = useState('');
@@ -213,34 +213,12 @@ export const Website = forwardRef<WebsiteRef, WebsiteBodyProps>(function Website
 
   useImperativeHandle(ref, () => ({ submit: handleSubmit, canSubmit }), [handleSubmit, canSubmit]);
 
+  useEffect(() => {
+    onCanSubmitChange?.(canSubmit);
+  }, [canSubmit, onCanSubmitChange]);
+
   return (
     <div className="space-y-4">
-      {suggestions.length > 0 && (
-        <div className="mb-2">
-          <label className="block text-xs font-bold text-error mb-2">
-            Duplicate targets detected
-          </label>
-          <div className="space-y-2">
-            {suggestions.map((suggestion, idx) => (
-              <div
-                key={idx}
-                className="w-full text-left p-3 rounded-xl bg-error/5 border border-error/30"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-text-primary">{suggestion.name}</div>
-                    {suggestion.url && (
-                      <div className="text-xs text-text-secondary truncate mt-0.5 font-mono">
-                        {suggestion.url}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
       <div>
         <label className="block text-xs font-bold text-text-secondary mb-1.5">Name</label>
         <input

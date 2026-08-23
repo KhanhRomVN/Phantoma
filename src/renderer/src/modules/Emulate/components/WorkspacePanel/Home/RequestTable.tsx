@@ -850,8 +850,8 @@ export const RequestTable = React.memo(function RequestTable({
 
   return (
     <div className="h-full w-full flex flex-col text-sm overflow-hidden relative">
-      <div className="h-10 flex items-center px-2 border-b border-divider gap-2 shrink-0">
-        <div className="flex-1 flex items-center gap-2 bg-input-background border border-border rounded px-3 h-7">
+      <div className="flex items-center px-1 py-1.5 border-b border-divider gap-1.5 shrink-0">
+        <div className="flex-1 flex items-center gap-2 bg-input-background border border-border rounded px-2 h-9">
           <div className="relative flex-1">
             <input
               type="text"

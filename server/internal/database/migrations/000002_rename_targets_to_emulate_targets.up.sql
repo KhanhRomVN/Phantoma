@@ -1,1 +1,0 @@
-ALTER TABLE targets RENAME TO emulate_targets;

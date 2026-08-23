@@ -21,6 +21,12 @@ import { EmulateController } from '@renderer/controller/EmulateController';
 
 // ── Types ──
 import type { ApplyFilterParams } from '../parsers/EmulateParser';
+import type {
+  DeleteRepeaterParams,
+  GetRepeaterDetailParams,
+  SendToRepeaterParams,
+  UpdateRepeaterContentParams,
+} from '../../types/tool-types';
 
 // ─── Functions ──────────────────────────────────────────────────────────
 // ===== ApplyFilterExecutor =====
@@ -155,6 +161,77 @@ export async function executeListSources(params: ListSourcesParams): Promise<str
 
   if (!result.success) {
     return '[list_sources] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== SendToRepeaterExecutor =====
+
+/** Execute send_to_repeater tool — gọi EmulateController.executeTool() */
+export async function executeSendToRepeater(params: SendToRepeaterParams): Promise<string | null> {
+  const result = await EmulateController.executeTool('send_to_repeater', {
+    index: params.index,
+  });
+
+  if (!result.success) {
+    return '[send_to_repeater] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== ListRepeatersExecutor =====
+
+/** Execute list_repeaters tool — gọi EmulateController.executeTool() */
+export async function executeListRepeaters(): Promise<string | null> {
+  const result = await EmulateController.executeTool('list_repeaters');
+
+  if (!result.success) {
+    return '[list_repeaters] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== DeleteRepeaterExecutor =====
+
+/** Execute delete_repeater tool — gọi EmulateController.executeTool() */
+export async function executeDeleteRepeater(params: DeleteRepeaterParams): Promise<string | null> {
+  const result = await EmulateController.executeTool('delete_repeater', {
+    repeater_id: params.repeater_id,
+  });
+
+  if (!result.success) {
+    return '[delete_repeater] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== GetRepeaterDetailExecutor =====
+
+/** Execute get_repeater_detail tool — gọi EmulateController.executeTool() */
+export async function executeGetRepeaterDetail(params: GetRepeaterDetailParams): Promise<string | null> {
+  const result = await EmulateController.executeTool('get_repeater_detail', {
+    repeater_id: params.repeater_id,
+  });
+
+  if (!result.success) {
+    return '[get_repeater_detail] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== UpdateRepeaterContentExecutor =====
+
+/** Execute update_repeater_content tool — gọi EmulateController.executeTool() */
+export async function executeUpdateRepeaterContent(params: UpdateRepeaterContentParams): Promise<string | null> {
+  const result = await EmulateController.executeTool('update_repeater_content', {
+    repeater_id: params.repeater_id,
+    target: params.target,
+    old_content: params.old_content,
+    new_content: params.new_content,
+  });
+
+  if (!result.success) {
+    return '[update_repeater_content] Result: Error - ' + (result.error || '');
   }
   return (result.data as any)?.output || null;
 }

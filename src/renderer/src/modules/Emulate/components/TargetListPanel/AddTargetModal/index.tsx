@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 
 // ── Components ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
@@ -33,6 +33,7 @@ export interface BaseModalProps {
   }[];
   editApp?: { id: string; name: string; url?: string; executablePath?: string } | null;
   onEdit?: (id: string, data: { name: string; url?: string; executablePath?: string }) => void;
+  onCanSubmitChange?: (value: boolean) => void;
 }
 
 interface AddTargetModalProps {
@@ -85,11 +86,18 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
   onEdit,
 }) => {
   const bodyRef = useRef<BodyRef>(null);
+  const [canSubmit, setCanSubmit] = useState(false);
 
   const isEdit = !!editApp;
   const config = PLATFORM_CONFIG[platform] || { title: 'Add Target', description: '' };
   const title = isEdit ? config.isEditTitle || config.title : config.title;
   const description = isEdit ? config.isEditDesc || config.description : config.description;
+
+  useEffect(() => {
+    if (!isOpen) {
+      setCanSubmit(false);
+    }
+  }, [isOpen]);
 
   const handleSubmit = useCallback(async () => {
     if (bodyRef.current) {
@@ -97,8 +105,6 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
       onClose();
     }
   }, [onClose]);
-
-  const canSubmit = bodyRef.current?.canSubmit ?? false;
 
   const renderBody = () => {
     switch (platform) {
@@ -111,12 +117,29 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
             existingApps={existingApps}
             editApp={editApp}
             onEdit={onEdit}
+            onCanSubmitChange={setCanSubmit}
           />
         );
       case 'android':
-        return <Android ref={bodyRef} isOpen={isOpen} onAdd={onAdd} existingApps={existingApps} />;
+        return (
+          <Android
+            ref={bodyRef}
+            isOpen={isOpen}
+            onAdd={onAdd}
+            existingApps={existingApps}
+            onCanSubmitChange={setCanSubmit}
+          />
+        );
       case 'pc':
-        return <PC ref={bodyRef} isOpen={isOpen} onAdd={onAdd} existingApps={existingApps} />;
+        return (
+          <PC
+            ref={bodyRef}
+            isOpen={isOpen}
+            onAdd={onAdd}
+            existingApps={existingApps}
+            onCanSubmitChange={setCanSubmit}
+          />
+        );
       case 'cli':
         return (
           <CLI
@@ -126,6 +149,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
             existingApps={existingApps}
             editApp={editApp}
             onEdit={onEdit}
+            onCanSubmitChange={setCanSubmit}
           />
         );
       default:
@@ -134,7 +158,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-2xl">
+    <Modal isOpen={isOpen} onClose={onClose} className={platform === 'pc' ? 'max-w-5xl' : 'max-w-2xl'}>
       <ModalHeader title={title} description={description} onClose={onClose} />
       <ModalBody>{renderBody()}</ModalBody>
       <ModalFooter>

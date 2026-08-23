@@ -22,13 +22,18 @@ import { extractParamValue } from '../../utils/ToolParser';
 
 // ── Types ──
 import {
+  DeleteRepeaterParams,
+  GetRepeaterDetailParams,
+  UpdateRepeaterContentParams,
   GetHttpsDetailParams,
   GetResourceContentParams,
   GetSourceDetailParams,
   ListHostsParams,
   ListHttpsParams,
+  ListRepeatersParams,
   ListResourcesParams,
   ListSourcesParams,
+  SendToRepeaterParams,
 } from '../../types/tool-types';
 
 // ─── Functions ──────────────────────────────────────────────────────────
@@ -125,7 +130,8 @@ export function parseGetHttpsDetail(innerContent: string): GetHttpsDetailParams 
 
   const indexParam = extractParamValue(innerContent, 'index');
   if (indexParam) {
-    const parsed = parseInt(indexParam, 10);
+    const match = /^request_(\d+)$/i.exec(indexParam.trim());
+    const parsed = match ? parseInt(match[1], 10) : parseInt(indexParam, 10);
     if (!isNaN(parsed)) params.index = parsed;
   }
 
@@ -299,6 +305,105 @@ export function parseListSources(innerContent: string): ListSourcesParams {
   if (Object.keys(filter).length > 0) {
     params.filter = filter;
   }
+
+  return params;
+}
+
+// ===== SendToRepeaterParser =====
+
+/**
+ * Parse send_to_repeater tag from AI response.
+ * Format: <send_to_repeater><index>1</index></send_to_repeater>
+ */
+export function parseSendToRepeater(innerContent: string): SendToRepeaterParams {
+  const params: SendToRepeaterParams = { index: -1 };
+
+  const indexParam = extractParamValue(innerContent, 'index');
+  if (indexParam) {
+    const match = /^request_(\d+)$/i.exec(indexParam.trim());
+    const parsed = match ? parseInt(match[1], 10) : parseInt(indexParam, 10);
+    if (!isNaN(parsed)) params.index = parsed;
+  }
+
+  return params;
+}
+
+// ===== ListRepeatersParser =====
+
+/**
+ * Parse list_repeaters tag from AI response.
+ * Format: <list_repeaters /> (no params)
+ */
+export function parseListRepeaters(_innerContent: string): ListRepeatersParams {
+  return {};
+}
+
+// ===== DeleteRepeaterParser =====
+
+/**
+ * Parse delete_repeater tag from AI response.
+ * Format: <delete_repeater><repeater_id>repeater_1</repeater_id></delete_repeater>
+ */
+export function parseDeleteRepeater(innerContent: string): DeleteRepeaterParams {
+  const params: DeleteRepeaterParams = { repeater_id: '' };
+
+  const idParam = extractParamValue(innerContent, 'repeater_id');
+  if (idParam) params.repeater_id = idParam.trim();
+
+  return params;
+}
+
+// ===== GetRepeaterDetailParser =====
+
+/**
+ * Parse get_repeater_detail tag from AI response.
+ * Format: <get_repeater_detail><repeater_id>repeater_1</repeater_id></get_repeater_detail>
+ */
+export function parseGetRepeaterDetail(innerContent: string): GetRepeaterDetailParams {
+  const params: GetRepeaterDetailParams = { repeater_id: '' };
+
+  const idParam = extractParamValue(innerContent, 'repeater_id');
+  if (idParam) params.repeater_id = idParam.trim();
+
+  return params;
+}
+
+// ===== UpdateRepeaterContentParser =====
+
+/**
+ * Parse update_repeater_content tag from AI response.
+ * Format:
+ *   <update_repeater_content>
+ *     <repeater_id>repeater_1</repeater_id>
+ *     <target>headers</target>
+ *     <old_content>...</old_content>
+ *     <new_content>...</new_content>
+ *   </update_repeater_content>
+ */
+export function parseUpdateRepeaterContent(innerContent: string): UpdateRepeaterContentParams {
+  const params: UpdateRepeaterContentParams = {
+    repeater_id: '',
+    target: 'body',
+    old_content: '',
+    new_content: '',
+  };
+
+  const idParam = extractParamValue(innerContent, 'repeater_id');
+  if (idParam) params.repeater_id = idParam.trim();
+
+  const targetParam = extractParamValue(innerContent, 'target');
+  if (targetParam) {
+    const target = targetParam.trim().toLowerCase();
+    if (target === 'params' || target === 'headers' || target === 'body') {
+      params.target = target;
+    }
+  }
+
+  const oldParam = extractParamValue(innerContent, 'old_content');
+  if (oldParam) params.old_content = oldParam;
+
+  const newParam = extractParamValue(innerContent, 'new_content');
+  if (newParam) params.new_content = newParam;
 
   return params;
 }

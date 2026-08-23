@@ -66,6 +66,37 @@ export const clearRepeater = (targetId?: string | null) => {
   window.dispatchEvent(new CustomEvent('repeater-updated'));
 };
 
+// ── Payload Values Storage ──────────────────────────────────────────────
+
+const getPayloadStorageKey = (targetId: string | null): string => {
+  const base = targetId ? `repeater-${targetId}` : 'repeater-default';
+  return `${base}-payload-values`;
+};
+
+/** Load toàn bộ payload values từ localStorage. */
+export const loadPayloadValues = (
+  targetId?: string | null,
+): Record<string, Record<string, string[]>> => {
+  try {
+    const key = getPayloadStorageKey(targetId || null);
+    const raw = localStorage.getItem(key);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+/** Save toàn bộ payload values vào localStorage. */
+export const savePayloadValues = (
+  values: Record<string, Record<string, string[]>>,
+  targetId?: string | null,
+): void => {
+  const key = getPayloadStorageKey(targetId || null);
+  localStorage.setItem(key, JSON.stringify(values));
+};
+
 // Map API RepeaterRequest to NetworkRequest for RequestList display
 const mapDbToNetworkRequest = (r: RepeaterRequest): NetworkRequest => {
   let host = '';
@@ -99,7 +130,12 @@ interface PayloadPanelProps {
   targetId?: string | null;
 }
 
-export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPanelProps) {
+export function PayloadPanel({
+  onClose,
+  selectedRequestId,
+  targetId,
+  isTargetRunning,
+}: PayloadPanelProps) {
   const requests = useNetworkStore((s) => s.requests);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -110,7 +146,7 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
   const [dbRequests, setDbRequests] = useState<NetworkRequest[]>([]);
 
   useEffect(() => {
-    if (!targetId) {
+    if (!targetId || !isTargetRunning) {
       setDbRequests([]);
       return;
     }
@@ -123,7 +159,7 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
         }
       }
     });
-  }, [targetId]);
+  }, [targetId, isTargetRunning]);
 
   useEffect(() => {
     const handleUpdate = () => setRepeaterIds(loadRepeaterIds(targetId));
@@ -175,6 +211,21 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
     setSelectedId(id);
     setViewHistoryEntry(null);
   };
+
+  const handleRemoveRequest = async (id: string) => {
+    // Xóa khỏi localStorage/state trước để UI phản hồi ngay
+    removeFromRepeater(id, targetId);
+
+    // Nếu request tồn tại trong DB server, gọi API xóa
+    if (targetId && dbRequests.some((r) => r.id === id)) {
+      try {
+        await emulateApi.deleteRequest(targetId, id);
+        setDbRequests((prev) => prev.filter((r) => r.id !== id));
+      } catch (error) {
+        logger.error('[Repeater] Failed to delete request from server:', error);
+      }
+    }
+  };
   const handleViewHistory = (entry: HistoryEntry) => setViewHistoryEntry(entry);
   const handleExitView = () => setViewHistoryEntry(null);
 
@@ -199,7 +250,7 @@ export function PayloadPanel({ onClose, selectedRequestId, targetId }: PayloadPa
           onSelect={handleSelectRequest}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          onRemoveRequest={(id) => removeFromRepeater(id, targetId)}
+          onRemoveRequest={handleRemoveRequest}
         />
       </div>
       <div className="flex-1 flex flex-col min-w-0 bg-muted/5">

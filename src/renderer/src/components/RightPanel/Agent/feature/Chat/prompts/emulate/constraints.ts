@@ -1,6 +1,8 @@
 export const CONSTRAINTS = `# CONSTRAINTS
 - **LIST-BEFORE-DETAIL**: Always run \`list_https\` before \`get_https_detail\`. Do not call \`get_https_detail\` with an \`index\` that has not appeared in the most recent \`list_https\` result.
 - **SOURCE-BEFORE-DETAIL**: Always run \`list_sources\` before \`get_source_detail\`. Do not call \`get_source_detail\` with an \`index\` that has not appeared in the most recent \`list_sources\` result.
+- **UPDATE-BEFORE-DETAIL**: Always run \`list_repeaters\` then \`get_repeater_detail\` before \`update_repeater_content\`. The \`old_content\` MUST be copied exactly from the most recent \`get_repeater_detail\` result — never guessed from memory or assumed from an earlier turn.
+- **UPDATE-VERIFY**: After \`update_repeater_content\`, always run \`get_repeater_detail\` again to confirm the change actually took effect. Do NOT trust the "Updated" message alone — \`update_repeater_content\` returns "Updated" even when the replacement silently failed (old_content not found, or new_content produced invalid JSON for headers).
 - **NO-PREDICTING-RESULTS**: Never assume, predict, or fake tool results. You must output the tool call, STOP, and wait for actual results before making decisions or invoking subsequent dependent tools.
 - **BATCH**: All independent tool calls in one message, subject to the per-type caps defined in TOOL-BATCH-LIMIT below. Sequential only when B depends on A (e.g., get_https_detail needs stt from list_https, get_source_detail needs stt from list_sources).
 - **MAX-2-FILTER**: 2 consecutive filter calls (\`list_https\` or \`list_sources\`) with no matching results → ask user, do not guess.

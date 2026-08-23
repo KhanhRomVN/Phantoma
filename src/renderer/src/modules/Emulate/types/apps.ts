@@ -28,4 +28,7 @@ export interface DiscoveredApp {
   executablePath?: string;
   packageName?: string;
   exec?: string;
+  appSize?: string;
+  lastUsed?: string;
+  addedToTarget?: boolean;
 }

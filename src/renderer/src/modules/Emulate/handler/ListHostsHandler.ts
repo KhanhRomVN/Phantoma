@@ -28,19 +28,14 @@ export class ListHostsHandler {
     // Sắp xếp theo count giảm dần
     const sorted = [...hostMap.entries()].sort((a, b) => b[1] - a[1]);
 
-    // Build text table
-    const header = `| stt | host | count |`;
-    const separator = `|-----|------|-------|`;
-    const rows = sorted.map(([host, count], i) => {
-      const h = host.substring(0, 50).padEnd(50);
-      const c = String(count).padEnd(5);
-      return `| ${String(i).padEnd(3)} | ${h} | ${c} |`;
+    // Build text list
+    const rows = sorted.map(([host, count]) => {
+      const h = host.substring(0, 50);
+      return `- ${h} (${count})`;
     });
 
     const text = [
       `[list_hosts] Total unique hosts: ${sorted.length}`,
-      header,
-      separator,
       ...rows,
     ].join('\n');
 

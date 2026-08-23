@@ -405,4 +405,147 @@ Pass 2 (Verify): Both calls independent — batch per BATCH rule.
 
 *(Continue with get_https_detail for error requests, then get_source_detail for related JS files...)*
 \`\`\`
+
+---
+
+## Ex 12: update_repeater_content — Full LIST → READ → UPDATE → VERIFY flow ✅
+
+**User**: "Add an auth_token payload variable to the login request in Repeater"
+
+**Turn 1** — LIST repeaters:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Need to find the login request in the Repeater first.
+Pass 2 (Verify): Run list_repeaters to get valid repeater_id, then STOP.
+</thinking>
+<list_repeaters />
+\`\`\`
+
+**Turn 2** — Result shows repeater_0 is the login request. READ its detail:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): repeater_0 is POST /api/login. Get its exact current headers/body before modifying.
+Pass 2 (Verify): repeater_0 came from list_repeaters result — valid per UPDATE-BEFORE-DETAIL.
+</thinking>
+<get_repeater_detail><repeater_id>repeater_0</repeater_id></get_repeater_detail>
+\`\`\`
+
+**Turn 3** — Detail returns \`"Authorization": "Bearer eyJhbGciOi..."\`. UPDATE with payload variable:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Replace the hardcoded token with a \${auth_token} placeholder. old_content must match byte-for-byte from get_repeater_detail.
+Pass 2 (Verify): old_content copied exactly from the previous get_repeater_detail result. target is headers, new_content keeps valid JSON structure.
+</thinking>
+<update_repeater_content>
+  <repeater_id>repeater_0</repeater_id>
+  <target>headers</target>
+  <old_content>"Authorization": "Bearer eyJhbGciOi..."</old_content>
+  <new_content>"Authorization": "Bearer \${auth_token}"</new_content>
+</update_repeater_content>
+\`\`\`
+
+**Turn 4** — VERIFY the change took effect:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Tool returned "Updated repeater_0 headers" but per UPDATE-VERIFY I must re-read to confirm the replacement actually happened (silent failures are possible).
+Pass 2 (Verify): get_repeater_detail call — read-only, no assumptions.
+</thinking>
+<get_repeater_detail><repeater_id>repeater_0</repeater_id></get_repeater_detail>
+\`\`\`
+
+**Turn 5** — Detail confirms \`"Authorization": "Bearer \${auth_token}"\`. REPORT:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Verified — the header now contains the payload variable placeholder.
+Pass 2 (Verify): No more tools needed. Report to user.
+</thinking>
+<markdown>
+Replaced the hardcoded Authorization token in repeater_0 with payload variable \`\${auth_token}\`.
+
+Note: this placeholder has no value yet. Future payload-management tools will allow you to assign values and preview fuzz results.
+</markdown>
+\`\`\`
+
+---
+
+## Ex 13: update_repeater_content — Silent failure must be caught by VERIFY ✅
+
+**User**: "Change the Content-Type header in repeater_1 to application/xml"
+
+**Turn 1** — LIST + READ:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Need repeater_1's exact current headers before modifying.
+Pass 2 (Verify): Batch list_repeaters and get_repeater_detail — sequential dependency: repeater_id from list first.
+</thinking>
+<list_repeaters />
+\`\`\`
+
+**Turn 2** — READ detail after list returned repeater_1:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): repeater_1 found. Read its detail to get exact old_content.
+Pass 2 (Verify): UPDATE-BEFORE-DETAIL — must read before update.
+</thinking>
+<get_repeater_detail><repeater_id>repeater_1</repeater_id></get_repeater_detail>
+\`\`\`
+
+**Turn 3** — Detail returns headers JSON. AI mistakenly uses a slightly wrong old_content (missing a quote):
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Replace Content-Type value. old_content is "Content-Type": "application/json — but this is missing the closing quote, so it will NOT match.
+Pass 2 (Verify): Per NO-PREDICTING-RESULTS, I must call the tool and observe the result — not assume it worked.
+</thinking>
+<update_repeater_content>
+  <repeater_id>repeater_1</repeater_id>
+  <target>headers</target>
+  <old_content>"Content-Type": "application/json</old_content>
+  <new_content>"Content-Type": "application/xml</new_content>
+</update_repeater_content>
+\`\`\`
+
+**Turn 4** — Tool still returns "Updated repeater_1 headers". AI VERIFIES:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): The "Updated" message is suspicious because my old_content may not have matched. Per UPDATE-VERIFY, re-read the detail to confirm what actually happened.
+Pass 2 (Verify): get_repeater_detail is read-only — safe to call.
+</thinking>
+<get_repeater_detail><repeater_id>repeater_1</repeater_id></get_repeater_detail>
+\`\`\`
+
+**Turn 5** — Detail still shows \`"Content-Type": "application/json"\` (unchanged). AI recognizes the silent failure:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Content-Type is still application/json — the update silently failed because old_content didn't match exactly. I must redo with the correct old_content from this fresh get_repeater_detail result.
+Pass 2 (Verify): Use the exact string from the new detail output — not my earlier guess.
+</thinking>
+<update_repeater_content>
+  <repeater_id>repeater_1</repeater_id>
+  <target>headers</target>
+  <old_content>"Content-Type": "application/json"</old_content>
+  <new_content>"Content-Type": "application/xml"</new_content>
+</update_repeater_content>
+\`\`\`
+
+**Turn 6** — VERIFY again:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Re-read to confirm the second update worked.
+Pass 2 (Verify): UPDATE-VERIFY — must re-read.
+</thinking>
+<get_repeater_detail><repeater_id>repeater_1</repeater_id></get_repeater_detail>
+\`\`\`
+
+**Turn 7** — Detail now shows \`"Content-Type": "application/xml"\`. REPORT:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Verified — second update succeeded with the corrected old_content.
+Pass 2 (Verify): No more tools needed.
+</thinking>
+<markdown>
+The first update silently failed because \`old_content\` was missing a closing quote. After re-reading the detail and using the exact string, the second update succeeded — Content-Type is now \`application/xml\`.
+
+Key takeaway: always VERIFY with \`get_repeater_detail\` after \`update_repeater_content\` — the "Updated" message is returned even on silent failure.
+</markdown>
+\`\`\`
 `;

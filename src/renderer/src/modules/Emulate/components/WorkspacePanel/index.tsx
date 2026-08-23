@@ -187,7 +187,11 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
           )}
           {selectedTool === 'repeater' && (
             <div className="flex-1 overflow-hidden">
-              <PayloadPanel selectedRequestId={fuzzerTargetId} />
+              <PayloadPanel
+                selectedRequestId={fuzzerTargetId}
+                targetId={activeTargetId}
+                isTargetRunning={targetStates[activeTargetId]?.isActive || false}
+              />
             </div>
           )}
           {selectedTool === 'resource' && (
