@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { logger } from '@renderer/utils/logger';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -90,6 +90,10 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   onStopSession,
   activeAppId,
 }) => {
+  useEffect(() => {
+    console.log('[DEBUG][RENDER] TargetListPanel re-rendered');
+  });
+
   const [targetSearchQuery, setTargetSearchQuery] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [filterPlatform, setFilterPlatform] = useState<'all' | AppPlatform>('all');

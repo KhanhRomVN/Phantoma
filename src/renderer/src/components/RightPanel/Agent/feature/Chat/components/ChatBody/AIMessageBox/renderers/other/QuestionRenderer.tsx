@@ -23,6 +23,7 @@ import { $ } from '@renderer/utils/color';
 
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
+import { Button } from '@renderer/components/ui/Button';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface QuestionAnswerBlockProps {
@@ -227,9 +228,8 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
         <TagHeader
           title="QUESTION"
           statusColor={legacyAnswered ? $('--success') : $('--text-secondary')}
-          icon={<span className="codicon codicon-question text-sm" />}
         />
-        <div className="pl-9 mt-1">
+        <div className="mt-1">
           {title && <div className="text-[13px] font-medium text-text-primary mb-2">{title}</div>}
           <div className="flex flex-col gap-2">
             {legacyOptions.map((option) => (
@@ -794,7 +794,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           statusColor={statusColor}
           icon={<span className="codicon codicon-question text-sm" />}
         />
-        <div className="pl-9 mt-2">
+        <div className="mt-2">
           {title && (
             <div className="text-[13px] font-medium text-text-primary mb-3 py-1">{title}</div>
           )}
@@ -857,7 +857,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
         icon={<span className="codicon codicon-question text-sm" />}
         headerActions={isAllAnswered ? renderNavIcons() : undefined}
       />
-      <div className="pl-9 mt-2">
+      <div className=" mt-2">
         <div className="text-sm font-medium text-text-primary py-1 pb-2">
           {currentQuestion?.label}
           {currentQuestion?.type && (
@@ -871,17 +871,17 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
 
         {!isSummaryModeState && (
           <div className="flex justify-end gap-2 mt-2">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
-              className={cn(
-                'py-1 px-3 bg-transparent text-text-primary border-none text-[11px]',
-                currentIndex === 0 ? 'cursor-default opacity-30' : 'cursor-pointer opacity-70',
-              )}
             >
               ← Trước
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="solid"
+              size="sm"
               onClick={() => {
                 let allAnswers = answers;
                 if (currentQuestion?.type === 'multi') {
@@ -924,15 +924,9 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
                 }
               }}
               disabled={!isCurrentAnswered()}
-              className={cn(
-                'py-1 px-3 border-none rounded text-[11px] font-medium',
-                isCurrentAnswered()
-                  ? 'bg-primary text-text-foreground cursor-pointer opacity-100'
-                  : 'bg-transparent text-text-primary cursor-default opacity-30',
-              )}
             >
               {isLastQuestion ? 'Hoàn tất →' : 'Tiếp theo →'}
-            </button>
+            </Button>
           </div>
         )}
       </div>

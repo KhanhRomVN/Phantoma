@@ -4,11 +4,11 @@ import { ResourceList } from './ResourceList';
 import { ResourcePreview } from './ResourcePreview';
 
 // ── Types ──
-import { NetworkRequest } from '../Home/Filter';
 import { ResourceItem, ResourceType } from '../../../types/resource.types';
 
 // ── Constants ──
 import { detectResourceType } from '../../../constants/resource';
+import { useNetworkStore } from '../../../stores/networkStore';
 
 // ── Utils ──
 import { formatSize } from '../../../utils/source-tree.util';
@@ -18,12 +18,12 @@ import { detectWasm } from '../../../utils/wasm-detector.util';
 import { ipcService } from '../../../../../services/ipc.service';
 
 interface ResourcesPanelProps {
-  requests?: NetworkRequest[];
   onClose?: () => void;
   onCountChange?: (count: number) => void;
 }
 
-export function ResourcesPanel({ requests = [], onCountChange }: ResourcesPanelProps) {
+export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
+  const requests = useNetworkStore((s) => s.requests);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<ResourceType>>(

@@ -22,6 +22,7 @@ import type { ExecutorContext } from '../../types/executor-types';
 
 // ── Context ──
 import { useSettings } from '../../../../context/SettingsContext';
+import { useAgentFeature } from '../../../../context/FeatureContext';
 
 // ── Utils ──
 export { getPermissionDecision } from '../../utils/permissionUtils';
@@ -67,6 +68,7 @@ export const useToolExecution = ({
   isStoppedRef,
 }: UseToolExecutionProps) => {
   const { permissionMode } = useSettings();
+  const { emulateState } = useAgentFeature();
   const permissionModeRef = useRef<PermissionMode>(permissionMode);
   useLayoutEffect(() => {
     permissionModeRef.current = permissionMode;
@@ -242,8 +244,9 @@ export const useToolExecution = ({
       commandStartTimes: commandStartTimes.current,
       earlyCommandResults: earlyCommandResults.current,
       responseNumber,
+      activeTargetId: emulateState.activeTargetId,
     }),
-    [setToolOutputs, conversationIdRef],
+    [setToolOutputs, conversationIdRef, emulateState.activeTargetId],
   );
 
   const executeSingleAction = useCallback(

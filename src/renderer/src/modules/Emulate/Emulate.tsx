@@ -12,6 +12,7 @@ import { initialFilterState } from './components/WorkspacePanel/Home';
 import WorkspacePanel from './components/WorkspacePanel';
 import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
 import TargetSidebar from './components/TargetListPanel';
+import { FooterBar } from './components/FooterBar';
 
 // ── Hooks ──
 import useTargetData from '../../hooks/useTargetData';
@@ -28,6 +29,7 @@ import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 
 // Stores
 import { useTimerStore } from './stores/timerStore';
+import { useNetworkStore } from './stores/networkStore';
 
 // ── Constants ──
 import { ToolType, DEFAULT_TOOL } from './constants/tools';
@@ -36,6 +38,10 @@ export default React.memo(function Emulate({
   activeAppId = '',
   onStopSession = async () => {},
 }: EmulateProps) {
+  useEffect(() => {
+    console.log('[DEBUG][RENDER] Emulate re-rendered');
+  });
+
   const { getColorByIndex, UNIFIED_ACCENT } = useAccentColors();
 
   const { setEmulateState } = useAgentFeature();
@@ -248,45 +254,47 @@ export default React.memo(function Emulate({
     [targetStates],
   );
 
-  const { requests, clearRequests, unpackedScripts } = useNetworkEvents({
+  const { clearRequests, unpackedScripts } = useNetworkEvents({
     targetId: activeTargetId || undefined,
-    onRequestsChange: (newRequests) => {
-      setState((prev) => ({ ...prev, requests: newRequests }));
-    },
   });
 
-  // Cập nhật httpsCount/dataUsed từ data network thật
+  // Cập nhật httpsCount/dataUsed từ data network thật (debounce 500ms để gom nhiều event)
   useEffect(() => {
     if (!activeTargetId) return;
 
-    const httpsCount = requests.filter(
-      (r) => r.protocol === 'https' || r.url.startsWith('https://'),
-    ).length;
+    const timer = setTimeout(() => {
+      const requests = useNetworkStore.getState().requests;
+      const httpsCount = requests.filter(
+        (r) => r.protocol === 'https' || r.url.startsWith('https://'),
+      ).length;
 
-    const totalBytes = requests.reduce((sum, r) => {
-      const { sizeBytes } = formatResponseSize(r.size);
-      return sum + sizeBytes;
-    }, 0);
+      const totalBytes = requests.reduce((sum, r) => {
+        const { sizeBytes } = formatResponseSize(r.size);
+        return sum + sizeBytes;
+      }, 0);
 
-    const dataUsed =
-      totalBytes >= 1024 * 1024
-        ? `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`
-        : totalBytes > 0
-          ? `${(totalBytes / 1024).toFixed(1)} KB`
-          : '0 B';
+      const dataUsed =
+        totalBytes >= 1024 * 1024
+          ? `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`
+          : totalBytes > 0
+            ? `${(totalBytes / 1024).toFixed(1)} KB`
+            : '0 B';
 
-    setState((prev) => ({
-      ...prev,
-      targetTabs: prev.targetTabs.map((tab) =>
-        tab.id === activeTargetId ? { ...tab, httpsCount, dataUsed } : tab,
-      ),
-    }));
-  }, [requests, activeTargetId, setState]);
+      setState((prev) => ({
+        ...prev,
+        targetTabs: prev.targetTabs.map((tab) =>
+          tab.id === activeTargetId ? { ...tab, httpsCount, dataUsed } : tab,
+        ),
+      }));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [activeTargetId, setState]);
 
   // Sync requests to EmulateController
   useEffect(() => {
-    EmulateController.getInstance().setRequests(requests);
-  }, [requests]);
+    EmulateController.getInstance().setRequests(useNetworkStore.getState().requests);
+  }, [activeTargetId]);
 
   // Sync targetId to EmulateController
   useEffect(() => {
@@ -388,6 +396,10 @@ export default React.memo(function Emulate({
     [updateFilter],
   );
 
+  const handleToggleFilter = useCallback(() => {
+    setIsFilterOpen((prev) => !prev);
+  }, []);
+
   const handleClearRequests = useCallback(() => {
     clearRequests();
     setState((prev) => ({ ...prev, selectedId: null }));
@@ -481,7 +493,7 @@ export default React.memo(function Emulate({
   const handleSendToRepeater = useCallback(
     (req: NetworkRequest) => {
       import('./components/WorkspacePanel/Repeater').then(({ addToRepeater }) => {
-        addToRepeater(req.id);
+        addToRepeater(req, activeTargetId || '');
       });
       setFuzzerTargetId(req.id);
       handleSetSelectedTool('repeater');
@@ -576,8 +588,8 @@ export default React.memo(function Emulate({
   const memoizedTargetStates = useMemo(() => targetStates, [targetStates]);
 
   return (
-    <div className="flex h-full bg-background">
-      {/* Target Sidebar */}
+    <div className="flex h-full bg-background flex-col">
+      <div className="flex flex-1 min-h-0">{/* Target Sidebar */}
       <TargetSidebar
         targetTabs={memoizedTargetTabs}
         activeTargetId={activeTargetId}
@@ -601,7 +613,6 @@ export default React.memo(function Emulate({
         targetStates={targetStates}
         selectedId={selectedId}
         searchTerm={searchTerm}
-        requests={requests}
         filter={filter}
         isFilterOpen={isFilterOpen}
         fuzzerTargetId={fuzzerTargetId}
@@ -612,7 +623,7 @@ export default React.memo(function Emulate({
         onSetSelectedId={handleSetSelectedId}
         onSearchChange={setSearchTerm}
         onFilterChange={handleSetFilter}
-        onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
+        onToggleFilter={handleToggleFilter}
         onSendToRepeater={handleSendToRepeater}
         onClearRequests={handleClearRequests}
         onLaunchTarget={handleLaunchTarget}
@@ -620,6 +631,13 @@ export default React.memo(function Emulate({
         onStopTarget={handleStopTarget}
         onStartTarget={handleStartTarget}
         isTargetActive={isTargetActive}
+      />
+      </div>
+
+      {/* Footer Bar */}
+      <FooterBar
+        activeTargetId={activeTargetId}
+        targetState={activeTargetId ? targetStates[activeTargetId] : undefined}
       />
 
       {/* Modals */}

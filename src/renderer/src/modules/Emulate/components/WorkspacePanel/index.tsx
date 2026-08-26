@@ -1,5 +1,4 @@
-import React from 'react';
-import { useMemo } from 'react';
+import { useMemo, useEffect, memo, createElement, FC } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
 // ── Components ──
@@ -28,7 +27,6 @@ interface WorkspacePanelProps {
   >;
   selectedId: string | null;
   searchTerm: string;
-  requests: NetworkRequest[];
   filter: any;
   isFilterOpen: boolean;
   fuzzerTargetId: string | null;
@@ -54,13 +52,12 @@ interface WorkspacePanelProps {
   isTargetActive: (targetId: string) => boolean;
 }
 
-const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
+const WorkspacePanel: FC<WorkspacePanelProps> = ({
   selectedTool,
   activeTargetId,
   targetStates,
   selectedId,
   searchTerm,
-  requests,
   filter,
   isFilterOpen,
   fuzzerTargetId,
@@ -80,6 +77,10 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
   onStartTarget,
   isTargetActive,
 }) => {
+  useEffect(() => {
+    console.log('[DEBUG][RENDER] WorkspacePanel re-rendered');
+  });
+
   const emptySet = useMemo(() => new Set<string>(), []);
 
   const TabBar = (
@@ -103,7 +104,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
             }}
           >
             <span style={{ color: isActive ? tabColor : undefined }}>
-              {React.createElement(tool.icon, { size: 14, strokeWidth: 1.5 })}
+              {createElement(tool.icon, { size: 14, strokeWidth: 1.5 })}
             </span>
             <span>{tool.label}</span>
           </button>
@@ -162,11 +163,9 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
               </div>
               <div className="flex-1 min-h-0">
                 <RequestDetails
-                  request={requests.find((r) => r.id === selectedId) || null}
                   searchTerm={searchTerm}
                   filter={filter}
                   onFilterChange={onFilterChange}
-                  requests={requests}
                   onSearchTermChange={onSearchChange}
                   onSelectRequest={onSetSelectedId}
                   onSetCompare1={() => {}}
@@ -196,12 +195,12 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
           )}
           {selectedTool === 'resource' && (
             <div className="flex-1 overflow-hidden">
-              <ResourcesPanel requests={requests} />
+              <ResourcesPanel />
             </div>
           )}
           {selectedTool === 'source' && (
             <div className="flex-1 overflow-hidden">
-              <SourcesPanel requests={requests} unpackedScripts={unpackedScripts} />
+              <SourcesPanel unpackedScripts={unpackedScripts} />
             </div>
           )}
           {selectedTool === 'log' && (
@@ -215,4 +214,4 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
   );
 };
 
-export default WorkspacePanel;
+export default memo(WorkspacePanel);

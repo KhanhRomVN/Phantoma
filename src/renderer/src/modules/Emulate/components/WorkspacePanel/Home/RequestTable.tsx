@@ -777,6 +777,7 @@ export const RequestTable = React.memo(function RequestTable({
     onGlobalFilterChange: onSearchChange,
     globalFilterFn,
     getRowId: (row) => row.id,
+    autoResetPageIndex: false,
   });
 
   // Virtualization setup
@@ -817,7 +818,7 @@ export const RequestTable = React.memo(function RequestTable({
 
     const isOutOfView = rowTop < scrollTop + 16 || rowTop > scrollTop + clientHeight - 48;
     setShowScrollToSelected((prev) => (prev === isOutOfView ? prev : isOutOfView));
-  }, [rows, selectedId, showScrollToSelected]);
+  }, [rows, selectedId]);
 
   useEffect(() => {
     handleScroll();

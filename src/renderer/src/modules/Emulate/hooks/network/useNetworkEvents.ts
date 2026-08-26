@@ -116,9 +116,8 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     onRequestsChange,
   } = options;
 
-  // Use paginated requests hook
+  // Use paginated requests hook (store-backed, no React state)
   const {
-    requests,
     addRequest,
     updateRequest,
     clearRequests,
@@ -138,24 +137,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const unpackedScriptsRef = useRef<Map<string, CdpScriptUnpackedData>>(new Map());
   const pendingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const cleanupIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const requestsRef = useRef(requests);
-
-  // Sync requestsRef với requests mới nhất — tránh đưa requests vào dependency của listener effect
-  useEffect(() => {
-    requestsRef.current = requests;
-  }, [requests]);
-
-  // Sync local requests to global store for RequestTable / Repeater
-  useEffect(() => {
-    useNetworkStore.setState({
-      requests: requests.map((r) => ({
-        ...r,
-        status: r.status ?? 0,
-        size: typeof r.size === 'number' ? String(r.size) : (r.size ?? '0 B'),
-        time: typeof r.time === 'number' ? String(r.time) : (r.time ?? '0ms'),
-      })) as unknown as import('../../stores/networkStore').NetworkRequest[],
-    });
-  }, [requests]);
 
   // Reset refs when targetId changes to prevent memory leak
   useEffect(() => {
@@ -465,7 +446,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       logMapStats('unpackedScriptsRef', unpackedScriptsRef.current);
       logMapStats('timestampMapRef', timestampMapRef.current);
       const now = Date.now();
-      requestsRef.current.forEach((req) => {
+      useNetworkStore.getState().requests.forEach((req) => {
         if (req.status === 0 && !req.responseHeaders?.['X-Request-Status']) {
           const timestamp = timestampMapRef.current.get(req.id);
           if (timestamp && now - timestamp > 10000) {
@@ -608,7 +589,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   ]);
 
   return {
-    requests,
+    requests: useNetworkStore.getState().requests,
     addRequest,
     updateRequest,
     clearRequests,

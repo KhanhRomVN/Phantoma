@@ -10,19 +10,45 @@ interface ListRepeatersBlockProps {
   maxHeight?: string;
 }
 
+interface RepeaterRow {
+  id: string;
+  method: string;
+  host: string;
+  path: string;
+}
+
 /**
- * Block hiển thị danh sách request trong Repeater.
- * Mỗi dòng: repeater_N | method | host | path
+ * Parse repeater data from output string
+ * Format: "- repeater_0 | GET | chat.deepseek.com | /api/v0/users/current"
+ */
+const parseRepeaterData = (content: string): RepeaterRow[] => {
+  const lines = content.split('\n').filter(Boolean);
+  const dataLines = lines.filter((line) => line.trim().startsWith('-'));
+  
+  return dataLines.map((line) => {
+    const cleaned = line.trim().replace(/^-\s*/, '');
+    const parts = cleaned.split('|').map((p) => p.trim());
+    
+    return {
+      id: parts[0] || '',
+      method: parts[1] || '',
+      host: parts[2] || '',
+      path: parts[3] || '',
+    };
+  });
+};
+
+/**
+ * Block displaying repeater requests as a professional table.
+ * Columns: ID | Method | Host | Path
  */
 const ListRepeatersBlock: React.FC<ListRepeatersBlockProps> = ({
   content,
   maxHeight = '400px',
 }) => {
-  const lines = content.split('\n').filter(Boolean);
-  const summaryLine = lines[0] || '';
-  const dataLines = lines.filter((line) => line.trim().startsWith('-'));
+  const rows = parseRepeaterData(content);
 
-  if (dataLines.length === 0) {
+  if (rows.length === 0) {
     return (
       <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
         <pre
@@ -35,22 +61,65 @@ const ListRepeatersBlock: React.FC<ListRepeatersBlockProps> = ({
     );
   }
 
+  const getMethodColor = (method: string) => {
+    const colors: Record<string, string> = {
+      GET: 'text-emerald-400',
+      POST: 'text-amber-400',
+      PUT: 'text-blue-400',
+      PATCH: 'text-purple-400',
+      DELETE: 'text-red-400',
+      OPTIONS: 'text-text-secondary',
+      HEAD: 'text-text-secondary',
+    };
+    return colors[method?.toUpperCase()] || 'text-text-secondary';
+  };
+
   return (
     <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
-      {summaryLine && !summaryLine.startsWith('-') && (
-        <div className="px-3 py-2 text-[11px] text-text-secondary border-b border-border bg-card-background">
-          {summaryLine.replace(/^\[list_repeaters\]\s*/, '')}
-        </div>
-      )}
+      
+      {/* Table */}
       <div className="overflow-auto" style={{ maxHeight }}>
-        {dataLines.map((line, idx) => (
-          <div
-            key={idx}
-            className="px-3 py-1 text-[12px] font-mono text-text-primary border-b border-border/50 hover:bg-dropdown-item-hover transition-colors whitespace-pre-wrap"
-          >
-            {line.trim().replace(/^-\s*/, '')}
-          </div>
-        ))}
+        <table className="w-full text-[12px]">
+          <thead className="sticky top-0 bg-card-background border-b border-border">
+            <tr>
+              <th className="px-3 py-2 text-left font-semibold text-text-secondary text-[11px] w-[120px]">
+                ID
+              </th>
+              <th className="px-3 py-2 text-left font-semibold text-text-secondary text-[11px] w-[80px]">
+                Method
+              </th>
+              <th className="px-3 py-2 text-left font-semibold text-text-secondary text-[11px] w-[200px]">
+                Host
+              </th>
+              <th className="px-3 py-2 text-left font-semibold text-text-secondary text-[11px]">
+                Path
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, idx) => (
+              <tr
+                key={idx}
+                className="border-b border-border/50 hover:bg-dropdown-item-hover transition-colors"
+              >
+                <td className="px-3 py-2 font-mono text-text-secondary">
+                  {row.id}
+                </td>
+                <td className="px-3 py-2">
+                  <span className={cn('font-mono font-bold', getMethodColor(row.method))}>
+                    {row.method}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-text-primary">
+                  {row.host}
+                </td>
+                <td className="px-3 py-2 text-text-primary font-mono">
+                  {row.path}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 import { Square, Play, Pencil, Trash2 } from 'lucide-react';
 
 // ── Components ──
@@ -57,6 +57,10 @@ const TargetCard = memo(function TargetCard({
   onOpenRunningModal,
   collapsed,
 }: TargetCardProps) {
+  useEffect(() => {
+    console.log('[DEBUG][RENDER] TargetCard re-rendered', tab.id);
+  });
+
   const isRunning = targetStates[tab.id]?.isActive || false;
   const elapsed = useTimerStore((state) => state.timerDisplay[tab.id] || '00:00');
 

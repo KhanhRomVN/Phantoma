@@ -25,6 +25,7 @@ import SettingsPanel from './Agent/feature/Setting';
 
 // CONTEXT
 import { SettingsProvider } from './Agent/context/SettingsContext';
+import { useAgentFeature } from './Agent/context/FeatureContext';
 
 // ── Types ──
 import type { SubTarget } from '../../modules/Tool/types/types';
@@ -44,7 +45,16 @@ import {
   Cpu,
   Clock,
   Settings,
+  Bot,
+  Gamepad2,
+  Code2,
+  Radar,
 } from 'lucide-react';
+
+// ── Constants ──
+const MIN_WIDTH = 300;
+const MAX_WIDTH = 800;
+const DEFAULT_WIDTH = 450;
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -64,19 +74,92 @@ type AgentSubView =
 export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) {
   const [view, setView] = useState<PanelView>('agent');
   const [agentSubView, setAgentSubView] = useState<AgentSubView>(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const resizeStartRef = useRef({ startX: 0, startWidth: 0 });
+  
+  // Get active feature context
+  const { activeFeature, emulateState, codeState } = useAgentFeature();
+
+  // Resize handler
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Tính delta: kéo sang trái (âm) = thu nhỏ panel, kéo sang phải (dương) = mở rộng panel
+      const delta = resizeStartRef.current.startX - e.clientX;
+      const newWidth = resizeStartRef.current.startWidth + delta;
+      const clampedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth));
+      setWidth(clampedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    resizeStartRef.current = {
+      startX: e.clientX,
+      startWidth: width,
+    };
+    setIsResizing(true);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsDropdownOpen(false);
+        // Dropdown will close automatically via Dropdown component
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const getViewIcon = (viewId: PanelView) => {
+    switch (viewId) {
+      case 'agent':
+        return Bot;
+      case 'analytic':
+        return BarChart3;
+      case 'terminal':
+        return TerminalIcon;
+      default:
+        return Bot;
+    }
+  };
+
+  const getViewColor = (viewId: PanelView) => {
+    switch (viewId) {
+      case 'agent':
+        return 'text-primary';
+      case 'analytic':
+        return 'text-purple-400';
+      case 'terminal':
+        return 'text-cyan-400';
+      default:
+        return 'text-primary';
+    }
+  };
 
   const getTitle = () => {
     switch (view) {
@@ -92,9 +175,19 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
   };
 
   const dropdownOptions = [
-    { id: 'agent' as PanelView, label: 'Agent' },
-    { id: 'analytic' as PanelView, label: 'Analytic', icon: BarChart3 },
-    { id: 'terminal' as PanelView, label: 'Terminal', icon: TerminalIcon },
+    { id: 'agent' as PanelView, label: 'Agent', icon: Bot, color: 'text-primary' },
+    {
+      id: 'analytic' as PanelView,
+      label: 'Analytic',
+      icon: BarChart3,
+      color: 'text-purple-400',
+    },
+    {
+      id: 'terminal' as PanelView,
+      label: 'Terminal',
+      icon: TerminalIcon,
+      color: 'text-cyan-400',
+    },
   ];
 
   const ellipsisOptions = [
@@ -107,49 +200,61 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
 
   return (
     <SettingsProvider>
-      <div className="w-[450px] shrink-0 border-l border-divider flex flex-col overflow-hidden relative h-full">
+      <div
+        ref={panelRef}
+        className="shrink-0 border-l border-divider flex flex-col overflow-hidden relative h-full"
+        style={{ width: `${width}px` }}
+      >
+        {/* Resize Handle */}
+        <div
+          onMouseDown={handleResizeStart}
+          className={cn(
+            'absolute left-0 top-0 bottom-0 w-1 cursor-col-resize group',
+            'hover:bg-primary/30 transition-colors',
+            isResizing && 'bg-primary/50',
+          )}
+          style={{ zIndex: 9999 }}
+        >
+          <div className="absolute left-0 top-0 bottom-0 w-4 -translate-x-1.5" />
+        </div>
         {/* Header Bar */}
         <div className="h-10 border-b border-divider flex items-center px-3 shrink-0">
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-1.5 text-sm font-medium text-text-primary hover:text-primary transition-colors cursor-pointer"
-            >
-              <span>{getTitle()}</span>
-              <ChevronDown
-                className={cn(
-                  'w-3 h-3 text-text-secondary transition-transform',
-                  isDropdownOpen && 'rotate-180',
-                )}
-              />
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 min-w-[160px] bg-background border border-border rounded-lg shadow-xl py-1 z-50">
-                {dropdownOptions.map((option) => {
-                  const isActive = view === option.id;
+          <Dropdown>
+            <DropdownTrigger>
+              <button className="flex items-center gap-1.5 text-sm font-medium text-text-primary hover:text-primary transition-colors cursor-pointer">
+                {(() => {
+                  const Icon = getViewIcon(view);
+                  const color = getViewColor(view);
                   return (
-                    <button
-                      key={option.id}
-                      onClick={() => {
-                        setView(option.id);
-                        setAgentSubView(null);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={cn(
-                        'w-full flex items-center gap-2/10 px-3 py-1.5 text-sm transition-colors',
-                        isActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-text-secondary hover:bg-dropdown-item-hover hover:text-text-primary',
-                      )}
-                    >
-                      <span>{option.label}</span>
-                    </button>
+                    <>
+                      <Icon className={cn('w-4 h-4', color)} />
+                      <span>{getTitle()}</span>
+                      <ChevronDown className="w-3 h-3 text-text-secondary" />
+                    </>
                   );
-                })}
-              </div>
-            )}
-          </div>
+                })()}
+              </button>
+            </DropdownTrigger>
+            <DropdownContent className="min-w-[160px]">
+              {dropdownOptions.map((option) => {
+                const Icon = option.icon;
+                const isActive = view === option.id;
+                return (
+                  <DropdownItem
+                    key={option.id}
+                    icon={<Icon className={cn('w-4 h-4', option.color)} />}
+                    onClick={() => {
+                      setView(option.id);
+                      setAgentSubView(null);
+                    }}
+                    className={cn(isActive && 'bg-primary/10 text-primary')}
+                  >
+                    {option.label}
+                  </DropdownItem>
+                );
+              })}
+            </DropdownContent>
+          </Dropdown>
 
           {/* Right side icons - only show when Agent is selected */}
           {view === 'agent' && (
@@ -218,6 +323,67 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
           )}
           {view === 'agent' && agentSubView === 'setting' && (
             <SettingsPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+          )}
+        </div>
+
+        {/* Footer Bar */}
+        <div className="h-8 border-t border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center justify-between text-[10px] text-text-secondary select-none shrink-0 w-full">
+          <div className="flex items-center gap-4 flex-1">
+            {/* Emulate Module - Target ID + Session Status */}
+            {activeFeature === 'emulate' && emulateState.activeTargetId && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <Gamepad2 className="w-3 h-3 text-rose-400" strokeWidth={2} />
+                  <span className="font-medium text-text-secondary">Target:</span>
+                  <span className="font-mono text-primary">{emulateState.activeTargetId}</span>
+                </div>
+                {emulateState.targetStates[emulateState.activeTargetId]?.isActive && (
+                  <div className="flex items-center gap-1.5 text-emerald-400/70">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="font-medium">
+                      {emulateState.targetStates[emulateState.activeTargetId]?.mode?.toUpperCase() ||
+                        'ACTIVE'}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Code Module - Project Path + File Count */}
+            {activeFeature === 'code' && codeState.currentProjectId && (
+              <div className="flex items-center gap-1.5">
+                <Code2 className="w-3 h-3 text-indigo-400" strokeWidth={2} />
+                <span className="font-medium text-text-secondary">Workspace:</span>
+                <span
+                  className="font-mono text-primary truncate max-w-[250px]"
+                  title={codeState.currentProjectId}
+                >
+                  {codeState.currentProjectId.split('/').pop() || codeState.currentProjectId}
+                </span>
+              </div>
+            )}
+
+            {/* Recon Module - Target Email */}
+            {activeFeature === 'recon' && (
+              <div className="flex items-center gap-1.5">
+                <Radar className="w-3 h-3 text-emerald-400" strokeWidth={2} />
+                <span className="font-medium text-text-secondary">Module:</span>
+                <span className="text-primary">Reconnaissance</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right side - Active Feature Badge */}
+          {activeFeature && (
+            <div className="flex items-center gap-1.5 opacity-60">
+              <span className="text-[9px] uppercase tracking-wider">
+                {activeFeature === 'emulate'
+                  ? 'Emulation'
+                  : activeFeature === 'code'
+                    ? 'Code Analysis'
+                    : 'Reconnaissance'}
+              </span>
+            </div>
           )}
         </div>
       </div>

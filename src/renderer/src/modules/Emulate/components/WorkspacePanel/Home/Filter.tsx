@@ -7,6 +7,7 @@ import { NetworkRequest } from '../../../types/inspector';
 
 // ── Hooks ──
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useNetworkStore } from '../../../stores/networkStore';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -301,11 +302,11 @@ function ListFilterSection({
 export function NetworkFilter({
   filter,
   onChange,
-  requests = [],
   targetId,
   isSessionRunning,
 }: NetworkFilterProps) {
   const { getColorByIndex } = useAccentColors();
+  const requests = useNetworkStore((s) => s.requests);
   const [isLoadingFilter, setIsLoadingFilter] = useState(false);
 
   // Storage key for filter data

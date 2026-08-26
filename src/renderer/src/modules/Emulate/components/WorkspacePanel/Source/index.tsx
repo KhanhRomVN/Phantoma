@@ -1,21 +1,21 @@
 import { useState, useMemo } from 'react';
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 
-import { NetworkRequest } from '../Home/Filter';
 import type { SourceNode } from '../../../utils/source-tree.util';
 import type { CdpScriptUnpackedData } from '../../../hooks/network/useNetworkEvents';
 import { buildSourceTree } from '../../../utils/source-tree.util';
+import { useNetworkStore } from '../../../stores/networkStore';
 
 import { FileExplorePanel } from './FileExplorePanel';
 import { FileContentSection, SelectedSourceContent } from './FileContentSection';
 
 interface SourcesPanelProps {
-  requests?: NetworkRequest[];
   unpackedScripts?: Map<string, CdpScriptUnpackedData>;
   onClose?: () => void;
 }
 
-export function SourcesPanel({ requests = [], unpackedScripts }: SourcesPanelProps) {
+export function SourcesPanel({ unpackedScripts }: SourcesPanelProps) {
+  const requests = useNetworkStore((s) => s.requests);
   const [selectedContent, setSelectedContent] = useState<SelectedSourceContent | null>(null);
 
   const sourceTree = useMemo(() => {

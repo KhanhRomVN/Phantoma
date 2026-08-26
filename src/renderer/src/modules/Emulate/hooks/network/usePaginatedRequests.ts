@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { NetworkRequest } from '../../types/inspector';
 import { useNetworkStore } from '../../stores/networkStore';
 
@@ -10,22 +10,20 @@ interface UsePaginatedRequestsOptions {
 }
 
 /**
- * In-memory paginated requests hook (NO IndexedDB persistence)
- * Requests are stored only in React state and cleared on app refresh
+ * In-memory paginated requests hook backed by networkStore.
+ * Requests live in the zustand store so this hook does NOT trigger
+ * React re-renders on every network event.
  */
 export function usePaginatedRequests({
   targetId,
   maxMemory = 1000,
   onRequestsChange,
 }: UsePaginatedRequestsOptions) {
-  const [requests, setRequests] = useState<NetworkRequest[]>(
-    () => useNetworkStore.getState().requests as NetworkRequest[],
-  );
-  const [hasMore, setHasMore] = useState(false);
-  const [totalCount, setTotalCount] = useState(0);
   const onRequestsChangeRef = useRef(onRequestsChange);
   const targetIdRef = useRef(targetId);
   const isFirstMountRef = useRef(true);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const latestRequestsRef = useRef<NetworkRequest[]>([]);
 
   useEffect(() => {
     onRequestsChangeRef.current = onRequestsChange;
@@ -34,6 +32,15 @@ export function usePaginatedRequests({
   useEffect(() => {
     targetIdRef.current = targetId;
   }, [targetId]);
+
+  const scheduleOnRequestsChange = useCallback((newRequests: NetworkRequest[]) => {
+    latestRequestsRef.current = newRequests;
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    debounceTimeoutRef.current = setTimeout(() => {
+      onRequestsChangeRef.current?.(latestRequestsRef.current);
+      debounceTimeoutRef.current = null;
+    }, 150);
+  }, []);
 
   const addRequest = useCallback(
     (request: Partial<NetworkRequest>) => {
@@ -65,52 +72,38 @@ export function usePaginatedRequests({
         responseCookies: request.responseCookies,
       };
 
-      setRequests((prev) => {
-        if (prev.some((r) => r.id === networkReq.id)) return prev;
-        const newRequests = [networkReq, ...prev];
-        if (newRequests.length > maxMemory) {
-          const sliced = newRequests.slice(0, maxMemory);
-          onRequestsChangeRef.current?.(sliced);
-          setTotalCount(sliced.length);
-          return sliced;
-        }
-        onRequestsChangeRef.current?.(newRequests);
-        setTotalCount(newRequests.length);
-        return newRequests;
-      });
+      useNetworkStore.getState().addRequest(networkReq);
+      const current = useNetworkStore.getState().requests;
+      if (current.length > maxMemory) {
+        const sliced = current.slice(0, maxMemory);
+        useNetworkStore.setState({ requests: sliced });
+        scheduleOnRequestsChange(sliced);
+      } else {
+        scheduleOnRequestsChange(current);
+      }
     },
-    [maxMemory],
+    [maxMemory, scheduleOnRequestsChange],
   );
 
-  const updateRequest = useCallback((id: string, updates: Partial<NetworkRequest>) => {
-    setRequests((prev) => {
-      const updated = prev.map((r) => {
-        if (r.id === id) {
-          return { ...r, ...updates };
-        }
-        return r;
-      });
-      onRequestsChangeRef.current?.(updated);
-      return updated;
-    });
-  }, []);
+  const updateRequest = useCallback(
+    (id: string, updates: Partial<NetworkRequest>) => {
+      useNetworkStore.getState().updateRequest(id, updates);
+      scheduleOnRequestsChange(useNetworkStore.getState().requests);
+    },
+    [scheduleOnRequestsChange],
+  );
 
   const clearRequests = useCallback(() => {
-    setRequests([]);
-    setTotalCount(0);
-    setHasMore(false);
+    useNetworkStore.getState().clearRequests();
     onRequestsChangeRef.current?.([]);
   }, []);
 
   const loadMore = useCallback(() => {
     // In-memory implementation doesn't need pagination
-    // All requests are already loaded in state
-    setHasMore(false);
   }, []);
 
   const reload = useCallback(() => {
     // In-memory implementation - no reload needed
-    // Requests are already in state
   }, []);
 
   // Clear requests when targetId changes
@@ -120,18 +113,31 @@ export function usePaginatedRequests({
         isFirstMountRef.current = false;
         return; // Bỏ qua clear lần mount đầu tiên — giữ requests khôi phục từ store
       }
-      setRequests([]);
-      setTotalCount(0);
-      setHasMore(false);
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
+      useNetworkStore.getState().clearRequests();
       onRequestsChangeRef.current?.([]);
     }
   }, [targetId]);
 
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   return {
-    requests,
-    loading: false, // Always false for in-memory
-    hasMore,
-    totalCount,
+    // Non-reactive getter — components needing reactivity must subscribe to useNetworkStore directly.
+    requests: useNetworkStore.getState().requests,
+    loading: false,
+    hasMore: false,
+    totalCount: useNetworkStore.getState().requests.length,
     addRequest,
     updateRequest,
     clearRequests,

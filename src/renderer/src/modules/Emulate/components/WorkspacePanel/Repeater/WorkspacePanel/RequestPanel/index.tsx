@@ -662,16 +662,6 @@ export function RequestPanel({
     { id: 'history', label: 'History', count: history.length },
   ];
 
-  // [DEBUG] Có thể xóa sau khi fix xong bug trống Param/Header/Body
-  console.log(
-    '[DEBUG][RequestPanel] render activeTab =',
-    activeTab,
-    'headers.length =',
-    headers.length,
-    'params.length =',
-    params.length,
-  );
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <RequestBar

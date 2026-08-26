@@ -28,6 +28,7 @@ import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } fr
 
 // ── Hooks ──
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useNetworkStore } from '../../../stores/networkStore';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -47,7 +48,8 @@ function Badge({ count, className }: { count: number; className?: string }) {
   );
 }
 interface NetworkDetailsProps {
-  request: NetworkRequest | null;
+  request?: NetworkRequest | null;
+  selectedId?: string | null;
   searchTerm: string;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
@@ -55,7 +57,6 @@ interface NetworkDetailsProps {
   isFilterOpen?: boolean;
   filter: InspectorFilter;
   onFilterChange: (filter: InspectorFilter) => void;
-  requests?: NetworkRequest[];
   onSearchTermChange?: (term: string) => void;
   onSelectRequest?: (id: string) => void;
   onJumpToValue?: (requestId: string, tab: string, value: string) => void;
@@ -133,7 +134,8 @@ function TextSelectionMenu({
 
 export { RequestTable, initialFilterState };
 export const RequestDetails = React.memo(function RequestDetails({
-  request,
+  request: propsRequest,
+  selectedId,
   searchTerm,
   activeTab: propsActiveTab,
   onTabChange,
@@ -141,7 +143,6 @@ export const RequestDetails = React.memo(function RequestDetails({
   isFilterOpen,
   filter,
   onFilterChange,
-  requests = [],
   onSearchTermChange,
   onJumpToValue: _onJumpToValue,
   onCompareRequests: _onCompareRequests,
@@ -151,6 +152,9 @@ export const RequestDetails = React.memo(function RequestDetails({
 }: NetworkDetailsProps) {
   const [internalActiveTab, setInternalActiveTab] = useState('headers');
   const [isRawMode, setIsRawMode] = useState(false);
+
+  const networkRequests = useNetworkStore((s) => s.requests);
+  const request = propsRequest ?? networkRequests.find((r) => r.id === selectedId) ?? null;
 
   const { getColorByIndex, toRgba } = useAccentColors();
 
@@ -625,7 +629,6 @@ export const RequestDetails = React.memo(function RequestDetails({
               <NetworkFilter
                 filter={filter}
                 onChange={onFilterChange}
-                requests={requests}
                 targetId={targetId}
                 isSessionRunning={isSessionRunning}
               />

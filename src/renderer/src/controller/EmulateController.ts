@@ -96,8 +96,12 @@ export class EmulateController {
   public static async executeTool(
     toolName: string,
     params: Record<string, any> = {},
+    contextTargetId?: string | null,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     const ctrl = EmulateController.getInstance();
+    
+    // Fallback to contextTargetId if controller targetId is not set
+    const effectiveTargetId = ctrl.targetId || contextTargetId || null;
 
     try {
       switch (toolName) {
@@ -147,36 +151,38 @@ export class EmulateController {
         }
         case 'send_to_repeater': {
           if (params.index === undefined) return { success: false, error: 'index is required' };
-          const result = await ctrl.sendToRepeaterText(params.index);
-          return { success: true, data: { output: result } };
+          const result = await ctrl.sendToRepeaterHandler.handle(ctrl.requests, params.index, effectiveTargetId);
+          return { success: true, data: { output: result.text } };
         }
         case 'list_repeaters': {
-          console.log('[DEBUG][executeTool] Executing list_repeaters');
-          const output = await ctrl.listRepeatersText();
-          return { success: true, data: { output } };
+          console.log('[DEBUG][executeTool] Executing list_repeaters, effectiveTargetId:', effectiveTargetId);
+          const listResult = await ctrl.listRepeatersHandler.handle(ctrl.requests, effectiveTargetId);
+          return { success: true, data: { output: listResult.text } };
         }
         case 'delete_repeater': {
           if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
-          const deleteResult = await ctrl.deleteRepeaterText(params.repeater_id);
-          return { success: true, data: { output: deleteResult } };
+          const deleteResult = await ctrl.deleteRepeaterHandler.handle(ctrl.requests, params.repeater_id, effectiveTargetId);
+          return { success: true, data: { output: deleteResult.text } };
         }
         case 'get_repeater_detail': {
           if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
-          const detailResult = await ctrl.getRepeaterDetailText(params.repeater_id);
-          return { success: true, data: { output: detailResult } };
+          const detailResult = await ctrl.getRepeaterDetailHandler.handle(ctrl.requests, params.repeater_id, effectiveTargetId);
+          return { success: true, data: { output: detailResult.text } };
         }
         case 'update_repeater_content': {
           if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
           if (!params.target) return { success: false, error: 'target is required' };
-          const updateResult = await ctrl.updateRepeaterContentText(
+          const updateResult = await ctrl.updateRepeaterContentHandler.handle(
+            ctrl.requests,
             params.repeater_id,
             params.target,
             params.old_content || '',
             params.new_content || '',
+            effectiveTargetId,
           );
           return {
             success: true,
-            data: { output: updateResult },
+            data: { output: updateResult.text },
           };
         }
         default:

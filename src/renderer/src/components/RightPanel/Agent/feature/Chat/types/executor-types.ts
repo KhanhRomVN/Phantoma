@@ -44,6 +44,8 @@ export interface ExecutorContext {
   earlyCommandResults?: Map<string, any>;
   /** Response number of the assistant message that triggered this tool execution (1-based). Used for revert tracking. */
   responseNumber?: number;
+  /** Active target ID from Emulate feature (for repeater tools) */
+  activeTargetId?: string | null;
 }
 
 // Base executor interface

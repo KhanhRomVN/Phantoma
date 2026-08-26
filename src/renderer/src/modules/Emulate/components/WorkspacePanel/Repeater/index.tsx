@@ -187,6 +187,10 @@ export function PayloadPanel({
   targetId,
   isTargetRunning,
 }: PayloadPanelProps) {
+  useEffect(() => {
+    console.log('[DEBUG][RENDER] PayloadPanel re-rendered');
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dbRequests, setDbRequests] = useState<NetworkRequest[]>([]);

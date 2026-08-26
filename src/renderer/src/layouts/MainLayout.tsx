@@ -175,6 +175,7 @@ const MainLayoutContent = () => {
       <HeaderBar
         isRightPanelOpen={isRightPanelOpen}
         onToggleRightPanel={() => setIsRightPanelOpen(!isRightPanelOpen)}
+        onOpenQuickNav={() => setIsQuickNavOpen(true)}
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="flex flex-1 min-w-0 overflow-hidden">
@@ -187,11 +188,10 @@ const MainLayoutContent = () => {
             <AnimatePresence mode="wait">
               {isRightPanelOpen && (
                 <motion.div
-                  layout
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 450, opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
                   className="h-full overflow-hidden min-w-0 flex flex-col"
                 >
                   <RightPanel subTarget={activeSubTarget} />

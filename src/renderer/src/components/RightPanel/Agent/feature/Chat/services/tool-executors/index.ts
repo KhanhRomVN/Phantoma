@@ -277,32 +277,32 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       };
     case 'send_to_repeater':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeSendToRepeater(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeSendToRepeater(action.params || {}, ctx.activeTargetId);
         },
       };
     case 'list_repeaters':
       return {
-        execute: async (_action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeListRepeaters();
+        execute: async (_action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeListRepeaters(ctx.activeTargetId);
         },
       };
     case 'delete_repeater':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeDeleteRepeater(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeDeleteRepeater(action.params || {}, ctx.activeTargetId);
         },
       };
     case 'get_repeater_detail':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeGetRepeaterDetail(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeGetRepeaterDetail(action.params || {}, ctx.activeTargetId);
         },
       };
     case 'update_repeater_content':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeUpdateRepeaterContent(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeUpdateRepeaterContent(action.params || {}, ctx.activeTargetId);
         },
       };
 
