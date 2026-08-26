@@ -20,7 +20,7 @@ import * as path from 'path';
 // ── Internal ──
 import { cdpManager } from './features/cdp';
 import { findAvailablePort } from './utils/net';
-import { appState } from './shared/state';
+import { appState, setTargetProcess, removeTargetProcess } from './shared/state';
 import { injectLocalSSLBypass } from './utils/frida';
 import { logger } from './utils/logger';
 
@@ -34,6 +34,7 @@ function launchBrowser(
   profileName: string,
   proxyUrl: string,
   cdpPort?: number,
+  targetId?: string, // Add targetId parameter
 ): boolean {
   // For CDP mode, we don't want to use the proxy because CDP captures requests directly
   const useProxy = !cdpPort;
@@ -96,7 +97,11 @@ function launchBrowser(
     stdio: 'ignore',
   });
 
+  // Store in both old (global) and new (per-target) state
   appState.activeChildProcess = child;
+  if (targetId) {
+    setTargetProcess(targetId, child);
+  }
 
   child.on('exit', (code, signal) => {
     if (appState.activeChildProcess === child) {
@@ -108,6 +113,10 @@ function launchBrowser(
       if (win) {
         win.webContents.send('app:process-exit', profileName);
       }
+    }
+    // Also cleanup from target process map
+    if (targetId) {
+      removeTargetProcess(targetId);
     }
   });
 
@@ -125,6 +134,7 @@ export async function launchApp(
   customUrl?: string,
   forceMode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
   useEnvInject?: boolean,
+  targetId?: string, // Add targetId parameter
 ): Promise<boolean> {
   if (appName === 'vscode') {
     appState.activeProxyUrl = proxyUrl;
@@ -285,7 +295,7 @@ export async function launchApp(
     if (cdpPort) {
       launchCdpPort = cdpPort;
     }
-    const result = launchBrowser('https://google.com', appName, proxyUrl, cdpPort);
+    const result = launchBrowser('https://google.com', appName, proxyUrl, cdpPort, targetId);
 
     if (forceMode === 'cdp' && result && cdpPort) {
       setTimeout(async () => {
@@ -315,7 +325,7 @@ export async function launchApp(
     if (cdpPort) {
       launchCdpPort = cdpPort;
     }
-    const result = launchBrowser(url, appName, proxyUrl, cdpPort);
+    const result = launchBrowser(url, appName, proxyUrl, cdpPort, targetId);
 
     if (forceMode === 'cdp' && result && cdpPort) {
       setTimeout(async () => {

@@ -41,6 +41,7 @@ export class EmulateController {
   private unpackedScripts: Map<string, CdpScriptUnpackedData> | undefined;
   private filter: InspectorFilter | undefined;
   private onFilterChanged: ((filter: InspectorFilter) => void) | null = null;
+  private targetId: string | null = null;
 
   private listHttpHandler: ListHttpHandler;
   private listHostsHandler: ListHostsHandler;
@@ -146,32 +147,36 @@ export class EmulateController {
         }
         case 'send_to_repeater': {
           if (params.index === undefined) return { success: false, error: 'index is required' };
-          return { success: true, data: { output: ctrl.sendToRepeaterText(params.index) } };
+          const result = await ctrl.sendToRepeaterText(params.index);
+          return { success: true, data: { output: result } };
         }
         case 'list_repeaters': {
-          return { success: true, data: { output: ctrl.listRepeatersText() } };
+          console.log('[DEBUG][executeTool] Executing list_repeaters');
+          const output = await ctrl.listRepeatersText();
+          return { success: true, data: { output } };
         }
         case 'delete_repeater': {
           if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
-          return { success: true, data: { output: ctrl.deleteRepeaterText(params.repeater_id) } };
+          const deleteResult = await ctrl.deleteRepeaterText(params.repeater_id);
+          return { success: true, data: { output: deleteResult } };
         }
         case 'get_repeater_detail': {
           if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
-          return { success: true, data: { output: ctrl.getRepeaterDetailText(params.repeater_id) } };
+          const detailResult = await ctrl.getRepeaterDetailText(params.repeater_id);
+          return { success: true, data: { output: detailResult } };
         }
         case 'update_repeater_content': {
           if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
           if (!params.target) return { success: false, error: 'target is required' };
+          const updateResult = await ctrl.updateRepeaterContentText(
+            params.repeater_id,
+            params.target,
+            params.old_content || '',
+            params.new_content || '',
+          );
           return {
             success: true,
-            data: {
-              output: ctrl.updateRepeaterContentText(
-                params.repeater_id,
-                params.target,
-                params.old_content || '',
-                params.new_content || '',
-              ),
-            },
+            data: { output: updateResult },
           };
         }
         default:
@@ -186,6 +191,7 @@ export class EmulateController {
 
   public setRequests(requests: NetworkRequest[]): void { this.requests = requests; }
   public setUnpackedScripts(scripts: Map<string, CdpScriptUnpackedData> | undefined): void { this.unpackedScripts = scripts; }
+  public setTargetId(targetId: string | null): void { this.targetId = targetId; }
 
   public listHttps(filter: ListHttpFilter = {}, limit: number = 50): ListHttpResult {
     const allRequests = this.requests;
@@ -200,25 +206,32 @@ export class EmulateController {
   public getSourceDetailText(filepath: string): string { return this.getSourceDetailHandler.handle(this.requests, this.unpackedScripts, filepath).text; }
   public getHttpsDetailText(index: number): string { return this.getHttpsDetailHandler.handle(this.requests, index).text; }
   public getResourceContentText(filename: string, options: GetResourceContentOptions = {}): string { return this.getResourceContentHandler.handle(this.requests, filename, options).text; }
-  public sendToRepeaterText(index: number): string {
-    return this.sendToRepeaterHandler.handle(this.requests, index).text;
+  public async sendToRepeaterText(index: number): Promise<string> {
+    const result = await this.sendToRepeaterHandler.handle(this.requests, index, this.targetId);
+    return result.text;
   }
-  public listRepeatersText(): string {
-    return this.listRepeatersHandler.handle(this.requests).text;
+  public async listRepeatersText(): Promise<string> {
+    console.log('[DEBUG][EmulateController.listRepeatersText] targetId:', this.targetId);
+    console.log('[DEBUG][EmulateController.listRepeatersText] requests count:', this.requests.length);
+    const result = await this.listRepeatersHandler.handle(this.requests, this.targetId);
+    return result.text;
   }
-  public deleteRepeaterText(repeaterId: string): string {
-    return this.deleteRepeaterHandler.handle(this.requests, repeaterId).text;
+  public async deleteRepeaterText(repeaterId: string): Promise<string> {
+    const result = await this.deleteRepeaterHandler.handle(this.requests, repeaterId, this.targetId);
+    return result.text;
   }
-  public getRepeaterDetailText(repeaterId: string): string {
-    return this.getRepeaterDetailHandler.handle(this.requests, repeaterId).text;
+  public async getRepeaterDetailText(repeaterId: string): Promise<string> {
+    const result = await this.getRepeaterDetailHandler.handle(this.requests, repeaterId, this.targetId);
+    return result.text;
   }
-  public updateRepeaterContentText(
+  public async updateRepeaterContentText(
     repeaterId: string,
     target: 'params' | 'headers' | 'body',
     oldContent: string,
     newContent: string,
-  ): string {
-    return this.updateRepeaterContentHandler.handle(this.requests, repeaterId, target, oldContent, newContent).text;
+  ): Promise<string> {
+    const result = await this.updateRepeaterContentHandler.handle(this.requests, repeaterId, target, oldContent, newContent, this.targetId);
+    return result.text;
   }
   public getTrafficSummary(): TrafficSummary { return this.getTrafficSummaryHandler.handle(this.requests); }
   public setFilter(filter: InspectorFilter): void { this.filter = filter; }

@@ -69,6 +69,8 @@ export function RequestPanel({
   const [params, setParams] = useState<ParamItem[]>([]);
   const [headers, setHeaders] = useState<ParamItem[]>([]);
   const [body, setBody] = useState('');
+  // Ưu tiên dữ liệu network store khi request có headers/params/body
+  const [hasNetworkData, setHasNetworkData] = useState(false);
 
   // View history mode
   const readOnly = viewHistoryEntry !== null;
@@ -158,8 +160,6 @@ export function RequestPanel({
       });
     }
   }, [viewHistoryEntry]);
-  const [isMethodDropdownOpen, setIsMethodDropdownOpen] = useState(false);
-  const methodDropdownRef = useRef<HTMLDivElement>(null);
   const bodyCodeBlockRef = useRef<CodeBlockRef>(null);
 
   const [, setInternalLastRunTimestamp] = useState<number | null>(null);
@@ -184,6 +184,9 @@ export function RequestPanel({
     headers,
     payloads,
     onLoadRequest: (req) => {
+      if (hasNetworkData) {
+        return;
+      }
       setMethod(req.method);
       setUrl(req.url);
       setBody(req.body);
@@ -204,50 +207,64 @@ export function RequestPanel({
 
   // Auto-fill from selected request (Send to Repeater)
   useEffect(() => {
-    if (request) {
-      setInternalPayloads([]);
-
-      const requestUrl = request.url || '';
-      setUrl(requestUrl);
-      setMethod(request.method || 'GET');
-
-      try {
-        const urlObj = new URL(requestUrl);
-        const paramItems: ParamItem[] = [];
-        urlObj.searchParams.forEach((value, key) => {
-          paramItems.push({
-            id: crypto.randomUUID(),
-            key,
-            value,
-            enabled: true,
-          });
-        });
-        setParams(paramItems);
-        setUrl(requestUrl.split('?')[0]);
-      } catch (error) {
-        setParams([]);
-      }
-
-      if (request.requestHeaders) {
-        const headerItems: ParamItem[] = Object.entries(request.requestHeaders).map(
-          ([key, value]) => ({
-            id: crypto.randomUUID(),
-            key,
-            value: String(value),
-            enabled: true,
-          }),
-        );
-        setHeaders(headerItems);
-      }
-
-      setBody(
-        typeof request.requestBody === 'string'
-          ? request.requestBody
-          : request.requestBody
-            ? JSON.stringify(request.requestBody)
-            : '',
-      );
+    if (!request) {
+      setHasNetworkData(false);
+      return;
     }
+
+    setInternalPayloads([]);
+
+    const requestUrl = request.url || '';
+    setUrl(requestUrl);
+    setMethod(request.method || 'GET');
+
+    try {
+      const urlObj = new URL(requestUrl);
+      const paramItems: ParamItem[] = [];
+      urlObj.searchParams.forEach((value, key) => {
+        paramItems.push({
+          id: crypto.randomUUID(),
+          key,
+          value,
+          enabled: true,
+        });
+      });
+      setParams(paramItems);
+      setUrl(requestUrl.split('?')[0]);
+    } catch (error) {
+      setParams([]);
+    }
+
+    if (request.requestHeaders) {
+      const headerItems: ParamItem[] = Object.entries(request.requestHeaders).map(
+        ([key, value]) => ({
+          id: crypto.randomUUID(),
+          key,
+          value: String(value),
+          enabled: true,
+        }),
+      );
+
+      setHeaders(headerItems);
+    } else {
+      // [DEBUG] Có thể xóa sau khi fix xong bug header trống ở Repeater
+      console.warn('[DEBUG][RequestPanel] request.requestHeaders is empty/undefined');
+    }
+
+    const finalBody =
+      typeof request.requestBody === 'string'
+        ? request.requestBody
+        : request.requestBody
+          ? JSON.stringify(request.requestBody)
+          : '';
+
+    setBody(finalBody);
+
+    const hasData =
+      (request.requestHeaders && Object.keys(request.requestHeaders).length > 0) ||
+      (request.requestBody !== undefined && request.requestBody !== '') ||
+      request.url.includes('?');
+    setHasNetworkData(hasData);
   }, [request]);
 
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
@@ -645,6 +662,16 @@ export function RequestPanel({
     { id: 'history', label: 'History', count: history.length },
   ];
 
+  // [DEBUG] Có thể xóa sau khi fix xong bug trống Param/Header/Body
+  console.log(
+    '[DEBUG][RequestPanel] render activeTab =',
+    activeTab,
+    'headers.length =',
+    headers.length,
+    'params.length =',
+    params.length,
+  );
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <RequestBar
@@ -652,11 +679,8 @@ export function RequestPanel({
         url={url}
         isExecuting={isExecuting}
         methods={methods}
-        isMethodDropdownOpen={isMethodDropdownOpen}
-        methodDropdownRef={methodDropdownRef}
         onMethodChange={setMethod}
         onUrlChange={setUrl}
-        onToggleDropdown={() => setIsMethodDropdownOpen(!isMethodDropdownOpen)}
         onSend={handleSend}
         readOnly={readOnly}
         hasEmptyPayload={payloads.some((p) => p.enabled && p.values.length === 0)}
@@ -668,7 +692,7 @@ export function RequestPanel({
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'flex items-center gap-1.5 px-3 h-8 text-xs font-medium whitespace-nowrap transition-all border-b-2',
+              'flex items-center gap-1.5 px-3 h-8 text-sm font-medium whitespace-nowrap transition-all border-b-2',
               activeTab === tab.id
                 ? 'border-primary text-text-primary'
                 : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover/30',

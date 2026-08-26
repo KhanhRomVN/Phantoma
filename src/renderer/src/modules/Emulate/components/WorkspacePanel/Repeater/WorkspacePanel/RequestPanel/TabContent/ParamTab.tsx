@@ -172,6 +172,9 @@ export function ParamTab({
 
   const fallbackAccentColor = getColorByIndex(0);
 
+  // [DEBUG] Có thể xóa sau khi fix xong bug trống Header/Param
+  console.log('[DEBUG][ParamTab] params.length =', params.length, params);
+
   return (
     <div className="flex flex-col h-full relative">
       <div
@@ -249,7 +252,7 @@ export function ParamTab({
                             onChange(updated);
                           }}
                           readOnly={readOnly}
-                          className="w-full bg-transparent px-1.5 py-1.5 text-xs text-text-primary outline-none font-mono"
+                          className="w-full bg-transparent px-1.5 py-1.5 text-sm text-text-primary outline-none font-mono"
                           placeholder={placeholderKey}
                         />
                       </td>
@@ -260,7 +263,7 @@ export function ParamTab({
                               if (el) overlayRefs.current.set(param.id, el);
                               else overlayRefs.current.delete(param.id);
                             }}
-                            className="absolute inset-0 px-1.5 py-1.5 text-xs font-mono leading-relaxed break-words whitespace-pre-wrap pointer-events-none overflow-hidden"
+                            className="absolute inset-0 px-1.5 py-1.5 text-sm font-mono leading-relaxed break-words whitespace-pre-wrap pointer-events-none overflow-hidden"
                             aria-hidden="true"
                           >
                             {highlightText(param.value, getPayloadColorByName)}
@@ -302,7 +305,7 @@ export function ParamTab({
                             onMouseEnter={(e) => handleMouseEnter(param.value, e)}
                             onMouseLeave={handleMouseLeave}
                             readOnly={readOnly}
-                            className="w-full bg-transparent px-1.5 py-1.5 text-xs outline-none break-words resize-none font-mono leading-relaxed overflow-hidden relative"
+                            className="w-full bg-transparent px-1.5 py-1.5 text-sm outline-none break-words resize-none font-mono leading-relaxed overflow-hidden relative"
                             style={{
                               color: 'transparent',
                               caretColor: varColor || 'var(--text-primary)',
@@ -360,7 +363,7 @@ export function ParamTab({
                       setFinalValue('');
                       setIsFinalRowEditing(false);
                     }}
-                    className="w-full bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-text-secondary italic py-1.5 px-1.5"
+                    className="w-full bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-secondary italic py-1.5 px-1.5"
                     placeholder="Key"
                   />
                 </td>
@@ -400,7 +403,7 @@ export function ParamTab({
                       setFinalValue('');
                       setIsFinalRowEditing(false);
                     }}
-                    className="w-full bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-text-secondary italic py-1.5 px-1.5 break-words disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-secondary italic py-1.5 px-1.5 break-words disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Value"
                     disabled={!finalKey.trim()}
                   />

@@ -19,7 +19,6 @@ import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import WarningBlock from '../../blocks/other/WarningBlock';
 import { TagHeader } from '../../TagHeader';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -28,6 +27,11 @@ interface WarningRendererProps {
   message: string;
   warningColor?: string;
   isPulsing?: boolean;
+}
+
+interface WarningBlockProps {
+  message: string;
+  warningColor?: string;
 }
 
 /**
@@ -49,6 +53,23 @@ export const WarningRenderer: React.FC<WarningRendererProps> = ({
         statusTooltip="Warning"
       />
       <WarningBlock message={message} warningColor={warningColor} />
+    </div>
+  );
+};
+
+const WarningBlock: React.FC<WarningBlockProps> = ({
+  message,
+}) => {
+  return (
+    <div className="relative flex flex-col gap-1.5 pb-0">
+      {/* Warning Message Block */}
+      {message && (
+        <div className="border border-warn/30 bg-warn/5 rounded-md px-4 py-3">
+          <span className="text-warn text-[11px] leading-relaxed block">
+            {message}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

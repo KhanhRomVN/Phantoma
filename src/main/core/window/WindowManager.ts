@@ -24,6 +24,7 @@ import { is } from '@electron-toolkit/utils';
 
 // ── Internal ──
 import { windowConfig } from '../config/window.config';
+import { clearAllTargetProcesses } from '../../shared/state';
 
 // ─── Class ──────────────────────────────────────────────────────────────
 export class WindowManager {
@@ -70,6 +71,12 @@ export class WindowManager {
     });
     this.mainWindow.on('unmaximize', () => {
       this.mainWindow?.webContents.send('window:unmaximized');
+    });
+
+    // Cleanup target processes on renderer reload (Ctrl+R)
+    this.mainWindow.webContents.on('did-start-loading', () => {
+      console.log('[WindowManager] Renderer reloading, cleaning up target processes...');
+      clearAllTargetProcesses();
     });
 
     this.mainWindow.webContents.setWindowOpenHandler((details) => {

@@ -25,6 +25,7 @@ export { DeleteFileRenderer } from './code/DeleteFileRenderer';
 export { ViewReplaceHistoryRenderer } from './code/ViewReplaceHistoryRenderer';
 export { RunCommandRenderer } from './code/RunCommandRenderer';
 export { GitStatusRenderer } from './code/GitStatusRenderer';
+export { GitDiffRenderer } from './code/GitDiffRenderer';
 export { CommitMessageRenderer } from './code/CommitMessageRenderer';
 export { MarkdownRenderer } from './other/MarkdownRenderer';
 export { QuestionRenderer } from './other/QuestionRenderer';

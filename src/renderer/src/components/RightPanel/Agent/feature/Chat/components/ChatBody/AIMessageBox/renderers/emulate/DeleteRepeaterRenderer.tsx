@@ -3,8 +3,31 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '../../../../../constants/constants';
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
-import DeleteRepeaterBlock from '../../blocks/emulate/DeleteRepeaterBlock';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
+
+interface DeleteRepeaterBlockProps {
+  content: string;
+  maxHeight?: string;
+}
+
+/**
+ * Block hiển thị kết quả xóa request khỏi Repeater.
+ */
+const DeleteRepeaterBlock: React.FC<DeleteRepeaterBlockProps> = ({
+  content,
+  maxHeight = '200px',
+}) => {
+  return (
+    <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
+      <pre
+        className="p-3 text-[12px] font-mono text-text-primary whitespace-pre-wrap overflow-auto"
+        style={{ maxHeight }}
+      >
+        {content}
+      </pre>
+    </div>
+  );
+};
 
 export const DeleteRepeaterRenderer: React.FC<BaseRendererProps> = ({
   actionIndex,

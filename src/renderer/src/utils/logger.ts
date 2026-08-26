@@ -1,75 +1,108 @@
 /**
- * Renderer-side logger.
- *
- * - `logger.info/warn/error/debug` send logs over IPC and mirror to console.
- * - `console.*` is overridden to also forward calls over IPC, preserving
- *   the original console behavior.
+ * ------------------------------------------------------------------
+ * Renderer Logger
+ * ------------------------------------------------------------------
+ * Logger cho renderer process - override console methods và gửi
+ * logs về main process qua IPC để ghi vào file log.log
+ * 
+ * Hàm chính:
+ * - setupRendererLogger() : Override console và setup IPC logging
+ * ------------------------------------------------------------------
  */
 
+// ─── Types ──────────────────────────────────────────────────────────────
+type LogLevel = 'LOG' | 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
+
+// ─── Original console methods ───────────────────────────────────────────
 const originalConsole = {
-  info: console.info.bind(console),
-  warn: console.warn.bind(console),
+  log: console.log.bind(console),
   error: console.error.bind(console),
+  warn: console.warn.bind(console),
+  info: console.info.bind(console),
   debug: console.debug.bind(console),
 };
 
-function isApiAvailable(): boolean {
-  return !!(window as any).api?.invoke;
-}
+// ─── Flag to prevent duplicate logging ─────────────────────────────────
+let inConsoleCall = false;
 
-function sendLog(level: string, args: any[]): void {
-  if (!isApiAvailable()) return;
+// ─── Send log to main process via IPC ──────────────────────────────────
+function sendLogToMain(level: LogLevel, ...args: any[]): void {
   try {
-    (window as any).api.invoke('log:write', level, ...args);
-  } catch {
-    // Silently fail – don't break the app if IPC isn't ready yet
+    // Check if window.api is available (should be exposed by preload)
+    if (typeof window !== 'undefined' && (window as any).api?.invoke) {
+      (window as any).api.invoke('log:write', level, ...args).catch((err: Error) => {
+        // Fallback to original console if IPC fails
+        originalConsole.error('[RendererLogger] Failed to send log to main:', err);
+      });
+    }
+  } catch (err) {
+    // Silent fail - don't let logging errors break the app
+    originalConsole.error('[RendererLogger] Exception sending log:', err);
   }
 }
 
-function write(level: string, consoleFn: (...args: any[]) => void, args: any[]): void {
-  sendLog(level, args);
-  consoleFn(...args);
+// ─── Mirror and write helper ────────────────────────────────────────────
+function mirrorAndWrite(
+  level: LogLevel,
+  consoleFn: (...args: any[]) => void,
+  args: any[]
+): void {
+  // Send to main process
+  sendLogToMain(level, ...args);
+
+  // Mirror to browser console
+  inConsoleCall = true;
+  try {
+    consoleFn(...args);
+  } finally {
+    inConsoleCall = false;
+  }
 }
 
+// ─── Logger object (can be used instead of console) ────────────────────
 export const logger = {
-  info: (...args: any[]) => write('INFO', originalConsole.info, args),
-  warn: (...args: any[]) => write('WARN', originalConsole.warn, args),
-  error: (...args: any[]) => write('ERROR', originalConsole.error, args),
-  debug: (...args: any[]) => write('DEBUG', originalConsole.debug, args),
+  log: (...args: any[]) => sendLogToMain('LOG', ...args),
+  error: (...args: any[]) => sendLogToMain('ERROR', ...args),
+  warn: (...args: any[]) => sendLogToMain('WARN', ...args),
+  info: (...args: any[]) => sendLogToMain('INFO', ...args),
+  debug: (...args: any[]) => sendLogToMain('DEBUG', ...args),
 };
 
-function setupRendererLogger(): void {
+// ─── Setup renderer logger ──────────────────────────────────────────────
+export function setupRendererLogger(): void {
+  // Override console methods
+  console.log = (...args: any[]) => {
+    mirrorAndWrite('LOG', originalConsole.log, args);
+  };
+
+  console.error = (...args: any[]) => {
+    mirrorAndWrite('ERROR', originalConsole.error, args);
+  };
+
+  console.warn = (...args: any[]) => {
+    mirrorAndWrite('WARN', originalConsole.warn, args);
+  };
+
   console.info = (...args: any[]) => {
-    sendLog('INFO', args);
-    originalConsole.info(...args);
-  };
-
-  logger.error = (...args: any[]) => {
-    sendLog('ERROR', args);
-    originalConsole.error(...args);
-  };
-
-  logger.warn = (...args: any[]) => {
-    sendLog('WARN', args);
-    originalConsole.warn(...args);
+    mirrorAndWrite('INFO', originalConsole.info, args);
   };
 
   console.debug = (...args: any[]) => {
-    sendLog('DEBUG', args);
-    originalConsole.debug(...args);
+    mirrorAndWrite('DEBUG', originalConsole.debug, args);
   };
 
-  // Capture unhandled errors in renderer
+  // ── Catch unhandled errors ──────────────────────────────────────────────
   window.addEventListener('error', (event) => {
-    sendLog('ERROR', [
-      `[Renderer Uncaught] ${event.message} at ${event.filename}:${event.lineno}:${event.colno}`,
-      event.error?.stack,
-    ]);
+    sendLogToMain('ERROR', `[Unhandled Error] ${event.message}`, event.error?.stack || '');
   });
 
   window.addEventListener('unhandledrejection', (event) => {
-    sendLog('ERROR', ['[Renderer Unhandled Rejection]', String(event.reason)]);
+    sendLogToMain('ERROR', `[Unhandled Promise Rejection] ${event.reason}`);
   });
+
+  // Confirm logger is active
+  console.info('[RendererLogger] Renderer logger initialized');
 }
 
+// ─── Auto-initialize when imported ──────────────────────────────────────
 setupRendererLogger();

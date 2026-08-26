@@ -48,7 +48,16 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
         } catch (e) { logger.warn('[RepeaterPersist] Failed to parse params:', e); }
         try {
           const parsedHeaders = JSON.parse(req.headers || '[]');
-          loadedHeaders = Array.isArray(parsedHeaders) ? parsedHeaders : [];
+          if (Array.isArray(parsedHeaders)) {
+            loadedHeaders = parsedHeaders;
+          } else if (parsedHeaders && typeof parsedHeaders === 'object') {
+            loadedHeaders = Object.entries(parsedHeaders).map(([key, value]) => ({
+              id: crypto.randomUUID(),
+              key,
+              value: String(value),
+              enabled: true,
+            }));
+          }
         } catch (e) { logger.warn('[RepeaterPersist] Failed to parse headers:', e); }
         const payloadsRes = await emulateApi.listPayloads(targetId, req.id);
         let loadedPayloads: PayloadItem[] = [];

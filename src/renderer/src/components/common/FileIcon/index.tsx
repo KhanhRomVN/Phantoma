@@ -18,6 +18,7 @@ import React, { useState, useEffect } from 'react';
 
 // ── Utils ──
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { logger } from '@renderer/utils/logger';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface FileIconProps {

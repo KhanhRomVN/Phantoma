@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 /**
  * ------------------------------------------------------------------
- * GitDiffBlock
+ * GitDiffRenderer
  * ------------------------------------------------------------------
- * Block hiển thị git diff cho một file.
- * Hiển thị added/deleted lines với syntax highlighting.
+ * Renderer cho tool action `git_diff`.
+ * Hiển thị diff stats (added/deleted) và nội dung diff.
  *
  * Main features:
- * - Hiển thị diff stats (added/deleted)
+ * - Auto-trigger execution khi chưa có output
+ * - Parse diff stats từ diffContent
+ * - Render partial state khi chưa active
+ * - Hiển thị added/deleted lines với syntax highlighting
  * - File path clickable với FileIcon
  * - Partial state cho streaming
  * ------------------------------------------------------------------
@@ -18,12 +21,18 @@ import React, { useState } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
+// ── Constants ──
+import { TOOL_ACTION_TYPES } from '../../../../../constants/constants';
+
+// ── Types ──
+import { ToolAction } from '../../../../../services/ResponseParser';
+
 // ── Components ──
 import FileIcon from '@renderer/components/common/FileIcon';
 import { TagHeader } from '../../TagHeader';
 
-// ─── Types ──────────────────────────────────────────────────────────────
-export interface GitDiffBlockProps {
+// ─── GitDiffBlock ───────────────────────────────────────────────────────
+interface GitDiffBlockProps {
   filePath: string;
   diffContent: string;
   added?: number;
@@ -236,5 +245,104 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
   );
 };
 
-export { GitDiffBlock };
-export default GitDiffBlock;
+// ─── GitDiffRenderer ────────────────────────────────────────────────────
+interface GitDiffRendererProps {
+  action: ToolAction;
+  actionIndex: number;
+  messageId: string;
+  isActionClicked?: boolean;
+  isActiveGroup?: boolean;
+  isLastMessage?: boolean;
+  isLastItemInList?: boolean;
+  toolOutputs?: Record<string, { output: string; isError: boolean }>;
+  onToolClick: (
+    action: ToolAction,
+    messageId: string,
+    actionIndex: number,
+    type: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
+  ) => void;
+  branch?: string;
+}
+
+export const GitDiffRenderer: React.FC<GitDiffRendererProps> = ({
+  action,
+  actionIndex,
+  messageId,
+  isActiveGroup = false,
+  isLastMessage = false,
+  toolOutputs,
+  onToolClick,
+  branch,
+}) => {
+  const actionId = `${messageId}-action-${actionIndex}`;
+  const filePath = action.params.file_path || '';
+  const outputData = toolOutputs?.[actionId];
+  const diffContent = outputData?.output || action.params.diff || '';
+  const hasOutput = !!outputData && !outputData.isError;
+
+  const hasTriggeredExecution = React.useRef(false);
+  useEffect(() => {
+    if (!hasTriggeredExecution.current && !hasOutput && isActiveGroup && !isLastMessage) {
+      hasTriggeredExecution.current = true;
+      onToolClick(action, messageId, actionIndex, 'accept');
+    }
+  }, [hasOutput, isActiveGroup, isLastMessage, actionId]);
+
+  const parseDiffStats = (content: string) => {
+    let added = 0;
+    let deleted = 0;
+    if (!content) return { added: 0, deleted: 0 };
+    const lines = content.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('+') && !line.startsWith('+++')) added++;
+      if (line.startsWith('-') && !line.startsWith('---')) deleted++;
+    }
+    return { added, deleted };
+  };
+
+  const stats = parseDiffStats(diffContent);
+
+  const handleFileClick = (path: string) => {
+    const vscodeApi = (window as any).vscodeApi;
+    if (vscodeApi) {
+      vscodeApi.postMessage({
+        command: 'openFile',
+        path,
+      });
+    }
+  };
+
+  if (!hasOutput && !isActiveGroup) {
+    return (
+      <div className="relative flex flex-col gap-1.5">
+        <GitDiffBlock
+          filePath={filePath}
+          diffContent=""
+          added={0}
+          deleted={0}
+          statusColor={$('--success')}
+          isPartial={true}
+          branch={branch}
+          onFileClick={handleFileClick}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex flex-col gap-1.5">
+      <GitDiffBlock
+        filePath={filePath}
+        diffContent={diffContent}
+        added={stats.added}
+        deleted={stats.deleted}
+        statusColor={$('--success')}
+        isPartial={!hasOutput && isActiveGroup}
+        branch={branch}
+        onFileClick={handleFileClick}
+      />
+    </div>
+  );
+};
+
+export default GitDiffRenderer;

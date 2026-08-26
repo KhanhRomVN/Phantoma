@@ -6,8 +6,15 @@ import React from 'react';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
-import PressKeyBlock from '../../blocks/recon/PressKeyBlock';
 import ActionBar from '../../ActionBar';
+
+interface PressKeyBlockProps {
+  key?: string;
+  tabId?: string;
+  targetId?: string;
+  output?: string;
+  isError?: boolean;
+}
 
 export const PressKeyRenderer: React.FC<BaseRendererProps> = ({
   action,
@@ -76,3 +83,48 @@ export const PressKeyRenderer: React.FC<BaseRendererProps> = ({
     </div>
   );
 };
+
+function PressKeyBlock({
+  key,
+  tabId,
+  targetId,
+  output,
+  isError,
+}: PressKeyBlockProps) {
+  return (
+    <div className="text-xs space-y-2">
+      {key && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Key:</span>
+          <span className="text-text-primary font-mono">{key}</span>
+        </div>
+      )}
+      {tabId && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Tab ID:</span>
+          <span className="text-text-primary font-mono">{tabId}</span>
+        </div>
+      )}
+      {targetId && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Target:</span>
+          <span className="text-text-primary font-mono">{targetId}</span>
+        </div>
+      )}
+
+      {output && (
+        <div
+          className="p-3 rounded font-mono whitespace-pre-wrap"
+          style={{
+            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
+            color: isError ? $('--error') : $('--success'),
+          }}
+        >
+          {output}
+        </div>
+      )}
+
+      {!output && !isError && <div className="text-text-secondary opacity-60">Pressing key...</div>}
+    </div>
+  );
+}

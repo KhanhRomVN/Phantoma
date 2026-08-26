@@ -1,25 +1,27 @@
 /**
- * UpdateRepeaterContentHandler — Cập nhật params/headers/body của request trong Repeater.
+ * UpdateRepeaterContentHandler — Cập nhật params/headers/body của request trong Repeater (lưu vào database).
  *
  * Usage:
  *   const handler = new UpdateRepeaterContentHandler();
- *   const result = handler.handle(requests, 'repeater_1', 'headers', oldContent, newContent);
+ *   const result = await handler.handle(requests, 'repeater_1', 'headers', oldContent, newContent, targetId);
  */
 
 // TYPE
 import { NetworkRequest } from '../types/inspector';
-import { getRepeaterIds } from '../components/WorkspacePanel/Repeater';
+import { emulateApi } from '../services/emulate-api.service';
+import { logger } from '@renderer/utils/logger';
 
 export type RepeaterTarget = 'params' | 'headers' | 'body';
 
 export class UpdateRepeaterContentHandler {
-  public handle(
+  public async handle(
     requests: NetworkRequest[],
     repeaterId: string,
     target: RepeaterTarget,
     oldContent: string,
     newContent: string,
-  ): { text: string } {
+    targetId?: string | null,
+  ): Promise<{ text: string }> {
     const match = /^repeater_(\d+)$/.exec(repeaterId.trim());
     if (!match) {
       return {
@@ -27,34 +29,64 @@ export class UpdateRepeaterContentHandler {
       };
     }
 
-    const repeaterIdx = parseInt(match[1], 10);
-    const repeaterIds = getRepeaterIds();
-    const repeaterReqs = requests.filter((req) => repeaterIds.has(req.id));
-
-    if (repeaterIdx < 0 || repeaterIdx >= repeaterReqs.length) {
+    if (!targetId) {
       return {
-        text: `[update_repeater_content] Error: repeater ${repeaterId} out of range (0-${repeaterReqs.length - 1})`,
+        text: `[update_repeater_content] Error: targetId is required to access database`,
       };
     }
 
-    const req = repeaterReqs[repeaterIdx];
+    const repeaterIdx = parseInt(match[1], 10);
 
-    if (target === 'params') {
-      const [base, query = ''] = req.url.split('?');
-      const newQuery = query.replace(oldContent, newContent);
-      req.url = base + (newQuery ? '?' + newQuery : '');
-    } else if (target === 'headers') {
-      const headersJson = JSON.stringify(req.requestHeaders || {});
-      const updatedJson = headersJson.replace(oldContent, newContent);
-      try {
-        req.requestHeaders = JSON.parse(updatedJson);
-      } catch {
-        // giữ nguyên nếu JSON mới không hợp lệ
+    try {
+      // Fetch repeater requests from DB
+      const res = await emulateApi.listRequests(targetId);
+      if (!res.success || !res.data) {
+        return {
+          text: `[update_repeater_content] Error: ${res.error || 'Failed to fetch from database'}`,
+        };
       }
-    } else if (target === 'body') {
-      req.requestBody = (req.requestBody || '').replace(oldContent, newContent);
-    }
 
-    return { text: `[update_repeater_content] Updated ${repeaterId} ${target}` };
+      const repeaterReqs = res.data;
+      if (repeaterIdx < 0 || repeaterIdx >= repeaterReqs.length) {
+        return {
+          text: `[update_repeater_content] Error: repeater ${repeaterId} out of range (0-${repeaterReqs.length - 1})`,
+        };
+      }
+
+      const dbReq = repeaterReqs[repeaterIdx];
+      let updatedUrl = dbReq.url;
+      let updatedHeaders = dbReq.headers;
+      let updatedBody = dbReq.body;
+
+      if (target === 'params') {
+        const [base, query = ''] = dbReq.url.split('?');
+        const newQuery = query.replace(oldContent, newContent);
+        updatedUrl = base + (newQuery ? '?' + newQuery : '');
+      } else if (target === 'headers') {
+        const headersStr = dbReq.headers || '[]';
+        updatedHeaders = headersStr.replace(oldContent, newContent);
+      } else if (target === 'body') {
+        updatedBody = (dbReq.body || '').replace(oldContent, newContent);
+      }
+
+      // Update in database
+      await emulateApi.updateRequest(targetId, dbReq.id, {
+        method: dbReq.method,
+        url: updatedUrl,
+        body: updatedBody,
+        params: dbReq.params,
+        headers: updatedHeaders,
+      });
+
+      // Dispatch event để UI update
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('repeater-updated'));
+      }
+
+      return { text: `[update_repeater_content] Updated ${repeaterId} ${target}` };
+    } catch (err: any) {
+      logger.error('[UpdateRepeaterContentHandler] Error:', err);
+      return { text: `[update_repeater_content] Error: ${err.message || String(err)}` };
+    }
   }
 }

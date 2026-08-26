@@ -23,7 +23,7 @@ import { execSync } from 'child_process';
 // ── Internal ──
 import { proxyManager } from './shared/proxy-state';
 import { closeAllGenericWebWindows } from './features/generic-web';
-import { appState, clearActiveState } from './shared/state';
+import { appState, clearActiveState, clearAllTargetProcesses } from './shared/state';
 import { stopAllLSPServers } from './ipc/lsp-handlers';
 import { closeAllBrowserSessions } from './ipc/browser.handlers';
 import { logger } from './utils/logger';
@@ -58,6 +58,10 @@ export async function cleanup() {
   closeAllGenericWebWindows();
   stopAllLSPServers(); // Stop all language servers
   await closeAllBrowserSessions(); // Close all browser sessions
+  
+  // Kill all target processes
+  clearAllTargetProcesses();
+  
   if (appState.activeChildProcess) {
     appState.activeChildProcess.kill();
     appState.activeChildProcess = null;

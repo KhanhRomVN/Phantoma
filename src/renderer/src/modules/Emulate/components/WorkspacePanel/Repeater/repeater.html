@@ -1,0 +1,4432 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Repeater / Fuzzer — Phantoma</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* ── Base surfaces ── */
+        --bg: #0a0b10;
+        --bg-elevated: #0e1017;
+        --surface: #12141d;
+        --surface-2: #171a25;
+        --surface-hover: #1c1f2c;
+        --surface-active: #212536;
+        --border: #21242f;
+        --border-strong: #2c3040;
+        --border-soft: rgba(255, 255, 255, 0.04);
+
+        /* ── Text ── */
+        --text: #edf0f6;
+        --text-secondary: #99a2b6;
+        --text-muted: #5b6376;
+        --text-faint: #3d4353;
+
+        /* ── Brand: gold = ação primária (send/save), teal = fuzz/attack ── */
+        --gold: #e3b451;
+        --gold-rgb: 227, 180, 81;
+        --teal: #34d1b8;
+        --teal-rgb: 52, 209, 184;
+
+        --success: #4bd484;
+        --success-rgb: 75, 212, 132;
+        --danger: #f2685f;
+        --danger-rgb: 242, 104, 95;
+        --warning: #f4b856;
+        --warning-rgb: 244, 184, 86;
+        --info: #5da4f0;
+        --info-rgb: 93, 164, 240;
+        --purple: #a68af0;
+
+        --m-get: #4bd484;
+        --m-post: #5da4f0;
+        --m-put: #f4b856;
+        --m-delete: #f2685f;
+        --m-patch: #a68af0;
+        --m-head: #7d879c;
+        --m-options: #34d1b8;
+
+        --radius-sm: 5px;
+        --radius: 8px;
+        --radius-lg: 12px;
+
+        --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, Menlo, monospace;
+
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      ::selection {
+        background: rgba(var(--gold-rgb), 0.28);
+        color: #fff;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font-family: inherit;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        background: none;
+      }
+      input,
+      textarea,
+      select {
+        outline: none;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-strong);
+        border-radius: 8px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #3a3f52;
+      }
+
+      svg {
+        display: block;
+      }
+
+      /* ═══════════════════════ APP SHELL ═══════════════════════ */
+      .app {
+        display: flex;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+      }
+
+      /* ── Icon rail điều hướng module ── */
+      .nav-rail {
+        width: 56px;
+        min-width: 56px;
+        background: var(--bg-elevated);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 0;
+        gap: 4px;
+      }
+      .nav-rail .brand {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--gold), #c9922f);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 13px;
+        color: #1a1206;
+        margin-bottom: 14px;
+      }
+      .rail-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        position: relative;
+        transition: all 0.15s var(--ease);
+      }
+      .rail-btn:hover {
+        color: var(--text);
+        background: var(--surface-hover);
+      }
+      .rail-btn.active {
+        color: var(--gold);
+        background: rgba(var(--gold-rgb), 0.12);
+      }
+      .rail-btn.active::before {
+        content: '';
+        position: absolute;
+        left: -12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 18px;
+        border-radius: 3px;
+        background: var(--gold);
+      }
+      .rail-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+      .rail-spacer {
+        flex: 1;
+      }
+      .rail-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-secondary);
+      }
+
+      /* ── Shell chính ── */
+      .shell {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ── Topbar: breadcrumb + env + search ── */
+      .topbar {
+        height: 46px;
+        min-height: 46px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elevated);
+      }
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+      }
+      .breadcrumb b {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .breadcrumb .sep {
+        color: var(--text-faint);
+      }
+      .breadcrumb .chip-live {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 10.5px;
+        font-weight: 600;
+        background: rgba(var(--teal-rgb), 0.12);
+        color: var(--teal);
+        margin-left: 4px;
+      }
+      .breadcrumb .chip-live .pulse-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--teal);
+        animation: pulse-dot 1.6s infinite;
+      }
+
+      .topbar-spacer {
+        flex: 1;
+      }
+
+      .env-select {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 6px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+      .env-select:hover {
+        border-color: var(--border-strong);
+        color: var(--text);
+      }
+      .env-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+
+      .cmdk-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 28px;
+        padding: 0 10px 0 10px;
+        border-radius: 6px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 11.5px;
+        min-width: 200px;
+      }
+      .cmdk-trigger:hover {
+        border-color: var(--border-strong);
+      }
+      .cmdk-trigger kbd {
+        margin-left: auto;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        color: var(--text-muted);
+      }
+
+      .topbar-icon-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+      }
+      .topbar-icon-btn:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+      }
+      .topbar-icon-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      /* ═══════════════════════ WORKSPACE ═══════════════════════ */
+      .workspace {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        overflow: hidden;
+      }
+
+      /* ── Collection sidebar ── */
+      .collection-panel {
+        width: 296px;
+        min-width: 296px;
+        background: var(--bg-elevated);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
+      .collection-search {
+        padding: 10px;
+        display: flex;
+        gap: 6px;
+      }
+      .search-box {
+        position: relative;
+        flex: 1;
+      }
+      .search-box svg {
+        position: absolute;
+        left: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 13px;
+        height: 13px;
+        color: var(--text-muted);
+      }
+      .search-box input {
+        width: 100%;
+        height: 30px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0 10px 0 28px;
+        color: var(--text);
+        font-size: 12px;
+        transition: border-color 0.15s;
+      }
+      .search-box input:focus {
+        border-color: rgba(var(--gold-rgb), 0.5);
+      }
+      .filter-toggle-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+      }
+      .filter-toggle-btn.active {
+        color: var(--gold);
+        border-color: rgba(var(--gold-rgb), 0.4);
+        background: rgba(var(--gold-rgb), 0.08);
+      }
+      .filter-toggle-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .method-filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 0 10px 10px;
+      }
+      .method-filter-chip {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 5px;
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        transition: all 0.12s;
+      }
+      .method-filter-chip[data-active='true'] {
+        color: var(--bg);
+        border-color: transparent;
+      }
+      .method-filter-chip[data-m='GET'][data-active='true'] {
+        background: var(--m-get);
+      }
+      .method-filter-chip[data-m='POST'][data-active='true'] {
+        background: var(--m-post);
+      }
+      .method-filter-chip[data-m='PUT'][data-active='true'] {
+        background: var(--m-put);
+      }
+      .method-filter-chip[data-m='DELETE'][data-active='true'] {
+        background: var(--m-delete);
+      }
+      .method-filter-chip[data-m='PATCH'][data-active='true'] {
+        background: var(--m-patch);
+      }
+
+      .collection-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px 8px 12px;
+      }
+
+      .collection-group {
+        margin-bottom: 2px;
+      }
+      .collection-group-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 6px;
+        border-radius: 6px;
+        color: var(--text-secondary);
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+      .collection-group-header:hover {
+        background: var(--surface-hover);
+      }
+      .collection-group-header .chevron {
+        width: 11px;
+        height: 11px;
+        color: var(--text-muted);
+        transition: transform 0.15s;
+        flex-shrink: 0;
+      }
+      .collection-group-header.collapsed .chevron {
+        transform: rotate(-90deg);
+      }
+      .collection-group-header .host-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--info);
+        flex-shrink: 0;
+      }
+      .collection-group-header .grp-count {
+        margin-left: auto;
+        font-size: 10px;
+        color: var(--text-faint);
+        font-weight: 500;
+        background: var(--surface-2);
+        padding: 1px 6px;
+        border-radius: 10px;
+      }
+      .collection-group-items {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        padding-left: 4px;
+      }
+      .collection-group-items.collapsed {
+        display: none;
+      }
+
+      .request-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        position: relative;
+      }
+      .request-item:hover {
+        background: var(--surface-hover);
+      }
+      .request-item.active {
+        background: var(--surface-active);
+        border-color: var(--border-strong);
+      }
+      .request-item.active::before {
+        content: '';
+        position: absolute;
+        left: -4px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 2px;
+        height: 60%;
+        border-radius: 2px;
+        background: var(--gold);
+      }
+      .request-item .r-method {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 700;
+        width: 40px;
+        flex-shrink: 0;
+      }
+      .request-item .r-body {
+        min-width: 0;
+        flex: 1;
+      }
+      .request-item .r-path {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+      }
+      .request-item .r-meta {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 1px;
+      }
+      .request-item .r-host {
+        font-size: 10px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .request-item .r-tag {
+        font-size: 9px;
+        font-weight: 600;
+        padding: 0 5px;
+        border-radius: 3px;
+        background: rgba(var(--teal-rgb), 0.14);
+        color: var(--teal);
+        flex-shrink: 0;
+      }
+      .request-item .r-star {
+        width: 13px;
+        height: 13px;
+        color: var(--text-faint);
+        flex-shrink: 0;
+      }
+      .request-item .r-star.starred {
+        color: var(--gold);
+      }
+      .request-item .r-fuzz-badge {
+        width: 13px;
+        height: 13px;
+        color: var(--teal);
+        flex-shrink: 0;
+      }
+
+      .m-GET {
+        color: var(--m-get);
+      }
+      .m-POST {
+        color: var(--m-post);
+      }
+      .m-PUT {
+        color: var(--m-put);
+      }
+      .m-DELETE {
+        color: var(--m-delete);
+      }
+      .m-PATCH {
+        color: var(--m-patch);
+      }
+      .m-HEAD {
+        color: var(--m-head);
+      }
+      .m-OPTIONS {
+        color: var(--m-options);
+      }
+
+      .collection-footer {
+        padding: 8px 10px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 10.5px;
+        color: var(--text-muted);
+      }
+      .new-request-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--gold);
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+      .new-request-btn:hover {
+        background: rgba(var(--gold-rgb), 0.1);
+      }
+      .new-request-btn svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      /* ═══════════════════════ EDITOR PANEL ═══════════════════════ */
+      .editor-panel {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+      }
+
+      /* ── Request bar ── */
+      .request-bar {
+        display: flex;
+        align-items: stretch;
+        gap: 8px;
+        padding: 10px 12px 8px;
+      }
+      .method-selector {
+        position: relative;
+      }
+      .method-selector > button {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 7px 0 0 7px;
+        border-right: none;
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 12.5px;
+      }
+      .method-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 5px;
+        min-width: 130px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+        z-index: 40;
+        padding: 4px;
+      }
+      .method-dropdown button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        text-align: left;
+        padding: 7px 9px;
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        font-weight: 700;
+        border-radius: 5px;
+      }
+      .method-dropdown button:hover {
+        background: var(--surface-hover);
+      }
+      .method-dropdown button .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .url-bar-wrap {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        height: 36px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: none;
+        padding: 0 10px;
+        min-width: 0;
+      }
+      .url-bar-wrap:focus-within {
+        border-color: rgba(var(--gold-rgb), 0.45);
+      }
+      #urlInput {
+        flex: 1;
+        background: transparent;
+        border: none;
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        color: var(--text);
+        min-width: 0;
+      }
+      .env-pill-inline {
+        font-size: 9.5px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-right: 8px;
+        background: rgba(var(--info-rgb), 0.14);
+        color: var(--info);
+        flex-shrink: 0;
+        font-family: var(--font-mono);
+      }
+
+      .req-action-btn {
+        height: 36px;
+        width: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        border-radius: 7px;
+        flex-shrink: 0;
+      }
+      .req-action-btn:hover {
+        color: var(--text);
+        background: var(--surface-hover);
+      }
+      .req-action-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .send-split {
+        display: flex;
+        flex-shrink: 0;
+      }
+      .send-btn {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        height: 36px;
+        padding: 0 16px;
+        background: var(--gold);
+        color: #1a1206;
+        font-weight: 700;
+        font-size: 12.5px;
+        border-radius: 7px 0 0 7px;
+        transition: background 0.15s;
+      }
+      .send-btn:hover {
+        background: #eec06a;
+      }
+      .send-btn svg {
+        width: 13px;
+        height: 13px;
+      }
+      .send-caret {
+        width: 26px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--gold);
+        border-left: 1px solid rgba(0, 0, 0, 0.18);
+        border-radius: 0 7px 7px 0;
+        color: #1a1206;
+      }
+      .send-caret:hover {
+        background: #eec06a;
+      }
+      .send-caret svg {
+        width: 11px;
+        height: 11px;
+      }
+      .send-dropdown {
+        position: absolute;
+        right: 12px;
+        margin-top: 40px;
+        min-width: 210px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+        z-index: 40;
+        padding: 4px;
+      }
+      .send-dropdown button {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        text-align: left;
+        padding: 8px 10px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+      .send-dropdown button:hover {
+        background: var(--surface-hover);
+      }
+      .send-dropdown button svg {
+        width: 14px;
+        height: 14px;
+        color: var(--text-muted);
+      }
+      .send-dropdown button .kbd-hint {
+        margin-left: auto;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-faint);
+      }
+      .send-dropdown .fuzz-opt svg {
+        color: var(--teal);
+      }
+
+      /* ── Tabs ── */
+      .tabbar {
+        display: flex;
+        align-items: center;
+        height: 36px;
+        padding: 0 12px;
+        gap: 2px;
+        border-bottom: 1px solid var(--border);
+      }
+      .tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 100%;
+        padding: 0 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 2px solid transparent;
+        white-space: nowrap;
+      }
+      .tab:hover {
+        color: var(--text);
+      }
+      .tab.active {
+        color: var(--text);
+        border-bottom-color: var(--gold);
+      }
+      .tab.fuzz-tab.active {
+        border-bottom-color: var(--teal);
+      }
+      .tab .badge {
+        padding: 0 6px;
+        border-radius: 9px;
+        background: var(--surface-2);
+        color: var(--text-secondary);
+        font-size: 10px;
+        font-weight: 700;
+        font-family: var(--font-mono);
+      }
+      .tab.active .badge {
+        background: rgba(var(--gold-rgb), 0.16);
+        color: var(--gold);
+      }
+      .tab.fuzz-tab .badge {
+        background: rgba(var(--teal-rgb), 0.14);
+        color: var(--teal);
+      }
+      .tabbar-spacer {
+        flex: 1;
+      }
+      .content-type-pill {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding: 3px 8px;
+        border-radius: 5px;
+        background: var(--surface);
+      }
+
+      /* ── Tab panels ── */
+      .tab-view {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+      }
+      .tab-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .table-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .table-toolbar-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        padding: 4px 8px;
+        border-radius: 5px;
+      }
+      .table-toolbar-btn:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+      }
+      .table-toolbar-btn svg {
+        width: 12px;
+        height: 12px;
+      }
+      .table-toolbar-spacer {
+        flex: 1;
+      }
+
+      .kv-table-wrap {
+        flex: 1;
+        overflow: auto;
+      }
+      .kv-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .kv-table thead th {
+        position: sticky;
+        top: 0;
+        background: var(--bg-elevated);
+        z-index: 2;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--border);
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .kv-table td {
+        padding: 3px 10px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .kv-table .col-check {
+        width: 32px;
+      }
+      .kv-table .col-actions {
+        width: 76px;
+        text-align: right;
+      }
+      .kv-check {
+        width: 15px;
+        height: 15px;
+        border: 1px solid var(--border-strong);
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      .kv-check.checked {
+        background: var(--gold);
+        border-color: var(--gold);
+      }
+      .kv-check.checked::after {
+        content: '';
+        width: 6px;
+        height: 3px;
+        border-left: 1.6px solid #1a1206;
+        border-bottom: 1.6px solid #1a1206;
+        transform: rotate(-45deg) translate(0, -1px);
+      }
+      .kv-key,
+      .kv-val {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: var(--text);
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        padding: 4px 3px;
+      }
+      .kv-key::placeholder,
+      .kv-val::placeholder {
+        color: var(--text-faint);
+        font-style: italic;
+      }
+      .kv-row.disabled td {
+        opacity: 0.42;
+      }
+      .kv-row .mark-pos-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        color: var(--text-faint);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .kv-row .mark-pos-btn:hover {
+        color: var(--teal);
+        background: rgba(var(--teal-rgb), 0.1);
+      }
+      .kv-row .mark-pos-btn svg {
+        width: 12px;
+        height: 12px;
+      }
+      .kv-icon-btn {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        color: var(--text-faint);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .kv-icon-btn:hover {
+        color: var(--danger);
+        background: rgba(var(--danger-rgb), 0.1);
+      }
+      .kv-icon-btn svg {
+        width: 12px;
+        height: 12px;
+      }
+      .kv-add-row td {
+        color: var(--text-faint);
+      }
+
+      /* Body editor */
+      .body-editor-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 10px 12px;
+        overflow: hidden;
+      }
+      .body-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .body-type-select {
+        display: flex;
+        gap: 2px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 2px;
+      }
+      .body-type-select button {
+        padding: 4px 9px;
+        font-size: 10.5px;
+        font-weight: 600;
+        border-radius: 4px;
+        color: var(--text-muted);
+      }
+      .body-type-select button.active {
+        background: var(--surface-active);
+        color: var(--text);
+      }
+      .body-toolbar-spacer {
+        flex: 1;
+      }
+      .body-toolbar-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        padding: 4px 8px;
+        border-radius: 5px;
+      }
+      .body-toolbar-btn:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+      }
+      .body-toolbar-btn svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      .code-editor {
+        flex: 1;
+        display: flex;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        min-height: 0;
+      }
+      .code-gutter {
+        width: 40px;
+        flex-shrink: 0;
+        padding: 12px 0;
+        text-align: right;
+        background: var(--bg-elevated);
+        border-right: 1px solid var(--border-soft);
+        overflow: hidden;
+      }
+      .code-gutter div {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        line-height: 1.7;
+        color: var(--text-faint);
+        padding-right: 10px;
+      }
+      .code-body {
+        flex: 1;
+        overflow: auto;
+        padding: 12px;
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--text);
+      }
+      .tok-key {
+        color: #7fc4ff;
+      }
+      .tok-str {
+        color: #a4d68a;
+      }
+      .tok-num {
+        color: #f4b856;
+      }
+      .tok-bool {
+        color: var(--purple);
+      }
+      .tok-punct {
+        color: var(--text-muted);
+      }
+      .tok-pos {
+        background: rgba(var(--teal-rgb), 0.18);
+        color: var(--teal);
+        border-radius: 3px;
+        padding: 0 2px;
+        font-weight: 700;
+      }
+
+      /* Auth tab */
+      .auth-wrap {
+        flex: 1;
+        overflow: auto;
+        padding: 16px;
+        max-width: 480px;
+      }
+      .auth-type-row {
+        display: flex;
+        gap: 2px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 3px;
+        margin-bottom: 16px;
+      }
+      .auth-type-row button {
+        flex: 1;
+        padding: 7px 0;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        border-radius: 5px;
+      }
+      .auth-type-row button.active {
+        background: var(--surface-active);
+        color: var(--text);
+      }
+      .field-group {
+        margin-bottom: 14px;
+      }
+      .field-group label {
+        display: block;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 5px;
+      }
+      .field-group input {
+        width: 100%;
+        height: 32px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0 10px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text);
+      }
+      .field-group input:focus {
+        border-color: rgba(var(--gold-rgb), 0.45);
+      }
+      .field-hint {
+        font-size: 10.5px;
+        color: var(--text-muted);
+        margin-top: 5px;
+      }
+
+      /* ═══════════════════════ FUZZ TAB (signature) ═══════════════════════ */
+      .fuzz-wrap {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .fuzz-section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .fuzz-section-title svg {
+        width: 13px;
+        height: 13px;
+        color: var(--teal);
+      }
+
+      /* Attack type cards */
+      .attack-type-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .attack-type-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        text-align: left;
+        transition: all 0.15s var(--ease);
+      }
+      .attack-type-card:hover {
+        border-color: var(--border-strong);
+        background: var(--surface-hover);
+      }
+      .attack-type-card.active {
+        border-color: rgba(var(--teal-rgb), 0.55);
+        background: rgba(var(--teal-rgb), 0.08);
+      }
+      .attack-type-card .icon-wrap {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface-2);
+        color: var(--text-muted);
+      }
+      .attack-type-card.active .icon-wrap {
+        background: rgba(var(--teal-rgb), 0.16);
+        color: var(--teal);
+      }
+      .attack-type-card .icon-wrap svg {
+        width: 14px;
+        height: 14px;
+      }
+      .attack-type-card .at-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .attack-type-card .at-desc {
+        font-size: 10.5px;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
+
+      /* Position marker preview */
+      .position-preview {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        line-height: 1.8;
+        color: var(--text-secondary);
+        word-break: break-all;
+      }
+      .marker {
+        display: inline-flex;
+        align-items: center;
+        padding: 0 3px;
+        margin: 0 1px;
+        border-radius: 3px;
+        background: rgba(var(--teal-rgb), 0.16);
+        color: var(--teal);
+        font-weight: 700;
+        position: relative;
+        animation: marker-glow 2.4s infinite;
+      }
+      @keyframes marker-glow {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(var(--teal-rgb), 0);
+        }
+        50% {
+          box-shadow: 0 0 0 3px rgba(var(--teal-rgb), 0.12);
+        }
+      }
+
+      .position-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .position-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+      }
+      .position-item .pos-index {
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        background: rgba(var(--teal-rgb), 0.14);
+        color: var(--teal);
+        font-size: 10px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-family: var(--font-mono);
+      }
+      .position-item .pos-location {
+        font-size: 10.5px;
+        color: var(--text-muted);
+        width: 62px;
+        flex-shrink: 0;
+      }
+      .position-item .pos-value {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        color: var(--text);
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .position-item .pos-payload-select {
+        font-size: 10.5px;
+        padding: 3px 8px;
+        border-radius: 5px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .position-item .pos-payload-select:hover {
+        border-color: var(--border-strong);
+      }
+      .position-item .pos-count {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-faint);
+        flex-shrink: 0;
+        width: 44px;
+        text-align: right;
+      }
+      .position-item .pos-remove {
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        color: var(--text-faint);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .position-item .pos-remove:hover {
+        color: var(--danger);
+        background: rgba(var(--danger-rgb), 0.1);
+      }
+      .position-item .pos-remove svg {
+        width: 11px;
+        height: 11px;
+      }
+
+      .fuzz-empty {
+        text-align: center;
+        padding: 22px 10px;
+        color: var(--text-muted);
+        font-size: 11.5px;
+        border: 1px dashed var(--border-strong);
+        border-radius: 8px;
+      }
+
+      /* Attack summary + matrix visual (signature element) */
+      .attack-summary {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        background: linear-gradient(
+          135deg,
+          rgba(var(--teal-rgb), 0.08),
+          rgba(var(--teal-rgb), 0.02)
+        );
+        border: 1px solid rgba(var(--teal-rgb), 0.25);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .matrix-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 6px);
+        grid-gap: 3px;
+        flex-shrink: 0;
+      }
+      .matrix-grid .cell {
+        width: 6px;
+        height: 6px;
+        border-radius: 1.5px;
+        background: var(--surface-2);
+      }
+      .matrix-grid .cell.on {
+        background: var(--teal);
+        animation: cell-flicker 3s infinite;
+      }
+      .matrix-grid .cell.on:nth-child(3n) {
+        animation-delay: 0.4s;
+      }
+      .matrix-grid .cell.on:nth-child(5n) {
+        animation-delay: 0.9s;
+      }
+      @keyframes cell-flicker {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.45;
+        }
+      }
+
+      .attack-summary-stats {
+        display: flex;
+        gap: 26px;
+        flex: 1;
+      }
+      .as-stat .as-num {
+        font-family: var(--font-mono);
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1.1;
+      }
+      .as-stat .as-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .as-stat .as-num.teal {
+        color: var(--teal);
+      }
+
+      .start-attack-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 8px;
+        background: var(--teal);
+        color: #08251f;
+        font-weight: 700;
+        font-size: 12.5px;
+        flex-shrink: 0;
+        box-shadow: 0 0 0 0 rgba(var(--teal-rgb), 0.4);
+        transition: all 0.2s;
+      }
+      .start-attack-btn:hover {
+        background: #4ee0c6;
+        box-shadow: 0 0 0 5px rgba(var(--teal-rgb), 0.12);
+      }
+      .start-attack-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* Payload set editor row (chips of values) */
+      .payload-set-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+      }
+      .payload-set-card + .payload-set-card {
+        margin-top: 8px;
+      }
+      .ps-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .ps-header input.ps-name {
+        background: transparent;
+        border: none;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+        width: 140px;
+      }
+      .ps-type-badge {
+        font-size: 9.5px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: var(--surface-2);
+        color: var(--text-secondary);
+      }
+      .ps-header-spacer {
+        flex: 1;
+      }
+      .ps-count-label {
+        font-size: 10.5px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+      }
+      .ps-values {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .ps-chip {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 5px;
+        background: var(--surface-2);
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .ps-chip button {
+        color: var(--text-faint);
+        display: flex;
+      }
+      .ps-chip button:hover {
+        color: var(--danger);
+      }
+      .ps-chip button svg {
+        width: 9px;
+        height: 9px;
+      }
+      .ps-add-chip {
+        font-size: 11px;
+        color: var(--text-faint);
+        padding: 3px 8px;
+        border: 1px dashed var(--border-strong);
+        border-radius: 5px;
+      }
+      .ps-add-chip:hover {
+        color: var(--teal);
+        border-color: rgba(var(--teal-rgb), 0.4);
+      }
+
+      /* Rules tab */
+      .rules-wrap {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+      }
+      .rule-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 10px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        margin-bottom: 6px;
+      }
+      .rule-row select {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        font-size: 11px;
+        padding: 4px 6px;
+        color: var(--text);
+      }
+      .rule-row .rule-arrow {
+        color: var(--text-faint);
+        font-size: 12px;
+      }
+      .rule-row input {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 4px 8px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        flex: 1;
+        min-width: 0;
+        color: var(--text);
+      }
+
+      /* ═══════════════════════ RESPONSE PANEL ═══════════════════════ */
+      .response-panel {
+        display: flex;
+        flex-direction: column;
+        border-top: 1px solid var(--border);
+        background: var(--bg-elevated);
+        min-height: 140px;
+      }
+      .resize-handle {
+        height: 5px;
+        cursor: ns-resize;
+        margin-top: -5px;
+        position: relative;
+        z-index: 5;
+      }
+      .resize-handle:hover,
+      .resize-handle.dragging {
+        background: rgba(var(--gold-rgb), 0.3);
+      }
+
+      .response-header {
+        display: flex;
+        align-items: center;
+        height: 34px;
+        padding: 0 10px;
+        border-bottom: 1px solid var(--border);
+      }
+      .response-tabs {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+      .response-tab {
+        height: 33px;
+        padding: 0 10px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 2px solid transparent;
+      }
+      .response-tab:hover {
+        color: var(--text);
+      }
+      .response-tab.active {
+        color: var(--text);
+        border-bottom-color: var(--gold);
+      }
+      .response-header-spacer {
+        flex: 1;
+      }
+      .response-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+      .status-pill {
+        font-family: var(--font-mono);
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 5px;
+        font-size: 11.5px;
+      }
+      .status-pill.s2 {
+        background: rgba(var(--success-rgb), 0.15);
+        color: var(--success);
+      }
+      .status-pill.s3 {
+        background: rgba(var(--info-rgb), 0.15);
+        color: var(--info);
+      }
+      .status-pill.s4 {
+        background: rgba(var(--warning-rgb), 0.15);
+        color: var(--warning);
+      }
+      .status-pill.s5 {
+        background: rgba(var(--danger-rgb), 0.15);
+        color: var(--danger);
+      }
+      .response-meta-item {
+        color: var(--text-muted);
+      }
+      .response-meta-item b {
+        color: var(--text-secondary);
+        font-weight: 600;
+      }
+      .compare-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        padding: 4px 9px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        margin-left: 6px;
+      }
+      .compare-btn:hover {
+        border-color: var(--border-strong);
+        color: var(--text);
+      }
+      .compare-btn svg {
+        width: 11px;
+        height: 11px;
+      }
+
+      .response-content {
+        flex: 1;
+        overflow: auto;
+        padding: 12px;
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        line-height: 1.7;
+      }
+      .response-header-row {
+        display: flex;
+        gap: 10px;
+        padding: 3px 0;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .response-header-row .k {
+        color: var(--info);
+        font-weight: 600;
+        flex-shrink: 0;
+        min-width: 160px;
+      }
+      .response-header-row .v {
+        color: var(--text-secondary);
+        word-break: break-all;
+      }
+
+      .diff-view {
+        display: flex;
+        gap: 0;
+        height: 100%;
+      }
+      .diff-col {
+        flex: 1;
+        min-width: 0;
+        overflow: auto;
+        padding: 4px 10px;
+      }
+      .diff-col + .diff-col {
+        border-left: 1px solid var(--border);
+      }
+      .diff-col-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 4px 0 6px;
+        position: sticky;
+        top: 0;
+        background: var(--bg-elevated);
+      }
+      .diff-line {
+        padding: 1px 6px;
+        border-radius: 3px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .diff-line.add {
+        background: rgba(var(--success-rgb), 0.12);
+        color: var(--success);
+      }
+      .diff-line.del {
+        background: rgba(var(--danger-rgb), 0.12);
+        color: var(--danger);
+      }
+
+      /* ═══════════════════════ HISTORY TAB ═══════════════════════ */
+      .history-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .history-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .history-toolbar .search-box {
+        max-width: 240px;
+      }
+      .history-diff-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        padding: 5px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+      }
+      .history-diff-btn.enabled {
+        color: var(--gold);
+        border-color: rgba(var(--gold-rgb), 0.4);
+        background: rgba(var(--gold-rgb), 0.08);
+      }
+      .history-diff-btn svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      .history-table-wrap {
+        flex: 1;
+        overflow: auto;
+      }
+      .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11.5px;
+      }
+      .history-table thead th {
+        position: sticky;
+        top: 0;
+        background: var(--bg-elevated);
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--border);
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .history-table thead th:hover {
+        color: var(--text-secondary);
+      }
+      .history-table td {
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--border-soft);
+        white-space: nowrap;
+      }
+      .history-table tr:hover td {
+        background: var(--surface-hover);
+      }
+      .history-table tr.selected td {
+        background: rgba(var(--gold-rgb), 0.06);
+      }
+      .history-table .h-path {
+        font-family: var(--font-mono);
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 260px;
+      }
+      .status-chip {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 10.5px;
+        padding: 2px 7px;
+        border-radius: 4px;
+      }
+      .status-chip.ok {
+        background: rgba(var(--success-rgb), 0.15);
+        color: var(--success);
+      }
+      .status-chip.warn {
+        background: rgba(var(--warning-rgb), 0.15);
+        color: var(--warning);
+      }
+      .status-chip.err {
+        background: rgba(var(--danger-rgb), 0.15);
+        color: var(--danger);
+      }
+
+      /* ═══════════════════════ FUZZ RESULTS DOCK ═══════════════════════ */
+      .fuzz-results-panel {
+        width: 460px;
+        min-width: 460px;
+        border-left: 1px solid var(--border);
+        background: var(--bg-elevated);
+        display: flex;
+        flex-direction: column;
+        transition: width 0.2s var(--ease);
+      }
+      .fr-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .fr-header .fr-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .fr-header .fr-title svg {
+        width: 14px;
+        height: 14px;
+        color: var(--teal);
+      }
+      .fr-header-spacer {
+        flex: 1;
+      }
+      .fr-close {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .fr-close:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+      }
+      .fr-close svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      .fr-progress-wrap {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .fr-progress-top {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10.5px;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+      .fr-progress-top b {
+        color: var(--text);
+      }
+      .fr-progress-bar {
+        height: 5px;
+        border-radius: 999px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .fr-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--teal), #6be9d4);
+        border-radius: 999px;
+        transition: width 0.3s;
+      }
+
+      .fr-filter-row {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 12px;
+        flex-wrap: wrap;
+      }
+      .fr-filter-chip {
+        font-size: 10px;
+        font-weight: 700;
+        font-family: var(--font-mono);
+        padding: 3px 8px;
+        border-radius: 5px;
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+      }
+      .fr-filter-chip[data-active='true'] {
+        color: var(--bg);
+        border-color: transparent;
+      }
+      .fr-filter-chip[data-s='2xx'][data-active='true'] {
+        background: var(--success);
+      }
+      .fr-filter-chip[data-s='3xx'][data-active='true'] {
+        background: var(--info);
+      }
+      .fr-filter-chip[data-s='4xx'][data-active='true'] {
+        background: var(--warning);
+      }
+      .fr-filter-chip[data-s='5xx'][data-active='true'] {
+        background: var(--danger);
+      }
+      .fr-filter-anomaly {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10.5px;
+        color: var(--text-secondary);
+      }
+
+      .fr-table-wrap {
+        flex: 1;
+        overflow: auto;
+      }
+      .fr-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+      .fr-table thead th {
+        position: sticky;
+        top: 0;
+        background: var(--bg-elevated);
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--border);
+        font-size: 10px;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .fr-table td {
+        padding: 5px 8px;
+        border-bottom: 1px solid var(--border-soft);
+        font-family: var(--font-mono);
+      }
+      .fr-table tr:hover td {
+        background: var(--surface-hover);
+        cursor: pointer;
+      }
+      .fr-table tr.anomaly td {
+        background: rgba(var(--teal-rgb), 0.06);
+      }
+      .fr-table tr.anomaly td:first-child {
+        box-shadow: inset 2px 0 0 var(--teal);
+      }
+      .fr-table tr.selected td {
+        background: rgba(var(--gold-rgb), 0.08);
+      }
+      .fr-anomaly-tag {
+        font-size: 9px;
+        font-weight: 700;
+        color: var(--teal);
+        background: rgba(var(--teal-rgb), 0.14);
+        padding: 1px 5px;
+        border-radius: 3px;
+        margin-left: 5px;
+      }
+
+      .fr-preview {
+        border-top: 1px solid var(--border);
+        padding: 10px 12px;
+        max-height: 200px;
+        overflow: auto;
+        background: var(--bg);
+      }
+      .fr-preview-header {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .fr-preview-body {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      /* ═══════════════════════ STATUS BAR ═══════════════════════ */
+      .statusbar {
+        height: 26px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 0 14px;
+        border-top: 1px solid var(--border);
+        background: var(--bg-elevated);
+        font-size: 10.5px;
+        color: var(--text-muted);
+      }
+      .statusbar .sb-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .statusbar kbd {
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        padding: 1px 5px;
+        border-radius: 3px;
+        background: var(--surface);
+        border: 1px solid var(--border-strong);
+        color: var(--text-secondary);
+      }
+      .statusbar .sb-spacer {
+        flex: 1;
+      }
+      .statusbar .sb-conn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--success);
+      }
+      .statusbar .sb-conn .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--success);
+        animation: pulse-dot 2s infinite;
+      }
+
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      /* ═══════════════════════ MODALS / OVERLAYS ═══════════════════════ */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 7, 10, 0.65);
+        backdrop-filter: blur(2px);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        z-index: 200;
+        padding-top: 90px;
+      }
+      .modal-overlay.centered {
+        align-items: center;
+        padding-top: 0;
+      }
+      .modal {
+        width: 620px;
+        max-width: 92vw;
+        max-height: 82vh;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        border-radius: 12px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: modal-in 0.16s var(--ease);
+      }
+      @keyframes modal-in {
+        from {
+          opacity: 0;
+          transform: translateY(-6px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+      .modal-header h2 {
+        margin: 0;
+        font-size: 14.5px;
+        font-weight: 700;
+      }
+      .modal-header .desc {
+        margin-top: 3px;
+        font-size: 11.5px;
+        color: var(--text-secondary);
+      }
+      .modal-close {
+        padding: 5px;
+        color: var(--text-muted);
+      }
+      .modal-close:hover {
+        color: var(--text);
+      }
+      .modal-close svg {
+        width: 15px;
+        height: 15px;
+      }
+      .modal-body {
+        flex: 1;
+        overflow: auto;
+        padding: 18px;
+      }
+      .modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 18px;
+        border-top: 1px solid var(--border);
+      }
+
+      .btn {
+        padding: 8px 15px;
+        border-radius: 7px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .btn.ghost {
+        color: var(--text-secondary);
+      }
+      .btn.ghost:hover {
+        color: var(--text);
+        background: var(--surface-hover);
+      }
+      .btn.primary {
+        background: var(--gold);
+        color: #1a1206;
+      }
+      .btn.primary:hover {
+        background: #eec06a;
+      }
+      .btn.teal {
+        background: var(--teal);
+        color: #08251f;
+      }
+      .btn.teal:hover {
+        background: #4ee0c6;
+      }
+      .btn.danger {
+        background: rgba(var(--danger-rgb), 0.15);
+        color: var(--danger);
+      }
+
+      /* Command palette */
+      .cmdk-modal {
+        width: 560px;
+      }
+      .cmdk-input-wrap {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .cmdk-input-wrap svg {
+        width: 15px;
+        height: 15px;
+        color: var(--text-muted);
+      }
+      .cmdk-input-wrap input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        font-size: 14px;
+        color: var(--text);
+      }
+      .cmdk-list {
+        max-height: 340px;
+        overflow-y: auto;
+        padding: 6px;
+      }
+      .cmdk-group-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 8px 10px 4px;
+      }
+      .cmdk-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 7px;
+      }
+      .cmdk-item:hover,
+      .cmdk-item.selected {
+        background: var(--surface-hover);
+      }
+      .cmdk-item svg {
+        width: 14px;
+        height: 14px;
+        color: var(--text-muted);
+      }
+      .cmdk-item .cmdk-item-label {
+        font-size: 12.5px;
+        color: var(--text);
+      }
+      .cmdk-item .cmdk-item-sub {
+        font-size: 10.5px;
+        color: var(--text-muted);
+        margin-left: 4px;
+      }
+      .cmdk-item .kbd-hint {
+        margin-left: auto;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-faint);
+      }
+
+      /* Toast */
+      .toast-stack {
+        position: fixed;
+        bottom: 40px;
+        right: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 300;
+      }
+      .toast {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 14px;
+        border-radius: 9px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+        font-size: 12px;
+        color: var(--text);
+        animation: toast-in 0.2s var(--ease);
+        min-width: 220px;
+      }
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translateX(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .toast .toast-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .toast.success .toast-icon {
+        color: var(--success);
+      }
+      .toast.info .toast-icon {
+        color: var(--info);
+      }
+      .toast.teal .toast-icon {
+        color: var(--teal);
+      }
+
+      .context-menu {
+        position: fixed;
+        z-index: 250;
+        min-width: 190px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        border-radius: 9px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+        padding: 5px;
+      }
+      .context-menu button {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        text-align: left;
+        padding: 7px 10px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+      .context-menu button:hover {
+        background: var(--surface-hover);
+      }
+      .context-menu button svg {
+        width: 13px;
+        height: 13px;
+        color: var(--text-muted);
+      }
+      .context-menu button.danger {
+        color: var(--danger);
+      }
+      .context-menu button.danger svg {
+        color: var(--danger);
+      }
+      .context-menu .ctx-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 4px 2px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+      .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--text-secondary);
+        font-size: 12.5px;
+      }
+      .empty-state .sub {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .empty-state svg {
+        width: 34px;
+        height: 34px;
+        color: var(--text-faint);
+        margin-bottom: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- ═══ Icon rail điều hướng module ═══ -->
+      <nav class="nav-rail">
+        <div class="brand">Ph</div>
+        <button class="rail-btn" title="Home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 11l9-8 9 8" />
+            <path d="M5 10v10h14V10" />
+          </svg>
+        </button>
+        <button class="rail-btn" title="Proxy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 3a15 15 0 010 18M3 12h18" />
+          </svg>
+        </button>
+        <button class="rail-btn active" title="Repeater / Fuzzer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 2l4 4-4 4" />
+            <path d="M3 11V9a4 4 0 014-4h14" />
+            <path d="M7 22l-4-4 4-4" />
+            <path d="M21 13v2a4 4 0 01-4 4H3" />
+          </svg>
+        </button>
+        <button class="rail-btn" title="Scanner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+        </button>
+        <button class="rail-btn" title="Logger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 12h16M4 18h10" />
+          </svg>
+        </button>
+        <div class="rail-spacer"></div>
+        <button class="rail-btn" title="Cài đặt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+            />
+          </svg>
+        </button>
+        <div class="rail-avatar">NX</div>
+      </nav>
+
+      <div class="shell">
+        <!-- ═══ Topbar ═══ -->
+        <header class="topbar">
+          <div class="breadcrumb">
+            <span>Repeater</span><span class="sep">/</span
+            ><b id="breadcrumbName">Get user profile</b>
+            <span class="chip-live" id="liveChip"
+              ><span class="pulse-dot"></span>Đang chạy attack</span
+            >
+          </div>
+          <div class="topbar-spacer"></div>
+          <button class="env-select" id="envSelect">
+            <span class="env-dot"></span><span id="envLabel">Staging</span>
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <button class="cmdk-trigger" onclick="openModal('cmdkModal')">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            Tìm lệnh, request, host...
+            <kbd>Ctrl K</kbd>
+          </button>
+          <button class="topbar-icon-btn" title="Thông báo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+          </button>
+        </header>
+
+        <!-- ═══ Workspace ═══ -->
+        <div class="workspace">
+          <!-- ── Collection sidebar ── -->
+          <aside class="collection-panel">
+            <div class="collection-search">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+                <input
+                  id="requestSearch"
+                  type="text"
+                  placeholder="Tìm request..."
+                  oninput="onSearchInput()"
+                />
+              </div>
+              <button
+                class="filter-toggle-btn"
+                id="filterToggleBtn"
+                onclick="toggleFilterRow()"
+                title="Lọc theo method"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+                </svg>
+              </button>
+            </div>
+            <div class="method-filter-row hidden" id="methodFilterRow"></div>
+            <div class="collection-scroll" id="collectionScroll"></div>
+            <div class="collection-footer">
+              <span id="collectionCount">4 requests · 2 nhóm host</span>
+              <button class="new-request-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 5v14M5 12h14" /></svg
+                >Mới
+              </button>
+            </div>
+          </aside>
+
+          <!-- ── Editor + Response ── -->
+          <main class="editor-panel" id="editorPanel">
+            <!-- Request bar -->
+            <div class="request-bar" style="position: relative">
+              <div class="method-selector">
+                <button id="methodBtn" onclick="toggleMethodDropdown(event)">
+                  <span id="methodText">GET</span>
+                  <svg
+                    width="9"
+                    height="9"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                <div id="methodDropdown" class="method-dropdown hidden">
+                  <button class="m-GET" onclick="setMethod('GET')">
+                    <span class="dot"></span>GET
+                  </button>
+                  <button class="m-POST" onclick="setMethod('POST')">
+                    <span class="dot"></span>POST
+                  </button>
+                  <button class="m-PUT" onclick="setMethod('PUT')">
+                    <span class="dot"></span>PUT
+                  </button>
+                  <button class="m-DELETE" onclick="setMethod('DELETE')">
+                    <span class="dot"></span>DELETE
+                  </button>
+                  <button class="m-PATCH" onclick="setMethod('PATCH')">
+                    <span class="dot"></span>PATCH
+                  </button>
+                  <button class="m-HEAD" onclick="setMethod('HEAD')">
+                    <span class="dot"></span>HEAD
+                  </button>
+                  <button class="m-OPTIONS" onclick="setMethod('OPTIONS')">
+                    <span class="dot"></span>OPTIONS
+                  </button>
+                </div>
+              </div>
+              <div class="url-bar-wrap">
+                <span class="env-pill-inline" id="envPillInline">STAGING</span>
+                <input
+                  id="urlInput"
+                  type="text"
+                  spellcheck="false"
+                  placeholder="Nhập URL..."
+                  oninput="onUrlInput()"
+                />
+              </div>
+              <button
+                class="req-action-btn"
+                title="Lưu"
+                onclick="toast('success', 'Đã lưu request')"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+                  <path d="M17 21v-8H7v8M7 3v5h8" />
+                </svg>
+              </button>
+              <button
+                class="req-action-btn"
+                title="Nhân bản"
+                onclick="toast('info', 'Đã nhân bản request')"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+              </button>
+              <div class="send-split" style="position: relative">
+                <button class="send-btn" onclick="sendRequest()">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 11l18-8-8 18-2-8-8-2z" /></svg
+                  >Send
+                </button>
+                <button class="send-caret" onclick="toggleSendDropdown(event)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                <div id="sendDropdown" class="send-dropdown hidden">
+                  <button onclick="sendRequest()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 11l18-8-8 18-2-8-8-2z" /></svg
+                    >Send<span class="kbd-hint">Ctrl ↵</span>
+                  </button>
+                  <button
+                    class="fuzz-opt"
+                    onclick="
+                      switchTab('fuzz');
+                      document.getElementById('sendDropdown').classList.add('hidden');
+                    "
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path
+                        d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"
+                      /></svg
+                    >Send &amp; Fuzz<span class="kbd-hint">Ctrl ⇧ F</span>
+                  </button>
+                  <button onclick="toast('info', 'Đã mở trong tab mới')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                      <path d="M15 3h6v6M10 14L21 3" /></svg
+                    >Send trong tab mới
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabbar">
+              <button class="tab active" data-tab="params" onclick="switchTab('params')">
+                Params <span class="badge" id="paramsCount">2</span>
+              </button>
+              <button class="tab" data-tab="headers" onclick="switchTab('headers')">
+                Headers <span class="badge" id="headersCount">4</span>
+              </button>
+              <button class="tab" data-tab="body" onclick="switchTab('body')">Body</button>
+              <button class="tab" data-tab="auth" onclick="switchTab('auth')">Auth</button>
+              <button class="tab fuzz-tab" data-tab="fuzz" onclick="switchTab('fuzz')">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.3"
+                >
+                  <path
+                    d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"
+                  />
+                </svg>
+                Fuzz <span class="badge" id="fuzzPosCount">3</span>
+              </button>
+              <button class="tab" data-tab="rules" onclick="switchTab('rules')">
+                Rules <span class="badge">1</span>
+              </button>
+              <button class="tab" data-tab="history" onclick="switchTab('history')">
+                History <span class="badge" id="historyCount">4</span>
+              </button>
+              <div class="tabbar-spacer"></div>
+              <span class="content-type-pill" id="contentTypePill">application/json</span>
+            </div>
+
+            <!-- Tab views -->
+            <div class="tab-view">
+              <!-- Params -->
+              <div id="view-params" class="tab-content">
+                <div class="table-toolbar">
+                  <button class="table-toolbar-btn" onclick="bulkToggle('params', true)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 6L9 17l-5-5" /></svg
+                    >Bật tất cả
+                  </button>
+                  <button class="table-toolbar-btn" onclick="bulkToggle('params', false)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="9" /></svg
+                    >Tắt tất cả
+                  </button>
+                  <div class="table-toolbar-spacer"></div>
+                  <button
+                    class="table-toolbar-btn"
+                    onclick="toast('info', 'Đã chuyển sang chế độ nhập thô')"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M16 18l6-6-6-6M8 6l-6 6 6 6" /></svg
+                    >Bulk edit
+                  </button>
+                </div>
+                <div class="kv-table-wrap">
+                  <table class="kv-table">
+                    <thead>
+                      <tr>
+                        <th class="col-check"></th>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th></th>
+                        <th class="col-actions">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="paramsTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Headers -->
+              <div id="view-headers" class="tab-content hidden">
+                <div class="table-toolbar">
+                  <button class="table-toolbar-btn" onclick="bulkToggle('headers', true)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 6L9 17l-5-5" /></svg
+                    >Bật tất cả
+                  </button>
+                  <button class="table-toolbar-btn" onclick="bulkToggle('headers', false)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="9" /></svg
+                    >Tắt tất cả
+                  </button>
+                  <div class="table-toolbar-spacer"></div>
+                  <span style="font-size: 10.5px; color: var(--text-faint)"
+                    >Nhấn ⚡ để đánh dấu vị trí fuzz</span
+                  >
+                </div>
+                <div class="kv-table-wrap">
+                  <table class="kv-table">
+                    <thead>
+                      <tr>
+                        <th class="col-check"></th>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th></th>
+                        <th class="col-actions">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="headersTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Body -->
+              <div id="view-body" class="tab-content hidden">
+                <div class="body-editor-wrap">
+                  <div class="body-toolbar">
+                    <div class="body-type-select">
+                      <button class="active" data-bt="json" onclick="setBodyType('json')">
+                        JSON
+                      </button>
+                      <button data-bt="form" onclick="setBodyType('form')">Form</button>
+                      <button data-bt="xml" onclick="setBodyType('xml')">XML</button>
+                      <button data-bt="raw" onclick="setBodyType('raw')">Raw</button>
+                    </div>
+                    <div class="body-toolbar-spacer"></div>
+                    <button class="body-toolbar-btn" onclick="markBodySelectionAsPosition()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                          d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"
+                        /></svg
+                      >Đánh dấu §vị trí§
+                    </button>
+                    <button class="body-toolbar-btn" onclick="formatBody()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 7V4h16v3M9 20h6M12 4v16" /></svg
+                      >Format
+                    </button>
+                    <button class="body-toolbar-btn" onclick="copyText(state.body)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" />
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg
+                      >Copy
+                    </button>
+                  </div>
+                  <div class="code-editor">
+                    <div class="code-gutter" id="bodyGutter"></div>
+                    <div
+                      class="code-body"
+                      id="bodyEditor"
+                      contenteditable="true"
+                      spellcheck="false"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Auth -->
+              <div id="view-auth" class="tab-content hidden">
+                <div class="auth-wrap">
+                  <div class="auth-type-row">
+                    <button class="active" data-at="bearer" onclick="setAuthType('bearer')">
+                      Bearer
+                    </button>
+                    <button data-at="basic" onclick="setAuthType('basic')">Basic</button>
+                    <button data-at="apikey" onclick="setAuthType('apikey')">API Key</button>
+                    <button data-at="none" onclick="setAuthType('none')">None</button>
+                  </div>
+                  <div id="authFields">
+                    <div class="field-group">
+                      <label>Token</label>
+                      <input type="text" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.sig" />
+                      <div class="field-hint">
+                        Token sẽ được gắn vào header
+                        <b style="color: var(--text-secondary)"
+                          >Authorization: Bearer &lt;token&gt;</b
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fuzz -->
+              <div id="view-fuzz" class="tab-content hidden">
+                <div class="fuzz-wrap">
+                  <!-- Vị trí đã đánh dấu -->
+                  <div>
+                    <div class="fuzz-section-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                          d="M12 1v6M12 17v6M4.2 4.2l4.2 4.2M15.5 15.5l4.2 4.2M1 12h6M17 12h6M4.2 19.8l4.2-4.2M15.5 8.5l4.2-4.2"
+                        />
+                      </svg>
+                      Vị trí chèn payload
+                    </div>
+                    <div class="position-preview" id="positionPreview"></div>
+                    <div class="position-list" id="positionList"></div>
+                  </div>
+
+                  <!-- Attack type -->
+                  <div>
+                    <div class="fuzz-section-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                      </svg>
+                      Kiểu tấn công (Attack type)
+                    </div>
+                    <div class="attack-type-grid" id="attackTypeGrid"></div>
+                  </div>
+
+                  <!-- Payload sets -->
+                  <div>
+                    <div class="fuzz-section-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                      </svg>
+                      Bộ payload theo từng vị trí
+                    </div>
+                    <div id="payloadSetsWrap"></div>
+                  </div>
+
+                  <!-- Tổng kết + start -->
+                  <div class="attack-summary">
+                    <div class="matrix-grid" id="matrixGrid"></div>
+                    <div class="attack-summary-stats">
+                      <div class="as-stat">
+                        <div class="as-num teal" id="asPositions">3</div>
+                        <div class="as-label">Vị trí</div>
+                      </div>
+                      <div class="as-stat">
+                        <div class="as-num" id="asRequests">27</div>
+                        <div class="as-label">Requests</div>
+                      </div>
+                      <div class="as-stat">
+                        <div class="as-num" id="asDuration">≈ 8s</div>
+                        <div class="as-label">Ước tính</div>
+                      </div>
+                    </div>
+                    <button class="start-attack-btn" onclick="startAttack()">
+                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg
+                      >Start Attack
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rules -->
+              <div id="view-rules" class="tab-content hidden">
+                <div class="rules-wrap">
+                  <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px">
+                    Match &amp; Replace — tự động thay thế nội dung trong request/response trước khi
+                    gửi hoặc hiển thị.
+                  </div>
+                  <div class="rule-row">
+                    <select>
+                      <option>Request header</option>
+                    </select>
+                    <span class="rule-arrow">⟶</span>
+                    <input value="User-Agent: Phantoma/2.4.0" />
+                    <button class="kv-icon-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <button class="table-toolbar-btn" style="margin-top: 4px">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M12 5v14M5 12h14" /></svg
+                    >Thêm rule
+                  </button>
+                </div>
+              </div>
+
+              <!-- History -->
+              <div id="view-history" class="tab-content hidden">
+                <div class="history-wrap">
+                  <div class="history-toolbar">
+                    <div class="search-box">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="M21 21l-4.35-4.35" /></svg
+                      ><input placeholder="Tìm trong lịch sử..." />
+                    </div>
+                    <button class="history-diff-btn" id="historyDiffBtn" onclick="tryOpenDiff()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8 3v18M16 3v18M4 9h4M4 15h4M16 9h4M16 15h4" /></svg
+                      >So sánh (chọn 2 dòng)
+                    </button>
+                    <div class="table-toolbar-spacer"></div>
+                    <button class="table-toolbar-btn" onclick="clearHistory()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                          d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"
+                        /></svg
+                      >Xoá lịch sử
+                    </button>
+                  </div>
+                  <div class="history-table-wrap">
+                    <table class="history-table">
+                      <thead>
+                        <tr>
+                          <th></th>
+                          <th>Method</th>
+                          <th>Path</th>
+                          <th>Status</th>
+                          <th>Length</th>
+                          <th>Time</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody id="historyTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Response panel -->
+            <div class="resize-handle" id="resizeHandle"></div>
+            <section class="response-panel" id="responsePanel" style="height: 220px">
+              <div class="response-header">
+                <div class="response-tabs">
+                  <button
+                    class="response-tab active"
+                    data-rt="pretty"
+                    onclick="switchResponseTab('pretty')"
+                  >
+                    Pretty
+                  </button>
+                  <button class="response-tab" data-rt="raw" onclick="switchResponseTab('raw')">
+                    Raw
+                  </button>
+                  <button
+                    class="response-tab"
+                    data-rt="headers"
+                    onclick="switchResponseTab('headers')"
+                  >
+                    Headers <span class="badge" id="respHeaderCount">6</span>
+                  </button>
+                  <button class="response-tab" data-rt="diff" onclick="switchResponseTab('diff')">
+                    Diff
+                  </button>
+                </div>
+                <div class="response-header-spacer"></div>
+                <div class="response-info">
+                  <span class="status-pill s2" id="respStatusPill">200 OK</span>
+                  <span class="response-meta-item"><b id="respSize">1.2 KB</b></span>
+                  <span class="response-meta-item"><b id="respTime">124 ms</b></span>
+                  <button class="compare-btn" onclick="switchResponseTab('diff')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M8 3v18M16 3v18M4 9h4M4 15h4M16 9h4M16 15h4" /></svg
+                    >So sánh với trước đó
+                  </button>
+                </div>
+              </div>
+              <div class="response-content" id="responseContent"></div>
+            </section>
+          </main>
+
+          <!-- ── Fuzz results dock (ẩn mặc định) ── -->
+          <aside class="fuzz-results-panel hidden" id="fuzzResultsPanel">
+            <div class="fr-header">
+              <div class="fr-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"
+                  /></svg
+                >Kết quả Fuzz
+              </div>
+              <div class="fr-header-spacer"></div>
+              <button
+                class="topbar-icon-btn"
+                title="Export"
+                onclick="toast('info', 'Đã export kết quả (CSV)')"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                </svg>
+              </button>
+              <button class="fr-close" onclick="closeFuzzResults()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="fr-progress-wrap">
+              <div class="fr-progress-top">
+                <span>Đang chạy <b id="frDone">27</b> / <b id="frTotal">27</b></span
+                ><span id="frElapsed">Hoàn tất trong 7.4s</span>
+              </div>
+              <div class="fr-progress-bar">
+                <div class="fr-progress-fill" id="frProgressFill" style="width: 100%"></div>
+              </div>
+            </div>
+            <div class="fr-filter-row">
+              <span
+                class="fr-filter-chip"
+                data-s="2xx"
+                data-active="true"
+                onclick="toggleFrFilter(this)"
+                >2xx</span
+              >
+              <span
+                class="fr-filter-chip"
+                data-s="3xx"
+                data-active="true"
+                onclick="toggleFrFilter(this)"
+                >3xx</span
+              >
+              <span
+                class="fr-filter-chip"
+                data-s="4xx"
+                data-active="true"
+                onclick="toggleFrFilter(this)"
+                >4xx</span
+              >
+              <span
+                class="fr-filter-chip"
+                data-s="5xx"
+                data-active="true"
+                onclick="toggleFrFilter(this)"
+                >5xx</span
+              >
+              <label class="fr-filter-anomaly"
+                ><input type="checkbox" id="frAnomalyOnly" onchange="renderFuzzResults()" /> chỉ
+                hiện bất thường</label
+              >
+            </div>
+            <div class="fr-table-wrap">
+              <table class="fr-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Payload</th>
+                    <th>Status</th>
+                    <th>Length</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody id="frTableBody"></tbody>
+              </table>
+            </div>
+            <div class="fr-preview" id="frPreview">
+              <div class="fr-preview-header">Xem trước response — chọn 1 dòng</div>
+              <div class="fr-preview-body" style="color: var(--text-faint); font-style: italic">
+                Chưa có dòng nào được chọn.
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <!-- ═══ Status bar ═══ -->
+        <footer class="statusbar">
+          <span class="sb-item"><kbd>Ctrl ↵</kbd> Gửi request</span>
+          <span class="sb-item"><kbd>Ctrl K</kbd> Command palette</span>
+          <span class="sb-item"><kbd>Ctrl D</kbd> Nhân bản</span>
+          <span class="sb-item"><kbd>Ctrl ⇧ F</kbd> Fuzz</span>
+          <div class="sb-spacer"></div>
+          <span class="sb-item" id="sbRequestCount">18 requests hôm nay</span>
+          <span class="sb-conn"><span class="dot"></span>Proxy đang hoạt động · 8080</span>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ═══ Context menu request item ═══ -->
+    <div id="contextMenu" class="context-menu hidden">
+      <button onclick="toast('info', 'Đã nhân bản request')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg
+        >Nhân bản
+      </button>
+      <button onclick="toast('info', 'Đã đổi tên')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+          <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" /></svg
+        >Đổi tên
+      </button>
+      <button onclick="toast('success', 'Đã đánh dấu yêu thích')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01z"
+          /></svg
+        >Đánh dấu yêu thích
+      </button>
+      <div class="ctx-divider"></div>
+      <button class="danger" onclick="removeSelectedRequest()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"
+          /></svg
+        >Xoá khỏi Repeater
+      </button>
+    </div>
+
+    <!-- ═══ Command palette ═══ -->
+    <div
+      id="cmdkModal"
+      class="modal-overlay hidden"
+      onclick="if (event.target === this) closeModal('cmdkModal');"
+    >
+      <div class="modal cmdk-modal">
+        <div class="cmdk-input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input autofocus placeholder="Gõ để tìm lệnh, request, host..." />
+          <kbd style="font-family: var(--font-mono); font-size: 10px; color: var(--text-faint)"
+            >ESC</kbd
+          >
+        </div>
+        <div class="cmdk-list">
+          <div class="cmdk-group-label">Hành động</div>
+          <div
+            class="cmdk-item selected"
+            onclick="
+              switchTab('fuzz');
+              closeModal('cmdkModal');
+            "
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"
+              /></svg
+            ><span class="cmdk-item-label">Bắt đầu Fuzz Attack</span
+            ><span class="kbd-hint">Ctrl ⇧ F</span>
+          </div>
+          <div
+            class="cmdk-item"
+            onclick="
+              sendRequest();
+              closeModal('cmdkModal');
+            "
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 11l18-8-8 18-2-8-8-2z" /></svg
+            ><span class="cmdk-item-label">Gửi request hiện tại</span
+            ><span class="kbd-hint">Ctrl ↵</span>
+          </div>
+          <div class="cmdk-item" onclick="closeModal('cmdkModal')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" /></svg
+            ><span class="cmdk-item-label">Lưu request</span><span class="kbd-hint">Ctrl S</span>
+          </div>
+          <div class="cmdk-group-label">Điều hướng</div>
+          <div
+            class="cmdk-item"
+            onclick="
+              selectRequest('req-2');
+              closeModal('cmdkModal');
+            "
+          >
+            <span
+              class="m-POST"
+              style="font-family: var(--font-mono); font-weight: 800; font-size: 11px"
+              >POST</span
+            ><span class="cmdk-item-label">Create order</span
+            ><span class="cmdk-item-sub">/v1/orders</span>
+          </div>
+          <div
+            class="cmdk-item"
+            onclick="
+              selectRequest('req-3');
+              closeModal('cmdkModal');
+            "
+          >
+            <span
+              class="m-PUT"
+              style="font-family: var(--font-mono); font-weight: 800; font-size: 11px"
+              >PUT</span
+            ><span class="cmdk-item-label">Refresh session</span
+            ><span class="cmdk-item-sub">/v2/session/refresh</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Modal xác nhận Start Attack ═══ -->
+    <div id="attackModal" class="modal-overlay centered hidden">
+      <div class="modal" style="width: 460px">
+        <div class="modal-header">
+          <div>
+            <h2>Xác nhận Fuzz Attack</h2>
+            <div class="desc" id="attackModalDesc">3 vị trí · Sniper · 27 requests</div>
+          </div>
+          <button class="modal-close" onclick="closeModal('attackModal')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 14px;
+              background: var(--bg-elevated);
+              border: 1px solid var(--border);
+              border-radius: 10px;
+              padding: 14px;
+            "
+          >
+            <div class="matrix-grid" id="matrixGridModal"></div>
+            <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6">
+              Sẵn sàng gửi <b style="color: var(--teal)" id="attackModalCount">27</b> requests
+              tới<br />
+              <span style="font-family: var(--font-mono); color: var(--text)" id="attackModalHost"
+                >api.phntm.dev</span
+              >
+            </div>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 12px">
+            Kết quả sẽ hiển thị trong bảng bên phải, các dòng có phản hồi bất thường (khác baseline
+            về status hoặc độ dài) sẽ được tô sáng.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn ghost" onclick="closeModal('attackModal')">Huỷ</button>
+          <button class="btn teal" onclick="confirmStartAttack()">▶ Bắt đầu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Modal so sánh lịch sử ═══ -->
+    <div id="historyDiffModal" class="modal-overlay centered hidden">
+      <div class="modal" style="width: 760px; max-height: 78vh">
+        <div class="modal-header">
+          <div>
+            <h2>So sánh 2 request trong lịch sử</h2>
+            <div class="desc">Phần khác biệt được tô màu đỏ / xanh</div>
+          </div>
+          <button class="modal-close" onclick="closeModal('historyDiffModal')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" style="padding: 0">
+          <div class="diff-view" style="height: 360px">
+            <div class="diff-col">
+              <div class="diff-col-label">14:31:58 — POST /v1/orders (201)</div>
+              <div class="diff-line">{</div>
+              <div class="diff-line">&nbsp;&nbsp;"created": true,</div>
+              <div class="diff-line del">&nbsp;&nbsp;"id": 1001,</div>
+              <div class="diff-line del">&nbsp;&nbsp;"total": 42.50</div>
+              <div class="diff-line">}</div>
+            </div>
+            <div class="diff-col">
+              <div class="diff-col-label">14:32:41 — POST /v1/orders (201)</div>
+              <div class="diff-line">{</div>
+              <div class="diff-line">&nbsp;&nbsp;"created": true,</div>
+              <div class="diff-line add">&nbsp;&nbsp;"id": 1002,</div>
+              <div class="diff-line add">&nbsp;&nbsp;"total": 58.00,</div>
+              <div class="diff-line add">&nbsp;&nbsp;"discount_applied": true</div>
+              <div class="diff-line">}</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn ghost" onclick="closeModal('historyDiffModal')">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <script>
+      /* ═══════════════════════ MOCK DATA ═══════════════════════ */
+      const mockRequests = [
+        {
+          id: 'req-1',
+          name: 'Get user profile',
+          method: 'GET',
+          url: 'https://api.phntm.dev/v1/users/42',
+          host: 'api.phntm.dev',
+          path: '/v1/users/42',
+          starred: true,
+          tag: null,
+          headers: {
+            Host: 'api.phntm.dev',
+            Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.sig',
+            Accept: 'application/json',
+            'User-Agent': 'Phantoma/2.4.0',
+          },
+          body: '',
+        },
+        {
+          id: 'req-2',
+          name: 'Create order',
+          method: 'POST',
+          url: 'https://api.phntm.dev/v1/orders?source=web&promo=SUMMER2026',
+          host: 'api.phntm.dev',
+          path: '/v1/orders',
+          starred: false,
+          tag: 'fuzzing',
+          headers: {
+            Host: 'api.phntm.dev',
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.sig',
+            'User-Agent': 'Phantoma/2.4.0',
+            'X-Trace-Id': '8a2f1b7c-9d3e-4a5b-8c6d-1e2f3a4b5c6d',
+          },
+          body: JSON.stringify({ userId: '§42§', items: [{ sku: '§PH-001§', qty: 2 }] }, null, 2),
+        },
+        {
+          id: 'req-3',
+          name: 'Refresh session',
+          method: 'PUT',
+          url: 'https://auth.phntm.dev/v2/session/refresh',
+          host: 'auth.phntm.dev',
+          path: '/v2/session/refresh',
+          starred: false,
+          tag: null,
+          headers: {
+            Host: 'auth.phntm.dev',
+            'Content-Type': 'application/json',
+            Cookie: 'sid=9f8e7d6c5b4a3210; csrf=1a2b3c4d',
+            'User-Agent': 'Phantoma/2.4.0',
+          },
+          body: JSON.stringify({ refresh_token: 'rt-1a2b3c4d5e6f' }, null, 2),
+        },
+        {
+          id: 'req-4',
+          name: 'Delete legacy avatar',
+          method: 'DELETE',
+          url: 'https://cdn.phntm.dev/assets/legacy/avatar.png',
+          host: 'cdn.phntm.dev',
+          path: '/assets/legacy/avatar.png',
+          starred: false,
+          tag: null,
+          headers: {
+            Host: 'cdn.phntm.dev',
+            Authorization: 'Bearer legacy-token-000000',
+            Accept: 'image/*',
+          },
+          body: '',
+        },
+      ];
+
+      const mockHistory = [
+        {
+          id: 'h1',
+          method: 'GET',
+          path: '/v1/users/42',
+          status: 200,
+          length: '1.2 KB',
+          time: '14:32:11',
+          duration: 124,
+        },
+        {
+          id: 'h2',
+          method: 'POST',
+          path: '/v1/orders',
+          status: 201,
+          length: '340 B',
+          time: '14:31:58',
+          duration: 356,
+        },
+        {
+          id: 'h3',
+          method: 'POST',
+          path: '/v1/orders',
+          status: 201,
+          length: '412 B',
+          time: '14:32:41',
+          duration: 288,
+        },
+        {
+          id: 'h4',
+          method: 'PUT',
+          path: '/v2/session/refresh',
+          status: 401,
+          length: '88 B',
+          time: '14:30:05',
+          duration: 97,
+        },
+      ];
+
+      const attackTypes = [
+        {
+          id: 'sniper',
+          name: 'Sniper',
+          desc: 'Lần lượt fuzz từng vị trí, dùng chung 1 bộ payload.',
+          icon: '<circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.2 4.2l4.2 4.2M15.5 15.5l4.2 4.2M1 12h6M17 12h6M4.2 19.8l4.2-4.2M15.5 8.5l4.2-4.2"/>',
+        },
+        {
+          id: 'battering',
+          name: 'Battering ram',
+          desc: 'Cùng 1 payload thay vào mọi vị trí cùng lúc.',
+          icon: '<path d="M14 2l6 6-9 9-6-6z"/><path d="M3 21l4-4"/>',
+        },
+        {
+          id: 'pitchfork',
+          name: 'Pitchfork',
+          desc: 'Nhiều payload set, chạy song song theo index.',
+          icon: '<path d="M6 3v10M12 3v18M18 3v10M4 13h4M16 13h4"/>',
+        },
+        {
+          id: 'clusterbomb',
+          name: 'Cluster bomb',
+          desc: 'Sinh mọi tổ hợp giữa các payload set.',
+          icon: '<circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><circle cx="12" cy="12" r="2"/>',
+        },
+      ];
+
+      let state = {
+        selectedRequestId: 'req-2',
+        method: 'POST',
+        url: 'https://api.phntm.dev/v1/orders?source=web&promo=SUMMER2026',
+        params: [
+          { id: 'prm1', key: 'source', value: 'web', enabled: true },
+          { id: 'prm2', key: 'promo', value: 'SUMMER2026', enabled: true },
+        ],
+        headers: [],
+        body: '',
+        bodyType: 'json',
+        authType: 'bearer',
+        activeTab: 'fuzz',
+        responseTab: 'pretty',
+        frFilters: { '2xx': true, '3xx': true, '4xx': true, '5xx': true },
+        frSelected: null,
+        historySelected: [],
+        fuzz: {
+          positions: [
+            { id: 'pos1', location: 'Body', label: 'userId', value: '42' },
+            { id: 'pos2', location: 'Body', label: 'sku', value: 'PH-001' },
+            { id: 'pos3', location: 'Params', label: 'promo', value: 'SUMMER2026' },
+          ],
+          attackType: 'clusterbomb',
+          payloadSets: {
+            pos1: { name: 'user-ids', type: 'Numbers', values: ['1', '42', '1337', '9999'] },
+            pos2: { name: 'sku-list', type: 'Custom list', values: ['PH-001', 'PH-002', 'PH-003'] },
+            pos3: { name: 'promo-codes', type: 'Wordlist', values: ['SUMMER2026', 'WELCOME10'] },
+          },
+        },
+      };
+
+      let attackRunning = false;
+      let fuzzResults = [];
+
+      /* ═══════════════════════ HELPERS ═══════════════════════ */
+      function uid() {
+        return crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2);
+      }
+      function esc(s) {
+        return String(s ?? '').replace(
+          /[&<>]/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c],
+        );
+      }
+      function getSelectedRequest() {
+        return mockRequests.find((r) => r.id === state.selectedRequestId) || mockRequests[0];
+      }
+      function toggleFilterRow() {
+        document.getElementById('methodFilterRow').classList.toggle('hidden');
+        document.getElementById('filterToggleBtn').classList.toggle('active');
+      }
+      function onSearchInput() {
+        renderCollection();
+      }
+      function onUrlInput() {
+        state.url = document.getElementById('urlInput').value;
+        renderPositionPreview();
+      }
+
+      function toast(type, message) {
+        const stack = document.getElementById('toastStack');
+        const icons = {
+          success: '<path d="M20 6L9 17l-5-5"/>',
+          info: '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+          teal: '<path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/>',
+        };
+        const el = document.createElement('div');
+        el.className = 'toast ' + type;
+        el.innerHTML = `<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">${icons[type] || icons.info}</svg><span>${esc(message)}</span>`;
+        stack.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateX(10px)';
+          el.style.transition = 'all .2s';
+          setTimeout(() => el.remove(), 200);
+        }, 3200);
+      }
+
+      function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+      }
+      function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+      }
+      function copyText(t) {
+        toast('info', 'Đã copy vào clipboard');
+      }
+
+      /* ═══════════════════════ SELECT / LOAD REQUEST ═══════════════════════ */
+      function buildHeadersForRequest(req) {
+        return Object.entries(req.headers || {}).map(([key, value]) => ({
+          id: uid(),
+          key,
+          value,
+          enabled: true,
+        }));
+      }
+      function buildParamsForRequest(req) {
+        try {
+          const u = new URL(req.url);
+          const out = [];
+          u.searchParams.forEach((value, key) =>
+            out.push({ id: uid(), key, value, enabled: true }),
+          );
+          return out;
+        } catch {
+          return [];
+        }
+      }
+
+      function selectRequest(id) {
+        const req = mockRequests.find((r) => r.id === id);
+        if (!req) return;
+        state.selectedRequestId = id;
+        state.method = req.method;
+        state.url = req.url;
+        state.params = buildParamsForRequest(req);
+        state.headers = buildHeadersForRequest(req);
+        state.body = req.body || '';
+        document.getElementById('breadcrumbName').textContent = req.name;
+        renderAll();
+      }
+
+      /* ═══════════════════════ METHOD / SEND ═══════════════════════ */
+      function toggleMethodDropdown(e) {
+        e.stopPropagation();
+        document.getElementById('methodDropdown').classList.toggle('hidden');
+      }
+      function setMethod(m) {
+        state.method = m;
+        document.getElementById('methodText').textContent = m;
+        document.getElementById('methodBtn').className = 'm-' + m;
+        document.getElementById('methodDropdown').classList.add('hidden');
+      }
+      function toggleSendDropdown(e) {
+        e.stopPropagation();
+        document.getElementById('sendDropdown').classList.toggle('hidden');
+      }
+      function sendRequest() {
+        toast('success', 'Đã gửi ' + state.method + ' — 200 OK · 124ms');
+        document.getElementById('sendDropdown').classList.add('hidden');
+      }
+
+      document.addEventListener('click', () => {
+        document.getElementById('methodDropdown').classList.add('hidden');
+        document.getElementById('sendDropdown').classList.add('hidden');
+        document.getElementById('contextMenu').classList.add('hidden');
+      });
+
+      /* ═══════════════════════ TABS ═══════════════════════ */
+      function switchTab(tab) {
+        state.activeTab = tab;
+        document
+          .querySelectorAll('.tab')
+          .forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
+        ['params', 'headers', 'body', 'auth', 'fuzz', 'rules', 'history'].forEach((id) => {
+          document.getElementById('view-' + id).classList.toggle('hidden', id !== tab);
+        });
+      }
+      function switchResponseTab(tab) {
+        state.responseTab = tab;
+        document
+          .querySelectorAll('.response-tab')
+          .forEach((t) => t.classList.toggle('active', t.dataset.rt === tab));
+        renderResponse();
+      }
+
+      /* ═══════════════════════ PARAMS / HEADERS TABLES ═══════════════════════ */
+      function toggleKv(id, type) {
+        const list = type === 'params' ? state.params : state.headers;
+        const it = list.find((i) => i.id === id);
+        if (!it) return;
+        it.enabled = !it.enabled;
+        renderParams();
+        renderHeaders();
+      }
+      function updateKv(id, field, value, type) {
+        const list = type === 'params' ? state.params : state.headers;
+        const it = list.find((i) => i.id === id);
+        if (!it) return;
+        it[field] = value;
+      }
+      function deleteKv(id, type) {
+        if (type === 'params') state.params = state.params.filter((i) => i.id !== id);
+        else state.headers = state.headers.filter((i) => i.id !== id);
+        renderParams();
+        renderHeaders();
+      }
+      function addKv(type) {
+        const item = { id: uid(), key: '', value: '', enabled: true };
+        if (type === 'params') state.params.push(item);
+        else state.headers.push(item);
+        renderParams();
+        renderHeaders();
+      }
+      function bulkToggle(type, val) {
+        const list = type === 'params' ? state.params : state.headers;
+        list.forEach((i) => (i.enabled = val));
+        renderParams();
+        renderHeaders();
+      }
+      function markKvAsPosition(id, type) {
+        const list = type === 'params' ? state.params : state.headers;
+        const it = list.find((i) => i.id === id);
+        if (!it) return;
+        state.fuzz.positions.push({
+          id: uid(),
+          location: type === 'params' ? 'Params' : 'Headers',
+          label: it.key || '(chưa đặt tên)',
+          value: it.value,
+        });
+        toast('teal', 'Đã đánh dấu vị trí fuzz: ' + (it.key || it.value));
+        renderFuzzTab();
+      }
+
+      function renderParams() {
+        const tbody = document.getElementById('paramsTableBody');
+        tbody.innerHTML =
+          state.params
+            .map(
+              (p) => `
+    <tr class="kv-row ${p.enabled ? '' : 'disabled'}">
+      <td class="col-check"><span class="kv-check ${p.enabled ? 'checked' : ''}" onclick="toggleKv('${p.id}','params')"></span></td>
+      <td><input class="kv-key" placeholder="Key" value="${esc(p.key)}" oninput="updateKv('${p.id}','key',this.value,'params')" /></td>
+      <td><input class="kv-val" placeholder="Value" value="${esc(p.value)}" oninput="updateKv('${p.id}','value',this.value,'params')" /></td>
+      <td><button class="mark-pos-btn" title="Đánh dấu vị trí fuzz" onclick="markKvAsPosition('${p.id}','params')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg></button></td>
+      <td class="col-actions"><button class="kv-icon-btn" onclick="deleteKv('${p.id}','params')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg></button></td>
+    </tr>`,
+            )
+            .join('') +
+          `
+    <tr class="kv-add-row"><td></td><td><input class="kv-key" placeholder="+ Thêm key..." onfocus="addKv('params')" /></td><td><input class="kv-val" placeholder="Value" /></td><td></td><td></td></tr>`;
+        document.getElementById('paramsCount').textContent = state.params.filter(
+          (p) => p.enabled && p.key,
+        ).length;
+      }
+
+      function renderHeaders() {
+        const tbody = document.getElementById('headersTableBody');
+        tbody.innerHTML =
+          state.headers
+            .map(
+              (h) => `
+    <tr class="kv-row ${h.enabled ? '' : 'disabled'}">
+      <td class="col-check"><span class="kv-check ${h.enabled ? 'checked' : ''}" onclick="toggleKv('${h.id}','headers')"></span></td>
+      <td><input class="kv-key" placeholder="Header" value="${esc(h.key)}" oninput="updateKv('${h.id}','key',this.value,'headers')" /></td>
+      <td><input class="kv-val" placeholder="Value" value="${esc(h.value)}" oninput="updateKv('${h.id}','value',this.value,'headers')" /></td>
+      <td><button class="mark-pos-btn" title="Đánh dấu vị trí fuzz" onclick="markKvAsPosition('${h.id}','headers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg></button></td>
+      <td class="col-actions"><button class="kv-icon-btn" onclick="deleteKv('${h.id}','headers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg></button></td>
+    </tr>`,
+            )
+            .join('') +
+          `
+    <tr class="kv-add-row"><td></td><td><input class="kv-key" placeholder="+ Thêm header..." onfocus="addKv('headers')" /></td><td><input class="kv-val" placeholder="Value" /></td><td></td><td></td></tr>`;
+        document.getElementById('headersCount').textContent = state.headers.filter(
+          (h) => h.enabled && h.key,
+        ).length;
+      }
+
+      /* ═══════════════════════ BODY EDITOR ═══════════════════════ */
+      function setBodyType(t) {
+        state.bodyType = t;
+        document
+          .querySelectorAll('.body-type-select button')
+          .forEach((b) => b.classList.toggle('active', b.dataset.bt === t));
+        document.getElementById('contentTypePill').textContent = {
+          json: 'application/json',
+          form: 'application/x-www-form-urlencoded',
+          xml: 'application/xml',
+          raw: 'text/plain',
+        }[t];
+      }
+      function formatBody() {
+        try {
+          state.body = JSON.stringify(JSON.parse(state.body), null, 2);
+        } catch {}
+        renderBodyEditor();
+      }
+      function markBodySelectionAsPosition() {
+        state.fuzz.positions.push({
+          id: uid(),
+          location: 'Body',
+          label: 'custom_field',
+          value: 'value',
+        });
+        toast('teal', 'Đã thêm vị trí fuzz mới trong Body');
+        renderFuzzTab();
+      }
+      function highlightJson(text) {
+        let out = esc(text);
+        out = out.replace(/§([^§]*)§/g, '<span class="tok-pos">§$1§</span>');
+        out = out.replace(/"([^"]+)":/g, '<span class="tok-key">"$1"</span>:');
+        out = out.replace(/: "([^"]*)"/g, ': <span class="tok-str">"$1"</span>');
+        out = out.replace(/: (\d+(\.\d+)?)/g, ': <span class="tok-num">$1</span>');
+        out = out.replace(/: (true|false|null)/g, ': <span class="tok-bool">$1</span>');
+        return out;
+      }
+      function renderBodyEditor() {
+        const el = document.getElementById('bodyEditor');
+        el.innerHTML = state.body
+          ? highlightJson(state.body)
+          : '<span style="color:var(--text-faint);font-style:italic">// Chưa có body</span>';
+        const lines = (state.body || '').split('\n').length || 1;
+        document.getElementById('bodyGutter').innerHTML = Array.from(
+          { length: lines },
+          (_, i) => `<div>${i + 1}</div>`,
+        ).join('');
+      }
+
+      /* ═══════════════════════ AUTH ═══════════════════════ */
+      function setAuthType(t) {
+        state.authType = t;
+        document
+          .querySelectorAll('.auth-type-row button')
+          .forEach((b) => b.classList.toggle('active', b.dataset.at === t));
+        const wrap = document.getElementById('authFields');
+        if (t === 'bearer') {
+          wrap.innerHTML = `<div class="field-group"><label>Token</label><input type="text" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.sig" /><div class="field-hint">Gắn vào header <b style="color:var(--text-secondary)">Authorization: Bearer &lt;token&gt;</b></div></div>`;
+        } else if (t === 'basic') {
+          wrap.innerHTML = `<div class="field-group"><label>Username</label><input type="text" value="admin" /></div><div class="field-group"><label>Password</label><input type="password" value="••••••••" /></div>`;
+        } else if (t === 'apikey') {
+          wrap.innerHTML = `<div class="field-group"><label>Header name</label><input type="text" value="X-API-Key" /></div><div class="field-group"><label>Giá trị</label><input type="text" value="ph_live_9f8e7d6c5b4a" /></div>`;
+        } else {
+          wrap.innerHTML = `<div class="field-hint" style="margin-top:6px">Không dùng xác thực cho request này.</div>`;
+        }
+      }
+
+      /* ═══════════════════════ FUZZ TAB ═══════════════════════ */
+      function renderPositionPreview() {
+        const url = state.url || '';
+        let html = esc(url).replace(/§([^§]*)§/g, '<span class="marker">§$1§</span>');
+        state.fuzz.positions.forEach((p) => {
+          if (p.location === 'Params' || p.location === 'Body' || p.location === 'Headers') {
+            const re = new RegExp(
+              '(' +
+                p.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+                '=?)' +
+                '(' +
+                (p.value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+                ')?',
+            );
+          }
+        });
+        document.getElementById('positionPreview').innerHTML =
+          html || '<span style="color:var(--text-faint)">Chưa có URL</span>';
+      }
+
+      function renderPositionList() {
+        const wrap = document.getElementById('positionList');
+        const positions = state.fuzz.positions;
+        if (positions.length === 0) {
+          wrap.innerHTML = `<div class="fuzz-empty">Chưa có vị trí nào được đánh dấu.<br/>Chọn text trong Body/URL, hoặc nhấn ⚡ trên hàng Params/Headers để thêm.</div>`;
+          document.getElementById('fuzzPosCount').textContent = '0';
+          return;
+        }
+        wrap.innerHTML = positions
+          .map((p, idx) => {
+            const ps = state.fuzz.payloadSets[p.id] || { type: '—', values: [] };
+            return `<div class="position-item">
+      <div class="pos-index">${idx + 1}</div>
+      <div class="pos-location">${p.location}</div>
+      <div class="pos-value">${esc(p.label)} <span style="color:var(--text-faint)">= ${esc(p.value)}</span></div>
+      <div class="pos-payload-select">${ps.type}<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></div>
+      <div class="pos-count">${ps.values.length} giá trị</div>
+      <button class="pos-remove" onclick="removePosition('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>`;
+          })
+          .join('');
+        document.getElementById('fuzzPosCount').textContent = String(positions.length);
+      }
+
+      function removePosition(id) {
+        state.fuzz.positions = state.fuzz.positions.filter((p) => p.id !== id);
+        delete state.fuzz.payloadSets[id];
+        renderFuzzTab();
+      }
+
+      function renderAttackTypeGrid() {
+        const grid = document.getElementById('attackTypeGrid');
+        grid.innerHTML = attackTypes
+          .map(
+            (at) => `
+    <button class="attack-type-card ${state.fuzz.attackType === at.id ? 'active' : ''}" onclick="setAttackType('${at.id}')">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${at.icon}</svg></div>
+      <div class="at-name">${at.name}</div>
+      <div class="at-desc">${at.desc}</div>
+    </button>`,
+          )
+          .join('');
+      }
+      function setAttackType(id) {
+        state.fuzz.attackType = id;
+        renderFuzzTab();
+      }
+
+      function renderPayloadSets() {
+        const wrap = document.getElementById('payloadSetsWrap');
+        const positions = state.fuzz.positions;
+        if (positions.length === 0) {
+          wrap.innerHTML = '';
+          return;
+        }
+        wrap.innerHTML = positions
+          .map((p, idx) => {
+            const ps =
+              state.fuzz.payloadSets[p.id] ||
+              (state.fuzz.payloadSets[p.id] = {
+                name: 'payload-set-' + (idx + 1),
+                type: 'Custom list',
+                values: ['value1'],
+              });
+            return `<div class="payload-set-card">
+      <div class="ps-header">
+        <span style="width:18px;height:18px;border-radius:5px;background:rgba(var(--teal-rgb),0.14);color:var(--teal);font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono)">${idx + 1}</span>
+        <input class="ps-name" value="${esc(ps.name)}" oninput="updatePayloadSetName('${p.id}', this.value)" />
+        <span class="ps-type-badge">${ps.type}</span>
+        <div class="ps-header-spacer"></div>
+        <span class="ps-count-label">${ps.values.length} giá trị</span>
+      </div>
+      <div class="ps-values">
+        ${ps.values.map((v, vi) => `<span class="ps-chip">${esc(v)}<button onclick="removePayloadValue('${p.id}', ${vi})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></span>`).join('')}
+        <button class="ps-add-chip" onclick="addPayloadValue('${p.id}')">+ thêm giá trị</button>
+      </div>
+    </div>`;
+          })
+          .join('');
+      }
+      function updatePayloadSetName(id, val) {
+        if (state.fuzz.payloadSets[id]) state.fuzz.payloadSets[id].name = val;
+      }
+      function addPayloadValue(id) {
+        const ps = state.fuzz.payloadSets[id];
+        if (!ps) return;
+        ps.values.push('new-value-' + (ps.values.length + 1));
+        renderPayloadSets();
+        renderPositionList();
+        renderAttackSummary();
+      }
+      function removePayloadValue(id, idx) {
+        const ps = state.fuzz.payloadSets[id];
+        if (!ps) return;
+        ps.values.splice(idx, 1);
+        renderPayloadSets();
+        renderPositionList();
+        renderAttackSummary();
+      }
+
+      function computeRequestCount() {
+        const positions = state.fuzz.positions;
+        if (positions.length === 0) return 0;
+        const counts = positions.map((p) => state.fuzz.payloadSets[p.id]?.values.length || 0);
+        if (counts.some((c) => c === 0)) return 0;
+        switch (state.fuzz.attackType) {
+          case 'sniper':
+            return counts.reduce((a, b) => a + b, 0);
+          case 'battering':
+            return Math.max(...counts);
+          case 'pitchfork':
+            return Math.min(...counts);
+          case 'clusterbomb':
+            return counts.reduce((a, b) => a * b, 1);
+          default:
+            return 0;
+        }
+      }
+      function renderMatrixGrid(targetId, total) {
+        const cellCount = 40;
+        const onCount = Math.max(1, Math.min(cellCount, Math.round((total / 50) * cellCount)));
+        const cells = Array.from(
+          { length: cellCount },
+          (_, i) => `<div class="cell ${i < onCount ? 'on' : ''}"></div>`,
+        ).join('');
+        const el = document.getElementById(targetId);
+        if (el) el.innerHTML = cells;
+      }
+      function renderAttackSummary() {
+        const total = computeRequestCount();
+        document.getElementById('asPositions').textContent = state.fuzz.positions.length;
+        document.getElementById('asRequests').textContent = total;
+        document.getElementById('asDuration').textContent =
+          '≈ ' + Math.max(1, Math.round(total * 0.28)) + 's';
+        renderMatrixGrid('matrixGrid', total);
+      }
+
+      function renderFuzzTab() {
+        renderPositionPreview();
+        renderPositionList();
+        renderAttackTypeGrid();
+        renderPayloadSets();
+        renderAttackSummary();
+      }
+
+      /* ── Start attack flow ── */
+      function startAttack() {
+        const total = computeRequestCount();
+        if (total === 0) {
+          toast('info', 'Cần ít nhất 1 vị trí với payload hợp lệ');
+          return;
+        }
+        document.getElementById('attackModalDesc').textContent =
+          `${state.fuzz.positions.length} vị trí · ${attackTypes.find((a) => a.id === state.fuzz.attackType).name} · ${total} requests`;
+        document.getElementById('attackModalCount').textContent = total;
+        document.getElementById('attackModalHost').textContent = getSelectedRequest().host;
+        renderMatrixGrid('matrixGridModal', total);
+        openModal('attackModal');
+      }
+
+      function confirmStartAttack() {
+        closeModal('attackModal');
+        const total = computeRequestCount();
+        attackRunning = true;
+        document.getElementById('liveChip').classList.remove('hidden');
+        generateFuzzResults(total);
+        document.getElementById('fuzzResultsPanel').classList.remove('hidden');
+        toast('teal', `Đang chạy attack — ${total} requests`);
+        setTimeout(() => {
+          attackRunning = false;
+          document.getElementById('liveChip').classList.add('hidden');
+          document.getElementById('frElapsed').textContent =
+            'Hoàn tất trong ' + (total * 0.27).toFixed(1) + 's';
+          toast(
+            'success',
+            `Attack hoàn tất — ${total} requests, ${fuzzResults.filter((r) => r.anomaly).length} bất thường`,
+          );
+        }, 900);
+      }
+
+      function generateFuzzResults(total) {
+        const statuses = [200, 200, 200, 200, 201, 204, 301, 400, 403, 404, 500];
+        const baseline = { status: 200, length: 340 };
+        fuzzResults = Array.from({ length: total }, (_, i) => {
+          const status = statuses[Math.floor(Math.random() * statuses.length)];
+          const length = Math.round(280 + Math.random() * 900);
+          const anomaly = status >= 400 || Math.abs(length - baseline.length) > 400;
+          const posLabels = state.fuzz.positions.map((p) => {
+            const ps = state.fuzz.payloadSets[p.id];
+            return ps.values[i % ps.values.length];
+          });
+          return {
+            idx: i + 1,
+            payload: posLabels.join(' / '),
+            status,
+            length,
+            time: Math.round(60 + Math.random() * 260),
+            anomaly,
+          };
+        });
+        document.getElementById('frTotal').textContent = total;
+        document.getElementById('frDone').textContent = total;
+        document.getElementById('frProgressFill').style.width = '100%';
+        renderFuzzResults();
+      }
+
+      function toggleFrFilter(el) {
+        const key = el.dataset.s;
+        state.frFilters[key] = !state.frFilters[key];
+        el.dataset.active = state.frFilters[key] ? 'true' : 'false';
+        renderFuzzResults();
+      }
+
+      function statusBucket(s) {
+        if (s >= 500) return '5xx';
+        if (s >= 400) return '4xx';
+        if (s >= 300) return '3xx';
+        return '2xx';
+      }
+      function statusPillClass(s) {
+        if (s >= 500) return 's5';
+        if (s >= 400) return 's4';
+        if (s >= 300) return 's3';
+        return 's2';
+      }
+
+      function renderFuzzResults() {
+        const tbody = document.getElementById('frTableBody');
+        const anomalyOnly = document.getElementById('frAnomalyOnly').checked;
+        const rows = fuzzResults.filter(
+          (r) => state.frFilters[statusBucket(r.status)] && (!anomalyOnly || r.anomaly),
+        );
+        if (rows.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px;font-family:var(--font-ui)">Không có kết quả phù hợp bộ lọc.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows
+          .map(
+            (r) => `
+    <tr class="${r.anomaly ? 'anomaly' : ''} ${state.frSelected === r.idx ? 'selected' : ''}" onclick="selectFuzzResult(${r.idx})">
+      <td>${r.idx}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.payload)}</td>
+      <td><span class="status-pill ${statusPillClass(r.status)}" style="font-size:10px;padding:1px 6px">${r.status}</span>${r.anomaly ? '<span class="fr-anomaly-tag">bất thường</span>' : ''}</td>
+      <td>${r.length}B</td>
+      <td>${r.time}ms</td>
+    </tr>`,
+          )
+          .join('');
+      }
+
+      function selectFuzzResult(idx) {
+        state.frSelected = idx;
+        renderFuzzResults();
+        const r = fuzzResults.find((x) => x.idx === idx);
+        const preview = document.getElementById('frPreview');
+        preview.innerHTML = `<div class="fr-preview-header">Response — request #${idx}</div>
+    <div class="fr-preview-body">{
+  "status": ${r.status},
+  "payload_used": "${esc(r.payload)}",
+  "length": ${r.length},
+  "duration_ms": ${r.time}${r.anomaly ? ',\n  "note": "phản hồi khác biệt so với baseline"' : ''}
+}</div>`;
+      }
+
+      function closeFuzzResults() {
+        document.getElementById('fuzzResultsPanel').classList.add('hidden');
+      }
+
+      /* ═══════════════════════ RESPONSE PANEL ═══════════════════════ */
+      const mockResponse = {
+        status: 201,
+        statusText: 'Created',
+        duration: 356,
+        size: '340 B',
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'x-request-id': '8a2f1b7c-9d3e-4a5b-8c6d-1e2f3a4b5c6d',
+          'cache-control': 'no-cache',
+          'x-ratelimit-remaining': '98',
+          'x-response-time': '356ms',
+          date: new Date().toUTCString(),
+        },
+        body: JSON.stringify(
+          { created: true, id: 1001, total: 42.5, items: [{ sku: 'PH-001', qty: 2 }] },
+          null,
+          2,
+        ),
+      };
+
+      function renderResponse() {
+        const content = document.getElementById('responseContent');
+        if (state.responseTab === 'pretty') {
+          content.innerHTML = highlightJson(mockResponse.body);
+        } else if (state.responseTab === 'raw') {
+          content.innerHTML = `<div style="color:var(--text-secondary)">${esc(
+            'HTTP/1.1 ' +
+              mockResponse.status +
+              ' ' +
+              mockResponse.statusText +
+              '\\n' +
+              Object.entries(mockResponse.headers)
+                .map(([k, v]) => k + ': ' + v)
+                .join('\\n') +
+              '\\n\\n' +
+              mockResponse.body,
+          )}</div>`;
+        } else if (state.responseTab === 'headers') {
+          const entries = Object.entries(mockResponse.headers);
+          content.innerHTML = entries
+            .map(
+              ([k, v]) =>
+                `<div class="response-header-row"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`,
+            )
+            .join('');
+          document.getElementById('respHeaderCount').textContent = entries.length;
+        } else if (state.responseTab === 'diff') {
+          content.innerHTML = `<div class="diff-view" style="height:100%">
+      <div class="diff-col"><div class="diff-col-label">Trước đó (200)</div>
+        <div class="diff-line">{</div><div class="diff-line">&nbsp;&nbsp;"created": true,</div>
+        <div class="diff-line del">&nbsp;&nbsp;"id": 998</div><div class="diff-line">}</div></div>
+      <div class="diff-col"><div class="diff-col-label">Hiện tại (201)</div>
+        <div class="diff-line">{</div><div class="diff-line">&nbsp;&nbsp;"created": true,</div>
+        <div class="diff-line add">&nbsp;&nbsp;"id": 1001,</div><div class="diff-line add">&nbsp;&nbsp;"total": 42.5</div><div class="diff-line">}</div></div>
+    </div>`;
+        }
+        document.getElementById('respStatusPill').className =
+          'status-pill ' + statusPillClass(mockResponse.status);
+        document.getElementById('respStatusPill').textContent =
+          mockResponse.status + ' ' + mockResponse.statusText;
+        document.getElementById('respSize').textContent = mockResponse.size;
+        document.getElementById('respTime').textContent = mockResponse.duration + ' ms';
+      }
+
+      /* ── Resize response panel ── */
+      (function initResize() {
+        const handle = document.getElementById('resizeHandle');
+        const panel = document.getElementById('responsePanel');
+        let dragging = false,
+          startY = 0,
+          startH = 0;
+        handle.addEventListener('mousedown', (e) => {
+          dragging = true;
+          startY = e.clientY;
+          startH = panel.offsetHeight;
+          handle.classList.add('dragging');
+          document.body.style.userSelect = 'none';
+        });
+        window.addEventListener('mousemove', (e) => {
+          if (!dragging) return;
+          const newH = Math.min(
+            Math.max(startH - (e.clientY - startY), 120),
+            window.innerHeight - 220,
+          );
+          panel.style.height = newH + 'px';
+        });
+        window.addEventListener('mouseup', () => {
+          dragging = false;
+          handle.classList.remove('dragging');
+          document.body.style.userSelect = '';
+        });
+      })();
+
+      /* ═══════════════════════ HISTORY ═══════════════════════ */
+      function renderHistory() {
+        const tbody = document.getElementById('historyTableBody');
+        if (mockHistory.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px">Chưa có lịch sử.</td></tr>`;
+        } else {
+          tbody.innerHTML = mockHistory
+            .map((h) => {
+              const cls = h.status >= 500 ? 'err' : h.status >= 400 ? 'warn' : 'ok';
+              const sel = state.historySelected.includes(h.id);
+              return `<tr class="${sel ? 'selected' : ''}" onclick="toggleHistorySelect('${h.id}')">
+        <td><span class="kv-check ${sel ? 'checked' : ''}"></span></td>
+        <td><span class="m-${h.method}" style="font-family:var(--font-mono);font-weight:800;font-size:11px">${h.method}</span></td>
+        <td class="h-path">${h.path}</td>
+        <td><span class="status-chip ${cls}">${h.status}</span></td>
+        <td style="color:var(--text-secondary)">${h.length}</td>
+        <td style="color:var(--text-secondary)">${h.time}</td>
+        <td style="color:var(--text-secondary)">${h.duration}ms</td>
+      </tr>`;
+            })
+            .join('');
+        }
+        document.getElementById('historyCount').textContent = mockHistory.length;
+      }
+      function toggleHistorySelect(id) {
+        const i = state.historySelected.indexOf(id);
+        if (i > -1) state.historySelected.splice(i, 1);
+        else {
+          if (state.historySelected.length >= 2) state.historySelected.shift();
+          state.historySelected.push(id);
+        }
+        document
+          .getElementById('historyDiffBtn')
+          .classList.toggle('enabled', state.historySelected.length === 2);
+        renderHistory();
+      }
+      function tryOpenDiff() {
+        if (state.historySelected.length !== 2) {
+          toast('info', 'Chọn đúng 2 dòng để so sánh');
+          return;
+        }
+        openModal('historyDiffModal');
+      }
+      function clearHistory() {
+        mockHistory.length = 0;
+        renderHistory();
+        toast('info', 'Đã xoá lịch sử');
+      }
+
+      /* ═══════════════════════ COLLECTION SIDEBAR ═══════════════════════ */
+      function buildMethodFilterRow() {
+        const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+        const row = document.getElementById('methodFilterRow');
+        if (!row.dataset.built) {
+          row.innerHTML = methods
+            .map(
+              (m) =>
+                `<span class="method-filter-chip m-${m}" data-m="${m}" data-active="true" onclick="toggleMethodFilterChip(this)">${m}</span>`,
+            )
+            .join('');
+          row.dataset.built = '1';
+        }
+      }
+      function toggleMethodFilterChip(el) {
+        el.dataset.active = el.dataset.active === 'true' ? 'false' : 'true';
+        renderCollection();
+      }
+      function activeMethodFilters() {
+        return Array.from(document.querySelectorAll('.method-filter-chip'))
+          .filter((c) => c.dataset.active === 'true')
+          .map((c) => c.dataset.m);
+      }
+
+      function renderCollection() {
+        const q = (document.getElementById('requestSearch').value || '').toLowerCase();
+        const activeMethods = document.querySelectorAll('.method-filter-chip').length
+          ? activeMethodFilters()
+          : ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+        const filtered = mockRequests.filter(
+          (r) =>
+            (r.name.toLowerCase().includes(q) ||
+              r.path.toLowerCase().includes(q) ||
+              r.host.toLowerCase().includes(q)) &&
+            activeMethods.includes(r.method),
+        );
+        const groups = {};
+        filtered.forEach((r) => {
+          (groups[r.host] = groups[r.host] || []).push(r);
+        });
+
+        const scroll = document.getElementById('collectionScroll');
+        const hosts = Object.keys(groups);
+        if (hosts.length === 0) {
+          scroll.innerHTML = `<div class="empty-state" style="height:200px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      Không tìm thấy request<div class="sub">Thử từ khoá khác</div></div>`;
+        } else {
+          scroll.innerHTML = hosts
+            .map(
+              (host) => `
+      <div class="collection-group">
+        <div class="collection-group-header" onclick="toggleGroup(this)">
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+          <span class="host-dot"></span>${host}
+          <span class="grp-count">${groups[host].length}</span>
+        </div>
+        <div class="collection-group-items">
+          ${groups[host]
+            .map(
+              (r) => `
+            <div class="request-item ${state.selectedRequestId === r.id ? 'active' : ''}" onclick="selectRequest('${r.id}')" oncontextmenu="showContextMenu(event,'${r.id}')">
+              <span class="r-method m-${r.method}">${r.method}</span>
+              <div class="r-body">
+                <span class="r-path">${r.path}</span>
+                <div class="r-meta">
+                  <span class="r-host">${r.name}</span>
+                  ${r.tag ? `<span class="r-tag">${r.tag}</span>` : ''}
+                </div>
+              </div>
+              ${r.body && r.body.includes('§') ? `<svg class="r-fuzz-badge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>` : ''}
+              <svg class="r-star ${r.starred ? 'starred' : ''}" viewBox="0 0 24 24" fill="${r.starred ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01z"/></svg>
+            </div>`,
+            )
+            .join('')}
+        </div>
+      </div>`,
+            )
+            .join('');
+        }
+        document.getElementById('collectionCount').textContent =
+          `${filtered.length} requests · ${hosts.length} nhóm host`;
+      }
+      function toggleGroup(headerEl) {
+        headerEl.classList.toggle('collapsed');
+        headerEl.nextElementSibling.classList.toggle('collapsed');
+      }
+      function showContextMenu(e, id) {
+        e.preventDefault();
+        e.stopPropagation();
+        state.selectedRequestId = id;
+        const menu = document.getElementById('contextMenu');
+        menu.classList.remove('hidden');
+        menu.style.left = e.clientX + 'px';
+        menu.style.top = e.clientY + 'px';
+      }
+      function removeSelectedRequest() {
+        document.getElementById('contextMenu').classList.add('hidden');
+        const idx = mockRequests.findIndex((r) => r.id === state.selectedRequestId);
+        if (idx > -1) mockRequests.splice(idx, 1);
+        toast('info', 'Đã xoá khỏi Repeater');
+        if (mockRequests.length > 0) selectRequest(mockRequests[0].id);
+        renderCollection();
+      }
+
+      /* ═══════════════════════ RENDER ALL ═══════════════════════ */
+      function renderAll() {
+        document.getElementById('methodText').textContent = state.method;
+        document.getElementById('methodBtn').className = 'm-' + state.method;
+        document.getElementById('urlInput').value = state.url;
+        renderCollection();
+        renderParams();
+        renderHeaders();
+        renderBodyEditor();
+        renderFuzzTab();
+        renderHistory();
+        renderResponse();
+        switchTab(state.activeTab);
+      }
+
+      /* ═══════════════════════ KEYBOARD SHORTCUTS ═══════════════════════ */
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          sendRequest();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          openModal('cmdkModal');
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+          e.preventDefault();
+          switchTab('fuzz');
+        }
+        if (e.key === 'Escape') {
+          closeModal('cmdkModal');
+          closeModal('attackModal');
+          closeModal('historyDiffModal');
+        }
+      });
+
+      /* ═══════════════════════ INIT ═══════════════════════ */
+      document.addEventListener('DOMContentLoaded', () => {
+        buildMethodFilterRow();
+        document.getElementById('liveChip').classList.add('hidden');
+        selectRequest('req-2');
+        switchTab('fuzz');
+      });
+    </script>
+  </body>
+</html>

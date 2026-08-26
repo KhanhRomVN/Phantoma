@@ -23,6 +23,7 @@ import { formatResponseSize } from './utils/network-event-parser.util';
 
 // ── Types ──
 import { NetworkRequest } from './types/inspector';
+import type { ParamItem } from './types/repeater.types';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 
 // Stores
@@ -287,6 +288,12 @@ export default React.memo(function Emulate({
     EmulateController.getInstance().setRequests(requests);
   }, [requests]);
 
+  // Sync targetId to EmulateController
+  useEffect(() => {
+    console.log('[DEBUG][Emulate] Syncing activeTargetId to controller:', activeTargetId);
+    EmulateController.getInstance().setTargetId(activeTargetId);
+  }, [activeTargetId]);
+
   // Update timer badge every second for running targets
   const updateTimerFn = useTimerStore((s) => s.updateTimer);
   const clearTimerFn = useTimerStore((s) => s.clearTimer);
@@ -453,6 +460,7 @@ export default React.memo(function Emulate({
           customUrl,
           mode,
           useEnvInject,
+          appId, // Pass targetId (appId) to track process per target
         );
         if (result.success && result.data) {
           const newTab: TargetTab = {
@@ -478,6 +486,13 @@ export default React.memo(function Emulate({
       setFuzzerTargetId(req.id);
       handleSetSelectedTool('repeater');
 
+      // [DEBUG] Có thể xóa sau khi fix xong bug trống Param/Header/Body
+      logger.debug('[DEBUG][SendToRepeater] req.id =', req.id);
+      logger.debug('[DEBUG][SendToRepeater] req.method =', req.method);
+      logger.debug('[DEBUG][SendToRepeater] req.url =', req.url);
+      logger.debug('[DEBUG][SendToRepeater] req.requestHeaders =', req.requestHeaders);
+      logger.debug('[DEBUG][SendToRepeater] req.requestBody =', req.requestBody);
+
       // Gửi API tạo bản ghi repeater request nếu có activeTargetId
       if (activeTargetId) {
         const bodyStr =
@@ -486,13 +501,37 @@ export default React.memo(function Emulate({
             : req.requestBody
               ? JSON.stringify(req.requestBody)
               : '';
+
+        const paramItems: ParamItem[] = [];
+        try {
+          const urlObj = new URL(req.url);
+          urlObj.searchParams.forEach((value, key) => {
+            paramItems.push({ id: crypto.randomUUID(), key, value, enabled: true });
+          });
+        } catch (e) {
+          logger.warn('[Emulate] Failed to parse URL params:', e);
+        }
+
+        const headerItems: ParamItem[] = Object.entries(req.requestHeaders ?? {}).map(
+          ([key, value]) => ({
+            id: crypto.randomUUID(),
+            key,
+            value: String(value),
+            enabled: true,
+          }),
+        );
+
         emulateApi
           .createRequest(activeTargetId, {
             method: req.method || 'GET',
             url: req.url,
             body: bodyStr,
-            params: JSON.stringify([]),
-            headers: JSON.stringify(req.requestHeaders ?? {}),
+            params: JSON.stringify(paramItems),
+            headers: JSON.stringify(headerItems),
+          })
+          .then((res) => {
+            // [DEBUG] Có thể xóa sau khi fix xong bug trống Param/Header/Body
+            logger.debug('[DEBUG][SendToRepeater] createRequest response =', res);
           })
           .catch((e) => logger.error('[Emulate] Send to Repeater createRequest failed:', e));
       }

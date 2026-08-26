@@ -68,3 +68,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 -   **Facebook**: [KhanhRomVN](https://www.facebook.com/khanhromvn)
 -   **Hugging Face**: [KhanhRomVN](https://huggingface.co/khanhromvn)
 
+
+RULE:
+1/ không tự ý chạy các lệnh terminal mà chưa được cho phép
+2/ không tự ý tạo các file .md mà ko cho phép
+3/ giao tiếp bằng tiếng việt
+4/ code trực tiếp, không cần lập kế hoạch hay design task

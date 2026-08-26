@@ -6,8 +6,13 @@ import React from 'react';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
-import ListTabsBlock from '../../blocks/recon/ListTabsBlock';
 import ActionBar from '../../ActionBar';
+
+interface ListTabsBlockProps {
+  targetId?: string;
+  output?: string;
+  isError?: boolean;
+}
 
 export const ListTabsRenderer: React.FC<BaseRendererProps> = ({
   action,
@@ -74,3 +79,30 @@ export const ListTabsRenderer: React.FC<BaseRendererProps> = ({
     </div>
   );
 };
+
+function ListTabsBlock({ targetId, output, isError }: ListTabsBlockProps) {
+  return (
+    <div className="text-xs space-y-2">
+      {targetId && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Target:</span>
+          <span className="text-text-primary font-mono">{targetId}</span>
+        </div>
+      )}
+
+      {output && (
+        <div
+          className="p-3 rounded font-mono whitespace-pre-wrap"
+          style={{
+            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
+            color: isError ? $('--error') : $('--success'),
+          }}
+        >
+          {output}
+        </div>
+      )}
+
+      {!output && !isError && <div className="text-text-secondary opacity-60">Listing tabs...</div>}
+    </div>
+  );
+}

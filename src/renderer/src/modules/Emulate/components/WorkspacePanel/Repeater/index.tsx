@@ -13,88 +13,107 @@ import type { NetworkRequest } from '../Home/Filter';
 // Services
 import emulateApi, { RepeaterRequest } from '../../../services/emulate-api.service';
 
-// STORE
-import { useNetworkStore } from '../../../stores/networkStore';
+/**
+ * Add request to repeater by creating a DB record.
+ * @param request - NetworkRequest object containing method, url, headers, body
+ * @param targetId - Target ID
+ */
+export const addToRepeater = async (request: NetworkRequest, targetId: string): Promise<boolean> => {
+  console.log('[DEBUG][addToRepeater] Adding request:', request.id, 'for targetId:', targetId);
+  
+  try {
+    // Parse headers từ NetworkRequest format
+    let headers: any[] = [];
+    if (request.requestHeaders) {
+      headers = Object.entries(request.requestHeaders).map(([key, value]) => ({
+        id: crypto.randomUUID(),
+        key,
+        value,
+        enabled: true,
+      }));
+    }
 
-const getStorageKey = (targetId: string | null, type: string): string => {
-  const base = targetId ? `repeater-${targetId}` : 'repeater-default';
-  return `${base}-${type}`;
+    const res = await emulateApi.createRequest(targetId, {
+      method: request.method,
+      url: request.url,
+      body: request.requestBody || '',
+      params: '[]', // Default empty params
+      headers: JSON.stringify(headers),
+    });
+
+    if (res.success) {
+      console.log('[DEBUG][addToRepeater] Successfully created request in DB:', res.data?.id);
+      window.dispatchEvent(new CustomEvent('repeater-updated'));
+      return true;
+    } else {
+      logger.error('[addToRepeater] Failed to create request:', res.error);
+      return false;
+    }
+  } catch (err) {
+    logger.error('[addToRepeater] Error:', err);
+    return false;
+  }
 };
 
-const loadRepeaterIds = (targetId?: string | null): Set<string> => {
+/**
+ * Check if request exists in repeater by querying DB.
+ */
+export const isInRepeater = async (requestId: string, targetId: string): Promise<boolean> => {
   try {
-    const key = getStorageKey(targetId || null, 'request-ids');
-    const raw = localStorage.getItem(key);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
-    return new Set(Array.isArray(parsed) ? parsed : []);
+    const res = await emulateApi.listRequests(targetId);
+    if (res.success && res.data) {
+      return res.data.some((r: any) => r.id === requestId);
+    }
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Get all repeater IDs from DB.
+ */
+export const getRepeaterIds = async (targetId: string): Promise<Set<string>> => {
+  try {
+    const res = await emulateApi.listRequests(targetId);
+    if (res.success && res.data) {
+      return new Set(res.data.map((r: any) => r.id));
+    }
+    return new Set();
   } catch {
     return new Set();
   }
 };
 
-const saveRepeaterIds = (ids: Set<string>, targetId?: string | null) => {
-  const key = getStorageKey(targetId || null, 'request-ids');
-  localStorage.setItem(key, JSON.stringify([...ids]));
-};
-
-export const addToRepeater = (requestId: string, targetId?: string | null) => {
-  const ids = loadRepeaterIds(targetId);
-  ids.add(requestId);
-  saveRepeaterIds(ids, targetId);
-  window.dispatchEvent(new CustomEvent('repeater-updated'));
-};
-
-export const isInRepeater = (requestId: string, targetId?: string | null): boolean => {
-  const ids = loadRepeaterIds(targetId);
-  return ids.has(requestId);
-};
-
-export const getRepeaterIds = (targetId?: string | null): Set<string> => {
-  return loadRepeaterIds(targetId);
-};
-
-export const removeFromRepeater = (requestId: string, targetId?: string | null) => {
-  const ids = loadRepeaterIds(targetId);
-  ids.delete(requestId);
-  saveRepeaterIds(ids, targetId);
-  window.dispatchEvent(new CustomEvent('repeater-updated'));
-};
-
-export const clearRepeater = (targetId?: string | null) => {
-  saveRepeaterIds(new Set(), targetId);
-  window.dispatchEvent(new CustomEvent('repeater-updated'));
-};
-
-// ── Payload Values Storage ──────────────────────────────────────────────
-
-const getPayloadStorageKey = (targetId: string | null): string => {
-  const base = targetId ? `repeater-${targetId}` : 'repeater-default';
-  return `${base}-payload-values`;
-};
-
-/** Load toàn bộ payload values từ localStorage. */
-export const loadPayloadValues = (
-  targetId?: string | null,
-): Record<string, Record<string, string[]>> => {
+/**
+ * Remove request from repeater by deleting DB record.
+ */
+export const removeFromRepeater = async (requestId: string, targetId: string): Promise<boolean> => {
   try {
-    const key = getPayloadStorageKey(targetId || null);
-    const raw = localStorage.getItem(key);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return typeof parsed === 'object' && parsed !== null ? parsed : {};
-  } catch {
-    return {};
+    await emulateApi.deleteRequest(targetId, requestId);
+    window.dispatchEvent(new CustomEvent('repeater-updated'));
+    return true;
+  } catch (err) {
+    logger.error('[removeFromRepeater] Error:', err);
+    return false;
   }
 };
 
-/** Save toàn bộ payload values vào localStorage. */
-export const savePayloadValues = (
-  values: Record<string, Record<string, string[]>>,
-  targetId?: string | null,
-): void => {
-  const key = getPayloadStorageKey(targetId || null);
-  localStorage.setItem(key, JSON.stringify(values));
+/**
+ * Clear all repeater requests for a target.
+ */
+export const clearRepeater = async (targetId: string): Promise<void> => {
+  try {
+    const res = await emulateApi.listRequests(targetId);
+    if (res.success && res.data) {
+      for (const req of res.data) {
+        await emulateApi.deleteRequest(targetId, req.id);
+      }
+    }
+    window.dispatchEvent(new CustomEvent('repeater-updated'));
+  } catch (err) {
+    logger.error('[clearRepeater] Error:', err);
+  }
 };
 
 // Map API RepeaterRequest to NetworkRequest for RequestList display
@@ -111,6 +130,37 @@ const mapDbToNetworkRequest = (r: RepeaterRequest): NetworkRequest => {
   } catch {
     logger.warn('[Repeater] Invalid URL path:', r.url);
   }
+
+  let requestHeaders: Record<string, string> = {};
+  try {
+    const parsed = r.headers ? JSON.parse(r.headers) : [];
+    console.log('[DEBUG][mapDbToNetworkRequest] typeof parsed:', typeof parsed, 'isArray:', Array.isArray(parsed));
+    
+    if (Array.isArray(parsed)) {
+      // Headers từ DB là array: [{key, value, enabled}]
+      requestHeaders = Object.fromEntries(
+        parsed
+          .filter((h: any) => h.enabled !== false) // Chỉ lấy enabled headers
+          .map((h: any) => [h.key, h.value])
+      );
+    } else if (parsed && typeof parsed === 'object') {
+      // Fallback: nếu là object {key: value}
+      requestHeaders = Object.fromEntries(
+        Object.entries(parsed).map(([key, value]) => [key, String(value)]),
+      );
+    }
+    console.log('[DEBUG][mapDbToNetworkRequest] final requestHeaders:', requestHeaders);
+  } catch (err) {
+    logger.warn('[Repeater] Failed to parse request headers:', r.headers, err);
+  }
+
+  // [DEBUG] Có thể xóa sau khi fix xong bug trống Param/Header/Body
+  logger.debug('[DEBUG][mapDbToNetworkRequest] raw DB row =', r);
+  logger.debug('[DEBUG][mapDbToNetworkRequest] r.headers (raw) =', r.headers);
+  logger.debug('[DEBUG][mapDbToNetworkRequest] parsed requestHeaders =', requestHeaders);
+  logger.debug('[DEBUG][mapDbToNetworkRequest] r.body (raw) =', r.body);
+  logger.debug('[DEBUG][mapDbToNetworkRequest] r.params (raw) =', r.params);
+
   return {
     id: r.id,
     method: r.method,
@@ -120,6 +170,8 @@ const mapDbToNetworkRequest = (r: RepeaterRequest): NetworkRequest => {
     protocol: '',
     type: '',
     timestamp: r.created_at * 1000,
+    requestHeaders,
+    requestBody: r.body || '',
   } as NetworkRequest;
 };
 
@@ -131,26 +183,26 @@ interface PayloadPanelProps {
 }
 
 export function PayloadPanel({
-  onClose,
   selectedRequestId,
   targetId,
   isTargetRunning,
 }: PayloadPanelProps) {
-  const requests = useNetworkStore((s) => s.requests);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [repeaterIds, setRepeaterIds] = useState<Set<string>>(loadRepeaterIds(targetId));
+  const [dbRequests, setDbRequests] = useState<NetworkRequest[]>([]);
   const [lastRunTimestamp, setLastRunTimestamp] = useState<number | null>(null);
   const [saveToHistory, setSaveToHistory] = useState(true);
   const [viewHistoryEntry, setViewHistoryEntry] = useState<HistoryEntry | null>(null);
-  const [dbRequests, setDbRequests] = useState<NetworkRequest[]>([]);
 
-  useEffect(() => {
+  // Load repeater requests from DB
+  const loadDbRequests = async () => {
     if (!targetId || !isTargetRunning) {
       setDbRequests([]);
       return;
     }
-    emulateApi.listRequests(targetId).then((res) => {
+    
+    try {
+      const res = await emulateApi.listRequests(targetId);
       if (res.success && res.data) {
         const mapped = res.data.map(mapDbToNetworkRequest);
         setDbRequests(mapped);
@@ -158,35 +210,29 @@ export function PayloadPanel({
           setSelectedId(mapped[0].id);
         }
       }
-    });
+    } catch (err) {
+      logger.error('[PayloadPanel] Failed to load requests:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadDbRequests();
   }, [targetId, isTargetRunning]);
 
   useEffect(() => {
-    const handleUpdate = () => setRepeaterIds(loadRepeaterIds(targetId));
+    const handleUpdate = () => {
+      console.log('[PayloadPanel] Repeater updated, reloading...');
+      loadDbRequests();
+    };
     window.addEventListener('repeater-updated', handleUpdate);
     return () => window.removeEventListener('repeater-updated', handleUpdate);
-  }, [targetId]);
+  }, [targetId, isTargetRunning]);
 
-  useEffect(() => {
-    const currentIds = loadRepeaterIds(targetId);
-    if (currentIds.size === 0) return;
-    const validIds = new Set(requests.map((r) => r.id));
-    const staleIds = [...currentIds].filter((id) => !validIds.has(id));
-    if (staleIds.length > 0) {
-      const newIds = new Set(currentIds);
-      staleIds.forEach((id) => newIds.delete(id));
-      saveRepeaterIds(newIds, targetId);
-      setRepeaterIds(newIds);
-      window.dispatchEvent(new CustomEvent('repeater-updated'));
-    }
-  }, [requests, targetId]);
-
+  // Merge network requests (in-memory) with DB requests
   const allRequests = useMemo(() => {
-    const networkReqs = requests.filter((req) => repeaterIds.has(req.id));
-    const networkIds = new Set(networkReqs.map((r) => r.id));
-    const dbOnly = dbRequests.filter((r) => !networkIds.has(r.id));
-    return [...networkReqs, ...dbOnly];
-  }, [requests, repeaterIds, dbRequests]);
+    // Only show DB requests since that's the source of truth
+    return dbRequests;
+  }, [dbRequests]);
 
   const selectedRequest = useMemo(() => {
     if (!selectedId) return null;
@@ -213,17 +259,14 @@ export function PayloadPanel({
   };
 
   const handleRemoveRequest = async (id: string) => {
-    // Xóa khỏi localStorage/state trước để UI phản hồi ngay
-    removeFromRepeater(id, targetId);
-
-    // Nếu request tồn tại trong DB server, gọi API xóa
-    if (targetId && dbRequests.some((r) => r.id === id)) {
-      try {
-        await emulateApi.deleteRequest(targetId, id);
-        setDbRequests((prev) => prev.filter((r) => r.id !== id));
-      } catch (error) {
-        logger.error('[Repeater] Failed to delete request from server:', error);
-      }
+    if (!targetId) return;
+    
+    try {
+      await emulateApi.deleteRequest(targetId, id);
+      setDbRequests((prev) => prev.filter((r) => r.id !== id));
+      window.dispatchEvent(new CustomEvent('repeater-updated'));
+    } catch (error) {
+      logger.error('[Repeater] Failed to delete request:', error);
     }
   };
   const handleViewHistory = (entry: HistoryEntry) => setViewHistoryEntry(entry);
@@ -232,7 +275,7 @@ export function PayloadPanel({
   return (
     <div className="flex h-full overflow-hidden">
       <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background">
-        <div className="px-3 py-1.5 border-b border-border shrink-0">
+        <div className="border-b border-border shrink-0">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
             <input
@@ -240,7 +283,7 @@ export function PayloadPanel({
               placeholder="Search repeater requests..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-8 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-amber-500/50 outline-none"
+              className="w-full h-9 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-amber-500/50 outline-none"
             />
           </div>
         </div>

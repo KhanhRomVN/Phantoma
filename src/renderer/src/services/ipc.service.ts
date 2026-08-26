@@ -91,8 +91,9 @@ class IpcService {
     customUrl?: string,
     mode?: string,
     useEnvInject?: boolean,
+    targetId?: string,
   ) {
-    return this.invoke('app:launch', appId, proxyUrl, customUrl, mode, useEnvInject);
+    return this.invoke('app:launch', appId, proxyUrl, customUrl, mode, useEnvInject, targetId);
   }
   async terminateApp() {
     return this.invoke('app:terminate');

@@ -59,8 +59,9 @@ export function setupAppHandlers() {
       customUrl?: string,
       forceMode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
       useEnvInject?: boolean,
+      targetId?: string, // Add targetId parameter
     ) => {
-      return await launchApp(appName, proxyUrl, customUrl, forceMode, useEnvInject);
+      return await launchApp(appName, proxyUrl, customUrl, forceMode, useEnvInject, targetId);
     },
   );
 }

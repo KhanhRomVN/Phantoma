@@ -1,7 +1,7 @@
 import { Square, Send } from 'lucide-react';
 
-// ── Constants ──
-import { HTTP_METHODS, type HttpMethod } from '../../../../../constants/methods';
+// ── UI Components ──
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -11,80 +11,77 @@ interface RequestBarProps {
   url: string;
   isExecuting: boolean;
   methods: string[];
-  isMethodDropdownOpen: boolean;
-  methodDropdownRef: React.RefObject<HTMLDivElement | null>;
   onMethodChange: (method: string) => void;
   onUrlChange: (url: string) => void;
-  onToggleDropdown: () => void;
   onSend: () => void;
   readOnly?: boolean;
   hasEmptyPayload?: boolean;
 }
+
+const METHOD_COLORS: Record<string, string> = {
+  GET: 'text-emerald-400',
+  POST: 'text-blue-400',
+  PUT: 'text-amber-400',
+  DELETE: 'text-red-400',
+  PATCH: 'text-purple-400',
+  HEAD: 'text-indigo-400',
+  OPTIONS: 'text-teal-400',
+  TRACE: 'text-pink-400',
+  CONNECT: 'text-violet-400',
+};
 
 export function RequestBar({
   method,
   url,
   isExecuting,
   methods,
-  isMethodDropdownOpen,
-  methodDropdownRef,
   onMethodChange,
   onUrlChange,
-  onToggleDropdown,
   onSend,
   readOnly = false,
   hasEmptyPayload = false,
 }: RequestBarProps) {
-  const methodColor = HTTP_METHODS[method?.toUpperCase() as HttpMethod]?.color;
-  const activeColor = methodColor ? `text-${methodColor}-400` : 'text-text-primary';
+  const activeColor = METHOD_COLORS[method?.toUpperCase()] || 'text-text-primary';
+  
   return (
     <div className="flex items-center border-b border-border shrink-0 bg-muted/5">
-      <div className="relative shrink-0" ref={methodDropdownRef}>
-        <button
-          onClick={() => !readOnly && onToggleDropdown()}
-          disabled={readOnly}
-          className={cn(
-            'flex items-center gap-2 h-9 bg-input-background border border-input-border-default px-3 pr-7 text-sm font-mono outline-none hover:border-primary/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed',
-            activeColor,
-          )}
-        >
-          {method}
-          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
-        </button>
-        {isMethodDropdownOpen && !readOnly && (
-          <div className="absolute top-full left-0 mt-1 min-w-[120px] bg-background border border-border rounded-lg shadow-xl z-50 py-1">
-            {methods.map((m) => {
-              const mc = HTTP_METHODS[m?.toUpperCase() as HttpMethod]?.color;
-              const color = mc ? `text-${mc}-400` : 'text-text-primary';
-              return (
-                <button
-                  key={m}
-                  onClick={() => {
-                    onMethodChange(m);
-                    onToggleDropdown();
-                  }}
-                  className={cn(
-                    'w-full text-left px-3 py-1.5 text-sm font-mono transition-colors',
-                    color,
-                    m === method ? 'bg-primary/10' : 'hover:bg-dropdown-item-hover',
-                  )}
-                >
-                  {m}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <Dropdown strategy="fixed" align="start">
+        <DropdownTrigger asChild>
+          <button
+            disabled={readOnly}
+            className={cn(
+              'flex items-center gap-2 h-9 bg-input-background border border-input-border-default px-3 pr-7 text-sm font-mono outline-none hover:border-primary/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed relative',
+              activeColor,
+            )}
+          >
+            {method}
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </button>
+        </DropdownTrigger>
+        <DropdownContent className="min-w-[120px]">
+          {methods.map((m) => {
+            const color = METHOD_COLORS[m?.toUpperCase()] || 'text-text-primary';
+            return (
+              <DropdownItem
+                key={m}
+                onClick={() => onMethodChange(m)}
+                className={cn('font-mono', color, m === method && 'bg-primary/10')}
+              >
+                {m}
+              </DropdownItem>
+            );
+          })}
+        </DropdownContent>
+      </Dropdown>
 
       <input
         value={url}

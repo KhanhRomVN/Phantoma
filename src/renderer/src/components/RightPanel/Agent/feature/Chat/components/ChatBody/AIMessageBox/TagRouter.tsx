@@ -60,6 +60,7 @@ import {
   ViewReplaceHistoryRenderer,
   RunCommandRenderer,
   GitStatusRenderer,
+  GitDiffRenderer,
   MarkdownRenderer,
   QuestionRenderer,
   WarningRenderer,
@@ -94,7 +95,7 @@ import {
 import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
 import FileIcon from '@renderer/components/common/FileIcon';
-import GitDiffBlock from './blocks/code/GitDiffBlock';
+// GitDiffBlock removed - using GitDiffRenderer instead
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
 interface TagRouterProps {
@@ -742,82 +743,18 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   }
 
   if (toolType === 'git_diff') {
-    const filePath = firstAction.params.file_path || '';
     const actionIndex = toolGroup[0].index;
-    const actionId = `${messageId}-action-${actionIndex}`;
-
-    const outputData = toolOutputs?.[actionId];
-    const diffContent = outputData?.output || firstAction.params.diff || '';
-    const hasOutput = !!outputData && !outputData.isError;
-
-    const hasTriggeredExecution = React.useRef(false);
-    React.useEffect(() => {
-      if (!hasTriggeredExecution.current && !hasOutput && isActiveGroup && !isLastMessage) {
-        hasTriggeredExecution.current = true;
-        onToolClick(firstAction, messageId, actionIndex, 'accept');
-      }
-    }, [hasOutput, isActiveGroup, isLastMessage, actionId]);
-
-    const parseDiffStats = (content: string) => {
-      let added = 0;
-      let deleted = 0;
-      if (!content) return { added: 0, deleted: 0 };
-      const lines = content.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('+') && !line.startsWith('+++')) added++;
-        if (line.startsWith('-') && !line.startsWith('---')) deleted++;
-      }
-      return { added, deleted };
-    };
-
-    const stats = parseDiffStats(diffContent);
-
-    if (!hasOutput && !isActiveGroup) {
-      return (
-        <div className="relative flex flex-col gap-1.5">
-          <GitDiffBlock
-            filePath={filePath}
-            diffContent=""
-            added={0}
-            deleted={0}
-            statusColor={$('--success')}
-            isPartial={true}
-            branch={gitStatusBranch}
-            onFileClick={(path: any) => {
-              const vscodeApi = (window as any).vscodeApi;
-              if (vscodeApi) {
-                vscodeApi.postMessage({
-                  command: 'openFile',
-                  path,
-                });
-              }
-            }}
-          />
-        </div>
-      );
-    }
-
     return (
-      <div className="relative flex flex-col gap-1.5">
-        <GitDiffBlock
-          filePath={filePath}
-          diffContent={diffContent}
-          added={stats.added}
-          deleted={stats.deleted}
-          statusColor={$('--success')}
-          isPartial={!hasOutput && isActiveGroup}
-          branch={gitStatusBranch}
-          onFileClick={(path: any) => {
-            const vscodeApi = (window as any).vscodeApi;
-            if (vscodeApi) {
-              vscodeApi.postMessage({
-                command: 'openFile',
-                path,
-              });
-            }
-          }}
-        />
-      </div>
+      <GitDiffRenderer
+        action={firstAction}
+        actionIndex={actionIndex}
+        messageId={messageId}
+        isActiveGroup={isActiveGroup}
+        isLastMessage={isLastMessage}
+        toolOutputs={toolOutputs}
+        onToolClick={onToolClick}
+        branch={gitStatusBranch}
+      />
     );
   }
 
