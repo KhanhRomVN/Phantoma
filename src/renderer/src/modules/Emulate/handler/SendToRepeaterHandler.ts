@@ -47,12 +47,15 @@ export class SendToRepeaterHandler {
         }));
       }
 
+      // Format JSON with indentation for readability
+      const headersFormatted = JSON.stringify(headers, null, 2);
+
       const res = await emulateApi.createRequest(targetId, {
         method: req.method,
         url: req.url,
         body: req.requestBody || '',
-        params: '[]', // Default empty params
-        headers: JSON.stringify(headers),
+        params: '[]', // Default empty params (already formatted)
+        headers: headersFormatted,
       });
 
       if (res.success) {

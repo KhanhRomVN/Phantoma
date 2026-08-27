@@ -1,6 +1,9 @@
 import { Check, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
+// ── Components ──
+import CodeBlock from '@renderer/components/common/CodeBlock';
+
 // ── Types ──
 import type { ParamItem, PayloadItem } from '../../../../../../types/repeater.types';
 
@@ -18,6 +21,7 @@ interface ParamTabProps {
   payloads?: PayloadItem[];
   onSwitchToPayload?: () => void;
   readOnly?: boolean;
+  isRawView?: boolean;
 }
 
 export function ParamTab({
@@ -27,6 +31,7 @@ export function ParamTab({
   payloads = [],
   onSwitchToPayload,
   readOnly = false,
+  isRawView = false,
 }: ParamTabProps) {
   const [isFinalRowEditing, setIsFinalRowEditing] = useState(false);
   const [finalKey, setFinalKey] = useState('');
@@ -172,8 +177,58 @@ export function ParamTab({
 
   const fallbackAccentColor = getColorByIndex(0);
 
-  // [DEBUG] Có thể xóa sau khi fix xong bug trống Header/Param
-  console.log('[DEBUG][ParamTab] params.length =', params.length, params);
+  // Convert params to/from JSON string
+  const paramsToJson = (items: ParamItem[]): string => {
+    const obj: Record<string, string> = {};
+    items
+      .filter((p) => p.key) // Chỉ filter key, ko filter enabled để hiển thị hết
+      .forEach((p) => {
+        obj[p.key] = p.value;
+      });
+    return JSON.stringify(obj, null, 2);
+  };
+
+  const jsonToParams = (jsonStr: string): ParamItem[] => {
+    try {
+      const obj = JSON.parse(jsonStr);
+      if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
+        return params; // Keep original if invalid
+      }
+      return Object.entries(obj).map(([key, value]) => ({
+        id: crypto.randomUUID(),
+        key,
+        value: String(value),
+        enabled: true,
+      }));
+    } catch {
+      return params; // Keep original if parse error
+    }
+  };
+
+  const handleRawChange = (newJson: string) => {
+    const newParams = jsonToParams(newJson);
+    onChange(newParams);
+  };
+
+  // If raw view, render CodeBlock instead of table
+  if (isRawView) {
+    const jsonCode = paramsToJson(params);
+    return (
+      <div className="h-full flex flex-col" key="raw-view-container">
+        <div className="flex-1 min-h-0" key="raw-view-content">
+          <CodeBlock
+            key={`params-json-${params.length}-${JSON.stringify(params.map((p) => p.id + p.key + p.value))}`}
+            code={jsonCode}
+            onChange={readOnly ? undefined : handleRawChange}
+            language="json"
+            className="h-full"
+            showLineNumbers={false}
+            wordWrap="on"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full relative">

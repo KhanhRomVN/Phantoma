@@ -10,6 +10,7 @@ interface HeaderTabProps {
   payloads?: PayloadItem[];
   onSwitchToPayload?: () => void;
   readOnly?: boolean;
+  isRawView?: boolean;
 }
 
 export function HeaderTab({
@@ -18,6 +19,7 @@ export function HeaderTab({
   payloads,
   onSwitchToPayload,
   readOnly = false,
+  isRawView = false,
 }: HeaderTabProps) {
   return (
     <ParamTab
@@ -28,6 +30,7 @@ export function HeaderTab({
       payloads={payloads}
       onSwitchToPayload={onSwitchToPayload}
       readOnly={readOnly}
+      isRawView={isRawView}
     />
   );
 }

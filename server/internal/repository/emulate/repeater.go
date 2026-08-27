@@ -45,11 +45,15 @@ type RepeaterRepository interface {
 // =============================================================================
 
 // SQLiteRepeaterRepository implements RepeaterRepository using SQLite.
-type SQLiteRepeaterRepository struct{}
+type SQLiteRepeaterRepository struct {
+	fileStorage *RepeaterFileStorage
+}
 
 // NewRepeaterRepository creates a new repeater repository instance.
 func NewRepeaterRepository() RepeaterRepository {
-	return &SQLiteRepeaterRepository{}
+	return &SQLiteRepeaterRepository{
+		fileStorage: NewRepeaterFileStorage(),
+	}
 }
 
 // =============================================================================
@@ -76,6 +80,16 @@ func (r *SQLiteRepeaterRepository) GetRequestsByTargetID(targetID string) ([]dom
 			&req.Body, &req.Params, &req.Headers, &req.CreatedAt, &req.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan repeater request: %w", err)
 		}
+
+		// Read content from file system (already in JSON format)
+		paramsJSON, _ := r.fileStorage.ReadParams(req.EmulateTargetID, req.ID)
+		headersJSON, _ := r.fileStorage.ReadHeaders(req.EmulateTargetID, req.ID)
+		bodyContent, _ := r.fileStorage.ReadBody(req.EmulateTargetID, req.ID)
+
+		req.Params = paramsJSON
+		req.Headers = headersJSON
+		req.Body = bodyContent
+
 		requests = append(requests, req)
 	}
 	if requests == nil {
@@ -98,6 +112,16 @@ func (r *SQLiteRepeaterRepository) GetRequestByID(id string) (*domainemulate.Rep
 	if err != nil {
 		return nil, fmt.Errorf("query repeater request: %w", err)
 	}
+
+	// Read content from file system (already in JSON format)
+	paramsJSON, _ := r.fileStorage.ReadParams(req.EmulateTargetID, req.ID)
+	headersJSON, _ := r.fileStorage.ReadHeaders(req.EmulateTargetID, req.ID)
+	bodyContent, _ := r.fileStorage.ReadBody(req.EmulateTargetID, req.ID)
+
+	req.Params = paramsJSON
+	req.Headers = headersJSON
+	req.Body = bodyContent
+
 	return &req, nil
 }
 
@@ -105,19 +129,22 @@ func (r *SQLiteRepeaterRepository) GetRequestByID(id string) (*domainemulate.Rep
 func (r *SQLiteRepeaterRepository) CreateRequest(input domainemulate.CreateRepeaterRequestInput, now int64) (*domainemulate.RepeaterRequest, error) {
 	id := fmt.Sprintf("%x", time.Now().UnixNano())
 
-	params := input.Params
-	if params == "" {
-		params = "[]"
+	// Save JSON content directly to files
+	if err := r.fileStorage.WriteParams(input.EmulateTargetID, id, input.Params); err != nil {
+		return nil, fmt.Errorf("write params to file: %w", err)
 	}
-	headers := input.Headers
-	if headers == "" {
-		headers = "[]"
+	if err := r.fileStorage.WriteHeaders(input.EmulateTargetID, id, input.Headers); err != nil {
+		return nil, fmt.Errorf("write headers to file: %w", err)
+	}
+	if err := r.fileStorage.WriteBody(input.EmulateTargetID, id, input.Body); err != nil {
+		return nil, fmt.Errorf("write body to file: %w", err)
 	}
 
+	// Save metadata to database (without params, headers, body content)
 	_, err := database.DB.Exec(
 		`INSERT INTO emulate_repeater_requests (id, emulate_target_id, method, url, body, params, headers, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, input.EmulateTargetID, input.Method, input.URL, input.Body, params, headers, now, now,
+		id, input.EmulateTargetID, input.Method, input.URL, "", "", "", now, now,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert repeater request: %w", err)
@@ -127,6 +154,33 @@ func (r *SQLiteRepeaterRepository) CreateRequest(input domainemulate.CreateRepea
 
 // UpdateRequest updates a request by ID.
 func (r *SQLiteRepeaterRepository) UpdateRequest(id string, input domainemulate.UpdateRepeaterRequestInput, now int64) (*domainemulate.RepeaterRequest, error) {
+	// Get current request to know targetID
+	current, err := r.GetRequestByID(id)
+	if current == nil {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Update files if content changed (write JSON directly)
+	if input.Params != nil {
+		if err := r.fileStorage.WriteParams(current.EmulateTargetID, id, *input.Params); err != nil {
+			return nil, fmt.Errorf("write params to file: %w", err)
+		}
+	}
+	if input.Headers != nil {
+		if err := r.fileStorage.WriteHeaders(current.EmulateTargetID, id, *input.Headers); err != nil {
+			return nil, fmt.Errorf("write headers to file: %w", err)
+		}
+	}
+	if input.Body != nil {
+		if err := r.fileStorage.WriteBody(current.EmulateTargetID, id, *input.Body); err != nil {
+			return nil, fmt.Errorf("write body to file: %w", err)
+		}
+	}
+
+	// Update metadata in database
 	query := "UPDATE emulate_repeater_requests SET updated_at = ?"
 	args := []interface{}{now}
 
@@ -137,18 +191,6 @@ func (r *SQLiteRepeaterRepository) UpdateRequest(id string, input domainemulate.
 	if input.URL != nil {
 		query += ", url = ?"
 		args = append(args, *input.URL)
-	}
-	if input.Body != nil {
-		query += ", body = ?"
-		args = append(args, *input.Body)
-	}
-	if input.Params != nil {
-		query += ", params = ?"
-		args = append(args, *input.Params)
-	}
-	if input.Headers != nil {
-		query += ", headers = ?"
-		args = append(args, *input.Headers)
 	}
 
 	query += " WHERE id = ?"
@@ -167,6 +209,22 @@ func (r *SQLiteRepeaterRepository) UpdateRequest(id string, input domainemulate.
 
 // DeleteRequest deletes a request by ID.
 func (r *SQLiteRepeaterRepository) DeleteRequest(id string) (bool, error) {
+	// Get request to know targetID before deleting
+	req, err := r.GetRequestByID(id)
+	if err != nil {
+		return false, err
+	}
+	if req == nil {
+		return false, nil
+	}
+
+	// Delete files
+	if err := r.fileStorage.DeleteAll(req.EmulateTargetID, id); err != nil {
+		// Log error but continue with database deletion
+		fmt.Printf("Warning: failed to delete files for repeater %s: %v\n", id, err)
+	}
+
+	// Delete from database
 	result, err := database.DB.Exec("DELETE FROM emulate_repeater_requests WHERE id = ?", id)
 	if err != nil {
 		return false, fmt.Errorf("delete repeater request: %w", err)
@@ -238,13 +296,17 @@ func (r *SQLiteRepeaterRepository) UpdatePayload(id string, input domainemulate.
 	first := true
 
 	if input.PayloadValues != nil {
-		if !first { query += ", " }
+		if !first {
+			query += ", "
+		}
 		query += "payload_values = ?"
 		args = append(args, *input.PayloadValues)
 		first = false
 	}
 	if input.Enabled != nil {
-		if !first { query += ", " }
+		if !first {
+			query += ", "
+		}
 		query += "enabled = ?"
 		args = append(args, *input.Enabled)
 		first = false
@@ -472,11 +534,17 @@ func (r *SQLiteRepeaterRepository) CreateRun(input domainemulate.CreateRepeaterH
 	id := fmt.Sprintf("%x", time.Now().UnixNano())
 
 	params := input.Params
-	if params == "" { params = "{}" }
+	if params == "" {
+		params = "{}"
+	}
 	requestHeaders := input.RequestHeaders
-	if requestHeaders == "" { requestHeaders = "{}" }
+	if requestHeaders == "" {
+		requestHeaders = "{}"
+	}
 	responseHeaders := input.ResponseHeaders
-	if responseHeaders == "" { responseHeaders = "{}" }
+	if responseHeaders == "" {
+		responseHeaders = "{}"
+	}
 
 	_, err := database.DB.Exec(
 		`INSERT INTO emulate_repeater_history_runs

@@ -18,9 +18,10 @@ import emulateApi, { RepeaterRequest } from '../../../services/emulate-api.servi
  * @param request - NetworkRequest object containing method, url, headers, body
  * @param targetId - Target ID
  */
-export const addToRepeater = async (request: NetworkRequest, targetId: string): Promise<boolean> => {
-  console.log('[DEBUG][addToRepeater] Adding request:', request.id, 'for targetId:', targetId);
-  
+export const addToRepeater = async (
+  request: NetworkRequest,
+  targetId: string,
+): Promise<boolean> => {
   try {
     // Parse headers từ NetworkRequest format
     let headers: any[] = [];
@@ -42,7 +43,6 @@ export const addToRepeater = async (request: NetworkRequest, targetId: string): 
     });
 
     if (res.success) {
-      console.log('[DEBUG][addToRepeater] Successfully created request in DB:', res.data?.id);
       window.dispatchEvent(new CustomEvent('repeater-updated'));
       return true;
     } else {
@@ -134,14 +134,12 @@ const mapDbToNetworkRequest = (r: RepeaterRequest): NetworkRequest => {
   let requestHeaders: Record<string, string> = {};
   try {
     const parsed = r.headers ? JSON.parse(r.headers) : [];
-    console.log('[DEBUG][mapDbToNetworkRequest] typeof parsed:', typeof parsed, 'isArray:', Array.isArray(parsed));
-    
     if (Array.isArray(parsed)) {
       // Headers từ DB là array: [{key, value, enabled}]
       requestHeaders = Object.fromEntries(
         parsed
           .filter((h: any) => h.enabled !== false) // Chỉ lấy enabled headers
-          .map((h: any) => [h.key, h.value])
+          .map((h: any) => [h.key, h.value]),
       );
     } else if (parsed && typeof parsed === 'object') {
       // Fallback: nếu là object {key: value}
@@ -149,17 +147,9 @@ const mapDbToNetworkRequest = (r: RepeaterRequest): NetworkRequest => {
         Object.entries(parsed).map(([key, value]) => [key, String(value)]),
       );
     }
-    console.log('[DEBUG][mapDbToNetworkRequest] final requestHeaders:', requestHeaders);
   } catch (err) {
     logger.warn('[Repeater] Failed to parse request headers:', r.headers, err);
   }
-
-  // [DEBUG] Có thể xóa sau khi fix xong bug trống Param/Header/Body
-  logger.debug('[DEBUG][mapDbToNetworkRequest] raw DB row =', r);
-  logger.debug('[DEBUG][mapDbToNetworkRequest] r.headers (raw) =', r.headers);
-  logger.debug('[DEBUG][mapDbToNetworkRequest] parsed requestHeaders =', requestHeaders);
-  logger.debug('[DEBUG][mapDbToNetworkRequest] r.body (raw) =', r.body);
-  logger.debug('[DEBUG][mapDbToNetworkRequest] r.params (raw) =', r.params);
 
   return {
     id: r.id,
@@ -182,15 +172,7 @@ interface PayloadPanelProps {
   targetId?: string | null;
 }
 
-export function PayloadPanel({
-  selectedRequestId,
-  targetId,
-  isTargetRunning,
-}: PayloadPanelProps) {
-  useEffect(() => {
-    console.log('[DEBUG][RENDER] PayloadPanel re-rendered');
-  });
-
+export function PayloadPanel({ selectedRequestId, targetId, isTargetRunning }: PayloadPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dbRequests, setDbRequests] = useState<NetworkRequest[]>([]);
@@ -204,7 +186,7 @@ export function PayloadPanel({
       setDbRequests([]);
       return;
     }
-    
+
     try {
       const res = await emulateApi.listRequests(targetId);
       if (res.success && res.data) {
@@ -223,13 +205,25 @@ export function PayloadPanel({
     loadDbRequests();
   }, [targetId, isTargetRunning]);
 
+  // Listen for repeater-updated event with debounce to prevent duplicate loads
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+
     const handleUpdate = () => {
-      console.log('[PayloadPanel] Repeater updated, reloading...');
-      loadDbRequests();
+      // Debounce: wait 100ms before reloading to batch multiple events
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = setTimeout(() => {
+        loadDbRequests();
+      }, 100);
     };
+
     window.addEventListener('repeater-updated', handleUpdate);
-    return () => window.removeEventListener('repeater-updated', handleUpdate);
+    return () => {
+      window.removeEventListener('repeater-updated', handleUpdate);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [targetId, isTargetRunning]);
 
   // Merge network requests (in-memory) with DB requests
@@ -264,7 +258,7 @@ export function PayloadPanel({
 
   const handleRemoveRequest = async (id: string) => {
     if (!targetId) return;
-    
+
     try {
       await emulateApi.deleteRequest(targetId, id);
       setDbRequests((prev) => prev.filter((r) => r.id !== id));

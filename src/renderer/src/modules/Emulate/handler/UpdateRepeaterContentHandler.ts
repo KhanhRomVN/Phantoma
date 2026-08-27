@@ -1,17 +1,16 @@
 /**
- * UpdateRepeaterContentHandler — Cập nhật params/headers/body của request trong Repeater (lưu vào database).
- * Sử dụng FuzzyMatcher để tìm old_content khi exact match thất bại.
+ * UpdateRepeaterContentHandler — Update params/headers/body bằng cách replace text trong JSON file.
+ * Hoạt động giống hệt replace_in_file: exact string replacement với fuzzy fallback.
  *
  * Usage:
  *   const handler = new UpdateRepeaterContentHandler();
- *   const result = await handler.handle(requests, 'repeater_1', 'headers', oldContent, newContent, targetId);
+ *   const result = await handler.handle('repeater_1', 'headers', oldContent, newContent, targetId);
  */
 
-// TYPE
 import { NetworkRequest } from '../types/inspector';
 import { emulateApi } from '../services/emulate-api.service';
 import { logger } from '@renderer/utils/logger';
-import { FuzzyMatcher } from '@renderer/modules/Code/utils/FuzzyMatcher';
+import { FuzzyMatcher } from '../../Code/utils/FuzzyMatcher';
 
 export type RepeaterTarget = 'params' | 'headers' | 'body';
 
@@ -40,7 +39,7 @@ export class UpdateRepeaterContentHandler {
     const repeaterIdx = parseInt(match[1], 10);
 
     try {
-      // Fetch repeater requests from DB
+      // Fetch repeater request from DB to get request ID and current content
       const res = await emulateApi.listRequests(targetId);
       if (!res.success || !res.data) {
         return {
@@ -55,90 +54,85 @@ export class UpdateRepeaterContentHandler {
         };
       }
 
-      const dbReq = repeaterReqs[repeaterIdx];
-      let updatedUrl = dbReq.url;
-      let updatedHeaders = dbReq.headers;
-      let updatedBody = dbReq.body;
-      let updatedParams = dbReq.params;
+      const req = repeaterReqs[repeaterIdx];
 
+      // Get current file content based on target (stored as JSON in backend)
+      let fileContent = '';
       if (target === 'params') {
-        const paramsStr = dbReq.params || '{}';
-        
-        console.log('[DEBUG][UpdateRepeaterContentHandler] target=params');
-        console.log('[DEBUG][UpdateRepeaterContentHandler] paramsStr:', JSON.stringify(paramsStr));
-        console.log('[DEBUG][UpdateRepeaterContentHandler] paramsStr length:', paramsStr.length);
-        console.log('[DEBUG][UpdateRepeaterContentHandler] oldContent:', JSON.stringify(oldContent));
-        console.log('[DEBUG][UpdateRepeaterContentHandler] oldContent length:', oldContent.length);
-        console.log('[DEBUG][UpdateRepeaterContentHandler] exact match check:', paramsStr.indexOf(oldContent) !== -1);
-        
-        // Try exact match first
-        let targetText = oldContent;
-        if (paramsStr.indexOf(oldContent) === -1) {
-          // Fallback to fuzzy match
-          console.log('[DEBUG][UpdateRepeaterContentHandler] Exact match failed, trying fuzzy match...');
-          const fuzzy = FuzzyMatcher.findMatch(paramsStr, oldContent);
-          console.log('[DEBUG][UpdateRepeaterContentHandler] Fuzzy match result:', fuzzy);
-          if (!fuzzy || fuzzy.score > 0.3) {
-            return {
-              text: `[update_repeater_content] Error: old_content not found in ${target}. Expected exact match or fuzzy match with score < 0.3\n\nDEBUG INFO:\n- paramsStr: ${JSON.stringify(paramsStr)}\n- oldContent: ${JSON.stringify(oldContent)}\n- fuzzy score: ${fuzzy?.score || 'null'}`,
-            };
-          }
-          targetText = fuzzy.originalText;
-        }
-        
-        updatedParams = paramsStr.replace(targetText, newContent);
-        console.log('[DEBUG][UpdateRepeaterContentHandler] updatedParams:', JSON.stringify(updatedParams));
+        fileContent = req.params || '[]';
       } else if (target === 'headers') {
-        const headersStr = dbReq.headers || '[]';
-        
-        // Try exact match first
-        let targetText = oldContent;
-        if (headersStr.indexOf(oldContent) === -1) {
-          // Fallback to fuzzy match
-          const fuzzy = FuzzyMatcher.findMatch(headersStr, oldContent);
-          if (!fuzzy || fuzzy.score > 0.3) {
-            return {
-              text: `[update_repeater_content] Error: old_content not found in ${target}. Expected exact match or fuzzy match with score < 0.3`,
-            };
-          }
-          targetText = fuzzy.originalText;
-        }
-        
-        updatedHeaders = headersStr.replace(targetText, newContent);
+        fileContent = req.headers || '[]';
       } else if (target === 'body') {
-        const bodyStr = dbReq.body || '';
-        
-        // Try exact match first
-        let targetText = oldContent;
-        if (bodyStr.indexOf(oldContent) === -1) {
-          // Fallback to fuzzy match
-          const fuzzy = FuzzyMatcher.findMatch(bodyStr, oldContent);
-          if (!fuzzy || fuzzy.score > 0.3) {
-            return {
-              text: `[update_repeater_content] Error: old_content not found in ${target}. Expected exact match or fuzzy match with score < 0.3`,
-            };
-          }
-          targetText = fuzzy.originalText;
-        }
-        
-        updatedBody = bodyStr.replace(targetText, newContent);
+        fileContent = req.body || '';
       }
 
-      // Update in database
-      await emulateApi.updateRequest(targetId, dbReq.id, {
-        method: dbReq.method,
-        url: updatedUrl,
-        body: updatedBody,
-        params: updatedParams,
-        headers: updatedHeaders,
-      });
+      // Normalize line endings for consistent matching
+      const normalizedContent = fileContent.replace(/\r\n/g, '\n');
+      const normalizedOld = oldContent.replace(/\r\n/g, '\n');
+      const normalizedNew = newContent.replace(/\r\n/g, '\n');
 
-      // Dispatch event để UI update
+      // Try exact match first
+      let targetText = normalizedOld;
+      let targetPos = normalizedContent.indexOf(normalizedOld);
+
+      // If exact match fails, try fuzzy matching (như ReplaceInFileHandler)
+      if (targetPos === -1) {
+        const fuzzy = FuzzyMatcher.findMatch(normalizedContent, normalizedOld);
+        if (!fuzzy || fuzzy.score > 0.3) {
+          return {
+            text: `[update_repeater_content] Error: old_content not found in ${target}\n\nDEBUG INFO:\n- Current ${target} content:\n${fileContent}\n\n- Searching for:\n${oldContent}\n\nSuggestion: Check the exact text in the file or try with more context.`,
+          };
+        }
+        // Use fuzzy match result
+        targetText = fuzzy.originalText;
+        targetPos = normalizedContent.indexOf(targetText);
+      }
+
+      if (targetPos === -1) {
+        return {
+          text: `[update_repeater_content] Error: Could not locate text in ${target}`,
+        };
+      }
+
+      // Replace old_content with new_content
+      const updatedContent =
+        normalizedContent.slice(0, targetPos) +
+        normalizedNew +
+        normalizedContent.slice(targetPos + targetText.length);
+
+      // Auto-format JSON if target is params or headers
+      let finalContent = updatedContent;
+      if (target === 'params' || target === 'headers') {
+        try {
+          const parsed = JSON.parse(updatedContent);
+          finalContent = JSON.stringify(parsed, null, 2);
+        } catch {
+          // Keep as-is if not valid JSON
+          finalContent = updatedContent;
+        }
+      }
+
+      // Update in database via API
+      const updateInput: any = {};
+      if (target === 'params') updateInput.params = finalContent;
+      if (target === 'headers') updateInput.headers = finalContent;
+      if (target === 'body') updateInput.body = finalContent;
+
+      const updateRes = await emulateApi.updateRequest(targetId, req.id, updateInput);
+      if (!updateRes.success) {
+        return {
+          text: `[update_repeater_content] Error: ${updateRes.error || 'Failed to update'}`,
+        };
+      }
+
+      // Dispatch event to refresh UI
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('repeater-updated'));
       }
 
-      return { text: `[update_repeater_content] Updated ${repeaterId} ${target}` };
+      return { 
+        text: `[update_repeater_content] Updated ${repeaterId} ${target}\n\nFile: ~/.phantoma/repeaters/${targetId}/repeater_${req.id}/${target}.json` 
+      };
     } catch (err: any) {
       logger.error('[UpdateRepeaterContentHandler] Error:', err);
       return { text: `[update_repeater_content] Error: ${err.message || String(err)}` };

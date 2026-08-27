@@ -9,14 +9,25 @@
  *   const result = await EmulateController.executeTool('list_https', { filter: {...}, limit: 50 });
  */
 import {
-  ListHttpHandler, ListHttpFilter, ListHttpResult,
+  ListHttpHandler,
+  ListHttpFilter,
+  ListHttpResult,
 } from '../modules/Emulate/handler/ListHttpHandler';
 import { ListHostsHandler } from '../modules/Emulate/handler/ListHostsHandler';
-import { ListSourcesHandler, ListSourcesFilter } from '../modules/Emulate/handler/ListSourcesHandler';
-import { ListResourcesHandler, ListResourcesFilter } from '../modules/Emulate/handler/ListResourcesHandler';
+import {
+  ListSourcesHandler,
+  ListSourcesFilter,
+} from '../modules/Emulate/handler/ListSourcesHandler';
+import {
+  ListResourcesHandler,
+  ListResourcesFilter,
+} from '../modules/Emulate/handler/ListResourcesHandler';
 import { GetSourceDetailHandler } from '../modules/Emulate/handler/GetSourceDetailHandler';
 import { GetHttpsDetailHandler } from '../modules/Emulate/handler/GetHttpsDetailHandler';
-import { GetResourceContentHandler, GetResourceContentOptions } from '../modules/Emulate/handler/GetResourceContentHandler';
+import {
+  GetResourceContentHandler,
+  GetResourceContentOptions,
+} from '../modules/Emulate/handler/GetResourceContentHandler';
 import { GetTrafficSummaryHandler } from '../modules/Emulate/handler/GetTrafficSummaryHandler';
 import { GetFilterHandler } from '../modules/Emulate/handler/GetFilterHandler';
 import { ApplyFilterHandler } from '../modules/Emulate/handler/ApplyFilterHandler';
@@ -30,8 +41,6 @@ import { ListRepeatersHandler } from '../modules/Emulate/handler/ListRepeatersHa
 import { DeleteRepeaterHandler } from '../modules/Emulate/handler/DeleteRepeaterHandler';
 import { GetRepeaterDetailHandler } from '../modules/Emulate/handler/GetRepeaterDetailHandler';
 import { UpdateRepeaterContentHandler } from '../modules/Emulate/handler/UpdateRepeaterContentHandler';
-import { ListPayloadsHandler } from '../modules/Emulate/handler/ListPayloadsHandler';
-import { SetRepeaterPayloadValuesHandler } from '../modules/Emulate/handler/SetRepeaterPayloadValuesHandler';
 import type { CdpScriptUnpackedData } from '@renderer/shared/types/network';
 
 export class EmulateController {
@@ -58,8 +67,6 @@ export class EmulateController {
   private deleteRepeaterHandler: DeleteRepeaterHandler;
   private getRepeaterDetailHandler: GetRepeaterDetailHandler;
   private updateRepeaterContentHandler: UpdateRepeaterContentHandler;
-  private listPayloadsHandler: ListPayloadsHandler;
-  private setRepeaterPayloadValuesHandler: SetRepeaterPayloadValuesHandler;
 
   private constructor() {
     this.listHttpHandler = new ListHttpHandler();
@@ -77,8 +84,6 @@ export class EmulateController {
     this.deleteRepeaterHandler = new DeleteRepeaterHandler();
     this.getRepeaterDetailHandler = new GetRepeaterDetailHandler();
     this.updateRepeaterContentHandler = new UpdateRepeaterContentHandler();
-    this.listPayloadsHandler = new ListPayloadsHandler();
-    this.setRepeaterPayloadValuesHandler = new SetRepeaterPayloadValuesHandler();
   }
 
   // ── Singleton ─────────────────────────────────────────────────────
@@ -99,7 +104,7 @@ export class EmulateController {
     contextTargetId?: string | null,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     const ctrl = EmulateController.getInstance();
-    
+
     // Fallback to contextTargetId if controller targetId is not set
     const effectiveTargetId = ctrl.targetId || contextTargetId || null;
 
@@ -131,7 +136,10 @@ export class EmulateController {
           const options: GetResourceContentOptions = {};
           if (params.start_line !== undefined) options.startLine = params.start_line;
           if (params.end_line !== undefined) options.endLine = params.end_line;
-          return { success: true, data: { output: ctrl.getResourceContentText(params.filename, options) } };
+          return {
+            success: true,
+            data: { output: ctrl.getResourceContentText(params.filename, options) },
+          };
         }
         case 'apply_filter': {
           const currentFilter = ctrl.getFilter();
@@ -139,34 +147,74 @@ export class EmulateController {
           ctrl.applyFilterChanges(params as any);
 
           const changes: string[] = [];
-          if (params.methods) changes.push('Methods: ' + params.methods.map((m: any) => m.value + '(' + m.action + ')').join(', '));
-          if (params.statuses) changes.push('Statuses: ' + params.statuses.map((s: any) => s.value + '(' + s.action + ')').join(', '));
-          if (params.types) changes.push('Types: ' + params.types.map((t: any) => t.value + '(' + t.action + ')').join(', '));
-          if (params.hosts) changes.push('Hosts: ' + params.hosts.map((h: any) => h.value + '(' + h.action + ')').join(', '));
-          if (params.paths) changes.push('Paths: ' + params.paths.map((p: any) => p.value + '(' + p.action + ')').join(', '));
-          if (params.size) changes.push('Size: ' + (params.size.min || '0') + '-' + (params.size.max || 'inf'));
-          if (params.time) changes.push('Time: ' + (params.time.min || '0') + '-' + (params.time.max || 'inf'));
+          if (params.methods)
+            changes.push(
+              'Methods: ' +
+                params.methods.map((m: any) => m.value + '(' + m.action + ')').join(', '),
+            );
+          if (params.statuses)
+            changes.push(
+              'Statuses: ' +
+                params.statuses.map((s: any) => s.value + '(' + s.action + ')').join(', '),
+            );
+          if (params.types)
+            changes.push(
+              'Types: ' + params.types.map((t: any) => t.value + '(' + t.action + ')').join(', '),
+            );
+          if (params.hosts)
+            changes.push(
+              'Hosts: ' + params.hosts.map((h: any) => h.value + '(' + h.action + ')').join(', '),
+            );
+          if (params.paths)
+            changes.push(
+              'Paths: ' + params.paths.map((p: any) => p.value + '(' + p.action + ')').join(', '),
+            );
+          if (params.size)
+            changes.push('Size: ' + (params.size.min || '0') + '-' + (params.size.max || 'inf'));
+          if (params.time)
+            changes.push('Time: ' + (params.time.min || '0') + '-' + (params.time.max || 'inf'));
 
-          return { success: true, data: { output: '[apply_filter] Applied: ' + (changes.join('; ') || 'no changes') } };
+          return {
+            success: true,
+            data: { output: '[apply_filter] Applied: ' + (changes.join('; ') || 'no changes') },
+          };
         }
         case 'send_to_repeater': {
           if (params.index === undefined) return { success: false, error: 'index is required' };
-          const result = await ctrl.sendToRepeaterHandler.handle(ctrl.requests, params.index, effectiveTargetId);
+          const result = await ctrl.sendToRepeaterHandler.handle(
+            ctrl.requests,
+            params.index,
+            effectiveTargetId,
+          );
           return { success: true, data: { output: result.text } };
         }
         case 'list_repeaters': {
-          console.log('[DEBUG][executeTool] Executing list_repeaters, effectiveTargetId:', effectiveTargetId);
-          const listResult = await ctrl.listRepeatersHandler.handle(ctrl.requests, effectiveTargetId);
+          console.log(
+            '[DEBUG][executeTool] Executing list_repeaters, effectiveTargetId:',
+            effectiveTargetId,
+          );
+          const listResult = await ctrl.listRepeatersHandler.handle(
+            ctrl.requests,
+            effectiveTargetId,
+          );
           return { success: true, data: { output: listResult.text } };
         }
         case 'delete_repeater': {
           if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
-          const deleteResult = await ctrl.deleteRepeaterHandler.handle(ctrl.requests, params.repeater_id, effectiveTargetId);
+          const deleteResult = await ctrl.deleteRepeaterHandler.handle(
+            ctrl.requests,
+            params.repeater_id,
+            effectiveTargetId,
+          );
           return { success: true, data: { output: deleteResult.text } };
         }
         case 'get_repeater_detail': {
           if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
-          const detailResult = await ctrl.getRepeaterDetailHandler.handle(ctrl.requests, params.repeater_id, effectiveTargetId);
+          const detailResult = await ctrl.getRepeaterDetailHandler.handle(
+            ctrl.requests,
+            params.repeater_id,
+            effectiveTargetId,
+          );
           return { success: true, data: { output: detailResult.text } };
         }
         case 'update_repeater_content': {
@@ -195,9 +243,15 @@ export class EmulateController {
 
   // ── Instance methods ──────────────────────────────────────────────
 
-  public setRequests(requests: NetworkRequest[]): void { this.requests = requests; }
-  public setUnpackedScripts(scripts: Map<string, CdpScriptUnpackedData> | undefined): void { this.unpackedScripts = scripts; }
-  public setTargetId(targetId: string | null): void { this.targetId = targetId; }
+  public setRequests(requests: NetworkRequest[]): void {
+    this.requests = requests;
+  }
+  public setUnpackedScripts(scripts: Map<string, CdpScriptUnpackedData> | undefined): void {
+    this.unpackedScripts = scripts;
+  }
+  public setTargetId(targetId: string | null): void {
+    this.targetId = targetId;
+  }
 
   public listHttps(filter: ListHttpFilter = {}, limit: number = 50): ListHttpResult {
     const allRequests = this.requests;
@@ -205,29 +259,54 @@ export class EmulateController {
     if (this.filter) filteredRequests = filterRequestsByConfig(allRequests, this.filter, '');
     return this.listHttpHandler.handle(filteredRequests, filter, limit, allRequests);
   }
-  public listHttpsText(filter: ListHttpFilter = {}, limit: number = 50): string { return this.listHttps(filter, limit).text; }
-  public listHostsText(): string { return this.listHostsHandler.handle(this.requests).text; }
-  public listSourcesText(filter: ListSourcesFilter = {}): string { return this.listSourcesHandler.handle(this.requests, filter).text; }
-  public listResourcesText(filter: ListResourcesFilter = {}): string { return this.listResourcesHandler.handle(this.requests, filter).text; }
-  public getSourceDetailText(filepath: string): string { return this.getSourceDetailHandler.handle(this.requests, this.unpackedScripts, filepath).text; }
-  public getHttpsDetailText(index: number): string { return this.getHttpsDetailHandler.handle(this.requests, index).text; }
-  public getResourceContentText(filename: string, options: GetResourceContentOptions = {}): string { return this.getResourceContentHandler.handle(this.requests, filename, options).text; }
+  public listHttpsText(filter: ListHttpFilter = {}, limit: number = 50): string {
+    return this.listHttps(filter, limit).text;
+  }
+  public listHostsText(): string {
+    return this.listHostsHandler.handle(this.requests).text;
+  }
+  public listSourcesText(filter: ListSourcesFilter = {}): string {
+    return this.listSourcesHandler.handle(this.requests, filter).text;
+  }
+  public listResourcesText(filter: ListResourcesFilter = {}): string {
+    return this.listResourcesHandler.handle(this.requests, filter).text;
+  }
+  public getSourceDetailText(filepath: string): string {
+    return this.getSourceDetailHandler.handle(this.requests, this.unpackedScripts, filepath).text;
+  }
+  public getHttpsDetailText(index: number): string {
+    return this.getHttpsDetailHandler.handle(this.requests, index).text;
+  }
+  public getResourceContentText(filename: string, options: GetResourceContentOptions = {}): string {
+    return this.getResourceContentHandler.handle(this.requests, filename, options).text;
+  }
   public async sendToRepeaterText(index: number): Promise<string> {
     const result = await this.sendToRepeaterHandler.handle(this.requests, index, this.targetId);
     return result.text;
   }
   public async listRepeatersText(): Promise<string> {
     console.log('[DEBUG][EmulateController.listRepeatersText] targetId:', this.targetId);
-    console.log('[DEBUG][EmulateController.listRepeatersText] requests count:', this.requests.length);
+    console.log(
+      '[DEBUG][EmulateController.listRepeatersText] requests count:',
+      this.requests.length,
+    );
     const result = await this.listRepeatersHandler.handle(this.requests, this.targetId);
     return result.text;
   }
   public async deleteRepeaterText(repeaterId: string): Promise<string> {
-    const result = await this.deleteRepeaterHandler.handle(this.requests, repeaterId, this.targetId);
+    const result = await this.deleteRepeaterHandler.handle(
+      this.requests,
+      repeaterId,
+      this.targetId,
+    );
     return result.text;
   }
   public async getRepeaterDetailText(repeaterId: string): Promise<string> {
-    const result = await this.getRepeaterDetailHandler.handle(this.requests, repeaterId, this.targetId);
+    const result = await this.getRepeaterDetailHandler.handle(
+      this.requests,
+      repeaterId,
+      this.targetId,
+    );
     return result.text;
   }
   public async updateRepeaterContentText(
@@ -236,17 +315,32 @@ export class EmulateController {
     oldContent: string,
     newContent: string,
   ): Promise<string> {
-    const result = await this.updateRepeaterContentHandler.handle(this.requests, repeaterId, target, oldContent, newContent, this.targetId);
+    const result = await this.updateRepeaterContentHandler.handle(
+      this.requests,
+      repeaterId,
+      target,
+      oldContent,
+      newContent,
+      this.targetId,
+    );
     return result.text;
   }
-  public getTrafficSummary(): TrafficSummary { return this.getTrafficSummaryHandler.handle(this.requests); }
-  public setFilter(filter: InspectorFilter): void { this.filter = filter; }
-  public getFilter(): InspectorFilter | undefined { return this.filter; }
+  public getTrafficSummary(): TrafficSummary {
+    return this.getTrafficSummaryHandler.handle(this.requests);
+  }
+  public setFilter(filter: InspectorFilter): void {
+    this.filter = filter;
+  }
+  public getFilter(): InspectorFilter | undefined {
+    return this.filter;
+  }
   public getFilterText(): string {
     if (!this.filter) return this.getFilterHandler.handle({} as InspectorFilter, this.requests);
     return this.getFilterHandler.handle(this.filter, this.requests);
   }
-  public setOnFilterChanged(cb: ((filter: InspectorFilter) => void) | null): void { this.onFilterChanged = cb; }
+  public setOnFilterChanged(cb: ((filter: InspectorFilter) => void) | null): void {
+    this.onFilterChanged = cb;
+  }
   public applyFilterChanges(params: ApplyFilterParams): InspectorFilter {
     const current = this.filter || ({} as InspectorFilter);
     const updated = this.applyFilterHandler.apply(current, params);

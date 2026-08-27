@@ -60,7 +60,8 @@ export function RequestList({
       list.push(req);
       groups.set(host, list);
     });
-    return Array.from(groups.entries());
+    const result = Array.from(groups.entries());
+    return result;
   }, [filtered]);
 
   const toggleHost = (host: string) => {

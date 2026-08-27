@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Code } from 'lucide-react';
 
 // ── Components ──
 import { ParamTab } from './TabContent/ParamTab';
@@ -148,6 +149,10 @@ export function RequestPanel({
     contentType?: string;
     duration?: number;
   } | null>(null);
+
+  // View mode state (table vs raw)
+  const [isParamsRawView, setIsParamsRawView] = useState(false);
+  const [isHeadersRawView, setIsHeadersRawView] = useState(false);
 
   // Sync response when viewHistoryEntry changes
   useEffect(() => {
@@ -655,8 +660,44 @@ export function RequestPanel({
   };
 
   const tabs: { id: RepeaterTab; label: React.ReactNode; count?: number }[] = [
-    { id: 'params', label: 'Params', count: params.filter((p) => p.enabled && p.key).length },
-    { id: 'headers', label: 'Headers', count: headers.filter((h) => h.enabled && h.key).length },
+    { 
+      id: 'params', 
+      label: (
+        <div className="flex items-center gap-1.5">
+          <span>Params</span>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsParamsRawView(!isParamsRawView);
+            }}
+            className="p-0.5 rounded hover:bg-primary/20 transition-colors cursor-pointer"
+            title={isParamsRawView ? "Switch to table view" : "Switch to raw view"}
+          >
+            <Code className="w-3 h-3" />
+          </span>
+        </div>
+      ), 
+      count: params.filter((p) => p.enabled && p.key).length 
+    },
+    { 
+      id: 'headers', 
+      label: (
+        <div className="flex items-center gap-1.5">
+          <span>Headers</span>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsHeadersRawView(!isHeadersRawView);
+            }}
+            className="p-0.5 rounded hover:bg-primary/20 transition-colors cursor-pointer"
+            title={isHeadersRawView ? "Switch to table view" : "Switch to raw view"}
+          >
+            <Code className="w-3 h-3" />
+          </span>
+        </div>
+      ), 
+      count: headers.filter((h) => h.enabled && h.key).length 
+    },
     { id: 'body', label: 'Body' },
     { id: 'payload', label: 'Payload', count: payloads.filter((p) => p.enabled).length },
     { id: 'history', label: 'History', count: history.length },
@@ -716,6 +757,7 @@ export function RequestPanel({
             readOnly={readOnly}
             payloads={payloads}
             onSwitchToPayload={() => setActiveTab('payload')}
+            isRawView={isParamsRawView}
           />
         )}
         {activeTab === 'headers' && (
@@ -725,6 +767,7 @@ export function RequestPanel({
             onChange={setHeaders}
             payloads={payloads}
             onSwitchToPayload={() => setActiveTab('payload')}
+            isRawView={isHeadersRawView}
           />
         )}
         {activeTab === 'body' && (

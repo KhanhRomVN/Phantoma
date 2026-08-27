@@ -12,28 +12,27 @@ import { emulateApi } from '../services/emulate-api.service';
 import { logger } from '@renderer/utils/logger';
 
 export class ListRepeatersHandler {
-  public async handle(requests: NetworkRequest[], targetId?: string | null): Promise<{ text: string }> {
-    console.log('[DEBUG][ListRepeatersHandler] targetId:', targetId);
-    console.log('[DEBUG][ListRepeatersHandler] total requests in memory:', requests.length);
-    
+  public async handle(
+    requests: NetworkRequest[],
+    targetId?: string | null,
+  ): Promise<{ text: string }> {
     if (!targetId) {
       return {
         text: `[list_repeaters] Error: targetId is required to query database`,
       };
     }
-    
+
     try {
       const res = await emulateApi.listRequests(targetId);
-      
+
       if (!res.success) {
         return {
           text: `[list_repeaters] Error: ${res.error || 'Failed to fetch from database'}`,
         };
       }
-      
+
       const dbRequests = res.data || [];
-      console.log('[DEBUG][ListRepeatersHandler] DB requests count:', dbRequests.length);
-      
+
       const lines = dbRequests.map((req: any, i: number) => {
         let host = '';
         let path = '';

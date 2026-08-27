@@ -90,10 +90,6 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   onStopSession,
   activeAppId,
 }) => {
-  useEffect(() => {
-    console.log('[DEBUG][RENDER] TargetListPanel re-rendered');
-  });
-
   const [targetSearchQuery, setTargetSearchQuery] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [filterPlatform, setFilterPlatform] = useState<'all' | AppPlatform>('all');
@@ -101,7 +97,9 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   const [isHovering, setIsHovering] = useState(false);
   const [isPlatformModalOpen, setIsPlatformModalOpen] = useState(false);
 
-  const [deviceList, setDeviceList] = useState<{ name: string; serial: string; type: string }[]>([]);
+  const [deviceList, setDeviceList] = useState<{ name: string; serial: string; type: string }[]>(
+    [],
+  );
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
   const [showRunningModal, setShowRunningModal] = useState(false);
@@ -127,8 +125,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   const searchedTargets = useMemo(() => {
     return allTargets.filter((tab) => {
       const matchSearch = (tab.title || '').toLowerCase().includes(targetSearchQuery.toLowerCase());
-      const matchFilter =
-        filterPlatform === 'all' || getTargetPlatform(tab) === filterPlatform;
+      const matchFilter = filterPlatform === 'all' || getTargetPlatform(tab) === filterPlatform;
       return matchSearch && matchFilter;
     });
   }, [allTargets, targetSearchQuery, filterPlatform]);
@@ -251,7 +248,11 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
               effectiveCollapsed ? 'mx-auto' : 'ml-auto',
             )}
           >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {isCollapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
           </button>
         </div>
 
@@ -385,7 +386,11 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
       </div>
 
       {isPlatformModalOpen && (
-        <Modal isOpen={isPlatformModalOpen} onClose={() => setIsPlatformModalOpen(false)} className="max-w-lg">
+        <Modal
+          isOpen={isPlatformModalOpen}
+          onClose={() => setIsPlatformModalOpen(false)}
+          className="max-w-lg"
+        >
           <ModalHeader
             title="Add Target"
             description="Choose a platform"

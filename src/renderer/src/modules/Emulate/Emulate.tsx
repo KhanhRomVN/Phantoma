@@ -38,10 +38,6 @@ export default React.memo(function Emulate({
   activeAppId = '',
   onStopSession = async () => {},
 }: EmulateProps) {
-  useEffect(() => {
-    console.log('[DEBUG][RENDER] Emulate re-rendered');
-  });
-
   const { getColorByIndex, UNIFIED_ACCENT } = useAccentColors();
 
   const { setEmulateState } = useAgentFeature();
@@ -298,7 +294,6 @@ export default React.memo(function Emulate({
 
   // Sync targetId to EmulateController
   useEffect(() => {
-    console.log('[DEBUG][Emulate] Syncing activeTargetId to controller:', activeTargetId);
     EmulateController.getInstance().setTargetId(activeTargetId);
   }, [activeTargetId]);
 
@@ -497,56 +492,6 @@ export default React.memo(function Emulate({
       });
       setFuzzerTargetId(req.id);
       handleSetSelectedTool('repeater');
-
-      // [DEBUG] Có thể xóa sau khi fix xong bug trống Param/Header/Body
-      logger.debug('[DEBUG][SendToRepeater] req.id =', req.id);
-      logger.debug('[DEBUG][SendToRepeater] req.method =', req.method);
-      logger.debug('[DEBUG][SendToRepeater] req.url =', req.url);
-      logger.debug('[DEBUG][SendToRepeater] req.requestHeaders =', req.requestHeaders);
-      logger.debug('[DEBUG][SendToRepeater] req.requestBody =', req.requestBody);
-
-      // Gửi API tạo bản ghi repeater request nếu có activeTargetId
-      if (activeTargetId) {
-        const bodyStr =
-          typeof req.requestBody === 'string'
-            ? req.requestBody
-            : req.requestBody
-              ? JSON.stringify(req.requestBody)
-              : '';
-
-        const paramItems: ParamItem[] = [];
-        try {
-          const urlObj = new URL(req.url);
-          urlObj.searchParams.forEach((value, key) => {
-            paramItems.push({ id: crypto.randomUUID(), key, value, enabled: true });
-          });
-        } catch (e) {
-          logger.warn('[Emulate] Failed to parse URL params:', e);
-        }
-
-        const headerItems: ParamItem[] = Object.entries(req.requestHeaders ?? {}).map(
-          ([key, value]) => ({
-            id: crypto.randomUUID(),
-            key,
-            value: String(value),
-            enabled: true,
-          }),
-        );
-
-        emulateApi
-          .createRequest(activeTargetId, {
-            method: req.method || 'GET',
-            url: req.url,
-            body: bodyStr,
-            params: JSON.stringify(paramItems),
-            headers: JSON.stringify(headerItems),
-          })
-          .then((res) => {
-            // [DEBUG] Có thể xóa sau khi fix xong bug trống Param/Header/Body
-            logger.debug('[DEBUG][SendToRepeater] createRequest response =', res);
-          })
-          .catch((e) => logger.error('[Emulate] Send to Repeater createRequest failed:', e));
-      }
     },
     [activeTargetId, handleSetSelectedTool],
   );
@@ -589,49 +534,50 @@ export default React.memo(function Emulate({
 
   return (
     <div className="flex h-full bg-background flex-col">
-      <div className="flex flex-1 min-h-0">{/* Target Sidebar */}
-      <TargetSidebar
-        targetTabs={memoizedTargetTabs}
-        activeTargetId={activeTargetId}
-        targetStates={memoizedTargetStates}
-        activeAppId={activeAppId}
-        accentColor={UNIFIED_ACCENT}
-        onSelectTarget={setActiveTarget}
-        onRemoveTarget={removeTargetTab}
-        onStartTarget={handleStartTarget}
-        onStopTarget={handleStopTarget}
-        onLaunchTarget={handleLaunchTarget}
-        onStopSession={handleStopSession}
-        onOpenAddModal={handleOpenAddModal}
-        onEditTarget={handleEditTarget}
-      />
+      <div className="flex flex-1 min-h-0">
+        {/* Target Sidebar */}
+        <TargetSidebar
+          targetTabs={memoizedTargetTabs}
+          activeTargetId={activeTargetId}
+          targetStates={memoizedTargetStates}
+          activeAppId={activeAppId}
+          accentColor={UNIFIED_ACCENT}
+          onSelectTarget={setActiveTarget}
+          onRemoveTarget={removeTargetTab}
+          onStartTarget={handleStartTarget}
+          onStopTarget={handleStopTarget}
+          onLaunchTarget={handleLaunchTarget}
+          onStopSession={handleStopSession}
+          onOpenAddModal={handleOpenAddModal}
+          onEditTarget={handleEditTarget}
+        />
 
-      {/* Main Content Area */}
-      <WorkspacePanel
-        selectedTool={selectedTool}
-        activeTargetId={activeTargetId}
-        targetStates={targetStates}
-        selectedId={selectedId}
-        searchTerm={searchTerm}
-        filter={filter}
-        isFilterOpen={isFilterOpen}
-        fuzzerTargetId={fuzzerTargetId}
-        unpackedScripts={unpackedScripts}
-        currentTargetUrl={currentTargetUrl}
-        getColorByIndex={getColorByIndex}
-        onSetSelectedTool={handleSetSelectedTool}
-        onSetSelectedId={handleSetSelectedId}
-        onSearchChange={setSearchTerm}
-        onFilterChange={handleSetFilter}
-        onToggleFilter={handleToggleFilter}
-        onSendToRepeater={handleSendToRepeater}
-        onClearRequests={handleClearRequests}
-        onLaunchTarget={handleLaunchTarget}
-        onToggleIntercept={handleToggleIntercept}
-        onStopTarget={handleStopTarget}
-        onStartTarget={handleStartTarget}
-        isTargetActive={isTargetActive}
-      />
+        {/* Main Content Area */}
+        <WorkspacePanel
+          selectedTool={selectedTool}
+          activeTargetId={activeTargetId}
+          targetStates={targetStates}
+          selectedId={selectedId}
+          searchTerm={searchTerm}
+          filter={filter}
+          isFilterOpen={isFilterOpen}
+          fuzzerTargetId={fuzzerTargetId}
+          unpackedScripts={unpackedScripts}
+          currentTargetUrl={currentTargetUrl}
+          getColorByIndex={getColorByIndex}
+          onSetSelectedTool={handleSetSelectedTool}
+          onSetSelectedId={handleSetSelectedId}
+          onSearchChange={setSearchTerm}
+          onFilterChange={handleSetFilter}
+          onToggleFilter={handleToggleFilter}
+          onSendToRepeater={handleSendToRepeater}
+          onClearRequests={handleClearRequests}
+          onLaunchTarget={handleLaunchTarget}
+          onToggleIntercept={handleToggleIntercept}
+          onStopTarget={handleStopTarget}
+          onStartTarget={handleStartTarget}
+          isTargetActive={isTargetActive}
+        />
       </div>
 
       {/* Footer Bar */}

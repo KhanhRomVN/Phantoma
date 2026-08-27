@@ -52,15 +52,10 @@ const TargetCard = memo(function TargetCard({
   onRemoveTarget,
   onStopTarget,
   onEditTarget,
-  onStopSession,
   deviceList,
   onOpenRunningModal,
   collapsed,
 }: TargetCardProps) {
-  useEffect(() => {
-    console.log('[DEBUG][RENDER] TargetCard re-rendered', tab.id);
-  });
-
   const isRunning = targetStates[tab.id]?.isActive || false;
   const elapsed = useTimerStore((state) => state.timerDisplay[tab.id] || '00:00');
 

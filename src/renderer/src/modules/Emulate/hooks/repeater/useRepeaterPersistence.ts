@@ -32,9 +32,9 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
   useEffect(() => {
     if (!targetId) { setCurrentRequestId(null); hasLoadedRef.current = false; return; }
     let cancelled = false;
-    setIsLoading(true);
-    hasLoadedRef.current = false;
-    (async () => {
+    
+    const loadData = async () => {
+      setIsLoading(true);
       const res = await emulateApi.listRequests(targetId);
       if (cancelled) return;
       if (res.success && res.data && res.data.length > 0) {
@@ -44,7 +44,18 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
         let loadedHeaders: ParamItem[] = [];
         try {
           const parsedParams = JSON.parse(req.params || '[]');
-          loadedParams = Array.isArray(parsedParams) ? parsedParams : [];
+          if (Array.isArray(parsedParams)) {
+            // Standard array format: [{"key":"test","value":"1","enabled":true}]
+            loadedParams = parsedParams;
+          } else if (parsedParams && typeof parsedParams === 'object') {
+            // Object format: {"test":"1"} - convert to array
+            loadedParams = Object.entries(parsedParams).map(([key, value]) => ({
+              id: crypto.randomUUID(),
+              key,
+              value: String(value),
+              enabled: true,
+            }));
+          }
         } catch (e) { logger.warn('[RepeaterPersist] Failed to parse params:', e); }
         try {
           const parsedHeaders = JSON.parse(req.headers || '[]');
@@ -72,8 +83,23 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
         hasLoadedRef.current = true;
       } else { setCurrentRequestId(null); }
       setIsLoading(false);
-    })();
-    return () => { cancelled = true; };
+    };
+    
+    loadData();
+    hasLoadedRef.current = false;
+    
+    // Listen for repeater updates
+    const handleRepeaterUpdate = () => {
+      logger.info('[RepeaterPersist] Repeater updated event received, reloading...');
+      loadData();
+    };
+    
+    window.addEventListener('repeater-updated', handleRepeaterUpdate);
+    
+    return () => { 
+      cancelled = true;
+      window.removeEventListener('repeater-updated', handleRepeaterUpdate);
+    };
   }, [targetId]);
 
   useEffect(() => {

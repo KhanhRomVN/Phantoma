@@ -80,11 +80,13 @@ Lưu cấu hình request (method, url, body, params, headers) cho từng target.
 | 2 | `emulate_target_id` | TEXT | NOT NULL, FK → `emulate_targets.id` | Thuộc target nào |
 | 3 | `method` | TEXT | NOT NULL, DEFAULT 'GET' | GET, POST, PUT, DELETE... |
 | 4 | `url` | TEXT | NOT NULL | URL gốc (chưa có query string) |
-| 5 | `body` | TEXT | DEFAULT '' | Request body (JSON / raw text) |
-| 6 | `params` | TEXT (JSON) | DEFAULT '[]' | Mảng ParamItem: `[{"key":"q","value":"test","enabled":true}]` |
-| 7 | `headers` | TEXT (JSON) | DEFAULT '[]' | Mảng HeaderItem: `[{"key":"Authorization","value":"Bearer ...","enabled":true}]` |
+| 5 | `body` | TEXT | DEFAULT '' | **[DEPRECATED]** Request body - giờ lưu trong file system |
+| 6 | `params` | TEXT (JSON) | DEFAULT '[]' | **[DEPRECATED]** Params array - giờ lưu trong file system |
+| 7 | `headers` | TEXT (JSON) | DEFAULT '[]' | **[DEPRECATED]** Headers array - giờ lưu trong file system |
 | 8 | `created_at` | INTEGER | DEFAULT (strftime('%s','now')) | Thời gian tạo |
 | 9 | `updated_at` | INTEGER | DEFAULT (strftime('%s','now')) | Thời gian cập nhật cuối |
+
+**⚠️ LƯU Ý:** Từ version mới, `params`, `headers`, và `body` chỉ lưu metadata trong database (để giữ tương thích), còn nội dung thực tế được lưu trong file system tại `~/.phantoma/repeaters/{targetId}/repeater_{id}/`. Xem thêm `data-storage.md` để biết chi tiết.
 
 **Indexes:**
 - `idx_emulate_repeater_requests_target` — `emulate_target_id`

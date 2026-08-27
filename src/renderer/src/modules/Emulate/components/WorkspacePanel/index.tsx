@@ -77,10 +77,6 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
   onStartTarget,
   isTargetActive,
 }) => {
-  useEffect(() => {
-    console.log('[DEBUG][RENDER] WorkspacePanel re-rendered');
-  });
-
   const emptySet = useMemo(() => new Set<string>(), []);
 
   const TabBar = (

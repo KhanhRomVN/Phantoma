@@ -87,3 +87,8 @@ func expandHome(path string) string {
 	}
 	return strings.Replace(path, "~", usr.HomeDir, 1)
 }
+
+// GetAppDataDir returns the app data directory path (~/.phantoma)
+func GetAppDataDir() string {
+	return expandHome("~/.phantoma")
+}

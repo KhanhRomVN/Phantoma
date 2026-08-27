@@ -46,52 +46,46 @@ export class GetRepeaterDetailHandler {
 
       const req = repeaterReqs[repeaterIdx];
 
-      // Parse params from URL
-      let params: Record<string, string> = {};
-      try {
-        const parsed = req.params ? JSON.parse(req.params) : [];
-        if (Array.isArray(parsed)) {
-          parsed.forEach((p: any) => {
-            if (p.enabled !== false && p.key) {
-              params[p.key] = p.value || '';
-            }
-          });
-        }
-      } catch {
-        // Fallback: parse from URL
+      // Get raw content from database and format as JSON
+      const paramsRaw = req.params || '[]';
+      const headersRaw = req.headers || '[]';
+      const bodyRaw = req.body || '';
+
+      // Auto-format JSON for readability
+      const formatJson = (jsonStr: string): string => {
         try {
-          const url = new URL(req.url);
-          url.searchParams.forEach((value, key) => {
-            params[key] = value;
-          });
+          const parsed = JSON.parse(jsonStr);
+          return JSON.stringify(parsed, null, 2);
         } catch {
-          params = {};
+          return jsonStr; // Return as-is if not valid JSON
         }
-      }
-
-      // Parse headers
-      let headers: Record<string, string> = {};
-      try {
-        const parsed = req.headers ? JSON.parse(req.headers) : [];
-        if (Array.isArray(parsed)) {
-          parsed.forEach((h: any) => {
-            if (h.enabled !== false && h.key) {
-              headers[h.key] = h.value || '';
-            }
-          });
-        }
-      } catch (err) {
-        logger.warn('[GetRepeaterDetailHandler] Failed to parse headers:', err);
-      }
-
-      const detail = {
-        params,
-        headers,
-        body: req.body || '',
       };
 
+      // Build output with formatted JSON content
+      const method = req.method || 'GET';
+      const url = req.url || '';
+      const firstLine = `[get_repeater_detail] ${repeaterId} ${method} ${url}`;
+
+      // Output formatted JSON content
+      let paramsText = '';
+      if (paramsRaw && paramsRaw !== '[]') {
+        paramsText = '\n\n**Params:**\n```json\n' + formatJson(paramsRaw) + '\n```';
+      }
+
+      let headersText = '';
+      if (headersRaw && headersRaw !== '[]') {
+        headersText = '\n\n**Headers:**\n```json\n' + formatJson(headersRaw) + '\n```';
+      }
+
+      let bodyText = '';
+      if (bodyRaw) {
+        bodyText = '\n\n**Body:**\n```json\n' + formatJson(bodyRaw) + '\n```';
+      } else {
+        bodyText = '\n\n**Body:** <no value>';
+      }
+
       return {
-        text: `[get_repeater_detail] ${repeaterId}\n` + JSON.stringify(detail, null, 2),
+        text: firstLine + paramsText + headersText + bodyText,
       };
     } catch (err: any) {
       logger.error('[GetRepeaterDetailHandler] Error:', err);
