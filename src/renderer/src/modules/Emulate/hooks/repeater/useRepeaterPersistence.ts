@@ -105,16 +105,49 @@ export function useRepeaterPersistence({ targetId, method, url, body, params, he
   useEffect(() => {
     if (!targetId || isLoading) return;
     const snapshot = JSON.stringify({ method, url, body, params, headers });
-    if (snapshot === lastSavedRef.current) return;
+    
+    logger.info(`[RepeaterPersist] Data changed - snapshot: ${snapshot.substring(0, 100)}...`);
+    logger.info(`[RepeaterPersist] lastSavedRef: ${lastSavedRef.current.substring(0, 100)}...`);
+    
+    if (snapshot === lastSavedRef.current) {
+      logger.info('[RepeaterPersist] Snapshot unchanged, skipping save');
+      return;
+    }
+    
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       setIsSaving(true);
+      logger.info(`[RepeaterPersist] Saving... currentRequestId: ${currentRequestId}`);
+      
+      // Remove 'id' field from params and headers before saving
+      // Then auto-format with 2-space indent for readability
+      const paramsWithoutId = params.map(({ id, ...rest }) => rest);
+      const headersWithoutId = headers.map(({ id, ...rest }) => rest);
+      
       try {
         if (currentRequestId) {
-          await emulateApi.updateRequest(targetId, currentRequestId, { method, url, body, params: JSON.stringify(params), headers: JSON.stringify(headers) });
+          logger.info(`[RepeaterPersist] Updating existing request ${currentRequestId}`);
+          await emulateApi.updateRequest(targetId, currentRequestId, { 
+            method, 
+            url, 
+            body, 
+            params: JSON.stringify(paramsWithoutId, null, 2), 
+            headers: JSON.stringify(headersWithoutId, null, 2) 
+          });
+          logger.info(`[RepeaterPersist] Update successful`);
         } else {
-          const res = await emulateApi.createRequest(targetId, { method, url, body, params: JSON.stringify(params), headers: JSON.stringify(headers) });
-          if (res.success && res.data) setCurrentRequestId(res.data.id);
+          logger.info(`[RepeaterPersist] Creating new request`);
+          const res = await emulateApi.createRequest(targetId, { 
+            method, 
+            url, 
+            body, 
+            params: JSON.stringify(paramsWithoutId, null, 2), 
+            headers: JSON.stringify(headersWithoutId, null, 2) 
+          });
+          if (res.success && res.data) {
+            setCurrentRequestId(res.data.id);
+            logger.info(`[RepeaterPersist] Created request with ID: ${res.data.id}`);
+          }
         }
         lastSavedRef.current = snapshot;
       } catch (err) { logger.error('[RepeaterPersist] Save failed:', err); }

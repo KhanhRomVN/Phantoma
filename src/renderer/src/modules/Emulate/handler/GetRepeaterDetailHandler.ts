@@ -46,43 +46,33 @@ export class GetRepeaterDetailHandler {
 
       const req = repeaterReqs[repeaterIdx];
 
-      // Get raw content from database and format as JSON
+      logger.info(`[GetRepeaterDetailHandler] DEBUG - req.id: ${req.id}`);
+      logger.info(`[GetRepeaterDetailHandler] DEBUG - req.params: ${JSON.stringify(req.params)}`);
+      logger.info(`[GetRepeaterDetailHandler] DEBUG - req.headers length: ${req.headers?.length || 0}`);
+      logger.info(`[GetRepeaterDetailHandler] DEBUG - req.body length: ${req.body?.length || 0}`);
+
+      // Get raw content from database - NO auto-formatting, show exact file content
       const paramsRaw = req.params || '[]';
       const headersRaw = req.headers || '[]';
       const bodyRaw = req.body || '';
 
-      // Auto-format JSON for readability
-      const formatJson = (jsonStr: string): string => {
-        try {
-          const parsed = JSON.parse(jsonStr);
-          return JSON.stringify(parsed, null, 2);
-        } catch {
-          return jsonStr; // Return as-is if not valid JSON
-        }
-      };
-
-      // Build output with formatted JSON content
+      // Build output with EXACT content (no formatting)
       const method = req.method || 'GET';
       const url = req.url || '';
       const firstLine = `[get_repeater_detail] ${repeaterId} ${method} ${url}`;
 
-      // Output formatted JSON content
-      let paramsText = '';
-      if (paramsRaw && paramsRaw !== '[]') {
-        paramsText = '\n\n**Params:**\n```json\n' + formatJson(paramsRaw) + '\n```';
-      }
-
-      let headersText = '';
-      if (headersRaw && headersRaw !== '[]') {
-        headersText = '\n\n**Headers:**\n```json\n' + formatJson(headersRaw) + '\n```';
-      }
-
-      let bodyText = '';
-      if (bodyRaw) {
-        bodyText = '\n\n**Body:**\n```json\n' + formatJson(bodyRaw) + '\n```';
-      } else {
-        bodyText = '\n\n**Body:** <no value>';
-      }
+      // Output EXACT content without formatting
+      const paramsText = paramsRaw 
+        ? '\n\n**Params:**\n```json\n' + paramsRaw + '\n```'
+        : '\n\n**Params:**\n```json\n```';
+        
+      const headersText = headersRaw 
+        ? '\n\n**Headers:**\n```json\n' + headersRaw + '\n```'
+        : '\n\n**Headers:**\n```json\n```';
+        
+      const bodyText = bodyRaw 
+        ? '\n\n**Body:**\n```json\n' + bodyRaw + '\n```'
+        : '\n\n**Body:**\n```json\n```';
 
       return {
         text: firstLine + paramsText + headersText + bodyText,

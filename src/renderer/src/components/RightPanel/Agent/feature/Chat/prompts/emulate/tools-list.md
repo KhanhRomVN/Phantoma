@@ -358,27 +358,84 @@ Lấy param, header và body của một request trong Repeater.
 
 ⚠️ Luôn gọi `list_repeaters` trước khi gọi `get_repeater_detail`.
 
-Trả về JSON chuẩn cho cả 3 thành phần: `params`, `headers`, `body`.
+**CẤU TRÚC DỮ LIỆU JSON TRẢ VỀ (QUAN TRỌNG — ĐỌC KỸ):**
+- **Tool hiển thị NỘI DUNG THẬT của file** — không thêm, bớt, hay giả định gì cả
+- **`Params`**: Nội dung thực của file params.json. Thường là mảng `[{key, value, enabled}, ...]` hoặc `[]`. Nếu file rỗng hoàn toàn thì code block sẽ rỗng
+- **`Headers`**: Nội dung thực của file headers.json. Thường là mảng `[{id, key, value, enabled}, ...]` hoặc `[]`. Nếu file rỗng hoàn toàn thì code block sẽ rỗng
+- **`Body`**: Nội dung thực của file body.json. Có thể là chuỗi rỗng `""`, JSON stringify, hoặc text thô. Nếu file rỗng hoàn toàn thì code block sẽ rỗng
+- **Khi dùng `update_repeater_content`**: Copy CHÍNH XÁC nội dung trong code block (có thể là rỗng, `[]`, `""`, hoặc JSON phức tạp)
 
 **Ví dụ:**
 
 <get_repeater_detail><repeater_id>repeater_1</repeater_id></get_repeater_detail>
 
 
-**Kết quả:**
+**Kết quả (khi có dữ liệu):**
 
-[get_repeater_detail] repeater_1
-{
-  "params": {
-    "page": "1",
-    "limit": "20"
+[get_repeater_detail] repeater_1 GET https://api.example.com/users
+
+**Params:**
+```json
+[
+  {
+    "key": "page",
+    "value": "1",
+    "enabled": true
   },
-  "headers": {
-    "Accept": "application/json",
-    "Authorization": "Bearer eyJhbGciOi..."
+  {
+    "key": "limit",
+    "value": "20",
+    "enabled": true
+  }
+]
+```
+
+**Headers:**
+```json
+[
+  {
+    "id": "abc-123",
+    "key": "Accept",
+    "value": "application/json",
+    "enabled": true
   },
-  "body": ""
-}
+  {
+    "id": "def-456",
+    "key": "Authorization",
+    "value": "Bearer eyJhbGciOi...",
+    "enabled": true
+  }
+]
+```
+
+**Body:** 
+```json
+{"username": "test"}
+```
+
+**Kết quả (khi file rỗng):**
+
+[get_repeater_detail] repeater_0 GET https://chat.deepseek.com/api/v0/users/current
+
+**Params:**
+```json
+```
+
+**Headers:**
+```json
+[
+  {
+    "id": "abc-123",
+    "key": "Authorization",
+    "value": "Bearer token",
+    "enabled": true
+  }
+]
+```
+
+**Body:**
+```json
+```
 
 
 
@@ -396,11 +453,18 @@ Cập nhật nội dung `params`, `headers` hoặc `body` của một request tr
 
 ⚠️ Thẻ đóng của `new_content` phải là `</new_content>`, không được viết nhầm `</old_content>`.
 
+**CẤU TRÚC DỮ LIỆU JSON (QUAN TRỌNG — ĐỌC KỸ):**
+- **`params`**: JSON array có cấu trúc `[{key, value, enabled}, ...]` — mỗi param là 1 object có 3 field
+- **`headers`**: JSON array có cấu trúc `[{id, key, value, enabled}, ...]` — mỗi header là 1 object có 4 field
+- **`body`**: JSON string (raw text) — có thể là chuỗi rỗng hoặc JSON stringify
+- **TẤT CẢ đều dùng JSON format** — KHÔNG BAO GIỜ hỏi user về format, nó luôn là JSON với `{}` hoặc `[]`
+- Khi copy từ `get_repeater_detail`, copy CHÍNH XÁC từng ký tự kể cả dấu ngoặc kép, dấu phấy, khoảng trắng
+
 **Cơ chế replace (quan trọng — dễ hiểu nhầm):**
 - Chỉ thay thế **lần xuất hiện ĐẦU TIÊN** của `old_content`. Nếu `old_content` xuất hiện nhiều lần, các lần sau KHÔNG bị thay.
 - Nếu `old_content` không khớp chính xác, tool **KHÔNG báo lỗi** — nó âm thầm giữ nguyên nội dung cũ nhưng vẫn trả về `[update_repeater_content] Updated ...`.
 - Với `target="headers"`: headers được serialize thành JSON, replace trên chuỗi JSON, rồi parse lại. **Nếu `new_content` làm hỏng cấu trúc JSON, parse thất bại và headers bị giữ nguyên cũ — nhưng tool vẫn báo "Updated".** Luôn giữ cấu trúc JSON hợp lệ.
-- Với `target="params"`: URL được tách tại `?`, replace trên phần query string, rồi nối lại.
+- Với `target="params"`: params được serialize thành JSON, replace trên chuỗi JSON, rồi parse lại. **Nếu `new_content` làm hỏng cấu trúc JSON, parse thất bại và params bị giữ nguyên cũ — nhưng tool vẫn báo "Updated".** Luôn giữ cấu trúc JSON hợp lệ.
 - Với `target="body"`: replace trực tiếp trên chuỗi body.
 
 **Payload variable placeholder:**

@@ -66,6 +66,11 @@ export class UpdateRepeaterContentHandler {
         fileContent = req.body || '';
       }
 
+      logger.info(`[UpdateRepeaterContentHandler] DEBUG - target: ${target}`);
+      logger.info(`[UpdateRepeaterContentHandler] DEBUG - fileContent: ${JSON.stringify(fileContent)}`);
+      logger.info(`[UpdateRepeaterContentHandler] DEBUG - oldContent: ${JSON.stringify(oldContent)}`);
+      logger.info(`[UpdateRepeaterContentHandler] DEBUG - newContent: ${JSON.stringify(newContent)}`);
+
       // Normalize line endings for consistent matching
       const normalizedContent = fileContent.replace(/\r\n/g, '\n');
       const normalizedOld = oldContent.replace(/\r\n/g, '\n');
@@ -100,17 +105,11 @@ export class UpdateRepeaterContentHandler {
         normalizedNew +
         normalizedContent.slice(targetPos + targetText.length);
 
-      // Auto-format JSON if target is params or headers
-      let finalContent = updatedContent;
-      if (target === 'params' || target === 'headers') {
-        try {
-          const parsed = JSON.parse(updatedContent);
-          finalContent = JSON.stringify(parsed, null, 2);
-        } catch {
-          // Keep as-is if not valid JSON
-          finalContent = updatedContent;
-        }
-      }
+      logger.info(`[UpdateRepeaterContentHandler] DEBUG - updatedContent: ${JSON.stringify(updatedContent)}`);
+
+      // Use updatedContent as-is, NO auto-formatting
+      // This preserves the exact format provided by the user/AI
+      const finalContent = updatedContent;
 
       // Update in database via API
       const updateInput: any = {};
@@ -118,7 +117,12 @@ export class UpdateRepeaterContentHandler {
       if (target === 'headers') updateInput.headers = finalContent;
       if (target === 'body') updateInput.body = finalContent;
 
+      logger.info(`[UpdateRepeaterContentHandler] DEBUG - updateInput: ${JSON.stringify(updateInput)}`);
+      
       const updateRes = await emulateApi.updateRequest(targetId, req.id, updateInput);
+      
+      logger.info(`[UpdateRepeaterContentHandler] DEBUG - updateRes: ${JSON.stringify(updateRes)}`);
+      
       if (!updateRes.success) {
         return {
           text: `[update_repeater_content] Error: ${updateRes.error || 'Failed to update'}`,
@@ -131,7 +135,7 @@ export class UpdateRepeaterContentHandler {
       }
 
       return { 
-        text: `[update_repeater_content] Updated ${repeaterId} ${target}\n\nFile: ~/.phantoma/repeaters/${targetId}/repeater_${req.id}/${target}.json` 
+        text: `[update_repeater_content] Updated ${repeaterId} ${target}` 
       };
     } catch (err: any) {
       logger.error('[UpdateRepeaterContentHandler] Error:', err);

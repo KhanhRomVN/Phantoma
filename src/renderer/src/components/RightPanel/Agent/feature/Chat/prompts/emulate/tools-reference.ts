@@ -100,9 +100,13 @@ Use XML tags for all tool calls:
 
 **get_repeater_detail**: Get params, headers, and body of a request in the Repeater.
 - \`repeater_id\`: The repeater index from a previous \`list_repeaters\` result (required). Format: \`repeater_<number>\`.
-- Returns: JSON with \`params\`, \`headers\`, and \`body\`.
+- Returns: Three sections showing actual file content:
+  - **Params**: Shows exact content of params.json file. If file is empty, shows empty code block: \`\`\`json\`\`\`
+  - **Headers**: Shows exact content of headers.json file. If file is empty, shows empty code block: \`\`\`json\`\`\`
+  - **Body**: Shows exact content of body.json file. If file is empty, shows empty code block: \`\`\`json\`\`\`
 - Example: \`<get_repeater_detail><repeater_id>repeater_1</repeater_id></get_repeater_detail>\` — get detail for repeater_1
 - ⚠ LIST-BEFORE-DETAIL: Always call \`list_repeaters\` before \`get_repeater_detail\`.
+- ⚠ COPY-EXACT-CONTENT: When updating with \`update_repeater_content\`, copy the EXACT content from the code block (which may be empty string, \`[]\`, or actual JSON). If code block is empty, use empty string as \`old_content\`.
 
 Bearer xyz
 

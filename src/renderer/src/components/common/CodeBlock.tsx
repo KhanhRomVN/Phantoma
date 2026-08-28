@@ -733,33 +733,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         unsubscribeRef.current = null;
       }
 
-      // ✅ Document Manager: Unregister reference only if file is actually closed
-      // (not on tab switch — openFiles still contains the file)
-      //
-      // ⚠️ DISABLED: We no longer send didClose to LSP server when closing tabs
-      // This keeps diagnostics visible in Problems panel even after tab is closed
-      // LSP server will keep the document "open" until workspace is closed
-      //
-      // if (enableLSP && filePath && modelRef.current && didAddReferenceRef.current) {
-      //   const state = useCodeStore.getState();
-      //   const project = state.projects.find((p) => p.id === state.currentProjectId);
-      //   const isStillOpen = project?.openFiles.some((fid) => {
-      //     const node = project.fileNodeMap[fid];
-      //     return node?.path === filePath;
-      //   });
-
-      //   if (!isStillOpen) {
-      //     const uri = window.monaco.Uri.file(filePath).toString();
-      //     const shouldSendDidClose = documentManager.removeReference(uri);
-
-      //     if (shouldSendDidClose) {
-      //       const languageId = detectLanguageId(filePath, language);
-      //       lspClientManager.notifyDocumentClosed(languageId, uri);
-      //     }
-      //     didAddReferenceRef.current = false;
-      //   }
-      // }
-
       // Always dispose editor instance (but keep the model alive)
       if (editorInstance.current) {
         editorInstance.current.dispose();

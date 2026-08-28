@@ -210,6 +210,36 @@ export function RequestPanel({
     return () => clearTimeout(timer);
   }, [payloads, targetId]);
 
+  // Auto-save params khi có thay đổi (debounce 500ms)
+  useEffect(() => {
+    console.log('[RequestPanel] params changed, targetId:', targetId, 'params:', params);
+    if (!targetId) return;
+    const timer = setTimeout(() => {
+      console.log('[RequestPanel] Params will be saved by useRepeaterPersistence hook');
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [params, targetId]);
+
+  // Auto-save headers khi có thay đổi (debounce 500ms)
+  useEffect(() => {
+    console.log('[RequestPanel] headers changed, targetId:', targetId);
+    if (!targetId) return;
+    const timer = setTimeout(() => {
+      console.log('[RequestPanel] Headers will be saved by useRepeaterPersistence hook');
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [headers, targetId]);
+
+  // Auto-save body khi có thay đổi (debounce 500ms)
+  useEffect(() => {
+    console.log('[RequestPanel] body changed, targetId:', targetId);
+    if (!targetId) return;
+    const timer = setTimeout(() => {
+      console.log('[RequestPanel] Body will be saved by useRepeaterPersistence hook');
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [body, targetId]);
+
   // Auto-fill from selected request (Send to Repeater)
   useEffect(() => {
     if (!request) {
@@ -758,6 +788,7 @@ export function RequestPanel({
             payloads={payloads}
             onSwitchToPayload={() => setActiveTab('payload')}
             isRawView={isParamsRawView}
+            targetId={targetId}
           />
         )}
         {activeTab === 'headers' && (
@@ -768,6 +799,7 @@ export function RequestPanel({
             payloads={payloads}
             onSwitchToPayload={() => setActiveTab('payload')}
             isRawView={isHeadersRawView}
+            targetId={targetId}
           />
         )}
         {activeTab === 'body' && (
