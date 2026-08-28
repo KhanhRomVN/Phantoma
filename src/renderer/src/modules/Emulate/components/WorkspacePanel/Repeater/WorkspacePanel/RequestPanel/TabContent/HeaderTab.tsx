@@ -2,7 +2,7 @@ import { Check, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 // ── Components ──
-import CodeBlock from '@renderer/components/common/CodeBlock';
+import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // ── Types ──
 import type { ParamItem, PayloadItem } from '../../../../../../types/repeater.types';
@@ -23,6 +23,7 @@ interface HeaderTabProps {
   readOnly?: boolean;
   isRawView?: boolean;
   targetId?: string | null;
+  codeBlockRef?: React.RefObject<CodeBlockRef | null>;
 }
 
 export function HeaderTab({
@@ -34,6 +35,7 @@ export function HeaderTab({
   readOnly = false,
   isRawView = false,
   targetId = null,
+  codeBlockRef,
 }: HeaderTabProps) {
   const [isFinalRowEditing, setIsFinalRowEditing] = useState(false);
   const [finalKey, setFinalKey] = useState('');
@@ -47,40 +49,55 @@ export function HeaderTab({
   const [rawJsonText, setRawJsonText] = useState<string>('[]');
   const [isLoadingRawJson, setIsLoadingRawJson] = useState(false);
   
-  // Load raw JSON from DB when entering raw view
-  useEffect(() => {
-    if (isRawView && targetId) {
+  // Load raw JSON from DB when entering raw view or when repeater-updated event fires
+  const loadRawJson = () => {
+    console.log('[HeaderTab] loadRawJson() called, targetId:', targetId);
+    if (targetId) {
       setIsLoadingRawJson(true);
       import('../../../../../../services/emulate-api.service').then(({ emulateApi }) => {
+        console.log('[HeaderTab] loadRawJson - emulateApi imported, fetching...');
         emulateApi.listRequests(targetId).then((res) => {
+          console.log('[HeaderTab] loadRawJson - listRequests response:', res);
           if (res.success && res.data && res.data.length > 0) {
             const req = res.data[0];
             const rawJson = req.headers || '[]';
-            console.log('[HeaderTab] Loaded raw JSON from DB:', rawJson);
+            console.log('[HeaderTab] loadRawJson - Loaded raw JSON from DB:', rawJson);
             setRawJsonText(rawJson);
           }
           setIsLoadingRawJson(false);
         }).catch((err) => {
-          console.error('[HeaderTab] Failed to load raw JSON:', err);
+          console.error('[HeaderTab] loadRawJson - Failed to load raw JSON:', err);
           setIsLoadingRawJson(false);
         });
       });
+    } else {
+      console.warn('[HeaderTab] loadRawJson - No targetId, skipping');
+    }
+  };
+
+  useEffect(() => {
+    if (isRawView && targetId) {
+      loadRawJson();
     }
   }, [isRawView, targetId]);
   
-  // Load headers from DB when entering table view
-  useEffect(() => {
-    if (!isRawView && targetId) {
-      console.log('[HeaderTab] Entering table view, reloading headers from DB...');
+  // Load headers from DB when entering table view or when repeater-updated event fires
+  const loadHeaders = () => {
+    console.log('[HeaderTab] loadHeaders() called, targetId:', targetId);
+    if (targetId) {
+      console.log('[HeaderTab] loadHeaders - Reloading headers from DB...');
       import('../../../../../../services/emulate-api.service').then(({ emulateApi }) => {
+        console.log('[HeaderTab] loadHeaders - emulateApi imported, fetching...');
         emulateApi.listRequests(targetId).then((res) => {
+          console.log('[HeaderTab] loadHeaders - listRequests response:', res);
           if (res.success && res.data && res.data.length > 0) {
             const req = res.data[0];
             const rawJson = req.headers || '[]';
-            console.log('[HeaderTab] Loaded headers JSON from DB:', rawJson);
+            console.log('[HeaderTab] loadHeaders - Loaded headers JSON from DB:', rawJson);
             
             try {
               const parsed = JSON.parse(rawJson);
+              console.log('[HeaderTab] loadHeaders - Parsed JSON:', parsed);
               if (Array.isArray(parsed)) {
                 const newHeaders = parsed.map((item) => ({
                   id: item.id || crypto.randomUUID(),
@@ -88,19 +105,118 @@ export function HeaderTab({
                   value: item.value || '',
                   enabled: item.enabled !== undefined ? item.enabled : true,
                 }));
-                console.log('[HeaderTab] Parsed headers:', newHeaders);
+                console.log('[HeaderTab] loadHeaders - Converted to ParamItem[]:', newHeaders);
+                console.log('[HeaderTab] loadHeaders - Calling onChange...');
                 onChange(newHeaders);
+                console.log('[HeaderTab] loadHeaders - ✅ onChange called successfully');
               }
             } catch (err) {
-              console.error('[HeaderTab] Failed to parse headers from DB:', err);
+              console.error('[HeaderTab] loadHeaders - Failed to parse headers from DB:', err);
             }
           }
         }).catch((err) => {
-          console.error('[HeaderTab] Failed to load headers from DB:', err);
+          console.error('[HeaderTab] loadHeaders - Failed to load headers from DB:', err);
         });
       });
+    } else {
+      console.warn('[HeaderTab] loadHeaders - No targetId, skipping');
     }
-  }, [isRawView, targetId, onChange]);
+  };
+
+  useEffect(() => {
+    if (!isRawView && targetId) {
+      console.log('[HeaderTab] Entering table view, reloading headers from DB...');
+      loadHeaders();
+    }
+  }, [isRawView, targetId]);
+
+  // Listen for repeater-updated event to reload data from DB
+  useEffect(() => {
+    console.log('[HeaderTab] Setting up repeater-updated listener, isRawView:', isRawView, 'targetId:', targetId);
+    
+    const handleRepeaterUpdated = () => {
+      console.log('[HeaderTab] ✅ Received repeater-updated event!');
+      console.log('[HeaderTab] Current state - isRawView:', isRawView, 'targetId:', targetId);
+      
+      if (isRawView) {
+        console.log('[HeaderTab] Calling loadRawJson()...');
+        loadRawJson();
+      } else {
+        console.log('[HeaderTab] Calling loadHeaders()...');
+        loadHeaders();
+      }
+    };
+
+    window.addEventListener('repeater-updated', handleRepeaterUpdated);
+    console.log('[HeaderTab] Event listener added for repeater-updated');
+    
+    return () => {
+      window.removeEventListener('repeater-updated', handleRepeaterUpdated);
+      console.log('[HeaderTab] Event listener removed for repeater-updated');
+    };
+  }, [isRawView, targetId]);
+
+  // Polling mechanism to check for database changes (fallback if event doesn't work)
+  useEffect(() => {
+    if (!targetId) return;
+
+    console.log('[HeaderTab] Setting up polling mechanism, targetId:', targetId);
+    
+    let lastKnownContent = '';
+    
+    const checkForChanges = async () => {
+      if (!targetId) return;
+      
+      try {
+        const { emulateApi } = await import('../../../../../../services/emulate-api.service');
+        const res = await emulateApi.listRequests(targetId);
+        
+        if (res.success && res.data && res.data.length > 0) {
+          const req = res.data[0];
+          const currentContent = req.headers || '[]';
+          
+          // Only reload if content actually changed
+          if (currentContent !== lastKnownContent && lastKnownContent !== '') {
+            console.log('[HeaderTab] 🔄 Database content changed, reloading...');
+            console.log('[HeaderTab] Old:', lastKnownContent);
+            console.log('[HeaderTab] New:', currentContent);
+            
+            if (isRawView) {
+              loadRawJson();
+            } else {
+              loadHeaders();
+            }
+          }
+          
+          lastKnownContent = currentContent;
+        }
+      } catch (err) {
+        console.error('[HeaderTab] Polling error:', err);
+      }
+    };
+    
+    // Initial content snapshot
+    (async () => {
+      try {
+        const { emulateApi } = await import('../../../../../../services/emulate-api.service');
+        const res = await emulateApi.listRequests(targetId);
+        if (res.success && res.data && res.data.length > 0) {
+          lastKnownContent = res.data[0].headers || '[]';
+          console.log('[HeaderTab] Initial content snapshot:', lastKnownContent);
+        }
+      } catch (err) {
+        console.error('[HeaderTab] Error getting initial snapshot:', err);
+      }
+    })();
+    
+    // Poll every 2 seconds
+    const intervalId = setInterval(checkForChanges, 2000);
+    
+    return () => {
+      clearInterval(intervalId);
+      console.log('[HeaderTab] Polling stopped');
+    };
+  }, [targetId, isRawView]);
 
   const hasPayloadVariable = (value: string): boolean => {
     return /\$\{[^}]+\}/.test(value);
@@ -244,7 +360,7 @@ export function HeaderTab({
   const getDuplicateKeys = (): Set<string> => {
     const keyCount = new Map<string, number>();
     headers.forEach((header) => {
-      if (header.key.trim()) {
+      if (header.key?.trim()) {
         keyCount.set(header.key, (keyCount.get(header.key) || 0) + 1);
       }
     });
@@ -342,6 +458,7 @@ export function HeaderTab({
       <div key="raw-view" className="h-full w-full relative">
         <div className="absolute inset-0">
           <CodeBlock
+            ref={codeBlockRef}
             code={rawJsonText}
             onChange={readOnly ? undefined : handleRawChange}
             language="json"
@@ -577,7 +694,7 @@ export function HeaderTab({
                         setFinalValue('');
                       }
                     }}
-                    onBlur(() => {
+                    onBlur={() => {
                       if (finalKey.trim() && finalValue.trim()) {
                         handleAdd(finalKey, finalValue);
                       }

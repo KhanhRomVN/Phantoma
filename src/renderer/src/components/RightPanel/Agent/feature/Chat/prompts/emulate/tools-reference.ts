@@ -106,7 +106,16 @@ Use XML tags for all tool calls:
   - **Body**: Shows exact content of body.json file. If file is empty, shows empty code block: \`\`\`json\`\`\`
 - Example: \`<get_repeater_detail><repeater_id>repeater_1</repeater_id></get_repeater_detail>\` — get detail for repeater_1
 - ⚠ LIST-BEFORE-DETAIL: Always call \`list_repeaters\` before \`get_repeater_detail\`.
-- ⚠ COPY-EXACT-CONTENT: When updating with \`update_repeater_content\`, copy the EXACT content from the code block (which may be empty string, \`[]\`, or actual JSON). If code block is empty, use empty string as \`old_content\`.
+- ⚠ COPY-EXACT-FORMAT: When updating with \`update_repeater_content\`, the returned JSON is **pretty-printed with 2-space indent and newlines**. You MUST copy the EXACT format (including all spaces, newlines, and indentation) into \`old_content\` and \`new_content\`. DO NOT compact JSON into a single line — this will cause match failure. Example correct format:
+\`\`\`
+[
+  {
+    "key": "test1",
+    "value": "1",
+    "enabled": true
+  }
+]
+\`\`\`
 
 Bearer xyz
 

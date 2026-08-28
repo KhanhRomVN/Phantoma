@@ -2,7 +2,7 @@ import { Check, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 // ── Components ──
-import CodeBlock from '@renderer/components/common/CodeBlock';
+import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // ── Types ──
 import type { ParamItem, PayloadItem } from '../../../../../../types/repeater.types';
@@ -22,7 +22,8 @@ interface ParamTabProps {
   onSwitchToPayload?: () => void;
   readOnly?: boolean;
   isRawView?: boolean;
-  targetId?: string | null; // Add targetId prop
+  targetId?: string | null;
+  codeBlockRef?: React.RefObject<CodeBlockRef | null>;
 }
 
 export function ParamTab({
@@ -34,6 +35,7 @@ export function ParamTab({
   readOnly = false,
   isRawView = false,
   targetId = null,
+  codeBlockRef,
 }: ParamTabProps) {
   const [isFinalRowEditing, setIsFinalRowEditing] = useState(false);
   const [finalKey, setFinalKey] = useState('');
@@ -47,40 +49,55 @@ export function ParamTab({
   const [rawJsonText, setRawJsonText] = useState<string>('[]');
   const [isLoadingRawJson, setIsLoadingRawJson] = useState(false);
   
-  // Load raw JSON from DB when entering raw view
-  useEffect(() => {
-    if (isRawView && targetId) {
+  // Load raw JSON from DB when entering raw view or when repeater-updated event fires
+  const loadRawJson = () => {
+    console.log('[ParamTab] loadRawJson() called, targetId:', targetId);
+    if (targetId) {
       setIsLoadingRawJson(true);
       import('../../../../../../services/emulate-api.service').then(({ emulateApi }) => {
+        console.log('[ParamTab] loadRawJson - emulateApi imported, fetching...');
         emulateApi.listRequests(targetId).then((res) => {
+          console.log('[ParamTab] loadRawJson - listRequests response:', res);
           if (res.success && res.data && res.data.length > 0) {
             const req = res.data[0];
             const rawJson = req.params || '[]';
-            console.log('[ParamTab] Loaded raw JSON from DB:', rawJson);
+            console.log('[ParamTab] loadRawJson - Loaded raw JSON from DB:', rawJson);
             setRawJsonText(rawJson);
           }
           setIsLoadingRawJson(false);
         }).catch((err) => {
-          console.error('[ParamTab] Failed to load raw JSON:', err);
+          console.error('[ParamTab] loadRawJson - Failed to load raw JSON:', err);
           setIsLoadingRawJson(false);
         });
       });
+    } else {
+      console.warn('[ParamTab] loadRawJson - No targetId, skipping');
+    }
+  };
+
+  useEffect(() => {
+    if (isRawView && targetId) {
+      loadRawJson();
     }
   }, [isRawView, targetId]);
   
-  // Load params from DB when entering table view
-  useEffect(() => {
-    if (!isRawView && targetId) {
-      console.log('[ParamTab] Entering table view, reloading params from DB...');
+  // Load params from DB when entering table view or when repeater-updated event fires
+  const loadParams = () => {
+    console.log('[ParamTab] loadParams() called, targetId:', targetId);
+    if (targetId) {
+      console.log('[ParamTab] loadParams - Reloading params from DB...');
       import('../../../../../../services/emulate-api.service').then(({ emulateApi }) => {
+        console.log('[ParamTab] loadParams - emulateApi imported, fetching...');
         emulateApi.listRequests(targetId).then((res) => {
+          console.log('[ParamTab] loadParams - listRequests response:', res);
           if (res.success && res.data && res.data.length > 0) {
             const req = res.data[0];
             const rawJson = req.params || '[]';
-            console.log('[ParamTab] Loaded params JSON from DB:', rawJson);
+            console.log('[ParamTab] loadParams - Loaded params JSON from DB:', rawJson);
             
             try {
               const parsed = JSON.parse(rawJson);
+              console.log('[ParamTab] loadParams - Parsed JSON:', parsed);
               if (Array.isArray(parsed)) {
                 const newParams = parsed.map((item) => ({
                   id: item.id || crypto.randomUUID(),
@@ -88,19 +105,118 @@ export function ParamTab({
                   value: item.value || '',
                   enabled: item.enabled !== undefined ? item.enabled : true,
                 }));
-                console.log('[ParamTab] Parsed params:', newParams);
+                console.log('[ParamTab] loadParams - Converted to ParamItem[]:', newParams);
+                console.log('[ParamTab] loadParams - Calling onChange...');
                 onChange(newParams);
+                console.log('[ParamTab] loadParams - ✅ onChange called successfully');
               }
             } catch (err) {
-              console.error('[ParamTab] Failed to parse params from DB:', err);
+              console.error('[ParamTab] loadParams - Failed to parse params from DB:', err);
             }
           }
         }).catch((err) => {
-          console.error('[ParamTab] Failed to load params from DB:', err);
+          console.error('[ParamTab] loadParams - Failed to load params from DB:', err);
         });
       });
+    } else {
+      console.warn('[ParamTab] loadParams - No targetId, skipping');
     }
-  }, [isRawView, targetId, onChange]);
+  };
+
+  useEffect(() => {
+    if (!isRawView && targetId) {
+      console.log('[ParamTab] Entering table view, reloading params from DB...');
+      loadParams();
+    }
+  }, [isRawView, targetId]);
+
+  // Listen for repeater-updated event to reload data from DB
+  useEffect(() => {
+    console.log('[ParamTab] Setting up repeater-updated listener, isRawView:', isRawView, 'targetId:', targetId);
+    
+    const handleRepeaterUpdated = () => {
+      console.log('[ParamTab] ✅ Received repeater-updated event!');
+      console.log('[ParamTab] Current state - isRawView:', isRawView, 'targetId:', targetId);
+      
+      if (isRawView) {
+        console.log('[ParamTab] Calling loadRawJson()...');
+        loadRawJson();
+      } else {
+        console.log('[ParamTab] Calling loadParams()...');
+        loadParams();
+      }
+    };
+
+    window.addEventListener('repeater-updated', handleRepeaterUpdated);
+    console.log('[ParamTab] Event listener added for repeater-updated');
+    
+    return () => {
+      window.removeEventListener('repeater-updated', handleRepeaterUpdated);
+      console.log('[ParamTab] Event listener removed for repeater-updated');
+    };
+  }, [isRawView, targetId]);
+
+  // Polling mechanism to check for database changes (fallback if event doesn't work)
+  useEffect(() => {
+    if (!targetId) return;
+
+    console.log('[ParamTab] Setting up polling mechanism, targetId:', targetId);
+    
+    let lastKnownContent = '';
+    
+    const checkForChanges = async () => {
+      if (!targetId) return;
+      
+      try {
+        const { emulateApi } = await import('../../../../../../services/emulate-api.service');
+        const res = await emulateApi.listRequests(targetId);
+        
+        if (res.success && res.data && res.data.length > 0) {
+          const req = res.data[0];
+          const currentContent = req.params || '[]';
+          
+          // Only reload if content actually changed
+          if (currentContent !== lastKnownContent && lastKnownContent !== '') {
+            console.log('[ParamTab] 🔄 Database content changed, reloading...');
+            console.log('[ParamTab] Old:', lastKnownContent);
+            console.log('[ParamTab] New:', currentContent);
+            
+            if (isRawView) {
+              loadRawJson();
+            } else {
+              loadParams();
+            }
+          }
+          
+          lastKnownContent = currentContent;
+        }
+      } catch (err) {
+        console.error('[ParamTab] Polling error:', err);
+      }
+    };
+    
+    // Initial content snapshot
+    (async () => {
+      try {
+        const { emulateApi } = await import('../../../../../../services/emulate-api.service');
+        const res = await emulateApi.listRequests(targetId);
+        if (res.success && res.data && res.data.length > 0) {
+          lastKnownContent = res.data[0].params || '[]';
+          console.log('[ParamTab] Initial content snapshot:', lastKnownContent);
+        }
+      } catch (err) {
+        console.error('[ParamTab] Error getting initial snapshot:', err);
+      }
+    })();
+    
+    // Poll every 2 seconds
+    const intervalId = setInterval(checkForChanges, 2000);
+    
+    return () => {
+      clearInterval(intervalId);
+      console.log('[ParamTab] Polling stopped');
+    };
+  }, [targetId, isRawView]);
 
   const hasPayloadVariable = (value: string): boolean => {
     return /\$\{[^}]+\}/.test(value);
@@ -244,7 +360,7 @@ export function ParamTab({
   const getDuplicateKeys = (): Set<string> => {
     const keyCount = new Map<string, number>();
     params.forEach((param) => {
-      if (param.key.trim()) {
+      if (param.key?.trim()) {
         keyCount.set(param.key, (keyCount.get(param.key) || 0) + 1);
       }
     });
@@ -395,6 +511,7 @@ export function ParamTab({
       <div key="raw-view" className="h-full w-full relative">
         <div className="absolute inset-0">
           <CodeBlock
+            ref={codeBlockRef}
             code={rawJsonText}
             onChange={readOnly ? undefined : handleRawChange}
             language="json"

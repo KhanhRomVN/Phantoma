@@ -1,6 +1,7 @@
 /**
  * UpdateRepeaterContentHandler — Update params/headers/body bằng cách replace text trong JSON file.
  * Hoạt động giống hệt replace_in_file: exact string replacement với fuzzy fallback.
+ * Cập nhật trực tiếp vào file thay vì qua API để tránh bước trung gian.
  *
  * Usage:
  *   const handler = new UpdateRepeaterContentHandler();
@@ -15,8 +16,22 @@ import { FuzzyMatcher } from '../../Code/utils/FuzzyMatcher';
 export type RepeaterTarget = 'params' | 'headers' | 'body';
 
 export class UpdateRepeaterContentHandler {
+  /**
+   * Lấy đường dẫn file tương ứng với target
+   * Format: ~/.phantoma/repeaters/{targetId}/repeater_{requestId}/{target}.json
+   */
+  private async getFilePath(
+    targetId: string,
+    requestId: string,
+    target: RepeaterTarget,
+    api: any,
+  ): Promise<string> {
+    const homedir = await api.invoke('fs:get-homedir');
+    return `${homedir}/.phantoma/repeaters/${targetId}/repeater_${requestId}/${target}.json`;
+  }
+
   public async handle(
-    requests: NetworkRequest[],
+    _requests: NetworkRequest[],
     repeaterId: string,
     target: RepeaterTarget,
     oldContent: string,
@@ -32,18 +47,26 @@ export class UpdateRepeaterContentHandler {
 
     if (!targetId) {
       return {
-        text: `[update_repeater_content] Error: targetId is required to access database`,
+        text: `[update_repeater_content] Error: targetId is required`,
       };
     }
 
     const repeaterIdx = parseInt(match[1], 10);
 
+    // Check IPC availability
+    const api = (window as any).api;
+    if (!api?.invoke) {
+      return {
+        text: `[update_repeater_content] Error: IPC not available`,
+      };
+    }
+
     try {
-      // Fetch repeater request from DB to get request ID and current content
+      // Fetch repeater request list to get request ID
       const res = await emulateApi.listRequests(targetId);
       if (!res.success || !res.data) {
         return {
-          text: `[update_repeater_content] Error: ${res.error || 'Failed to fetch from database'}`,
+          text: `[update_repeater_content] Error: ${res.error || 'Failed to fetch repeater list'}`,
         };
       }
 
@@ -55,15 +78,27 @@ export class UpdateRepeaterContentHandler {
       }
 
       const req = repeaterReqs[repeaterIdx];
+      const filePath = await this.getFilePath(targetId, req.id, target, api);
 
-      // Get current file content based on target (stored as JSON in backend)
-      let fileContent = '';
-      if (target === 'params') {
-        fileContent = req.params || '[]';
-      } else if (target === 'headers') {
-        fileContent = req.headers || '[]';
-      } else if (target === 'body') {
-        fileContent = req.body || '';
+      logger.info(`[UpdateRepeaterContentHandler] Reading file: ${filePath}`);
+
+      // Read file content directly via IPC
+      let fileContent: string;
+      try {
+        fileContent = await api.invoke('fs:read-file', filePath);
+      } catch (readErr: any) {
+        // File not found — create with default content
+        const defaultContent = target === 'body' ? '' : '[]';
+        logger.info(`[UpdateRepeaterContentHandler] File not found, creating with default content`);
+        
+        try {
+          await api.invoke('fs:write-file', filePath, defaultContent);
+          fileContent = defaultContent;
+        } catch (writeErr: any) {
+          return {
+            text: `[update_repeater_content] Error: Cannot create file: ${writeErr.message || String(writeErr)}`,
+          };
+        }
       }
 
       logger.info(`[UpdateRepeaterContentHandler] DEBUG - target: ${target}`);
@@ -80,7 +115,7 @@ export class UpdateRepeaterContentHandler {
       let targetText = normalizedOld;
       let targetPos = normalizedContent.indexOf(normalizedOld);
 
-      // If exact match fails, try fuzzy matching (như ReplaceInFileHandler)
+      // If exact match fails, try fuzzy matching
       if (targetPos === -1) {
         const fuzzy = FuzzyMatcher.findMatch(normalizedContent, normalizedOld);
         if (!fuzzy || fuzzy.score > 0.3) {
@@ -107,35 +142,42 @@ export class UpdateRepeaterContentHandler {
 
       logger.info(`[UpdateRepeaterContentHandler] DEBUG - updatedContent: ${JSON.stringify(updatedContent)}`);
 
-      // Use updatedContent as-is, NO auto-formatting
-      // This preserves the exact format provided by the user/AI
-      const finalContent = updatedContent;
+      // Format JSON for consistent pretty-print (if valid JSON)
+      let finalContent = updatedContent;
+      if (target === 'params' || target === 'headers') {
+        try {
+          const parsed = JSON.parse(updatedContent);
+          finalContent = JSON.stringify(parsed, null, 2);
+          logger.info(`[UpdateRepeaterContentHandler] ✅ JSON formatted with indent`);
+        } catch (parseErr) {
+          // If parse fails, keep original content and show warning
+          logger.warn(`[UpdateRepeaterContentHandler] ⚠️  Invalid JSON, keeping original format: ${parseErr}`);
+          // Don't write invalid JSON - return error instead
+          return {
+            text: `[update_repeater_content] Error: Result is not valid JSON\n\nInvalid content:\n${updatedContent}\n\nParse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}\n\nSuggestion: Check your new_content syntax.`,
+          };
+        }
+      }
 
-      // Update in database via API
-      const updateInput: any = {};
-      if (target === 'params') updateInput.params = finalContent;
-      if (target === 'headers') updateInput.headers = finalContent;
-      if (target === 'body') updateInput.body = finalContent;
-
-      logger.info(`[UpdateRepeaterContentHandler] DEBUG - updateInput: ${JSON.stringify(updateInput)}`);
-      
-      const updateRes = await emulateApi.updateRequest(targetId, req.id, updateInput);
-      
-      logger.info(`[UpdateRepeaterContentHandler] DEBUG - updateRes: ${JSON.stringify(updateRes)}`);
-      
-      if (!updateRes.success) {
+      // Write directly to file via IPC
+      try {
+        await api.invoke('fs:write-file', filePath, finalContent);
+        logger.info(`[UpdateRepeaterContentHandler] ✅ File updated: ${filePath}`);
+      } catch (writeErr: any) {
         return {
-          text: `[update_repeater_content] Error: ${updateRes.error || 'Failed to update'}`,
+          text: `[update_repeater_content] Error: Failed to write file: ${writeErr.message || String(writeErr)}`,
         };
       }
 
       // Dispatch event to refresh UI
       if (typeof window !== 'undefined') {
+        logger.info('[UpdateRepeaterContentHandler] 📣 Dispatching repeater-updated event');
         window.dispatchEvent(new CustomEvent('repeater-updated'));
+        logger.info('[UpdateRepeaterContentHandler] ✅ Event dispatched');
       }
 
-      return { 
-        text: `[update_repeater_content] Updated ${repeaterId} ${target}` 
+      return {
+        text: `[update_repeater_content] Updated ${repeaterId} ${target}`,
       };
     } catch (err: any) {
       logger.error('[UpdateRepeaterContentHandler] Error:', err);

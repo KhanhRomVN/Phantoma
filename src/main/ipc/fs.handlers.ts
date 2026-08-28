@@ -385,4 +385,9 @@ export function setupFSHandlers() {
   ipcMain.handle('cert:install-system-ca', async () => {
     return await installSystemCA();
   });
+
+  // Get homedir
+  ipcMain.handle('fs:get-homedir', async () => {
+    return require('os').homedir();
+  });
 }

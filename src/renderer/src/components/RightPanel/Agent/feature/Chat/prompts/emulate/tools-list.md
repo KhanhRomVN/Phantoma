@@ -1,3 +1,9 @@
+<!--
+⚠️ NOTICE: This file is for DOCUMENTATION ONLY (human reference).
+This .md file is NOT used as AI prompt.
+To update AI tool instructions, edit: tools-reference.ts
+-->
+
 # Công Cụ Emulate
 
 ## Phần 1: Tool Chủ Động
@@ -460,11 +466,53 @@ Cập nhật nội dung `params`, `headers` hoặc `body` của một request tr
 - **TẤT CẢ đều dùng JSON format** — KHÔNG BAO GIỜ hỏi user về format, nó luôn là JSON với `{}` hoặc `[]`
 - Khi copy từ `get_repeater_detail`, copy CHÍNH XÁC từng ký tự kể cả dấu ngoặc kép, dấu phấy, khoảng trắng
 
+**⚠️ CRITICAL - FORMAT MATCHING RULE:**
+- `get_repeater_detail` trả về **PRETTY-PRINTED JSON** (có indent, xuống dòng)
+- `old_content` PHẢI MATCH CHÍNH XÁC format đó (bao gồm spaces, newlines, indent)
+- `new_content` CŨNG PHẢI dùng **CHÍNH XÁC CÙNG FORMAT** (indent 2 spaces, xuống dòng)
+- **KHÔNG ĐƯỢC compact JSON thành 1 dòng** — điều này sẽ làm cho `old_content` không match
+
+**Ví dụ ĐÚNG (pretty-printed matching):**
+```xml
+<update_repeater_content>
+  <repeater_id>repeater_0</repeater_id>
+  <target>params</target>
+  <old_content>[
+  {
+    "key": "test1",
+    "value": "1",
+    "enabled": true
+  }
+]</old_content>
+  <new_content>[
+  {
+    "key": "test1",
+    "value": "1",
+    "enabled": true
+  },
+  {
+    "key": "test2",
+    "value": "2",
+    "enabled": true
+  }
+]</new_content>
+</update_repeater_content>
+```
+
+**Ví dụ SAI (compact format - sẽ không match):**
+```xml
+<update_repeater_content>
+  <repeater_id>repeater_0</repeater_id>
+  <target>params</target>
+  <old_content>[{"key":"test1","value":"1","enabled":true}]</old_content>
+  <new_content>[{"key":"test1","value":"1","enabled":true},{"key":"test2","value":"2","enabled":true}]</new_content>
+</update_repeater_content>
+```
+
 **Cơ chế replace (quan trọng — dễ hiểu nhầm):**
 - Chỉ thay thế **lần xuất hiện ĐẦU TIÊN** của `old_content`. Nếu `old_content` xuất hiện nhiều lần, các lần sau KHÔNG bị thay.
-- Nếu `old_content` không khớp chính xác, tool **KHÔNG báo lỗi** — nó âm thầm giữ nguyên nội dung cũ nhưng vẫn trả về `[update_repeater_content] Updated ...`.
-- Với `target="headers"`: headers được serialize thành JSON, replace trên chuỗi JSON, rồi parse lại. **Nếu `new_content` làm hỏng cấu trúc JSON, parse thất bại và headers bị giữ nguyên cũ — nhưng tool vẫn báo "Updated".** Luôn giữ cấu trúc JSON hợp lệ.
-- Với `target="params"`: params được serialize thành JSON, replace trên chuỗi JSON, rồi parse lại. **Nếu `new_content` làm hỏng cấu trúc JSON, parse thất bại và params bị giữ nguyên cũ — nhưng tool vẫn báo "Updated".** Luôn giữ cấu trúc JSON hợp lệ.
+- Nếu `old_content` không khớp chính xác (bao gồm format), replace sẽ THẤT BẠI âm thầm và tool trả về error message.
+- Với `target="headers"` hoặc `target="params"`: Sau khi replace, tool tự động validate và format lại JSON. **Nếu `new_content` làm hỏng cấu trúc JSON, tool sẽ trả về error — KHÔNG ghi file.**
 - Với `target="body"`: replace trực tiếp trên chuỗi body.
 
 **Payload variable placeholder:**
@@ -474,41 +522,63 @@ Cập nhật nội dung `params`, `headers` hoặc `body` của một request tr
 
 **Quy trình bắt buộc — LIST → READ → UPDATE → VERIFY:**
 1. `list_repeaters` — lấy `repeater_id` hợp lệ.
-2. `get_repeater_detail` — đọc `old_content` CHÍNH XÁC từ dữ liệu thực tế (không đoán từ trí nhớ).
-3. `update_repeater_content` — thực hiện replace.
-4. `get_repeater_detail` lại — xác minh thay đổi đã thực sự diễn ra. **Đừng tin message "Updated" — nó được trả về ngay cả khi replace thất bại âm thầm.**
+2. `get_repeater_detail` — đọc `old_content` CHÍNH XÁC từ dữ liệu thực tế (bao gồm format, không đoán từ trí nhớ).
+3. `update_repeater_content` — thực hiện replace với EXACT SAME FORMAT.
+4. `get_repeater_detail` lại — xác minh thay đổi đã thực sự diễn ra.
 
 **Xóa payload variable khỏi request:**
-Dùng chính `update_repeater_content` để xóa — thay `${tên_biến}` bằng giá trị tĩnh hoặc chuỗi rỗng:
+Dùng chính `update_repeater_content` để xóa — thay `${tên_biến}` bằng giá trị tĩnh hoặc chuỗi rỗng (nhớ giữ format):
 
-```
+```xml
 <update_repeater_content>
   <repeater_id>repeater_1</repeater_id>
   <target>headers</target>
-  <old_content>"Authorization": "Bearer ${auth_token}"</old_content>
-  <new_content>"Authorization": "Bearer abc"</new_content>
+  <old_content>  {
+    "id": "abc-123",
+    "key": "Authorization",
+    "value": "Bearer ${auth_token}",
+    "enabled": true
+  }</old_content>
+  <new_content>  {
+    "id": "abc-123",
+    "key": "Authorization",
+    "value": "Bearer abc",
+    "enabled": true
+  }</new_content>
 </update_repeater_content>
 ```
 
 **Các lỗi thường gặp:**
-- `old_content` không khớp chính xác → silent no-op, vẫn báo "Updated".
+- `old_content` không khớp chính xác format (compact vs pretty-printed) → error: "old_content not found".
 - `old_content` xuất hiện nhiều lần → chỉ lần đầu bị thay.
-- `new_content` làm hỏng JSON của headers → silent no-op trên headers, vẫn báo "Updated".
+- `new_content` làm hỏng JSON của params/headers → error: "Result is not valid JSON".
 - Quên `get_repeater_detail` lại sau khi sửa → hành động trên dữ liệu cũ, gây lỗi dây chuyền.
 
-**Ví dụ:**
+**Ví dụ hoàn chỉnh:**
 
+```xml
 <update_repeater_content>
   <repeater_id>repeater_1</repeater_id>
   <target>headers</target>
-  <old_content>"Authorization": "Bearer abc"</old_content>
-  <new_content>"Authorization": "Bearer ${auth_token}"</new_content>
+  <old_content>  {
+    "id": "abc-123",
+    "key": "Authorization",
+    "value": "Bearer abc",
+    "enabled": true
+  }</old_content>
+  <new_content>  {
+    "id": "abc-123",
+    "key": "Authorization",
+    "value": "Bearer ${auth_token}",
+    "enabled": true
+  }</new_content>
 </update_repeater_content>
-
+```
 
 **Kết quả:**
-
+```
 [update_repeater_content] Updated repeater_1 headers
+```
 
 ⚠️ Sau khi nhận kết quả "Updated", bắt buộc gọi lại `get_repeater_detail` để xác minh thay đổi thực sự đã diễn ra.
 

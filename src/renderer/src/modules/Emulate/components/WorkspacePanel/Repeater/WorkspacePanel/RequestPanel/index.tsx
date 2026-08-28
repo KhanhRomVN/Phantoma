@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Code } from 'lucide-react';
+import { Code, TextAlignJustify } from 'lucide-react';
 
 // ── Components ──
 import { ParamTab } from './TabContent/ParamTab';
@@ -96,6 +96,10 @@ export function RequestPanel({
 
   // Auto-detect and sync payloads from ${name} patterns in params/headers/body
   useEffect(() => {
+    console.log('[RequestPanel] 🟣 Auto-detect payloads effect triggered');
+    console.log('[RequestPanel] params.length:', params.length);
+    console.log('[RequestPanel] headers.length:', headers.length);
+    
     const allValues = [...params.map((p) => p.value), ...headers.map((h) => h.value), body].join(
       ' ',
     );
@@ -125,6 +129,7 @@ export function RequestPanel({
     );
 
     if (newPayloads.length > 0 || needsCleanup) {
+      console.log('[RequestPanel] ⚠️ Updating payloads, newPayloads:', newPayloads.length, 'needsCleanup:', needsCleanup);
       setPayloads((prev) => {
         const kept = prev.filter((p) => {
           if (!p.description?.startsWith('Auto-created from')) return true;
@@ -166,6 +171,8 @@ export function RequestPanel({
     }
   }, [viewHistoryEntry]);
   const bodyCodeBlockRef = useRef<CodeBlockRef>(null);
+  const paramsCodeBlockRef = useRef<CodeBlockRef>(null);
+  const headersCodeBlockRef = useRef<CodeBlockRef>(null);
 
   const [, setInternalLastRunTimestamp] = useState<number | null>(null);
   const [internalSaveToHistory] = useState(true);
@@ -189,15 +196,25 @@ export function RequestPanel({
     headers,
     payloads,
     onLoadRequest: (req) => {
+      console.log('[RequestPanel] 🔵 onLoadRequest called from useRepeaterPersistence');
+      console.log('[RequestPanel] hasNetworkData:', hasNetworkData);
+      console.log('[RequestPanel] req.params:', req.params);
+      console.log('[RequestPanel] req.headers:', req.headers);
+      console.log('[RequestPanel] Current params before update:', params);
+      
       if (hasNetworkData) {
+        console.log('[RequestPanel] ⚠️ Skipping onLoadRequest because hasNetworkData=true');
         return;
       }
+      
+      console.log('[RequestPanel] ✅ Applying onLoadRequest data...');
       setMethod(req.method);
       setUrl(req.url);
       setBody(req.body);
       setParams(req.params);
       setHeaders(req.headers);
       setInternalPayloads(req.payloads);
+      console.log('[RequestPanel] ✅ onLoadRequest data applied');
     },
   });
 
@@ -212,7 +229,11 @@ export function RequestPanel({
 
   // Auto-save params khi có thay đổi (debounce 500ms)
   useEffect(() => {
-    console.log('[RequestPanel] params changed, targetId:', targetId, 'params:', params);
+    console.log('[RequestPanel] 🟡 params changed effect triggered');
+    console.log('[RequestPanel] targetId:', targetId);
+    console.log('[RequestPanel] params:', params);
+    console.log('[RequestPanel] params.length:', params.length);
+    
     if (!targetId) return;
     const timer = setTimeout(() => {
       console.log('[RequestPanel] Params will be saved by useRepeaterPersistence hook');
@@ -692,40 +713,12 @@ export function RequestPanel({
   const tabs: { id: RepeaterTab; label: React.ReactNode; count?: number }[] = [
     { 
       id: 'params', 
-      label: (
-        <div className="flex items-center gap-1.5">
-          <span>Params</span>
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsParamsRawView(!isParamsRawView);
-            }}
-            className="p-0.5 rounded hover:bg-primary/20 transition-colors cursor-pointer"
-            title={isParamsRawView ? "Switch to table view" : "Switch to raw view"}
-          >
-            <Code className="w-3 h-3" />
-          </span>
-        </div>
-      ), 
+      label: 'Params',
       count: params.filter((p) => p.enabled && p.key).length 
     },
     { 
       id: 'headers', 
-      label: (
-        <div className="flex items-center gap-1.5">
-          <span>Headers</span>
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsHeadersRawView(!isHeadersRawView);
-            }}
-            className="p-0.5 rounded hover:bg-primary/20 transition-colors cursor-pointer"
-            title={isHeadersRawView ? "Switch to table view" : "Switch to raw view"}
-          >
-            <Code className="w-3 h-3" />
-          </span>
-        </div>
-      ), 
+      label: 'Headers',
       count: headers.filter((h) => h.enabled && h.key).length 
     },
     { id: 'body', label: 'Body' },
@@ -753,28 +746,75 @@ export function RequestPanel({
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'flex items-center gap-1.5 px-3 h-8 text-sm font-medium whitespace-nowrap transition-all border-b-2',
+              'flex items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap transition-all border-b-2',
               activeTab === tab.id
                 ? 'border-primary text-text-primary'
                 : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover/30',
             )}
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            
+            {/* Toggle view icon - only show when tab is active and it's params or headers */}
+            {activeTab === tab.id && (tab.id === 'params' || tab.id === 'headers') && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (tab.id === 'params') {
+                    setIsParamsRawView(!isParamsRawView);
+                  } else if (tab.id === 'headers') {
+                    setIsHeadersRawView(!isHeadersRawView);
+                  }
+                }}
+                className="p-0.5 rounded hover:bg-primary/20 transition-colors cursor-pointer"
+                title={
+                  tab.id === 'params' 
+                    ? (isParamsRawView ? "Switch to table view" : "Switch to raw view")
+                    : (isHeadersRawView ? "Switch to table view" : "Switch to raw view")
+                }
+              >
+                <Code className="w-3 h-3" />
+              </span>
+            )}
+            
             {tab.count !== undefined && tab.count > 0 && (
-              <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded text-[10px] font-bold">
+              <span className="bg-primary/20 text-primary px-1.5 rounded text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center">
                 {tab.count}
               </span>
             )}
           </button>
         ))}
-        {viewHistoryEntry ? (
+        
+        {/* Format button - show when in raw view (params/headers) or body tab */}
+        {!readOnly && (
+          (activeTab === 'params' && isParamsRawView) ||
+          (activeTab === 'headers' && isHeadersRawView) ||
+          activeTab === 'body'
+        ) && (
+          <button
+            onClick={() => {
+              if (activeTab === 'params') {
+                paramsCodeBlockRef.current?.format();
+              } else if (activeTab === 'headers') {
+                headersCodeBlockRef.current?.format();
+              } else if (activeTab === 'body') {
+                bodyCodeBlockRef.current?.format();
+              }
+            }}
+            className="ml-auto mr-3 p-1.5 rounded hover:bg-primary/20 transition-colors"
+            title="Format JSON"
+          >
+            <TextAlignJustify className="w-4 h-4 text-text-secondary hover:text-text-primary" />
+          </button>
+        )}
+        
+        {viewHistoryEntry && (
           <span
             className="ml-auto mr-3 text-[10px] text-text-secondary hover:text-primary transition-colors cursor-pointer shrink-0"
             onClick={handleExitView}
           >
             Đang xem lịch sử — Click để thoát
           </span>
-        ) : null}
+        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">
@@ -789,6 +829,7 @@ export function RequestPanel({
             onSwitchToPayload={() => setActiveTab('payload')}
             isRawView={isParamsRawView}
             targetId={targetId}
+            codeBlockRef={paramsCodeBlockRef}
           />
         )}
         {activeTab === 'headers' && (
@@ -800,6 +841,7 @@ export function RequestPanel({
             onSwitchToPayload={() => setActiveTab('payload')}
             isRawView={isHeadersRawView}
             targetId={targetId}
+            codeBlockRef={headersCodeBlockRef}
           />
         )}
         {activeTab === 'body' && (
@@ -808,6 +850,7 @@ export function RequestPanel({
             onChange={setBody}
             codeBlockRef={bodyCodeBlockRef}
             readOnly={readOnly}
+            targetId={targetId}
           />
         )}
         {activeTab === 'payload' && (
