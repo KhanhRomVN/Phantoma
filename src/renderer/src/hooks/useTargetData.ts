@@ -1,7 +1,29 @@
+/**
+ * ------------------------------------------------------------------
+ * useTargetData
+ * ------------------------------------------------------------------
+ * Hook quản lý dữ liệu target của Emulate module. Cung cấp các thao
+ * tác load, lưu, tạo, xóa và tìm kiếm target với trạng thái loading
+ * và error.
+ *
+ * Main features:
+ * - Auto-load target khi mount (tuỳ chọn autoLoad)
+ * - Hỗ trợ lọc theo platform hoặc searchQuery
+ * - Cập nhật state sau mỗi thao tác save/delete
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useCallback, useRef } from 'react';
+
+// ── Services ──
 import { dataService } from '../modules/Emulate/services/emulate-api.service';
+
+// ── Types ──
 import { TargetTab } from '@renderer/modules/Emulate/types/target.types';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseTargetDataOptions {
   autoLoad?: boolean;
   platform?: string;
@@ -23,27 +45,19 @@ interface UseTargetDataReturn {
   search: (query: string) => Promise<TargetTab[]>;
 }
 
-/**
- * Hook for managing target data with React state
- *
- * Usage:
- * const { targets, loading, saveTarget, deleteTarget } = useTargetData();
- *
- * // Auto-load on mount
- * const { targets, loading } = useTargetData({ autoLoad: true });
- *
- * // Load by platform
- * const { targets } = useTargetData({ platform: 'web' });
- */
+// ─── Hook ───────────────────────────────────────────────────────────────
 export function useTargetData(options: UseTargetDataOptions = {}): UseTargetDataReturn {
   const { autoLoad = true, platform, searchQuery } = options;
 
+  // ── State ──
   const [targets, setTargets] = useState<TargetTab[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ── Refs ──
   const isMounted = useRef(true);
 
-  // Cleanup
+  // ── Effects ──
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -51,6 +65,7 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
     };
   }, []);
 
+  // ── Callbacks ──
   const loadTargets = useCallback(async () => {
     if (!isMounted.current) return;
 
@@ -214,7 +229,7 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
     }
   }, []);
 
-  // Auto-load on mount
+  // ── Effects ──
   useEffect(() => {
     if (autoLoad) {
       loadTargets();

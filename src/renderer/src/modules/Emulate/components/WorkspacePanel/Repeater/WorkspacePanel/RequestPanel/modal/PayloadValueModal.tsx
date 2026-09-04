@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Plus, Play, Copy, FileText, Trash2 } from 'lucide-react';
+import { X, Plus, Play, Copy, FileText, Trash2, Pencil } from 'lucide-react';
 
 // ── Components ──
 import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
@@ -101,6 +101,11 @@ export function PayloadValueModal({
   useEffect(() => {
     if (isOpen) {
       loadFromStorage();
+      // Reset to Current Values tab by default
+      setSelectedSource({ type: 'current', id: 'current' });
+      setCurrentPreviewValues(currentValues);
+      setTemplatePreviewValues(currentValues);
+      setRawText(currentValues.join('\n'));
     }
   }, [isOpen, payloadName]);
 
@@ -340,9 +345,12 @@ export function PayloadValueModal({
         <div className="flex-1 flex min-h-0">
           {/* Left Panel */}
           <div className="w-64 border-r border-border flex flex-col bg-muted/5">
-            {/* Current Values */}
-            <div className="p-3 border-b border-border">
-              <div className="text-xs font-medium text-text-secondary mb-2">Current Values</div>
+            {/* My Values — nơi người dùng nhập values cho payload */}
+            <div className="p-3 border-b border-primary/30 bg-primary/5">
+              <div className="text-xs font-medium text-primary mb-2 flex items-center gap-1">
+                <Pencil className="w-3 h-3" />
+                My Values
+              </div>
               <button
                 onClick={() => {
                   setSelectedSource({ type: 'current', id: 'current' });
@@ -352,13 +360,13 @@ export function PayloadValueModal({
                   setOutputText('');
                 }}
                 className={cn(
-                  'w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center gap-2',
+                  'w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center gap-2 border border-primary/20',
                   selectedSource?.type === 'current'
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-text-primary hover:bg-dropdown-item-hover',
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-text-primary hover:bg-primary/10',
                 )}
               >
-                <FileText className="w-3 h-3 shrink-0" />
+                <Pencil className="w-3 h-3 shrink-0" />
                 <span className="flex-1 truncate">{payloadName}</span>
                 <span className="text-[10px] text-text-secondary">
                   {currentPreviewValues.length}
@@ -548,7 +556,7 @@ export function PayloadValueModal({
                       Compile
                     </button>
                   </div>
-                  <div className="flex-1 p-2 min-h-0">
+                  <div className="flex-1 min-h-0">
                     <CodeBlock
                       ref={codeBlockRef}
                       code={editingContent}
@@ -613,7 +621,7 @@ export function PayloadValueModal({
                 </div>
               </>
             ) : isCurrentValues ? (
-              /* Current Values: Textarea view (simple text edit) */
+              /* My Values: CodeBlock editable view */
               <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-table-headerBg">
                   <div className="text-xs font-medium text-text-secondary">

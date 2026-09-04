@@ -18,6 +18,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { extensionService } from '../services/ExtensionService';
 
 export type PermissionMode = 'fullAccess' | 'approval';
+export type SystemPromptMode = 'fast' | 'balanced' | 'thorough' | 'autopilot';
 
 interface SettingsContextType {
   apiUrl: string;
@@ -34,6 +35,8 @@ interface SettingsContextType {
   setLanguage: (value: string) => void;
   aiLanguage: string;
   setAiLanguage: (value: string) => void;
+  systemPromptMode: SystemPromptMode;
+  setSystemPromptMode: (mode: SystemPromptMode) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -46,6 +49,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [commitMessageLanguage, setCommitMessageLanguageState] = useState<'en' | 'vi'>('en');
   const [language, setLanguageState] = useState<string>('');
   const [aiLanguage, setAiLanguageState] = useState<string>('');
+  const [systemPromptMode, setSystemPromptModeState] = useState<SystemPromptMode>('balanced');
 
   useEffect(() => {
     try {
@@ -64,6 +68,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const savedAiLanguage = localStorage.getItem('zen-ai-language');
       if (savedAiLanguage) {
         setAiLanguageState(savedAiLanguage);
+      }
+      const savedSystemPromptMode = localStorage.getItem('zen-system-prompt-mode');
+      if (
+        savedSystemPromptMode === 'fast' ||
+        savedSystemPromptMode === 'balanced' ||
+        savedSystemPromptMode === 'thorough' ||
+        savedSystemPromptMode === 'autopilot'
+      ) {
+        setSystemPromptModeState(savedSystemPromptMode);
       }
     } catch (e) {
       logger.warn('[SettingsContext] Failed to load settings from localStorage:', e);
@@ -151,6 +164,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const setSystemPromptMode = (mode: SystemPromptMode) => {
+    setSystemPromptModeState(mode);
+    try {
+      localStorage.setItem('zen-system-prompt-mode', mode);
+    } catch (e) {
+      logger.warn('[SettingsContext] Failed to save system prompt mode:', e);
+    }
+  };
+
   return (
     <SettingsContext.Provider
       value={{
@@ -168,6 +190,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setLanguage,
         aiLanguage,
         setAiLanguage,
+        systemPromptMode,
+        setSystemPromptMode,
       }}
     >
       {children}

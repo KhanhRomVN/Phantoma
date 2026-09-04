@@ -34,4 +34,5 @@ export interface FlatAccount extends Account {
   usage?: string;
   reset_period?: string;
   is_active_cli?: boolean;
+  user_data_dir?: string;
 }

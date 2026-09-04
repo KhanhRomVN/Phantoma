@@ -98,6 +98,23 @@ Use XML tags for all tool calls:
 - Example: \`<delete_repeater><repeater_id>repeater_1</repeater_id></delete_repeater>\` — remove repeater_1
 - ⚠ LIST-BEFORE-DELETE: Always call \`list_repeaters\` before \`delete_repeater\`. The repeater_id must come from a \`list_repeaters\` result.
 
+**run_repeater**: Execute a request from the Repeater. Works like clicking "Send" button in UI:
+- \`repeater_id\`: The repeater index from a previous \`list_repeaters\` result (required). Format: \`repeater_<number>\`.
+- Behavior:
+  - **No payload enabled**: Runs once with current params/headers/body values
+  - **Payload enabled**: Automatically runs with cartesian product of all payload combinations (max 100 runs)
+- Auto-saves: Each run is automatically saved to history (max 30 entries per repeater, FIFO queue). No manual save needed.
+- Returns:
+  - **Single run** (no payload): Full response with headers and body
+  - **Multiple runs** (with payload): Summary list with status, duration, and payload values for each run
+- Payload handling:
+  - Tool automatically detects \`\${variable_name}\` placeholders in params/headers/body
+  - Replaces them with actual values from enabled payloads
+  - Generates all combinations (cartesian product) if multiple payloads enabled
+- Examples:
+  - \`<run_repeater><repeater_id>repeater_0</repeater_id></run_repeater>\` — run with automatic payload handling
+- ⚠ LIST-BEFORE-RUN: Always call \`list_repeaters\` before \`run_repeater\`.
+
 **get_repeater_detail**: Get params, headers, and body of a request in the Repeater.
 - \`repeater_id\`: The repeater index from a previous \`list_repeaters\` result (required). Format: \`repeater_<number>\`.
 - Returns: Three sections showing actual file content:

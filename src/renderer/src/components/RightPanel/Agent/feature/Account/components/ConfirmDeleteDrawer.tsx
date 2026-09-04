@@ -27,7 +27,7 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-[200] animate-[cdFadeIn_0.15s_ease]"
-        style={{ backgroundColor: $('--overlay, rgba(0,0,0,0.5)') }}
+        style={{ backgroundColor: $('--overlay', 0.5) }}
         onClick={() => !loading && onOpenChange(false)}
       />
 
@@ -53,7 +53,7 @@ const ConfirmDeleteDrawer: React.FC<ConfirmDeleteDrawerProps> = ({
             <div
               className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
               style={{
-                backgroundColor: $('--error, rgba(239,68,68,0.1)'),
+                backgroundColor: $('--error', 0.1),
               }}
             >
               <svg

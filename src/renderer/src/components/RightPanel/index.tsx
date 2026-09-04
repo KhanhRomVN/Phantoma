@@ -18,9 +18,7 @@ import { useState, useRef, useEffect } from 'react';
 import { AgentPanel } from './Agent';
 import HomePanel from './Agent/feature/Home';
 import AccountPanel from './Agent/feature/Account';
-import { Analytic as AnalyticFeature } from './Agent/feature/Analytic';
 import HistoryPanel from './Agent/feature/History';
-import { Models as ModelsFeature } from './Agent/feature/Model';
 import SettingsPanel from './Agent/feature/Setting';
 
 // CONTEXT
@@ -42,7 +40,6 @@ import {
   Plus,
   MoreHorizontal,
   User,
-  Cpu,
   Clock,
   Settings,
   Bot,
@@ -63,9 +60,7 @@ type AgentSubView =
   | 'home'
   | 'session'
   | 'account'
-  | 'analytic-feature'
   | 'history'
-  | 'model'
   | 'setting'
   | null;
 
@@ -192,10 +187,8 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
 
   const ellipsisOptions = [
     { label: 'Account', icon: User, subView: 'account' as AgentSubView },
-    { label: 'Model', icon: Cpu, subView: 'model' as AgentSubView },
     { label: 'History', icon: Clock, subView: 'history' as AgentSubView },
     { label: 'Setting', icon: Settings, subView: 'setting' as AgentSubView },
-    { label: 'Analytic', icon: BarChart3, subView: 'analytic-feature' as AgentSubView },
   ];
 
   return (
@@ -312,14 +305,8 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
           {view === 'agent' && agentSubView === 'account' && (
             <AccountPanel isOpen={true} onClose={() => setAgentSubView(null)} />
           )}
-          {view === 'agent' && agentSubView === 'analytic-feature' && (
-            <AnalyticFeature isOpen={true} onClose={() => setAgentSubView(null)} />
-          )}
           {view === 'agent' && agentSubView === 'history' && (
             <HistoryPanel isOpen={true} onClose={() => setAgentSubView(null)} />
-          )}
-          {view === 'agent' && agentSubView === 'model' && (
-            <ModelsFeature isOpen={true} onClose={() => setAgentSubView(null)} />
           )}
           {view === 'agent' && agentSubView === 'setting' && (
             <SettingsPanel isOpen={true} onClose={() => setAgentSubView(null)} />

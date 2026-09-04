@@ -533,6 +533,8 @@ interface DashboardState {
   greeting: string;
 }
 
+console.log('[Module] Dashboard loaded');
+
 export function Dashboard() {
   const [state] = useModulePersistence<DashboardState>('dashboard', {
     greeting:

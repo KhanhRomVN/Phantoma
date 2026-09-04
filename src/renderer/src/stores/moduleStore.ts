@@ -1,13 +1,31 @@
+/**
+ * ------------------------------------------------------------------
+ * Module Store
+ * ------------------------------------------------------------------
+ * Zustand store quản lý state của từng module trong ứng dụng.
+ * Cho phép lưu/đọc/xóa state theo moduleId một cách động, dùng chung
+ * cho Dashboard, Recon, Scanner, Tools, Emulate, Wireless, Settings.
+ *
+ * Main actions:
+ * - setModuleState()    : Cập nhật một phần state của module
+ * - getModuleState()    : Lấy state hiện tại của module
+ * - clearModuleState()  : Xóa state của module
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Store ──
 import { create } from 'zustand';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 // Định nghĩa state cho từng module
 export interface ModuleStateMap {
-  // Dashboard
+  // ── Dashboard ──
   dashboard?: {
     greeting?: string;
   };
 
-  // Recon (Intel)
+  // ── Recon (Intel) ──
   recon?: {
     sessions: any[];
     activeDomain: string;
@@ -20,21 +38,21 @@ export interface ModuleStateMap {
     dataCache: Record<string, Record<string, unknown>>;
   };
 
-  // Scanner
+  // ── Scanner ──
   scanner?: {
     activeSubItem: string;
     domainScanState?: any;
     networkScanState?: any;
   };
 
-  // Tools Manager
+  // ── Tools Manager ──
   tools?: {
     selectedTool: string;
     searchQuery: string;
     activeTab: 'information' | 'execution' | 'history' | 'profiles';
   };
 
-  // Emulate
+  // ── Emulate ──
   emulate?: {
     selectedTool: string;
     targetTabs: Array<{ id: string; title: string; favicon?: string; url?: string }>;
@@ -64,10 +82,10 @@ export interface ModuleStateMap {
     sorting: any[];
   };
 
-  // Wireless
+  // ── Wireless ──
   wireless?: any;
 
-  // Settings
+  // ── Settings ──
   settings?: any;
 }
 
@@ -83,6 +101,7 @@ interface ModuleStore {
   clearModuleState: (moduleId: keyof ModuleStateMap) => void;
 }
 
+// ─── Store ──────────────────────────────────────────────────────────────
 export const useModuleStore = create<ModuleStore>((set, get) => ({
   states: {},
 

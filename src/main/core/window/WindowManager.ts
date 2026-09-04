@@ -75,7 +75,6 @@ export class WindowManager {
 
     // Cleanup target processes on renderer reload (Ctrl+R)
     this.mainWindow.webContents.on('did-start-loading', () => {
-      console.log('[WindowManager] Renderer reloading, cleaning up target processes...');
       clearAllTargetProcesses();
     });
 

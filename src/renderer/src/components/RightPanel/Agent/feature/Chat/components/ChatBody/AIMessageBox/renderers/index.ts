@@ -44,6 +44,7 @@ export { ListRepeatersRenderer } from './emulate/ListRepeatersRenderer';
 export { DeleteRepeaterRenderer } from './emulate/DeleteRepeaterRenderer';
 export { GetRepeaterDetailRenderer } from './emulate/GetRepeaterDetailRenderer';
 export { UpdateRepeaterContentRenderer } from './emulate/UpdateRepeaterContentRenderer';
+export { RunRepeaterRenderer } from './emulate/RunRepeaterRenderer';
 export { ListTabsRenderer } from './recon/ListTabsRenderer';
 export { CreateTabRenderer } from './recon/CreateTabRenderer';
 export { CloseTabRenderer } from './recon/CloseTabRenderer';

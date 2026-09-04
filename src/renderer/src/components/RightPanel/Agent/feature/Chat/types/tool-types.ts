@@ -260,6 +260,10 @@ export interface UpdateRepeaterContentParams {
   new_content: string;
 }
 
+export interface RunRepeaterParams {
+  repeater_id: string;
+}
+
 // ===== RECON TOOLS =====
 export interface LaunchBrowserParams {
   targetId?: string;

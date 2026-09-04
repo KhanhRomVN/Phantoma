@@ -2,6 +2,7 @@ import { Square, Send } from 'lucide-react';
 
 // ── UI Components ──
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
+import { Tooltip } from '@renderer/components/ui/Tooltip';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -16,6 +17,7 @@ interface RequestBarProps {
   onSend: () => void;
   readOnly?: boolean;
   hasEmptyPayload?: boolean;
+  errors?: string[];
 }
 
 const METHOD_COLORS: Record<string, string> = {
@@ -40,9 +42,18 @@ export function RequestBar({
   onSend,
   readOnly = false,
   hasEmptyPayload = false,
+  errors: externalErrors,
 }: RequestBarProps) {
   const activeColor = METHOD_COLORS[method?.toUpperCase()] || 'text-text-primary';
-  
+
+  const errors =
+    externalErrors !== undefined
+      ? externalErrors
+      : [
+          !url && 'URL is required',
+          hasEmptyPayload && 'Some enabled payloads have no values',
+        ].filter(Boolean) as string[];
+
   return (
     <div className="flex items-center border-b border-border shrink-0 bg-muted/5">
       <Dropdown strategy="fixed" align="start">
@@ -91,27 +102,42 @@ export function RequestBar({
         className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono read-only:opacity-60"
       />
 
-      <button
-        onClick={onSend}
-        disabled={isExecuting || !url || readOnly || hasEmptyPayload}
-        title={hasEmptyPayload ? 'Some enabled payloads have no values' : undefined}
-        className={cn(
-          'flex items-center gap-1.5 px-4 h-9 text-sm font-medium transition-all shrink-0',
-          isExecuting || !url || readOnly || hasEmptyPayload
-            ? 'bg-error/20 text-error cursor-not-allowed'
-            : 'bg-primary/20 text-primary hover:bg-primary/30',
-        )}
+      <Tooltip
+        content={
+          errors.length > 0 ? (
+            <div className="space-y-1">
+              {errors.map((error, index) => (
+                <div key={index} className="flex items-start gap-1.5">
+                  <span className="text-error shrink-0">•</span>
+                  <span>{error}</span>
+                </div>
+              ))}
+            </div>
+          ) : null
+        }
+        side="bottom"
       >
-        {isExecuting ? (
-          <>
-            <Square className="w-4 h-4" /> Sending...
-          </>
-        ) : (
-          <>
-            <Send className="w-4 h-4" /> Send
-          </>
-        )}
-      </button>
+        <button
+          onClick={onSend}
+          disabled={isExecuting || !url || readOnly || hasEmptyPayload}
+          className={cn(
+            'flex items-center gap-1.5 px-4 h-9 text-sm font-medium transition-all shrink-0',
+            isExecuting || !url || readOnly || hasEmptyPayload
+              ? 'bg-error/20 text-error cursor-not-allowed'
+              : 'bg-primary/20 text-primary hover:bg-primary/30',
+          )}
+        >
+          {isExecuting ? (
+            <>
+              <Square className="w-4 h-4" /> Sending...
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" /> Send
+            </>
+          )}
+        </button>
+      </Tooltip>
     </div>
   );
 }

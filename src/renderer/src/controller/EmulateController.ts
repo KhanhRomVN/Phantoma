@@ -41,6 +41,7 @@ import { ListRepeatersHandler } from '../modules/Emulate/handler/ListRepeatersHa
 import { DeleteRepeaterHandler } from '../modules/Emulate/handler/DeleteRepeaterHandler';
 import { GetRepeaterDetailHandler } from '../modules/Emulate/handler/GetRepeaterDetailHandler';
 import { UpdateRepeaterContentHandler } from '../modules/Emulate/handler/UpdateRepeaterContentHandler';
+import { RunRepeaterHandler } from '../modules/Emulate/handler/RunRepeaterHandler';
 import type { CdpScriptUnpackedData } from '@renderer/shared/types/network';
 
 export class EmulateController {
@@ -67,6 +68,7 @@ export class EmulateController {
   private deleteRepeaterHandler: DeleteRepeaterHandler;
   private getRepeaterDetailHandler: GetRepeaterDetailHandler;
   private updateRepeaterContentHandler: UpdateRepeaterContentHandler;
+  private runRepeaterHandler: RunRepeaterHandler;
 
   private constructor() {
     this.listHttpHandler = new ListHttpHandler();
@@ -84,6 +86,7 @@ export class EmulateController {
     this.deleteRepeaterHandler = new DeleteRepeaterHandler();
     this.getRepeaterDetailHandler = new GetRepeaterDetailHandler();
     this.updateRepeaterContentHandler = new UpdateRepeaterContentHandler();
+    this.runRepeaterHandler = new RunRepeaterHandler();
   }
 
   // ── Singleton ─────────────────────────────────────────────────────
@@ -189,10 +192,6 @@ export class EmulateController {
           return { success: true, data: { output: result.text } };
         }
         case 'list_repeaters': {
-          console.log(
-            '[DEBUG][executeTool] Executing list_repeaters, effectiveTargetId:',
-            effectiveTargetId,
-          );
           const listResult = await ctrl.listRepeatersHandler.handle(
             ctrl.requests,
             effectiveTargetId,
@@ -232,6 +231,15 @@ export class EmulateController {
             success: true,
             data: { output: updateResult.text },
           };
+        }
+        case 'run_repeater': {
+          if (!params.repeater_id) return { success: false, error: 'repeater_id is required' };
+          const runResult = await ctrl.runRepeaterHandler.handle(
+            ctrl.requests,
+            params.repeater_id,
+            effectiveTargetId,
+          );
+          return { success: true, data: { output: runResult.text } };
         }
         default:
           return { success: false, error: 'Unknown emulate tool: ' + toolName };
@@ -285,11 +293,6 @@ export class EmulateController {
     return result.text;
   }
   public async listRepeatersText(): Promise<string> {
-    console.log('[DEBUG][EmulateController.listRepeatersText] targetId:', this.targetId);
-    console.log(
-      '[DEBUG][EmulateController.listRepeatersText] requests count:',
-      this.requests.length,
-    );
     const result = await this.listRepeatersHandler.handle(this.requests, this.targetId);
     return result.text;
   }
@@ -323,6 +326,10 @@ export class EmulateController {
       newContent,
       this.targetId,
     );
+    return result.text;
+  }
+  public async runRepeaterText(repeaterId: string): Promise<string> {
+    const result = await this.runRepeaterHandler.handle(this.requests, repeaterId, this.targetId);
     return result.text;
   }
   public getTrafficSummary(): TrafficSummary {

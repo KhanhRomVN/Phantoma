@@ -8,7 +8,7 @@ import { RequestList } from './RequestList';
 
 // ── Types ──
 import type { HistoryEntry } from '../../../types/repeater.types';
-import type { NetworkRequest } from '../Home/Filter';
+import type { NetworkRequest } from '../Home/FilterPanel';
 
 // Services
 import emulateApi, { RepeaterRequest } from '../../../services/emulate-api.service';
@@ -178,7 +178,6 @@ export function PayloadPanel({ selectedRequestId, targetId, isTargetRunning }: P
   const [dbRequests, setDbRequests] = useState<NetworkRequest[]>([]);
   const [lastRunTimestamp, setLastRunTimestamp] = useState<number | null>(null);
   const [saveToHistory, setSaveToHistory] = useState(true);
-  const [viewHistoryEntry, setViewHistoryEntry] = useState<HistoryEntry | null>(null);
 
   // Load repeater requests from DB
   const loadDbRequests = async () => {
@@ -253,7 +252,6 @@ export function PayloadPanel({ selectedRequestId, targetId, isTargetRunning }: P
 
   const handleSelectRequest = (id: string) => {
     setSelectedId(id);
-    setViewHistoryEntry(null);
   };
 
   const handleRemoveRequest = async (id: string) => {
@@ -267,8 +265,6 @@ export function PayloadPanel({ selectedRequestId, targetId, isTargetRunning }: P
       logger.error('[Repeater] Failed to delete request:', error);
     }
   };
-  const handleViewHistory = (entry: HistoryEntry) => setViewHistoryEntry(entry);
-  const handleExitView = () => setViewHistoryEntry(null);
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -312,9 +308,6 @@ export function PayloadPanel({ selectedRequestId, targetId, isTargetRunning }: P
             onSaveSession={() => setLastRunTimestamp(null)}
             onSwitchTab={() => {}}
             targetId={targetId}
-            viewHistoryEntry={viewHistoryEntry}
-            onViewHistory={handleViewHistory}
-            onExitView={handleExitView}
           />
         )}
       </div>

@@ -44,6 +44,8 @@ import { QuickOpenModal } from './components/modal/QuickOpenModal';
 import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 
 // ─── Component ──────────────────────────────────────────────────────────
+console.log('[Module] Code loaded');
+
 export function Code() {
   // ── Store ──
   const {

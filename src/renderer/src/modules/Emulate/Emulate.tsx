@@ -8,7 +8,7 @@ import { EmulateController } from '../../controller/EmulateController';
 import { ipcService } from '../../services/ipc.service';
 
 // ── Components ──
-import { initialFilterState } from './components/WorkspacePanel/Home';
+import { initialFilterState } from './components/WorkspacePanel/Home/Home';
 import WorkspacePanel from './components/WorkspacePanel';
 import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
 import TargetSidebar from './components/TargetListPanel';
@@ -24,7 +24,6 @@ import { formatResponseSize } from './utils/network-event-parser.util';
 
 // ── Types ──
 import { NetworkRequest } from './types/inspector';
-import type { ParamItem } from './types/repeater.types';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 
 // Stores
@@ -33,6 +32,8 @@ import { useNetworkStore } from './stores/networkStore';
 
 // ── Constants ──
 import { ToolType, DEFAULT_TOOL } from './constants/tools';
+
+console.log('[Module] Emulate loaded');
 
 export default React.memo(function Emulate({
   activeAppId = '',
@@ -427,6 +428,10 @@ export default React.memo(function Emulate({
 
     stopTarget(targetId);
     handleClearRequests();
+
+    // Hủy đăng ký target với main process
+    await ipcService.unregisterTarget(targetId);
+
     await onStopSession();
   }, [stopTarget, handleClearRequests, onStopSession]);
 
@@ -474,9 +479,20 @@ export default React.memo(function Emulate({
             id: appId,
             title: customUrl ? new URL(customUrl).hostname : appId,
             url: customUrl || proxyUrl,
+            platform: target?.platform || 'web',
+            favicon: target?.favicon,
           };
           await addTargetTab(newTab);
           setActiveTarget(appId);
+
+          // Đăng ký target metadata với main process
+          await ipcService.registerTarget({
+            targetId: appId,
+            title: newTab.title,
+            favicon: newTab.favicon,
+            platform: newTab.platform,
+            url: newTab.url,
+          });
         }
       } catch (e) {
         logger.error('[Emulate] Launch failed:', e);

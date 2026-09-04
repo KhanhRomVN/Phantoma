@@ -11,6 +11,8 @@ interface ScanProps {
   activeSubItem?: string | null;
 }
 
+console.log('[Module] Scan loaded');
+
 export default function Scan({ activeSubItem: propSubItem }: ScanProps) {
   const [state, setState] = useModulePersistence<ScanState>('scanner', {
     activeSubItem: propSubItem || 'scan-domain',

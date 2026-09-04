@@ -1,3 +1,17 @@
+/**
+ * ------------------------------------------------------------------
+ * RecentActivity
+ * ------------------------------------------------------------------
+ * Component hiển thị danh sách hội thoại gần đây trong Home panel.
+ * Tái sử dụng HistoryCard từ feature history.
+ *
+ * Main features:
+ * - Hiển thị tối đa 10 hội thoại gần nhất
+ * - Loading state khi đang fetch
+ * - Cho phép xóa hội thoại trực tiếp
+ * ------------------------------------------------------------------
+ */
+
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { ConversationItem } from '../../History/types';
@@ -7,18 +21,20 @@ interface RecentActivityProps {
   conversations: ConversationItem[];
   isLoading: boolean;
   onLoadConversation?: (conversationId: string, tabId: number, folderPath: string | null) => void;
+  providerFavicons?: Record<string, string>;
 }
 
 const RecentActivity: React.FC<RecentActivityProps> = ({
   conversations,
   isLoading,
   onLoadConversation,
+  providerFavicons,
 }) => {
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const vscodeApi = (window as any).vscodeApi;
     if (vscodeApi) {
-      vscodeApi.postMessage({ command: 'confirmDelete', conversationId: id });
+      vscodeApi.postMessage({ command: 'deleteConversation', conversationId: id });
     }
   };
 
@@ -53,6 +69,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
               }}
               onDelete={handleDelete}
               formatDate={formatDate}
+              providerFavicons={providerFavicons}
             />
           ))
         ) : (

@@ -2,21 +2,21 @@
  * ------------------------------------------------------------------
  * IndexedDB Service
  * ------------------------------------------------------------------
- * General wrapper for IndexedDB with Promise-based API.
- * Used across the renderer when structured data storage is needed
- * with large capacity, index-based queries, or transactions.
+ * Wrapper chung cho IndexedDB với API dạng Promise. Dùng trong
+ * renderer khi cần lưu trữ dữ liệu có cấu trúc với dung lượng lớn,
+ * truy vấn theo index hoặc transaction.
  *
  * Main functions:
- * - open()      : Open database (create/upgrade if needed)
- * - get()       : Get a record by key
- * - getAll()    : Get all records in a store
- * - getByIndex(): Get records by index
- * - put()       : Add or update a record
- * - delete()    : Delete a record by key
- * - count()     : Count records in a store
- * - clear()     : Clear all records in a store
- * - close()     : Close the database connection
- * - deleteDB()  : Delete the entire database
+ * - open()      : Mở database (tạo/nâng cấp nếu cần)
+ * - get()       : Lấy một bản ghi theo key
+ * - getAll()    : Lấy toàn bộ bản ghi trong store
+ * - getByIndex(): Lấy bản ghi theo index
+ * - put()       : Thêm hoặc cập nhật bản ghi
+ * - delete()    : Xóa bản ghi theo key
+ * - count()     : Đếm số bản ghi trong store
+ * - clear()     : Xóa toàn bộ bản ghi trong store
+ * - close()     : Đóng kết nối database
+ * - deleteDB()  : Xóa toàn bộ database
  * ------------------------------------------------------------------
  */
 

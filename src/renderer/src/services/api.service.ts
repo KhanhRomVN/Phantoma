@@ -21,9 +21,10 @@
 import { ApiResponse } from '@renderer/types/api';
 import { logger } from '@renderer/utils/logger';
 
-// ─── Constants ────────────────────────────────────────────────────────────
+// ─── Constants ──────────────────────────────────────────────────────────
 const DEFAULT_BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8080';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 class ApiService {
   private baseUrl: string;
 
@@ -125,6 +126,6 @@ class ApiService {
   }
 }
 
-// Singleton
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const apiService = new ApiService();
 export default ApiService;

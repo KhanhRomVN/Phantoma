@@ -1,27 +1,47 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
 import { DropdownItemProps, DropdownSeparatorProps } from './type';
 import { useDropdownContext } from './Dropdown';
-import { useDropdownSize, dropdownSizeStyles } from './DropdownContent';
+import { cn } from '@renderer/shared/utils/cn';
 
-export const DropdownItem = React.memo(function DropdownItem({
+function extractText(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (!node) return '';
+  if (Array.isArray(node)) return node.map(extractText).join(' ');
+  if (React.isValidElement(node)) {
+    const props = node.props as { children?: React.ReactNode };
+    return extractText(props.children);
+  }
+  return '';
+}
+
+export function DropdownItem({
   children,
   onClick,
   className,
   disabled,
   icon,
-  closeOnSelect = true,
+  closeOnSelect,
   variant = 'default',
+  noPadding = false,
   ...props
 }: DropdownItemProps) {
-  const { close } = useDropdownContext();
-  const size = useDropdownSize();
-  const styles = dropdownSizeStyles[size];
+  const { close, searchText, closeOnSelect: contextCloseOnSelect } = useDropdownContext();
+
+  // Use prop if provided, otherwise use context value
+  const shouldClose = closeOnSelect !== undefined ? closeOnSelect : contextCloseOnSelect;
+
+  // Filter by search text
+  if (searchText) {
+    const itemText = extractText(children);
+    if (!itemText.toLowerCase().includes(searchText.toLowerCase())) {
+      return null;
+    }
+  }
 
   const handleClick = () => {
     if (disabled) return;
     onClick?.();
-    if (closeOnSelect) {
+    if (shouldClose) {
       close();
     }
   };
@@ -33,9 +53,8 @@ export const DropdownItem = React.memo(function DropdownItem({
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
       className={cn(
-        'w-full flex items-center transition-colors cursor-pointer whitespace-nowrap relative',
-        styles.item,
-        styles.gap,
+        'w-full flex items-center gap-2 text-sm transition-colors cursor-pointer whitespace-nowrap relative',
+        !noPadding && 'px-3 py-1.5',
         variant === 'error'
           ? 'text-error hover:bg-error/10'
           : 'text-text-primary hover:bg-dropdown-item-hover',
@@ -44,19 +63,17 @@ export const DropdownItem = React.memo(function DropdownItem({
       )}
       {...props}
     >
-      {icon && <span className={cn('shrink-0', styles.icon)}>{icon}</span>}
+      {icon && <span className="shrink-0">{icon}</span>}
       {children}
     </div>
   );
-});
+}
 
 DropdownItem.displayName = 'DropdownItem';
 
-export const DropdownSeparator = React.memo(function DropdownSeparator({
-  className,
-}: DropdownSeparatorProps) {
+export function DropdownSeparator({ className }: DropdownSeparatorProps) {
   return <div className={cn('h-px bg-border/60 my-1 mx-2', className)} />;
-});
+}
 
 DropdownSeparator.displayName = 'DropdownSeparator';
 

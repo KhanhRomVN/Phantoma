@@ -58,7 +58,6 @@ export function setTargetProcess(targetId: string, process: ChildProcess): void 
   // Kill old process for this target if exists
   const oldProcess = appState.targetProcesses.get(targetId);
   if (oldProcess && !oldProcess.killed) {
-    console.log(`[State] Killing old process for target ${targetId}`);
     oldProcess.kill();
   }
   appState.targetProcesses.set(targetId, process);
@@ -79,7 +78,6 @@ export function removeTargetProcess(targetId: string): void {
 export function clearAllTargetProcesses(): void {
   appState.targetProcesses.forEach((process, targetId) => {
     if (!process.killed) {
-      console.log(`[State] Killing process for target ${targetId}`);
       process.kill();
     }
   });

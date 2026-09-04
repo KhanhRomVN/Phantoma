@@ -7,6 +7,8 @@ import Performance from './components/Performance';
 
 type SettingTab = 'general' | 'interface' | 'database' | 'performance';
 
+console.log('[Module] Setting loaded');
+
 const Setting: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingTab>('general');
 

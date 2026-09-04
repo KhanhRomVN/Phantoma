@@ -10,6 +10,8 @@ export interface ReconProps {
   activeAppId?: string;
 }
 
+console.log('[Module] Recon loaded');
+
 export function Recon({}: ReconProps) {
   const { setReconState } = useAgentFeature();
   const [targets, setTargets] = useState<ReconTarget[]>([]);

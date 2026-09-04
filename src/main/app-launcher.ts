@@ -23,6 +23,7 @@ import { findAvailablePort } from './utils/net';
 import { appState, setTargetProcess, removeTargetProcess } from './shared/state';
 import { injectLocalSSLBypass } from './utils/frida';
 import { logger } from './utils/logger';
+import { emitTargetStatusChanged } from './ipc/target.handlers';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 /** CDP port used during launch — exposed for IPC handlers to retrieve */
@@ -117,6 +118,8 @@ function launchBrowser(
     // Also cleanup from target process map
     if (targetId) {
       removeTargetProcess(targetId);
+      // Emit target stopped event
+      emitTargetStatusChanged(targetId, 'stopped');
     }
   });
 
@@ -125,6 +128,17 @@ function launchBrowser(
   });
 
   child.unref();
+  
+  // Emit target started event nếu có targetId
+  if (targetId) {
+    emitTargetStatusChanged(targetId, 'running', {
+      id: targetId,
+      title: profileName,
+      url: url,
+      platform: 'web',
+    });
+  }
+  
   return true;
 }
 

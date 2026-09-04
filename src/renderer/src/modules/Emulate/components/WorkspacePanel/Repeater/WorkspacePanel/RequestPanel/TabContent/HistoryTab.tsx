@@ -19,7 +19,7 @@ interface HistoryTabProps {
   payloads?: PayloadItem[];
   onSwitchToResult?: () => void;
   onViewResponse?: (entry: HistoryEntry) => void;
-  onViewHistory?: (entry: HistoryEntry) => void;
+  onViewRuns?: (entry: HistoryEntry) => void; // Open ResultsModal
 }
 
 function getUrlParts(url: string): { host: string; path: string } {
@@ -85,7 +85,7 @@ export function HistoryTab({
   onClear,
   onDelete,
   selectedId,
-  onViewHistory,
+  onViewRuns,
 }: HistoryTabProps) {
   const [menu, setMenu] = useState<{ x: number; y: number; entryId: string } | null>(null);
 
@@ -104,21 +104,6 @@ export function HistoryTab({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0 bg-table-headerBg">
-        <span className="text-[10px] font-bold text-text-secondary uppercase">
-          {entries.length} entry{entries.length !== 1 ? 's' : ''}
-        </span>
-        {entries.length > 0 && (
-          <button
-            onClick={onClear}
-            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-error hover:bg-error/10 transition-all"
-          >
-            <Trash2 className="w-3 h-3" /> Clear all
-          </button>
-        )}
-      </div>
-
       {/* Table */}
       <div className="flex-1 overflow-auto">
         {entries.length === 0 ? (
@@ -151,7 +136,12 @@ export function HistoryTab({
                 return (
                   <tr
                     key={entry.id}
-                    onClick={() => onSelect(entry)}
+                    onClick={() => {
+                      // Always open ResultsModal to view runs
+                      if (onViewRuns) {
+                        onViewRuns(entry);
+                      }
+                    }}
                     onContextMenu={(e) => handleContextMenu(e, entry.id)}
                     className={cn(
                       'cursor-pointer transition-colors',
@@ -191,18 +181,19 @@ export function HistoryTab({
           className="fixed z-50 bg-background border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
           style={{ left: menu.x, top: menu.y }}
         >
-          {onViewHistory && (
-            <button
-              onClick={() => {
-                onViewHistory(menuEntry);
-                setMenu(null);
-              }}
-              className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-dropdown-item-hover transition-colors"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              View details
-            </button>
-          )}
+          <button
+            onClick={() => {
+              // Open ResultsModal with runs instead of old view mode
+              if (onViewRuns) {
+                onViewRuns(menuEntry);
+              }
+              setMenu(null);
+            }}
+            className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-dropdown-item-hover transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View details
+          </button>
           <button
             onClick={() => {
               if (confirm('Delete this entry?')) {

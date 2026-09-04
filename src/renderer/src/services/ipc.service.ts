@@ -17,12 +17,15 @@
  * [Media]       : getCacheManifest()
  * ------------------------------------------------------------------
  */
+
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 class IpcService {
   private async invoke<T>(channel: string, ...args: any[]): Promise<ApiResponse<T>> {
     try {
@@ -36,7 +39,7 @@ class IpcService {
     }
   }
 
-  // Apps
+  // ── Apps ──
   async getApps() {
     return this.invoke('apps:get-all');
   }
@@ -53,7 +56,7 @@ class IpcService {
     return this.invoke('apps:scan-pc');
   }
 
-  // Proxy
+  // ── Proxy ──
   async createProxySession(sessionId: string) {
     return this.invoke('proxy:create-session', sessionId);
   }
@@ -64,7 +67,7 @@ class IpcService {
     return this.invoke('proxy:get-state');
   }
 
-  // CDP
+  // ── CDP ──
   async getCdpLaunchPort() {
     return this.invoke<{ port: number }>('cdp:get-launch-port');
   }
@@ -84,7 +87,7 @@ class IpcService {
     return this.invoke('cdp:inject-border');
   }
 
-  // App Launch
+  // ── App Launch ──
   async launchApp(
     appId: string,
     proxyUrl: string,
@@ -99,15 +102,30 @@ class IpcService {
     return this.invoke('app:terminate');
   }
 
-  // Target management
+  // ── Target Management ──
   async getActiveTargets() {
     return this.invoke('emulate:get-active-targets');
   }
   async setActiveTargets(targets: any[], activeId: string | null) {
     return this.invoke('emulate:set-active-targets', targets, activeId);
   }
+  async registerTarget(targetData: {
+    targetId: string;
+    title: string;
+    favicon?: string;
+    platform?: string;
+    url?: string;
+  }) {
+    return this.invoke('target:register', targetData);
+  }
+  async unregisterTarget(targetId: string) {
+    return this.invoke('target:unregister', targetId);
+  }
+  async listRunningTargets() {
+    return this.invoke('target:list-running');
+  }
 
-  // Inspector / Request
+  // ── Inspector / Request ──
   async sendRequest(config: {
     url: string;
     method: string;
@@ -117,7 +135,7 @@ class IpcService {
     return this.invoke('inspector:send-request', config);
   }
 
-  // Mobile / Android
+  // ── Mobile / Android ──
   async startLogcat(serial: string) {
     return this.invoke('mobile:start-logcat', serial);
   }
@@ -152,11 +170,12 @@ class IpcService {
     return this.invoke<boolean>('mobile:inject-ssl-bypass', serial, packageName);
   }
 
-  // Media / Cache
+  // ── Media / Cache ──
   async getCacheManifest() {
     return this.invoke('media:get-cache-manifest');
   }
 }
 
+// ─── Singleton ────────────────────────────────────────────────────���─────
 export const ipcService = new IpcService();
 export default ipcService;

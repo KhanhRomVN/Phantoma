@@ -77,6 +77,7 @@ import {
   DeleteRepeaterRenderer,
   GetRepeaterDetailRenderer,
   UpdateRepeaterContentRenderer,
+  RunRepeaterRenderer,
   ListTabsRenderer,
   CreateTabRenderer,
   CloseTabRenderer,
@@ -700,6 +701,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     delete_repeater: DeleteRepeaterRenderer,
     get_repeater_detail: GetRepeaterDetailRenderer,
     update_repeater_content: UpdateRepeaterContentRenderer,
+    run_repeater: RunRepeaterRenderer,
     // Recon tools
     list_tabs: ListTabsRenderer,
     create_tab: CreateTabRenderer,

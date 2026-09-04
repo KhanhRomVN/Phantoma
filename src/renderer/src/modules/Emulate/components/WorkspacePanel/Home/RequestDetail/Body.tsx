@@ -7,7 +7,7 @@ import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
-import { NetworkRequest } from './Filter';
+import { NetworkRequest } from '../FilterPanel';
 
 // ── Types ──
 

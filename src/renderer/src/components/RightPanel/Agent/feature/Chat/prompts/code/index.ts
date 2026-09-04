@@ -1,52 +1,52 @@
-import { buildIdentityPrompt } from './identity';
-import { WORKFLOW } from './workflow';
-import { TOOLS_REFERENCE } from './tools-reference';
-import { buildSystemContext } from './system-context';
-import type { SystemInfo } from './system-context';
-import { EXAMPLES } from './examples';
-import { CONSTRAINTS } from './constraints';
-import { TOOL_VALIDATION } from './tool-validation';
+import { buildPromptForMode } from "./prompt-modes";
+import type { SystemPromptMode, PromptModeConfig } from "./prompt-modes";
 
-export { buildIdentityPrompt } from './identity';
-export { WORKFLOW } from './workflow';
-export { TOOLS_REFERENCE } from './tools-reference';
-export { buildSystemContext } from './system-context';
-export type { SystemInfo } from './system-context';
-export { EXAMPLES } from './examples';
-export { CONSTRAINTS } from './constraints';
-export { TOOL_VALIDATION } from './tool-validation';
+export { buildIdentityPrompt } from "./identity";
+export { buildWorkflow } from "./workflow";
+export { TOOLS_REFERENCE } from "./tools-reference";
+export { buildSystemContext } from "./system-context";
+export type { SystemInfo } from "./system-context";
+export { EXAMPLES } from "./examples";
+export { buildConstraints } from "./constraints";
+export { TOOL_VALIDATION } from "./tool-validation";
+export { buildPromptForMode } from "./prompt-modes";
+export type { SystemPromptMode, PromptModeConfig } from "./prompt-modes";
+export { MODE_BEHAVIORS } from "./mode-config";
+export type { ModeBehaviorConfig } from "./mode-config";
 
 interface PromptConfig {
   language: string;
-  systemInfo: SystemInfo;
-  permissionMode?: string;
+  systemInfo: import("./system-context").SystemInfo;
 }
 
+/**
+ * Build system prompt cho mode balanced (mặc định).
+ * Không đưa tên mode vào prompt.
+ */
 export const combinePrompts = (config: PromptConfig): string => {
-  const { language, systemInfo } = config;
-
-  const sections = [
-    buildIdentityPrompt(language),
-    WORKFLOW,
-    CONSTRAINTS,
-    TOOL_VALIDATION,
-    TOOLS_REFERENCE,
-    buildSystemContext(systemInfo),
-    EXAMPLES,
-  ];
-
-  return sections.join('\n\n---\n\n');
+  return buildPromptForMode(config, "balanced");
 };
 
-export const getDefaultPrompt = (language: string = 'English'): string => {
+/**
+ * Build system prompt theo mode.
+ * Không đưa tên mode vào prompt — AI chỉ thấy các quy tắc hành vi.
+ */
+export const combinePromptsForMode = (
+  config: PromptModeConfig,
+  mode: SystemPromptMode,
+): string => {
+  return buildPromptForMode(config, mode);
+};
+
+export const getDefaultPrompt = (language: string = "English"): string => {
   return combinePrompts({
     language,
     systemInfo: {
-      os: 'Unknown OS',
-      ide: 'Zen IDE',
-      shell: 'unknown',
-      homeDir: '~',
-      cwd: '.',
+      os: "Unknown OS",
+      ide: "Zen IDE",
+      shell: "unknown",
+      homeDir: "~",
+      cwd: ".",
       language,
     },
   });

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, memo } from 'react';
-import { Search, ArrowUp, ArrowDown, CornerDownLeft } from 'lucide-react';
+import { Search, ArrowUp, ArrowDown, CornerDownLeft, Circle } from 'lucide-react';
 import { Modal, ModalBody, ModalFooter } from './ui/Modal';
 import { Kbd } from './ui/Kbd';
 import { cn } from '@renderer/shared/utils/cn';
+import { useRunningTargets } from '@renderer/hooks/useRunningTargets';
 
 interface QuickNavItem {
   id: string;
@@ -58,6 +59,7 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const keyboardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { runningTargets, count: runningCount } = useRunningTargets();
 
   // Filter items based on search
   const filteredItems = items.filter(
@@ -175,8 +177,41 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
                   {item.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold">{item.title}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{item.title}</span>
+                    {/* Hiển thị badge số lượng targets đang running cho Emulate */}
+                    {item.id === 'emulate' && runningCount > 0 && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <Circle className="w-2 h-2 fill-current" />
+                        {runningCount}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-text-secondary/70 truncate">{item.description}</div>
+                  {/* Hiển thị danh sách targets đang running cho Emulate */}
+                  {item.id === 'emulate' && runningTargets.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {runningTargets.slice(0, 3).map((target) => (
+                        <div
+                          key={target.id}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-sidebar-item-hover border border-border text-text-secondary"
+                          title={target.title}
+                        >
+                          {target.favicon ? (
+                            <img src={target.favicon} alt="" className="w-3 h-3 rounded" />
+                          ) : (
+                            <Circle className="w-2 h-2 fill-current text-emerald-400" />
+                          )}
+                          <span className="max-w-[100px] truncate">{target.title}</span>
+                        </div>
+                      ))}
+                      {runningTargets.length > 3 && (
+                        <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-sidebar-item-hover border border-border text-text-secondary">
+                          +{runningTargets.length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {index === selectedIndex && (
                   <div className="shrink-0 text-text-secondary/50">

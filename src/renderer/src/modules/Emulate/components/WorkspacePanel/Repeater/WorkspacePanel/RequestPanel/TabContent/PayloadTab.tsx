@@ -17,6 +17,7 @@ interface PayloadTabProps {
   onExport?: () => void;
   targetId?: string | null;
   onNavigateToVariable?: (payloadName: string) => void;
+  onDeletePayload?: (id: string) => void;
 }
 
 export function PayloadTab({
@@ -24,6 +25,7 @@ export function PayloadTab({
   onChange,
   targetId,
   onNavigateToVariable,
+  onDeletePayload,
 }: PayloadTabProps) {
   const [modalPayload, setModalPayload] = useState<PayloadItem | null>(null);
   const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
@@ -40,7 +42,11 @@ export function PayloadTab({
   };
 
   const handleDelete = (id: string) => {
-    onChange(payloads.filter((p) => p.id !== id));
+    if (onDeletePayload) {
+      onDeletePayload(id);
+    } else {
+      onChange(payloads.filter((p) => p.id !== id));
+    }
   };
 
   const handleToggle = (id: string) => {
@@ -53,7 +59,8 @@ export function PayloadTab({
 
   const handleSaveModalValues = (values: string[]) => {
     if (!modalPayload) return;
-    onChange(payloads.map((p) => (p.id === modalPayload.id ? { ...p, values } : p)));
+    const newPayloads = payloads.map((p) => (p.id === modalPayload.id ? { ...p, values } : p));
+    onChange(newPayloads);
     setModalPayload(null);
   };
 

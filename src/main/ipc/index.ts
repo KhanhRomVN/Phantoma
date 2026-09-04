@@ -25,3 +25,4 @@ export { setupTerminalHandlers } from './terminal.handlers';
 export { setupGitHandlers } from './git.handlers';
 export { setupLoggerHandlers } from './logger.handlers';
 export { setupBrowserHandlers, closeAllBrowserSessions } from './browser.handlers';
+export { setupTargetHandlers } from './target.handlers';

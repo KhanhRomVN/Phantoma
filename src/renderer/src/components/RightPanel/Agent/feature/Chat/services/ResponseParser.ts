@@ -54,6 +54,7 @@ import {
   parseDeleteRepeater,
   parseGetRepeaterDetail,
   parseUpdateRepeaterContent,
+  parseRunRepeater,
 } from './parsers/EmulateParser';
 import {
   parseListTabs,
@@ -640,6 +641,11 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'update_repeater_content': {
               const params = parseUpdateRepeaterContent(innerContent || '');
               action = { type: 'update_repeater_content' as const, params, rawXml };
+              break;
+            }
+            case 'run_repeater': {
+              const params = parseRunRepeater(innerContent || '');
+              action = { type: 'run_repeater' as const, params, rawXml };
               break;
             }
             // ── Recon tools ──────────────────────────────────────

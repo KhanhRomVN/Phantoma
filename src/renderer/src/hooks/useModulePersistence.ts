@@ -1,8 +1,29 @@
+/**
+ * ------------------------------------------------------------------
+ * useModulePersistence
+ * ------------------------------------------------------------------
+ * Hook quản lý state có lưu trữ trên module store. Tự động lưu state
+ * vào store khi thay đổi (nếu autoSave) và khôi phục dữ liệu đã lưu
+ * khi khởi tạo.
+ *
+ * Main features:
+ * - Khôi phục state từ store khi mount (preferSaved)
+ * - Tự động lưu state khi thay đổi (autoSave)
+ * - Hỗ trợ cập nhật partial/functional và clear state
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useCallback, useRef } from 'react';
+
+// ── Stores ──
 import { useModuleStore, ModuleStateMap } from '../stores/moduleStore';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 type ModuleId = keyof ModuleStateMap;
 
+// ─── Hook ───────────────────────────────────────────────────────────────
 export function useModulePersistence<T>(
   moduleId: ModuleId,
   initialState: T,
@@ -11,10 +32,11 @@ export function useModulePersistence<T>(
     autoSave?: boolean;
   },
 ): [T, (data: Partial<T> | ((prev: T) => Partial<T>)) => void, () => void] {
+  // ── Store ──
   const { setModuleState, getModuleState, clearModuleState } = useModuleStore();
   const { preferSaved = true, autoSave = true } = options || {};
 
-  // Khởi tạo state: ưu tiên dữ liệu đã lưu nếu có
+  // ── State ──
   const [state, setState] = useState<T>(() => {
     const saved = getModuleState(moduleId);
     if (preferSaved && saved && Object.keys(saved).length > 0) {
@@ -23,14 +45,13 @@ export function useModulePersistence<T>(
     return initialState;
   });
 
-  // Track previous state to avoid unnecessary store updates
+  // ── Refs ──
   const prevStateRef = useRef<T>(state);
 
-  // Lưu lên store mỗi khi state thay đổi (nếu autoSave) - only if state actually changed
+  // ── Effects ──
   useEffect(() => {
     if (autoSave) {
       const prevState = prevStateRef.current;
-      // Deep compare to avoid unnecessary updates
       const hasChanged = JSON.stringify(prevState) !== JSON.stringify(state);
       if (hasChanged) {
         setModuleState(moduleId, state as any);
@@ -39,13 +60,12 @@ export function useModulePersistence<T>(
     }
   }, [state, moduleId, autoSave, setModuleState]);
 
-  // Hàm cập nhật state (hỗ trợ partial và functional update)
+  // ── Callbacks ──
   const updateState = useCallback(
     (data: Partial<T> | ((prev: T) => Partial<T>)) => {
       setState((prev) => {
         const updates = typeof data === 'function' ? data(prev) : data;
         const newState = { ...prev, ...updates };
-        // Nếu autoSave false, vẫn lưu khi gọi update thủ công
         if (!autoSave) {
           setModuleState(moduleId, newState as any);
         }
@@ -55,7 +75,6 @@ export function useModulePersistence<T>(
     [autoSave, moduleId, setModuleState],
   );
 
-  // Hàm clear state
   const clearState = useCallback(() => {
     clearModuleState(moduleId);
     setState(initialState);

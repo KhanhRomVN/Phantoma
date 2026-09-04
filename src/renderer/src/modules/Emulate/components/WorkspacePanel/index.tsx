@@ -1,8 +1,8 @@
-import { useMemo, useEffect, memo, createElement, FC } from 'react';
+import { useMemo, memo, createElement, FC } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
 // ── Components ──
-import { RequestTable, RequestDetails } from './Home';
+import { RequestTable, RequestDetails } from './Home/Home';
 import { ResourcesPanel } from './Resources';
 import { PayloadPanel } from './Repeater';
 import { SourcesPanel } from './Source';
@@ -159,6 +159,7 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
               </div>
               <div className="flex-1 min-h-0">
                 <RequestDetails
+                  selectedId={selectedId}
                   searchTerm={searchTerm}
                   filter={filter}
                   onFilterChange={onFilterChange}

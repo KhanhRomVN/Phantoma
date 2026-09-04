@@ -14,12 +14,14 @@
  * ------------------------------------------------------------------
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Loader2,
   Plus,
   Search,
   Upload,
+  Download,
+  Filter,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -28,13 +30,18 @@ import {
 import AccountCard from './components/AccountCard';
 import AddAccountDrawer from './components/AddAccountDrawer';
 import ConfirmDeleteDrawer from './components/ConfirmDeleteDrawer';
-import ProviderFilterDropdown from './components/ProviderFilterDropdown';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+} from '@renderer/components/ui/Dropdown';
 import { useAccounts } from './hooks/useAccounts';
-import { getFaviconUrl } from './utils';
 import { logger } from '@renderer/utils/logger';
 import { extensionService } from '../../services/ExtensionService';
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
+import { Input } from '@renderer/components/ui/Input';
 import { $ } from '@renderer/utils/color';
 
 interface AccountPanelProps {
@@ -43,7 +50,6 @@ interface AccountPanelProps {
 }
 
 const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
-  const [showDropdown, setShowDropdown] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const {
@@ -69,13 +75,6 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
     switchKiroAccount,
   } = useAccounts(isOpen);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClickOutside = () => setShowDropdown(false);
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [isOpen]);
-
   const handleImport = async () => {
     try {
       extensionService.postMessage({ command: 'importAccounts' });
@@ -83,7 +82,6 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
     } catch (error) {
       logger.error('Failed to import:', error);
     }
-    setShowDropdown(false);
   };
 
   const handlePrevPage = () => {
@@ -120,70 +118,164 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
       {/* Action Bar */}
       <div className="px-4 pt-3 pb-2 shrink-0 flex gap-2 items-center bg-background">
         {/* Search Input */}
-        <div className="relative flex-1">
-          <input
+        <div className="flex-1">
+          <Input
             type="text"
             placeholder="Search by email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-[34px] pl-8 pr-3 text-[13px] rounded-lg outline-none box-border bg-input-background border border-border text-text-primary"
+            leftIcon={<Search size={14} className="text-text-secondary" />}
+            containerClassName="gap-0 [&>div]:relative"
+            inputClassName="h-[34px] text-[13px] rounded-lg"
+            className="border-none"
+            style={{ backgroundColor: $('--input-bg') }}
           />
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary" />
         </div>
 
-        <ProviderFilterDropdown
-          providerConfigs={providerConfigs}
-          selectedProvider={providerFilter}
-          onSelectProvider={setProviderFilter}
-          getFaviconUrl={getFaviconUrl}
-        />
+        <Dropdown align="end" sideOffset={4}>
+          <DropdownTrigger asChild>
+            <button
+              className="w-[34px] h-[34px] rounded-lg flex items-center justify-center shrink-0 cursor-pointer text-text-secondary"
+              style={{
+                backgroundColor: $('--input-bg'),
+                border: 'none',
+              }}
+              title="Filter by provider"
+            >
+              <Filter size={16} />
+            </button>
+          </DropdownTrigger>
+          <DropdownContent>
+            <DropdownItem
+              icon={
+                <div
+                  className="w-4 h-4 rounded-[3px] flex items-center justify-center text-[9px] font-bold text-text-secondary"
+                  style={{ backgroundColor: 'rgba(128,128,128,0.15)' }}
+                >
+                  All
+                </div>
+              }
+              onClick={() => setProviderFilter('')}
+            >
+              All Providers [{accounts.length}]
+            </DropdownItem>
+            {providerConfigs
+              .filter((p) => p.is_enabled !== false)
+              .map((provider) => (
+                <DropdownItem
+                  key={provider.provider_id}
+                  disabled={provider.is_enabled === false}
+                  icon={
+                    <img
+                      src={`${new URL(provider.website).origin}/favicon.ico`}
+                      alt={provider.provider_name}
+                      className="w-4 h-4 object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  }
+                  onClick={() => setProviderFilter(provider.provider_id)}
+                >
+                  {provider.provider_name} [
+                  {accounts.filter((acc) => acc.provider_id === provider.provider_id).length}]
+                </DropdownItem>
+              ))}
+          </DropdownContent>
+        </Dropdown>
 
-        <Button
-          variant="solid"
-          size="sm"
-          className="w-[34px] h-[34px] p-0"
+        <button
           onClick={() => setDialogOpen(true)}
+          className="w-[34px] h-[34px] rounded-lg flex items-center justify-center shrink-0 cursor-pointer text-text-secondary"
+          style={{
+            backgroundColor: $('--input-bg'),
+            border: 'none',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = $('--hover-bg');
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = $('--input-bg');
+          }}
           title="Add account"
         >
           <Plus size={16} />
-        </Button>
+        </button>
 
-        <div className="relative">
-          <button
-            onClick={() => setShowDropdown(!showDropdown)}
-            className="w-[34px] h-[34px] rounded-lg border flex items-center justify-center shrink-0 cursor-pointer bg-input-background border-border text-text-secondary"
-            title="More options"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+        <Dropdown align="end" sideOffset={4}>
+          <DropdownTrigger asChild>
+            <button
+              className="w-[34px] h-[34px] rounded-lg flex items-center justify-center shrink-0 cursor-pointer text-text-secondary"
+              style={{
+                backgroundColor: $('--input-bg'),
+                border: 'none',
+              }}
+              title="More options"
             >
-              <circle cx="12" cy="12" r="1" />
-              <circle cx="12" cy="5" r="1" />
-              <circle cx="12" cy="19" r="1" />
-            </svg>
-          </button>
-          {showDropdown && (
-            <div className="absolute right-0 top-full mt-2 w-[160px] rounded-xl overflow-hidden z-[100] bg-card-background border border-border shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
-              <button
-                onClick={handleImport}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-none bg-transparent text-[13px] cursor-pointer text-left text-text-primary"
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = $('--hover-bg'))}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <Upload size={14} />
-                <span>Import JSON</span>
-              </button>
-            </div>
-          )}
-        </div>
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="12" cy="5" r="1" />
+                <circle cx="12" cy="19" r="1" />
+              </svg>
+            </button>
+          </DropdownTrigger>
+          <DropdownContent>
+            <DropdownItem icon={<Upload size={14} />} onClick={handleImport}>
+              Import JSON
+            </DropdownItem>
+            <DropdownItem
+              icon={<Download size={14} />}
+              onClick={() => {
+                const fileName = `phantoma-${accounts.length}-${Date.now()}.json`;
+                extensionService.postMessage({
+                  command: 'exportAccounts',
+                  fileName,
+                  content: JSON.stringify(accounts, null, 2),
+                });
+              }}
+            >
+              Export JSON
+            </DropdownItem>
+          </DropdownContent>
+        </Dropdown>
+      </div>
+
+      {/* Status badges */}
+      <div className="px-4 pb-1 shrink-0 flex gap-1.5 flex-wrap">
+        <span
+          className="text-[11px] px-2 py-[3px] rounded-full text-text-secondary"
+          style={{ backgroundColor: $('--input-bg') }}
+        >
+          đang hoạt động[0]
+        </span>
+        <span
+          className="text-[11px] px-2 py-[3px] rounded-full text-text-secondary"
+          style={{ backgroundColor: $('--input-bg') }}
+        >
+          hết hạn[0]
+        </span>
+        <span
+          className="text-[11px] px-2 py-[3px] rounded-full text-text-secondary"
+          style={{ backgroundColor: $('--input-bg') }}
+        >
+          đang lỗi[0]
+        </span>
+        <span
+          className="text-[11px] px-2 py-[3px] rounded-full text-text-secondary"
+          style={{ backgroundColor: $('--input-bg') }}
+        >
+          ngừng hoạt động[0]
+        </span>
       </div>
 
       {/* Bulk Actions Bar */}

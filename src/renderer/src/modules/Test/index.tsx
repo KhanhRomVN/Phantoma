@@ -1,6 +1,8 @@
 import React from 'react';
 import { $ } from '../../utils/color';
 
+console.log('[Module] Test loaded');
+
 const TestPage: React.FC = () => {
   return (
     <div className="p-6 space-y-6">

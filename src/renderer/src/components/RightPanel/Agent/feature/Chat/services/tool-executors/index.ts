@@ -97,6 +97,7 @@ import {
   executeDeleteRepeater,
   executeGetRepeaterDetail,
   executeUpdateRepeaterContent,
+  executeRunRepeater,
 } from './EmulateExecutor';
 
 // ── Recon tool executors ────────────────────────────────────────────
@@ -303,6 +304,12 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       return {
         execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
           return executeUpdateRepeaterContent(action.params || {}, ctx.activeTargetId);
+        },
+      };
+    case 'run_repeater':
+      return {
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeRunRepeater(action.params || {}, ctx.activeTargetId);
         },
       };
 

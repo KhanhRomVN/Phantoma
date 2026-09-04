@@ -18,11 +18,12 @@ import StatsGrid from './components/StatsGrid';
 import RecentActivity from './components/RecentActivity';
 import ModelDistributionCard from './components/ModelDistributionCard';
 import DailyUsageChart from './components/DailyUsageChart';
-import ModelAccountDrawer from '../../components/common/MessageInput/ModelAccountDrawer';
+import InstallationBanner from './components/InstallationBanner';
+import ModelAccountDrawer from '../../components/MessageInput/ModelAccountDrawer';
 import { ConversationItem } from '../History/types';
 import { useSettings } from '../../context/SettingsContext';
-import MessageInput from '../../components/common/MessageInput';
-import FilesPreviews from '../../components/common/MessageInput/FilesPreviews';
+import MessageInput from '../../components/MessageInput';
+import FilesPreviews from '../../components/MessageInput/FilesPreviews';
 import { useFileHandling } from '../../hooks/useFileHandling';
 import ConversationService from '../../services/ConversationService';
 import { logger } from '@renderer/utils/logger';
@@ -47,12 +48,12 @@ function getCurrentModuleId(): string | null {
 }
 
 const SLOGANS = [
-  'Your AI-powered coding assistant',
-  'Build faster with intelligent automation',
-  'Streamline your development workflow',
-  'Smart code analysis at your fingertips',
-  'From idea to implementation in seconds',
-  'Elevate your productivity with AI',
+  'Code smarter, not harder',
+  'Your AI coding companion',
+  'Boost your productivity',
+  'Where ideas meet implementation',
+  'Ship faster with confidence',
+  'Your partner in development',
 ];
 
 interface HomePanelProps {
@@ -279,6 +280,31 @@ const HomePanel: React.FC<HomePanelProps> = ({
     });
   }, [conversations]);
 
+  const imagesUri = (window as any).__zenImagesUri;
+
+  // Calculate percent changes for StatsGrid (same logic as Zen)
+  const percentChanges = useMemo(() => {
+    const sorted = [...dailyUsage].sort((a, b) => b.date.localeCompare(a.date));
+    const today = sorted[0];
+    const yesterday = sorted[1];
+    const tokenChange = yesterday?.tokens
+      ? ((today.tokens - yesterday.tokens) / yesterday.tokens) * 100
+      : null;
+    const requestChange = yesterday?.requests
+      ? ((today.requests - yesterday.requests) / yesterday.requests) * 100
+      : null;
+    const totalModelRequests = modelDistribution.reduce(
+      (s: number, m: any) => s + m.total_requests,
+      0,
+    );
+    const favModel = modelDistribution.find((m: any) => m.model_id === favoriteModel);
+    const favShare =
+      totalModelRequests > 0 && favModel
+        ? (favModel.total_requests / totalModelRequests) * 100
+        : null;
+    return [tokenChange, requestChange, favShare, null];
+  }, [dailyUsage, modelDistribution, favoriteModel]);
+
   const handleSend = (model: any, account: any) => {
     if (message.trim() || uploadedFiles.length > 0) {
       onSendMessage(message, [...uploadedFiles], model, account);
@@ -384,24 +410,47 @@ const HomePanel: React.FC<HomePanelProps> = ({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '2px',
+              gap: '0',
               textAlign: 'center',
               width: '100%',
             }}
           >
-            <h1
-              style={{
-                fontSize: '30px',
-                fontWeight: 800,
-                margin: 0,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.2,
-                padding: '4px 0',
-                color: 'var(--text-primary)',
-              }}
-            >
-              Phantoma
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <img
+                  src={`${imagesUri}/icon.png`}
+                  alt="Phantoma Logo"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                  }}
+                />
+              </div>
+              <h1
+                style={{
+                  fontSize: '30px',
+                  fontWeight: 800,
+                  margin: 0,
+                  background:
+                    'linear-gradient(to right, var(--text-primary, #fff), var(--text-secondary, #a8a8a8))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Phantoma
+              </h1>
+            </div>
 
             <div
               style={{
@@ -410,22 +459,24 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 overflow: 'hidden',
-                margin: '0 0 16px 0',
+                margin: '0 0 12px 0',
               }}
             >
               <div
                 key={sloganIndex}
                 style={{
                   fontSize: '14px',
-                  fontWeight: 500,
-                  whiteSpace: 'nowrap',
-                  animation: 'slideUp 0.4s ease-out',
                   color: 'var(--text-secondary)',
+                  fontWeight: 500,
+                  animation: 'slideUp 0.4s ease-out',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {SLOGANS[sloganIndex]}
               </div>
             </div>
+
+            <InstallationBanner />
           </div>
 
           {/* Dashboard content */}
@@ -442,6 +493,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
               todayRequests={todayRequests}
               favoriteModel={favoriteModel}
               totalAccounts={totalAccounts}
+              percentChanges={percentChanges}
             />
 
             <ModelDistributionCard
@@ -457,6 +509,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
               conversations={sortedConversations}
               isLoading={isLoading}
               onLoadConversation={onLoadConversation}
+              providerFavicons={providerFavicons}
             />
           </div>
         </div>

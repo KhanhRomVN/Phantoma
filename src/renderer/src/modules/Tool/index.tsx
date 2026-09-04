@@ -5,11 +5,14 @@ import { ToolIcon } from './utils/iconHelpers';
 import { useToolManager } from './hooks/useToolManager';
 import { ServerConfigProvider } from './context/ServerConfigContext';
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { $ } from '@renderer/utils/color';
 
 interface ToolManagerProps {
   activeToolId?: string;
   onToolChange?: (toolId: string) => void;
 }
+
+console.log('[Module] Tool loaded');
 
 const ToolManager: React.FC<ToolManagerProps> = ({ activeToolId = 'nmap', onToolChange }) => {
   const {

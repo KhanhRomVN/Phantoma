@@ -157,4 +157,15 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
       fullAccess: "allow",
     },
   },
+
+  run_repeater: {
+    id: "run_repeater",
+    title: "RUN REPEATER",
+    category: "tool",
+    timeout: 30000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
 };

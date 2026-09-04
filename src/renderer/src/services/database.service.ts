@@ -1,3 +1,16 @@
+/**
+ * ------------------------------------------------------------------
+ * Database Service
+ * ------------------------------------------------------------------
+ * Service quản lý đường dẫn database từ backend. Cung cấp các thao
+ * tác lấy và cập nhật đường dẫn SQL database.
+ *
+ * Main functions:
+ * - getDatabasePath()    : Lấy đường dẫn database hiện tại
+ * - updateDatabasePath() : Cập nhật đường dẫn database mới
+ * ------------------------------------------------------------------
+ */
+
 // ─── Imports ────────────────────────────────────────────────────────────
 import { apiService } from './api.service';
 
@@ -11,19 +24,13 @@ interface UpdateDatabasePathResponse {
   status: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 class DatabaseService {
-  /**
-   * Get current database path from server.
-   */
   async getDatabasePath(): Promise<string> {
     const result = await apiService.request<DatabasePathResponse>('/api/v1/database/path');
     return result.path;
   }
 
-  /**
-   * Update to a new database path.
-   * @param newPath - New path to the SQL database file.
-   */
   async updateDatabasePath(newPath: string): Promise<string> {
     const result = await apiService.request<UpdateDatabasePathResponse>('/api/v1/database/path', {
       method: 'PUT',
@@ -33,5 +40,6 @@ class DatabaseService {
   }
 }
 
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const databaseService = new DatabaseService();
 export default databaseService;

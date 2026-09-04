@@ -245,6 +245,9 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
 
 // ─── ContentPanel ───────────────────────────────────────────────────────────
 
+const EMPTY_ARRAY: string[] = [];
+const EMPTY_SET = new Set<string>();
+
 export const ContentPanel = memo(function ContentPanel() {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
 
@@ -260,7 +263,7 @@ export const ContentPanel = memo(function ContentPanel() {
 
   const openFiles = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === currentProjectId);
-    return project?.openFiles ?? [];
+    return project?.openFiles ?? EMPTY_ARRAY;
   });
 
   const projectPath = useCodeStore((s) => {
@@ -270,7 +273,7 @@ export const ContentPanel = memo(function ContentPanel() {
 
   const unsavedFiles = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === currentProjectId);
-    return project?.unsavedFiles ?? new Set<string>();
+    return project?.unsavedFiles ?? EMPTY_SET;
   });
 
   // Lookup helpers

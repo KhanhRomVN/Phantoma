@@ -11,7 +11,7 @@
  * Type ToolType được suy ra từ keyof typeof TOOLS.
  * Duyệt danh sách tool qua Object.keys(TOOLS) hoặc Object.values(TOOLS).
  */
-import { LayoutPanelLeft, Package, Code, ScrollText, FolderOpen, Smartphone } from 'lucide-react';
+import { LayoutPanelLeft, Package, Code, Code2, ScrollText, FolderOpen, Smartphone } from 'lucide-react';
 
 export const TOOLS = {
   home: {
@@ -48,6 +48,13 @@ export const TOOLS = {
     color: 'yellow',
     accentIndex: 4,
     description: 'Source code viewer',
+  },
+  code: {
+    icon: Code2,
+    label: 'Code',
+    color: 'cyan',
+    accentIndex: 7,
+    description: 'Code viewer and file explorer',
   },
   log: {
     icon: ScrollText,

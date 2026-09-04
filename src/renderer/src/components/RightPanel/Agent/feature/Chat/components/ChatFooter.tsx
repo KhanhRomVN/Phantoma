@@ -15,8 +15,8 @@ import React from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Components ──
-import FilesPreviews from '../../../components/common/MessageInput/FilesPreviews';
-import MessageInput from '../../../components/common/MessageInput';
+import FilesPreviews from '../../../components/MessageInput/FilesPreviews';
+import MessageInput from '../../../components/MessageInput';
 
 // ── Types ──
 import { type FileMutationTool } from '../constants/constants';

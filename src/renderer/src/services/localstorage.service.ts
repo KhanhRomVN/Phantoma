@@ -15,8 +15,10 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
 import { logger } from '@renderer/utils/logger';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 class LocalStorageService {
   get<T>(key: string, defaultValue?: T): T | null {
     try {
@@ -86,5 +88,6 @@ class LocalStorageService {
   }
 }
 
+// ─── Singleton ──────────────────────────────────────────────────────────
 export const localStorageService = new LocalStorageService();
 export default localStorageService;

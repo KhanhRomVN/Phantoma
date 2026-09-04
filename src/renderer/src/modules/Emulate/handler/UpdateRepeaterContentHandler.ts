@@ -86,15 +86,20 @@ export class UpdateRepeaterContentHandler {
       let fileContent: string;
       try {
         fileContent = await api.invoke('fs:read-file', filePath);
+        logger.info(`[UpdateRepeaterContentHandler] ✅ File read successfully, length: ${fileContent.length}`);
       } catch (readErr: any) {
         // File not found — create with default content
         const defaultContent = target === 'body' ? '' : '[]';
-        logger.info(`[UpdateRepeaterContentHandler] File not found, creating with default content`);
+        logger.warn(`[UpdateRepeaterContentHandler] ⚠️  File not found: ${filePath}`);
+        logger.warn(`[UpdateRepeaterContentHandler] ⚠️  Read error: ${readErr.message || String(readErr)}`);
+        logger.info(`[UpdateRepeaterContentHandler] Creating file with default content: ${JSON.stringify(defaultContent)}`);
         
         try {
           await api.invoke('fs:write-file', filePath, defaultContent);
           fileContent = defaultContent;
+          logger.info(`[UpdateRepeaterContentHandler] ✅ File created with default content`);
         } catch (writeErr: any) {
+          logger.error(`[UpdateRepeaterContentHandler] ❌ Cannot create file: ${writeErr.message || String(writeErr)}`);
           return {
             text: `[update_repeater_content] Error: Cannot create file: ${writeErr.message || String(writeErr)}`,
           };
@@ -111,24 +116,43 @@ export class UpdateRepeaterContentHandler {
       const normalizedOld = oldContent.replace(/\r\n/g, '\n');
       const normalizedNew = newContent.replace(/\r\n/g, '\n');
 
+      logger.info(`[UpdateRepeaterContentHandler] 🔍 Searching for old_content in file...`);
+      logger.info(`[UpdateRepeaterContentHandler] File content length: ${normalizedContent.length}`);
+      logger.info(`[UpdateRepeaterContentHandler] Old content length: ${normalizedOld.length}`);
+
       // Try exact match first
       let targetText = normalizedOld;
       let targetPos = normalizedContent.indexOf(normalizedOld);
+
+      if (targetPos !== -1) {
+        logger.info(`[UpdateRepeaterContentHandler] ✅ Exact match found at position: ${targetPos}`);
+      } else {
+        logger.warn(`[UpdateRepeaterContentHandler] ⚠️  Exact match NOT found, trying fuzzy match...`);
+      }
 
       // If exact match fails, try fuzzy matching
       if (targetPos === -1) {
         const fuzzy = FuzzyMatcher.findMatch(normalizedContent, normalizedOld);
         if (!fuzzy || fuzzy.score > 0.3) {
+          logger.error(`[UpdateRepeaterContentHandler] ❌ Fuzzy match FAILED`);
+          logger.error(`[UpdateRepeaterContentHandler] Fuzzy score: ${fuzzy?.score || 'N/A'}`);
+          logger.error(`[UpdateRepeaterContentHandler] ===== FILE CONTENT =====`);
+          logger.error(normalizedContent);
+          logger.error(`[UpdateRepeaterContentHandler] ===== OLD CONTENT =====`);
+          logger.error(normalizedOld);
+          logger.error(`[UpdateRepeaterContentHandler] ======================`);
           return {
             text: `[update_repeater_content] Error: old_content not found in ${target}\n\nDEBUG INFO:\n- Current ${target} content:\n${fileContent}\n\n- Searching for:\n${oldContent}\n\nSuggestion: Check the exact text in the file or try with more context.`,
           };
         }
         // Use fuzzy match result
+        logger.info(`[UpdateRepeaterContentHandler] ✅ Fuzzy match found with score: ${fuzzy.score}`);
         targetText = fuzzy.originalText;
         targetPos = normalizedContent.indexOf(targetText);
       }
 
       if (targetPos === -1) {
+        logger.error(`[UpdateRepeaterContentHandler] ❌ Could not locate text after fuzzy match`);
         return {
           text: `[update_repeater_content] Error: Could not locate text in ${target}`,
         };
@@ -140,47 +164,75 @@ export class UpdateRepeaterContentHandler {
         normalizedNew +
         normalizedContent.slice(targetPos + targetText.length);
 
-      logger.info(`[UpdateRepeaterContentHandler] DEBUG - updatedContent: ${JSON.stringify(updatedContent)}`);
+      logger.info(`[UpdateRepeaterContentHandler] ✅ Content replaced successfully`);
+      logger.info(`[UpdateRepeaterContentHandler] Updated content length: ${updatedContent.length}`);
 
       // Format JSON for consistent pretty-print (if valid JSON)
       let finalContent = updatedContent;
       if (target === 'params' || target === 'headers') {
+        logger.info(`[UpdateRepeaterContentHandler] 🔍 Validating JSON for ${target}...`);
         try {
           const parsed = JSON.parse(updatedContent);
           finalContent = JSON.stringify(parsed, null, 2);
-          logger.info(`[UpdateRepeaterContentHandler] ✅ JSON formatted with indent`);
+          logger.info(`[UpdateRepeaterContentHandler] ✅ JSON is valid and formatted with 2-space indent`);
         } catch (parseErr) {
-          // If parse fails, keep original content and show warning
-          logger.warn(`[UpdateRepeaterContentHandler] ⚠️  Invalid JSON, keeping original format: ${parseErr}`);
-          // Don't write invalid JSON - return error instead
+          // If parse fails, DON'T write - return error
+          logger.error(`[UpdateRepeaterContentHandler] ❌ JSON validation FAILED`);
+          logger.error(`[UpdateRepeaterContentHandler] Parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
+          logger.error(`[UpdateRepeaterContentHandler] ===== INVALID JSON =====`);
+          logger.error(updatedContent);
+          logger.error(`[UpdateRepeaterContentHandler] =======================`);
+          logger.warn(`[UpdateRepeaterContentHandler] ⚠️  FILE NOT WRITTEN - keeping original content`);
+          logger.info(`[UpdateRepeaterContentHandler] 📦 Original file content preserved (length: ${fileContent.length})`);
           return {
-            text: `[update_repeater_content] Error: Result is not valid JSON\n\nInvalid content:\n${updatedContent}\n\nParse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}\n\nSuggestion: Check your new_content syntax.`,
+            text: `[update_repeater_content] Error: Result is not valid JSON\n\nInvalid content:\n${updatedContent}\n\nParse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}\n\n⚠️ Original file content has been preserved.\n\nSuggestion: Check your new_content syntax.`,
           };
         }
       }
 
+      // Backup original content before writing (for potential rollback)
+      const backupContent = fileContent;
+      logger.info(`[UpdateRepeaterContentHandler] 📦 Backup created (length: ${backupContent.length})`);
+
       // Write directly to file via IPC
+      logger.info(`[UpdateRepeaterContentHandler] 💾 Writing to file: ${filePath}`);
+      logger.info(`[UpdateRepeaterContentHandler] Final content length: ${finalContent.length}`);
       try {
         await api.invoke('fs:write-file', filePath, finalContent);
-        logger.info(`[UpdateRepeaterContentHandler] ✅ File updated: ${filePath}`);
+        logger.info(`[UpdateRepeaterContentHandler] ✅ File updated successfully: ${filePath}`);
       } catch (writeErr: any) {
-        return {
-          text: `[update_repeater_content] Error: Failed to write file: ${writeErr.message || String(writeErr)}`,
-        };
+        logger.error(`[UpdateRepeaterContentHandler] ❌ File write FAILED: ${writeErr.message || String(writeErr)}`);
+        logger.warn(`[UpdateRepeaterContentHandler] 🔄 Attempting to restore backup...`);
+        
+        // Try to restore backup
+        try {
+          await api.invoke('fs:write-file', filePath, backupContent);
+          logger.info(`[UpdateRepeaterContentHandler] ✅ Backup restored successfully`);
+          return {
+            text: `[update_repeater_content] Error: Failed to write file: ${writeErr.message || String(writeErr)}\n\n⚠️ Original content has been restored.`,
+          };
+        } catch (restoreErr: any) {
+          logger.error(`[UpdateRepeaterContentHandler] ❌ Backup restore FAILED: ${restoreErr.message || String(restoreErr)}`);
+          return {
+            text: `[update_repeater_content] Error: Failed to write file: ${writeErr.message || String(writeErr)}\n\n⚠️ CRITICAL: Could not restore backup. Manual recovery may be needed.`,
+          };
+        }
       }
 
       // Dispatch event to refresh UI
       if (typeof window !== 'undefined') {
         logger.info('[UpdateRepeaterContentHandler] 📣 Dispatching repeater-updated event');
         window.dispatchEvent(new CustomEvent('repeater-updated'));
-        logger.info('[UpdateRepeaterContentHandler] ✅ Event dispatched');
+        logger.info('[UpdateRepeaterContentHandler] ✅ Event dispatched successfully');
       }
 
+      logger.info(`[UpdateRepeaterContentHandler] 🎉 Update completed successfully for ${repeaterId} ${target}`);
       return {
         text: `[update_repeater_content] Updated ${repeaterId} ${target}`,
       };
     } catch (err: any) {
-      logger.error('[UpdateRepeaterContentHandler] Error:', err);
+      logger.error('[UpdateRepeaterContentHandler] ❌ Unexpected error:', err);
+      logger.error('[UpdateRepeaterContentHandler] Error stack:', err.stack);
       return { text: `[update_repeater_content] Error: ${err.message || String(err)}` };
     }
   }

@@ -44,31 +44,30 @@ export function HeaderTab({
   const [hoveredValue, setHoveredValue] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
   const hideTooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Store raw JSON text loaded directly from DB
   const [rawJsonText, setRawJsonText] = useState<string>('[]');
   const [isLoadingRawJson, setIsLoadingRawJson] = useState(false);
-  
+
   // Load raw JSON from DB when entering raw view or when repeater-updated event fires
   const loadRawJson = () => {
-    console.log('[HeaderTab] loadRawJson() called, targetId:', targetId);
     if (targetId) {
       setIsLoadingRawJson(true);
       import('../../../../../../services/emulate-api.service').then(({ emulateApi }) => {
-        console.log('[HeaderTab] loadRawJson - emulateApi imported, fetching...');
-        emulateApi.listRequests(targetId).then((res) => {
-          console.log('[HeaderTab] loadRawJson - listRequests response:', res);
-          if (res.success && res.data && res.data.length > 0) {
-            const req = res.data[0];
-            const rawJson = req.headers || '[]';
-            console.log('[HeaderTab] loadRawJson - Loaded raw JSON from DB:', rawJson);
-            setRawJsonText(rawJson);
-          }
-          setIsLoadingRawJson(false);
-        }).catch((err) => {
-          console.error('[HeaderTab] loadRawJson - Failed to load raw JSON:', err);
-          setIsLoadingRawJson(false);
-        });
+        emulateApi
+          .listRequests(targetId)
+          .then((res) => {
+            if (res.success && res.data && res.data.length > 0) {
+              const req = res.data[0];
+              const rawJson = req.headers || '[]';
+              setRawJsonText(rawJson);
+            }
+            setIsLoadingRawJson(false);
+          })
+          .catch((err) => {
+            console.error('[HeaderTab] loadRawJson - Failed to load raw JSON:', err);
+            setIsLoadingRawJson(false);
+          });
       });
     } else {
       console.warn('[HeaderTab] loadRawJson - No targetId, skipping');
@@ -80,43 +79,36 @@ export function HeaderTab({
       loadRawJson();
     }
   }, [isRawView, targetId]);
-  
+
   // Load headers from DB when entering table view or when repeater-updated event fires
   const loadHeaders = () => {
-    console.log('[HeaderTab] loadHeaders() called, targetId:', targetId);
     if (targetId) {
-      console.log('[HeaderTab] loadHeaders - Reloading headers from DB...');
       import('../../../../../../services/emulate-api.service').then(({ emulateApi }) => {
-        console.log('[HeaderTab] loadHeaders - emulateApi imported, fetching...');
-        emulateApi.listRequests(targetId).then((res) => {
-          console.log('[HeaderTab] loadHeaders - listRequests response:', res);
-          if (res.success && res.data && res.data.length > 0) {
-            const req = res.data[0];
-            const rawJson = req.headers || '[]';
-            console.log('[HeaderTab] loadHeaders - Loaded headers JSON from DB:', rawJson);
-            
-            try {
-              const parsed = JSON.parse(rawJson);
-              console.log('[HeaderTab] loadHeaders - Parsed JSON:', parsed);
-              if (Array.isArray(parsed)) {
-                const newHeaders = parsed.map((item) => ({
-                  id: item.id || crypto.randomUUID(),
-                  key: item.key || '',
-                  value: item.value || '',
-                  enabled: item.enabled !== undefined ? item.enabled : true,
-                }));
-                console.log('[HeaderTab] loadHeaders - Converted to ParamItem[]:', newHeaders);
-                console.log('[HeaderTab] loadHeaders - Calling onChange...');
-                onChange(newHeaders);
-                console.log('[HeaderTab] loadHeaders - ✅ onChange called successfully');
+        emulateApi
+          .listRequests(targetId)
+          .then((res) => {
+            if (res.success && res.data && res.data.length > 0) {
+              const req = res.data[0];
+              const rawJson = req.headers || '[]';
+              try {
+                const parsed = JSON.parse(rawJson);
+                if (Array.isArray(parsed)) {
+                  const newHeaders = parsed.map((item) => ({
+                    id: item.id || crypto.randomUUID(),
+                    key: item.key || '',
+                    value: item.value || '',
+                    enabled: item.enabled !== undefined ? item.enabled : true,
+                  }));
+                  onChange(newHeaders);
+                }
+              } catch (err) {
+                console.error('[HeaderTab] loadHeaders - Failed to parse headers from DB:', err);
               }
-            } catch (err) {
-              console.error('[HeaderTab] loadHeaders - Failed to parse headers from DB:', err);
             }
-          }
-        }).catch((err) => {
-          console.error('[HeaderTab] loadHeaders - Failed to load headers from DB:', err);
-        });
+          })
+          .catch((err) => {
+            console.error('[HeaderTab] loadHeaders - Failed to load headers from DB:', err);
+          });
       });
     } else {
       console.warn('[HeaderTab] loadHeaders - No targetId, skipping');
@@ -125,76 +117,59 @@ export function HeaderTab({
 
   useEffect(() => {
     if (!isRawView && targetId) {
-      console.log('[HeaderTab] Entering table view, reloading headers from DB...');
       loadHeaders();
     }
   }, [isRawView, targetId]);
 
   // Listen for repeater-updated event to reload data from DB
   useEffect(() => {
-    console.log('[HeaderTab] Setting up repeater-updated listener, isRawView:', isRawView, 'targetId:', targetId);
-    
     const handleRepeaterUpdated = () => {
-      console.log('[HeaderTab] ✅ Received repeater-updated event!');
-      console.log('[HeaderTab] Current state - isRawView:', isRawView, 'targetId:', targetId);
-      
       if (isRawView) {
-        console.log('[HeaderTab] Calling loadRawJson()...');
         loadRawJson();
       } else {
-        console.log('[HeaderTab] Calling loadHeaders()...');
         loadHeaders();
       }
     };
 
     window.addEventListener('repeater-updated', handleRepeaterUpdated);
-    console.log('[HeaderTab] Event listener added for repeater-updated');
-    
+
     return () => {
       window.removeEventListener('repeater-updated', handleRepeaterUpdated);
-      console.log('[HeaderTab] Event listener removed for repeater-updated');
     };
   }, [isRawView, targetId]);
 
   // Polling mechanism to check for database changes (fallback if event doesn't work)
   useEffect(() => {
     if (!targetId) return;
-
-    console.log('[HeaderTab] Setting up polling mechanism, targetId:', targetId);
-    
     let lastKnownContent = '';
-    
+
     const checkForChanges = async () => {
       if (!targetId) return;
-      
+
       try {
         const { emulateApi } = await import('../../../../../../services/emulate-api.service');
         const res = await emulateApi.listRequests(targetId);
-        
+
         if (res.success && res.data && res.data.length > 0) {
           const req = res.data[0];
           const currentContent = req.headers || '[]';
-          
+
           // Only reload if content actually changed
           if (currentContent !== lastKnownContent && lastKnownContent !== '') {
-            console.log('[HeaderTab] 🔄 Database content changed, reloading...');
-            console.log('[HeaderTab] Old:', lastKnownContent);
-            console.log('[HeaderTab] New:', currentContent);
-            
             if (isRawView) {
               loadRawJson();
             } else {
               loadHeaders();
             }
           }
-          
+
           lastKnownContent = currentContent;
         }
       } catch (err) {
         console.error('[HeaderTab] Polling error:', err);
       }
     };
-    
+
     // Initial content snapshot
     (async () => {
       try {
@@ -202,19 +177,17 @@ export function HeaderTab({
         const res = await emulateApi.listRequests(targetId);
         if (res.success && res.data && res.data.length > 0) {
           lastKnownContent = res.data[0].headers || '[]';
-          console.log('[HeaderTab] Initial content snapshot:', lastKnownContent);
         }
       } catch (err) {
         console.error('[HeaderTab] Error getting initial snapshot:', err);
       }
     })();
-    
+
     // Poll every 2 seconds
     const intervalId = setInterval(checkForChanges, 2000);
-    
+
     return () => {
       clearInterval(intervalId);
-      console.log('[HeaderTab] Polling stopped');
     };
   }, [targetId, isRawView]);
 
@@ -340,7 +313,6 @@ export function HeaderTab({
       enabled: true,
     };
     const newHeaders = [...headers, newHeader];
-    console.log('[HeaderTab] handleAdd called, newHeaders:', newHeaders);
     onChange(newHeaders);
   };
 
@@ -355,7 +327,7 @@ export function HeaderTab({
   };
 
   const fallbackAccentColor = getColorByIndex(0);
-  
+
   // Detect duplicate keys
   const getDuplicateKeys = (): Set<string> => {
     const keyCount = new Map<string, number>();
@@ -364,88 +336,73 @@ export function HeaderTab({
         keyCount.set(header.key, (keyCount.get(header.key) || 0) + 1);
       }
     });
-    
+
     const duplicates = new Set<string>();
     keyCount.forEach((count, key) => {
       if (count > 1) {
         duplicates.add(key);
       }
     });
-    
+
     return duplicates;
   };
-  
+
   const duplicateKeys = getDuplicateKeys();
 
   const handleRawChange = (newJson: string) => {
-    console.log('[HeaderTab] handleRawChange called');
-    console.log('[HeaderTab] newJson:', newJson);
-    console.log('[HeaderTab] targetId:', targetId);
-    
     // Update local state immediately for responsive UI
     setRawJsonText(newJson);
-    
+
     // Save raw JSON directly to database
     if (targetId) {
-      console.log('[HeaderTab] targetId exists, attempting to save raw JSON...');
-      
-      import('../../../../../../services/emulate-api.service').then(({ emulateApi }) => {
-        console.log('[HeaderTab] emulateApi imported, fetching requests...');
-        
-        emulateApi.listRequests(targetId).then((res) => {
-          console.log('[HeaderTab] listRequests response:', res);
-          
-          if (res.success && res.data && res.data.length > 0) {
-            const req = res.data[0];
-            console.log('[HeaderTab] Found request:', req.id);
-            console.log('[HeaderTab] Calling updateRequest with raw JSON...');
-            
-            emulateApi.updateRequest(targetId, req.id, { headers: newJson }).then((updateRes) => {
-              console.log('[HeaderTab] updateRequest response:', updateRes);
-              
-              if (updateRes.success) {
-                console.log('[HeaderTab] ✅ Raw JSON saved successfully');
-                
-                // Also try to parse and update headers for table view
-                try {
-                  const parsed = JSON.parse(newJson);
-                  if (Array.isArray(parsed)) {
-                    const newHeaders = parsed.map((item) => ({
-                      id: item.id || crypto.randomUUID(),
-                      key: item.key || '',
-                      value: item.value || '',
-                      enabled: item.enabled !== undefined ? item.enabled : true,
-                    }));
-                    onChange(newHeaders);
-                  }
-                } catch {
-                  console.log('[HeaderTab] JSON parse failed, table view will reload from DB');
-                }
+      import('../../../../../../services/emulate-api.service')
+        .then(({ emulateApi }) => {
+          emulateApi
+            .listRequests(targetId)
+            .then((res) => {
+              if (res.success && res.data && res.data.length > 0) {
+                const req = res.data[0];
+                emulateApi
+                  .updateRequest(targetId, req.id, { headers: newJson })
+                  .then((updateRes) => {
+                    if (updateRes.success) {
+                      // Also try to parse and update headers for table view
+                      try {
+                        const parsed = JSON.parse(newJson);
+                        if (Array.isArray(parsed)) {
+                          const newHeaders = parsed.map((item) => ({
+                            id: item.id || crypto.randomUUID(),
+                            key: item.key || '',
+                            value: item.value || '',
+                            enabled: item.enabled !== undefined ? item.enabled : true,
+                          }));
+                          onChange(newHeaders);
+                        }
+                      } catch {}
+                    } else {
+                      console.error('[HeaderTab] ❌ Failed to save raw JSON:', updateRes.error);
+                    }
+                  })
+                  .catch((err) => {
+                    console.error('[HeaderTab] ❌ updateRequest exception:', err);
+                  });
               } else {
-                console.error('[HeaderTab] ❌ Failed to save raw JSON:', updateRes.error);
+                console.warn('[HeaderTab] ⚠️ No requests found or response failed');
               }
-            }).catch((err) => {
-              console.error('[HeaderTab] ❌ updateRequest exception:', err);
+            })
+            .catch((err) => {
+              console.error('[HeaderTab] ❌ listRequests exception:', err);
             });
-          } else {
-            console.warn('[HeaderTab] ⚠️ No requests found or response failed');
-          }
-        }).catch((err) => {
-          console.error('[HeaderTab] ❌ listRequests exception:', err);
+        })
+        .catch((err) => {
+          console.error('[HeaderTab] ❌ Failed to import emulateApi:', err);
         });
-      }).catch((err) => {
-        console.error('[HeaderTab] ❌ Failed to import emulateApi:', err);
-      });
     } else {
-      console.log('[HeaderTab] ⚠️ No targetId, skipping raw JSON save');
     }
   };
 
   // If raw view, render CodeBlock instead of table
   if (isRawView) {
-    console.log('[HeaderTab] Raw view - rawJsonText:', rawJsonText);
-    console.log('[HeaderTab] Raw view - isLoadingRawJson:', isLoadingRawJson);
-    
     if (isLoadingRawJson) {
       return (
         <div key="raw-view" className="h-full w-full relative flex items-center justify-center">
@@ -453,7 +410,7 @@ export function HeaderTab({
         </div>
       );
     }
-    
+
     return (
       <div key="raw-view" className="h-full w-full relative">
         <div className="absolute inset-0">
@@ -549,8 +506,10 @@ export function HeaderTab({
                           }}
                           readOnly={readOnly}
                           className={cn(
-                            "w-full bg-transparent px-1.5 py-1.5 text-sm text-text-primary outline-none font-mono",
-                            duplicateKeys.has(header.key) && header.key.trim() && "outline outline-2 outline-dashed outline-warning"
+                            'w-full bg-transparent px-1.5 py-1.5 text-sm text-text-primary outline-none font-mono',
+                            duplicateKeys.has(header.key) &&
+                              header.key.trim() &&
+                              'outline outline-2 outline-dashed outline-warning',
                           )}
                           placeholder={placeholderKey}
                         />

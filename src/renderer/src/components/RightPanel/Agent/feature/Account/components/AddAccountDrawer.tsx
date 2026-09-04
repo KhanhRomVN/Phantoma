@@ -45,8 +45,8 @@ const ProviderRow: React.FC<{
     (provider.auth_methods && provider.auth_methods.length > 0 ? provider.auth_methods[0] : null);
 
   const connectionBadgeBg =
-    connectionType === 'browser' ? 'bg-[rgba(251,146,60,0.12)]' : 'bg-[rgba(34,197,94,0.1)]';
-  const connectionBadgeText = connectionType === 'browser' ? 'text-warn' : 'text-success';
+    connectionType === 'browser' ? $('--warn', 0.12) : $('--success', 0.1);
+  const connectionBadgeText = connectionType === 'browser' ? $('--warn') : $('--success');
 
   const handleClick = () => {
     if (disabled) return;
@@ -94,11 +94,11 @@ const ProviderRow: React.FC<{
             {provider.provider_name}
           </span>
           <span
-            className={cn(
-              'text-[9px] font-semibold px-[7px] py-0.5 rounded-[5px] shrink-0 uppercase tracking-[0.04em]',
-              connectionBadgeBg,
-              connectionBadgeText,
-            )}
+            className="text-[9px] font-semibold px-[7px] py-0.5 rounded-[5px] shrink-0 uppercase tracking-[0.04em]"
+            style={{
+              backgroundColor: connectionBadgeBg,
+              color: connectionBadgeText,
+            }}
           >
             {connectionType}
           </span>

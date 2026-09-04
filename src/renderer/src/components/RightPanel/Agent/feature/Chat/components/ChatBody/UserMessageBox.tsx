@@ -21,7 +21,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { Message } from '../../types/message';
 
 // ── Components ──
-import FilesPreviews from '../../../../components/common/MessageInput/FilesPreviews';
+import FilesPreviews from '../../../../components/MessageInput/FilesPreviews';
 import RevertConfirmModal from './RevertConfirmModal';
 
 // ─── Helper ─────────────────────────────────────────────────────────────

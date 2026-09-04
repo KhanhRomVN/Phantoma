@@ -1,5 +1,5 @@
 /**
- * GetRepeaterDetailHandler — Trả về params, headers, body của một request trong Repeater (từ database).
+ * GetRepeaterDetailHandler — Trả về params, headers, body, và payloads của một request trong Repeater (từ database).
  *
  * Usage:
  *   const handler = new GetRepeaterDetailHandler();
@@ -10,6 +10,20 @@
 import { NetworkRequest } from '../types/inspector';
 import { emulateApi } from '../services/emulate-api.service';
 import { logger } from '@renderer/utils/logger';
+
+/** Quét regex ${name} trong một chuỗi, trả về danh sách tên biến (unique, theo thứ tự xuất hiện). */
+const scanPayloadVariables = (text: string): string[] => {
+  const names: string[] = [];
+  const regex = /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    const name = match[1];
+    if (!names.includes(name)) {
+      names.push(name);
+    }
+  }
+  return names;
+};
 
 export class GetRepeaterDetailHandler {
   public async handle(requests: NetworkRequest[], repeaterId: string, targetId?: string | null): Promise<{ text: string }> {
@@ -74,8 +88,65 @@ export class GetRepeaterDetailHandler {
         ? '\n\n**Body:**\n```json\n' + bodyRaw + '\n```'
         : '\n\n**Body:**\n```json\n```';
 
+      // Extract and list payloads
+      const payloadNames: string[] = [];
+      
+      // Scan params
+      try {
+        const params = JSON.parse(paramsRaw);
+        if (Array.isArray(params)) {
+          params.forEach((p: any) => {
+            const names = scanPayloadVariables(JSON.stringify(p));
+            names.forEach(n => { if (!payloadNames.includes(n)) payloadNames.push(n); });
+          });
+        }
+      } catch { /* ignore */ }
+      
+      // Scan headers
+      try {
+        const headers = JSON.parse(headersRaw);
+        if (Array.isArray(headers)) {
+          headers.forEach((h: any) => {
+            const names = scanPayloadVariables(JSON.stringify(h));
+            names.forEach(n => { if (!payloadNames.includes(n)) payloadNames.push(n); });
+          });
+        }
+      } catch { /* ignore */ }
+      
+      // Scan body
+      const bodyNames = scanPayloadVariables(bodyRaw);
+      bodyNames.forEach(n => { if (!payloadNames.includes(n)) payloadNames.push(n); });
+
+      // Fetch payload values from DB
+      let payloadsText = '\n\n**Payloads:**\n';
+      
+      if (payloadNames.length === 0) {
+        payloadsText += 'No payload variables found.';
+      } else {
+        const payloadsRes = await emulateApi.listPayloads(targetId!, req.id);
+        const payloadValuesMap: Record<string, string[]> = {};
+        
+        if (payloadsRes.success && payloadsRes.data) {
+          payloadsRes.data.forEach((p: any) => {
+            try {
+              payloadValuesMap[p.name] = JSON.parse(p.payload_values || '[]');
+            } catch {
+              payloadValuesMap[p.name] = [];
+            }
+          });
+        }
+
+        payloadNames.forEach((name, idx) => {
+          const values = payloadValuesMap[name] || [];
+          const preview = values.length > 0
+            ? values.slice(0, 5).join(', ') + (values.length > 5 ? ` ... (${values.length} total)` : ` (${values.length} total)`)
+            : '(no values)';
+          payloadsText += `\n- payload_${idx} | ${name} | ${preview}`;
+        });
+      }
+
       return {
-        text: firstLine + paramsText + headersText + bodyText,
+        text: firstLine + paramsText + headersText + bodyText + payloadsText,
       };
     } catch (err: any) {
       logger.error('[GetRepeaterDetailHandler] Error:', err);

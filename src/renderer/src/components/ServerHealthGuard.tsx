@@ -1,30 +1,29 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { useServerHealth } from '../providers/ServerHealthProvider';
+import { useActiveModule } from '../modules/Tool/hooks/useActiveModule';
 
 interface ServerHealthGuardProps {
   children: React.ReactNode;
 }
 
 export const ServerHealthGuard: React.FC<ServerHealthGuardProps> = ({ children }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { activeModule, setActiveModule } = useActiveModule('recon');
   const { error, isValid } = useServerHealth();
 
   useEffect(() => {
     // Always allow access to settings page
-    if (location.pathname === '/settings') {
+    if (activeModule === 'settings') {
       return;
     }
 
     // If backend not reachable, redirect to settings
     if (!isValid || error) {
-      navigate('/settings');
+      setActiveModule('settings');
     }
-  }, [isValid, error, navigate, location.pathname]);
+  }, [isValid, error, setActiveModule, activeModule]);
 
   // Always render children on settings page
-  if (location.pathname === '/settings') {
+  if (activeModule === 'settings') {
     return <>{children}</>;
   }
 

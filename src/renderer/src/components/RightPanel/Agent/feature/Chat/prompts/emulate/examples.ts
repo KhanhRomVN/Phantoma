@@ -548,4 +548,142 @@ The first update silently failed because \`old_content\` was missing a closing q
 Key takeaway: always VERIFY with \`get_repeater_detail\` after \`update_repeater_content\` — the "Updated" message is returned even on silent failure.
 </markdown>
 \`\`\`
+
+----
+
+## Ex 14: update_repeater_content — CRITICAL format matching with pretty-printed JSON ✅
+
+**User**: "Add a test3 param with value 3 to repeater_0"
+
+\`\`\`xml
+<list_repeaters />
+\`\`\`
+
+**Result**:
+\`[list_repeaters] Total: 1\n- repeater_0 | GET | example.com | /api/users\`
+
+\`\`\`xml
+<get_repeater_detail><repeater_id>repeater_0</repeater_id></get_repeater_detail>
+\`\`\`
+
+**Result**:
+\`\`\`
+[get_repeater_detail] repeater_0 GET https://example.com/api/users
+
+**Params:**
+\`\`\`json
+[
+  {
+    "key": "test1",
+    "value": "1",
+    "enabled": true
+  },
+  {
+    "key": "test2",
+    "value": "2",
+    "enabled": true
+  }
+]
+\`\`\`
+\`\`\`
+
+\`\`\`xml
+<thinking>
+Pass 1 (Understand): Params are pretty-printed with 2-space indent and newlines. I MUST copy this EXACT format.
+Pass 2 (Critical format rule): The JSON is NOT compact — it has newlines and indentation. If I compact it to one line like \`[{"key":"test1",...}]\`, the old_content will NOT match and the update will fail.
+Pass 3 (Verify): I'll copy the entire array with exact formatting, then add the new param object with the same indent pattern.
+</thinking>
+<update_repeater_content>
+  <repeater_id>repeater_0</repeater_id>
+  <target>params</target>
+  <old_content>[
+  {
+    "key": "test1",
+    "value": "1",
+    "enabled": true
+  },
+  {
+    "key": "test2",
+    "value": "2",
+    "enabled": true
+  }
+]</old_content>
+  <new_content>[
+  {
+    "key": "test1",
+    "value": "1",
+    "enabled": true
+  },
+  {
+    "key": "test2",
+    "value": "2",
+    "enabled": true
+  },
+  {
+    "key": "test3",
+    "value": "3",
+    "enabled": true
+  }
+]</new_content>
+</update_repeater_content>
+\`\`\`
+
+**Result**:
+\`[update_repeater_content] Updated repeater_0 params\`
+
+\`\`\`xml
+<get_repeater_detail><repeater_id>repeater_0</repeater_id></get_repeater_detail>
+\`\`\`
+
+**Result**:
+\`\`\`
+[get_repeater_detail] repeater_0 GET https://example.com/api/users
+
+**Params:**
+\`\`\`json
+[
+  {
+    "key": "test1",
+    "value": "1",
+    "enabled": true
+  },
+  {
+    "key": "test2",
+    "value": "2",
+    "enabled": true
+  },
+  {
+    "key": "test3",
+    "value": "3",
+    "enabled": true
+  }
+]
+\`\`\`
+\`\`\`
+
+\`\`\`xml
+<thinking>
+Pass 1 (Verify): Confirmed — test3 param is now in the array.
+</thinking>
+<markdown>
+✅ Successfully added test3 param. The key point: I preserved the EXACT pretty-printed format (2-space indent, newlines) from get_repeater_detail. 
+
+**❌ WRONG (would fail)**:
+\`\`\`
+<old_content>[{"key":"test1","value":"1","enabled":true},{"key":"test2","value":"2","enabled":true}]</old_content>
+\`\`\`
+This compact format does NOT match the file's pretty-printed format and the replacement would silently fail.
+
+**✅ CORRECT**:
+\`\`\`
+<old_content>[
+  {
+    "key": "test1",
+    ...
+  }
+]</old_content>
+\`\`\`
+This matches the exact format returned by get_repeater_detail.
+</markdown>
+\`\`\`
 `;

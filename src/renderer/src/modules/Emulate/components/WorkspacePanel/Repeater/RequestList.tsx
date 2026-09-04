@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 
 // ── Types ──
-import { NetworkRequest } from '../Home/Filter';
+import { NetworkRequest } from '../Home/FilterPanel';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';

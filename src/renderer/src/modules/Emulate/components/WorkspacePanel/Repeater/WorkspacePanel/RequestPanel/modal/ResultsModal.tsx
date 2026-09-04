@@ -9,7 +9,7 @@ import type { RunResult } from '../../../../../../types/repeater.types';
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
-interface PayloadResultModalProps {
+interface ResultsModalProps {
   isOpen: boolean;
   results: RunResult[];
   onClose: () => void;
@@ -53,7 +53,7 @@ function PayloadCard({
   );
 }
 
-export function PayloadResultModal({ isOpen, results, onClose, onSave }: PayloadResultModalProps) {
+export function ResultsModal({ isOpen, results, onClose, onSave }: ResultsModalProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [activeReqTab, setActiveReqTab] = useState<'params' | 'headers' | 'body'>('headers');
   const [activeResTab, setActiveResTab] = useState<'headers' | 'body'>('headers');
@@ -136,7 +136,7 @@ export function PayloadResultModal({ isOpen, results, onClose, onSave }: Payload
   const okCount = results.filter((r) => r.status >= 200 && r.status < 400).length;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-5xl h-[83.33vh]">
+    <Modal isOpen={isOpen} onClose={onClose} className="max-w-6xl h-[83.33vh]">
       <ModalHeader
         title="Payload Results"
         description={`${results.length} requests — ${okCount} OK`}
@@ -144,7 +144,7 @@ export function PayloadResultModal({ isOpen, results, onClose, onSave }: Payload
       />
       <ModalBody className="p-0 flex">
         {/* ========== LEFT PANEL — Payload cards ========== */}
-        <div className="w-52 shrink-0 border-r border-border overflow-y-auto bg-muted/5">
+        <div className="w-64 shrink-0 border-r border-border overflow-y-auto bg-muted/5">
           {results.map((result, index) => (
             <PayloadCard
               key={`${result.payloadName}-${result.value}-${index}`}
@@ -161,7 +161,7 @@ export function PayloadResultModal({ isOpen, results, onClose, onSave }: Payload
           {selected && (
             <>
               {/* URL Bar */}
-              <div className="flex items-center shrink-0 border-b border-border bg-muted/5">
+              <div className="flex items-center shrink-0 border-b border-border bg-muted/5 py-1.5">
                 <span
                   className={cn(
                     'px-2 py-1 text-[11px] font-bold font-mono uppercase shrink-0',
@@ -182,7 +182,7 @@ export function PayloadResultModal({ isOpen, results, onClose, onSave }: Payload
 
               {/* REQUEST section */}
               <div className="flex-1 min-h-0 flex flex-col">
-                <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/30">
+                <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/30 py-1.5">
                   {(['params', 'headers', 'body'] as const).map((tab) => (
                     <button
                       key={tab}
@@ -264,7 +264,7 @@ export function PayloadResultModal({ isOpen, results, onClose, onSave }: Payload
 
               {/* RESPONSE section */}
               <div className="flex-1 min-h-0 flex flex-col border-t border-border">
-                <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/30">
+                <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/30 py-1.5">
                   {(['headers', 'body'] as const).map((tab) => (
                     <button
                       key={tab}

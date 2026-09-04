@@ -447,7 +447,76 @@ Lấy param, header và body của một request trong Repeater.
 
 ---
 
-### 13. `update_repeater_content`
+### 13. `run_repeater`
+Chạy một request trong Repeater. Tool hoạt động giống như click button "Send" ở RequestBar:
+- Nếu **KHÔNG có payload** enabled → chạy 1 lần đơn giản
+- Nếu **CÓ payload** enabled → tự động chạy với cartesian combinations và trả về danh sách kết quả
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `repeater_id` | **Có** | Indexing mapping từ `list_repeaters`. Format: `repeater_<number>` |
+
+⚠️ Luôn gọi `list_repeaters` trước khi gọi `run_repeater`.
+
+**Tự động lưu history:**
+- Mỗi lần chạy được tự động lưu vào history
+- History giới hạn tối đa 30 entries per repeater (FIFO queue)
+- Không cần lưu manually
+
+**Xử lý payload tự động:**
+- Tool tự động phát hiện và replace `${tên_biến}` trong params, headers, body
+- Nếu có nhiều payload enabled, tự động chạy cartesian product (tất cả combinations)
+- Giới hạn tối đa 100 runs để tránh spam
+
+**Kết quả trả về:**
+- **1 phiên** (không có payload): Chi tiết đầy đủ response body và response headers
+- **Nhiều phiên** (có payload): Danh sách tóm tắt với STT, status, duration, payload values
+
+**Ví dụ (không có payload):**
+
+<run_repeater><repeater_id>repeater_0</repeater_id></run_repeater>
+
+
+**Kết quả:**
+
+[run_repeater] GET https://api.example.com/users
+
+Status: 200
+Duration: 145ms
+
+--- Response Headers ---
+{
+  "content-type": "application/json",
+  "cache-control": "no-cache"
+}
+
+--- Response Body ---
+{"users": [...]}
+
+
+**Ví dụ (có payload):**
+Giả sử repeater có payload `user_id` với values `[1, 2, 3]` và URL là `https://api.example.com/users/${user_id}`
+
+<run_repeater><repeater_id>repeater_0</repeater_id></run_repeater>
+
+
+**Kết quả:**
+
+[run_repeater] GET https://api.example.com/users/${user_id}
+
+Total Runs: 3
+Success: 3/3
+Avg Duration: 152ms
+
+--- Results ---
+1. ✓ Status: 200 | Duration: 145ms | Payload: user_id=1
+2. ✓ Status: 200 | Duration: 158ms | Payload: user_id=2
+3. ✓ Status: 200 | Duration: 149ms | Payload: user_id=3
+
+
+---
+
+### 14. `update_repeater_content`
 Cập nhật nội dung `params`, `headers` hoặc `body` của một request trong Repeater. Cơ chế `old_content`/`new_content` giống `replace_in_file` bên code tools. **Đây là tool DUY NHẤT dùng để thêm payload variable vào request — đồng thời là tool phức tạp và dễ lỗi nhất trong nhóm Repeater.**
 
 | Tham số | Bắt buộc | Mô tả |
@@ -516,9 +585,9 @@ Cập nhật nội dung `params`, `headers` hoặc `body` của một request tr
 - Với `target="body"`: replace trực tiếp trên chuỗi body.
 
 **Payload variable placeholder:**
-- `${tên_biến}` là **placeholder chưa có value** — tại thời điểm chèn, nó chỉ là chuỗi ký tự nằm nguyên trong request.
-- Đặt tên biến theo dạng snake_case, có ý nghĩa (vd `${auth_token}`, `${user_id}`) — đây sẽ là key dùng bởi các tool quản lý payload trong tương lai.
-- Dùng `list_payloads` để xem danh sách payload variable đã khai báo, và `set_repeater_payload_values` để gán giá trị.
+- `${tên_biến}` là **placeholder** có thể dùng trong request — tại thời điểm chèn, nó chỉ là chuỗi ký tự nằm nguyên trong request.
+- Đặt tên biến theo dạng snake_case, có ý nghĩa (vd `${auth_token}`, `${user_id}`).
+- Payload variable hiện tại chỉ dùng làm placeholder tĩnh — chức năng gán giá trị động chưa được implement.
 
 **Quy trình bắt buộc — LIST → READ → UPDATE → VERIFY:**
 1. `list_repeaters` — lấy `repeater_id` hợp lệ.
@@ -582,67 +651,6 @@ Dùng chính `update_repeater_content` để xóa — thay `${tên_biến}` bằ
 
 ⚠️ Sau khi nhận kết quả "Updated", bắt buộc gọi lại `get_repeater_detail` để xác minh thay đổi thực sự đã diễn ra.
 
-
----
-
-### 14. `list_payloads`
-Liệt kê tất cả payload variable của một request trong Repeater.
-
-| Tham số | Bắt buộc | Mô tả |
-|-----------|----------|-------------|
-| `repeater_id` | **Có** | Indexing mapping từ `list_repeaters`. Format: `repeater_<number>` |
-
-⚠️ Luôn gọi `list_repeaters` trước khi gọi `list_payloads`.
-
-Trả về danh sách phẳng, mỗi dòng là `- payload_<number> | payload_variable_name | param|header|body | value_1, value_2, ... (tối đa 10 giá trị preview)`. Trong đó:
-- `payload_<number>` là định danh ổn định dùng cho `set_repeater_payload_values`
-- `payload_variable_name` là tên biến đã khai báo trong content (vd `auth_token`, `password`)
-- `param|header|body` cho biết payload variable nằm ở thành phần nào của request
-- Preview tối đa 10 giá trị đầu tiên; nếu payload chưa có value, hiển thị `(no values yet)`
-
-**Ví dụ:**
-
-<list_payloads><repeater_id>repeater_1</repeater_id></list_payloads>
-
-
-**Kết quả:**
-
-[list_payloads] repeater_1 — Total payloads: 2
-- payload_0 | auth_token | header | (no values yet)
-- payload_1 | password | body | admin, 123456, password, qwerty (4 values)
-
-
----
-
-### 15. `set_repeater_payload_values`
-Gán lại toàn bộ giá trị cho một payload variable cụ thể. Mảng value cũ sẽ bị thay thế hoàn toàn bởi mảng value mới.
-
-| Tham số | Bắt buộc | Mô tả |
-|-----------|----------|-------------|
-| `payload_id` | **Có** | Định danh payload từ `list_payloads`. Format: `payload_<number>` |
-| `values` | **Có** | Mảng các giá trị mới, mỗi giá trị bọc trong thẻ `value_N` |
-
-⚠️ Luôn gọi `list_payloads` trước khi gọi `set_repeater_payload_values` để lấy đúng `payload_id`.
-
-⚠️ Nếu mảng `values` rỗng (không có `value_N` nào), payload sẽ bị xóa toàn bộ value — tương đương trạng thái `(no values yet)`.
-
-**Ví dụ:**
-
-<set_repeater_payload_values>
-  <payload_id>payload_1</payload_id>
-  <values>
-    <value_1>admin123</value_1>
-    <value_2>P@ssw0rd!</value_2>
-    <value_3>letmein2025</value_3>
-  </values>
-</set_repeater_payload_values>
-
-
-**Kết quả:**
-
-[set_repeater_payload_values] Updated payload_1 (password) — 3 values
-
-
 ---
 
 ## Phần 2: Tool Bị Động
@@ -703,7 +711,6 @@ Types: fetch, xhr, image, css(hide)
 2. **Luôn gọi `list_sources` trước khi gọi `get_source_detail`**
 3. **Luôn gọi `list_resources` trước khi gọi `get_resource_content`**
 4. **Kiểm tra `<filter_context>` trước khi gọi `apply_filter`**
-5. **Luôn gọi `list_repeaters` trước khi gọi `get_repeater_detail`, `delete_repeater`, hoặc `update_repeater_content`**
-6. **Luôn gọi `list_payloads` trước khi gọi `set_repeater_payload_values`**
-7. **Sau khi `update_repeater_content`, luôn gọi lại `get_repeater_detail` để xác minh thay đổi — đừng tin message "Updated"**
-8. **Tool bị động không cần gọi — chúng luôn có sẵn trong context**
+5. **Luôn gọi `list_repeaters` trước khi gọi `get_repeater_detail`, `delete_repeater`, `run_repeater`, hoặc `update_repeater_content`**
+6. **Sau khi `update_repeater_content`, luôn gọi lại `get_repeater_detail` để xác minh thay đổi — đừng tin message "Updated"**
+7. **Tool bị động không cần gọi — chúng luôn có sẵn trong context**

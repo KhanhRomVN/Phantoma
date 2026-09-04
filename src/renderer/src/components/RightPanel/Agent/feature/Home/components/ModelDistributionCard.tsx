@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 
 const COLORS = [
-  'var(--primary, #3b82f6)',
-  'var(--warn, #d97706)',
-  'var(--purple, #8b5cf6)',
-  'var(--success, #10b981)',
-  'var(--error, #f43f5e)',
+  'rgb(var(--primary))',
+  'rgb(var(--warning))',
+  'rgb(138 92 246)', // purple
+  'rgb(var(--success))',
+  'rgb(var(--error))',
 ];
 const COLLAPSE_THRESHOLD = 4;
 const SIZE = 96;
@@ -91,7 +91,7 @@ const ModelDistributionCard: React.FC<Props> = ({
                 cy={cy}
                 r={R}
                 fill="none"
-                stroke="var(--border, rgba(128,128,128,0.15))"
+                stroke="rgb(var(--border))"
                 strokeWidth={STROKE}
               />
               {/* Arcs */}
@@ -129,7 +129,9 @@ const ModelDistributionCard: React.FC<Props> = ({
                 y={cy - 6}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-[17px] font-bold text-text-primary"
+                fontSize="17"
+                fontWeight="bold"
+                fill="rgb(var(--text-primary))"
               >
                 {modelDistribution.length}
               </text>
@@ -138,7 +140,8 @@ const ModelDistributionCard: React.FC<Props> = ({
                 y={cy + 11}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-[10px] text-text-secondary"
+                fontSize="10"
+                fill="rgb(var(--text-secondary))"
               >
                 models
               </text>

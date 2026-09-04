@@ -15,16 +15,16 @@ import {
 } from 'lucide-react';
 
 // ── Components ──
-import { HeadersDetails } from './Headers';
-import { BodyDetails, BodyDetailsRef } from './Body';
+import { HeadersDetails } from './RequestDetail/Headers';
+import { BodyDetails, BodyDetailsRef } from './RequestDetail/Body';
+import { NetworkDetails } from './RequestDetail/Network';
 import CodeBlock from '@renderer/components/common/CodeBlock';
-import { CookieDetails } from './Cookie';
-import { InitiatorDetails } from './Initiator';
+import { InitiatorDetails } from './RequestDetail/Initiator';
 import { RequestTable } from './RequestTable';
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 
 // ── Types ──
-import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } from './Filter';
+import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } from './FilterPanel';
 
 // ── Hooks ──
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
@@ -464,10 +464,6 @@ export const RequestDetails = React.memo(function RequestDetails({
         <div className="h-full flex items-center justify-center text-text-secondary bg-table-bodyBg">
           Select a request to view details
         </div>
-      ) : isCookieTab && request ? (
-        <div className="flex-1 overflow-auto h-full">
-          <CookieDetails request={request} />
-        </div>
       ) : isRawMode ? (
         <CodeBlock
           code={JSON.stringify(getTabContent(activeTab), null, 2)}
@@ -485,6 +481,7 @@ export const RequestDetails = React.memo(function RequestDetails({
           {activeTab === 'initiator' && request && (
             <InitiatorDetails request={request} searchTerm={searchTerm} />
           )}
+          {activeTab === 'network' && request && <NetworkDetails />}
         </div>
       )}
     </div>

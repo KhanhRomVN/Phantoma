@@ -52,7 +52,7 @@ import { cn } from '@renderer/shared/utils/cn';
 
 // ── Types ──
 import { InspectorFilter } from '../../../types/filter.types';
-import { NetworkRequest } from './Filter';
+import { NetworkRequest } from './FilterPanel';
 
 interface RequestTableProps {
   filter?: InspectorFilter;

@@ -37,6 +37,8 @@ interface TooltipState {
 // MAIN COMPONENT
 // ============================================================================
 
+console.log('[Module] Wireless loaded');
+
 export function Wireless() {
   const {
     networks,

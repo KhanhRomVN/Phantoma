@@ -1,6 +1,4 @@
 import { ChevronRight, ChevronDown, FolderOpen, Search } from 'lucide-react';
-// ── Components ──
-import FileIcon from '../../../../../components/common/FileIcon';
 
 // ── Types ──
 import { ResourceItem, ResourceType } from '../../../types/resource.types';
@@ -10,6 +8,7 @@ import { RESOURCE_TYPES } from '../../../constants/resource';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 interface ResourceListProps {
   groupedItems: Record<ResourceType, ResourceItem[]>;
@@ -85,7 +84,11 @@ export function ResourceList({
                             : 'text-text-primary hover:bg-card-hover',
                         )}
                       >
-                        <FileIcon path={item.path} className="w-4 h-4 shrink-0" />
+                        <img
+                          src={getFileIconPath(item.path)}
+                          className="w-4 h-4 shrink-0"
+                          alt=""
+                        />
                         <span className="flex-1 truncate">{item.filename}</span>
                         <span className="text-[9px] text-text-secondary/60 shrink-0">
                           {item.size}
