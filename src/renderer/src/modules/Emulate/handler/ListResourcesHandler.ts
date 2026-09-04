@@ -1,22 +1,27 @@
 /**
- * ListResourcesHandler — Lấy danh sách toàn bộ file resources thu thập được (images, videos, fonts, etc.)
+ * ------------------------------------------------------------------
+ * ListResourcesHandler
+ * ------------------------------------------------------------------
+ * Lấy danh sách toàn bộ file resources thu thập được (images,
+ * videos, fonts...). Filter hỗ trợ theo type. Output dạng text list.
  *
- * Usage:
- *   const handler = new ListResourcesHandler();
- *   const result = handler.handle(requests, { type: 'image' });
- *
- * Filter hỗ trợ: type (image, video, audio, font, document, wasm)
- * Kết quả trả về dạng text table với stable index.
+ * Các methods chính:
+ * - handle() : Lấy danh sách resources theo filter
+ * ------------------------------------------------------------------
  */
 
-// TYPE
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Constants ──
+import { detectResourceType } from '../constants/resource';
+
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 import { ResourceItem, ResourceType } from '../types/resource.types';
 
-// UTIL
-import { detectResourceType } from '../constants/resource';
+// ── Utils ──
 import { detectWasm } from '../utils/wasm-detector.util';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ListResourcesFilter {
   type?: ResourceType;
 }
@@ -27,6 +32,7 @@ export interface ListResourcesResult {
   text: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ListResourcesHandler {
   /**
    * Lấy danh sách resources theo filter.

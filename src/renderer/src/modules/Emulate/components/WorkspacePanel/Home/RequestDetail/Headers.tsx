@@ -1,19 +1,31 @@
 import { useMemo } from 'react';
 
-import { logger } from '@renderer/utils/logger';
+/**
+ * ------------------------------------------------------------------
+ * Header Details
+ * ------------------------------------------------------------------
+ * Hiển thị request/response headers với highlight tìm kiếm.
+ *
+ * Các chức năng chính:
+ * - Hiển thị headers dạng key-value
+ * - Highlight text match theo search term
+ * ------------------------------------------------------------------
+ */
 
-// ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
-
+// ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import { NetworkRequest } from '../../../types/inspector';
 
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface HeadersDetailsProps {
   request: NetworkRequest;
   searchTerm: string;
 }
 
-// HighlightText component (merged)
 interface HighlightTextProps {
   text: string;
   searchTerm: string;
@@ -21,6 +33,7 @@ interface HighlightTextProps {
   highlightClassName?: string;
 }
 
+// ─── Components ─────────────────────────────────────────────────────────
 function HighlightText({ text, searchTerm, className, highlightClassName }: HighlightTextProps) {
   const parts = useMemo(() => {
     if (!searchTerm || !text) return [{ text, highlight: false }];

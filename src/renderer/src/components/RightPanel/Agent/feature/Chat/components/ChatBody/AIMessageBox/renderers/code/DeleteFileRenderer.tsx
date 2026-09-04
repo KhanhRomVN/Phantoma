@@ -15,8 +15,7 @@ import { BaseRendererProps } from '../../../../../types/renderer-types';
 // ── Utils ──
 import { getFilename } from '../../../../../utils/toolUtils';
 
-// ICONS
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
@@ -64,7 +63,7 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
             <span className="font-semibold opacity-80">{getToolLabel('delete_file')}</span>
-            <FileIcon path={rawPath} isFolder={false} style={{ width: '14px', height: '14px' }} />
+            <img src={getFileIconPath(rawPath)} alt="" style={{ width: '14px', height: '14px' }} />
             <span className="font-medium opacity-80 font-mono text-[11px]">
               {getDisplayPath(rawPath, allPaths) || '...'}
             </span>

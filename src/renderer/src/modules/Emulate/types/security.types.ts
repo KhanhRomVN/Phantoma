@@ -1,8 +1,23 @@
+/**
+ * ------------------------------------------------------------------
+ * Security Types
+ * ------------------------------------------------------------------
+ * Type definitions cho security scanning trong module Emulate.
+ * Bao gồm security finding và kết quả scan.
+ *
+ * Các types chính:
+ * - SecurityFinding    : Một lỗ hổng bảo mật được phát hiện
+ * - SecurityScanResult : Kết quả scan cho một target
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import type { SecurityIssue } from '../../Tool/utils/securityScanner';
 
 export { SecurityIssue };
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface SecurityFinding {
   id: string;
   type: string;

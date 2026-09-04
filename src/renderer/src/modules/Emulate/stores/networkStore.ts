@@ -1,8 +1,29 @@
+/**
+ * ------------------------------------------------------------------
+ * Network Store
+ * ------------------------------------------------------------------
+ * Zustand store quản lý danh sách network requests và unpacked scripts
+ * trong module Emulate. Giới hạn số lượng requests lưu trong memory.
+ *
+ * Các actions chính:
+ * - addRequest()          : Thêm request mới (bỏ qua nếu trùng id)
+ * - updateRequest()       : Cập nhật một phần request theo id
+ * - clearRequests()       : Xóa toàn bộ requests và scripts
+ * - setUnpackedScript()   : Lưu unpacked script cho một request
+ * - getRequests()         : Lấy danh sách requests hiện tại
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Store ──
 import { create } from 'zustand';
+
+// ── Types ──
 import type { NetworkRequest, CdpScriptUnpackedData } from '@renderer/shared/types/network';
 
 export type { NetworkRequest, CdpScriptUnpackedData };
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface NetworkStore {
   requests: NetworkRequest[];
   unpackedScripts: Map<string, CdpScriptUnpackedData>;
@@ -16,6 +37,7 @@ interface NetworkStore {
   getRequests: () => NetworkRequest[];
 }
 
+// ─── Store ──────────────────────────────────────────────────────────────
 export const useNetworkStore = create<NetworkStore>((set, get) => ({
   requests: [],
   unpackedScripts: new Map(),

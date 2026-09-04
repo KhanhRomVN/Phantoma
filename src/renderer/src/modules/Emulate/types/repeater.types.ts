@@ -1,4 +1,23 @@
-// Repeater/Payload types
+/**
+ * ------------------------------------------------------------------
+ * Repeater Types
+ * ------------------------------------------------------------------
+ * Type definitions cho repeater/fuzzer trong module Emulate.
+ * Bao gồm param, payload, history, run result và fuzzer job.
+ *
+ * Các types chính:
+ * - ParamItem      : Một tham số (key-value) trong request
+ * - PayloadItem    : Payload fuzzing (danh sách giá trị)
+ * - HistoryEntry   : Lịch sử một lần chạy repeater
+ * - RunResult      : Kết quả chi tiết của một run
+ * - FuzzerJob      : Cấu hình job fuzzer
+ * - FuzzerResult   : Kết quả từng payload trong fuzzing
+ * - RepeaterState  : Trạng thái đầy đủ của repeater
+ * - RepeaterTab    : Các tab trong repeater UI
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ParamItem {
   id: string;
   key: string;

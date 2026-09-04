@@ -17,7 +17,7 @@ import { $ } from '@renderer/utils/color';
 
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 interface GitStatusBlockItem {
   status: string;
@@ -87,7 +87,7 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
         onClick={() => handleRowClick(item.path)}
         title={`Click để xem git diff của ${item.path}`}
       >
-        <FileIcon path={item.path} style={{ width: 16, height: 16, flexShrink: 0 }} />
+        <img src={getFileIconPath(item.path)} alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
         <span className="text-primary text-xs font-mono break-all flex-1">{fileName}</span>
         {hasDiff && (
           <span className="inline-flex items-center gap-1 ml-auto text-[11px] font-medium font-mono shrink-0 opacity-80">

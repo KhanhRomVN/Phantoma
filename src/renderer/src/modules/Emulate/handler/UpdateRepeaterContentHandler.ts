@@ -1,20 +1,31 @@
 /**
- * UpdateRepeaterContentHandler — Update params/headers/body bằng cách replace text trong JSON file.
- * Hoạt động giống hệt replace_in_file: exact string replacement với fuzzy fallback.
- * Cập nhật trực tiếp vào file thay vì qua API để tránh bước trung gian.
+ * ------------------------------------------------------------------
+ * UpdateRepeaterContentHandler
+ * ------------------------------------------------------------------
+ * Update params/headers/body bằng cách replace text trong JSON file.
+ * Hoạt động giống replace_in_file: exact match với fuzzy fallback.
  *
- * Usage:
- *   const handler = new UpdateRepeaterContentHandler();
- *   const result = await handler.handle('repeater_1', 'headers', oldContent, newContent, targetId);
+ * Các methods chính:
+ * - handle()      : Replace text trong file repeater content
+ * - getFilePath() : Lấy đường dẫn file tương ứng với target
+ * ------------------------------------------------------------------
  */
 
-import { NetworkRequest } from '../types/inspector';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import { emulateApi } from '../services/emulate-api.service';
+
+// ── Types ──
+import { NetworkRequest } from '../types/inspector';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 import { FuzzyMatcher } from '../../Code/utils/FuzzyMatcher';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export type RepeaterTarget = 'params' | 'headers' | 'body';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class UpdateRepeaterContentHandler {
   /**
    * Lấy đường dẫn file tương ứng với target

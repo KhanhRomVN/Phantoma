@@ -1,15 +1,17 @@
 /**
- * HTTP Status codes — màu sắc theo range.
+ * ------------------------------------------------------------------
+ * Status Code Colors
+ * ------------------------------------------------------------------
+ * Hàm trả về màu sắc (text/bg) theo HTTP status code range.
+ * Dùng để hiển thị trạng thái request trong UI.
  *
- * Cách dùng: getStatusColor(200) → 'text-emerald-400'
- * Range:
- *   0 / falsy — red (lỗi kết nối / chưa có response)
- *   1xx — blue
- *   2xx — emerald
- *   3xx — amber
- *   4xx — red
- *   5xx — rose
+ * Các functions chính:
+ * - getStatusColor()   : Màu chữ theo status code
+ * - getStatusBgColor() : Màu nền theo status code
+ * ------------------------------------------------------------------
  */
+
+// ─── Functions ──────────────────────────────────────────────────────────
 export function getStatusColor(code: number): string {
   if (!code || code === 0) return 'text-red-400';
   if (code >= 500) return 'text-rose-400';
@@ -20,7 +22,6 @@ export function getStatusColor(code: number): string {
   return 'text-text-secondary';
 }
 
-/** Trả về background color tương ứng với status code. */
 export function getStatusBgColor(code: number): string {
   if (!code || code === 0) return 'bg-red-500/10';
   if (code >= 500) return 'bg-rose-500/10';

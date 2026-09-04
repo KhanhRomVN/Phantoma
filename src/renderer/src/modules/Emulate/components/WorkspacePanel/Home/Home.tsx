@@ -1,4 +1,23 @@
+/**
+ * ------------------------------------------------------------------
+ * Home Panel
+ * ------------------------------------------------------------------
+ * Panel Home hiển thị RequestTable và RequestDetails cho Inspector.
+ * Bao gồm tab Headers/Body/Network/Initiator/Cookies/Security.
+ *
+ * Các chức năng chính:
+ * - Hiển thị RequestTable và RequestDetails split view
+ * - Tabs cho headers/body/network/initiator/cookies/security
+ * - Context menu cho text selection (Crypto/Search)
+ * - Raw mode và copy nội dung tab
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+
+// ── UI ──
 import {
   List,
   Box,
@@ -13,8 +32,6 @@ import {
   Cookie,
   GitBranch,
 } from 'lucide-react';
-
-// ── Components ──
 import { HeadersDetails } from './RequestDetail/Headers';
 import { BodyDetails, BodyDetailsRef } from './RequestDetail/Body';
 import { NetworkDetails } from './RequestDetail/Network';
@@ -23,17 +40,18 @@ import { InitiatorDetails } from './RequestDetail/Initiator';
 import { RequestTable } from './RequestTable';
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 
-// ── Types ──
-import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } from './FilterPanel';
-
 // ── Hooks ──
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 import { useNetworkStore } from '../../../stores/networkStore';
+
+// ── Types ──
+import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } from './FilterPanel';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
+// ─── Components ─────────────────────────────────────────────────────────
 function Badge({ count, className }: { count: number; className?: string }) {
   if (count === 0) return null;
   return (

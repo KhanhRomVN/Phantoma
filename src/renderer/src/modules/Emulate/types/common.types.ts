@@ -1,31 +1,50 @@
-// Common types shared across Emulate feature
+/**
+ * ------------------------------------------------------------------
+ * Common Types
+ * ------------------------------------------------------------------
+ * Các type dùng chung trong module Emulate — result, loading state,
+ * pagination, search, sort, toast, modal, tab, context menu...
+
+ * Các types chính:
+ * - OperationResult<T> : Kết quả trả về của một operation
+ * - LoadingState       : Trạng thái loading kèm error
+ * - Pagination         : Thông tin phân trang
+ * - SearchState        : Trạng thái tìm kiếm
+ * - SortConfig         : Cấu hình sắp xếp
+ * - ToastMessage       : Thông báo toast
+ * - ModalConfig        : Cấu hình modal
+ * - TabConfig          : Cấu hình tab
+ * - ContextMenuItem    : Item trong context menu
+ * - DropdownOption<T>  : Option cho dropdown
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { ToolType } from '../constants/tools';
 import { HttpMethod } from '../constants/methods';
 
 // Re-export from constants for convenience
 export type { ToolType, HttpMethod };
 
-// Generic result type for operations
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface OperationResult<T = void> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-// Generic loading state
 export interface LoadingState {
   isLoading: boolean;
   error: string | null;
 }
 
-// Generic pagination
 export interface Pagination {
   page: number;
   limit: number;
   total: number;
 }
 
-// Generic search
 export interface SearchState {
   term: string;
   matchCase: boolean;
@@ -33,26 +52,22 @@ export interface SearchState {
   useRegex: boolean;
 }
 
-// Key-value pair for generic tables
 export interface KeyValuePair {
   key: string;
   value: string;
   enabled: boolean;
 }
 
-// Sort configuration
 export interface SortConfig {
   field: string;
   direction: 'asc' | 'desc';
 }
 
-// Theme accent color
 export interface AccentColor {
   color: string;
   index: number;
 }
 
-// Toast notification
 export interface ToastMessage {
   id: string;
   type: 'success' | 'error' | 'warning' | 'info';
@@ -61,7 +76,6 @@ export interface ToastMessage {
   duration?: number;
 }
 
-// Modal configuration
 export interface ModalConfig {
   isOpen: boolean;
   title?: string;
@@ -69,7 +83,6 @@ export interface ModalConfig {
   onClose: () => void;
 }
 
-// Tab configuration
 export interface TabConfig {
   id: string;
   label: string;
@@ -77,7 +90,6 @@ export interface TabConfig {
   count?: number;
 }
 
-// Context menu item
 export interface ContextMenuItem {
   label: string;
   icon?: React.ReactNode;
@@ -87,7 +99,6 @@ export interface ContextMenuItem {
   className?: string;
 }
 
-// Dropdown option
 export interface DropdownOption<T = string> {
   id: T;
   label: string;

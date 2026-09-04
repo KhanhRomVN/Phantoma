@@ -27,8 +27,7 @@ import { Message } from '../../../../../types/message';
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
 
-// ICONS
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
@@ -584,9 +583,9 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
             <span className="font-semibold opacity-80 shrink-0">{getToolLabel('run_command')}</span>
             {folderName && (
               <>
-                <FileIcon
-                  path={folderPath}
-                  isFolder={true}
+                <img
+                  src={getFolderIconPath(folderPath)}
+                  alt=""
                   style={{ width: '14px', height: '14px', flexShrink: 0 }}
                 />
                 <span className="font-medium opacity-80 font-mono text-[11px] shrink-0">

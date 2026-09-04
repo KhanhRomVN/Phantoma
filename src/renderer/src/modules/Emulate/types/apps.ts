@@ -1,6 +1,26 @@
+/**
+ * ------------------------------------------------------------------
+ * App Types
+ * ------------------------------------------------------------------
+ * Type definitions cho ứng dụng (app) trong module Emulate —
+ * bao gồm app do người dùng tạo (UserApp) và app được phát hiện
+ * tự động (DiscoveredApp).
+ *
+ * Các types chính:
+ * - AppPlatform   : Re-export từ constants/platforms
+ * - AppMode       : Chế độ hoạt động (intercept/record/observe)
+ * - UserApp       : App do người dùng định nghĩa
+ * - DiscoveredApp : App được phát hiện tự động từ hệ thống
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import type { AppPlatform } from '../constants/platforms';
 
 export type { AppPlatform };
+
+// ─── Types ──────────────────────────────────────────────────────────────
 export type AppMode = 'intercept' | 'record' | 'observe';
 
 export interface UserApp {

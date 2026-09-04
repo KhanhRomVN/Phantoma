@@ -1,15 +1,19 @@
 /**
- * Cấu hình HTTP methods — nguồn dữ liệu duy nhất.
+ * ------------------------------------------------------------------
+ * HTTP Methods
+ * ------------------------------------------------------------------
+ * Cấu hình HTTP methods — nguồn dữ liệu duy nhất cho toàn bộ UI.
+ * Mỗi method có title hiển thị và màu Tailwind để sinh class
+ * text/bg/border (text-{color}-400, bg-{color}-500/15...).
  *
- * Mỗi method có:
- * - title: tên hiển thị (vd: "GET")
- * - color: tên màu Tailwind, dùng để sinh class text/bg/border trong UI
- *   Cách dùng: text-{color}-400, bg-{color}-500/15, border-{color}-500/20
- *
- * Type HttpMethod được suy ra từ keyof typeof HTTP_METHODS.
- * Duyệt danh sách method qua Object.keys(HTTP_METHODS).
+ * Các exports chính:
+ * - HTTP_METHODS   : Map cấu hình tất cả HTTP methods
+ * - HttpMethod     : Type suy ra từ key của HTTP_METHODS
+ * - DEFAULT_METHOD : Method mặc định (GET)
+ * ------------------------------------------------------------------
  */
 
+// ─── Constants ──────────────────────────────────────────────────────────
 export const HTTP_METHODS = {
   GET: { title: 'GET', color: 'emerald' },
   POST: { title: 'POST', color: 'blue' },
@@ -22,6 +26,8 @@ export const HTTP_METHODS = {
   CONNECT: { title: 'CONNECT', color: 'violet' },
 } as const;
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export type HttpMethod = keyof typeof HTTP_METHODS;
 
+// ─── Constants ──────────────────────────────────────────────────────────
 export const DEFAULT_METHOD: HttpMethod = 'GET';

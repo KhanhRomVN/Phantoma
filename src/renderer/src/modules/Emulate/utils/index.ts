@@ -10,7 +10,8 @@
  * ------------------------------------------------------------------
  */
 
-// Source tree
+// ─── Exports ────────────────────────────────────────────────────────────
+// ── Source tree ──
 export {
   buildSourceTree,
   parseUrl,
@@ -23,13 +24,13 @@ export {
 } from './source-tree.util';
 export type { SourceNode, SourceTreeData } from './source-tree.util';
 
-// Fuzzer payload
+// ── Fuzzer payload ──
 export { generatePayloads, applyPayload, parseHeaders, countPayloads } from './fuzzer-payload.util';
 
-// Request classifier
+// ── Request classifier ──
 export { getRequestCategory } from './request-classifier.util';
 
-// Network event parser
+// ── Network event parser ──
 export {
   CDP_RESOURCE_TYPE_MAP,
   parseUrlParts,

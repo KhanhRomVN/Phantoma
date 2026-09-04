@@ -6,7 +6,7 @@
  * tác load, lưu, tạo, xóa và tìm kiếm target với trạng thái loading
  * và error.
  *
- * Main features:
+ * Các chức năng chính:
  * - Auto-load target khi mount (tuỳ chọn autoLoad)
  * - Hỗ trợ lọc theo platform hoặc searchQuery
  * - Cập nhật state sau mỗi thao tác save/delete
@@ -18,7 +18,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 // ── Services ──
-import { dataService } from '../modules/Emulate/services/emulate-api.service';
+import { dataService } from '../services/emulate-api.service';
 
 // ── Types ──
 import { TargetTab } from '@renderer/modules/Emulate/types/target.types';

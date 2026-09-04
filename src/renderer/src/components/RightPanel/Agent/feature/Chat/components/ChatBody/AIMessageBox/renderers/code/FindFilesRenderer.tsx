@@ -14,8 +14,7 @@ import { BaseRendererProps } from '../../../../../types/renderer-types';
 // ── Utils ──
 import { getNextUserMessage, buildTreeFromPaths } from '../../../../../utils/renderer-utils';
 
-// ICONS
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
@@ -106,9 +105,9 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
                     {fileNamesArray.map((fileName, idx) => (
                       <div key={idx} className="flex items-center gap-1">
                         {idx > 0 && <span className="opacity-30 text-[11px]">|</span>}
-                        <FileIcon
-                          path={fileName}
-                          isFolder={false}
+                        <img
+                          src={getFileIconPath(fileName)}
+                          alt=""
                           style={{ width: '14px', height: '14px' }}
                         />
                         <span className="font-mono text-[11px] font-medium opacity-90">

@@ -1,19 +1,45 @@
+/**
+ * ------------------------------------------------------------------
+ * SourcesPanel
+ * ------------------------------------------------------------------
+ * Panel hiển thị source code dạng cây thư mục — tương tự DevTools
+ * Sources tab. Hỗ trợ unpacked scripts và file explorer.
+ *
+ * Các chức năng chính:
+ * - Build source tree từ requests và unpacked scripts
+ * - File explorer với stats (tổng files, obfuscated files)
+ * - Hiển thị nội dung source đã chọn
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useMemo } from 'react';
+
+// ── UI ──
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
-
-import type { SourceNode } from '../../../utils/source-tree.util';
-import type { CdpScriptUnpackedData } from '../../../hooks/network/useNetworkEvents';
-import { buildSourceTree } from '../../../utils/source-tree.util';
-import { useNetworkStore } from '../../../stores/networkStore';
-
 import { FileExplorePanel } from './FileExplorePanel';
 import { FileContentSection, SelectedSourceContent } from './FileContentSection';
 
+// ── Hooks ──
+import type { CdpScriptUnpackedData } from '../../../hooks/useNetworkEvents';
+
+// ── Stores ──
+import { useNetworkStore } from '../../../stores/networkStore';
+
+// ── Types ──
+import type { SourceNode } from '../../../utils/source-tree.util';
+
+// ── Utils ──
+import { buildSourceTree } from '../../../utils/source-tree.util';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface SourcesPanelProps {
   unpackedScripts?: Map<string, CdpScriptUnpackedData>;
   onClose?: () => void;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function SourcesPanel({ unpackedScripts }: SourcesPanelProps) {
   const requests = useNetworkStore((s) => s.requests);
   const [selectedContent, setSelectedContent] = useState<SelectedSourceContent | null>(null);

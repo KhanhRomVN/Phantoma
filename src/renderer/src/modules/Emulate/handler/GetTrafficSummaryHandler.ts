@@ -1,17 +1,21 @@
 /**
- * GetTrafficSummaryHandler — Trả về tổng quan distinct values của traffic hiện tại.
+ * ------------------------------------------------------------------
+ * GetTrafficSummaryHandler
+ * ------------------------------------------------------------------
+ * Trả về tổng quan distinct values của traffic hiện tại — hosts,
+ * methods, statuses, types (distinct + count), sắp xếp giảm dần.
  *
- * Usage:
- *   const handler = new GetTrafficSummaryHandler();
- *   const result = handler.handle(requests);
- *
- * Kết quả trả về TrafficSummary với hosts, methods, statuses, types (distinct + count).
+ * Các methods chính:
+ * - handle() : Tạo TrafficSummary từ requests
+ * ------------------------------------------------------------------
  */
 
-// TYPE
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 import type { TrafficSummary } from '@renderer/components/RightPanel/Agent/feature/Chat/prompts/emulate';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class GetTrafficSummaryHandler {
   public handle(requests: NetworkRequest[]): TrafficSummary {
     const hostMap = new Map<string, number>();

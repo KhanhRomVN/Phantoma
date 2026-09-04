@@ -1,9 +1,22 @@
-// Default values used across Emulate feature
-import { HttpMethod } from './methods';
-import { DEFAULT_TOOL, ToolType } from './tools';
-import { AppPlatform } from './platforms';
+/**
+ * ------------------------------------------------------------------
+ * Default Constants
+ * ------------------------------------------------------------------
+ * Các giá trị mặc định dùng chung trong module Emulate —
+ * filter state, target tab, target state, emulate state, payload,
+ * history, platform tabs, timeout/interval settings và fuzzer job.
+ *
+ * Các constants chính:
+ * - DEFAULT_FILTER_STATE    : Bộ lọc mặc định cho Inspector
+ * ------------------------------------------------------------------
+ */
 
-// Default filter state for Inspector
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Constants ──
+import { HttpMethod } from './methods';
+import { ToolType } from './tools';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface DefaultFilterState {
   methods: Record<HttpMethod, boolean>;
   host: { whitelist: string[] };
@@ -26,6 +39,66 @@ export interface DefaultFilterState {
   time: { min: string; max: string };
 }
 
+export interface DefaultTargetTab {
+  id: string;
+  title: string;
+  favicon?: string;
+  url?: string;
+}
+
+export interface DefaultTargetState {
+  isActive: boolean;
+  mode: 'mitm' | 'cdp' | null;
+  isIntercepting: boolean;
+  startTime?: number;
+}
+
+export interface DefaultEmulateState {
+  selectedTool: ToolType;
+  activeTargetId: string | null;
+  requests: unknown[];
+  selectedId: string | null;
+  searchTerm: string;
+  targetStates: Record<string, DefaultTargetState>;
+  // Legacy fields
+  isTargetActive: boolean;
+  activeTargetMode: 'mitm' | 'cdp' | null;
+  isInterceptActive: boolean;
+  filter: DefaultFilterState;
+}
+
+export interface DefaultPayloadItem {
+  id: string;
+  name: string;
+  description: string;
+  values: string[];
+  enabled: boolean;
+}
+
+export interface DefaultHistoryEntry {
+  id: string;
+  method: string;
+  url: string;
+  status: number;
+  timestamp: number;
+  duration: number;
+  payload: string;
+  requestHeaders?: Record<string, string>;
+  requestBody?: string;
+  responseHeaders?: Record<string, string>;
+  responseBody?: string;
+}
+
+export interface DefaultCompareEntry {
+  id: string;
+  name: string;
+  desc?: string;
+  url1: string;
+  url2: string;
+  createdAt: number;
+}
+
+// ─── Constants ──────────────────────────────────────────────────────────
 export const DEFAULT_FILTER_STATE: DefaultFilterState = {
   methods: {
     GET: true,
@@ -58,149 +131,16 @@ export const DEFAULT_FILTER_STATE: DefaultFilterState = {
   time: { min: '', max: '' },
 };
 
-// Default target tab
-export interface DefaultTargetTab {
-  id: string;
-  title: string;
-  favicon?: string;
-  url?: string;
-}
-
-export const DEFAULT_TARGET_TAB: DefaultTargetTab = {
-  id: 'default',
-  title: 'Chưa chọn target',
-  favicon: undefined,
-  url: undefined,
-};
-
-// Default target state
-export interface DefaultTargetState {
-  isActive: boolean;
-  mode: 'mitm' | 'cdp' | null;
-  isIntercepting: boolean;
-  startTime?: number;
-}
-
-export const DEFAULT_TARGET_STATE: DefaultTargetState = {
-  isActive: false,
-  mode: null,
-  isIntercepting: false,
-};
-
-// Default Emulate state
-export interface DefaultEmulateState {
-  selectedTool: ToolType;
-  targetTabs: DefaultTargetTab[];
-  activeTargetId: string | null;
-  requests: unknown[];
-  selectedId: string | null;
-  searchTerm: string;
-  targetStates: Record<string, DefaultTargetState>;
-  // Legacy fields
-  isTargetActive: boolean;
-  activeTargetMode: 'mitm' | 'cdp' | null;
-  isInterceptActive: boolean;
-  filter: DefaultFilterState;
-}
-
-export const DEFAULT_EMULATE_STATE: DefaultEmulateState = {
-  selectedTool: DEFAULT_TOOL,
-  targetTabs: [{ ...DEFAULT_TARGET_TAB }],
-  activeTargetId: null,
-  requests: [],
-  selectedId: null,
-  searchTerm: '',
-  targetStates: {},
-  isTargetActive: false,
-  activeTargetMode: null,
-  isInterceptActive: false,
-  filter: DEFAULT_FILTER_STATE,
-};
-
-// Default mock requests
 export const DEFAULT_MOCK_REQUESTS: unknown[] = [];
 
-// Default WebSocket connections
 export const DEFAULT_WS_CONNECTIONS: unknown[] = [];
 
-// Default payload item
-export interface DefaultPayloadItem {
-  id: string;
-  name: string;
-  description: string;
-  values: string[];
-  enabled: boolean;
-}
-
-export const DEFAULT_PAYLOAD_ITEM: Omit<DefaultPayloadItem, 'id' | 'name'> = {
-  description: '',
-  values: [],
-  enabled: true,
-};
-
-// Default history entry
-export interface DefaultHistoryEntry {
-  id: string;
-  method: string;
-  url: string;
-  status: number;
-  timestamp: number;
-  duration: number;
-  payload: string;
-  requestHeaders?: Record<string, string>;
-  requestBody?: string;
-  responseHeaders?: Record<string, string>;
-  responseBody?: string;
-}
-
-// Default compare entry
-export interface DefaultCompareEntry {
-  id: string;
-  name: string;
-  desc?: string;
-  url1: string;
-  url2: string;
-  createdAt: number;
-}
-
-// Default tool tabs (for platform selection)
-export const DEFAULT_PLATFORM_TABS = [
-  { id: 'web' as AppPlatform, label: 'Web' },
-  { id: 'pc' as AppPlatform, label: 'PC' },
-  { id: 'android' as AppPlatform, label: 'Android' },
-  { id: 'cli' as AppPlatform, label: 'CLI' },
-];
-
-// Max logs to keep in memory
 export const MAX_LOGS = 10000;
 
-// Max requests to keep in memory
 export const MAX_REQUESTS = 10000;
 
-// Debounce delay for search inputs (ms)
 export const SEARCH_DEBOUNCE_DELAY = 300;
 
-// Polling interval for various features (ms)
 export const POLLING_INTERVAL = 1000;
 
-// Timer update interval (ms)
 export const TIMER_INTERVAL = 1000;
-
-// Default empty fuzzer job (used by Repeater)
-export const EMPTY_FUZZER_JOB = {
-  name: '',
-  description: '',
-  method: 'GET',
-  urlTemplate: 'https://example.com/api/user/§id§',
-  headersTemplate: 'Content-Type: application/json',
-  bodyTemplate: '',
-  payloadType: 'numbers' as const,
-  payloadList: '',
-  numberFrom: 1,
-  numberTo: 100,
-  numberStep: 1,
-  bruteChars: 'abcdefghijklmnopqrstuvwxyz0123456789',
-  bruteLen: 4,
-  concurrency: 5,
-  requestId: undefined,
-};

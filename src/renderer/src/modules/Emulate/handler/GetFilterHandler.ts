@@ -1,17 +1,25 @@
 /**
- * GetFilterHandler — Trả về text mô tả filter hiện tại đang áp dụng.
+ * ------------------------------------------------------------------
+ * GetFilterHandler
+ * ------------------------------------------------------------------
+ * Trả về text mô tả filter hiện tại đang áp dụng. Liệt kê tất cả
+ * available values từ requests — enabled hiển thị bình thường,
+ * disabled kèm (hide). Khớp với UI Filter.tsx.
  *
- * Usage:
- *   const handler = new GetFilterHandler();
- *   const text = handler.handle(filter, requests);
- *
- * Liệt kê tất cả available values: enabled hiển thị bình thường, disabled kèm (hide).
- * Khớp với UI Filter.tsx.
+ * Các methods chính:
+ * - handle() : Tạo text mô tả filter từ InspectorFilter và requests
+ * ------------------------------------------------------------------
  */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { InspectorFilter } from '../types/filter.types';
 import { NetworkRequest } from '../types/inspector';
+
+// ── Utils ──
 import { getRequestCategory } from '../utils/request-classifier.util';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class GetFilterHandler {
   public handle(filter: InspectorFilter, requests: NetworkRequest[]): string {
     const lines: string[] = [];

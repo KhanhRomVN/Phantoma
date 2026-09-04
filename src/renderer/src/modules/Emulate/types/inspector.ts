@@ -1,8 +1,24 @@
-// Re-export global types for Emulate feature
+/**
+ * ------------------------------------------------------------------
+ * Inspector Types
+ * ------------------------------------------------------------------
+ * Type definitions cho WebSocket inspector trong module Emulate.
+ * Bao gồm thông tin connection và messages của WebSocket.
+ *
+ * Các types chính:
+ * - NetworkRequest     : Re-export từ shared types
+ * - WebSocketConnection : Thông tin một WebSocket connection
+ * - WebSocketMessage    : Message trong WebSocket connection
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import type { NetworkRequest } from '@renderer/shared/types/network';
 
 export type { NetworkRequest };
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface WebSocketConnection {
   id: string;
   url: string;

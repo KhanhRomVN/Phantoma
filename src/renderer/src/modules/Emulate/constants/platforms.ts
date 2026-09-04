@@ -1,20 +1,21 @@
 /**
+ * ------------------------------------------------------------------
+ * Platform Constants
+ * ------------------------------------------------------------------
  * Cấu hình nền tảng (platform) — nguồn dữ liệu duy nhất.
+ * Mỗi platform có id, label, icon, màu và mô tả.
  *
- * Mỗi platform có:
- * - id:   mã định danh (vd: "web")
- * - label: tên hiển thị (vd: "Website")
- * - icon:  Lucide icon component
- * - color: tên màu Tailwind, dùng để sinh class text/bg/border trong UI
- *   Cách dùng: text-{color}-400, bg-{color}-500/15, border-{color}-500/20
- * - description: mô tả ngắn
- * - placeholder: gợi ý khi nhập URL/path
- *
- * Type AppPlatform được suy ra từ keyof typeof PLATFORMS.
- * Duyệt danh sách platform qua Object.keys(PLATFORMS).
+ * Các exports chính:
+ * - PLATFORMS     : Map cấu hình tất cả platforms
+ * - AppPlatform   : Type suy ra từ key của PLATFORMS
+ * ------------------------------------------------------------------
  */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import { Globe, Monitor, Smartphone, Terminal } from 'lucide-react';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 export const PLATFORMS = {
   web: {
     id: 'web',
@@ -50,4 +51,5 @@ export const PLATFORMS = {
   },
 } as const;
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export type AppPlatform = keyof typeof PLATFORMS;

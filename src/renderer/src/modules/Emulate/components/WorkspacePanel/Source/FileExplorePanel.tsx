@@ -1,4 +1,20 @@
 import { useState, useMemo, useCallback } from 'react';
+/**
+ * ------------------------------------------------------------------
+ * FileExplorePanel
+ * ------------------------------------------------------------------
+ * Panel explorer cây thư mục source — hiển thị domain/folder/file
+ * với expand/collapse và stats (tổng files, obfuscated files).
+ *
+ * Các chức năng chính:
+ * - Hiển thị cây thư mục source dạng tree view
+ * - Expand/collapse nodes
+ * - Hiển thị icon theo loại file
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import {
   ChevronRight,
   FileCode,
@@ -7,18 +23,23 @@ import {
   ChevronsDownUp,
 } from 'lucide-react';
 
+// ── Types ──
 import type { SourceNode, SourceTreeData } from '../../../utils/source-tree.util';
+
+// ── Utils ──
 import { formatSize } from '../../../utils/source-tree.util';
 import { cn } from '@renderer/shared/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { Favicon } from '@renderer/shared/utils/faviconUtils';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 interface FileExplorePanelProps {
   tree: SourceTreeData;
   stats: { totalFiles: number; obfuscatedFiles: number };
   onSelectNode: (node: SourceNode) => void;
 }
 
+// ─── Components ─────────────────────────────────────────────────────────
 function TreeNodeItem({
   node,
   depth,

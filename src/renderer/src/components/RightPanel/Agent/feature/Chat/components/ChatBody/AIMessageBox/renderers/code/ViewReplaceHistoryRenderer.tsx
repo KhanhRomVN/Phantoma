@@ -7,8 +7,7 @@ import { getToolLabel } from '../../../../../constants/constants';
 // ── Types ──
 import { BaseRendererProps } from '../../../../../types/renderer-types';
 
-// ICONS
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
@@ -86,9 +85,9 @@ export const ViewReplaceHistoryRenderer: React.FC<BaseRendererProps> = ({
                 {getToolLabel('view_replace_history')}
               </span>
               <span className="flex items-center">
-                <FileIcon
-                  path={filePath}
-                  isFolder={false}
+                <img
+                  src={getFileIconPath(filePath)}
+                  alt=""
                   style={{ width: '16px', height: '16px' }}
                 />
               </span>

@@ -1,20 +1,23 @@
 /**
- * ListSourcesHandler — Trả về danh sách source files dạng cây thư mục.
+ * ------------------------------------------------------------------
+ * ListSourcesHandler
+ * ------------------------------------------------------------------
+ * Trả về danh sách source files dạng cây thư mục. Filter hỗ trợ
+ * theo host và type. Output dạng text tree view.
  *
- * Usage:
- *   const handler = new ListSourcesHandler();
- *   const result = handler.handle(requests, { host: 'cdn.example.com', type: 'js' });
- *
- * Filter hỗ trợ: host, type
- * Kết quả trả về dạng text tree view để LLM dễ đọc.
+ * Các methods chính:
+ * - handle() : Lấy danh sách source files theo filter
+ * ------------------------------------------------------------------
  */
 
-// TYPE
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 
-// UTIL
+// ── Utils ──
 import { buildSourceTree, type SourceNode } from '../utils/source-tree.util';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ListSourcesFilter {
   host?: string;
   type?: string;
@@ -25,6 +28,7 @@ export interface ListSourcesResult {
   text: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ListSourcesHandler {
   public handle(requests: NetworkRequest[], filter: ListSourcesFilter = {}): ListSourcesResult {
     // Step 1: Build unfiltered flat file list

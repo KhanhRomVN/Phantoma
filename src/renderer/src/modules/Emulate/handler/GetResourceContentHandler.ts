@@ -1,22 +1,27 @@
 /**
- * GetResourceContentHandler — Xem nội dung file resource với start_line và end_line.
+ * ------------------------------------------------------------------
+ * GetResourceContentHandler
+ * ------------------------------------------------------------------
+ * Xem nội dung file resource với line range (start_line, end_line).
+ * Hỗ trợ text-based resources, binary resources trả về metadata.
  *
- * Usage:
- *   const handler = new GetResourceContentHandler();
- *   const result = handler.handle(requests, 'manifest.json', { startLine: 1, endLine: 100 });
- *
- * Hỗ trợ line range cho text-based resources (fonts, SVG, etc.)
- * Binary resources (images, videos) trả về metadata only.
+ * Các methods chính:
+ * - handle() : Lấy nội dung resource theo filename và line range
+ * ------------------------------------------------------------------
  */
 
-// TYPE
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 import { ResourceItem } from '../types/resource.types';
 
-// UTIL
+// ── Constants ──
 import { detectResourceType } from '../constants/resource';
+
+// ── Utils ──
 import { detectWasm } from '../utils/wasm-detector.util';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface GetResourceContentOptions {
   startLine?: number; // 1-indexed, inclusive
   endLine?: number; // 1-indexed, inclusive
@@ -27,6 +32,7 @@ export interface GetResourceContentResult {
   found: boolean;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class GetResourceContentHandler {
   /**
    * Get resource content by filename with optional line range.

@@ -60,9 +60,13 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
+import { apiService } from '@renderer/services/api.service';
+
+// ── Types ──
 import type { TargetTab } from '../types/target.types';
 import type { ApiResponse } from '@renderer/types/api';
-import { apiService } from '@renderer/services/api.service';
 import type {
   TargetDTO,
   CreateTargetDTO,
@@ -100,9 +104,7 @@ export type {
   SaveHistoryInput,
 };
 
-// =============================================================================
-// Helpers — Map DTO ↔ TargetTab
-// =============================================================================
+// ─── Helpers ────────────────────────────────────────────────────────────
 
 /** Map TargetDTO (snake_case) → TargetTab (camelCase) dùng trong UI. */
 function toTargetTab(dto: TargetDTO): TargetTab {
@@ -146,10 +148,7 @@ function toUpdateDTO(target: Partial<TargetTab>): UpdateTargetDTO {
   return dto;
 }
 
-// =============================================================================
-// EmulateApiService — HTTP API calls
-// =============================================================================
-
+// ─── EmulateApiService ──────────────────────────────────────────────────
 class EmulateApiService {
   // ── Private Helpers ────────────────────────────────────────────
 
@@ -411,10 +410,7 @@ class EmulateApiService {
   }
 }
 
-// =============================================================================
-// DataService — Business layer giữa UI và API
-// =============================================================================
-
+// ─── DataService ────────────────────────────────────────────────────────
 class DataService {
   private static instance: DataService;
 
@@ -560,10 +556,7 @@ class DataService {
   }
 }
 
-// =============================================================================
-// Singletons
-// =============================================================================
-
+// ─── Singletons ─────────────────────────────────────────────────────────
 /** Singleton EmulateApiService — dùng để gọi HTTP API trực tiếp. */
 export const emulateApi = new EmulateApiService();
 

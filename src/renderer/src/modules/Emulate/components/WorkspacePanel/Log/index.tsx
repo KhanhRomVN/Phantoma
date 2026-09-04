@@ -1,5 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * LogViewer
+ * ------------------------------------------------------------------
+ * Viewer hiển thị logcat Android real-time với search, filter level,
+ * package, tag và virtual scrolling.
+ *
+ * Các chức năng chính:
+ * - Nhận log real-time từ logcat service (batch RAF flush)
+ * - Search với regex/match case/match whole word
+ * - Filter theo level, tag, package
+ * - Copy/download logs
+ * - Virtual scrolling với Virtuoso
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { logger } from '@renderer/utils/logger';
+
+// ── UI ──
 import {
   Search,
   Trash2,
@@ -16,12 +35,14 @@ import {
 } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 
-// ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
-
-// Services
+// ── Services ──
 import { logcatService } from '../../../services/logcat.service';
 
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface LogEntry {
   timestamp: string;
   level: 'V' | 'D' | 'I' | 'W' | 'E' | 'F';
@@ -36,8 +57,10 @@ interface LogViewerProps {
   onClose?: () => void;
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const MAX_LOGS = 10000;
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);

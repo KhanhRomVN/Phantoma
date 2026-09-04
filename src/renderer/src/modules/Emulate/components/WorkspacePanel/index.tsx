@@ -1,7 +1,22 @@
-import { useMemo, memo, createElement, FC } from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+/**
+ * ------------------------------------------------------------------
+ * WorkspacePanel
+ * ------------------------------------------------------------------
+ * Panel chính hiển thị nội dung theo tool đang chọn (Home/Intruder/
+ * Repeater/Resource/Source/Log/Device). Chứa TabBar điều hướng.
+ *
+ * Các chức năng chính:
+ * - TabBar điều hướng giữa các tools
+ * - Hiển thị RequestTable + RequestDetails cho Home
+ * - Điều hướng đến các panel tương ứng theo selectedTool
+ * ------------------------------------------------------------------
+ */
 
-// ── Components ──
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useMemo, memo, createElement, FC } from 'react';
+
+// ── UI ──
 import { RequestTable, RequestDetails } from './Home/Home';
 import { ResourcesPanel } from './Resources';
 import { PayloadPanel } from './Repeater';
@@ -9,15 +24,19 @@ import { SourcesPanel } from './Source';
 import { LogViewer } from './Log';
 import { DevicePanel } from './Device';
 
-// ── Types ──
-import { NetworkRequest } from '../../types/inspector';
-
 // ── Constants ──
 import { ToolType, TOOLS } from '../../constants/tools';
 
 // ── Hooks ──
-import { CdpScriptUnpackedData } from '../../hooks/network/useNetworkEvents';
+import { CdpScriptUnpackedData } from '../../hooks/useNetworkEvents';
 
+// ── Types ──
+import { NetworkRequest } from '../../types/inspector';
+
+// ── Utils ──
+import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface WorkspacePanelProps {
   selectedTool: ToolType;
   activeTargetId: string | null;

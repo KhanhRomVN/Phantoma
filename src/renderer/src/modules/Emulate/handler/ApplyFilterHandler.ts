@@ -1,16 +1,21 @@
 /**
- * ApplyFilterHandler — Áp dụng thay đổi filter từ AI request.
+ * ------------------------------------------------------------------
+ * ApplyFilterHandler
+ * ------------------------------------------------------------------
+ * Áp dụng thay đổi filter từ AI request. Nhận InspectorFilter hiện
+ * tại và params từ ApplyFilterParser, trả về InspectorFilter mới.
  *
- * Usage:
- *   const handler = new ApplyFilterHandler();
- *   handler.apply(filter, params);
- *
- * Nhận InspectorFilter hiện tại và params từ ApplyFilterParser,
- * trả về InspectorFilter mới sau khi áp dụng thay đổi.
+ * Các methods chính:
+ * - apply() : Áp dụng params filter (methods/statuses/types/hosts/paths/size/time)
+ * ------------------------------------------------------------------
  */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { InspectorFilter } from '../types/filter.types';
 import type { ApplyFilterParams } from '@renderer/components/RightPanel/Agent/feature/Chat/services/parsers/EmulateParser';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ApplyFilterHandler {
   public apply(filter: InspectorFilter, params: ApplyFilterParams): InspectorFilter {
     let result = { ...filter };

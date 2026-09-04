@@ -1,16 +1,26 @@
 /**
- * DeleteRepeaterHandler — Xóa một request khỏi Repeater (từ database).
+ * ------------------------------------------------------------------
+ * DeleteRepeaterHandler
+ * ------------------------------------------------------------------
+ * Xóa một request khỏi Repeater (từ database). Dispatch event để
+ * UI cập nhật sau khi xóa thành công.
  *
- * Usage:
- *   const handler = new DeleteRepeaterHandler();
- *   const result = await handler.handle(requests, 'repeater_1', targetId);
+ * Các methods chính:
+ * - handle() : Xóa request theo indexing mapping repeater_<number>
+ * ------------------------------------------------------------------
  */
 
-// TYPE
-import { NetworkRequest } from '../types/inspector';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import { emulateApi } from '../services/emulate-api.service';
+
+// ── Types ──
+import { NetworkRequest } from '../types/inspector';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class DeleteRepeaterHandler {
   /**
    * Xóa request theo indexing mapping `repeater_<number>`.

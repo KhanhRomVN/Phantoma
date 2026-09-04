@@ -1,15 +1,33 @@
-import { ChevronRight, ChevronDown, FolderOpen, Search } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * ResourceList
+ * ------------------------------------------------------------------
+ * Sidebar danh sách resources group theo type — search, expand/
+ * collapse groups và select item.
+ *
+ * Các chức năng chính:
+ * - Search resources theo tên
+ * - Group theo type (image/video/audio/wasm/font/document)
+ * - Expand/collapse groups
+ * - Hiển thị icon file theo extension
+ * ------------------------------------------------------------------
+ */
 
-// ── Types ──
-import { ResourceItem, ResourceType } from '../../../types/resource.types';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
+import { ChevronRight, ChevronDown, FolderOpen, Search } from 'lucide-react';
 
 // ── Constants ──
 import { RESOURCE_TYPES } from '../../../constants/resource';
+
+// ── Types ──
+import { ResourceItem, ResourceType } from '../../../types/resource.types';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface ResourceListProps {
   groupedItems: Record<ResourceType, ResourceItem[]>;
   expandedGroups: Set<ResourceType>;
@@ -21,6 +39,7 @@ interface ResourceListProps {
   totalCount: number;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function ResourceList({
   groupedItems,
   expandedGroups,

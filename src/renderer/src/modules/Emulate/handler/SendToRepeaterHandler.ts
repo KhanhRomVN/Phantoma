@@ -1,16 +1,26 @@
 /**
- * SendToRepeaterHandler — Thêm request HTTPS đã capture vào Repeater bằng cách tạo DB record.
+ * ------------------------------------------------------------------
+ * SendToRepeaterHandler
+ * ------------------------------------------------------------------
+ * Thêm request HTTPS đã capture vào Repeater bằng cách tạo DB
+ * record. Dispatch event để UI cập nhật sau khi tạo thành công.
  *
- * Usage:
- *   const handler = new SendToRepeaterHandler();
- *   const result = await handler.handle(requests, 3, targetId);
+ * Các methods chính:
+ * - handle() : Thêm request theo index 1-indexed vào Repeater
+ * ------------------------------------------------------------------
  */
 
-// TYPE
-import { NetworkRequest } from '../types/inspector';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import { emulateApi } from '../services/emulate-api.service';
+
+// ── Types ──
+import { NetworkRequest } from '../types/inspector';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class SendToRepeaterHandler {
   /**
    * Thêm request theo index 1-indexed (vị trí gốc, không phụ thuộc filter UI).

@@ -1,27 +1,50 @@
+/**
+ * ------------------------------------------------------------------
+ * ResourcesPanel
+ * ------------------------------------------------------------------
+ * Panel hiển thị danh sách resources (images/videos/fonts/wasm...)
+ * thu thập từ network requests. Hỗ trợ search, group theo type
+ * và preview.
+ *
+ * Các chức năng chính:
+ * - Phát hiện resources từ requests (bao gồm WASM)
+ * - Group theo type và search
+ * - Auto-select resource đầu tiên
+ * - Preview resource đã chọn
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useMemo } from 'react';
-// ── Components ──
+
+// ── UI ──
 import { ResourceList } from './ResourceList';
 import { ResourcePreview } from './ResourcePreview';
 
-// ── Types ──
-import { ResourceItem, ResourceType } from '../../../types/resource.types';
-
 // ── Constants ──
 import { detectResourceType } from '../../../constants/resource';
+
+// ── Services ──
+import { ipcService } from '../../../../../services/ipc.service';
+
+// ── Stores ──
 import { useNetworkStore } from '../../../stores/networkStore';
+
+// ── Types ──
+import { ResourceItem, ResourceType } from '../../../types/resource.types';
 
 // ── Utils ──
 import { formatSize } from '../../../utils/source-tree.util';
 import { detectWasm } from '../../../utils/wasm-detector.util';
 
-// Services
-import { ipcService } from '../../../../../services/ipc.service';
-
+// ─── Types ──────────────────────────────────────────────────────────────
 interface ResourcesPanelProps {
   onClose?: () => void;
   onCountChange?: (count: number) => void;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
   const requests = useNetworkStore((s) => s.requests);
   const [searchTerm, setSearchTerm] = useState('');

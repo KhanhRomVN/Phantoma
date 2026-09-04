@@ -1,28 +1,28 @@
 /**
- * RunRepeaterHandler — Chạy repeater giống như click button "Send" trong UI.
+ * ------------------------------------------------------------------
+ * RunRepeaterHandler
+ * ------------------------------------------------------------------
+ * Chạy repeater giống như click button "Send" trong UI. Hỗ trợ
+ * chạy payload với cartesian combinations, tự động lưu history
+ * (max 30 entries per repeater).
  *
- * Workflow:
- * 1. Lấy request từ DB theo repeater_id
- * 2. Build request với params/headers/body
- * 3. Kiểm tra payload:
- *    - Nếu KHÔNG có payload enabled → chạy 1 lần đơn giản
- *    - Nếu CÓ payload enabled → chạy với cartesian combinations
- * 4. Tự động lưu mỗi run vào history (max 30 entries per repeater)
- * 5. Trả về:
- *    - 1 phiên: Chi tiết response body và headers
- *    - Nhiều phiên: Danh sách tóm tắt
- *
- * Usage:
- *   const handler = new RunRepeaterHandler();
- *   const result = await handler.handle(requests, 'repeater_0', targetId);
+ * Các methods chính:
+ * - handle() : Chạy repeater theo indexing mapping repeater_<number>
+ * ------------------------------------------------------------------
  */
 
-// TYPE
-import { NetworkRequest } from '../types/inspector';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import { emulateApi } from '../services/emulate-api.service';
-import { logger } from '@renderer/utils/logger';
 import { ipcService } from '../../../services/ipc.service';
 
+// ── Types ──
+import { NetworkRequest } from '../types/inspector';
+
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface SendRequestResult {
   status: number;
   headers: Record<string, string>;
@@ -43,8 +43,10 @@ interface HistoryEntry {
   responseBody: string;
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────
 const MAX_HISTORY_ENTRIES = 30;
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class RunRepeaterHandler {
   public async handle(
     _requests: NetworkRequest[],
@@ -91,12 +93,28 @@ export class RunRepeaterHandler {
 
       const reqData = dbRequests[index];
 
-      // Parse payloads từ JSON
+      // Lấy payloads từ database qua API
       let payloads: Array<{ name: string; enabled: boolean; values: string[] }> = [];
       try {
-        payloads = reqData.payloads ? JSON.parse(reqData.payloads) : [];
+        const payloadRes = await emulateApi.listPayloads(targetId, reqData.id);
+        if (payloadRes.success && payloadRes.data) {
+          payloads = payloadRes.data.map((p) => {
+            let values: string[] = [];
+            try {
+              values = p.payload_values ? JSON.parse(p.payload_values) : [];
+              if (!Array.isArray(values)) values = [];
+            } catch {
+              values = [];
+            }
+            return {
+              name: p.name,
+              enabled: Boolean(p.enabled),
+              values,
+            };
+          });
+        }
       } catch (err) {
-        logger.warn('[RunRepeaterHandler] Failed to parse payloads:', reqData.payloads, err);
+        logger.warn('[RunRepeaterHandler] Failed to load payloads:', err);
       }
 
       // Filter enabled payloads with values

@@ -1,50 +1,69 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { logger } from '@renderer/utils/logger';
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
-import { emulateApi } from './services/emulate-api.service';
-import { useModulePersistence } from '../../hooks/useModulePersistence';
-import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
-import { EmulateController } from '../../controller/EmulateController';
-import { ipcService } from '../../services/ipc.service';
+/**
+ * ------------------------------------------------------------------
+ * Emulate
+ * ------------------------------------------------------------------
+ * Component chính của module Emulate — quản lý giao diện điều khiển
+ * target, theo dõi network traffic, filter requests và repeater.
+ *
+ * Các chức năng chính:
+ * - Quản lý danh sách target (tạo, sửa, xóa, chọn)
+ * - Điều khiển trạng thái target (start/stop/intercept)
+ * - Đồng bộ network requests, filters, timers
+ * - Điều hướng giữa các workspace panel
+ * ------------------------------------------------------------------
+ */
 
-// ── Components ──
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+import { formatResponseSize } from './utils/network-event-parser.util';
+
+// ── Hooks ──
+import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import useTargetData from './hooks/useTargetData';
+import { useRequestFilter } from './hooks/useRequestFilter';
+import useNetworkEvents from './hooks/useNetworkEvents';
+
+// ── Services ──
+import { emulateApi } from './services/emulate-api.service';
+import { ipcService } from '../../services/ipc.service';
+import { EmulateController } from '../../controller/EmulateController';
+
+// ── UI ──
+import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
 import { initialFilterState } from './components/WorkspacePanel/Home/Home';
 import WorkspacePanel from './components/WorkspacePanel';
 import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
 import TargetSidebar from './components/TargetListPanel';
 import { FooterBar } from './components/FooterBar';
 
-// ── Hooks ──
-import useTargetData from '../../hooks/useTargetData';
-import { useRequestFilter } from './hooks/network/useRequestFilter';
-import useNetworkEvents from './hooks/network/useNetworkEvents';
-
-// ── Utils ──
-import { formatResponseSize } from './utils/network-event-parser.util';
+// ── Stores ──
+import { useTimerStore } from './stores/timerStore';
+import { useNetworkStore } from './stores/networkStore';
 
 // ── Types ──
 import { NetworkRequest } from './types/inspector';
 import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
-
-// Stores
-import { useTimerStore } from './stores/timerStore';
-import { useNetworkStore } from './stores/networkStore';
 
 // ── Constants ──
 import { ToolType, DEFAULT_TOOL } from './constants/tools';
 
 console.log('[Module] Emulate loaded');
 
+// ─── Component ──────────────────────────────────────────────────────────
 export default React.memo(function Emulate({
   activeAppId = '',
   onStopSession = async () => {},
 }: EmulateProps) {
+  // ── Store ──
   const { getColorByIndex, UNIFIED_ACCENT } = useAccentColors();
-
   const { setEmulateState } = useAgentFeature();
 
-  // Module persistence
-  const [state, setState] = useModulePersistence<EmulateState>('emulate', {
+  // ── State ──
+  const [state, setState] = useState<EmulateState>({
     selectedTool: DEFAULT_TOOL,
     targetTabs: [],
     activeTargetId: null,
@@ -100,7 +119,7 @@ export default React.memo(function Emulate({
     }
   }, [targets]);
 
-  // Wrapper for AddTargetModal onAdd
+  // ── Callbacks ──
   const handleAddApp = useCallback(
     async (appData: any) => {
       const newTab: TargetTab = {

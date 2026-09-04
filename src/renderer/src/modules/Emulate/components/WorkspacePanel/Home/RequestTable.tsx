@@ -1,3 +1,23 @@
+/**
+ * ------------------------------------------------------------------
+ * RequestTable
+ * ------------------------------------------------------------------
+ * Bảng hiển thị danh sách network requests với virtual scrolling,
+ * sorting, filtering và context menu. Hỗ trợ intercept actions.
+ *
+ * Các chức năng chính:
+ * - Virtual scrolling cho danh sách lớn
+ * - Sortable columns
+ * - Context menu với actions (copy, send to repeater...)
+ * - Hiển thị security issues và cookies
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+
+// ── Table ──
 import {
   ColumnDef,
   flexRender,
@@ -8,7 +28,8 @@ import {
   SortingState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+
+// ── UI ──
 import {
   ArrowUpDown,
   Box,
@@ -28,10 +49,6 @@ import {
   Type,
   Regex,
 } from 'lucide-react';
-import { useDebounce } from 'use-debounce';
-import type { SecurityIssue } from '../../../../Tool/utils/securityScanner';
-
-// ── Components ──
 import {
   Dropdown,
   DropdownTrigger,
@@ -41,18 +58,20 @@ import {
 } from '@renderer/components/ui/Dropdown';
 
 // ── Hooks ──
-import { filterRequestsByConfig } from '../../../hooks/network/useRequestFilter';
+import { filterRequestsByConfig } from '../../../hooks/useRequestFilter';
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 
-// STORE
+// ── Stores ──
 import { useNetworkStore } from '../../../stores/networkStore';
-
-// ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
 
 // ── Types ──
 import { InspectorFilter } from '../../../types/filter.types';
 import { NetworkRequest } from './FilterPanel';
+import type { SecurityIssue } from '../../../../Tool/utils/securityScanner';
+
+// ── Utils ──
+import { cn } from '@renderer/shared/utils/cn';
+import { useDebounce } from 'use-debounce';
 
 interface RequestTableProps {
   filter?: InspectorFilter;

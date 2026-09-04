@@ -2,16 +2,16 @@
  * ------------------------------------------------------------------
  * FooterBar
  * ------------------------------------------------------------------
- * Status bar displayed at the bottom of the Emulate module.
- * Shows proxy/session status, request statistics, intercept state,
- * and other real-time information about the active target.
+ * Status bar hiển thị ở đáy module Emulate. Hiển thị trạng thái
+ * proxy/session, thống kê requests, trạng thái intercept và thông
+ * tin real-time khác về target đang hoạt động.
  *
- * Main features:
- * - Displays active target mode (MITM/CDP/Frida) with status indicator
- * - Shows total request count and HTTPS request percentage
- * - Displays data usage statistics
- * - Shows intercept status when active
- * - Real-time session timer for active targets
+ * Các chức năng chính:
+ * - Hiển thị chế độ target đang hoạt động (MITM/CDP/Frida) kèm status
+ * - Hiển thị tổng số requests và phần trăm HTTPS
+ * - Hiển thị thống kê data usage
+ * - Hiển thị trạng thái intercept khi active
+ * - Timer session real-time cho target đang chạy
  * ------------------------------------------------------------------
  */
 

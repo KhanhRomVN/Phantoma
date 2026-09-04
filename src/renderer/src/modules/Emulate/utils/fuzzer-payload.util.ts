@@ -14,9 +14,11 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import { FuzzerJob } from '../types/repeater.types';
 
+// ─── Functions ──────────────────────────────────────────────────────────
 export function* generatePayloads(job: FuzzerJob): Generator<string> {
   if (job.payloadType === 'list') {
     for (const line of job.payloadList.split('\n')) {

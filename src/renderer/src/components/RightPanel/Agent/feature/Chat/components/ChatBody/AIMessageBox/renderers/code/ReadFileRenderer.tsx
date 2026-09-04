@@ -13,8 +13,7 @@ import { BaseRendererProps, Diagnostic } from '../../../../../types/renderer-typ
 // ── Utils ──
 import { getNextUserMessage } from '../../../../../utils/renderer-utils';
 
-// ICONS
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
@@ -181,9 +180,9 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
               }}
               className="flex items-center"
             >
-              <FileIcon
-                path={rawPath}
-                isFolder={false}
+              <img
+                src={getFileIconPath(rawPath)}
+                alt=""
                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
               />
             </span>

@@ -1,5 +1,23 @@
+/**
+ * ------------------------------------------------------------------
+ * WebAssembly Detector Utility
+ * ------------------------------------------------------------------
+ * Phát hiện WebAssembly modules từ danh sách network requests
+ * bằng 3 phương pháp: URL extension, MIME type và JS heuristic.
+ *
+ * Các types chính:
+ * - WasmItem : Thông tin một WASM module được phát hiện
+ *
+ * Các functions chính:
+ * - detectWasm() : Quét requests và trả về danh sách WasmItem
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface WasmItem {
   id: string;
   filename: string;
@@ -7,11 +25,7 @@ export interface WasmItem {
   detectionMethod: 'URL Extension' | 'MIME Type' | 'JS Heuristic';
 }
 
-/**
- * Detects WebAssembly modules from network requests
- * @param requests - Array of NetworkRequest objects
- * @returns Array of detected WasmItem objects
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 export function detectWasm(requests: NetworkRequest[]): WasmItem[] {
   const wasmItems: WasmItem[] = [];
   const seenUrls = new Set<string>();

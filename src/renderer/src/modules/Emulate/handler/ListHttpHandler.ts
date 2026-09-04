@@ -1,17 +1,20 @@
 /**
- * ListHttpHandler — Lọc và trả về danh sách HTTPS requests đã capture.
+ * ------------------------------------------------------------------
+ * ListHttpHandler
+ * ------------------------------------------------------------------
+ * Lọc và trả về danh sách HTTPS requests đã capture theo method,
+ * host, path, status. Output dạng text table để LLM dễ đọc.
  *
- * Usage:
- *   const handler = new ListHttpHandler();
- *   const result = handler.handle(requests, { method: 'GET', host: 'api.example.com' }, 20);
- *
- * Filter hỗ trợ: method, host, path, status
- * Kết quả trả về dạng text table để LLM dễ đọc.
+ * Các methods chính:
+ * - handle() : Lọc requests theo filter và trả về text list
+ * ------------------------------------------------------------------
  */
 
-// TYPE
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ListHttpFilter {
   method?: string;
   host?: string;
@@ -25,6 +28,7 @@ export interface ListHttpResult {
   text: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ListHttpHandler {
   /**
    * Lọc danh sách requests theo filter.

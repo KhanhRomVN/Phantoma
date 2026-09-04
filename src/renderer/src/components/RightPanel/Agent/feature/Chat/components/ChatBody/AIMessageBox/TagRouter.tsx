@@ -95,7 +95,7 @@ import {
 } from './renderers';
 import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 // GitDiffBlock removed - using GitDiffRenderer instead
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
@@ -448,7 +448,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
                         {fileName && (
                           <>
                             <span className="flex items-center">
-                              <FileIcon path={filePath} style={{ width: '16px', height: '16px' }} />
+                              <img src={getFileIconPath(filePath)} alt="" style={{ width: '16px', height: '16px' }} />
                             </span>
                             <span className="font-medium opacity-90 font-mono text-[11px]">
                               {fileName}

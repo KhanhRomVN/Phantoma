@@ -15,12 +15,11 @@ import {
   getNextUserMessage,
 } from '../../../../../utils/renderer-utils';
 import { $ } from '@renderer/utils/color';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
-import FileIcon from '@renderer/components/common/FileIcon';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 
 interface GrepBlockProps {
@@ -409,9 +408,9 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
               return (
                 <>
                   <span className="opacity-40 text-[11px] shrink-0">in</span>
-                  <FileIcon
-                    path={targetPath}
-                    isFolder={isFolder}
+                  <img
+                    src={isFolder ? getFolderIconPath(targetPath) : getFileIconPath(targetPath)}
+                    alt=""
                     style={{ width: '14px', height: '14px', flexShrink: 0 }}
                   />
                   <span

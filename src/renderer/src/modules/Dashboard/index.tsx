@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
-import { useModulePersistence } from '../../hooks/useModulePersistence';
 import { $ } from '@renderer/utils/color';
 
 const stats = {
@@ -536,7 +535,7 @@ interface DashboardState {
 console.log('[Module] Dashboard loaded');
 
 export function Dashboard() {
-  const [state] = useModulePersistence<DashboardState>('dashboard', {
+  const [state] = useState<DashboardState>({
     greeting:
       new Date().getHours() < 12
         ? 'Good morning'

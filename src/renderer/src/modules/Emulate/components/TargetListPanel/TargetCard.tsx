@@ -1,7 +1,24 @@
-import React, { memo, useEffect } from 'react';
-import { Square, Play, Pencil, Trash2 } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * TargetCard
+ * ------------------------------------------------------------------
+ * Card hiển thị một target trong sidebar — favicon/icon, title, URL,
+ * trạng thái running, timer, https count và menu context (start/edit/delete).
+ *
+ * Các chức năng chính:
+ * - Hiển thị target theo platform (web/pc/android/cli)
+ * - Hiển thị trạng thái running với timer real-time
+ * - Menu context với actions: start, stop, edit, delete
+ * - Hỗ trợ chế độ collapsed (chỉ icon)
+ * ------------------------------------------------------------------
+ */
 
-// ── Components ──
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import React, { memo } from 'react';
+
+// ── UI ──
+import { Square, Play, Pencil, Trash2 } from 'lucide-react';
 import {
   Dropdown,
   DropdownContent,
@@ -9,18 +26,19 @@ import {
   DropdownTrigger,
 } from '@renderer/components/ui/Dropdown';
 
-// ── Types ──
-import type { TargetTab } from '../../types/target.types';
-
 // ── Constants ──
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
-// ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+// ── Types ──
+import type { TargetTab } from '../../types/target.types';
 
 // ── Stores ──
 import { useTimerStore } from '../../stores/timerStore';
 
+// ── Utils ──
+import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface TargetCardProps {
   tab: TargetTab;
   platform: AppPlatform;

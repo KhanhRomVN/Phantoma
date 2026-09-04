@@ -1,11 +1,27 @@
 import { GitBranch, FileCode } from 'lucide-react';
 
-// ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+/**
+ * ------------------------------------------------------------------
+ * Initiator Details
+ * ------------------------------------------------------------------
+ * Hiển thị thông tin initiator của request — stack trace, function
+ * và vị trí dòng code gây ra request.
+ *
+ * Các chức năng chính:
+ * - Hiển thị initiator type và URL
+ * - Stack trace frames với navigation đến source
+ * - Highlight search term
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import { NetworkRequest } from '../../../types/inspector';
 
+// ── Utils ──
+import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface InitiatorDetailsProps {
   request: NetworkRequest;
   searchTerm?: string;
@@ -32,6 +48,7 @@ interface StackFrame {
   columnNumber: number;
 }
 
+// ─── Components ─────────────────────────────────────────────────────────
 function StackFrameLine({
   frame,
   index,

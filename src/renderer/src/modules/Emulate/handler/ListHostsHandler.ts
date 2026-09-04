@@ -1,21 +1,26 @@
 /**
- * ListHostsHandler — Trả về danh sách unique hosts từ captured HTTPS traffic.
+ * ------------------------------------------------------------------
+ * ListHostsHandler
+ * ------------------------------------------------------------------
+ * Trả về danh sách unique hosts từ captured HTTPS traffic, đếm số
+ * requests theo host và sắp xếp giảm dần. Output dạng text list.
  *
- * Usage:
- *   const handler = new ListHostsHandler();
- *   const result = handler.handle(requests);
- *
- * Kết quả trả về dạng text table với stt, host, count.
+ * Các methods chính:
+ * - handle() : Lấy danh sách hosts từ requests
+ * ------------------------------------------------------------------
  */
 
-// TYPE
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ListHostsResult {
   total: number;
   text: string;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ListHostsHandler {
   public handle(requests: NetworkRequest[]): ListHostsResult {
     // Đếm requests theo host

@@ -1,5 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * DevicePanel
+ * ------------------------------------------------------------------
+ * Panel quản lý Android devices — quét thiết bị/emulator, deploy
+ * Frida, start/stop proxy và SSL unpinning.
+ *
+ * Các chức năng chính:
+ * - Quét và hiển thị danh sách devices (physical/vm/running-vm)
+ * - Deploy và start Frida trên device
+ * - Start/stop proxy session
+ * - SSL unpinning cho package chỉ định
+ * - Auto-refresh devices mỗi 30s
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect } from 'react';
-import { logger } from '@renderer/utils/logger';
+
+// ── UI ──
 import {
   Smartphone,
   Monitor,
@@ -14,13 +33,15 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-// ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
-
-// Services
+// ── Services ──
 import { ipcService } from '../../../../../services/ipc.service';
 import { logcatService } from '../../../services/logcat.service';
 
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface Device {
   name: string;
   serial: string;
@@ -33,6 +54,7 @@ interface DeviceStatus {
   ssl_unpinned: boolean;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function DevicePanel() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(false);

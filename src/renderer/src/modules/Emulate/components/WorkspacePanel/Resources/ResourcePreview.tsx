@@ -1,14 +1,30 @@
 import { useState } from 'react';
-import { logger } from '@renderer/utils/logger';
-import { Download, Cpu, FolderOpen, File } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * ResourcePreview
+ * ------------------------------------------------------------------
+ * Panel preview nội dung resource — hiển thị text/source, hex view
+ * cho binary (WASM) và metadata cho các loại không hỗ trợ.
+ *
+ * Các chức năng chính:
+ * - Preview text-based resources (source code, JSON, SVG...)
+ * - Hex viewer cho binary files (WASM)
+ * - Hiển thị metadata cho binary resources
+ * ------------------------------------------------------------------
+ */
 
-// ── Components ──
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
+import { Download, Cpu, FolderOpen, File } from 'lucide-react';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
 // ── Types ──
 import { ResourceItem } from '../../../../types/resource.types';
 
-// Simple hex viewer for binary files like WASM
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+
+// ─── Components ─────────────────────────────────────────────────────────
 function HexView({ data, filename }: { data: string; filename: string }) {
   const [showHex, setShowHex] = useState(true);
   const [error, setError] = useState<string | null>(null);

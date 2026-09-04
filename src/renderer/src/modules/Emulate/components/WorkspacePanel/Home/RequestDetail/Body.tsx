@@ -1,16 +1,31 @@
 import { AlignLeft } from 'lucide-react';
-import { forwardRef, useImperativeHandle, useRef, useState, useMemo } from 'react';
-import hljs from 'highlight.js';
+/**
+ * ------------------------------------------------------------------
+ * Body Details
+ * ------------------------------------------------------------------
+ * Hiển thị request/response body với syntax highlighting, hex viewer
+ * cho binary data và tìm kiếm matches.
+ *
+ * Các chức năng chính:
+ * - Code block với syntax highlighting (highlight.js)
+ * - Hex viewer cho binary body
+ * - Tìm kiếm và điều hướng matches
+ * ------------------------------------------------------------------
+ */
 
-// ── Components ──
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { forwardRef, useImperativeHandle, useRef, useState, useMemo } from 'react';
+
+// ── UI ──
 import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // ── Utils ──
+import hljs from 'highlight.js';
 import { cn } from '@renderer/shared/utils/cn';
 import { NetworkRequest } from '../FilterPanel';
 
-// ── Types ──
-
+// ─── Types ──────────────────────────────────────────────────────────────
 interface BodyDetailsProps {
   request: NetworkRequest;
   searchTerm: string;
@@ -20,12 +35,12 @@ export interface BodyDetailsRef {
   nextMatch: () => void;
 }
 
-// HexViewer component (merged)
 interface HexViewerProps {
   data: string;
   className?: string;
 }
 
+// ─── Components ─────────────────────────────────────────────────────────
 function HexViewer({ data, className }: HexViewerProps) {
   const { hexLines, asciiLines } = useMemo(() => {
     let buffer: Uint8Array;

@@ -26,7 +26,7 @@ import { extensionService } from '@renderer/components/RightPanel/Agent/services
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
 // ─── Constants ──────────────────────────────────────────────────────────
@@ -75,9 +75,9 @@ const PathChip: React.FC<PathChipProps> = ({ displayText, resolvedPath }) => {
       onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.75')}
       onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
     >
-      <FileIcon
-        path={resolvedPath}
-        isFolder={isFolder}
+      <img
+        src={isFolder ? getFolderIconPath(resolvedPath) : getFileIconPath(resolvedPath)}
+        alt=""
         style={{ width: '12px', height: '12px', flexShrink: 0 }}
       />
       {displayText}
@@ -235,9 +235,9 @@ const domNodeToReact = (
             className="inline-flex items-center gap-1 cursor-pointer hover:opacity-75 transition-opacity"
             title={`Click to open: ${text}`}
           >
-            <FileIcon
-              path={text}
-              isFolder={false}
+            <img
+              src={getFileIconPath(text)}
+              alt=""
               style={{ width: '12px', height: '12px', flexShrink: 0 }}
             />
             <span className="whitespace-normal break-words">

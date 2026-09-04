@@ -28,7 +28,7 @@ import { TOOL_ACTION_TYPES } from '../../../../../constants/constants';
 import { ToolAction } from '../../../../../services/ResponseParser';
 
 // ── Components ──
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { TagHeader } from '../../TagHeader';
 
 // ─── GitDiffBlock ───────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
     <div className="contents">
       <div className="flex items-center gap-2 text-xs text-primary">
         <span className="font-semibold opacity-80">DIFF{branch ? `(${branch})` : ''}</span>
-        <FileIcon path={filePath} style={{ width: '14px', height: '14px', flexShrink: 0 }} />
+        <img src={getFileIconPath(filePath)} alt="" style={{ width: '14px', height: '14px', flexShrink: 0 }} />
         <span
           className={cn(
             'font-medium opacity-90 font-mono text-[11px]',

@@ -1,16 +1,27 @@
 /**
- * SetPayloadValuesHandler — Execute JS script to generate and set payload values.
+ * ------------------------------------------------------------------
+ * SetPayloadValuesHandler
+ * ------------------------------------------------------------------
+ * Execute JS script để sinh và set payload values. Tìm payload theo
+ * indexing mapping payload_<number>, cập nhật vào database.
  *
- * Usage:
- *   const handler = new SetPayloadValuesHandler();
- *   const result = await handler.handle(requests, payloadId, script, targetId);
+ * Các methods chính:
+ * - handle()              : Execute script và cập nhật payload values
+ * - extractPayloadNames() : Trích xuất tên payload variables từ request
+ * ------------------------------------------------------------------
  */
 
-// TYPE
-import { NetworkRequest } from '../types/inspector';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import { emulateApi } from '../services/emulate-api.service';
+
+// ── Types ──
+import { NetworkRequest } from '../types/inspector';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class SetPayloadValuesHandler {
   public async handle(
     requests: NetworkRequest[],

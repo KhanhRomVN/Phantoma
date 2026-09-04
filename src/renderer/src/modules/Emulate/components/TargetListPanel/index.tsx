@@ -1,18 +1,49 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { logger } from '@renderer/utils/logger';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * TargetListPanel
+ * ------------------------------------------------------------------
+ * Sidebar panel hiển thị danh sách targets trong module Emulate.
+ * Hỗ trợ search/filter platform, collapse, start/stop target với
+ * các chế độ MITM/CDP/Frida.
+ *
+ * Các functions chính:
+ * - getTargetPlatform() : Xác định platform của target
+ * - getTargetFavicon()  : Lấy favicon cho target
+ *
+ * Các chức năng chính:
+ * - Hiển thị danh sách targets (RUNNING/IDLE groups)
+ * - Search và filter theo platform
+ * - Modal chọn platform khi thêm target
+ * - Modal chọn launch mode khi start target
+ * ------------------------------------------------------------------
+ */
 
-// ── Components ──
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import React, { useState, useCallback, useMemo } from 'react';
+
+// ── UI ──
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Modal, ModalHeader, ModalBody } from '@renderer/components/ui/Modal';
 import TargetCard from './TargetCard';
 import { RunningOptionTargetModal } from './RunningOptionTargetModal';
 
-// ── Types ──
-import type { TargetTab } from '../../types/target.types';
-
 // ── Constants ──
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
+// ── Services ──
+import { ipcService } from '../../../../services/ipc.service';
+import { logcatService } from '../../services/logcat.service';
+
+// ── Types ──
+import type { TargetTab } from '../../types/target.types';
+
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+import { cn } from '@renderer/shared/utils/cn';
+import { getFaviconUrl } from '../../../../shared/utils/faviconUtils';
+
+// ─── Constants ──────────────────────────────────────────────────────────
 const PLATFORM_COLOR_RGB: Record<AppPlatform, string> = {
   web: '14, 165, 233',
   pc: '167, 139, 250',
@@ -20,14 +51,7 @@ const PLATFORM_COLOR_RGB: Record<AppPlatform, string> = {
   cli: '251, 191, 36',
 };
 
-// ── Services ──
-import { ipcService } from '../../../../services/ipc.service';
-import { logcatService } from '../../services/logcat.service';
-
-// ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
-import { getFaviconUrl } from '../../../../shared/utils/faviconUtils';
-
+// ─── Functions ──────────────────────────────────────────────────────────
 export function getTargetPlatform(tab: TargetTab): AppPlatform {
   if (tab.platform) {
     const p = tab.platform.toLowerCase();

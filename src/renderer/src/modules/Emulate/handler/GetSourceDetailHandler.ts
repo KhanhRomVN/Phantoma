@@ -1,27 +1,32 @@
 /**
- * GetSourceDetailHandler — Trả về nội dung source code của một file.
+ * ------------------------------------------------------------------
+ * GetSourceDetailHandler
+ * ------------------------------------------------------------------
+ * Trả về nội dung source code của một file. Ưu tiên unpacked source
+ * nếu có, fallback về responseBody. Giới hạn output 50000 ký tự.
  *
- * Usage:
- *   const handler = new GetSourceDetailHandler();
- *   const result = handler.handle(requests, unpackedScripts, 'example.com/assets/main.js');
- *
- * Ưu tiên unpacked source nếu có, fallback về responseBody.
+ * Các methods chính:
+ * - handle() : Lấy nội dung source file theo file path
+ * ------------------------------------------------------------------
  */
 
-// TYPE
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Hooks ──
+import type { CdpScriptUnpackedData } from '../hooks/useNetworkEvents';
+
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 
-// UTIL
+// ── Utils ──
 import { buildSourceTree, type SourceNode } from '../utils/source-tree.util';
 
-// HOOK
-import type { CdpScriptUnpackedData } from '../hooks/network/useNetworkEvents';
-
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface GetSourceDetailResult {
   text: string;
   found: boolean;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class GetSourceDetailHandler {
   /**
    * Get source file detail by file path.

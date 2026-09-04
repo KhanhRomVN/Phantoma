@@ -21,6 +21,7 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface SourceNode {
   id: string;
   name: string;
@@ -41,9 +42,7 @@ export interface SourceTreeData {
   flatMap: Map<string, SourceNode>;
 }
 
-/**
- * Parse URL into path segments
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 export function parseUrl(url: string): { domain: string; path: string[]; filename: string } | null {
   try {
     // Handle blob URLs

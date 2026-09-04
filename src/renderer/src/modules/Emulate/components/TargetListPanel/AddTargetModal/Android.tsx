@@ -1,13 +1,32 @@
+/**
+ * ------------------------------------------------------------------
+ * AddTargetModal - Android
+ * ------------------------------------------------------------------
+ * Form thêm target Android — quét và chọn device từ Genymotion VM
+ * hoặc thiết bị vật lý kết nối qua ADB.
+ *
+ * Các chức năng chính:
+ * - Quét danh sách devices/emulators
+ * - Search và filter devices
+ * - Kiểm tra trùng lặp device đã thêm
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { logger } from '@renderer/utils/logger';
+
+// ── UI ──
 import { Search, Smartphone, Monitor, Loader2, RefreshCw, Check } from 'lucide-react';
 
 // ── Types ──
 import type { BaseModalProps } from './index';
 
 // ── Utils ──
+import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 type AndroidBodyProps = Pick<
   BaseModalProps,
   'isOpen' | 'onAdd' | 'existingApps' | 'onCanSubmitChange'
@@ -24,6 +43,7 @@ export interface AndroidRef {
   canSubmit: boolean;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export const Android = forwardRef<AndroidRef, AndroidBodyProps>(function Android(
   { isOpen, onAdd, existingApps = [], onCanSubmitChange },
   ref,

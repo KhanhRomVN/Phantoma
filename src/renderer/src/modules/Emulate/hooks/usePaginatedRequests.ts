@@ -1,7 +1,30 @@
-import { useEffect, useCallback, useRef } from 'react';
-import { NetworkRequest } from '../../types/inspector';
-import { useNetworkStore } from '../../stores/networkStore';
+/**
+ * ------------------------------------------------------------------
+ * usePaginatedRequests
+ * ------------------------------------------------------------------
+ * Hook phân trang in-memory cho network requests, dữ liệu được
+ * lưu trong networkStore (Zustand) để tránh re-render không cần
+ * thiết trên mỗi network event. Có debounce cho callback.
+ *
+ * Các chức năng chính:
+ * - Thêm/cập nhật/xóa requests trong store
+ * - Debounce callback onRequestsChange (150ms)
+ * - Giới hạn số lượng requests trong memory
+ * - Tự động clear requests khi targetId thay đổi
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useEffect, useCallback, useRef } from 'react';
+
+// ── Stores ──
+import { useNetworkStore } from '../stores/networkStore';
+
+// ── Types ──
+import { NetworkRequest } from '../types/inspector';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UsePaginatedRequestsOptions {
   targetId: string;
   limit?: number;
@@ -9,22 +32,20 @@ interface UsePaginatedRequestsOptions {
   onRequestsChange?: (requests: NetworkRequest[]) => void;
 }
 
-/**
- * In-memory paginated requests hook backed by networkStore.
- * Requests live in the zustand store so this hook does NOT trigger
- * React re-renders on every network event.
- */
+// ─── Hook ───────────────────────────────────────────────────────────────
 export function usePaginatedRequests({
   targetId,
   maxMemory = 1000,
   onRequestsChange,
 }: UsePaginatedRequestsOptions) {
+  // ── Refs ──
   const onRequestsChangeRef = useRef(onRequestsChange);
   const targetIdRef = useRef(targetId);
   const isFirstMountRef = useRef(true);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const latestRequestsRef = useRef<NetworkRequest[]>([]);
 
+  // ── Effects ──
   useEffect(() => {
     onRequestsChangeRef.current = onRequestsChange;
   }, [onRequestsChange]);
@@ -33,6 +54,7 @@ export function usePaginatedRequests({
     targetIdRef.current = targetId;
   }, [targetId]);
 
+  // ── Callbacks ──
   const scheduleOnRequestsChange = useCallback((newRequests: NetworkRequest[]) => {
     latestRequestsRef.current = newRequests;
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
@@ -106,7 +128,7 @@ export function usePaginatedRequests({
     // In-memory implementation - no reload needed
   }, []);
 
-  // Clear requests when targetId changes
+  // ── Effects ──
   useEffect(() => {
     if (targetId) {
       if (isFirstMountRef.current) {
@@ -122,7 +144,6 @@ export function usePaginatedRequests({
     }
   }, [targetId]);
 
-  // Cleanup debounce timeout on unmount
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
@@ -133,7 +154,6 @@ export function usePaginatedRequests({
   }, []);
 
   return {
-    // Non-reactive getter — components needing reactivity must subscribe to useNetworkStore directly.
     requests: useNetworkStore.getState().requests,
     loading: false,
     hasMore: false,

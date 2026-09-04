@@ -18,11 +18,11 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 
-// =============================================================================
-// ── Constants ──
-// =============================================================================
+// ─── Constants ──────────────────────────────────────────────────────────
 
 /** Map CDP resourceType → shorthand type string dùng trong UI. */
 export const CDP_RESOURCE_TYPE_MAP: Record<string, string> = {
@@ -39,9 +39,7 @@ export const CDP_RESOURCE_TYPE_MAP: Record<string, string> = {
   Other: 'other',
 };
 
-// =============================================================================
-// URL Parsing
-// =============================================================================
+// ── URL Parsing ──
 
 /** Parse URL thành host + path + protocol. */
 export function parseUrlParts(rawUrl: string): {
@@ -88,9 +86,7 @@ export function parseUrlParts(rawUrl: string): {
   }
 }
 
-// =============================================================================
-// Type Detection
-// =============================================================================
+// ── Type Detection ──
 
 /**
  * Detect resource type từ path + method + URL.
@@ -118,9 +114,7 @@ export function detectTypeFromRequest(path: string, method: string, url: string)
   return 'other';
 }
 
-// =============================================================================
-// CDP Request Builder
-// =============================================================================
+// ── CDP Request Builder ──
 
 /** Raw CDP request data shape — minimal interface. */
 export interface CdpRequestInput {
@@ -170,9 +164,7 @@ export function buildCdpRequest(data: CdpRequestInput): {
   return { request, generatedId, timestamp };
 }
 
-// =============================================================================
-// Proxy Request Parser
-// =============================================================================
+// ── Proxy Request Parser ──
 
 /** Raw proxy request data shape. */
 export interface ProxyRequestInput {
@@ -220,9 +212,7 @@ export function parseProxyRequest(data: ProxyRequestInput): {
   return { request, generatedId, timestamp };
 }
 
-// =============================================================================
-// Binary Body Decoder
-// =============================================================================
+// ── Binary Body Decoder ──
 
 /**
  * Decode binary body (Base64) thành UTF-8 string.
@@ -258,9 +248,7 @@ export function decodeBinaryBody(
   }
 }
 
-// =============================================================================
-// Time & Size Formatting
-// =============================================================================
+// ── Time & Size Formatting ──
 
 /**
  * Tính elapsed time (ms) và format thành string.
@@ -300,9 +288,7 @@ export function formatResponseSize(rawSize: string | number | undefined): {
   return { sizeBytes, sizeStr };
 }
 
-// =============================================================================
-// Placeholder Request Builder (fallback khi response đến trước request)
-// =============================================================================
+// ── Placeholder Request Builder ──
 
 /**
  * Tạo placeholder NetworkRequest từ response data (khi response đến trước request).

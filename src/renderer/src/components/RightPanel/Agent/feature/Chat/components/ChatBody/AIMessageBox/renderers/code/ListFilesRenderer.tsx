@@ -13,7 +13,7 @@ import { getNextUserMessage, buildTreeFromPaths } from '../../../../../utils/ren
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
 import { BaseRendererProps } from '../../../../../types/renderer-types';
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 import TreeBlock from '../../blocks/other/TreeBlock';
 
@@ -133,9 +133,9 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
               }}
               className="flex items-center"
             >
-              <FileIcon
-                path={rawPath}
-                isFolder={true}
+              <img
+                src={getFolderIconPath(rawPath)}
+                alt=""
                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
               />
             </span>

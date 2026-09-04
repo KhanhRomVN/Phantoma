@@ -1,11 +1,29 @@
 import { useState, useRef, useEffect, type RefObject } from 'react';
-import { logger } from '@renderer/utils/logger';
-import { FileCode, AlignLeft, Loader2 } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * FileContentSection
+ * ------------------------------------------------------------------
+ * Panel hiển thị nội dung source file đã chọn — tự động prettify
+ * nếu code bị minified, syntax highlighting.
+ *
+ * Các chức năng chính:
+ * - Hiển thị source với CodeBlock (syntax highlighting)
+ * - Tự động prettify code minified
+ * - Hiển thị thông tin obfuscation/compression
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
+import { FileCode, AlignLeft, Loader2 } from 'lucide-react';
 import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
+
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
 import { prettifyCode, isMinified } from '../../../utils/prettify';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface SelectedSourceContent {
   content: string;
   fileName: string;
@@ -18,6 +36,7 @@ interface FileContentSectionProps {
   selectedContent: SelectedSourceContent | null;
 }
 
+// ─── Components ─────────────────────────────────────────────────────────
 function SourceView({
   content,
   language,

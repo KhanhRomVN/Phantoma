@@ -1,17 +1,23 @@
 /**
- import { logger } from '@renderer/utils/logger';
-
-/**
- * Code prettify utility
- * Formats JavaScript, TypeScript, HTML, CSS, and JSON code
+ * ------------------------------------------------------------------
+ * Code Prettify Utility
+ * ------------------------------------------------------------------
+ * Tiện ích format code (JavaScript, TypeScript, HTML, CSS, JSON)
+ * bằng simple beautifier tùy chỉnh. Cung cấp các hàm kiểm tra
+ * code đã được prettify hay bị minified chưa.
+ *
+ * Các hàm chính:
+ * - prettifyCode()   : Format code, trả về kết quả kèm lỗi (nếu có)
+ * - isCodePrettified() : Kiểm tra code đã được format chưa
+ * - isMinified()     : Kiểm tra code có bị minified không
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 
-/**
- * Simple JavaScript beautifier (fallback when Prettier fails)
- * Optimized for large files
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 function simpleBeautify(code: string): string {
   let result = '';
   let indent = 0;
@@ -20,9 +26,8 @@ function simpleBeautify(code: string): string {
   let stringChar = '';
   let inComment = false;
   let inMultiLineComment = false;
-  let buffer = ''; // Buffer for batch append
+  let buffer = '';
 
-  // Batch append for better performance
   const flushBuffer = () => {
     if (buffer) {
       result += buffer;
@@ -96,7 +101,6 @@ function simpleBeautify(code: string): string {
         buffer += '\n' + tab.repeat(indent);
       } else if (prevChar === '\n') {
         indent = Math.max(0, indent - 1);
-        // Remove last indent
         const removeLen = tab.length;
         if (result.endsWith(tab)) {
           result = result.slice(0, -removeLen);
@@ -115,29 +119,22 @@ function simpleBeautify(code: string): string {
         buffer += ' ';
       }
     } else if (char === '\n' || char === '\r') {
-      // Skip existing line breaks, we add them ourselves
       continue;
     } else {
       buffer += char;
     }
 
-    // Flush buffer periodically for memory efficiency
     if (buffer.length > 10000) {
       flushBuffer();
     }
   }
 
-  // Flush remaining buffer
   flushBuffer();
   return result;
 }
 
-/**
- * Prettify code using Prettier (browser-compatible approach)
- */
 export async function prettifyCode(code: string): Promise<{ formatted: string; error?: string }> {
   try {
-    // Check file size and warn for very large files
     const formatted = simpleBeautify(code);
 
     if (formatted.length === 0) {
@@ -154,69 +151,46 @@ export async function prettifyCode(code: string): Promise<{ formatted: string; e
   }
 }
 
-/**
- * Check if code is already prettified (has proper indentation)
- */
 export function isCodePrettified(code: string): boolean {
-  // Check if code has newlines and indentation
   const lines = code.split('\n');
   if (lines.length <= 1) return false;
 
-  // For files with many lines, check average line length
-  // Minified files have very long lines even if they have line breaks
   const avgLineLength = code.length / lines.length;
   if (avgLineLength > 300) {
-    // If average line is > 300 chars, likely still minified
     return false;
   }
 
-  // Check if at least some lines have indentation
   let indentedLines = 0;
   let totalNonEmptyLines = 0;
 
-  // Sample first 100 lines for performance
   const sampleSize = Math.min(lines.length, 100);
   for (let i = 0; i < sampleSize; i++) {
     const line = lines[i].trim();
     if (line.length > 0) {
       totalNonEmptyLines++;
-      // Check if original line (before trim) has leading whitespace
       if (lines[i].match(/^[\s\t]+/)) {
         indentedLines++;
       }
     }
   }
 
-  // If more than 30% of non-empty lines are indented, consider it prettified
   return totalNonEmptyLines > 0 && indentedLines / totalNonEmptyLines > 0.3;
 }
 
-/**
- * Detect if code is minified
- */
 export function isMinified(code: string): boolean {
-  // Quick check: if already prettified, not minified
   if (isCodePrettified(code)) return false;
-
-  // Heuristics for minified code:
-  // 1. Very long lines (average > 300 chars)
-  // 2. Few line breaks relative to code size
-  // 3. No or minimal indentation
 
   const lines = code.split('\n');
   const avgLineLength = code.length / lines.length;
 
-  // If average line length > 300, likely minified
   if (avgLineLength > 300) {
     return true;
   }
 
-  // If less than 10 lines for more than 1000 chars, likely minified
   if (lines.length < 10 && code.length > 1000) {
     return true;
   }
 
-  // Check for lack of indentation in first 50 lines
   let indentedCount = 0;
   const checkLines = Math.min(lines.length, 50);
   for (let i = 0; i < checkLines; i++) {

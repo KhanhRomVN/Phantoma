@@ -12,8 +12,7 @@ import {
   getNextUserMessage,
 } from '../../../../../utils/renderer-utils';
 
-// ICONS
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ── Components ──
 import { TagHeader } from '../../TagHeader';
@@ -110,7 +109,7 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
             >
               {getToolLabel('revert_file')}
             </span>
-            <FileIcon path={rawPath} isFolder={false} style={{ width: '14px', height: '14px' }} />
+            <img src={getFileIconPath(rawPath)} alt="" style={{ width: '14px', height: '14px' }} />
             <span className="font-medium opacity-80 font-mono text-[11px]">
               {getDisplayPath(rawPath, allPaths) || '...'}
             </span>

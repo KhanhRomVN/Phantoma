@@ -1,19 +1,26 @@
 /**
- * GetHttpsDetailHandler — Trả về chi tiết request/response của một HTTPS request.
+ * ------------------------------------------------------------------
+ * GetHttpsDetailHandler
+ * ------------------------------------------------------------------
+ * Trả về chi tiết request/response của một HTTPS request theo
+ * stable index (1-indexed). Format headers/body thành text.
  *
- * Usage:
- *   const handler = new GetHttpsDetailHandler();
- *   const result = handler.handle(requests, 3);
+ * Các methods chính:
+ * - handle() : Lấy chi tiết request/response theo index
+ * ------------------------------------------------------------------
  */
 
-// TYPE
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
 import { NetworkRequest } from '../types/inspector';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface GetHttpsDetailResult {
   text: string;
   found: boolean;
 }
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class GetHttpsDetailHandler {
   /**
    * Get HTTPS request detail by stable index (1-indexed).

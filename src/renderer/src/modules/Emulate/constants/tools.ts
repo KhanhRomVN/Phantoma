@@ -1,18 +1,22 @@
 /**
+ * ------------------------------------------------------------------
+ * Tool Constants
+ * ------------------------------------------------------------------
  * Cấu hình công cụ (tool) cho tab bar — nguồn dữ liệu duy nhất.
+ * Mỗi tool có icon, label, màu accent và mô tả.
  *
- * Mỗi tool có:
- * - icon:        Lucide icon component
- * - label:       tên hiển thị (vd: "Home")
- * - color:       tên màu Tailwind
- * - accentIndex: thứ tự màu accent trong theme
- * - description: mô tả ngắn
- *
- * Type ToolType được suy ra từ keyof typeof TOOLS.
- * Duyệt danh sách tool qua Object.keys(TOOLS) hoặc Object.values(TOOLS).
+ * Các exports chính:
+ * - TOOLS        : Map cấu hình tất cả tools
+ * - ToolType     : Type suy ra từ key của TOOLS
+ * - DEFAULT_TOOL : Tool mặc định (home)
+ * ------------------------------------------------------------------
  */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import { LayoutPanelLeft, Package, Code, Code2, ScrollText, FolderOpen, Smartphone } from 'lucide-react';
 
+// ─── Constants ──────────────────────────────────────────────────────────
 export const TOOLS = {
   home: {
     icon: LayoutPanelLeft,
@@ -72,6 +76,8 @@ export const TOOLS = {
   },
 } as const;
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export type ToolType = keyof typeof TOOLS;
 
+// ─── Constants ──────────────────────────────────────────────────────────
 export const DEFAULT_TOOL: ToolType = 'home';

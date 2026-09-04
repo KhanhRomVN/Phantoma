@@ -1,8 +1,31 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { logger } from '@renderer/utils/logger';
-import { emulateApi } from '../../services/emulate-api.service';
-import type { ParamItem, PayloadItem, HistoryEntry, RunResult } from '../../types/repeater.types';
+/**
+ * ------------------------------------------------------------------
+ * useRepeaterPersistence
+ * ------------------------------------------------------------------
+ * Hook quản lý persistence cho Repeater — tự động load/save request,
+ * payloads và history từ backend API. Debounce 1s khi có thay đổi.
+ *
+ * Các chức năng chính:
+ * - Auto-load request đầu tiên khi targetId thay đổi
+ * - Auto-save request khi data thay đổi (debounce 1s)
+ * - Save payloads và history riêng biệt
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
+
+// ── Services ──
+import { emulateApi } from '../services/emulate-api.service';
+
+// ── Types ──
+import type { ParamItem, PayloadItem, HistoryEntry, RunResult } from '../types/repeater.types';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 interface UseRepeaterPersistenceOptions {
   targetId: string | null;
   method: string;
@@ -21,6 +44,7 @@ interface UseRepeaterPersistenceOptions {
   }) => void;
 }
 
+// ─── Hook ───────────────────────────────────────────────────────────────
 export function useRepeaterPersistence({
   targetId,
   method,
@@ -127,26 +151,6 @@ export function useRepeaterPersistence({
           payloads: loadedPayloads,
         });
         hasLoadedRef.current = true;
-
-        // Clear old localStorage data after successful database load
-        try {
-          const oldPayloadsKey = targetId
-            ? `repeater-${targetId}repeater-payloads`
-            : 'repeater-payloads';
-          const oldHistoryKey = targetId
-            ? `repeater-${targetId}repeater-history`
-            : 'repeater-history';
-          if (localStorage.getItem(oldPayloadsKey)) {
-            logger.info('[RepeaterPersist] 🧹 Clearing old localStorage payloads');
-            localStorage.removeItem(oldPayloadsKey);
-          }
-          if (localStorage.getItem(oldHistoryKey)) {
-            logger.info('[RepeaterPersist] 🧹 Clearing old localStorage history');
-            localStorage.removeItem(oldHistoryKey);
-          }
-        } catch (e) {
-          logger.warn('[RepeaterPersist] Failed to clear old localStorage:', e);
-        }
       } else {
         setCurrentRequestId(null);
       }

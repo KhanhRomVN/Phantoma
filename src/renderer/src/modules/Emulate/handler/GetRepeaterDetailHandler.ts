@@ -1,17 +1,26 @@
 /**
- * GetRepeaterDetailHandler — Trả về params, headers, body, và payloads của một request trong Repeater (từ database).
+ * ------------------------------------------------------------------
+ * GetRepeaterDetailHandler
+ * ------------------------------------------------------------------
+ * Trả về params, headers, body và payloads của một request trong
+ * Repeater (từ database). Output chính xác nội dung gốc không format.
  *
- * Usage:
- *   const handler = new GetRepeaterDetailHandler();
- *   const result = await handler.handle(requests, 'repeater_1', targetId);
+ * Các methods chính:
+ * - handle() : Lấy chi tiết repeater request theo indexing mapping
+ * ------------------------------------------------------------------
  */
 
-// TYPE
-import { NetworkRequest } from '../types/inspector';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import { emulateApi } from '../services/emulate-api.service';
+
+// ── Types ──
+import { NetworkRequest } from '../types/inspector';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 
-/** Quét regex ${name} trong một chuỗi, trả về danh sách tên biến (unique, theo thứ tự xuất hiện). */
+// ─── Functions ──────────────────────────────────────────────────────────
 const scanPayloadVariables = (text: string): string[] => {
   const names: string[] = [];
   const regex = /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
@@ -25,6 +34,7 @@ const scanPayloadVariables = (text: string): string[] => {
   return names;
 };
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class GetRepeaterDetailHandler {
   public async handle(requests: NetworkRequest[], repeaterId: string, targetId?: string | null): Promise<{ text: string }> {
     const match = /^repeater_(\d+)$/.exec(repeaterId.trim());

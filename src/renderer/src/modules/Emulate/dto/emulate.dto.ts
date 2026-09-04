@@ -4,13 +4,18 @@
  * ------------------------------------------------------------------
  * Data Transfer Objects cho module Emulate — dùng chung giữa
  * API layer và business layer.
+ *
+ * Các nhóm DTO chính:
+ * - Target                 : TargetDTO, CreateTargetDTO, UpdateTargetDTO
+ * - Filter                 : TargetFilterDTO, CreateTargetFilterDTO
+ * - Repeater Requests      : RepeaterRequest, Create/Update inputs
+ * - Repeater Payloads      : RepeaterPayload, Upsert input
+ * - Repeater History       : RepeaterHistory, Run, SaveHistoryInput
  * ------------------------------------------------------------------
  */
 
-// =============================================================================
-// Target
-// =============================================================================
-
+// ─── Types ──────────────────────────────────────────────────────────────
+// ── Target ──
 export interface TargetDTO {
   id: string;
   title: string;
@@ -43,10 +48,7 @@ export interface UpdateTargetDTO {
   environment?: Record<string, string> | null;
 }
 
-// =============================================================================
-// Filter
-// =============================================================================
-
+// ── Filter ──
 export interface TargetFilterDTO {
   id: string;
   emulate_target_id: string;
@@ -64,10 +66,7 @@ export interface CreateTargetFilterDTO {
   type: string;
 }
 
-// =============================================================================
-// Repeater - Requests
-// =============================================================================
-
+// ── Repeater - Requests ──
 export interface RepeaterRequest {
   id: string;
   emulate_target_id: string;
@@ -96,10 +95,7 @@ export interface UpdateRepeaterRequestInput {
   headers?: string;
 }
 
-// =============================================================================
-// Repeater - Payloads
-// =============================================================================
-
+// ── Repeater - Payloads ──
 export interface RepeaterPayload {
   id: string;
   emulate_repeater_request_id: string;
@@ -115,10 +111,7 @@ export interface UpsertRepeaterPayloadInput {
   enabled?: number;
 }
 
-// =============================================================================
-// Repeater - History
-// =============================================================================
-
+// ── Repeater - History ──
 export interface RepeaterHistory {
   id: string;
   emulate_repeater_request_id: string | null;

@@ -1,17 +1,37 @@
+/**
+ * ------------------------------------------------------------------
+ * AddTargetModal - PC
+ * ------------------------------------------------------------------
+ * Form thêm target PC — quét và chọn app từ danh sách installed
+ * applications. Hiển thị chi tiết app ở panel bên phải.
+ *
+ * Các chức năng chính:
+ * - Quét danh sách installed apps trên PC
+ * - Search và filter apps
+ * - Hiển thị chi tiết app (path, package, tags, confidence)
+ * - Kiểm tra trùng lặp app đã thêm
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { logger } from '@renderer/utils/logger';
+
+// ── UI ──
 import { Search, Loader2, Monitor, RefreshCw } from 'lucide-react';
+
+// ── Services ──
+import { ipcService } from '../../../../../services/ipc.service';
 
 // ── Types ──
 import type { BaseModalProps } from './index';
 import { DiscoveredApp } from '../../../types/apps';
 
 // ── Utils ──
+import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
 
-// Services
-import { ipcService } from '../../../../../services/ipc.service';
-
+// ─── Types ──────────────────────────────────────────────────────────────
 type PCBodyProps = Pick<
   BaseModalProps,
   'isOpen' | 'onAdd' | 'existingApps' | 'onCanSubmitChange'
@@ -22,6 +42,7 @@ export interface PCRef {
   canSubmit: boolean;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export const PC = forwardRef<PCRef, PCBodyProps>(function PC(
   { isOpen, onAdd, existingApps = [], onCanSubmitChange },
   ref,

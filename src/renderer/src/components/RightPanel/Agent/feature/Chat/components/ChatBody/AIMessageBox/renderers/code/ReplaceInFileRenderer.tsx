@@ -37,7 +37,7 @@ import { TagHeader } from '../../TagHeader';
 import ActionBar from '../../ActionBar';
 import ErrorBlock from '../../blocks/other/ErrorBlock';
 import CodeBlock from '@renderer/components/common/CodeBlock';
-import FileIcon from '@renderer/components/common/FileIcon';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ─── Helper ─────────────────────────────────────────────────────────────
 const getLanguageFromPath = (filePath: string): string | undefined => {
@@ -388,9 +388,9 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
               }}
               className="flex items-center"
             >
-              <FileIcon
-                path={rawPath}
-                isFolder={false}
+              <img
+                src={getFileIconPath(rawPath)}
+                alt=""
                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
               />
             </span>

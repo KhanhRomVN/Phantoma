@@ -1,14 +1,32 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Folder, Plus, Trash2 } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * AddTargetModal - CLI
+ * ------------------------------------------------------------------
+ * Form thêm target CLI — cấu hình name, command, working directory
+ * và environment variables. Hỗ trợ edit mode.
+ *
+ * Các chức năng chính:
+ * - Nhập name, command và working directory
+ * - Thêm/xóa environment variables
+ * - Kiểm tra trùng lặp name/command
+ * ------------------------------------------------------------------
+ */
 
-import { logger } from '@renderer/utils/logger';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+
+// ── UI ──
+import { Folder, Plus, Trash2 } from 'lucide-react';
 
 // ── Types ──
 import type { BaseModalProps } from './index';
 
 // ── Utils ──
+import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 type CLIBodyProps = Pick<
   BaseModalProps,
   'isOpen' | 'onAdd' | 'existingApps' | 'editApp' | 'onEdit' | 'onCanSubmitChange'
@@ -24,6 +42,7 @@ export interface CLIRef {
   canSubmit: boolean;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export const CLI = forwardRef<CLIRef, CLIBodyProps>(function CLI(
   { isOpen, onAdd, existingApps = [], editApp, onEdit, onCanSubmitChange },
   ref,

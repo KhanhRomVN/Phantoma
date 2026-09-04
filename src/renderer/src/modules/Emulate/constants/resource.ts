@@ -1,14 +1,18 @@
 /**
+ * ------------------------------------------------------------------
+ * Resource Type Constants
+ * ------------------------------------------------------------------
  * Cấu hình loại tài nguyên (resource type) — nguồn dữ liệu duy nhất.
+ * Mỗi loại có label, regex khớp extension và content-type.
  *
- * Mỗi loại có:
- * - label:       tên hiển thị (vd: "Images")
- * - extensions:  regex khớp với phần mở rộng file
- * - contentType: regex khớp với MIME content-type
- *
- * Type ResourceType được suy ra từ keyof typeof RESOURCE_TYPES.
- * Duyệt danh sách loại qua Object.keys(RESOURCE_TYPES).
+ * Các exports chính:
+ * - RESOURCE_TYPES        : Map cấu hình tất cả resource types
+ * - ResourceType          : Type suy ra từ key của RESOURCE_TYPES
+ * - detectResourceType()  : Nhận diện loại resource từ content-type/path
+ * ------------------------------------------------------------------
  */
+
+// ─── Constants ──────────────────────────────────────────────────────────
 export const RESOURCE_TYPES = {
   image: {
     label: 'Images',
@@ -47,11 +51,10 @@ export const RESOURCE_TYPES = {
   },
 } as const;
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export type ResourceType = keyof typeof RESOURCE_TYPES;
 
-/**
- * Nhận diện loại tài nguyên dựa trên content-type và đường dẫn file.
- */
+// ─── Functions ──────────────────────────────────────────────────────────
 export function detectResourceType(contentType: string, path: string): ResourceType {
   const ct = contentType.toLowerCase();
   const p = path.toLowerCase();

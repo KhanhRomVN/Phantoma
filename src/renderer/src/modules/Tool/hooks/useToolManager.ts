@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { TOOLS_LIST } from '../data/toolsList';
 import { ToolCategory } from '../types';
-import { useModulePersistence } from '../../../hooks/useModulePersistence';
 
 interface ToolsState {
   selectedTool: string;
@@ -13,7 +12,7 @@ export const useToolManager = (
   activeToolId: string = 'nmap',
   onToolChange?: (toolId: string) => void,
 ) => {
-  const [state, setState] = useModulePersistence<ToolsState>('tools', {
+  const [state, setState] = useState<ToolsState>({
     selectedTool: activeToolId,
     searchQuery: '',
     activeTab: 'information',
@@ -22,7 +21,7 @@ export const useToolManager = (
   // Đồng bộ activeToolId prop với state
   useEffect(() => {
     if (activeToolId && activeToolId !== state.selectedTool) {
-      setState({ selectedTool: activeToolId });
+      setState((prev) => ({ ...prev, selectedTool: activeToolId }));
     }
   }, [activeToolId]);
 
@@ -31,16 +30,16 @@ export const useToolManager = (
   const { selectedTool, searchQuery, activeTab } = state;
 
   const setSelectedTool = (toolId: string) => {
-    setState({ selectedTool: toolId });
+    setState((prev) => ({ ...prev, selectedTool: toolId }));
     onToolChange?.(toolId);
   };
 
   const setSearchQuery = (query: string) => {
-    setState({ searchQuery: query });
+    setState((prev) => ({ ...prev, searchQuery: query }));
   };
 
   const setActiveTab = (tab: 'information' | 'execution' | 'history' | 'profiles') => {
-    setState({ activeTab: tab });
+    setState((prev) => ({ ...prev, activeTab: tab }));
   };
 
   const handleToolSelect = (toolId: string) => {

@@ -1,9 +1,28 @@
-// Resource panel types
+/**
+ * ------------------------------------------------------------------
+ * Resource Types
+ * ------------------------------------------------------------------
+ * Type definitions cho resource panel trong module Emulate.
+ * Bao gồm resource item, group và props cho các component liên quan.
+ *
+ * Các types chính:
+ * - ResourceItem         : Một resource (file) được tải về
+ * - ResourceGroup        : Nhóm resource theo loại
+ * - ResourcePreviewProps : Props cho ResourcePreview component
+ * - ResourceListProps    : Props cho ResourceList component
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import { WasmItem } from '../utils/wasm-detector.util';
+
+// ── Types ──
 import { ResourceType } from '../constants/resource';
 
 export { ResourceType };
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface ResourceItem {
   id: string;
   filename: string;

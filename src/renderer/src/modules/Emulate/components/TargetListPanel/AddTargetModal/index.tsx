@@ -1,6 +1,22 @@
+/**
+ * ------------------------------------------------------------------
+ * AddTargetModal
+ * ------------------------------------------------------------------
+ * Modal thêm target mới — chuyển hướng theo platform (web/pc/
+ * android/cli). Quản lý submit và trạng thái canSubmit.
+ *
+ * Các chức năng chính:
+ * - Chọn platform và render form tương ứng
+ * - Quản lý title/description cho edit mode
+ * - Validate canSubmit trước khi thêm target
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 
-// ── Components ──
+// ── UI ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Website } from './Website';
 import { Android } from './Android';
@@ -10,6 +26,7 @@ import { CLI } from './CLI';
 // ── Types ──
 import type { AppPlatform, AppMode } from '../../../types/apps';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface BaseModalProps {
   isOpen: boolean;
   onClose: () => void;

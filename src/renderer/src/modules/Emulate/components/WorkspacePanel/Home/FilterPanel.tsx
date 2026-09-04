@@ -1,22 +1,40 @@
-import { useState, useRef, useMemo, useEffect } from 'react';
-import { logger } from '@renderer/utils/logger';
-import { X, Globe } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * FilterPanel
+ * ------------------------------------------------------------------
+ * Panel filter cho Inspector — lọc requests theo method, host,
+ * status, type. Đồng bộ filter với API và localStorage.
+ *
+ * Các chức năng chính:
+ * - Filter methods/status/types với màu accent
+ * - Whitelist host với suggestions
+ * - Load/save filter từ API và localStorage
+ * ------------------------------------------------------------------
+ */
 
-// ── Types ──
-import { NetworkRequest } from '../../../types/inspector';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useRef, useMemo, useEffect } from 'react';
+
+// ── UI ──
+import { X, Globe } from 'lucide-react';
 
 // ── Hooks ──
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 import { useNetworkStore } from '../../../stores/networkStore';
 
+// ── Services ──
+import { emulateApi } from '../../../services/emulate-api.service';
+
+// ── Types ──
+import { NetworkRequest } from '../../../types/inspector';
+
 // ── Utils ──
+import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
 import { getRequestCategory } from '../../../utils/request-classifier.util';
 
-// Services
-import { emulateApi } from '../../../services/emulate-api.service';
-
-// Helper: parse JSON string an toàn, trả về fallback nếu fail
+// ─── Functions ──────────────────────────────────────────────────────────
 function safeParse<T>(value: string | undefined | null, fallback: T): T {
   if (!value) return fallback;
   try {
@@ -29,6 +47,7 @@ function safeParse<T>(value: string | undefined | null, fallback: T): T {
 // Re-export NetworkRequest from inspector types to maintain single source of truth
 export type { NetworkRequest };
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface InspectorFilter {
   methods: {
     GET: boolean;

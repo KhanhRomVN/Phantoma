@@ -1,13 +1,32 @@
+/**
+ * ------------------------------------------------------------------
+ * AddTargetModal - Website
+ * ------------------------------------------------------------------
+ * Form thêm target web — nhập name và URL, tự động fetch favicon.
+ * Hỗ trợ edit mode và kiểm tra trùng lặp.
+ *
+ * Các chức năng chính:
+ * - Nhập name và URL với validation
+ * - Tự động fetch favicon từ Google/ICO/PNG
+ * - Kiểm tra trùng lặp name/URL
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { logger } from '@renderer/utils/logger';
+
+// ── UI ──
 import { Bug } from 'lucide-react';
 
 // ── Types ──
 import type { BaseModalProps } from './index';
 
 // ── Utils ──
+import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 type WebsiteBodyProps = Pick<
   BaseModalProps,
   'isOpen' | 'onAdd' | 'existingApps' | 'editApp' | 'onEdit' | 'onCanSubmitChange'
@@ -18,6 +37,7 @@ export interface WebsiteRef {
   canSubmit: boolean;
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export const Website = forwardRef<WebsiteRef, WebsiteBodyProps>(function Website(
   { isOpen, onAdd, existingApps = [], editApp, onEdit, onCanSubmitChange },
   ref,

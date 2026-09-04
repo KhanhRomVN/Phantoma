@@ -1,20 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { Square, Shield, Monitor, Smartphone, Syringe } from 'lucide-react';
+/**
+ * ------------------------------------------------------------------
+ * RunningOptionTargetModal
+ * ------------------------------------------------------------------
+ * Modal chọn launch mode khi start target — CDP, MITM, MITM+ENV,
+ * Frida hoặc Stop. Hỗ trợ chọn device cho Android target.
+ *
+ * Các chức năng chính:
+ * - Hiển thị thông tin target và trạng thái
+ * - Chọn launch mode phù hợp theo platform
+ * - Chọn device cho Android targets
+ * - Start/stop target với mode đã chọn
+ * ------------------------------------------------------------------
+ */
 
-// ── Components ──
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import React, { useState, useEffect } from 'react';
+
+// ── UI ──
+import { Square, Shield, Monitor, Smartphone, Syringe } from 'lucide-react';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
 
-// ── Types ──
-import { TargetTab } from '../../types/target.types';
-
 // ── Constants ──
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
+
+// ── Types ──
+import { TargetTab } from '../../types/target.types';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { getTargetFavicon } from '.';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface RunningOptionTargetModalProps {
   isOpen: boolean;
   onClose: () => void;

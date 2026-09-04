@@ -1,16 +1,26 @@
 /**
- * ListRepeatersHandler — Liệt kê các request hiện đang lưu trong Repeater (từ database).
+ * ------------------------------------------------------------------
+ * ListRepeatersHandler
+ * ------------------------------------------------------------------
+ * Liệt kê các request hiện đang lưu trong Repeater (từ database).
+ * Output dạng text list với indexing mapping repeater_<number>.
  *
- * Usage:
- *   const handler = new ListRepeatersHandler();
- *   const result = await handler.handle(requests, targetId);
+ * Các methods chính:
+ * - handle() : Lấy danh sách repeater requests từ database
+ * ------------------------------------------------------------------
  */
 
-// TYPE
-import { NetworkRequest } from '../types/inspector';
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
 import { emulateApi } from '../services/emulate-api.service';
+
+// ── Types ──
+import { NetworkRequest } from '../types/inspector';
+
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
 
+// ─── Class ──────────────────────────────────────────────────────────────
 export class ListRepeatersHandler {
   public async handle(
     requests: NetworkRequest[],

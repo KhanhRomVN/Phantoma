@@ -1,3 +1,21 @@
+/**
+ * ------------------------------------------------------------------
+ * Target Types
+ * ------------------------------------------------------------------
+ * Type definitions cho target trong module Emulate.
+ * Bao gồm target tab, state, props và launch options.
+ *
+ * Các types chính:
+ * - TargetTab          : Một target trong sidebar
+ * - TargetState        : Trạng thái runtime của target
+ * - EmulateState       : State tổng thể của module Emulate
+ * - EmulateProps       : Props cho Emulate component
+ * - LaunchTargetOptions : Options để launch một target
+ * - AppLaunchResult    : Kết quả launch app
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
 // ── Constants ──
 import { ToolType } from '../constants/tools';
 
@@ -5,6 +23,7 @@ import { ToolType } from '../constants/tools';
 import { InspectorFilter } from './filter.types';
 import { NetworkRequest } from './inspector';
 
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface TargetTab {
   id: string;
   title: string;
@@ -41,6 +60,7 @@ export interface EmulateState {
   isInterceptActive: boolean;
   filter: InspectorFilter;
 }
+
 export interface EmulateProps {
   activeAppId?: string;
   _activeAppName?: string;

@@ -1,17 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * useNetworkEvents
+ * ------------------------------------------------------------------
+ * Hook lắng nghe network events từ CDP và Proxy qua IPC.
+ * Xử lý request/response/body/script events và cập nhật store.
+ *
+ * Các chức năng chính:
+ * - Lắng nghe CDP request/response/body events
+ * - Lắng nghe Proxy request/response/body events
+ * - Quản lý refs cho pending requests và unpacked scripts
+ * - Auto-cleanup stale requests sau 10s
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useRef, useCallback } from 'react';
 
+// ── Utils ──
 import { logger } from '@renderer/utils/logger';
-
-// TYPE
-import { NetworkRequest } from '../../types/inspector';
-
-// HOOK
-import { usePaginatedRequests } from './usePaginatedRequests';
-
-// STORE
-import { useNetworkStore } from '../../stores/networkStore';
-
-// UTILS — pure network parsers (tách từ file này)
 import {
   buildCdpRequest,
   parseProxyRequest,
@@ -19,8 +26,18 @@ import {
   formatElapsedTime,
   formatResponseSize,
   buildPlaceholderRequest,
-} from '../../utils/network-event-parser.util';
+} from '../utils/network-event-parser.util';
 
+// ── Hooks ──
+import { usePaginatedRequests } from './usePaginatedRequests';
+
+// ── Stores ──
+import { useNetworkStore } from '../stores/networkStore';
+
+// ── Types ──
+import { NetworkRequest } from '../types/inspector';
+
+// ─── Types ──────────────────────────────────────────────────────────────
 export interface CdpRequestData {
   id: string;
   url: string;
@@ -117,20 +134,13 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   } = options;
 
   // Use paginated requests hook (store-backed, no React state)
-  const {
-    addRequest,
-    updateRequest,
-    clearRequests,
-    loadMore,
-    hasMore,
-    loading,
-    totalCount,
-  } = usePaginatedRequests({
-    targetId,
-    limit: 100,
-    maxMemory: 500,
-    onRequestsChange,
-  });
+  const { addRequest, updateRequest, clearRequests, loadMore, hasMore, loading, totalCount } =
+    usePaginatedRequests({
+      targetId,
+      limit: 100,
+      maxMemory: 500,
+      onRequestsChange,
+    });
 
   const requestMapRef = useRef<Map<string, NetworkRequest>>(new Map());
   const timestampMapRef = useRef<Map<string, number>>(new Map());
