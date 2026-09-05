@@ -12,11 +12,6 @@
  * Các hàm chính:
  * - buildSourceTree()   : Xây dựng cây thư mục từ danh sách URL
  * - parseUrl()          : Parse URL thành domain + path + filename
- * - findNodeByUrl()     : Tìm node trong cây theo URL
- * - getAllFiles()       : Lấy danh sách phẳng tất cả file
- * - searchFiles()       : Tìm kiếm file theo tên hoặc nội dung
- * - getTreeStats()      : Thống kê cây (tổng domain/folder/file/size)
- * - exportTreeAsJson()  : Export cây ra JSON
  * - formatSize()        : Format byte sang KB/MB/GB
  * ------------------------------------------------------------------
  */
@@ -198,121 +193,6 @@ export function buildSourceTree(
   roots.forEach(sortChildren);
 
   return { roots, flatMap };
-}
-
-/**
- * Find node by URL
- */
-export function findNodeByUrl(tree: SourceTreeData, url: string): SourceNode | undefined {
-  const parsed = parseUrl(url);
-  if (!parsed) return undefined;
-
-  const { domain, path, filename } = parsed;
-  const filePath = [domain, ...path, filename].join('/');
-
-  return tree.flatMap.get(filePath);
-}
-
-/**
- * Get all files from tree (flatten)
- */
-export function getAllFiles(tree: SourceTreeData): SourceNode[] {
-  const files: SourceNode[] = [];
-
-  function traverse(node: SourceNode) {
-    if (node.type === 'file') {
-      files.push(node);
-    }
-    if (node.children) {
-      node.children.forEach(traverse);
-    }
-  }
-
-  tree.roots.forEach(traverse);
-  return files;
-}
-
-/**
- * Search files by name or content
- */
-export function searchFiles(
-  tree: SourceTreeData,
-  query: string,
-  options?: {
-    searchInContent?: boolean;
-    caseSensitive?: boolean;
-  },
-): SourceNode[] {
-  const { searchInContent = false, caseSensitive = false } = options || {};
-  const files = getAllFiles(tree);
-
-  const normalizedQuery = caseSensitive ? query : query.toLowerCase();
-
-  return files.filter((file) => {
-    const normalizedName = caseSensitive ? file.name : file.name.toLowerCase();
-
-    // Search in filename
-    if (normalizedName.includes(normalizedQuery)) {
-      return true;
-    }
-
-    // Search in content
-    if (searchInContent && file.unpackedSource) {
-      const normalizedContent = caseSensitive
-        ? file.unpackedSource
-        : file.unpackedSource.toLowerCase();
-      return normalizedContent.includes(normalizedQuery);
-    }
-
-    return false;
-  });
-}
-
-/**
- * Get tree statistics
- */
-export function getTreeStats(tree: SourceTreeData): {
-  totalDomains: number;
-  totalFolders: number;
-  totalFiles: number;
-  totalSize: number;
-  differentFiles: number;
-} {
-  let totalDomains = 0;
-  let totalFolders = 0;
-  let totalFiles = 0;
-  let totalSize = 0;
-  let differentFiles = 0;
-
-  function traverse(node: SourceNode) {
-    if (node.type === 'domain') totalDomains++;
-    if (node.type === 'folder') totalFolders++;
-    if (node.type === 'file') {
-      totalFiles++;
-      if (node.size) totalSize += node.size;
-      if (node.isDifferent) differentFiles++;
-    }
-    if (node.children) {
-      node.children.forEach(traverse);
-    }
-  }
-
-  tree.roots.forEach(traverse);
-
-  return {
-    totalDomains,
-    totalFolders,
-    totalFiles,
-    totalSize,
-    differentFiles,
-  };
-}
-
-/**
- * Export tree as JSON
- */
-export function exportTreeAsJson(tree: SourceTreeData): string {
-  return JSON.stringify(tree.roots, null, 2);
 }
 
 /**

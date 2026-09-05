@@ -341,6 +341,14 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   const parseCacheRef = useRef<Map<string, ParsedResponse>>(new Map());
   const lastParsedMessagesRef = useRef<any[]>([]);
 
+  // Clear cache when messages array is reset (empty)
+  useEffect(() => {
+    if (messages.length === 0) {
+      parseCacheRef.current.clear();
+      lastParsedMessagesRef.current = [];
+    }
+  }, [messages.length]);
+
   const parsedMessages = useMemo(() => {
     if (messages.length > 0 && messages[0].parsed !== undefined) {
       const messagesUnchanged =

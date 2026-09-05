@@ -1,10 +1,5 @@
 import { cn } from '@renderer/shared/utils/cn';
-
-interface BadgeProps {
-  count: number;
-  className?: string;
-  max?: number;
-}
+import { BadgeProps } from './type';
 
 export function Badge({ count, className, max = 99 }: BadgeProps) {
   if (count === 0) return null;

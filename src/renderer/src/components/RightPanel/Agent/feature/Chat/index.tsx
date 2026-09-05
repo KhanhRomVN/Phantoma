@@ -218,6 +218,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setBackendConversationId,
     conversationToolOverrides,
     handleSelectOption,
+    isProcessingRef,
   } = useChatLLM({
     apiUrl,
     selectedTab: currentChat,
@@ -545,7 +546,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     hasProcessedInitial.current = false;
     resetSession();
     setLoadedConversationFileStats(null);
-  }, [currentChat?.sessionId, resetSession]);
+    // Clear isProcessing flag to prevent stale state
+    setIsProcessing(false);
+    
+    // Cleanup function when component unmounts or session changes
+    return () => {
+      // Stop any ongoing generation using ref
+      if (isProcessingRef && isProcessingRef.current) {
+        stopGeneration();
+      }
+    };
+  }, [currentChat?.sessionId, resetSession, stopGeneration, setIsProcessing]);
 
   // Sync currentModel/currentAccount from initialMessageData
   useEffect(() => {

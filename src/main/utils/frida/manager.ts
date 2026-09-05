@@ -1,4 +1,4 @@
-import { exec, execSync } from 'child_process';
+import { exec } from 'child_process';
 /**
  * ------------------------------------------------------------------
  * Quản lý Frida
@@ -204,40 +204,5 @@ export async function listRunningProcesses(serial: string): Promise<
   } catch (error) {
     logger.error('Failed to list processes:', error);
     return [];
-  }
-}
-
-/**
- * Ensure ptrace_scope is set to 0 to allow attaching to processes
- * Returns true if successful or already 0
- */
-export async function ensurePtraceScope(onLog?: (msg: string) => void): Promise<boolean> {
-  try {
-    const ptracePath = '/proc/sys/kernel/yama/ptrace_scope';
-    if (!fs.existsSync(ptracePath)) {
-      return true; // Not present on all builds, assume safe
-    }
-
-    const content = fs.readFileSync(ptracePath, 'utf8').trim();
-    if (content === '0') {
-      return true;
-    }
-
-    onLog?.('⚠️ ptrace_scope is restricted. Requesting permission to change...');
-
-    // Use pkexec to get root permission GUI prompt
-    try {
-      await execAsync(`pkexec sh -c "echo 0 > ${ptracePath}"`);
-      onLog?.('✅ Permission granted. ptrace_scope set to 0.');
-      return true;
-    } catch (err) {
-      logger.warn('[Frida] Failed to change ptrace_scope, permission denied');
-      onLog?.('❌ Failed to change ptrace_scope. Root permission denied/cancelled.');
-      return false;
-    }
-  } catch (e: any) {
-    logger.warn('[Frida] Error checking ptrace_scope:', e.message);
-    onLog?.(`Error checking ptrace_scope: ${e.message}`);
-    return false;
   }
 }

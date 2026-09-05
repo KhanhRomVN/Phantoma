@@ -1,21 +1,12 @@
 import React from 'react';
-import {
-  Plus,
-  Send,
-  X,
-  GitPullRequestArrow,
-  Zap,
-  Scale,
-  ShieldCheck,
-  Plane,
-} from 'lucide-react';
+import { Plus, Send, X, GitPullRequestArrow, Zap, Scale, ShieldCheck, Plane } from 'lucide-react';
 import { logger } from '@renderer/utils/logger';
 import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
-import { LANGUAGES } from '@renderer/components/RightPanel/Agent/feature/Setting/components/LanguageSelector';
 import { useSettings } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
 import ModelAccountDrawer from './ModelAccountDrawer';
 import StyleCodeDropdown from './StyleCodeDropdown';
 import DiffSummaryBar from './DiffSummaryBar';
+import { LANGUAGES } from '../../feature/Setting/components/LanguageSelector';
 
 export interface UploadedFile {
   id: string;
@@ -163,9 +154,7 @@ const ThinkingButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) =
       title={title}
     >
       <BrainCogIcon />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>
-        Thinking
-      </span>
+      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>Thinking</span>
     </button>
   );
 };
@@ -209,9 +198,7 @@ const SearchButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => 
       title={title}
     >
       <GlobeIcon />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>
-        Search
-      </span>
+      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>Search</span>
     </button>
   );
 };
@@ -257,9 +244,7 @@ const MemoryButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => 
       title={title}
     >
       <MemoryIcon />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>
-        Memory
-      </span>
+      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>Memory</span>
     </button>
   );
 };
@@ -288,9 +273,7 @@ const CompressButton: React.FC<CompressButtonProps> = ({ onClick, title }) => {
         cursor: 'pointer',
         transition: 'all 0.2s ease-in-out',
         border: '1px solid rgba(128, 128, 128, 0.2)',
-        background: isHovered
-          ? 'rgba(128, 128, 128, 0.2)'
-          : 'rgba(128, 128, 128, 0.12)',
+        background: isHovered ? 'rgba(128, 128, 128, 0.2)' : 'rgba(128, 128, 128, 0.12)',
         color: 'var(--vscode-foreground)',
         opacity: isHovered ? 0.9 : 0.7,
       }}
@@ -347,17 +330,13 @@ const GlobalPermissionButton: React.FC = () => {
     },
   };
 
-  const handleItemMouseEnter = (
-    id: string,
-    e: React.MouseEvent<HTMLButtonElement>,
-  ) => {
+  const handleItemMouseEnter = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
     if (!e.currentTarget.parentElement) return;
     if (
       !e.currentTarget.style.backgroundColor ||
       e.currentTarget.style.backgroundColor === 'transparent'
     ) {
-      e.currentTarget.style.backgroundColor =
-        'var(--vscode-list-hoverBackground)';
+      e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
     }
     const rect = e.currentTarget.getBoundingClientRect();
     tooltipTimer.current = setTimeout(() => {
@@ -365,10 +344,7 @@ const GlobalPermissionButton: React.FC = () => {
     }, 500);
   };
 
-  const handleItemMouseLeave = (
-    isSelected: boolean,
-    e: React.MouseEvent<HTMLButtonElement>,
-  ) => {
+  const handleItemMouseLeave = (isSelected: boolean, e: React.MouseEvent<HTMLButtonElement>) => {
     if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
     if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
     setTooltip(null);
@@ -420,8 +396,7 @@ const GlobalPermissionButton: React.FC = () => {
             zIndex: 1000,
             backgroundColor:
               'var(--vscode-dropdown-background, var(--vscode-editorHoverWidget-background, #252526))',
-            border:
-              '1px solid var(--vscode-widget-border, var(--border-color, #454545))',
+            border: '1px solid var(--vscode-widget-border, var(--border-color, #454545))',
             borderRadius: '6px',
             overflow: 'hidden',
             boxShadow: '0 -4px 16px rgba(0,0,0,0.35)',
@@ -450,9 +425,7 @@ const GlobalPermissionButton: React.FC = () => {
                   textAlign: 'left',
                   border: 'none',
                   cursor: 'pointer',
-                  background: isSelected
-                    ? 'var(--vscode-button-background)'
-                    : 'transparent',
+                  background: isSelected ? 'var(--vscode-button-background)' : 'transparent',
                   color: isSelected
                     ? 'var(--vscode-button-foreground)'
                     : 'var(--vscode-foreground)',
@@ -482,8 +455,7 @@ const GlobalPermissionButton: React.FC = () => {
             left: tooltip.x,
             top: tooltip.y,
             zIndex: 9999,
-            backgroundColor:
-              'var(--vscode-editorHoverWidget-background, #1e1e1e)',
+            backgroundColor: 'var(--vscode-editorHoverWidget-background, #1e1e1e)',
             border: '1px solid var(--vscode-editorHoverWidget-border, #454545)',
             borderRadius: '6px',
             padding: '8px 10px',
@@ -685,9 +657,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       return combined.filter(Boolean);
     }, [messages]);
 
-    const handlePromptHistoryKeyDown = (
-      e: React.KeyboardEvent<HTMLTextAreaElement>,
-    ) => {
+    const handlePromptHistoryKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'ArrowUp') {
         const target = e.currentTarget;
         const textBeforeCursor = target.value.substring(0, target.selectionStart);
@@ -902,8 +872,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     const currentProviderConfig = React.useMemo(() => {
       if (!currentModel?.providerId) return null;
       const found = providers.find(
-        (p) =>
-          p.provider_id?.toLowerCase() === currentModel.providerId?.toLowerCase(),
+        (p) => p.provider_id?.toLowerCase() === currentModel.providerId?.toLowerCase(),
       );
       return found ?? null;
     }, [currentModel, providers]);
@@ -1103,9 +1072,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               : '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
             transition: 'border 0.3s ease',
             marginTop:
-              !isConversationStarted ||
-              (isConnected && isElaraMismatch) ||
-              isConversationStarted
+              !isConversationStarted || (isConnected && isElaraMismatch) || isConversationStarted
                 ? '24px'
                 : '0px',
           }}
@@ -1179,10 +1146,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 </>
               ) : (
                 <>
-                  <span
-                    className="codicon codicon-server-process"
-                    style={{ fontSize: '12px' }}
-                  />
+                  <span className="codicon codicon-server-process" style={{ fontSize: '12px' }} />
                   Select Model
                 </>
               )}
@@ -1196,12 +1160,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               providers={providers}
               apiUrl={apiUrl}
               onSelect={(selected) => {
-                const prov = providers.find(
-                  (p: any) => p.provider_id === selected.providerId,
-                );
-                const modelObj = prov?.models?.find(
-                  (m: any) => m.id === selected.modelId,
-                );
+                const prov = providers.find((p: any) => p.provider_id === selected.providerId);
+                const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
                 let faviconUrl = '';
                 if (prov?.website) {
                   try {
@@ -1317,8 +1277,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     }}
                   >
                     <strong>
-                      {pendingModelSwitch.model.providerId}/
-                      {pendingModelSwitch.model.id}
+                      {pendingModelSwitch.model.providerId}/{pendingModelSwitch.model.id}
                     </strong>
                     {pendingModelSwitch.account.email && (
                       <div style={{ marginTop: '4px', opacity: 0.8 }}>
@@ -1346,8 +1305,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       cursor: 'pointer',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'var(--vscode-list-hoverBackground)';
+                      e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
@@ -1384,13 +1342,11 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
 
                       const contextData = {
                         fileChanges: currentRange
-                          ? Array.from(currentRange.fileChanges.entries()).map(
-                              ([path, stats]) => ({
-                                path,
-                                additions: stats.additions,
-                                deletions: stats.deletions,
-                              }),
-                            )
+                          ? Array.from(currentRange.fileChanges.entries()).map(([path, stats]) => ({
+                              path,
+                              additions: stats.additions,
+                              deletions: stats.deletions,
+                            }))
                           : [],
                         userMessages: userMessagesInRange,
                       };
@@ -1422,8 +1378,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         'var(--vscode-button-hoverBackground)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'var(--vscode-button-background)';
+                      e.currentTarget.style.backgroundColor = 'var(--vscode-button-background)';
                     }}
                   >
                     Confirm Switch
@@ -1508,12 +1463,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  if (
-                    !isHistoryMode &&
-                    isConnected &&
-                    !isLoadingCache &&
-                    !isProcessing
-                  ) {
+                  if (!isHistoryMode && isConnected && !isLoadingCache && !isProcessing) {
                     onSendMessage();
                   }
                 } else {
@@ -1522,14 +1472,24 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 }
               }}
               onPaste={(e) => {
+                logger.info('[MessageInput] onPaste triggered');
+                logger.info(
+                  `[MessageInput] clipboardData.files.length: ${e.clipboardData.files.length}`,
+                );
+                logger.info(
+                  `[MessageInput] clipboardData.items.length: ${e.clipboardData.items.length}`,
+                );
+                logger.info(`[MessageInput] supportsUpload: ${supportsUpload}`);
+
                 if (!supportsUpload && e.clipboardData.files.length > 0) {
-                  logger.warn(
-                    '[MessageInput] onPaste: Upload is not supported, preventing paste.',
-                  );
+                  logger.warn('[MessageInput] onPaste: Upload is not supported, preventing paste.');
                   e.preventDefault();
                   return;
                 }
+
+                logger.info('[MessageInput] Calling handlePaste...');
                 handlePaste(e);
+                logger.info('[MessageInput] handlePaste completed');
               }}
               onDragOver={handleDragOver}
               onDrop={(e) => {
@@ -1598,8 +1558,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               <div
                 onClick={() => {
                   if (fileInputRef?.current) {
-                    (fileInputRef.current as any).dataset.textOnly =
-                      String(!supportsUpload);
+                    (fileInputRef.current as any).dataset.textOnly = String(!supportsUpload);
                     fileInputRef.current.click();
                   } else {
                     handleFileSelect();
@@ -1647,16 +1606,11 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     boxSizing: 'border-box',
                     borderRadius: '4px',
                     cursor:
-                      isGitLoading || isProcessing || isGitStatusVisible
-                        ? 'default'
-                        : 'pointer',
+                      isGitLoading || isProcessing || isGitStatusVisible ? 'default' : 'pointer',
                     transition: 'all 0.2s ease-in-out',
                     border: '1px solid rgba(128, 128, 128, 0.2)',
                     background:
-                      isGitHovered &&
-                      !isGitLoading &&
-                      !isProcessing &&
-                      !isGitStatusVisible
+                      isGitHovered && !isGitLoading && !isProcessing && !isGitStatusVisible
                         ? 'rgba(128, 128, 128, 0.2)'
                         : 'rgba(128, 128, 128, 0.12)',
                     color:
@@ -1664,10 +1618,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         ? 'var(--vscode-descriptionForeground, #8c8c8c)'
                         : 'var(--vscode-foreground)',
                     opacity:
-                      isGitHovered &&
-                      !isGitLoading &&
-                      !isProcessing &&
-                      !isGitStatusVisible
+                      isGitHovered && !isGitLoading && !isProcessing && !isGitStatusVisible
                         ? 0.9
                         : isGitLoading || isProcessing || isGitStatusVisible
                           ? 0.5
@@ -1742,8 +1693,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         color: '#f97316',
                       },
                     };
-                    const meta =
-                      modeMeta[systemPromptMode] || modeMeta.balanced;
+                    const meta = modeMeta[systemPromptMode] || modeMeta.balanced;
                     return (
                       <button
                         onMouseEnter={() => setIsSystemPromptHovered(true)}
@@ -1816,8 +1766,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           : message.trim() || uploadedFiles.length > 0
                             ? 'var(--accent-text)'
                             : 'var(--secondary-text)',
-                    pointerEvents:
-                      isHistoryMode || isLoadingCache ? 'none' : 'auto',
+                    pointerEvents: isHistoryMode || isLoadingCache ? 'none' : 'auto',
                   }}
                   onClick={() => {
                     if ((isStreaming || isProcessing) && onStopGeneration) {
@@ -1826,31 +1775,20 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     }
 
                     if (!currentModel) {
-                      logger.warn(
-                        '[MessageInput] send: no model selected, aborting',
-                      );
+                      logger.warn('[MessageInput] send: no model selected, aborting');
                       return;
                     }
                     onSendMessage();
                   }}
                   onMouseEnter={(e) => {
-                    if (
-                      isStreaming ||
-                      isProcessing ||
-                      message.trim() ||
-                      uploadedFiles.length > 0
-                    ) {
+                    if (isStreaming || isProcessing || message.trim() || uploadedFiles.length > 0) {
                       e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
-                  title={
-                    isStreaming || isProcessing
-                      ? 'Stop Generation'
-                      : 'Send Message'
-                  }
+                  title={isStreaming || isProcessing ? 'Stop Generation' : 'Send Message'}
                 >
                   {isStreaming || isProcessing ? (
                     <X size={16} strokeWidth={2.5} />
@@ -1888,9 +1826,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
           {!isConversationStarted &&
             isConnected &&
             !isElaraMismatch &&
-            LANGUAGES.some(
-              (l: { code: string }) => l.code === preferredLanguage,
-            ) && (
+            LANGUAGES.some((l: { code: string }) => l.code === preferredLanguage) && (
               <div
                 style={{
                   position: 'absolute',
@@ -1911,8 +1847,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 }}
               >
                 <span>
-                  {LANGUAGES.find((l: any) => l.code === preferredLanguage)
-                    ?.flag || '🇺🇸'}{' '}
+                  {LANGUAGES.find((l: any) => l.code === preferredLanguage)?.flag || '🇺🇸'}{' '}
                   {preferredLanguage.toUpperCase()}
                 </span>
               </div>
@@ -1964,14 +1899,10 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
   const messageSame = prevProps.message === nextProps.message;
   const isProcessingSame = prevProps.isProcessing === nextProps.isProcessing;
   const isStreamingSame = prevProps.isStreaming === nextProps.isStreaming;
-  const currentModelSame =
-    prevProps.currentModel?.id === nextProps.currentModel?.id;
-  const currentAccountSame =
-    prevProps.currentAccount?.id === nextProps.currentAccount?.id;
-  const messagesLengthSame =
-    prevProps.messages?.length === nextProps.messages?.length;
-  const responseRangesSame =
-    prevProps.responseRanges?.length === nextProps.responseRanges?.length;
+  const currentModelSame = prevProps.currentModel?.id === nextProps.currentModel?.id;
+  const currentAccountSame = prevProps.currentAccount?.id === nextProps.currentAccount?.id;
+  const messagesLengthSame = prevProps.messages?.length === nextProps.messages?.length;
+  const responseRangesSame = prevProps.responseRanges?.length === nextProps.responseRanges?.length;
   const conversationFileStatsSame =
     prevProps.conversationFileStats === nextProps.conversationFileStats;
 

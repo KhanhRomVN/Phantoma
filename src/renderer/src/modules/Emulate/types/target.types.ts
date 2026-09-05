@@ -10,8 +10,6 @@
  * - TargetState        : Trạng thái runtime của target
  * - EmulateState       : State tổng thể của module Emulate
  * - EmulateProps       : Props cho Emulate component
- * - LaunchTargetOptions : Options để launch một target
- * - AppLaunchResult    : Kết quả launch app
  * ------------------------------------------------------------------
  */
 
@@ -71,19 +69,4 @@ export interface EmulateProps {
     mode?: 'browser' | 'electron' | 'native' | 'cdp',
   ) => Promise<void>;
   onStopSession?: () => Promise<void>;
-}
-
-export interface LaunchTargetOptions {
-  appId: string;
-  proxyUrl: string;
-  customUrl?: string;
-  mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida';
-  useEnvInject?: boolean;
-}
-
-export interface AppLaunchResult {
-  success: boolean;
-  pid?: number;
-  url?: string;
-  error?: string;
 }

@@ -13,10 +13,6 @@ const getPrimaryColor = (): string => {
   return primaryValue || '54 134 255';
 };
 
-/**
- * Custom hook for accessing accent colors from theme
- * Provides consistent color access for components like ToolManager and ModuleBar
- */
 export const useAccentColors = () => {
   const { currentPreset } = useTheme();
 

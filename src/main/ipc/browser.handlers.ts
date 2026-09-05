@@ -8,7 +8,6 @@
  *
  * Hàm chính:
  * - setupBrowserHandlers()    : Đăng ký tất cả IPC handler browser:
- * - getBrowserSession()       : Lấy phiên hoạt động theo ID target
  * - closeAllBrowserSessions() : Đóng tất cả phiên khi tắt máy
  * ------------------------------------------------------------------
  */
@@ -933,14 +932,6 @@ export function setupBrowserHandlers(): void {
       }
     },
   );
-}
-
-/**
- * Get active browser session (for integration with other tools)
- * This is exported for use by other services
- */
-export function getBrowserSession(targetId: string): BrowserSession | undefined {
-  return activeSessions.get(targetId);
 }
 
 /**

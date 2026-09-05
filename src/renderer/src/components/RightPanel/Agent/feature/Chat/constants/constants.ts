@@ -16,12 +16,10 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // Re-export raw values
 export {
-  STREAM_BOX_HEIGHT,
   ALLOWED_FILE_EXTENSIONS,
   TOOL_ACTION_TYPES,
   EXECUTION_STATUS,
   TERMINAL_STATUS,
-  PERMISSION_MODE,
 } from './shared';
 export type { TerminalStatus } from './shared';
 export type {
@@ -64,40 +62,14 @@ import {
   getAllUITagTypes as _getAllUITagTypes,
   getAllTagTypes as _getAllTagTypes,
   requiresConfirmation as _requiresConfirmation,
-  shouldShowApprovalUI as _shouldShowApprovalUI,
-  getConfigurableTools as _getConfigurableTools,
   shouldShowFileStats as _shouldShowFileStats,
   shouldValidateFuzzyMatch as _shouldValidateFuzzyMatch,
-  getFileMutationTools as _getFileMutationTools,
   getToolTimeout as _getToolTimeout,
   isToolClickable as _isToolClickable,
   getToolLabel as _getToolLabel,
 } from './shared';
 
-export const getTagDef = (type: string): TagDefinition | undefined =>
-  _getTagDef(TAG_REGISTRY, type);
-
-export const getAllToolTypes = (): string[] =>
-  _getAllToolTypes(TAG_REGISTRY);
-
-export const getAllUITagTypes = (): string[] =>
-  _getAllUITagTypes(TAG_REGISTRY);
-
-export const getAllTagTypes = (): string[] =>
-  _getAllTagTypes(TAG_REGISTRY);
-
-export const requiresConfirmation = (
-  type: string,
-  mode: "approval" | "fullAccess" = "approval",
-): boolean => _requiresConfirmation(TAG_REGISTRY, type, mode);
-
-export const shouldShowApprovalUI = (
-  type: string,
-  mode: "approval" | "fullAccess" = "approval",
-): boolean => _shouldShowApprovalUI(TAG_REGISTRY, type, mode);
-
-export const getConfigurableTools = (): string[] =>
-  _getConfigurableTools(TAG_REGISTRY);
+export const getAllToolTypes = (): string[] => _getAllToolTypes(TAG_REGISTRY);
 
 export const shouldShowFileStats = (toolType: string): boolean =>
   _shouldShowFileStats(TAG_REGISTRY, toolType);
@@ -105,23 +77,10 @@ export const shouldShowFileStats = (toolType: string): boolean =>
 export const shouldValidateFuzzyMatch = (toolType: string): boolean =>
   _shouldValidateFuzzyMatch(TAG_REGISTRY, toolType);
 
-export const getFileMutationTools = (): readonly string[] =>
-  _getFileMutationTools(TAG_REGISTRY);
+export const getToolTimeout = (toolType: string): number => _getToolTimeout(TAG_REGISTRY, toolType);
 
-export const getToolTimeout = (toolType: string): number =>
-  _getToolTimeout(TAG_REGISTRY, toolType);
+export const isToolClickable = (type: string): boolean => _isToolClickable(TAG_REGISTRY, type);
 
-export const isToolClickable = (type: string): boolean =>
-  _isToolClickable(TAG_REGISTRY, type);
-
-export const getToolLabel = (toolType: string): string =>
-  _getToolLabel(TAG_REGISTRY, toolType);
+export const getToolLabel = (toolType: string): string => _getToolLabel(TAG_REGISTRY, toolType);
 
 // ============= FILE_MUTATION_TOOLS (backward compatibility) =============
-export const FILE_MUTATION_TOOLS = _getFileMutationTools(TAG_REGISTRY) as readonly [
-  "write_to_file",
-  "replace_in_file",
-  "revert_file",
-];
-
-export type FileMutationTool = (typeof FILE_MUTATION_TOOLS)[number];

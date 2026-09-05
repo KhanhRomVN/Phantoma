@@ -885,28 +885,3 @@ export const formatActionForDisplay = (action: ToolAction): string => {
       return ``;
   }
 };
-
-/**
- * Get detailed info for action modal/tooltip
- */
-export const getActionDetails = (action: ToolAction): string => {
-  const lines: string[] = [];
-
-  lines.push(`Tool: ${action.type}`);
-  lines.push('');
-
-  // Format parameters
-  Object.entries(action.params).forEach(([key, value]) => {
-    if (value !== null && value !== undefined) {
-      if (typeof value === 'string' && value.length > 200) {
-        lines.push(`${key}: ${value.substring(0, 200)}...`);
-      } else if (typeof value === 'object') {
-        lines.push(`${key}: ${JSON.stringify(value, null, 2)}`);
-      } else {
-        lines.push(`${key}: ${value}`);
-      }
-    }
-  });
-
-  return lines.join('\n');
-};

@@ -33,8 +33,8 @@ import {
 
 // ── Hooks ──
 import { useCodeStore } from '../modules/Code/hooks/useCodeStore';
-import { useActiveModule } from '../modules/Tool/hooks/useActiveModule';
-import { useActiveTarget } from '../modules/Tool/hooks/useActiveTarget';
+import { useActiveModule } from '../hooks/useActiveModule';
+import { useActiveTarget } from '../hooks/useActiveTarget';
 
 // ── Components ──
 import { RightPanel } from '../components/RightPanel';
@@ -52,7 +52,7 @@ import {
 import { logger } from '../utils/logger';
 
 // ── Types ──
-import { PhantomModule } from '../modules/Tool/types/types';
+import { PhantomModule } from '../types/phantom-module';
 
 // ─── Component ──────────────────────────────────────────────────────────
 const MainLayoutContent = () => {

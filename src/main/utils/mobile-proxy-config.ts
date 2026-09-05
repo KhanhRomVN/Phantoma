@@ -252,39 +252,6 @@ export async function setupCompleteProxy(
 }
 
 /**
- * Restart network services on Android (to apply proxy changes)
- */
-export async function restartNetworkServices(serial: string): Promise<boolean> {
-  try {
-    // Toggle airplane mode to restart network
-    await execAsync(`adb -s "${serial}" shell "cmd connectivity airplane-mode enable"`);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    await execAsync(`adb -s "${serial}" shell "cmd connectivity airplane-mode disable"`);
-
-    return true;
-  } catch (error) {
-    logger.error('Failed to restart network services:', error);
-    return false;
-  }
-}
-
-/**
- * Disable battery optimization for an app (helps keep Frida running)
- */
-export async function disableBatteryOptimization(
-  serial: string,
-  packageName: string,
-): Promise<boolean> {
-  try {
-    await execAsync(`adb -s "${serial}" shell "dumpsys deviceidle whitelist +${packageName}"`);
-    return true;
-  } catch (error) {
-    logger.error('Failed to disable battery optimization:', error);
-    return false;
-  }
-}
-
-/**
  * Install APK on emulator
  */
 export async function installAPK(

@@ -26,13 +26,6 @@
 // ── Types ──
 import { LogEntry, LogLevel } from '../types/log.types';
 
-// ─── Interfaces ─────────────────────────────────────────────────────────
-export interface LogcatOptions {
-  serial: string;
-  onLog?: (entry: LogEntry) => void;
-  onError?: (error: Error) => void;
-}
-
 // ─── Class ──────────────────────────────────────────────────────────────
 export class LogcatService {
   private listeners: Map<string, (event: unknown, data: string) => void> = new Map();

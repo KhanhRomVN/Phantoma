@@ -1,15 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
-
-interface DrawerHeaderProps {
-  title?: string;
-  description?: string;
-  onClose?: () => void;
-  showCloseButton?: boolean;
-  className?: string;
-  children?: React.ReactNode;
-}
+import { DrawerHeaderProps } from './type';
 
 export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   title,

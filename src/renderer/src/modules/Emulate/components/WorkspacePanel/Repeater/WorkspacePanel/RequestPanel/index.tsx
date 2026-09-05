@@ -24,7 +24,7 @@ import type {
 } from '../../../../../types/repeater.types';
 
 // ── Hooks ──
-import { useRepeaterPersistence } from '../../../../../hooks/repeater/useRepeaterPersistence';
+import { useRepeaterPersistence } from '../../../../../hooks/useRepeaterPersistence';
 
 // ── Services ──
 import { emulateApi } from '../../../../../services/emulate-api.service';

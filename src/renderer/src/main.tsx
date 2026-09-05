@@ -30,7 +30,7 @@ if (import.meta.env.PROD) {
 }
 
 import { ThemeProvider } from './theme/ThemeProvider';
-import { FontProvider } from './fonts';
+import { FontProvider } from './fonts/FontProvider';
 
 const queryClient = new QueryClient();
 

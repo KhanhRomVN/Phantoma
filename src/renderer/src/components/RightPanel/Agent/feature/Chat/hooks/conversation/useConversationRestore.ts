@@ -91,11 +91,12 @@ export const useConversationRestore = ({
         }
       };
     }
+    return undefined;
   }, [isLoadingConversation]);
 
   // Load conversation
   useEffect(() => {
-    const load = async () => {
+    const load = async (): Promise<void> => {
       if (!currentChat) {
         // Reset all state when going back to Home (currentChat = null)
         currentConversationIdRef.current = '';
@@ -103,23 +104,30 @@ export const useConversationRestore = ({
         setIsLoadingConversation(false);
         setIsProcessing(false);
         setIsRestored(false);
+        setToolOutputs({});
+        setLoadedConversationFileStats(null);
         return;
       }
 
+      // Force reset loading state at start of new session
       setIsLoadingConversation(true);
       setIsRestored(false);
+      setIsProcessing(false);
 
       const convId = (currentChat as any).conversationId;
       if (convId) {
-        const requestId = `conv-${Date.now()}`;
+        const requestId = `conv-${Date.now()}-${currentChat.sessionId}`;
         extensionService.postMessage({
           command: 'getConversation',
           conversationId: convId,
           requestId,
         });
       } else {
+        // New chat session - reset everything immediately
         setMessages([]);
         setCurrentConversationId('');
+        setToolOutputs({});
+        setLoadedConversationFileStats(null);
         setIsLoadingConversation(false);
       }
     };

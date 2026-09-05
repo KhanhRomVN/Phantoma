@@ -78,11 +78,24 @@ export function filterRequestsByConfig(
         req.status?.toString(),
         req.size,
         req.time,
+        req.requestBody,
+        req.responseBody,
       ]
         .filter(Boolean)
         .map((s) => String(s).toLowerCase());
 
-      if (!searchable.some((s) => s.includes(term))) {
+      const headerEntries = [req.requestHeaders, req.responseHeaders].flatMap(
+        (headers) => (headers ? Object.entries(headers) : []),
+      );
+      const headerSearchable = headerEntries
+        .flatMap(([k, v]) => [k, String(v)])
+        .map((s) => s.toLowerCase());
+
+      const matchesSearch =
+        searchable.some((s) => s.includes(term)) ||
+        headerSearchable.some((s) => s.includes(term));
+
+      if (!matchesSearch) {
         return false;
       }
     }

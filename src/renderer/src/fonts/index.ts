@@ -185,7 +185,7 @@ export const setStoredFont = (fontFamily: string): void => {
 export const initFontSystem = (): void => {
   // First, inject all font faces
   initFonts();
-  
+
   const stored = getStoredFont();
   if (stored) {
     applyFont(stored);
@@ -198,9 +198,6 @@ export const initFontSystem = (): void => {
     }
   }
 };
-
-// Re-export FontProvider and useFont
-export { FontProvider, useFont } from './FontProvider';
 
 // Default export for convenient import
 export default FONTS;

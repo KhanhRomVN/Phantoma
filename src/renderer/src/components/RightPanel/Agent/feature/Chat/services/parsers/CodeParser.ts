@@ -6,7 +6,6 @@
  * Mỗi tool có một parse function riêng để extract params.
  *
  * Main functions:
- * - parseCommitMessage()      : Parse commit_message tag
  * - parseDeleteFile()         : Parse delete_file tag
  * - parseFindFiles()          : Parse find_files tag
  * - parseGrep()               : Parse grep tag
@@ -23,37 +22,9 @@ import { extractParamValue } from '../../utils/ToolParser';
 import { logger } from '@renderer/utils/logger';
 
 // ── Types ──
-import {
-  CommitMessageParams,
-  GitDiffParams,
-  GitStatusParams,
-  RunCommandParams,
-} from '../../types/tool-types';
+import { GitDiffParams, GitStatusParams, RunCommandParams } from '../../types/tool-types';
 
 // ─── Functions ──────────────────────────────────────────────────────────
-// ===== CommitMessageParser =====
-
-/**
- * Parse commit_message tag from AI response
- * Format: <commit_message><message>...</message></commit_message>
- */
-export function parseCommitMessage(innerContent: string): CommitMessageParams {
-  const params: CommitMessageParams = {};
-
-  // Extract commit message content
-  const messageParam = extractParamValue(innerContent, 'message');
-  if (messageParam) {
-    params.message = messageParam;
-  }
-
-  // Or get the full content if no specific param
-  if (!params.message && innerContent.trim()) {
-    params.message = innerContent.trim();
-  }
-
-  return params;
-}
-
 // ===== DeleteFileParser =====
 
 export interface DeleteFileParams {

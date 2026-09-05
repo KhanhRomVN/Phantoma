@@ -2,21 +2,38 @@
  * ------------------------------------------------------------------
  * SystemStatsModal
  * ------------------------------------------------------------------
- * Modal displaying detailed system statistics and resource usage.
- * Modern UI with gauge rings, sparklines, and organized sections.
+ * Modal hiển thị thhống kê hệ thống: CPU, RAM, Disk, Network,
+ * và thông tin hệ thống. Hiện dùng dữ liệu mock, sẽ thay bằng
+ * API thật sau này.
+ *
+ * Main features:
+ * - Hiển thị gauge tròn cho CPU/RAM/Disk
+ * - Hiển thị thông tin network và system info
+ * - Hiển thị các mini stat (temp, power, disk I/O, latency)
  * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── UI ──
 import { Cpu, Activity, HardDrive, Wifi, Zap, Server, Thermometer } from 'lucide-react';
+
+// ── Components ──
 import { Modal, ModalHeader, ModalBody } from './ui/Modal';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface SystemStatsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// Circular gauge component
-function Gauge({ value, size = 116, strokeWidth = 9, color, track = '#171D27' }: {
+// ─── Gauge Component ────────────────────────────────────────────────────
+function Gauge({
+  value,
+  size = 116,
+  strokeWidth = 9,
+  color,
+  track = '#171D27',
+}: {
   value: number;
   size?: number;
   strokeWidth?: number;
@@ -62,8 +79,14 @@ function Gauge({ value, size = 116, strokeWidth = 9, color, track = '#171D27' }:
   );
 }
 
-// Gauge card with metadata
-function GaugeCard({ icon, label, value, color, meta }: {
+// ─── GaugeCard Component ────────────────────────────────────────────────
+function GaugeCard({
+  icon,
+  label,
+  value,
+  color,
+  meta,
+}: {
   icon: React.ReactNode;
   label: string;
   value: number;
@@ -89,8 +112,14 @@ function GaugeCard({ icon, label, value, color, meta }: {
   );
 }
 
-// Mini stat card
-function MiniStat({ icon, label, value, note, noteColor }: {
+// ─── MiniStat Component ─────────────────────────────────────────────────
+function MiniStat({
+  icon,
+  label,
+  value,
+  note,
+  noteColor,
+}: {
   icon: React.ReactNode;
   label: string;
   value: string;
@@ -111,7 +140,7 @@ function MiniStat({ icon, label, value, note, noteColor }: {
   );
 }
 
-// Info row
+// ─── InfoRow Component ──────────────────────────────────────────────────
 function InfoRow({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between py-1.5 border-b border-border">
@@ -121,8 +150,9 @@ function InfoRow({ k, v }: { k: string; v: string }) {
   );
 }
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function SystemStatsModal({ isOpen, onClose }: SystemStatsModalProps) {
-  // Mock detailed system data (replace with real API calls later)
+  // ── Derived ──
   const systemStats = {
     cpu: {
       usage: 45,
@@ -157,6 +187,7 @@ export function SystemStatsModal({ isOpen, onClose }: SystemStatsModalProps) {
     },
   };
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-4xl max-h-[85vh]">
       <ModalHeader title="System Statistics" onClose={onClose} />

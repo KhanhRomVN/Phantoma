@@ -1,10 +1,37 @@
+/**
+ * ------------------------------------------------------------------
+ * QuickNavModal
+ * ------------------------------------------------------------------
+ * Modal điều hướng nhanh giữa các module. Hỗ trợ tìm kiếm,
+ * điều hướng bằng phím, và hiển thị trạng thái target đang chạy
+ * cho module Emulate.
+ *
+ * Main features:
+ * - Tìm kiếm module theo tên hoặc mô tả
+ * - Điều hướng bằng phím mũi tên, Enter để chọn, Esc để đóng
+ * - Hiển thị badge số lượng target đang chạy cho module Emulate
+ * - Footer tách riêng (memo) để tránh re-render khi hover item
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useRef, memo } from 'react';
+
+// ── UI ──
 import { Search, ArrowUp, ArrowDown, CornerDownLeft, Circle } from 'lucide-react';
-import { Modal, ModalBody, ModalFooter } from './ui/Modal';
-import { Kbd } from './ui/Kbd';
-import { cn } from '@renderer/shared/utils/cn';
+
+// ── Hooks ──
 import { useRunningTargets } from '@renderer/hooks/useRunningTargets';
 
+// ── Utils ──
+import { cn } from '@renderer/shared/utils/cn';
+
+// ── Components ──
+import { Modal, ModalBody, ModalFooter } from './ui/Modal';
+import { Kbd } from './ui/Kbd';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
 interface QuickNavItem {
   id: string;
   title: string;
@@ -20,6 +47,7 @@ interface QuickNavModalProps {
   items: QuickNavItem[];
 }
 
+// ─── Footer Component ───────────────────────────────────────────────────
 // Tách riêng footer để tránh re-render khi hover item (chỉ phụ thuộc vào resultCount)
 const QuickNavFooter = memo(function QuickNavFooter({ resultCount }: { resultCount: number }) {
   return (
@@ -52,37 +80,42 @@ const QuickNavFooter = memo(function QuickNavFooter({ resultCount }: { resultCou
   );
 });
 
+// ─── Component ──────────────────────────────────────────────────────────
 export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
+  // ── State ──
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isKeyboardNav, setIsKeyboardNav] = useState(false);
+
+  // ── Refs ──
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const keyboardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ── Store ──
   const { runningTargets, count: runningCount } = useRunningTargets();
 
-  // Filter items based on search
+  // ── Derived ──
   const filteredItems = items.filter(
     (item) =>
       item.title.toLowerCase().includes(search.toLowerCase()) ||
       item.description.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Reset selected index when items change, but only if current index is out of bounds
+  // ── Effects ──
   useEffect(() => {
     if (selectedIndex >= filteredItems.length) {
       setSelectedIndex(0);
     }
   }, [filteredItems, selectedIndex]);
 
-  // Focus input when modal opens
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
 
-  // Keyboard navigation
+  // ── Handlers ──
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       setIsKeyboardNav(true);
@@ -125,6 +158,7 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
     }
   };
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-2xl">
       <div className="p-4 border-b border-border">
@@ -179,7 +213,6 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{item.title}</span>
-                    {/* Hiển thị badge số lượng targets đang running cho Emulate */}
                     {item.id === 'emulate' && runningCount > 0 && (
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                         <Circle className="w-2 h-2 fill-current" />
@@ -188,7 +221,6 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
                     )}
                   </div>
                   <div className="text-xs text-text-secondary/70 truncate">{item.description}</div>
-                  {/* Hiển thị danh sách targets đang running cho Emulate */}
                   {item.id === 'emulate' && runningTargets.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {runningTargets.slice(0, 3).map((target) => (

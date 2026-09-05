@@ -7,9 +7,6 @@
  *
  * Các types chính:
  * - InspectorFilter   : Cấu trúc filter hoàn chỉnh
- * - FilterMethodKey   : Key của methods filter
- * - FilterTypeKey     : Key của type filter
- * - FilterChangeHandler : Callback khi filter thay đổi
  * ------------------------------------------------------------------
  */
 
@@ -48,26 +45,4 @@ export interface InspectorFilter {
     min: string;
     max: string;
   };
-}
-
-export type FilterMethodKey = keyof InspectorFilter['methods'];
-export type FilterTypeKey = keyof InspectorFilter['type'];
-
-// ─── Constants ──────────────────────────────────────────────────────────
-export const TYPE_LABELS: Record<FilterTypeKey, string> = {
-  xhr: 'XHR',
-  js: 'JS',
-  css: 'CSS',
-  img: 'Image',
-  media: 'Media',
-  font: 'Font',
-  doc: 'Document',
-  ws: 'WebSocket',
-  wasm: 'WebAssembly',
-  manifest: 'Manifest',
-  other: 'Other',
-};
-
-export interface FilterChangeHandler {
-  (filter: InspectorFilter): void;
 }

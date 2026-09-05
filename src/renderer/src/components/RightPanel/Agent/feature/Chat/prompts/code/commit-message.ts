@@ -1,9 +1,9 @@
 export function getCommitMessagePrompt(
-  language: "en" | "vi",
+  language: 'en' | 'vi',
   gitStatus: string,
   fileContents?: Record<string, string>,
 ): string {
-  const languageName = language === "en" ? "English" : "Vietnamese";
+  const languageName = language === 'en' ? 'English' : 'Vietnamese';
 
   const fileContentsSection =
     fileContents && Object.keys(fileContents).length > 0
@@ -17,9 +17,9 @@ ${Object.entries(fileContents)
 ${content}
 \`\`\``,
   )
-  .join("\n\n")}
+  .join('\n\n')}
 `
-      : "";
+      : '';
 
   return `
 You are a Git commit message generator. Your job is to analyze changes and produce a high-quality commit message.
@@ -142,8 +142,3 @@ ${fileContentsSection}
 Now follow STEP 1 first. Only proceed to STEP 2 if context is sufficient.
 `;
 }
-
-export const COMMIT_MESSAGE_PROMPT = getCommitMessagePrompt(
-  "vi",
-  "{gitStatus}",
-);

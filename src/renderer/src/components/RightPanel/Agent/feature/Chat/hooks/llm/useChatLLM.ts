@@ -177,6 +177,12 @@ export const useChatLLM = ({
   });
 
   const resetSession = useCallback(() => {
+    // Abort any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
     currentConversationIdRef.current = '';
     backendConversationIdRef.current = '';
     messagesRef.current = [];
@@ -187,9 +193,22 @@ export const useChatLLM = ({
     setCurrentConversationId('');
     setMessages([]);
     setIsProcessingSync(false);
+    setIsContinuingSync(false);
     dispatchStreaming({ type: 'STOP_ALL' });
     setConversationToolOverrides({});
-  }, [setIsProcessingSync, dispatchStreaming]);
+
+    // Clear sessionStorage
+    try {
+      const keys = Object.keys(sessionStorage);
+      keys.forEach(key => {
+        if (key.startsWith('zen-backend-conv:') || key.startsWith('zen-revert-parent:')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    } catch (err) {
+      logger.warn('[useChatLLM] Failed to clear sessionStorage:', err);
+    }
+  }, [setIsProcessingSync, setIsContinuingSync, dispatchStreaming]);
 
   const stopGeneration = useCallback(() => {
     if (abortControllerRef.current) {
@@ -838,6 +857,7 @@ export const useChatLLM = ({
       sendMessage,
       stopGeneration,
       resetSession,
+      isProcessingRef,
       setBackendConversationId: (
         id: string,
         meta?: { providerId?: string; modelId?: string; accountId?: string },

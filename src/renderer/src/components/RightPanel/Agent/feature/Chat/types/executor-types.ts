@@ -9,7 +9,6 @@
  * - ExecutorContext : Context dùng chung cho tất cả executors
  * - ToolExecutor    : Interface chuẩn cho mọi tool executor
  * - ExecutorOptions : Options tùy chọn khi thực thi tool
- * - Diagnostic      : Thông tin diagnostic từ tool execution
  * ------------------------------------------------------------------
  */
 
@@ -21,16 +20,6 @@ import type { ToolOutput } from './tool-outputs';
 import { extensionService } from '../../../services/ExtensionService';
 
 // ─── Types ──────────────────────────────────────────────────────────────
-// Common diagnostic type
-export interface Diagnostic {
-  severity: string;
-  message: string;
-  line: number;
-  column: number;
-  source?: string;
-  code?: string | number;
-}
-
 // Executor context - shared state and dependencies
 export interface ExecutorContext {
   setToolOutputs: React.Dispatch<React.SetStateAction<Record<string, ToolOutput>>>;
@@ -50,11 +39,7 @@ export interface ExecutorContext {
 
 // Base executor interface
 export interface ToolExecutor {
-  execute(
-    action: any,
-    context: ExecutorContext,
-    options?: ExecutorOptions
-  ): Promise<string | null>;
+  execute(action: any, context: ExecutorContext, options?: ExecutorOptions): Promise<string | null>;
 }
 
 // Executor options

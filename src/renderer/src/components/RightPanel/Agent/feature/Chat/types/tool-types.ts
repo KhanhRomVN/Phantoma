@@ -47,7 +47,7 @@ export interface ListFilesParams {
   folder_path?: string;
   path?: string;
   recursive?: boolean;
-  depth?: number | "max";
+  depth?: number | 'max';
   type?: string;
 }
 
@@ -62,34 +62,8 @@ export interface GrepParams {
   _validationError?: string; // Internal flag for invalid regex
 }
 
-// ===== FIND FILES =====
-export interface FindFilesParams {
-  file_names?: string[];
-}
-
-export interface FindFilesResult {
-  fileName: string;
-  matches: string[];
-}
-
-export interface FindFilesResponse {
-  output: string;
-  results?: FindFilesResult[];
-  totalMatches?: number;
-}
-
 // ===== DELETE FILE =====
 export interface DeleteFileParams extends BaseToolParams {}
-
-// ===== DELETE FOLDER =====
-export interface DeleteFolderParams {
-  folder_path: string;
-}
-
-export interface DeleteFolderResult {
-  success: boolean;
-  error?: string;
-}
 
 // ===== MOVE FILE =====
 export interface MoveFileParams {
@@ -97,24 +71,11 @@ export interface MoveFileParams {
   target_folder_path: string;
 }
 
-export interface MoveFileResult {
-  success: boolean;
-  newPath?: string;
-  error?: string;
-}
-
 // ===== RUN COMMAND =====
 export interface RunCommandParams {
   command: string;
   terminal_id?: string;
   cwd?: string;
-}
-
-export interface RunCommandResult {
-  success: boolean;
-  output: string;
-  terminalId?: string;
-  error?: string;
 }
 
 // ===== GIT STATUS =====
@@ -133,66 +94,8 @@ export interface GitStatusParams {
   raw?: string;
 }
 
-export interface GitStatusBlockProps {
-  statusItems: GitStatusItem[];
-  onConfirm: () => void;
-  onCancel: () => void;
-  isProcessing?: boolean;
-}
-
-// ===== COMMIT MESSAGE =====
-export interface CommitMessageParams {
-  message?: string;
-  content?: string;
-}
-
-export interface CommitMessageBlockProps {
-  message: string;
-  branch?: string;
-  isCommitted?: boolean;
-  isRejected?: boolean;
-  isProcessing?: boolean;
-  onAccept?: () => void;
-  onReject?: () => void;
-}
-
 // ===== GIT DIFF =====
 export interface GitDiffParams extends BaseToolParams {}
-
-export interface GitDiffBlockProps {
-  filePath: string;
-  diffContent: string;
-  added: number;
-  deleted: number;
-  statusColor: string;
-  isPartial: boolean;
-  branch?: string;
-  onFileClick?: (path: string) => void;
-}
-
-// ===== CODE =====
-export interface CodeBlock {
-  content: string;
-  language?: string;
-}
-
-// ===== MARKDOWN =====
-export interface MarkdownBlockProps {
-  content: string;
-}
-
-// ===== THINKING =====
-export interface ThinkingBlock {
-  content: string;
-}
-
-// ===== QUESTION =====
-export interface QuestionBlock {
-  options: string[];
-  title?: string;
-  optional?: boolean;
-  questions?: any[]; // Avoid circular dependency with message types
-}
 
 // ===== EMULATE TOOLS =====
 export interface ListHttpsParams {
@@ -262,17 +165,4 @@ export interface UpdateRepeaterContentParams {
 
 export interface RunRepeaterParams {
   repeater_id: string;
-}
-
-// ===== RECON TOOLS =====
-export interface LaunchBrowserParams {
-  targetId?: string;
-}
-
-export interface CloseBrowserParams {
-  targetId?: string;
-}
-
-export interface GetBrowserStatusParams {
-  targetId?: string;
 }

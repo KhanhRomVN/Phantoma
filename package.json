@@ -75,7 +75,7 @@
     "check:scan": "tsx scripts/watch-feature.ts src/renderer/src/features/Scan --once",
     "check:wireless": "tsx scripts/watch-feature.ts src/renderer/src/features/Wireless --once",
     "check": "tsx scripts/watch-feature.ts src/renderer/src --once",
-    "find-unused": "tsx scripts/find-unused.ts"
+    "find-unused": "node ts-reap/dist/cli.js check --tsconfig tsconfig.web.json --scope \"src\" --ignore \"src/renderer/src/theme\""
   },
   "dependencies": {
     "@babel/standalone": "^8.0.4",
@@ -168,6 +168,7 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "globals": "^16.5.0",
     "jsdom": "^27.3.0",
+    "knip": "^6.34.0",
     "postcss": "^8.4.32",
     "prettier": "^3.7.4",
     "prisma": "^7.3.0",

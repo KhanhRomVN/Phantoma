@@ -35,7 +35,7 @@ import { NetworkRequest } from '../modules/Emulate/types/inspector';
 import { InspectorFilter } from '../modules/Emulate/types/filter.types';
 import type { ApplyFilterParams } from '../components/RightPanel/Agent/feature/Chat/services/parsers/EmulateParser';
 import type { TrafficSummary } from '../components/RightPanel/Agent/feature/Chat/prompts/emulate';
-import { filterRequestsByConfig } from '@renderer/modules/Emulate/hooks/network/useRequestFilter';
+import { filterRequestsByConfig } from '@renderer/modules/Emulate/hooks/useRequestFilter';
 import { SendToRepeaterHandler } from '../modules/Emulate/handler/SendToRepeaterHandler';
 import { ListRepeatersHandler } from '../modules/Emulate/handler/ListRepeatersHandler';
 import { DeleteRepeaterHandler } from '../modules/Emulate/handler/DeleteRepeaterHandler';

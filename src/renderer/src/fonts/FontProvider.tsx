@@ -87,12 +87,4 @@ export const FontProvider: React.FC<FontProviderProps> = ({
   return <FontProviderContext.Provider value={value}>{children}</FontProviderContext.Provider>;
 };
 
-export const useFont = (): FontProviderState => {
-  const context = useContext(FontProviderContext);
-  if (context === undefined) {
-    throw new Error('useFont must be used within a FontProvider');
-  }
-  return context;
-};
-
 export default FontProvider;

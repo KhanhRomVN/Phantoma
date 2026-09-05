@@ -8,7 +8,6 @@
  * Main exports:
  * - TOOL_ACTION_TYPES     : Các loại action (accept/reject)
  * - EXECUTION_STATUS      : Trạng thái thực thi tool
- * - PERMISSION_MODE       : Metadata cho các chế độ permission
  * - SHARED_TAG_REGISTRY   : Registry cho UI tags (markdown, thinking, question)
  * - getTagDef()           : Tra cứu định nghĩa tag
  * - requiresConfirmation() : Kiểm tra tool có cần xác nhận không
@@ -16,12 +15,6 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-// ── React ──
-import React from "react";
-
-// ── UI ──
-import { Zap, ShieldCheck } from "lucide-react";
-
 // ── Types ──
 import type {
   PermissionMode,
@@ -31,7 +24,7 @@ import type {
   ToolType,
   UITagType,
   TagType,
-} from "../types/tag-types";
+} from '../types/tag-types';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────
 // Re-export types for backward compatibility
@@ -46,97 +39,75 @@ export type {
 };
 
 // ─── Constants ──────────────────────────────────────────────────────────
-export const STREAM_BOX_HEIGHT = 154;
-
 // Whitelist of allowed file extensions for external files
 export const ALLOWED_FILE_EXTENSIONS = [
-  ".txt",
-  ".md",
-  ".json",
-  ".ts",
-  ".tsx",
-  ".js",
-  ".jsx",
-  ".py",
-  ".java",
-  ".cpp",
-  ".c",
-  ".h",
-  ".hpp",
-  ".css",
-  ".html",
-  ".xml",
-  ".yaml",
-  ".yml",
-  ".toml",
-  ".ini",
-  ".cfg",
-  ".sh",
-  ".go",
-  ".rs",
-  ".rb",
-  ".php",
-  ".swift",
-  ".kt",
-  ".scala",
+  '.txt',
+  '.md',
+  '.json',
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.py',
+  '.java',
+  '.cpp',
+  '.c',
+  '.h',
+  '.hpp',
+  '.css',
+  '.html',
+  '.xml',
+  '.yaml',
+  '.yml',
+  '.toml',
+  '.ini',
+  '.cfg',
+  '.sh',
+  '.go',
+  '.rs',
+  '.rb',
+  '.php',
+  '.swift',
+  '.kt',
+  '.scala',
 ];
 
 // ===== TOOL ACTION TYPES =====
 export const TOOL_ACTION_TYPES = {
-  ACCEPT: "accept",
-  REJECT: "reject",
+  ACCEPT: 'accept',
+  REJECT: 'reject',
 } as const;
 
 // ===== EXECUTION STATUS =====
 export const EXECUTION_STATUS = {
-  IDLE: "idle",
-  RUNNING: "running",
-  ERROR: "error",
-  DONE: "done",
+  IDLE: 'idle',
+  RUNNING: 'running',
+  ERROR: 'error',
+  DONE: 'done',
 } as const;
 
 // ===== TERMINAL STATUS =====
 export const TERMINAL_STATUS = {
-  BUSY: "busy",
-  FREE: "free",
+  BUSY: 'busy',
+  FREE: 'free',
 } as const;
 
-export type TerminalStatus =
-  (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS];
-
-// ===== PERMISSION MODE METADATA =====
-export const PERMISSION_MODE: Record<
-  string,
-  { label: string; desc: string; icon: React.ReactNode; color: string }
-> = {
-  fullAccess: {
-    label: "Full Access",
-    desc: "AI has unrestricted access to all project files and tools",
-    icon: React.createElement(Zap, { size: 11 }),
-    color: "$('--warn')",
-  },
-  approval: {
-    label: "Approval Required",
-    desc: "AI must request explicit approval before accessing files or running commands",
-    icon: React.createElement(ShieldCheck, { size: 11 }),
-    color: "$('--info')",
-  },
-};
+export type TerminalStatus = (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS];
 
 // ===== SHARED TAG REGISTRY (UI tags only) =====
 export const SHARED_TAG_REGISTRY: Record<string, TagDefinition> = {
   // UI TAGS
   markdown: {
-    id: "markdown",
-    category: "ui",
+    id: 'markdown',
+    category: 'ui',
   },
   thinking: {
-    id: "thinking",
-    category: "ui",
+    id: 'thinking',
+    category: 'ui',
   },
   question: {
-    id: "question",
-    category: "ui",
+    id: 'question',
+    category: 'ui',
   },
 };
 
@@ -155,31 +126,25 @@ export const getTagDef = (
 /**
  * Lấy tất cả tool types từ registry
  */
-export const getAllToolTypes = (
-  registry: Record<string, TagDefinition>,
-): string[] => {
+export const getAllToolTypes = (registry: Record<string, TagDefinition>): string[] => {
   return Object.entries(registry)
-    .filter(([_, def]) => def.category === "tool")
+    .filter(([_, def]) => def.category === 'tool')
     .map(([key]) => key);
 };
 
 /**
  * Lấy tất cả UI tag types từ registry
  */
-export const getAllUITagTypes = (
-  registry: Record<string, TagDefinition>,
-): string[] => {
+export const getAllUITagTypes = (registry: Record<string, TagDefinition>): string[] => {
   return Object.entries(registry)
-    .filter(([_, def]) => def.category === "ui")
+    .filter(([_, def]) => def.category === 'ui')
     .map(([key]) => key);
 };
 
 /**
  * Lấy tất cả tag types từ registry
  */
-export const getAllTagTypes = (
-  registry: Record<string, TagDefinition>,
-): string[] => {
+export const getAllTagTypes = (registry: Record<string, TagDefinition>): string[] => {
   return Object.keys(registry);
 };
 
@@ -189,35 +154,13 @@ export const getAllTagTypes = (
 export const requiresConfirmation = (
   registry: Record<string, TagDefinition>,
   type: string,
-  mode: "approval" | "fullAccess" = "approval",
+  mode: 'approval' | 'fullAccess' = 'approval',
 ): boolean => {
   const tag = registry[type];
-  if (!tag || tag.category !== "tool" || !tag.permissions) return false;
+  if (!tag || tag.category !== 'tool' || !tag.permissions) return false;
 
   const permission = tag.permissions[mode];
-  return permission === "confirm";
-};
-
-/**
- * Kiểm tra xem tool hoặc UI tag có nên hiển thị approval UI hay không
- */
-export const shouldShowApprovalUI = (
-  registry: Record<string, TagDefinition>,
-  type: string,
-  mode: "approval" | "fullAccess" = "approval",
-): boolean => {
-  return requiresConfirmation(registry, type, mode);
-};
-
-/**
- * Get all tools that have user-configurable permissions
- */
-export const getConfigurableTools = (
-  registry: Record<string, TagDefinition>,
-): string[] => {
-  return Object.entries(registry)
-    .filter(([_, def]) => def.category === "tool")
-    .map(([_, def]) => def.id);
+  return permission === 'confirm';
 };
 
 // ============= HELPER FUNCTIONS FOR FILE STATS =============
@@ -227,9 +170,7 @@ export const shouldShowFileStats = (
   toolType: string,
 ): boolean => {
   const tag = registry[toolType];
-  return tag?.category === "tool"
-    ? (tag.features?.showFileStats ?? false)
-    : false;
+  return tag?.category === 'tool' ? (tag.features?.showFileStats ?? false) : false;
 };
 
 /**
@@ -240,20 +181,7 @@ export const shouldValidateFuzzyMatch = (
   toolType: string,
 ): boolean => {
   const tag = registry[toolType];
-  return tag?.category === "tool"
-    ? (tag.features?.validateFuzzyMatch ?? false)
-    : false;
-};
-
-/**
- * Get file mutation tools from registry
- */
-export const getFileMutationTools = (
-  registry: Record<string, TagDefinition>,
-): readonly string[] => {
-  return Object.entries(registry)
-    .filter(([_, def]) => def.features?.isFileMutation === true)
-    .map(([key]) => key);
+  return tag?.category === 'tool' ? (tag.features?.validateFuzzyMatch ?? false) : false;
 };
 
 /**
@@ -264,26 +192,20 @@ export const getToolTimeout = (
   toolType: string,
 ): number => {
   const tag = registry[toolType];
-  return tag?.category === "tool" ? (tag.timeout ?? 60000) : 60000;
+  return tag?.category === 'tool' ? (tag.timeout ?? 60000) : 60000;
 };
 
 /**
  * Check if a tool type is clickable (i.e., it's a tool, not a UI tag)
  */
-export const isToolClickable = (
-  registry: Record<string, TagDefinition>,
-  type: string,
-): boolean => {
+export const isToolClickable = (registry: Record<string, TagDefinition>, type: string): boolean => {
   const tag = registry[type];
-  return tag?.category === "tool";
+  return tag?.category === 'tool';
 };
 
 /**
  * Get the display label for a tool type from registry
  */
-export const getToolLabel = (
-  registry: Record<string, TagDefinition>,
-  toolType: string,
-): string => {
-  return registry[toolType]?.title ?? toolType.toUpperCase().replace(/_/g, " ");
+export const getToolLabel = (registry: Record<string, TagDefinition>, toolType: string): string => {
+  return registry[toolType]?.title ?? toolType.toUpperCase().replace(/_/g, ' ');
 };

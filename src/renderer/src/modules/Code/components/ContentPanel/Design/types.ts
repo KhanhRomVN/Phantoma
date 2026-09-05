@@ -54,11 +54,3 @@ export interface ElementProperties {
   borderRadius?: number;
   border?: string;
 }
-
-export interface DesignTemplate {
-  id: string;
-  name: string;
-  description: string;
-  thumbnail?: string;
-  project: DesignProject;
-}

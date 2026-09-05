@@ -9,7 +9,6 @@
  * Các exports chính:
  * - HTTP_METHODS   : Map cấu hình tất cả HTTP methods
  * - HttpMethod     : Type suy ra từ key của HTTP_METHODS
- * - DEFAULT_METHOD : Method mặc định (GET)
  * ------------------------------------------------------------------
  */
 
@@ -28,6 +27,3 @@ export const HTTP_METHODS = {
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export type HttpMethod = keyof typeof HTTP_METHODS;
-
-// ─── Constants ──────────────────────────────────────────────────────────
-export const DEFAULT_METHOD: HttpMethod = 'GET';

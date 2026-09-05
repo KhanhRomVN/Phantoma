@@ -26,7 +26,7 @@ import { SettingsProvider } from './Agent/context/SettingsContext';
 import { useAgentFeature } from './Agent/context/FeatureContext';
 
 // ── Types ──
-import type { SubTarget } from '../../modules/Tool/types/types';
+import type { SubTarget } from '../../types/phantom-target';
 
 // UI
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/Dropdown';

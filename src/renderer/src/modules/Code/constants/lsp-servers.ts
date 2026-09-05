@@ -1189,9 +1189,3 @@ export const AVAILABLE_LSP_SERVERS: LSPServer[] = [
     icon: icon('ttcn'),
   },
 ];
-
-// ─── Legacy lookup for backward compatibility ──────────────────────────────
-
-export const LANGUAGE_ICONS: Record<string, string> = Object.fromEntries(
-  AVAILABLE_LSP_SERVERS.filter((s) => s.icon).map((s) => [s.id, s.icon!]),
-);

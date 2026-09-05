@@ -45,9 +45,14 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
   const externalFileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadFileToServer = async (file: UploadedFile) => {
+    logger.info(`[useFileHandling] uploadFileToServer starting for file: ${file.name}, size: ${file.size}, type: ${file.type}`);
+    
     if (!apiUrl || !accountId) {
+      logger.error(`[useFileHandling] Upload failed: apiUrl="${apiUrl}", accountId="${accountId}"`);
       return;
     }
+
+    logger.info(`[useFileHandling] API URL: ${apiUrl}/v1/chat/accounts/${accountId}/uploads`);
 
     // Set status to uploading
     setUploadedFiles((prev) =>
@@ -57,8 +62,10 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
     try {
       let blob: Blob;
       if (file.content.startsWith('data:')) {
+        logger.info(`[useFileHandling] Converting base64 data to Blob`);
         const arr = file.content.split(',');
         const mime = arr[0].match(/:(.*?);/)?.[1] || file.type || 'application/octet-stream';
+        logger.info(`[useFileHandling] MIME type: ${mime}`);
         const bstr = atob(arr[1]);
         let n = bstr.length;
         const u8arr = new Uint8Array(n);
@@ -66,33 +73,49 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
           u8arr[n] = bstr.charCodeAt(n);
         }
         blob = new Blob([u8arr], { type: mime });
+        logger.info(`[useFileHandling] Blob created, size: ${blob.size} bytes`);
       } else {
+        logger.info(`[useFileHandling] Creating Blob from text content`);
         blob = new Blob([file.content], { type: file.type || 'text/plain' });
       }
 
       const formData = new FormData();
       formData.append('file', blob, file.name);
+      logger.info(`[useFileHandling] FormData prepared, sending POST request...`);
 
       const uploadRes = await fetch(`${apiUrl}/v1/chat/accounts/${accountId}/uploads`, {
         method: 'POST',
         body: formData,
       });
 
+      logger.info(`[useFileHandling] Upload response status: ${uploadRes.status} ${uploadRes.statusText}`);
+
       if (!uploadRes.ok) {
-        throw new Error(`Upload API returned status ${uploadRes.status}`);
+        const errorText = await uploadRes.text();
+        logger.error(`[useFileHandling] Upload API error response: ${errorText}`);
+        throw new Error(`Upload API returned status ${uploadRes.status}: ${errorText}`);
       }
 
       const uploadData = await uploadRes.json();
+      logger.info(`[useFileHandling] Upload response data:`, uploadData);
+      
       if (uploadData.success && uploadData.data?.file_id) {
+        logger.info(`[useFileHandling] Upload successful! file_id: ${uploadData.data.file_id}`);
         setUploadedFiles((prev) =>
           prev.map((f) =>
             f.id === file.id ? { ...f, file_id: uploadData.data.file_id, isUploading: false } : f,
           ),
         );
       } else {
-        throw new Error(uploadData.error || 'Unknown upload error');
+        const errorMsg = uploadData.error || 'Unknown upload error';
+        logger.error(`[useFileHandling] Upload failed: ${errorMsg}`);
+        throw new Error(errorMsg);
       }
     } catch (err: any) {
+      logger.error(`[useFileHandling] Upload exception:`, err);
+      logger.error(`[useFileHandling] Error message: ${err.message}`);
+      logger.error(`[useFileHandling] Error stack: ${err.stack}`);
+      
       setUploadedFiles((prev) =>
         prev.map((f) =>
           f.id === file.id ? { ...f, isUploading: false, error: err.message || String(err) } : f,
@@ -102,15 +125,21 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    logger.info('[useFileHandling] handlePaste triggered');
     const items = e.clipboardData.items;
+    logger.info(`[useFileHandling] Clipboard items count: ${items.length}`);
     let hasImage = false;
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
+      logger.info(`[useFileHandling] Item ${i}: kind="${item.kind}", type="${item.type}"`);
+      
       if (item.kind === 'file' && item.type.startsWith('image/')) {
         const file = item.getAsFile();
         if (file) {
           hasImage = true;
+          logger.info(`[useFileHandling] Processing image file: name="${file.name}", size=${file.size}, type="${file.type}"`);
+          
           const reader = new FileReader();
           reader.onload = (event) => {
             const content = event.target?.result as string;
@@ -121,16 +150,27 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
               type: file.type,
               content: content,
             };
+            logger.info(`[useFileHandling] Image converted to base64, size: ${content.length} chars, uploading...`);
             setUploadedFiles((prev) => [...prev, newFile]);
             uploadFileToServer(newFile);
           };
+          
+          reader.onerror = (error) => {
+            logger.error('[useFileHandling] FileReader error:', error);
+          };
+          
           reader.readAsDataURL(file);
+        } else {
+          logger.warn(`[useFileHandling] Item ${i} is image but getAsFile() returned null`);
         }
       }
     }
 
     if (hasImage) {
+      logger.info('[useFileHandling] Image found, preventing default paste behavior');
       e.preventDefault();
+    } else {
+      logger.info('[useFileHandling] No image found in clipboard');
     }
   };
 

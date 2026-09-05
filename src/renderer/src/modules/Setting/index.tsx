@@ -29,7 +29,6 @@ const Setting: React.FC = () => {
 
   return (
     <div className="w-full h-full flex-1 flex flex-col overflow-hidden">
-      {/* Breadcrumb Topbar - same height as ModuleBar (37px) */}
       <div className="h-[37px] shrink-0 border-b border-border px-5 flex items-center gap-2">
         <Home className="w-4 h-4 text-text-secondary -mt-0.5" />
         <ChevronRight className="w-3 h-3 text-text-secondary" />

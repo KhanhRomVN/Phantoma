@@ -41,10 +41,3 @@ export interface MCP {
 }
 
 export type MCPInput = Omit<MCP, 'id' | 'createdAt' | 'updatedAt' | 'status'>;
-
-export interface MCPFilter {
-  category?: MCPCategory[];
-  status?: MCPStatus[];
-  search?: string;
-  isRecommended?: boolean;
-}

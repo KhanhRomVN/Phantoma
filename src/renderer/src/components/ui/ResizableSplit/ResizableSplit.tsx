@@ -1,13 +1,6 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
-
-interface ResizableSplitProps {
-  children: [React.ReactNode, React.ReactNode];
-  direction: 'horizontal' | 'vertical';
-  initialSize?: number;
-  minSize?: number;
-  maxSize?: number;
-}
+import { ResizableSplitProps } from './type';
 
 export const ResizableSplit = ({
   children,

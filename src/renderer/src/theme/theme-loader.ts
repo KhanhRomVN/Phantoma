@@ -92,5 +92,3 @@ const jsonThemes: ThemeConfig[] = Object.values(themeModulesJson).map((mod) => m
 
 // All themes in a single flat array
 export const PRESET_THEMES: ThemeConfig[] = [...tsThemes, ...jsonThemes];
-
-export type PresetThemeType = ThemeConfig;
