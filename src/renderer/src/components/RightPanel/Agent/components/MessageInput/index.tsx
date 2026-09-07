@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Send, X, GitPullRequestArrow, Zap, Scale, ShieldCheck, Plane } from 'lucide-react';
+import { Plus, X, GitPullRequestArrow, Zap, Scale, ShieldCheck, Plane } from 'lucide-react';
 import { logger } from '@renderer/utils/logger';
 import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
 import { useSettings } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
@@ -7,17 +7,21 @@ import ModelAccountDrawer from './ModelAccountDrawer';
 import StyleCodeDropdown from './StyleCodeDropdown';
 import DiffSummaryBar from './DiffSummaryBar';
 import { LANGUAGES } from '../../feature/Setting/components/LanguageSelector';
+import type { UploadedFile } from './types';
+import { countTokens } from '@renderer/utils/tokenizer';
+export type { UploadedFile };
 
-export interface UploadedFile {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  content: string;
-  file_id?: string;
-  isUploading?: boolean;
-  error?: string;
-}
+const formatTokenCount = (count: number): string => {
+  if (count < 1000) {
+    return count.toString();
+  } else if (count < 1000000) {
+    const k = count / 1000;
+    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
+  } else {
+    const m = count / 1000000;
+    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
+  }
+};
 
 const BrainCogIcon = () => (
   <svg
@@ -515,6 +519,7 @@ interface MessageInputProps {
   setMessage: React.Dispatch<React.SetStateAction<string>>;
   isHistoryMode?: boolean;
   uploadedFiles: UploadedFile[];
+  attachedItems?: any[];
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   handleTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -589,6 +594,7 @@ interface MessageInputProps {
   ) => void;
   autoScrollPaused?: boolean;
   scrollToBottom?: () => void;
+  onRevertConversation?: (messageId: string, timestamp: number) => void;
 }
 
 const MessageInput: React.FC<MessageInputProps> = React.memo(
@@ -597,6 +603,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     setMessage,
     isHistoryMode = false,
     uploadedFiles,
+    attachedItems = [],
     textareaRef,
     handleTextareaChange,
     handleKeyDown,
@@ -631,6 +638,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     responseRanges = [],
     onOpenModelDrawer,
     onModelSwitch,
+    onRevertConversation,
   }) => {
     const historyIndexRef = React.useRef<number>(-1);
     const tempDraftRef = React.useRef<string>('');
@@ -724,6 +732,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     };
 
     const onSendMessage = () => {
+      if (isTokenLimitExceeded) {
+        return;
+      }
       if (message.trim()) {
         savePromptToHistory(message);
       }
@@ -1053,6 +1064,26 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     const displayModel = React.useMemo(() => currentModel || null, [currentModel]);
     const displayAccount = React.useMemo(() => currentAccount || null, [currentAccount]);
 
+    const messageTokenCount = React.useMemo(() => {
+      let totalTokens = countTokens(message);
+      if (attachedItems && attachedItems.length > 0) {
+        attachedItems.forEach((item: any) => {
+          if (item.type === 'text-snippet' && item.content) {
+            totalTokens += countTokens(item.content);
+          }
+        });
+      }
+      return totalTokens;
+    }, [message, attachedItems]);
+
+    const maxInputTokens = React.useMemo(() => {
+      return currentModelConfig?.max_input_tokens || null;
+    }, [currentModelConfig]);
+
+    const isTokenLimitExceeded = React.useMemo(() => {
+      return maxInputTokens !== null && messageTokenCount > maxInputTokens;
+    }, [messageTokenCount, maxInputTokens]);
+
     return (
       <div
         style={{
@@ -1069,7 +1100,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             borderRadius: 'var(--border-radius)',
             border: !isConnected
               ? '1px solid var(--vscode-errorForeground, #f44336)'
-              : '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+              : isTokenLimitExceeded
+                ? '2px dashed var(--vscode-errorForeground, #f44336)'
+                : '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
             transition: 'border 0.3s ease',
             marginTop:
               !isConversationStarted || (isConnected && isElaraMismatch) || isConversationStarted
@@ -1463,7 +1496,13 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  if (!isHistoryMode && isConnected && !isLoadingCache && !isProcessing) {
+                  if (
+                    !isHistoryMode &&
+                    isConnected &&
+                    !isLoadingCache &&
+                    !isProcessing &&
+                    !isTokenLimitExceeded
+                  ) {
                     onSendMessage();
                   }
                 } else {
@@ -1472,14 +1511,14 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 }
               }}
               onPaste={(e) => {
-                logger.info('[MessageInput] onPaste triggered');
-                logger.info(
-                  `[MessageInput] clipboardData.files.length: ${e.clipboardData.files.length}`,
+                console.log('[DEBUG][MessageInput] onPaste triggered');
+                console.log(
+                  `[DEBUG][MessageInput] clipboardData.files.length: ${e.clipboardData.files.length}`,
                 );
-                logger.info(
-                  `[MessageInput] clipboardData.items.length: ${e.clipboardData.items.length}`,
+                console.log(
+                  `[DEBUG][MessageInput] clipboardData.items.length: ${e.clipboardData.items.length}`,
                 );
-                logger.info(`[MessageInput] supportsUpload: ${supportsUpload}`);
+                console.log(`[DEBUG][MessageInput] supportsUpload: ${supportsUpload}`);
 
                 if (!supportsUpload && e.clipboardData.files.length > 0) {
                   logger.warn('[MessageInput] onPaste: Upload is not supported, preventing paste.');
@@ -1487,9 +1526,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   return;
                 }
 
-                logger.info('[MessageInput] Calling handlePaste...');
+                console.log('[DEBUG][MessageInput] Calling handlePaste...');
                 handlePaste(e);
-                logger.info('[MessageInput] handlePaste completed');
+                console.log('[DEBUG][MessageInput] handlePaste completed');
               }}
               onDragOver={handleDragOver}
               onDrop={(e) => {
@@ -1766,11 +1805,16 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           : message.trim() || uploadedFiles.length > 0
                             ? 'var(--accent-text)'
                             : 'var(--secondary-text)',
-                    pointerEvents: isHistoryMode || isLoadingCache ? 'none' : 'auto',
+                    pointerEvents:
+                      isHistoryMode || isLoadingCache || isTokenLimitExceeded ? 'none' : 'auto',
                   }}
                   onClick={() => {
                     if ((isStreaming || isProcessing) && onStopGeneration) {
                       onStopGeneration();
+                      return;
+                    }
+
+                    if (isTokenLimitExceeded) {
                       return;
                     }
 
@@ -1788,12 +1832,22 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
-                  title={isStreaming || isProcessing ? 'Stop Generation' : 'Send Message'}
+                  title={
+                    isStreaming || isProcessing
+                      ? 'Stop Generation'
+                      : maxInputTokens
+                        ? `${messageTokenCount}/${maxInputTokens} tokens`
+                        : `${messageTokenCount} tokens`
+                  }
                 >
                   {isStreaming || isProcessing ? (
                     <X size={16} strokeWidth={2.5} />
                   ) : (
-                    <Send size={18} />
+                    <span style={{ fontSize: '11px', fontWeight: 600 }}>
+                      {maxInputTokens
+                        ? `${formatTokenCount(messageTokenCount)}/${formatTokenCount(maxInputTokens)}`
+                        : formatTokenCount(messageTokenCount)}
+                    </span>
                   )}
                 </div>
               )}
@@ -1905,6 +1959,8 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
   const responseRangesSame = prevProps.responseRanges?.length === nextProps.responseRanges?.length;
   const conversationFileStatsSame =
     prevProps.conversationFileStats === nextProps.conversationFileStats;
+  const attachedItemsSame =
+    prevProps.attachedItems?.length === nextProps.attachedItems?.length;
 
   const shouldSkip =
     messageSame &&
@@ -1914,7 +1970,8 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     currentAccountSame &&
     messagesLengthSame &&
     responseRangesSame &&
-    conversationFileStatsSame;
+    conversationFileStatsSame &&
+    attachedItemsSame;
 
   return shouldSkip;
 });

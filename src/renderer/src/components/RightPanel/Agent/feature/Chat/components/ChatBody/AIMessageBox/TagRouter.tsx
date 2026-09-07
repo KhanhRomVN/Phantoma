@@ -92,6 +92,7 @@ import {
   FillInputRenderer,
   PressKeyRenderer,
   ScrollRenderer,
+  CaptureScreenshotRenderer,
 } from './renderers';
 import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
@@ -717,6 +718,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     fill_input: FillInputRenderer,
     press_key: PressKeyRenderer,
     scroll: ScrollRenderer,
+    capture_screenshot: CaptureScreenshotRenderer,
   };
 
   const ToolRenderer = allToolRenderers[toolType];

@@ -26,6 +26,7 @@ Trả về mảng các tab với: `tabId`, `title`, `url`, `isActive`.
 
 ---
 
+
 ## 2. `create_tab`
 Tạo tab mới với URL tùy chọn.
 
@@ -357,9 +358,22 @@ amount: 1000
 
 ---
 
-## Quy Tắc Quan Trọng
+## 15. `capture_screenshot`
+Chụp ảnh toàn cảnh trang web hiện tại và upload ảnh lên server.
 
-1. **Luôn gọi `list_tabs` trước khi giả định trạng thái tab.**
-2. **Luôn gọi `get_page_content` hoặc `list_elements` trước khi tương tác với phần tử trang.**
-3. **Dùng refs từ kết quả `get_page_content`/`list_elements`, không tự đoán selector.**
-4. **Chờ điều hướng hoàn tất trước khi lấy nội dung trang.**
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `tabId` | Không | ID tab cụ thể. Nếu không chỉ định, dùng tab đang hoạt động. |
+| `targetId` | Không | ID mục tiêu. Nếu không chỉ định, dùng mục tiêu đang hoạt động. |
+
+**Ví dụ:**
+
+<capture_screenshot />
+
+
+**Kết quả:**
+
+[capture_screenshot] Screenshot captured and uploaded.
+File ID: file-123
+Title: Example Website
+URL: https://example.com

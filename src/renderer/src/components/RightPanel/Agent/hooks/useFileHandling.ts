@@ -34,8 +34,22 @@ interface UseFileHandlingProps {
 }
 
 export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlingProps) => {
-  const { apiUrl } = useSettings();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+
+  // [DEBUG] Log mỗi khi uploadedFiles thay đổi
+  React.useEffect(() => {
+    console.log('[DEBUG][useFileHandling] uploadedFiles state thay đổi:', {
+      count: uploadedFiles.length,
+      files: uploadedFiles.map((f) => ({
+        id: f.id,
+        name: f.name,
+        hasFileId: !!f.file_id,
+        file_id: f.file_id,
+        isUploading: f.isUploading,
+        error: f.error,
+      })),
+    });
+  }, [uploadedFiles]);
   const [externalFiles, setExternalFiles] = useState<ExternalFile[]>([]);
   const [invalidExternalFiles, setInvalidExternalFiles] = useState<
     { name: string; path: string; reason: string }[]
@@ -43,6 +57,8 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const externalFileInputRef = useRef<HTMLInputElement>(null);
+
+  const { apiUrl } = useSettings();
 
   const uploadFileToServer = async (file: UploadedFile) => {
     logger.info(`[useFileHandling] uploadFileToServer starting for file: ${file.name}, size: ${file.size}, type: ${file.type}`);
@@ -52,7 +68,7 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
       return;
     }
 
-    logger.info(`[useFileHandling] API URL: ${apiUrl}/v1/chat/accounts/${accountId}/uploads`);
+    logger.info(`[useFileHandling] API URL: ${apiUrl}/v1/uploads/accounts/${accountId}/uploads`);
 
     // Set status to uploading
     setUploadedFiles((prev) =>
@@ -83,7 +99,7 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
       formData.append('file', blob, file.name);
       logger.info(`[useFileHandling] FormData prepared, sending POST request...`);
 
-      const uploadRes = await fetch(`${apiUrl}/v1/chat/accounts/${accountId}/uploads`, {
+      const uploadRes = await fetch(`${apiUrl}/v1/uploads/accounts/${accountId}/uploads`, {
         method: 'POST',
         body: formData,
       });
@@ -101,11 +117,18 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
       
       if (uploadData.success && uploadData.data?.file_id) {
         logger.info(`[useFileHandling] Upload successful! file_id: ${uploadData.data.file_id}`);
+        console.log('[DEBUG][useFileHandling] uploadFileToServer - Upload thành công:', {
+          fileId: file.id,
+          fileName: file.name,
+          serverFileId: uploadData.data.file_id,
+          isUploading: false,
+        });
         setUploadedFiles((prev) =>
           prev.map((f) =>
             f.id === file.id ? { ...f, file_id: uploadData.data.file_id, isUploading: false } : f,
           ),
         );
+        console.log('[DEBUG][useFileHandling] uploadFileToServer - Đã setUploadedFiles với file_id');
       } else {
         const errorMsg = uploadData.error || 'Unknown upload error';
         logger.error(`[useFileHandling] Upload failed: ${errorMsg}`);
@@ -125,14 +148,14 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    logger.info('[useFileHandling] handlePaste triggered');
+    console.log('[DEBUG][useFileHandling] handlePaste triggered');
     const items = e.clipboardData.items;
-    logger.info(`[useFileHandling] Clipboard items count: ${items.length}`);
+    console.log(`[DEBUG][useFileHandling] Clipboard items count: ${items.length}`);
     let hasImage = false;
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      logger.info(`[useFileHandling] Item ${i}: kind="${item.kind}", type="${item.type}"`);
+      console.log(`[DEBUG][useFileHandling] Item ${i}: kind="${item.kind}", type="${item.type}"`);
       
       if (item.kind === 'file' && item.type.startsWith('image/')) {
         const file = item.getAsFile();

@@ -3,7 +3,7 @@
   "include": ["src/main"],
   "compilerOptions": {
     "outDir": "out/main",
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "module": "ESNext"
   }
 }

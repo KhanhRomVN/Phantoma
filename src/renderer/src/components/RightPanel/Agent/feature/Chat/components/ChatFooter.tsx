@@ -328,6 +328,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
           setMessage={setMessage}
           isHistoryMode={isHistoryMode}
           uploadedFiles={uploadedFiles}
+          attachedItems={attachedItems}
           textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
           handleTextareaChange={handleTextareaChange}
           handleKeyDown={handleKeyDown}

@@ -3,11 +3,12 @@
  * usePaginatedRequests
  * ------------------------------------------------------------------
  * Hook phân trang in-memory cho network requests, dữ liệu được
- * lưu trong networkStore (Zustand) để tránh re-render không cần
- * thiết trên mỗi network event. Có debounce cho callback.
+ * lưu trong networkStore (Zustand). Gom các event vào buffer và
+ * flush sau 120ms để giảm số lần set state (batch update).
  *
  * Các chức năng chính:
  * - Thêm/cập nhật/xóa requests trong store
+ * - Buffer adds/updates và flush batch sau 120ms
  * - Debounce callback onRequestsChange (150ms)
  * - Giới hạn số lượng requests trong memory
  * - Tự động clear requests khi targetId thay đổi
@@ -32,6 +33,12 @@ interface UsePaginatedRequestsOptions {
   onRequestsChange?: (requests: NetworkRequest[]) => void;
 }
 
+interface PendingEntry {
+  id?: string;
+  request?: NetworkRequest;
+  updates?: Partial<NetworkRequest>;
+}
+
 // ─── Hook ───────────────────────────────────────────────────────────────
 export function usePaginatedRequests({
   targetId,
@@ -43,7 +50,9 @@ export function usePaginatedRequests({
   const targetIdRef = useRef(targetId);
   const isFirstMountRef = useRef(true);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const flushTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const latestRequestsRef = useRef<NetworkRequest[]>([]);
+  const pendingMapRef = useRef<Map<string, PendingEntry>>(new Map());
 
   // ── Effects ──
   useEffect(() => {
@@ -54,6 +63,12 @@ export function usePaginatedRequests({
     targetIdRef.current = targetId;
   }, [targetId]);
 
+  useEffect(() => {
+    if (maxMemory) {
+      useNetworkStore.setState({ maxMemory });
+    }
+  }, [maxMemory]);
+
   // ── Callbacks ──
   const scheduleOnRequestsChange = useCallback((newRequests: NetworkRequest[]) => {
     latestRequestsRef.current = newRequests;
@@ -63,6 +78,43 @@ export function usePaginatedRequests({
       debounceTimeoutRef.current = null;
     }, 150);
   }, []);
+
+  const flush = useCallback(() => {
+    if (flushTimeoutRef.current) {
+      clearTimeout(flushTimeoutRef.current);
+      flushTimeoutRef.current = null;
+    }
+
+    const entries = Array.from(pendingMapRef.current.entries());
+    if (entries.length === 0) return;
+    pendingMapRef.current.clear();
+
+    const adds: NetworkRequest[] = [];
+    const updates: Array<{ id: string; updates: Partial<NetworkRequest> }> = [];
+
+    for (const [, entry] of entries) {
+      if (entry.request) {
+        adds.push(entry.request);
+      }
+      if (entry.updates) {
+        updates.push({ id: entry.request?.id || entry.id || '', updates: entry.updates });
+      }
+    }
+
+    const store = useNetworkStore.getState();
+    if (adds.length > 0) store.addRequests(adds);
+    if (updates.length > 0) store.updateRequests(updates);
+
+    scheduleOnRequestsChange(useNetworkStore.getState().requests);
+  }, [scheduleOnRequestsChange]);
+
+  const scheduleFlush = useCallback(() => {
+    if (flushTimeoutRef.current) return;
+    flushTimeoutRef.current = setTimeout(() => {
+      flushTimeoutRef.current = null;
+      flush();
+    }, 120);
+  }, [flush]);
 
   const addRequest = useCallback(
     (request: Partial<NetworkRequest>) => {
@@ -94,28 +146,36 @@ export function usePaginatedRequests({
         responseCookies: request.responseCookies,
       };
 
-      useNetworkStore.getState().addRequest(networkReq);
-      const current = useNetworkStore.getState().requests;
-      if (current.length > maxMemory) {
-        const sliced = current.slice(0, maxMemory);
-        useNetworkStore.setState({ requests: sliced });
-        scheduleOnRequestsChange(sliced);
+      const existing = pendingMapRef.current.get(networkReq.id);
+      if (existing) {
+        existing.request = networkReq;
       } else {
-        scheduleOnRequestsChange(current);
+        pendingMapRef.current.set(networkReq.id, { request: networkReq });
       }
+      scheduleFlush();
     },
-    [maxMemory, scheduleOnRequestsChange],
+    [scheduleFlush],
   );
 
   const updateRequest = useCallback(
     (id: string, updates: Partial<NetworkRequest>) => {
-      useNetworkStore.getState().updateRequest(id, updates);
-      scheduleOnRequestsChange(useNetworkStore.getState().requests);
+      const existing = pendingMapRef.current.get(id);
+      if (existing) {
+        existing.updates = { ...existing.updates, ...updates };
+      } else {
+        pendingMapRef.current.set(id, { id, updates });
+      }
+      scheduleFlush();
     },
-    [scheduleOnRequestsChange],
+    [scheduleFlush],
   );
 
   const clearRequests = useCallback(() => {
+    if (flushTimeoutRef.current) {
+      clearTimeout(flushTimeoutRef.current);
+      flushTimeoutRef.current = null;
+    }
+    pendingMapRef.current.clear();
     useNetworkStore.getState().clearRequests();
     onRequestsChangeRef.current?.([]);
   }, []);
@@ -139,6 +199,11 @@ export function usePaginatedRequests({
         clearTimeout(debounceTimeoutRef.current);
         debounceTimeoutRef.current = null;
       }
+      if (flushTimeoutRef.current) {
+        clearTimeout(flushTimeoutRef.current);
+        flushTimeoutRef.current = null;
+      }
+      pendingMapRef.current.clear();
       useNetworkStore.getState().clearRequests();
       onRequestsChangeRef.current?.([]);
     }
@@ -150,6 +215,11 @@ export function usePaginatedRequests({
         clearTimeout(debounceTimeoutRef.current);
         debounceTimeoutRef.current = null;
       }
+      if (flushTimeoutRef.current) {
+        clearTimeout(flushTimeoutRef.current);
+        flushTimeoutRef.current = null;
+      }
+      pendingMapRef.current.clear();
     };
   }, []);
 

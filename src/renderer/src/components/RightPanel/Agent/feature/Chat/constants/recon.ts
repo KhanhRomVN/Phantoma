@@ -6,7 +6,7 @@
  * Bao gồm cấu hình permission và timeout cho từng tool.
  *
  * Main exports:
- * - RECON_TAG_REGISTRY : Registry chứa định nghĩa 14 recon tools
+ * - RECON_TAG_REGISTRY : Registry chứa định nghĩa 15 recon tools
  * ------------------------------------------------------------------
  */
 
@@ -111,6 +111,13 @@ export const RECON_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: 'SCROLL',
     category: 'tool',
     timeout: 10000,
+    permissions: { approval: 'allow', fullAccess: 'allow' },
+  },
+  capture_screenshot: {
+    id: 'capture_screenshot',
+    title: 'CAPTURE SCREENSHOT',
+    category: 'tool',
+    timeout: 30000,
     permissions: { approval: 'allow', fullAccess: 'allow' },
   },
 };

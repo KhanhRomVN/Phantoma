@@ -9,7 +9,7 @@
  * - Virtual scrolling cho danh sách lớn
  * - Sortable columns
  * - Context menu với actions (copy, send to repeater...)
- * - Hiển thị security issues và cookies
+ * - Hiển thị cookies
  * ------------------------------------------------------------------
  */
 
@@ -38,7 +38,6 @@ import {
   Copy,
   Globe,
   List,
-  ShieldAlert,
   Square,
   Star,
   Target,
@@ -67,7 +66,6 @@ import { useNetworkStore } from '../../../stores/networkStore';
 // ── Types ──
 import { InspectorFilter } from '../../../types/filter.types';
 import { NetworkRequest } from './FilterPanel';
-import type { SecurityIssue } from '../../../../Tool/utils/securityScanner';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -243,7 +241,6 @@ export const RequestTable = React.memo(function RequestTable({
     status: true,
     headers: true,
     body: true,
-    security: true,
   });
   const [copyFormat, setCopyFormat] = useState<'json' | 'markdown'>('json');
 
@@ -275,9 +272,6 @@ export const RequestTable = React.memo(function RequestTable({
         if (copySections.body) {
           entry.requestBody = req.requestBody || '';
           entry.responseBody = req.responseBody || '';
-        }
-        if (copySections.security) {
-          entry.securityIssues = req.securityIssues || [];
         }
         return entry;
       });
@@ -334,18 +328,6 @@ export const RequestTable = React.memo(function RequestTable({
             md += '(No body)';
           }
           md += '\n```\n\n';
-        }
-        if (copySections.security) {
-          md += '**Security Issues:**\n';
-          const issues = (req.securityIssues || []) as SecurityIssue[];
-          if (issues.length > 0) {
-            for (const issue of issues) {
-              md += `- **${issue.severity?.toUpperCase() || 'UNKNOWN'}**: ${issue.title || 'No title'} - ${issue.description || 'No description'}\n`;
-            }
-          } else {
-            md += '*(No security issues)*\n';
-          }
-          md += '\n';
         }
         return md;
       })
@@ -635,21 +617,6 @@ export const RequestTable = React.memo(function RequestTable({
             });
           }
 
-          // Security issues — only show badge if there are high severity issues
-          const secIssues = req.securityIssues || [];
-          const highCount = secIssues.filter(
-            (i: { severity: string }) => i.severity === 'high',
-          ).length;
-          if (highCount > 0) {
-            tags.push({
-              label: '⚠',
-              tooltip: `${secIssues.length} security issue(s) detected (${highCount} high)`,
-              colorClass: 'text-red',
-              bgClass: 'bg-red/15',
-              borderClass: 'border-red/30',
-            });
-          }
-
           if (tags.length === 0) return null;
 
           return (
@@ -774,13 +741,8 @@ export const RequestTable = React.memo(function RequestTable({
     [useRegex, matchCase, matchWholeWord],
   );
 
-  // Reverse requests so newest are at the top (most recent timestamp first)
-  const reversedRequests = useMemo(() => {
-    return [...requests].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-  }, [requests]);
-
   const table = useReactTable({
-    data: reversedRequests,
+    data: requests,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -1109,11 +1071,6 @@ export const RequestTable = React.memo(function RequestTable({
                       key: 'body' as const,
                       label: 'Body',
                       icon: Box,
-                    },
-                    {
-                      key: 'security' as const,
-                      label: 'Security',
-                      icon: ShieldAlert,
                     },
                   ].map(({ key, label, icon: Icon }) => (
                     <button

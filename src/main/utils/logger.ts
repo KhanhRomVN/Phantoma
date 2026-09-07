@@ -28,7 +28,8 @@ function getLogStream(): fs.WriteStream | null {
   if (logStream) return logStream;
   try {
     // Clear file on first open (equivalent to old clearLogFile)
-    logStream = fs.createWriteStream(LOG_FILE, { flags: 'w' });
+    fs.writeFileSync(LOG_FILE, '');
+    logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
     logStream.on('error', (err) => {
       if (!streamErrorLogged) {
         streamErrorLogged = true;

@@ -109,18 +109,6 @@ interface UseNetworkEventsOptions {
   onRequestsChange?: (requests: NetworkRequest[]) => void;
 }
 
-// [DEBUG] Helper theo dõi kích thước Map — xóa sau khi fix rò rỉ RAM
-function logMapStats(label: string, map: Map<string, any>) {
-  let totalSize = 0;
-  map.forEach((value) => {
-    try {
-      totalSize += JSON.stringify(value).length;
-    } catch {
-      // Bỏ qua giá trị không serialize được
-    }
-  });
-}
-
 export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const {
     targetId = '',
@@ -183,8 +171,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       }
 
       requestMapRef.current.set(fullReq.id, fullReq);
-      // [DEBUG] Theo dõi rò rỉ RAM — xóa sau khi fix
-      logMapStats('requestMapRef', requestMapRef.current);
       addRequest(fullReq);
       onRequest?.(fullReq);
     },
@@ -284,8 +270,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleScriptUnpacked = useCallback(
     (data: CdpScriptUnpackedData) => {
       unpackedScriptsRef.current.set(data.requestId, data);
-      // [DEBUG] Theo dõi rò rỉ RAM — xóa sau khi fix
-      logMapStats('unpackedScriptsRef', unpackedScriptsRef.current);
       onScriptUnpacked?.(data);
     },
     [onScriptUnpacked],
@@ -451,10 +435,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
     // Setup periodic cleanup for stuck pending requests (every 5 seconds)
     cleanupIntervalRef.current = setInterval(() => {
-      // [DEBUG] Log tổng quan 3 Map mỗi 5s — xóa sau khi fix rò rỉ
-      logMapStats('requestMapRef', requestMapRef.current);
-      logMapStats('unpackedScriptsRef', unpackedScriptsRef.current);
-      logMapStats('timestampMapRef', timestampMapRef.current);
       const now = Date.now();
       useNetworkStore.getState().requests.forEach((req) => {
         if (req.status === 0 && !req.responseHeaders?.['X-Request-Status']) {

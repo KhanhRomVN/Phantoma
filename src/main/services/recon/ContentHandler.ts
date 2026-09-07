@@ -1,5 +1,5 @@
 /**
- /**
+/**
  * ------------------------------------------------------------------
  * Trình xử lý nội dung
  * ------------------------------------------------------------------
@@ -10,6 +10,7 @@
  * - getPageContent()            : Lấy nội dung trang dưới dạng markdown
  * - extractMarkdown()           : Chuyển DOM thành chuỗi markdown
  * - extractInteractiveElements(): Liệt kê các phần tử tương tác
+ * - captureScreenshot()         : Chụp ảnh toàn trang dạng base64
  * ------------------------------------------------------------------
  */
 
@@ -309,7 +310,7 @@ export class ContentHandler {
           style.display !== 'none' &&
           style.visibility !== 'hidden' &&
           style.opacity !== '0' &&
-          !el.disabled
+          !(el as any).disabled
         );
       };
 
@@ -381,7 +382,7 @@ export class ContentHandler {
           style.display !== 'none' &&
           style.visibility !== 'hidden' &&
           style.opacity !== '0' &&
-          !el.disabled
+          !(el as any).disabled
         );
       };
 
@@ -539,5 +540,28 @@ export class ContentHandler {
    */
   public getSelectorByRef(ref: string): string | undefined {
     return this.elementRefMap.get(ref);
+  }
+
+  /**
+   * Capture full-page screenshot of the current page
+   * Returns base64-encoded PNG image
+   */
+  public async captureScreenshot(page: Page): Promise<{ imageBase64: string; title: string; url: string }> {
+    const title = await page.title();
+    const url = page.url();
+
+    const screenshotBuffer = await page.screenshot({
+      fullPage: true,
+      type: 'png',
+      encoding: 'binary',
+    });
+
+    const imageBase64 = Buffer.from(screenshotBuffer as Buffer).toString('base64');
+
+    return {
+      imageBase64,
+      title,
+      url,
+    };
   }
 }

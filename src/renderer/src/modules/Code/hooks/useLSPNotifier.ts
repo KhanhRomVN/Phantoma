@@ -2,21 +2,13 @@
  * ------------------------------------------------------------------
  * useLSP Notifier
  * ------------------------------------------------------------------
- * Hook that monitors the active file and prompts the user to install
- * the corresponding LSP server if detected but not yet installed.
- * Manages toast notifications, progress simulation, and install flow.
- *
- * Main features:
- * - Detects LSP server for the current file type
- * - Shows install prompt toast with Install / Cancel / Homepage actions
- * - Simulates installation progress via toast updates
- * - Handles install success, failure, retry, and dismiss flows
- * - Cleans up progress interval on unmount
+ * Hook that monitors the active file and automatically installs the
+ * corresponding LSP server if detected but not yet installed.
+ * No toast notifications are shown — installation runs silently.
  * ------------------------------------------------------------------
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-// ── React ──
 import { useEffect, useCallback, useRef } from 'react';
 
 // ── Hooks ──
@@ -26,23 +18,15 @@ import { useCodeStore } from './useCodeStore';
 import {
   getLSPServer,
   isLSPInstalled,
-  isLSPDismissed,
   markLSPInstalled,
-  dismissLSP,
   type LSPServer,
 } from '../services/lsp.service';
-import { toastService } from '../services/toast.service';
-
-// ─── Constants ──────────────────────────────────────────────────────────
-const LSP_TOAST_ID = 'lsp-install';
 
 // ─── Hook ───────────────────────────────────────────────────────────────
 export function useLSPNotifier() {
   // ── Store ──
   const projects = useCodeStore((s) => s.projects);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
-  const forceShowLSPOverlay = useCodeStore((s) => s.forceShowLSPOverlay);
-  const setForceShowLSPOverlay = useCodeStore((s) => s.setForceShowLSPOverlay);
 
   // ── Derived ──
   const project = projects.find((p) => p.id === currentProjectId);
@@ -50,156 +34,39 @@ export function useLSPNotifier() {
   const fileDisplayNames = project?.fileDisplayNames ?? {};
 
   // ── Refs ──
-  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const serverRef = useRef<LSPServer | null>(null);
+  const installingRef = useRef<Set<string>>(new Set());
 
   // ── Callbacks ──
 
-  const startProgressSimulation = useCallback(() => {
-    let progress = 0;
-    toastService.update(LSP_TOAST_ID, { progress: 0 });
-    progressIntervalRef.current = setInterval(() => {
-      progress += Math.random() * 16 + 6;
-      if (progress >= 100) {
-        progress = 100;
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      }
-      toastService.update(LSP_TOAST_ID, { progress });
-    }, 220);
-  }, []);
-
-  const handleInstall = useCallback(async () => {
-    const server = serverRef.current;
-    if (!server) return;
-
-    toastService.update(LSP_TOAST_ID, { variant: 'loading', actions: [] });
-    startProgressSimulation();
+  const autoInstallLSP = useCallback(async (server: LSPServer) => {
+    if (installingRef.current.has(server.id)) return;
+    installingRef.current.add(server.id);
 
     try {
       await window.api.invoke('shell:exec', `npm install -g ${server.npmPackage}`);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       markLSPInstalled(server.id);
-      toastService.update(LSP_TOAST_ID, {
-        progress: 100,
-        variant: 'success',
-        title: server.name,
-        description: 'Cài đặt hoàn tất.',
-        actions: [
-          {
-            label: 'Done',
-            onClick: () => {
-              toastService.dismiss(LSP_TOAST_ID);
-              setForceShowLSPOverlay(false);
-            },
-            variant: 'primary',
-          },
-        ],
-      });
     } catch {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      toastService.update(LSP_TOAST_ID, {
-        variant: 'error',
-        title: server.name,
-        description: 'Cài đặt thất bại. Vui lòng thử lại.',
-        progress: undefined,
-        actions: [
-          { label: 'Retry', onClick: () => handleInstall(), variant: 'primary' },
-          {
-            label: 'Cancel',
-            onClick: () => {
-              toastService.dismiss(LSP_TOAST_ID);
-              setForceShowLSPOverlay(false);
-            },
-            variant: 'ghost',
-          },
-        ],
-      });
+      // silently ignore — user can install from ActivityPanel later
+    } finally {
+      installingRef.current.delete(server.id);
     }
-  }, [startProgressSimulation, setForceShowLSPOverlay]);
-
-  const showLSPToast = useCallback(
-    (server: LSPServer) => {
-      serverRef.current = server;
-      const actions: Array<{
-        label: string;
-        onClick: () => void;
-        variant: 'primary' | 'secondary' | 'ghost';
-      }> = [];
-
-      // Nút Install
-      actions.push({ label: 'Install', onClick: () => handleInstall(), variant: 'primary' });
-
-      // Nút Cancel
-      actions.push({
-        label: 'Cancel',
-        onClick: () => {
-          dismissLSP(server.id);
-          toastService.dismiss(LSP_TOAST_ID);
-          setForceShowLSPOverlay(false);
-        },
-        variant: 'ghost',
-      });
-
-      // Nút Homepage (nếu có)
-      if (server.homepage) {
-        actions.push({
-          label: 'Homepage',
-          onClick: () => window.api.invoke('openFolder', { path: server.homepage }),
-          variant: 'ghost',
-        });
-      }
-
-      toastService.show({
-        id: LSP_TOAST_ID,
-        title: server.name,
-        description: server.description,
-        variant: 'info',
-        source: 'npm registry',
-        actions: actions.slice(0, 3),
-        onClose: () => setForceShowLSPOverlay(false),
-      });
-    },
-    [handleInstall, setForceShowLSPOverlay],
-  );
+  }, []);
 
   // ── Effects ──
 
-  // Watch file changes and show LSP install prompt
+  // Watch file changes and auto-install missing LSP servers
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!activeFileTabId) {
-        toastService.dismiss(LSP_TOAST_ID);
-        return;
-      }
+      if (!activeFileTabId) return;
 
       const filename = fileDisplayNames[activeFileTabId] || activeFileTabId;
       const detected = getLSPServer(filename);
 
-      if (!detected) {
-        toastService.dismiss(LSP_TOAST_ID);
-        return;
-      }
+      if (!detected || isLSPInstalled(detected.id)) return;
 
-      if (forceShowLSPOverlay) {
-        showLSPToast(detected);
-        return;
-      }
-
-      if (isLSPInstalled(detected.id) || isLSPDismissed(detected.id)) {
-        toastService.dismiss(LSP_TOAST_ID);
-        return;
-      }
-
-      showLSPToast(detected);
+      void autoInstallLSP(detected);
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [activeFileTabId, fileDisplayNames, forceShowLSPOverlay, showLSPToast]);
-
-  // Cleanup progress interval on unmount
-  useEffect(() => {
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-  }, []);
+  }, [activeFileTabId, fileDisplayNames, autoInstallLSP]);
 }

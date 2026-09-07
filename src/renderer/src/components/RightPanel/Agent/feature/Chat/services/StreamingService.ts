@@ -63,6 +63,14 @@ export class StreamingService {
         : {}),
     };
 
+    // [DEBUG] Log payload trước khi gửi
+    console.log('[DEBUG][StreamingService] streamChat - refFileIds từ config:', config.refFileIds);
+    console.log('[DEBUG][StreamingService] streamChat - body có chứa ref_file_ids:', {
+      hasRefFileIds: !!body.ref_file_ids,
+      ref_file_ids: (body as any).ref_file_ids,
+    });
+    console.log('[DEBUG][StreamingService] streamChat - API URL:', `${config.apiUrl}/v1/chat/accounts/messages`);
+
     const response = await fetch(`${config.apiUrl}/v1/chat/accounts/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

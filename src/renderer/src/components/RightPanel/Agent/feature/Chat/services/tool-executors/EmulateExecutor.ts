@@ -118,15 +118,19 @@ export interface ListHttpsParams {
 
 /** Execute list_https tool — gọi EmulateController.executeTool() */
 export async function executeListHttps(params: ListHttpsParams): Promise<string | null> {
+  console.log('[DEBUG] executeListHttps - input params', params);
   const result = await EmulateController.executeTool('list_https', {
     filter: params.filter || {},
     limit: params.limit || 50,
   });
 
   if (!result.success) {
+    console.log('[DEBUG] executeListHttps - error', result.error);
     return '[list_https] Result: Error - ' + (result.error || '');
   }
-  return (result.data as any)?.output || null;
+  const output = (result.data as any)?.output || null;
+  console.log('[DEBUG] executeListHttps - output', { output });
+  return output;
 }
 
 // ===== ListResourcesExecutor =====

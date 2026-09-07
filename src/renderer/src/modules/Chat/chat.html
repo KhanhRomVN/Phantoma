@@ -1,0 +1,2285 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat — Trung tâm nhắn tin đa nền tảng</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+      :root {
+        --bg-0: #0a0c10;
+        --bg-1: #0f1319;
+        --bg-2: #141924;
+        --bg-3: #1a2030;
+        --border: #232a3a;
+        --border-soft: #1c2230;
+        --text-0: #eef0f4;
+        --text-1: #a7afc0;
+        --text-2: #6b7688;
+        --orange: #ff7a3d;
+        --orange-dim: #ff7a3d33;
+        --green: #3ecf8e;
+        --violet: #9b7bff;
+        --violet-dim: #9b7bff26;
+        --red: #ef4a5f;
+        --yellow: #e8b23d;
+        --mono: 'IBM Plex Mono', ui-monospace, monospace;
+        --sans: 'Inter', system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: var(--bg-0);
+        color: var(--text-0);
+        font-family: var(--sans);
+        font-size: 13px;
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #2a3142;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .app {
+        display: grid;
+        grid-template-rows: 44px 1fr 26px;
+        height: 100vh;
+      }
+
+      /* ===== TOP BAR ===== */
+      .topbar {
+        background: var(--bg-1);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        gap: 18px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--text-0);
+        padding-right: 14px;
+        border-right: 1px solid var(--border);
+        height: 100%;
+      }
+      .brand .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        background: var(--orange);
+      }
+      .tabs {
+        display: flex;
+        height: 100%;
+        gap: 2px;
+      }
+      .tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 14px;
+        height: 100%;
+        color: var(--text-2);
+        font-weight: 500;
+        font-size: 12.5px;
+        border-bottom: 2px solid transparent;
+        white-space: nowrap;
+      }
+      .tab svg {
+        width: 14px;
+        height: 14px;
+        opacity: 0.8;
+      }
+      .tab.active {
+        color: var(--text-0);
+        border-bottom-color: var(--orange);
+        background: linear-gradient(180deg, transparent, var(--orange-dim));
+      }
+      .tab .badge {
+        background: var(--bg-3);
+        color: var(--text-1);
+        font-size: 10px;
+        font-family: var(--mono);
+        padding: 0 5px;
+        border-radius: 8px;
+        line-height: 15px;
+      }
+      .tab.active .badge {
+        background: var(--orange);
+        color: #1a0d05;
+      }
+      .tab.anon.active {
+        border-bottom-color: var(--violet);
+        background: linear-gradient(180deg, transparent, var(--violet-dim));
+      }
+      .tab.anon.active .badge {
+        background: var(--violet);
+        color: #160f2b;
+      }
+
+      .topbar-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .global-search {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 5px 10px;
+        width: 230px;
+      }
+      .global-search input {
+        background: none;
+        border: none;
+        outline: none;
+        color: var(--text-0);
+        font-size: 12px;
+        width: 100%;
+      }
+      .global-search input::placeholder {
+        color: var(--text-2);
+      }
+      .global-search svg {
+        width: 13px;
+        height: 13px;
+        color: var(--text-2);
+        flex-shrink: 0;
+      }
+      .quick-switch {
+        display: flex;
+        align-items: center;
+      }
+      .qs-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 600;
+        color: #0a0c10;
+        border: 2px solid var(--bg-1);
+        margin-left: -8px;
+        cursor: pointer;
+        transition: transform 0.12s ease;
+      }
+      .qs-avatar:first-child {
+        margin-left: 0;
+      }
+      .qs-avatar:hover {
+        transform: translateY(-3px);
+        z-index: 2;
+      }
+      .qs-avatar.active {
+        outline: 2px solid var(--orange);
+        outline-offset: 1px;
+      }
+      .icon-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: transparent;
+        border: 1px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-1);
+      }
+      .icon-btn:hover {
+        background: var(--bg-2);
+        border-color: var(--border);
+        color: var(--text-0);
+      }
+      .icon-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+      .focus-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--text-1);
+      }
+
+      /* ===== MAIN LAYOUT ===== */
+      .main {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        overflow: hidden;
+      }
+
+      /* ---- SIDEBAR ---- */
+      .sidebar {
+        background: var(--bg-1);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .sb-section {
+        padding: 12px 12px 6px;
+      }
+      .sb-title {
+        font-size: 10.5px;
+        letter-spacing: 0.03em;
+        color: var(--text-2);
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .sb-title .count {
+        font-family: var(--mono);
+        color: var(--text-2);
+      }
+      .platform-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        padding: 0 6px;
+      }
+      .platform-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        color: var(--text-1);
+        font-size: 12.5px;
+        font-weight: 500;
+      }
+      .platform-item:hover {
+        background: var(--bg-2);
+      }
+      .platform-item.active {
+        background: var(--bg-3);
+        color: var(--text-0);
+      }
+      .p-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .platform-item .p-name {
+        flex: 1;
+      }
+      .platform-item .p-count {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--text-2);
+      }
+      .platform-item.active .p-count {
+        color: var(--text-0);
+      }
+
+      .sb-accounts {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 6px 12px;
+      }
+      .acc-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: 6px;
+        margin-bottom: 2px;
+      }
+      .acc-row:hover {
+        background: var(--bg-2);
+      }
+      .acc-row.active {
+        background: var(--bg-3);
+      }
+      .acc-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .status-dot {
+        position: absolute;
+        bottom: -1px;
+        right: -1px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: 2px solid var(--bg-1);
+      }
+      .status-dot.on {
+        background: var(--green);
+      }
+      .status-dot.off {
+        background: var(--text-2);
+      }
+      .acc-meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .acc-name {
+        font-size: 12px;
+        color: var(--text-0);
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .acc-sub {
+        font-size: 10.5px;
+        color: var(--text-2);
+        font-family: var(--mono);
+      }
+      .acc-unread {
+        background: var(--orange);
+        color: #1a0d05;
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 8px;
+        padding: 1px 6px;
+        font-family: var(--mono);
+      }
+
+      .add-account {
+        margin: 6px 8px 8px;
+        padding: 8px;
+        border: 1px dashed var(--border);
+        border-radius: 6px;
+        color: var(--text-2);
+        font-size: 11.5px;
+        text-align: center;
+      }
+      .add-account:hover {
+        border-color: var(--orange);
+        color: var(--orange);
+      }
+
+      /* ---- VIEWS ---- */
+      .view {
+        display: none;
+        overflow: hidden;
+        grid-template-columns: 290px 1fr 260px;
+      }
+      .view.active {
+        display: grid;
+      }
+
+      /* ===== INBOX VIEW ===== */
+      .conv-col {
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg-1);
+      }
+      .conv-toolbar {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .conv-toolbar input {
+        flex: 1;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 6px 9px;
+        color: var(--text-0);
+        font-size: 12px;
+        outline: none;
+      }
+      .conv-toolbar input::placeholder {
+        color: var(--text-2);
+      }
+      .filter-chips {
+        display: flex;
+        gap: 5px;
+        padding: 8px 12px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .chip {
+        font-size: 10.5px;
+        font-family: var(--mono);
+        padding: 3px 8px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        color: var(--text-1);
+      }
+      .chip.active {
+        border-color: var(--orange);
+        color: var(--orange);
+        background: var(--orange-dim);
+      }
+      .conv-list {
+        flex: 1;
+        overflow-y: auto;
+      }
+      .conv-item {
+        display: flex;
+        gap: 9px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-soft);
+        position: relative;
+      }
+      .conv-item:hover {
+        background: var(--bg-2);
+      }
+      .conv-item.selected {
+        background: var(--bg-3);
+      }
+      .conv-item.unread .c-name {
+        color: #fff;
+      }
+      .conv-item.unread .c-last {
+        color: var(--text-0);
+      }
+      .c-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .plat-badge {
+        position: absolute;
+        bottom: -3px;
+        right: -3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        border: 2px solid var(--bg-1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+      }
+      .c-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .c-row1 {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 6px;
+      }
+      .c-name {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-1);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .c-time {
+        font-size: 10px;
+        color: var(--text-2);
+        font-family: var(--mono);
+        flex-shrink: 0;
+      }
+      .c-last {
+        font-size: 11.5px;
+        color: var(--text-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-top: 2px;
+      }
+      .c-row3 {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        margin-top: 5px;
+      }
+      .tag {
+        font-size: 9.5px;
+        font-family: var(--mono);
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-weight: 600;
+      }
+      .tag.work {
+        background: #3ecf8e22;
+        color: var(--green);
+      }
+      .tag.urgent {
+        background: #ef4a5f22;
+        color: var(--red);
+      }
+      .tag.personal {
+        background: #9b7bff22;
+        color: var(--violet);
+      }
+      .tag.bot {
+        background: #e8b23d22;
+        color: var(--yellow);
+      }
+      .tag.spam {
+        background: #6b768822;
+        color: var(--text-2);
+      }
+      .c-unread-dot {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: var(--orange);
+        color: #1a0d05;
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 8px;
+        min-width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--mono);
+      }
+      .pin-icon {
+        width: 10px;
+        height: 10px;
+        color: var(--text-2);
+      }
+
+      /* ---- THREAD ---- */
+      .thread-col {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg-0);
+      }
+      .thread-header {
+        padding: 11px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .th-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .th-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .th-sub {
+        font-size: 10.5px;
+        color: var(--text-2);
+        font-family: var(--mono);
+        margin-top: 1px;
+      }
+      .th-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 4px;
+      }
+      .thread-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .msg-day {
+        align-self: center;
+        font-size: 10px;
+        color: var(--text-2);
+        font-family: var(--mono);
+        background: var(--bg-2);
+        padding: 2px 10px;
+        border-radius: 8px;
+        margin: 6px 0;
+      }
+      .msg {
+        max-width: 62%;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .msg.in {
+        align-self: flex-start;
+      }
+      .msg.out {
+        align-self: flex-end;
+        align-items: flex-end;
+      }
+      .bubble {
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+      .msg.in .bubble {
+        background: var(--bg-2);
+        border: 1px solid var(--border-soft);
+        border-bottom-left-radius: 3px;
+      }
+      .msg.out .bubble {
+        background: var(--orange);
+        color: #1a0d05;
+        border-bottom-right-radius: 3px;
+        font-weight: 500;
+      }
+      .msg-meta {
+        font-size: 9.5px;
+        color: var(--text-2);
+        font-family: var(--mono);
+        padding: 0 4px;
+      }
+      .translate-note {
+        font-size: 10px;
+        color: var(--text-2);
+        font-style: italic;
+        padding: 2px 4px;
+        border-left: 2px solid var(--border);
+        padding-left: 6px;
+      }
+      .thread-input {
+        border-top: 1px solid var(--border);
+        padding: 10px 14px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .thread-input input {
+        flex: 1;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 9px 12px;
+        color: var(--text-0);
+        font-size: 12.5px;
+        outline: none;
+      }
+      .thread-input input::placeholder {
+        color: var(--text-2);
+      }
+      .send-btn {
+        background: var(--orange);
+        color: #1a0d05;
+        border: none;
+        border-radius: 8px;
+        padding: 9px 14px;
+        font-weight: 700;
+        font-size: 12px;
+      }
+
+      /* ---- RIGHT PANEL ---- */
+      .right-col {
+        border-left: 1px solid var(--border);
+        overflow-y: auto;
+        background: var(--bg-1);
+      }
+      .rp-section {
+        padding: 14px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .rp-title {
+        font-size: 10.5px;
+        letter-spacing: 0.03em;
+        color: var(--text-2);
+        font-weight: 700;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+      .rp-profile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 6px;
+      }
+      .rp-avatar-lg {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .rp-name-lg {
+        font-size: 13.5px;
+        font-weight: 700;
+      }
+      .rp-plat {
+        font-size: 10.5px;
+        color: var(--text-2);
+        font-family: var(--mono);
+      }
+      .ai-classify {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+      }
+      .ai-classify .row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11.5px;
+        margin-bottom: 6px;
+      }
+      .ai-classify .row:last-child {
+        margin-bottom: 0;
+      }
+      .ai-classify .label {
+        color: var(--text-2);
+      }
+      .confidence-bar {
+        height: 4px;
+        background: var(--bg-3);
+        border-radius: 2px;
+        margin-top: 4px;
+        overflow: hidden;
+      }
+      .confidence-fill {
+        height: 100%;
+        background: var(--green);
+      }
+      .quick-reply {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 7px 10px;
+        font-size: 11.5px;
+        color: var(--text-1);
+        margin-bottom: 6px;
+      }
+      .quick-reply:hover {
+        border-color: var(--orange);
+        color: var(--text-0);
+      }
+      .toggle-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 0;
+        font-size: 12px;
+      }
+      .switch {
+        width: 32px;
+        height: 18px;
+        border-radius: 10px;
+        background: var(--bg-3);
+        position: relative;
+        flex-shrink: 0;
+        border: 1px solid var(--border);
+      }
+      .switch.on {
+        background: var(--orange-dim);
+        border-color: var(--orange);
+      }
+      .switch .knob {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--text-2);
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        transition: 0.15s;
+      }
+      .switch.on .knob {
+        background: var(--orange);
+        left: 16px;
+      }
+      .switch.violet.on {
+        background: var(--violet-dim);
+        border-color: var(--violet);
+      }
+      .switch.violet.on .knob {
+        background: var(--violet);
+      }
+
+      /* ===== ANONYMOUS VIEW ===== */
+      .anon-view {
+        background: radial-gradient(ellipse at top, #150f26 0%, var(--bg-0) 55%);
+      }
+      .anon-col {
+        border-right: 1px solid #2a2145;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-1);
+      }
+      .anon-banner {
+        margin: 10px;
+        padding: 10px 12px;
+        background: var(--violet-dim);
+        border: 1px solid #3d2f6b;
+        border-radius: 8px;
+        font-size: 11px;
+        color: #c7b8ff;
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        line-height: 1.5;
+      }
+      .anon-banner svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        margin-top: 1px;
+        color: var(--violet);
+      }
+      .identity-item {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+        padding: 9px 12px;
+        margin: 0 8px 4px;
+        border-radius: 8px;
+      }
+      .identity-item:hover {
+        background: #1c1533;
+      }
+      .identity-item.active {
+        background: #241a3d;
+        border: 1px solid #3d2f6b;
+      }
+      .id-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #9b7bff, #5b3fd6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f0a1f;
+      }
+      .id-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: #e6dcff;
+      }
+      .id-sub {
+        font-size: 10px;
+        color: #8b7bb8;
+        font-family: var(--mono);
+      }
+      .new-identity {
+        margin: 8px;
+        padding: 9px;
+        border: 1px dashed #3d2f6b;
+        border-radius: 8px;
+        text-align: center;
+        color: #8b7bb8;
+        font-size: 11.5px;
+      }
+      .new-identity:hover {
+        border-color: var(--violet);
+        color: var(--violet);
+      }
+      .anon-thread .bubble {
+        background: #1c1533;
+        border: 1px solid #2a2145;
+      }
+      .anon-thread .msg.out .bubble {
+        background: var(--violet);
+        color: #160f2b;
+      }
+      .self-destruct-bar {
+        padding: 9px 14px;
+        border-top: 1px solid #2a2145;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 11px;
+        color: #c7b8ff;
+      }
+      .self-destruct-bar input[type='range'] {
+        accent-color: var(--violet);
+        flex: 1;
+      }
+      .anon-right {
+        background: var(--bg-1);
+      }
+
+      /* ===== AUTO-REPLY VIEW ===== */
+      .autoreply-view {
+        grid-template-columns: 1fr;
+        padding: 18px 22px;
+        overflow-y: auto;
+        display: none;
+      }
+      .autoreply-view.active {
+        display: block;
+      }
+      .ar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .ar-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .ar-sub {
+        font-size: 11.5px;
+        color: var(--text-2);
+        margin-top: 3px;
+      }
+      .btn-primary {
+        background: var(--orange);
+        color: #1a0d05;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 7px;
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .rules-table {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .rt-head,
+      .rt-row {
+        display: grid;
+        grid-template-columns: 26px 1.4fr 1fr 1.8fr 90px 60px;
+        gap: 10px;
+        align-items: center;
+        padding: 11px 14px;
+      }
+      .rt-head {
+        background: var(--bg-2);
+        font-size: 10.5px;
+        color: var(--text-2);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .rt-row {
+        border-top: 1px solid var(--border-soft);
+        font-size: 12px;
+      }
+      .rt-row:hover {
+        background: var(--bg-1);
+      }
+      .plat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: var(--text-1);
+      }
+      .plat-pill .p-dot {
+        width: 6px;
+        height: 6px;
+      }
+      .trigger-code {
+        font-family: var(--mono);
+        background: var(--bg-2);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        color: var(--yellow);
+      }
+      .response-preview {
+        color: var(--text-1);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .stat-cell {
+        font-family: var(--mono);
+        color: var(--text-2);
+        font-size: 11px;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-top: 24px;
+      }
+      .feature-card {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 13px;
+      }
+      .feature-card .fi {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: var(--bg-3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 9px;
+      }
+      .feature-card .fi svg {
+        width: 15px;
+        height: 15px;
+        color: var(--orange);
+      }
+      .feature-card h4 {
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .feature-card p {
+        font-size: 11px;
+        color: var(--text-2);
+        line-height: 1.5;
+      }
+
+      /* ===== CONTACTS VIEW ===== */
+      .contacts-view {
+        grid-template-columns: 1fr;
+        padding: 18px 22px;
+        overflow-y: auto;
+        display: none;
+      }
+      .contacts-view.active {
+        display: block;
+      }
+      .contacts-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .contact-card {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .cc-top {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .cc-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .cc-name {
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+      .cc-sub {
+        font-size: 10.5px;
+        color: var(--text-2);
+      }
+      .cc-platforms {
+        display: flex;
+        gap: 5px;
+        margin-top: 11px;
+        flex-wrap: wrap;
+      }
+      .cc-plat-chip {
+        font-size: 10px;
+        font-family: var(--mono);
+        padding: 2px 7px;
+        border-radius: 6px;
+        background: var(--bg-3);
+        color: var(--text-1);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      /* ===== STATS VIEW ===== */
+      .stats-view {
+        grid-template-columns: 1fr;
+        padding: 18px 22px;
+        overflow-y: auto;
+        display: none;
+      }
+      .stats-view.active {
+        display: block;
+      }
+      .stat-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      .stat-card {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .stat-card .num {
+        font-size: 22px;
+        font-weight: 700;
+        font-family: var(--mono);
+      }
+      .stat-card .lbl {
+        font-size: 11px;
+        color: var(--text-2);
+        margin-top: 4px;
+      }
+      .stat-card .delta {
+        font-size: 10.5px;
+        margin-top: 6px;
+        font-family: var(--mono);
+      }
+      .delta.up {
+        color: var(--green);
+      }
+      .delta.down {
+        color: var(--red);
+      }
+      .chart-box {
+        margin-top: 16px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+      }
+      .bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+        height: 120px;
+        margin-top: 14px;
+      }
+      .bar-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      .bar {
+        width: 100%;
+        border-radius: 4px 4px 0 0;
+        background: linear-gradient(180deg, var(--orange), #c85a26);
+      }
+      .bar-lbl {
+        font-size: 9.5px;
+        color: var(--text-2);
+        font-family: var(--mono);
+      }
+
+      /* ===== STATUS BAR ===== */
+      .statusbar {
+        background: var(--bg-1);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 0 14px;
+        font-size: 10.5px;
+        color: var(--text-2);
+        font-family: var(--mono);
+      }
+      .statusbar .sb-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .sb-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+      }
+      .statusbar .spacer {
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- ===================== TOP BAR ===================== -->
+      <div class="topbar">
+        <div class="brand"><span class="dot"></span>CHAT</div>
+        <div class="tabs">
+          <div class="tab active" data-view="inbox">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            Hộp thư chung <span class="badge">27</span>
+          </div>
+          <div class="tab anon" data-view="anon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Ẩn danh <span class="badge">3</span>
+          </div>
+          <div class="tab" data-view="autoreply">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2 3 14h8l-1 8 10-12h-8z" />
+            </svg>
+            Phản hồi tự động
+          </div>
+          <div class="tab" data-view="contacts">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Danh bạ hợp nhất
+          </div>
+          <div class="tab" data-view="stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3" />
+            </svg>
+            Thống kê
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="focus-toggle">
+            <div class="switch" id="focusSwitch" onclick="toggleSwitch(this)">
+              <div class="knob"></div>
+            </div>
+            Chế độ tập trung
+          </div>
+          <div class="global-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              id="searchInput"
+              placeholder="Tìm xuyên nền tảng..."
+              oninput="filterConversations()"
+            />
+          </div>
+          <div class="quick-switch" id="quickSwitch"></div>
+          <button class="icon-btn" title="Thông báo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===================== MAIN ===================== -->
+      <div class="main">
+        <!-- ---------- SIDEBAR ---------- -->
+        <div class="sidebar">
+          <div class="sb-section">
+            <div class="sb-title">NỀN TẢNG <span class="count">8</span></div>
+            <div class="platform-list" id="platformList"></div>
+          </div>
+          <div class="sb-section" style="padding-bottom: 0">
+            <div class="sb-title">
+              TÀI KHOẢN ĐANG KẾT NỐI <span class="count" id="accCount"></span>
+            </div>
+          </div>
+          <div class="sb-accounts" id="accountList"></div>
+          <div class="add-account">+ Thêm tài khoản / kết nối nền tảng mới</div>
+        </div>
+
+        <!-- ---------- INBOX VIEW ---------- -->
+        <div class="view active" id="view-inbox">
+          <div class="conv-col">
+            <div class="conv-toolbar">
+              <input
+                placeholder="Lọc hội thoại..."
+                oninput="filterConversations()"
+                id="convFilter"
+              />
+              <button class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 3H2l8 9.46V19l4 2v-8.54z" />
+                </svg>
+              </button>
+            </div>
+            <div class="filter-chips" id="filterChips"></div>
+            <div class="conv-list" id="convList"></div>
+          </div>
+
+          <div class="thread-col" id="threadCol"></div>
+
+          <div class="right-col" id="rightCol"></div>
+        </div>
+
+        <!-- ---------- ANONYMOUS VIEW ---------- -->
+        <div class="view anon-view" id="view-anon">
+          <div class="anon-col">
+            <div class="anon-banner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="10" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Khu vực này mã hóa đầu-cuối, không lưu log, danh tính được xoay vòng tự động. Tin nhắn
+              tự hủy sau thời gian đã đặt.
+            </div>
+            <div id="identityList"></div>
+            <div class="new-identity">+ Tạo danh tính ẩn danh mới</div>
+          </div>
+          <div class="thread-col anon-thread" id="anonThread"></div>
+          <div class="right-col anon-right" id="anonRight"></div>
+        </div>
+
+        <!-- ---------- AUTO-REPLY VIEW ---------- -->
+        <div class="autoreply-view" id="view-autoreply">
+          <div class="ar-header">
+            <div>
+              <div class="ar-title">Quy tắc phản hồi tự động</div>
+              <div class="ar-sub">
+                Áp dụng xuyên suốt tất cả nền tảng đã kết nối — dựa trên từ khóa, giờ giấc hoặc phân
+                loại AI.
+              </div>
+            </div>
+            <button class="btn-primary">+ Tạo quy tắc mới</button>
+          </div>
+          <div class="rules-table" id="rulesTable"></div>
+
+          <div class="feature-grid" id="featureGrid"></div>
+        </div>
+
+        <!-- ---------- CONTACTS VIEW ---------- -->
+        <div class="contacts-view" id="view-contacts">
+          <div class="ar-header">
+            <div>
+              <div class="ar-title">Danh bạ hợp nhất</div>
+              <div class="ar-sub">Tự động gộp cùng một người dù họ nhắn từ nền tảng nào.</div>
+            </div>
+            <button class="btn-primary">+ Gộp liên hệ thủ công</button>
+          </div>
+          <div class="contacts-grid" id="contactsGrid"></div>
+        </div>
+
+        <!-- ---------- STATS VIEW ---------- -->
+        <div class="stats-view" id="view-stats">
+          <div class="ar-header">
+            <div>
+              <div class="ar-title">Thống kê hoạt động nhắn tin</div>
+              <div class="ar-sub">Tổng hợp 7 ngày gần nhất trên toàn bộ nền tảng.</div>
+            </div>
+          </div>
+          <div class="stat-cards" id="statCards"></div>
+          <div class="chart-box">
+            <div class="rp-title">TIN NHẮN THEO NGÀY</div>
+            <div class="bars" id="statBars"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== STATUS BAR ===================== -->
+      <div class="statusbar">
+        <div class="sb-item"><span class="sb-dot"></span>Đã đồng bộ 8 nền tảng</div>
+        <div class="sb-item">12 tài khoản hoạt động</div>
+        <div class="sb-item">27 tin chưa đọc</div>
+        <div class="sb-item">Mã hóa vùng ẩn danh: bật</div>
+        <div class="spacer"></div>
+        <div class="sb-item">Auto-reply: 4 quy tắc đang chạy</div>
+        <div class="sb-item">Độ trễ đồng bộ: 82ms</div>
+      </div>
+    </div>
+
+    <script>
+      /* ============================================================
+   MOCK DATA
+   ============================================================ */
+      const PLATFORMS = [
+        { id: 'all', name: 'Tất cả', color: '#ff7a3d' },
+        { id: 'messenger', name: 'Messenger', color: '#4f7bff', icon: 'M' },
+        { id: 'whatsapp', name: 'WhatsApp', color: '#3ecf8e', icon: 'W' },
+        { id: 'zalo', name: 'Zalo', color: '#2fa1ff', icon: 'Z' },
+        { id: 'telegram', name: 'Telegram', color: '#3fb7e8', icon: 'T' },
+        { id: 'discord', name: 'Discord', color: '#8b7bff', icon: 'D' },
+        { id: 'instagram', name: 'Instagram', color: '#e0508a', icon: 'I' },
+        { id: 'slack', name: 'Slack', color: '#e8b23d', icon: 'S' },
+        { id: 'signal', name: 'Signal', color: '#5a7bff', icon: 'Sg' },
+      ];
+
+      const ACCOUNTS = [
+        {
+          id: 'a1',
+          platform: 'messenger',
+          name: 'Minh Trần (cá nhân)',
+          sub: 'm.tran.dev',
+          online: true,
+          unread: 5,
+        },
+        {
+          id: 'a2',
+          platform: 'whatsapp',
+          name: '+84 90 xxx 221',
+          sub: 'WhatsApp Business',
+          online: true,
+          unread: 2,
+        },
+        {
+          id: 'a3',
+          platform: 'zalo',
+          name: 'Trần Minh',
+          sub: '090xxxx221',
+          online: true,
+          unread: 0,
+        },
+        {
+          id: 'a4',
+          platform: 'telegram',
+          name: '@minh_dev',
+          sub: 'Telegram cá nhân',
+          online: true,
+          unread: 8,
+        },
+        {
+          id: 'a5',
+          platform: 'discord',
+          name: 'minhdev#0192',
+          sub: '6 server',
+          online: true,
+          unread: 12,
+        },
+        {
+          id: 'a6',
+          platform: 'instagram',
+          name: '@minh.codes',
+          sub: 'Instagram',
+          online: false,
+          unread: 0,
+        },
+        {
+          id: 'a7',
+          platform: 'slack',
+          name: 'Minh T.',
+          sub: 'workspace: coretech',
+          online: true,
+          unread: 3,
+        },
+        {
+          id: 'a8',
+          platform: 'signal',
+          name: 'Minh (Signal)',
+          sub: 'Số phụ',
+          online: false,
+          unread: 0,
+        },
+      ];
+
+      const CONVERSATIONS = [
+        {
+          id: 1,
+          platform: 'discord',
+          name: '#security-research',
+          avatar: 'SR',
+          color: '#8b7bff',
+          last: 'anh check giúp em log CVE-2024 kia với',
+          time: '2 phút',
+          unread: 4,
+          tag: 'urgent',
+          pinned: true,
+        },
+        {
+          id: 2,
+          platform: 'messenger',
+          name: 'Chị Hạnh - Khách hàng',
+          avatar: 'CH',
+          color: '#4f7bff',
+          last: 'Dạ em ơi bao giờ xong bản demo ạ?',
+          time: '6 phút',
+          unread: 2,
+          tag: 'work',
+          pinned: false,
+        },
+        {
+          id: 3,
+          platform: 'whatsapp',
+          name: 'David (US client)',
+          avatar: 'DV',
+          color: '#3ecf8e',
+          last: 'Can we push the deploy to Friday?',
+          time: '14 phút',
+          unread: 1,
+          tag: 'work',
+          pinned: false,
+        },
+        {
+          id: 4,
+          platform: 'telegram',
+          name: 'Nhóm Freelancer VN',
+          avatar: 'FL',
+          color: '#3fb7e8',
+          last: 'Ê có ai rảnh nhận job React không',
+          time: '22 phút',
+          unread: 8,
+          tag: 'personal',
+          pinned: false,
+        },
+        {
+          id: 5,
+          platform: 'zalo',
+          name: 'Mẹ',
+          avatar: 'M',
+          color: '#2fa1ff',
+          last: 'Con ăn cơm chưa, nhớ ngủ sớm nha',
+          time: '40 phút',
+          unread: 1,
+          tag: 'personal',
+          pinned: true,
+        },
+        {
+          id: 6,
+          platform: 'slack',
+          name: '#deploy-alerts',
+          avatar: 'DA',
+          color: '#e8b23d',
+          last: '[BOT] Build #4482 passed on main',
+          time: '1 giờ',
+          unread: 0,
+          tag: 'bot',
+          pinned: false,
+        },
+        {
+          id: 7,
+          platform: 'instagram',
+          name: 'shop.mynao_official',
+          avatar: 'SM',
+          color: '#e0508a',
+          last: 'Ưu đãi 50% chỉ hôm nay, inbox ngay!',
+          time: '2 giờ',
+          unread: 1,
+          tag: 'spam',
+          pinned: false,
+        },
+        {
+          id: 8,
+          platform: 'discord',
+          name: 'Long "0xLong"',
+          avatar: '0L',
+          color: '#8b7bff',
+          last: 'test payload này bypass được WAF rồi',
+          time: '3 giờ',
+          unread: 0,
+          tag: 'urgent',
+          pinned: false,
+        },
+        {
+          id: 9,
+          platform: 'whatsapp',
+          name: 'Nhóm Gia đình',
+          avatar: 'GD',
+          color: '#3ecf8e',
+          last: 'Chủ nhật này họp mặt ở nhà bà nội nhé',
+          time: '5 giờ',
+          unread: 0,
+          tag: 'personal',
+          pinned: false,
+        },
+        {
+          id: 10,
+          platform: 'telegram',
+          name: 'CryptoSignal_VIP',
+          avatar: 'CS',
+          color: '#3fb7e8',
+          last: '🚀 COIN X sắp pump 300%, mua ngay!!',
+          time: '6 giờ',
+          unread: 3,
+          tag: 'spam',
+          pinned: false,
+        },
+        {
+          id: 11,
+          platform: 'messenger',
+          name: 'Team Backend',
+          avatar: 'TB',
+          color: '#4f7bff',
+          last: 'PR #219 cần review gấp trước 5h',
+          time: '8 giờ',
+          unread: 1,
+          tag: 'urgent',
+          pinned: false,
+        },
+        {
+          id: 12,
+          platform: 'signal',
+          name: 'Anh Phong',
+          avatar: 'AP',
+          color: '#5a7bff',
+          last: 'File tài liệu đã gửi qua drive nhé',
+          time: '1 ngày',
+          unread: 0,
+          tag: 'work',
+          pinned: false,
+        },
+      ];
+
+      const MESSAGES = {
+        1: [
+          {
+            dir: 'in',
+            text: 'Mọi người, phát hiện endpoint /api/v2/export bị lộ IDOR.',
+            time: '14:02',
+          },
+          { dir: 'in', text: 'Đính kèm log HTTP request bên Emulate rồi đó.', time: '14:03' },
+          {
+            dir: 'out',
+            text: 'Ok để mình dùng module Emulate replay lại request xem sao.',
+            time: '14:05',
+          },
+          { dir: 'in', text: 'anh check giúp em log CVE-2024 kia với', time: '14:07' },
+        ],
+        2: [
+          { dir: 'in', text: 'Chào em, chị Hạnh bên công ty ABC đây', time: '09:12' },
+          { dir: 'out', text: 'Dạ em chào chị ạ, em đang làm phần thanh toán ạ', time: '09:15' },
+          { dir: 'in', text: 'Dạ em ơi bao giờ xong bản demo ạ?', time: '09:40', translate: false },
+        ],
+        3: [
+          { dir: 'in', text: 'Hey, quick question about the deployment schedule.', time: '08:20' },
+          { dir: 'out', text: 'Sure, what did you have in mind?', time: '08:22' },
+          {
+            dir: 'in',
+            text: 'Can we push the deploy to Friday?',
+            time: '08:24',
+            translate: 'Chúng ta có thể dời deploy sang thứ Sáu không?',
+          },
+        ],
+        4: [
+          { dir: 'in', text: 'Có job Node.js backend lương ổn không mọi người', time: '07:30' },
+          { dir: 'in', text: 'Ê có ai rảnh nhận job React không', time: '07:55' },
+        ],
+        5: [
+          { dir: 'in', text: 'Con ơi tối nay về ăn cơm không', time: '18:00' },
+          { dir: 'out', text: 'Dạ con về mẹ ơi', time: '18:02' },
+          { dir: 'in', text: 'Con ăn cơm chưa, nhớ ngủ sớm nha', time: '21:10' },
+        ],
+      };
+
+      const IDENTITIES = [
+        { id: 'i1', name: 'Ẩn danh #A17F', sub: 'Hết hạn sau 2 giờ', active: true },
+        { id: 'i2', name: 'Ẩn danh #B902', sub: 'Đã dùng cho 1 hội thoại', active: false },
+        { id: 'i3', name: 'Ẩn danh #C3D1', sub: 'Mới tạo', active: false },
+      ];
+
+      const ANON_MESSAGES = [
+        { dir: 'in', text: 'chào, tôi có thông tin muốn trao đổi kín', time: '23:41' },
+        { dir: 'out', text: 'Ok, gửi qua kênh này an toàn. Bạn cần gì?', time: '23:42' },
+        { dir: 'in', text: 'tin nhắn này sẽ tự xóa sau 60s kể từ lúc đọc', time: '23:43' },
+      ];
+
+      const AUTO_RULES = [
+        {
+          on: true,
+          name: 'Trả lời ngoài giờ làm việc',
+          platform: 'messenger',
+          color: '#4f7bff',
+          trigger: '22:00–07:00',
+          response: 'Cảm ơn bạn đã nhắn, mình sẽ phản hồi vào giờ hành chính.',
+          hits: 214,
+        },
+        {
+          on: true,
+          name: 'Chặn & gắn nhãn tin quảng cáo',
+          platform: 'instagram',
+          color: '#e0508a',
+          trigger: 'từ khóa: "ưu đãi", "giảm giá", "inbox ngay"',
+          response: '(tự động gắn nhãn Spam, không phản hồi)',
+          hits: 132,
+        },
+        {
+          on: true,
+          name: 'Xác nhận đã nhận yêu cầu hỗ trợ',
+          platform: 'whatsapp',
+          color: '#3ecf8e',
+          trigger: 'từ khóa: "support", "help", "lỗi"',
+          response: 'Yêu cầu của bạn đã được ghi nhận, đội ngũ sẽ phản hồi trong 24h.',
+          hits: 58,
+        },
+        {
+          on: false,
+          name: 'Cảnh báo tin nhắn nghi ngờ lừa đảo',
+          platform: 'zalo',
+          color: '#2fa1ff',
+          trigger: 'AI phát hiện: liên kết lạ + yêu cầu OTP',
+          response: '(gắn nhãn Cảnh báo, gửi thông báo cho bạn)',
+          hits: 9,
+        },
+      ];
+
+      const CONTACTS = [
+        {
+          name: 'Trần Minh Anh',
+          sub: 'Đồng nghiệp',
+          platforms: ['messenger', 'slack', 'telegram'],
+          color: '#4f7bff',
+        },
+        {
+          name: 'David Kim',
+          sub: 'Khách hàng US',
+          platforms: ['whatsapp', 'discord'],
+          color: '#3ecf8e',
+        },
+        { name: 'Mẹ', sub: 'Gia đình', platforms: ['zalo'], color: '#2fa1ff' },
+        {
+          name: 'Long "0xLong"',
+          sub: 'Cộng đồng bảo mật',
+          platforms: ['discord', 'telegram'],
+          color: '#8b7bff',
+        },
+        { name: 'Chị Hạnh', sub: 'Khách hàng', platforms: ['messenger', 'zalo'], color: '#e0508a' },
+        { name: 'Anh Phong', sub: 'Đối tác', platforms: ['signal', 'whatsapp'], color: '#5a7bff' },
+      ];
+
+      const FEATURES = [
+        {
+          icon: 'M13 2 3 14h8l-1 8 10-12h-8z',
+          title: 'Phản hồi tự động thông minh',
+          desc: 'Đặt luật theo từ khóa, giờ giấc, hoặc để AI tự quyết định.',
+        },
+        {
+          icon: 'M4 4h16v12H5.17L4 17.17zM8 9h8M8 13h5',
+          title: 'Phân loại tin nhắn bằng AI',
+          desc: 'Tự gắn nhãn Công việc / Cá nhân / Khẩn cấp / Spam theo ngữ cảnh.',
+        },
+        {
+          icon: 'M5 8h14M5 12h14M5 16h10',
+          title: 'Dịch tin nhắn tức thời',
+          desc: 'Tự động dịch hai chiều khi trò chuyện với người nước ngoài.',
+        },
+        {
+          icon: 'M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+          title: 'Lên lịch gửi tin nhắn',
+          desc: 'Soạn trước, hẹn giờ gửi đúng lúc trên bất kỳ nền tảng nào.',
+        },
+        {
+          icon: 'M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+          title: 'Chuyển tài khoản siêu tốc',
+          desc: 'Một phím tắt để nhảy giữa hàng chục tài khoản, không cần đăng xuất.',
+        },
+        {
+          icon: 'M3 11l19-9-9 19-2-8-8-2z',
+          title: 'Gửi broadcast hàng loạt',
+          desc: 'Soạn một lần, gửi đến nhiều liên hệ trên nhiều nền tảng cùng lúc.',
+        },
+        {
+          icon: 'M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+          title: 'Cảnh báo lừa đảo / phishing',
+          desc: 'AI quét liên kết và nội dung đáng ngờ trong thời gian thực.',
+        },
+        {
+          icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+          title: 'Đồng bộ & sao lưu mã hóa',
+          desc: 'Toàn bộ hội thoại được sao lưu, mã hóa đầu-cuối theo lịch bạn đặt.',
+        },
+      ];
+
+      const STATS = [
+        { num: '1,842', lbl: 'Tin nhắn nhận', delta: '+12% so với tuần trước', dir: 'up' },
+        { num: '963', lbl: 'Tin nhắn đã gửi', delta: '+4% so với tuần trước', dir: 'up' },
+        { num: '27', lbl: 'Đang chưa đọc', delta: '-8 so với hôm qua', dir: 'down' },
+        {
+          num: '96%',
+          lbl: 'Tỉ lệ phản hồi tự động thành công',
+          delta: '+2% so với tuần trước',
+          dir: 'up',
+        },
+      ];
+      const BAR_DATA = [
+        { d: 'T2', v: 60 },
+        { d: 'T3', v: 82 },
+        { d: 'T4', v: 45 },
+        { d: 'T5', v: 95 },
+        { d: 'T6', v: 70 },
+        { d: 'T7', v: 30 },
+        { d: 'CN', v: 20 },
+      ];
+
+      /* ============================================================
+   RENDER HELPERS
+   ============================================================ */
+      function platColor(pid) {
+        const p = PLATFORMS.find((x) => x.id === pid);
+        return p ? p.color : '#666';
+      }
+      function platName(pid) {
+        const p = PLATFORMS.find((x) => x.id === pid);
+        return p ? p.name : pid;
+      }
+      function platIcon(pid) {
+        const p = PLATFORMS.find((x) => x.id === pid);
+        return p && p.icon ? p.icon : '•';
+      }
+      function initials(name) {
+        return name
+          .split(' ')
+          .filter(Boolean)
+          .slice(-2)
+          .map((w) => w[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+      }
+
+      let activePlatform = 'all';
+      let activeConvId = 1;
+      let activeTag = 'all';
+
+      /* -- sidebar platform list -- */
+      function renderPlatformList() {
+        const el = document.getElementById('platformList');
+        el.innerHTML = PLATFORMS.map((p) => {
+          const count =
+            p.id === 'all'
+              ? CONVERSATIONS.reduce((s, c) => s + c.unread, 0)
+              : CONVERSATIONS.filter((c) => c.platform === p.id).reduce((s, c) => s + c.unread, 0);
+          return `<div class="platform-item ${p.id === activePlatform ? 'active' : ''}" onclick="setPlatform('${p.id}')">
+      <span class="p-dot" style="background:${p.color}"></span>
+      <span class="p-name">${p.name}</span>
+      <span class="p-count">${count || ''}</span>
+    </div>`;
+        }).join('');
+      }
+      function setPlatform(id) {
+        activePlatform = id;
+        renderPlatformList();
+        filterConversations();
+      }
+
+      /* -- sidebar accounts -- */
+      function renderAccounts() {
+        document.getElementById('accCount').textContent = ACCOUNTS.length;
+        document.getElementById('accountList').innerHTML = ACCOUNTS.map(
+          (a) => `
+    <div class="acc-row">
+      <div class="acc-avatar" style="background:${platColor(a.platform)}22;color:${platColor(a.platform)}">
+        ${platIcon(a.platform)}
+        <span class="status-dot ${a.online ? 'on' : 'off'}"></span>
+      </div>
+      <div class="acc-meta">
+        <div class="acc-name">${a.name}</div>
+        <div class="acc-sub">${platName(a.platform)} · ${a.sub}</div>
+      </div>
+      ${a.unread ? `<span class="acc-unread">${a.unread}</span>` : ''}
+    </div>
+  `,
+        ).join('');
+
+        document.getElementById('quickSwitch').innerHTML = ACCOUNTS.slice(0, 6)
+          .map(
+            (a, i) => `
+    <div class="qs-avatar ${i === 0 ? 'active' : ''}" style="background:${platColor(a.platform)}" title="${a.name}" onclick="quickSwitchTo(this)">${initials(a.name)}</div>
+  `,
+          )
+          .join('');
+      }
+      function quickSwitchTo(el) {
+        document.querySelectorAll('.qs-avatar').forEach((x) => x.classList.remove('active'));
+        el.classList.add('active');
+      }
+
+      /* -- filter chips -- */
+      const TAGS = [
+        { id: 'all', label: 'Tất cả' },
+        { id: 'urgent', label: 'Khẩn cấp' },
+        { id: 'work', label: 'Công việc' },
+        { id: 'personal', label: 'Cá nhân' },
+        { id: 'bot', label: 'Hệ thống' },
+        { id: 'spam', label: 'Spam' },
+      ];
+      function renderChips() {
+        document.getElementById('filterChips').innerHTML = TAGS.map(
+          (t) => `
+    <div class="chip ${t.id === activeTag ? 'active' : ''}" onclick="setTag('${t.id}')">${t.label}</div>
+  `,
+        ).join('');
+      }
+      function setTag(id) {
+        activeTag = id;
+        renderChips();
+        filterConversations();
+      }
+
+      /* -- conversation list -- */
+      function renderConvList() {
+        const q = (
+          document.getElementById('convFilter').value +
+          ' ' +
+          document.getElementById('searchInput').value
+        ).toLowerCase();
+        let list = CONVERSATIONS.filter((c) => {
+          if (activePlatform !== 'all' && c.platform !== activePlatform) return false;
+          if (activeTag !== 'all' && c.tag !== activeTag) return false;
+          if (
+            q.trim() &&
+            !(c.name.toLowerCase().includes(q.trim()) || c.last.toLowerCase().includes(q.trim()))
+          )
+            return false;
+          return true;
+        }).sort((a, b) => b.pinned - a.pinned);
+
+        document.getElementById('convList').innerHTML =
+          list
+            .map(
+              (c) => `
+    <div class="conv-item ${c.unread ? 'unread' : ''} ${c.id === activeConvId ? 'selected' : ''}" onclick="selectConv(${c.id})">
+      <div class="c-avatar" style="background:${c.color}22;color:${c.color}">
+        ${c.avatar}
+        <span class="plat-badge" style="background:${platColor(c.platform)};color:#fff">${platIcon(c.platform)}</span>
+      </div>
+      <div class="c-body">
+        <div class="c-row1">
+          <span class="c-name">${c.pinned ? '📌 ' : ''}${c.name}</span>
+          <span class="c-time">${c.time}</span>
+        </div>
+        <div class="c-last">${c.last}</div>
+        <div class="c-row3">
+          <span class="tag ${c.tag}">${{ urgent: 'Khẩn cấp', work: 'Công việc', personal: 'Cá nhân', bot: 'Hệ thống', spam: 'Spam' }[c.tag]}</span>
+        </div>
+      </div>
+      ${c.unread ? `<div class="c-unread-dot">${c.unread}</div>` : ''}
+    </div>
+  `,
+            )
+            .join('') ||
+          `<div style="padding:24px;color:var(--text-2);font-size:12px;text-align:center;">Không có hội thoại phù hợp.</div>`;
+      }
+      function filterConversations() {
+        renderConvList();
+      }
+
+      /* -- thread -- */
+      function selectConv(id) {
+        activeConvId = id;
+        renderConvList();
+        renderThread(id);
+        renderRightPanel(id);
+      }
+      function renderThread(id) {
+        const c = CONVERSATIONS.find((x) => x.id === id);
+        const msgs = MESSAGES[id] || [
+          { dir: 'in', text: '(chưa có tin nhắn mẫu cho hội thoại này)', time: '' },
+        ];
+        document.getElementById('threadCol').innerHTML = `
+    <div class="thread-header">
+      <div class="th-avatar" style="background:${c.color}22;color:${c.color}">${c.avatar}</div>
+      <div>
+        <div class="th-name">${c.name}</div>
+        <div class="th-sub">${platName(c.platform)} · đang hoạt động</div>
+      </div>
+      <div class="th-actions">
+        <button class="icon-btn" title="Dịch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14M5 12h14M5 16h10"/></svg></button>
+        <button class="icon-btn" title="Ghim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M8 3h8l-1 6 3 3v2H6v-2l3-3z"/></svg></button>
+        <button class="icon-btn" title="Thêm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+      </div>
+    </div>
+    <div class="thread-body">
+      <div class="msg-day">Hôm nay</div>
+      ${msgs
+        .map(
+          (m) => `
+        <div class="msg ${m.dir}">
+          <div class="bubble">${m.text}</div>
+          ${m.translate ? `<div class="translate-note">Dịch: ${m.translate}</div>` : ''}
+          <div class="msg-meta">${m.time}</div>
+        </div>
+      `,
+        )
+        .join('')}
+    </div>
+    <div class="thread-input">
+      <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+      <input placeholder="Nhắn tin qua ${platName(c.platform)}...">
+      <button class="send-btn">Gửi</button>
+    </div>
+  `;
+      }
+      function renderRightPanel(id) {
+        const c = CONVERSATIONS.find((x) => x.id === id);
+        const confidence = { urgent: 92, work: 87, personal: 95, bot: 99, spam: 97 }[c.tag];
+        const labelMap = {
+          urgent: 'Khẩn cấp',
+          work: 'Công việc',
+          personal: 'Cá nhân',
+          bot: 'Hệ thống',
+          spam: 'Spam / quảng cáo',
+        };
+        const suggestions = {
+          urgent: [
+            'Mình xem ngay và phản hồi trong 15 phút nhé.',
+            'Đã nhận, đang xử lý ưu tiên cao.',
+          ],
+          work: ['Dạ em sẽ hoàn thành trước cuối ngày ạ.', 'Chị cho em xin thêm chi tiết nhé.'],
+          personal: ['Dạ con biết rồi ạ 😊', 'Ok để mình sắp xếp!'],
+          bot: ['(không cần phản hồi)'],
+          spam: ['(đề xuất: chặn & báo cáo)'],
+        }[c.tag];
+
+        document.getElementById('rightCol').innerHTML = `
+    <div class="rp-section">
+      <div class="rp-profile">
+        <div class="rp-avatar-lg" style="background:${c.color}22;color:${c.color}">${c.avatar}</div>
+        <div class="rp-name-lg">${c.name}</div>
+        <div class="rp-plat">${platName(c.platform)}</div>
+      </div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">Phân loại AI</div>
+      <div class="ai-classify">
+        <div class="row"><span class="label">Nhãn</span><span class="tag ${c.tag}">${labelMap[c.tag]}</span></div>
+        <div class="row"><span class="label">Độ tin cậy</span><span>${confidence}%</span></div>
+        <div class="confidence-bar"><div class="confidence-fill" style="width:${confidence}%"></div></div>
+      </div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">Gợi ý trả lời nhanh</div>
+      ${suggestions.map((s) => `<button class="quick-reply">${s}</button>`).join('')}
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">Tùy chọn hội thoại</div>
+      <div class="toggle-row"><span>Phản hồi tự động</span><div class="switch ${c.tag === 'bot' ? 'on' : ''}" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="toggle-row"><span>Dịch tự động</span><div class="switch" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="toggle-row"><span>Ghim hội thoại</span><div class="switch ${c.pinned ? 'on' : ''}" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="toggle-row"><span>Tắt thông báo</span><div class="switch" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+    </div>
+  `;
+      }
+
+      /* -- generic switch toggler -- */
+      function toggleSwitch(el) {
+        el.classList.toggle('on');
+      }
+
+      /* ============================================================
+   ANONYMOUS VIEW
+   ============================================================ */
+      function renderIdentities() {
+        document.getElementById('identityList').innerHTML = IDENTITIES.map(
+          (i) => `
+    <div class="identity-item ${i.active ? 'active' : ''}" onclick="selectIdentity('${i.id}')">
+      <div class="id-avatar">${i.name.slice(-4)}</div>
+      <div>
+        <div class="id-name">${i.name}</div>
+        <div class="id-sub">${i.sub}</div>
+      </div>
+    </div>
+  `,
+        ).join('');
+      }
+      function selectIdentity(id) {
+        IDENTITIES.forEach((i) => (i.active = i.id === id));
+        renderIdentities();
+      }
+      function renderAnonThread() {
+        document.getElementById('anonThread').innerHTML = `
+    <div class="thread-header">
+      <div class="th-avatar" style="background:linear-gradient(135deg,#9b7bff,#5b3fd6);color:#0f0a1f">?</div>
+      <div>
+        <div class="th-name">Người lạ #7F21</div>
+        <div class="th-sub" style="color:#8b7bb8">Không xác định danh tính · đã mã hóa</div>
+      </div>
+    </div>
+    <div class="thread-body">
+      <div class="msg-day">Phiên ẩn danh — sẽ bị xóa khi đóng</div>
+      ${ANON_MESSAGES.map(
+        (m) => `
+        <div class="msg ${m.dir}">
+          <div class="bubble">${m.text}</div>
+          <div class="msg-meta">${m.time}</div>
+        </div>
+      `,
+      ).join('')}
+    </div>
+    <div class="self-destruct-bar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Tự hủy sau: <span id="destructVal">60s</span>
+      <input type="range" min="10" max="300" value="60" oninput="document.getElementById('destructVal').textContent=this.value+'s'">
+    </div>
+    <div class="thread-input">
+      <input placeholder="Nhắn ẩn danh — không ai truy được nguồn gốc...">
+      <button class="send-btn" style="background:var(--violet);color:#160f2b">Gửi</button>
+    </div>
+  `;
+      }
+      function renderAnonRight() {
+        document.getElementById('anonRight').innerHTML = `
+    <div class="rp-section">
+      <div class="rp-title">Cài đặt riêng tư</div>
+      <div class="toggle-row"><span>Mã hóa đầu-cuối</span><div class="switch violet on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="toggle-row"><span>Không lưu lịch sử</span><div class="switch violet on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="toggle-row"><span>Ẩn trạng thái đang gõ</span><div class="switch violet on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="toggle-row"><span>Chặn chụp màn hình</span><div class="switch violet" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+      <div class="toggle-row"><span>Tự xoay danh tính mỗi 24h</span><div class="switch violet on" onclick="toggleSwitch(this)"><div class="knob"></div></div></div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">Cảnh báo</div>
+      <div style="font-size:11px;color:var(--text-2);line-height:1.6;">
+        Khu vực ẩn danh chỉ nên dùng cho mục đích hợp pháp như bảo vệ quyền riêng tư cá nhân, báo cáo nội bộ hoặc trao đổi nhạy cảm cần bảo mật danh tính.
+      </div>
+    </div>
+  `;
+      }
+
+      /* ============================================================
+   AUTO-REPLY VIEW
+   ============================================================ */
+      function renderRules() {
+        document.getElementById('rulesTable').innerHTML = `
+    <div class="rt-head">
+      <span></span><span>Tên quy tắc</span><span>Nền tảng</span><span>Điều kiện kích hoạt</span><span>Lượt kích hoạt</span><span>Trạng thái</span>
+    </div>
+    ${AUTO_RULES.map(
+      (r) => `
+      <div class="rt-row">
+        <div class="switch ${r.on ? 'on' : ''}" onclick="toggleSwitch(this)"><div class="knob"></div></div>
+        <div>
+          <div style="font-weight:600;">${r.name}</div>
+          <div class="response-preview" style="margin-top:2px;">${r.response}</div>
+        </div>
+        <span class="plat-pill"><span class="p-dot" style="background:${r.color}"></span>${platName(r.platform)}</span>
+        <span class="trigger-code">${r.trigger}</span>
+        <span class="stat-cell">${r.hits} lần</span>
+        <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+      </div>
+    `,
+    ).join('')}
+  `;
+      }
+      function renderFeatureGrid() {
+        document.getElementById('featureGrid').innerHTML = FEATURES.map(
+          (f) => `
+    <div class="feature-card">
+      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${f.icon}"/></svg></div>
+      <h4>${f.title}</h4>
+      <p>${f.desc}</p>
+    </div>
+  `,
+        ).join('');
+      }
+
+      /* ============================================================
+   CONTACTS VIEW
+   ============================================================ */
+      function renderContacts() {
+        document.getElementById('contactsGrid').innerHTML = CONTACTS.map(
+          (c) => `
+    <div class="contact-card">
+      <div class="cc-top">
+        <div class="cc-avatar" style="background:${c.color}22;color:${c.color}">${initials(c.name)}</div>
+        <div>
+          <div class="cc-name">${c.name}</div>
+          <div class="cc-sub">${c.sub}</div>
+        </div>
+      </div>
+      <div class="cc-platforms">
+        ${c.platforms.map((p) => `<span class="cc-plat-chip"><span class="p-dot" style="background:${platColor(p)};width:6px;height:6px;"></span>${platName(p)}</span>`).join('')}
+      </div>
+    </div>
+  `,
+        ).join('');
+      }
+
+      /* ============================================================
+   STATS VIEW
+   ============================================================ */
+      function renderStats() {
+        document.getElementById('statCards').innerHTML = STATS.map(
+          (s) => `
+    <div class="stat-card">
+      <div class="num">${s.num}</div>
+      <div class="lbl">${s.lbl}</div>
+      <div class="delta ${s.dir}">${s.delta}</div>
+    </div>
+  `,
+        ).join('');
+        const max = Math.max(...BAR_DATA.map((b) => b.v));
+        document.getElementById('statBars').innerHTML = BAR_DATA.map(
+          (b) => `
+    <div class="bar-col">
+      <div class="bar" style="height:${(b.v / max) * 100}px"></div>
+      <div class="bar-lbl">${b.d}</div>
+    </div>
+  `,
+        ).join('');
+      }
+
+      /* ============================================================
+   TAB SWITCHING
+   ============================================================ */
+      document.querySelectorAll('.tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+          tab.classList.add('active');
+          const view = tab.dataset.view;
+          document
+            .querySelectorAll('.view, .autoreply-view, .contacts-view, .stats-view')
+            .forEach((v) => v.classList.remove('active'));
+          document.getElementById('view-' + view).classList.add('active');
+        });
+      });
+
+      /* ============================================================
+   INIT
+   ============================================================ */
+      renderPlatformList();
+      renderAccounts();
+      renderChips();
+      renderConvList();
+      renderThread(activeConvId);
+      renderRightPanel(activeConvId);
+      renderIdentities();
+      renderAnonThread();
+      renderAnonRight();
+      renderRules();
+      renderFeatureGrid();
+      renderContacts();
+      renderStats();
+    </script>
+  </body>
+</html>

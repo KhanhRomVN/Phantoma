@@ -932,6 +932,54 @@ export function setupBrowserHandlers(): void {
       }
     },
   );
+
+  /**
+   * Capture full-page screenshot
+   */
+  ipcMain.handle(
+    'browser:screenshot',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const screenshot = await session.contentHandler.captureScreenshot(page);
+
+        return {
+          success: true,
+          data: screenshot,
+        };
+      } catch (error: any) {
+        logger.error('[Browser] Screenshot failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to capture screenshot',
+        };
+      }
+    },
+  );
 }
 
 /**

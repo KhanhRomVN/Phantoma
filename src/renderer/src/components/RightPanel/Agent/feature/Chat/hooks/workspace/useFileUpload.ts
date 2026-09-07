@@ -23,6 +23,13 @@ export const useFileUpload = (apiUrl: string) => {
   const uploadFiles = useCallback(
     async (files: any[], accountId: string): Promise<string[]> => {
       logger.info(`[useFileUpload] uploadFiles called with ${files.length} files, accountId: ${accountId}`);
+      console.log('[DEBUG][useFileUpload] uploadFiles - files đầu vào:', files.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        type: f.type,
+        hasFileId: !!f.file_id,
+        file_id: f.file_id,
+      })));
       const ref_file_ids: string[] = [];
 
       const localFiles = files.filter(
@@ -35,11 +42,19 @@ export const useFileUpload = (apiUrl: string) => {
       );
 
       logger.info(`[useFileUpload] Filtered to ${localFiles.length} local files to upload`);
+      console.log('[DEBUG][useFileUpload] uploadFiles - localFiles sau filter:', localFiles.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        type: f.type,
+        hasFileId: !!f.file_id,
+        file_id: f.file_id,
+      })));
 
       for (const file of localFiles) {
         // Already uploaded — reuse existing file_id
         if (file.file_id) {
           logger.info(`[useFileUpload] File "${file.name}" already uploaded, reusing file_id: ${file.file_id}`);
+          console.log('[DEBUG][useFileUpload] uploadFiles - TÁI SỬ DỤNG file_id:', file.file_id, 'cho file:', file.name);
           ref_file_ids.push(file.file_id);
           continue;
         }
@@ -71,7 +86,7 @@ export const useFileUpload = (apiUrl: string) => {
           const formData = new FormData();
           formData.append('file', blob, file.name);
           
-          const uploadUrl = `${apiUrl}/v1/chat/accounts/${accountId}/uploads`;
+          const uploadUrl = `${apiUrl}/v1/uploads/accounts/${accountId}/uploads`;
           logger.info(`[useFileUpload] Sending POST to: ${uploadUrl}`);
 
           const uploadRes = await fetch(uploadUrl, {
@@ -92,6 +107,10 @@ export const useFileUpload = (apiUrl: string) => {
           
           if (uploadData.success && uploadData.data?.file_id) {
             logger.info(`[useFileUpload] Upload successful! file_id: ${uploadData.data.file_id}`);
+            console.log('[DEBUG][useFileUpload] uploadFiles - Upload MỚI thành công:', {
+              fileName: file.name,
+              serverFileId: uploadData.data.file_id,
+            });
             ref_file_ids.push(uploadData.data.file_id);
           } else {
             const errorMsg = uploadData.error || 'Unknown upload error';
@@ -107,6 +126,10 @@ export const useFileUpload = (apiUrl: string) => {
       }
 
       logger.info(`[useFileUpload] All uploads completed. Total file_ids: ${ref_file_ids.length}`);
+      console.log('[DEBUG][useFileUpload] uploadFiles - KẾT QUẢ CUỐI CÙNG:', {
+        totalFileIds: ref_file_ids.length,
+        ref_file_ids,
+      });
       return ref_file_ids;
     },
     [apiUrl],

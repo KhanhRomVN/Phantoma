@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
-import { NetworkRequest } from '../../../types/inspector';
+import { NetworkRequest } from '../../../../types/inspector';
 
 // ── Utils ──
 import { logger } from '@renderer/utils/logger';

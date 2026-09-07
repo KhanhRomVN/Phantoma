@@ -6,10 +6,11 @@
  * Mỗi tool có một parse function riêng để extract params.
  *
  * Main functions:
- * - parseBack()          : Parse back tag
- * - parseClickElement()  : Parse click_element tag
- * - parseNavigate()      : Parse navigate tag
- * - parseScroll()        : Parse scroll tag
+ * - parseBack()               : Parse back tag
+ * - parseCaptureScreenshot()  : Parse capture_screenshot tag
+ * - parseClickElement()       : Parse click_element tag
+ * - parseNavigate()           : Parse navigate tag
+ * - parseScroll()             : Parse scroll tag
  * ------------------------------------------------------------------
  */
 
@@ -308,6 +309,23 @@ export function parseSwitchTab(xmlString: string): SwitchTabParams | null {
 
   return {
     tabId,
+    targetId: targetIdMatch?.[1]?.trim(),
+  };
+}
+
+// ===== CaptureScreenshotParser =====
+
+export interface CaptureScreenshotParams {
+  tabId?: string;
+  targetId?: string;
+}
+
+export function parseCaptureScreenshot(xmlString: string): CaptureScreenshotParams | null {
+  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
+  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
+
+  return {
+    tabId: tabIdMatch?.[1]?.trim(),
     targetId: targetIdMatch?.[1]?.trim(),
   };
 }

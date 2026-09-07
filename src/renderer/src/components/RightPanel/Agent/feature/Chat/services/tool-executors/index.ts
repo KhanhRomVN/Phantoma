@@ -57,6 +57,7 @@ export {
   executeFillInput,
   executePressKey,
   executeScroll,
+  executeCaptureScreenshot,
 } from './ReconExecutor';
 
 import { logger } from '@renderer/utils/logger';
@@ -116,6 +117,7 @@ import {
   executeFillInput,
   executePressKey,
   executeScroll,
+  executeCaptureScreenshot,
 } from './ReconExecutor';
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -409,6 +411,13 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const result = await executeScroll(action.params || {});
+          return result.success ? result.output || null : result.error || null;
+        },
+      };
+    case 'capture_screenshot':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const result = await executeCaptureScreenshot(action.params || {});
           return result.success ? result.output || null : result.error || null;
         },
       };

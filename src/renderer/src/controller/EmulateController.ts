@@ -114,7 +114,13 @@ export class EmulateController {
     try {
       switch (toolName) {
         case 'list_https': {
+          console.log('[DEBUG] executeTool list_https - params', {
+            filter: params.filter || {},
+            limit: params.limit || 50,
+            controllerRequests: ctrl.requests.length,
+          });
           const text = ctrl.listHttpsText(params.filter || {}, params.limit || 50);
+          console.log('[DEBUG] executeTool list_https - output', { text });
           return { success: true, data: { output: text } };
         }
         case 'list_hosts': {
@@ -252,6 +258,10 @@ export class EmulateController {
   // ── Instance methods ──────────────────────────────────────────────
 
   public setRequests(requests: NetworkRequest[]): void {
+    console.log('[DEBUG] EmulateController.setRequests called', {
+      count: requests.length,
+      httpsCount: requests.filter((r) => r.protocol === 'https' || r.url.startsWith('https://')).length,
+    });
     this.requests = requests;
   }
   public setUnpackedScripts(scripts: Map<string, CdpScriptUnpackedData> | undefined): void {
@@ -263,9 +273,18 @@ export class EmulateController {
 
   public listHttps(filter: ListHttpFilter = {}, limit: number = 50): ListHttpResult {
     const allRequests = this.requests;
+    console.log('[DEBUG] listHttps called', {
+      allRequests: allRequests.length,
+      httpsCount: allRequests.filter((r) => r.protocol === 'https' || r.url.startsWith('https://')).length,
+      currentFilter: this.filter,
+      passedFilter: filter,
+      limit,
+    });
     let filteredRequests = allRequests;
     if (this.filter) filteredRequests = filterRequestsByConfig(allRequests, this.filter, '');
-    return this.listHttpHandler.handle(filteredRequests, filter, limit, allRequests);
+    const result = this.listHttpHandler.handle(filteredRequests, filter, limit, allRequests);
+    console.log('[DEBUG] listHttps result', { text: result.text });
+    return result;
   }
   public listHttpsText(filter: ListHttpFilter = {}, limit: number = 50): string {
     return this.listHttps(filter, limit).text;

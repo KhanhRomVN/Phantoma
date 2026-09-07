@@ -51,8 +51,6 @@ import { TargetTab, EmulateState, EmulateProps } from './types/target.types';
 // ── Constants ──
 import { ToolType, DEFAULT_TOOL } from './constants/tools';
 
-console.log('[Module] Emulate loaded');
-
 // ─── Component ──────────────────────────────────────────────────────────
 export default React.memo(function Emulate({
   activeAppId = '',
@@ -307,9 +305,27 @@ export default React.memo(function Emulate({
     return () => clearTimeout(timer);
   }, [activeTargetId, setState]);
 
-  // Sync requests to EmulateController
+  // Sync requests to EmulateController (subscription để cập nhật real-time)
   useEffect(() => {
-    EmulateController.getInstance().setRequests(useNetworkStore.getState().requests);
+    const sync = () => {
+      const requests = useNetworkStore.getState().requests;
+      console.log('[DEBUG] Sync requests to EmulateController', {
+        activeTargetId,
+        storeRequests: requests.length,
+        httpsCount: requests.filter((r) => r.protocol === 'https' || r.url.startsWith('https://')).length,
+      });
+      EmulateController.getInstance().setRequests(requests);
+    };
+
+    sync();
+
+    const unsubscribe = useNetworkStore.subscribe((state, prevState) => {
+      if (state.requests !== prevState.requests) {
+        sync();
+      }
+    });
+
+    return unsubscribe;
   }, [activeTargetId]);
 
   // Sync targetId to EmulateController

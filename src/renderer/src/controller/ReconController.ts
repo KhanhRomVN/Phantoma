@@ -60,7 +60,6 @@ export class ReconController {
   private fillInputHandler!: FillInputHandler;
   private pressKeyHandler!: PressKeyHandler;
   private scrollHandler!: ScrollHandler;
-
   // Callbacks for UI updates
   private onTargetsChanged: ((targets: ReconTarget[]) => void) | null = null;
   private onActiveTargetChanged: ((targetId: string | null) => void) | null = null;
@@ -188,6 +187,12 @@ export class ReconController {
             params.amount,
             params.tabId,
           );
+          return result;
+        }
+
+        // Screenshot
+        case 'capture_screenshot': {
+          const result = await ctrl.captureScreenshot(params.targetId, params.tabId);
           return result;
         }
 
@@ -674,6 +679,26 @@ export class ReconController {
       return result;
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to scroll' };
+    }
+  }
+
+  public async captureScreenshot(
+    targetId: string,
+    tabId?: string,
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    const session = this.sessions.get(targetId);
+    if (!session) {
+      return { success: false, error: 'No active browser session for this target' };
+    }
+
+    try {
+      const result = await (window as any).electron.ipcRenderer.invoke('browser:screenshot', {
+        targetId,
+        tabId,
+      });
+      return result;
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to capture screenshot' };
     }
   }
 }

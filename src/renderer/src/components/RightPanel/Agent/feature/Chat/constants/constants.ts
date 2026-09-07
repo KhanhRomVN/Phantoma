@@ -84,3 +84,6 @@ export const isToolClickable = (type: string): boolean => _isToolClickable(TAG_R
 export const getToolLabel = (toolType: string): string => _getToolLabel(TAG_REGISTRY, toolType);
 
 // ============= FILE_MUTATION_TOOLS (backward compatibility) =============
+
+export type FileMutationTool = 'write_to_file' | 'replace_in_file' | 'revert_file';
+

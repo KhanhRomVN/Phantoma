@@ -250,6 +250,25 @@ Scroll the page.
 
 ---
 
+### 15. capture_screenshot
+Capture full-page screenshot of the current page and upload it as an image file.
+
+**Parameters:**
+- tabId (optional): Specific tab ID. Uses active tab if not specified.
+- targetId (optional): Target ID. Uses active target if not specified.
+
+**Usage:**
+\`\`\`xml
+<capture_screenshot />
+\`\`\`
+
+**Output:**
+- Screenshot image in base64 format
+- Uploaded file_id if upload succeeds
+- Page title and URL
+
+---
+
 ## IMPORTANT RULES
 
 1. **Always call list_tabs before assuming tab state**

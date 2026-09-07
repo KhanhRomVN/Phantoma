@@ -341,6 +341,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
     setMessage,
     isHistoryMode: false as const,
     uploadedFiles,
+    attachedItems: [] as any[],
     textareaRef: textareaRef as React.RefObject<HTMLTextAreaElement>,
     handleTextareaChange,
     handleKeyDown,

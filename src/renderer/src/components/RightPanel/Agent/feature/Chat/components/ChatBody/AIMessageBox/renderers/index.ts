@@ -59,6 +59,7 @@ export { ClickElementRenderer } from './recon/ClickElementRenderer';
 export { FillInputRenderer } from './recon/FillInputRenderer';
 export { PressKeyRenderer } from './recon/PressKeyRenderer';
 export { ScrollRenderer } from './recon/ScrollRenderer';
+export { CaptureScreenshotRenderer } from './recon/CaptureScreenshotRenderer';
 
 // Shared types and utilities
 export type {

@@ -3,14 +3,14 @@
  * Network Store
  * ------------------------------------------------------------------
  * Zustand store quản lý danh sách network requests và unpacked scripts
- * trong module Emulate. Giới hạn số lượng requests lưu trong memory.
+ * trong module Emulate. Dùng Map index để đạt O(1) khi add/update.
  *
  * Các actions chính:
- * - addRequest()          : Thêm request mới (bỏ qua nếu trùng id)
- * - updateRequest()       : Cập nhật một phần request theo id
- * - clearRequests()       : Xóa toàn bộ requests và scripts
- * - setUnpackedScript()   : Lưu unpacked script cho một request
- * - getRequests()         : Lấy danh sách requests hiện tại
+ * - addRequests()        : Thêm hàng loạt request (bỏ qua nếu trùng id)
+ * - updateRequests()     : Cập nhật hàng loạt request theo id (O(1) lookup)
+ * - clearRequests()      : Xóa toàn bộ requests và scripts
+ * - setUnpackedScript()  : Lưu unpacked script cho một request
+ * - getRequests()        : Lấy danh sách requests hiện tại
  * ------------------------------------------------------------------
  */
 
@@ -26,12 +26,13 @@ export type { NetworkRequest, CdpScriptUnpackedData };
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface NetworkStore {
   requests: NetworkRequest[];
+  requestIndex: Map<string, number>;
   unpackedScripts: Map<string, CdpScriptUnpackedData>;
   maxMemory: number;
 
   // Actions
-  addRequest: (request: NetworkRequest) => void;
-  updateRequest: (id: string, updates: Partial<NetworkRequest>) => void;
+  addRequests: (newRequests: NetworkRequest[]) => void;
+  updateRequests: (updates: Array<{ id: string; updates: Partial<NetworkRequest> }>) => void;
   clearRequests: () => void;
   setUnpackedScript: (requestId: string, data: CdpScriptUnpackedData) => void;
   getRequests: () => NetworkRequest[];
@@ -40,29 +41,52 @@ interface NetworkStore {
 // ─── Store ──────────────────────────────────────────────────────────────
 export const useNetworkStore = create<NetworkStore>((set, get) => ({
   requests: [],
+  requestIndex: new Map(),
   unpackedScripts: new Map(),
   maxMemory: 1000,
 
-  addRequest: (request) =>
+  addRequests: (newRequests) =>
     set((state) => {
-      if (state.requests.some((r) => r.id === request.id)) {
-        return state;
+      if (newRequests.length === 0) return state;
+
+      const added: NetworkRequest[] = [];
+      for (const req of newRequests) {
+        if (!state.requestIndex.has(req.id)) {
+          added.push(req);
+        }
       }
-      const newRequests = [request, ...state.requests];
-      if (newRequests.length > state.maxMemory) {
-        return { requests: newRequests.slice(0, state.maxMemory) };
-      }
-      return { requests: newRequests };
+      if (added.length === 0) return state;
+
+      const requests = [...added, ...state.requests];
+      const sliced =
+        requests.length > state.maxMemory ? requests.slice(0, state.maxMemory) : requests;
+
+      const requestIndex = new Map<string, number>();
+      sliced.forEach((r, i) => requestIndex.set(r.id, i));
+
+      return { requests: sliced, requestIndex };
     }),
 
-  updateRequest: (id, updates) =>
-    set((state) => ({
-      requests: state.requests.map((r) =>
-        r.id === id ? { ...r, ...updates } : r,
-      ),
-    })),
+  updateRequests: (updates) =>
+    set((state) => {
+      if (updates.length === 0) return state;
 
-  clearRequests: () => set({ requests: [], unpackedScripts: new Map() }),
+      const requests = [...state.requests];
+      let changed = false;
+
+      for (const { id, updates: partial } of updates) {
+        const idx = state.requestIndex.get(id);
+        if (idx !== undefined && idx < requests.length) {
+          requests[idx] = { ...requests[idx], ...partial };
+          changed = true;
+        }
+      }
+
+      return changed ? { requests } : state;
+    }),
+
+  clearRequests: () =>
+    set({ requests: [], requestIndex: new Map(), unpackedScripts: new Map() }),
 
   setUnpackedScript: (requestId, data) =>
     set((state) => {

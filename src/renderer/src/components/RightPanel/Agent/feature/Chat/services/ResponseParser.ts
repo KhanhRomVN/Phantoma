@@ -71,6 +71,7 @@ import {
   parseFillInput,
   parsePressKey,
   parseScroll,
+  parseCaptureScreenshot,
 } from './parsers/ReconParser';
 import { parseMarkdown, extractThinkingBlocks } from './parsers/OtherParser';
 
@@ -717,6 +718,11 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'scroll': {
               const params = parseScroll(innerContent || '');
               action = { type: 'scroll' as const, params: params || {}, rawXml };
+              break;
+            }
+            case 'capture_screenshot': {
+              const params = parseCaptureScreenshot(innerContent || '');
+              action = { type: 'capture_screenshot' as const, params: params || {}, rawXml };
               break;
             }
             default:
