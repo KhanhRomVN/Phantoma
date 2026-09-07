@@ -72,6 +72,14 @@ import {
   parsePressKey,
   parseScroll,
   parseCaptureScreenshot,
+  parseSelectOption,
+  parseWaitFor,
+  parseScrollToElement,
+  parseListFrames,
+  parseHover,
+  parseClearInput,
+  parseUploadFile,
+  parseEvaluateJs,
 } from './parsers/ReconParser';
 import { parseMarkdown, extractThinkingBlocks } from './parsers/OtherParser';
 
@@ -723,6 +731,46 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'capture_screenshot': {
               const params = parseCaptureScreenshot(innerContent || '');
               action = { type: 'capture_screenshot' as const, params: params || {}, rawXml };
+              break;
+            }
+            case 'select_option': {
+              const params = parseSelectOption(innerContent || '');
+              action = { type: 'select_option' as const, params: params || {}, rawXml };
+              break;
+            }
+            case 'list_frames': {
+              const params = parseListFrames(innerContent || '');
+              action = { type: 'list_frames' as const, params: params || {}, rawXml };
+              break;
+            }
+            case 'hover': {
+              const params = parseHover(innerContent || '');
+              action = { type: 'hover' as const, params: params || {}, rawXml };
+              break;
+            }
+            case 'clear_input': {
+              const params = parseClearInput(innerContent || '');
+              action = { type: 'clear_input' as const, params: params || {}, rawXml };
+              break;
+            }
+            case 'upload_file': {
+              const params = parseUploadFile(innerContent || '');
+              action = { type: 'upload_file' as const, params: params || {}, rawXml };
+              break;
+            }
+            case 'evaluate_js': {
+              const params = parseEvaluateJs(innerContent || '');
+              action = { type: 'evaluate_js' as const, params: params || {}, rawXml };
+              break;
+            }
+            case 'scroll_to_element': {
+              const params = parseScrollToElement(innerContent || '');
+              action = { type: 'scroll_to_element' as const, params: params || {}, rawXml };
+              break;
+            }
+            case 'wait_for': {
+              const params = parseWaitFor(innerContent || '');
+              action = { type: 'wait_for' as const, params: params || {}, rawXml };
               break;
             }
             default:

@@ -20,9 +20,34 @@ import type { Page } from 'puppeteer';
 export class NavigationHandler {
   /**
    * Navigate to a URL
+   * @param waitUntil — domcontentloaded | load | networkidle (default: load)
+   * @param timeoutMs — max wait timeout (default: 30000)
    */
-  public async navigate(page: Page, url: string): Promise<void> {
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
+  public async navigate(
+    page: Page,
+    url: string,
+    waitUntil: 'domcontentloaded' | 'load' | 'networkidle' = 'load',
+    timeoutMs: number = 30000,
+  ): Promise<void> {
+    const start = Date.now();
+    console.log('[DEBUG][navigate] Start', { url, waitUntil, timeoutMs });
+
+    // Map spec value 'networkidle' → Puppeteer 'networkidle0'
+    const puppeteerWaitUntil = waitUntil === 'networkidle' ? 'networkidle0' : waitUntil;
+
+    try {
+      await page.goto(url, { waitUntil: puppeteerWaitUntil, timeout: timeoutMs });
+      const loadTimeMs = Date.now() - start;
+      console.log('[DEBUG][navigate] Success', { url, loadTimeMs });
+    } catch (e: any) {
+      console.error('[DEBUG][navigate] Failed', {
+        url,
+        waitUntil,
+        timeoutMs,
+        error: e?.message || String(e),
+      });
+      throw e;
+    }
   }
 
   /**

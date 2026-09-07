@@ -1,5 +1,5 @@
 /**
- * CaptureScreenshotRenderer — Renderer cho tool capture_screenshot
+ * SelectOptionRenderer — Renderer cho tool select_option
  */
 
 import React from 'react';
@@ -8,16 +8,15 @@ import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
 import ActionBar from '../../ActionBar';
 
-interface CaptureScreenshotBlockProps {
+interface SelectOptionBlockProps {
+  ref?: string;
+  value?: string;
+  label?: string;
   output?: string;
   isError?: boolean;
-  imageBase64?: string;
-  fileId?: string;
-  title?: string;
-  url?: string;
 }
 
-export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
+export const SelectOptionRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
   messageId,
@@ -49,9 +48,12 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
               </div>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold text-text-primary opacity-80">
-                    CAPTURE SCREENSHOT
-                  </span>
+                  <span className="font-semibold text-text-primary opacity-80">SELECT OPTION</span>
+                  {action.params.ref && (
+                    <span className="text-text-secondary font-mono text-[11px]">
+                      {action.params.ref}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -59,7 +61,10 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <CaptureScreenshotBlock
+        <SelectOptionBlock
+          ref={action.params.ref}
+          value={action.params.value}
+          label={action.params.label}
           output={outputData?.output}
           isError={isError}
         />
@@ -79,12 +84,34 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function CaptureScreenshotBlock({
+function SelectOptionBlock({
+  ref,
+  value,
+  label,
   output,
   isError,
-}: CaptureScreenshotBlockProps) {
+}: SelectOptionBlockProps) {
   return (
     <div className="text-xs space-y-2">
+      {ref && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Ref:</span>
+          <span className="text-text-primary font-mono">{ref}</span>
+        </div>
+      )}
+      {value !== undefined && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Value:</span>
+          <span className="text-text-primary font-mono">{value}</span>
+        </div>
+      )}
+      {label !== undefined && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Label:</span>
+          <span className="text-text-primary font-mono">{label}</span>
+        </div>
+      )}
+
       {output && (
         <div
           className="p-3 rounded font-mono whitespace-pre-wrap"
@@ -98,7 +125,7 @@ function CaptureScreenshotBlock({
       )}
 
       {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Capturing screenshot...</div>
+        <div className="text-text-secondary opacity-60">Selecting option...</div>
       )}
     </div>
   );

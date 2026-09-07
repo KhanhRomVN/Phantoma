@@ -11,8 +11,6 @@ import ActionBar from '../../ActionBar';
 interface ScrollBlockProps {
   direction?: string;
   amount?: number;
-  tabId?: string;
-  targetId?: string;
   output?: string;
   isError?: boolean;
 }
@@ -65,8 +63,6 @@ export const ScrollRenderer: React.FC<BaseRendererProps> = ({
         <ScrollBlock
           direction={action.params.direction}
           amount={action.params.amount}
-          tabId={action.params.tabId}
-          targetId={action.params.targetId}
           output={outputData?.output}
           isError={isError}
         />
@@ -89,8 +85,6 @@ export const ScrollRenderer: React.FC<BaseRendererProps> = ({
 function ScrollBlock({
   direction,
   amount,
-  tabId,
-  targetId,
   output,
   isError,
 }: ScrollBlockProps) {
@@ -106,18 +100,6 @@ function ScrollBlock({
         <div className="flex items-start gap-2">
           <span className="text-text-secondary shrink-0">Amount:</span>
           <span className="text-text-primary font-mono">{amount}</span>
-        </div>
-      )}
-      {tabId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Tab ID:</span>
-          <span className="text-text-primary font-mono">{tabId}</span>
-        </div>
-      )}
-      {targetId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Target:</span>
-          <span className="text-text-primary font-mono">{targetId}</span>
         </div>
       )}
 

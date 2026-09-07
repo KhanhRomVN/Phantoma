@@ -1,5 +1,5 @@
 /**
- * CaptureScreenshotRenderer — Renderer cho tool capture_screenshot
+ * WaitForRenderer — Renderer cho tool wait_for
  */
 
 import React from 'react';
@@ -8,16 +8,16 @@ import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
 import ActionBar from '../../ActionBar';
 
-interface CaptureScreenshotBlockProps {
+interface WaitForBlockProps {
+  condition?: string;
+  ref?: string;
+  text?: string;
+  timeoutMs?: number;
   output?: string;
   isError?: boolean;
-  imageBase64?: string;
-  fileId?: string;
-  title?: string;
-  url?: string;
 }
 
-export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
+export const WaitForRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
   messageId,
@@ -49,9 +49,12 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
               </div>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold text-text-primary opacity-80">
-                    CAPTURE SCREENSHOT
-                  </span>
+                  <span className="font-semibold text-text-primary opacity-80">WAIT FOR</span>
+                  {action.params.condition && (
+                    <span className="text-text-secondary font-mono text-[11px]">
+                      {action.params.condition}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -59,7 +62,11 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <CaptureScreenshotBlock
+        <WaitForBlock
+          condition={action.params.condition}
+          ref={action.params.ref}
+          text={action.params.text}
+          timeoutMs={action.params.timeoutMs}
           output={outputData?.output}
           isError={isError}
         />
@@ -79,12 +86,41 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function CaptureScreenshotBlock({
+function WaitForBlock({
+  condition,
+  ref,
+  text,
+  timeoutMs,
   output,
   isError,
-}: CaptureScreenshotBlockProps) {
+}: WaitForBlockProps) {
   return (
     <div className="text-xs space-y-2">
+      {condition && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Condition:</span>
+          <span className="text-text-primary font-mono">{condition}</span>
+        </div>
+      )}
+      {ref && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Ref:</span>
+          <span className="text-text-primary font-mono">{ref}</span>
+        </div>
+      )}
+      {text && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Text:</span>
+          <span className="text-text-primary font-mono">{text}</span>
+        </div>
+      )}
+      {timeoutMs !== undefined && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Timeout:</span>
+          <span className="text-text-primary font-mono">{timeoutMs}ms</span>
+        </div>
+      )}
+
       {output && (
         <div
           className="p-3 rounded font-mono whitespace-pre-wrap"
@@ -98,7 +134,7 @@ function CaptureScreenshotBlock({
       )}
 
       {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Capturing screenshot...</div>
+        <div className="text-text-secondary opacity-60">Waiting...</div>
       )}
     </div>
   );

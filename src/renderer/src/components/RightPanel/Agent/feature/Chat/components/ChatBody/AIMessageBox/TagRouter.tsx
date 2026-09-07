@@ -93,6 +93,14 @@ import {
   PressKeyRenderer,
   ScrollRenderer,
   CaptureScreenshotRenderer,
+  SelectOptionRenderer,
+  WaitForRenderer,
+  ScrollToElementRenderer,
+  ListFramesRenderer,
+  HoverRenderer,
+  ClearInputRenderer,
+  UploadFileRenderer,
+  EvaluateJsRenderer,
 } from './renderers';
 import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
@@ -719,6 +727,14 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     press_key: PressKeyRenderer,
     scroll: ScrollRenderer,
     capture_screenshot: CaptureScreenshotRenderer,
+    select_option: SelectOptionRenderer,
+    wait_for: WaitForRenderer,
+    scroll_to_element: ScrollToElementRenderer,
+    list_frames: ListFramesRenderer,
+    hover: HoverRenderer,
+    clear_input: ClearInputRenderer,
+    upload_file: UploadFileRenderer,
+    evaluate_js: EvaluateJsRenderer,
   };
 
   const ToolRenderer = allToolRenderers[toolType];

@@ -1,5 +1,5 @@
 /**
- * CaptureScreenshotRenderer — Renderer cho tool capture_screenshot
+ * UploadFileRenderer — Renderer cho tool upload_file
  */
 
 import React from 'react';
@@ -8,16 +8,14 @@ import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
 import ActionBar from '../../ActionBar';
 
-interface CaptureScreenshotBlockProps {
+interface UploadFileBlockProps {
+  ref?: string;
+  filePath?: string;
   output?: string;
   isError?: boolean;
-  imageBase64?: string;
-  fileId?: string;
-  title?: string;
-  url?: string;
 }
 
-export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
+export const UploadFileRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
   messageId,
@@ -49,9 +47,12 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
               </div>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold text-text-primary opacity-80">
-                    CAPTURE SCREENSHOT
-                  </span>
+                  <span className="font-semibold text-text-primary opacity-80">UPLOAD FILE</span>
+                  {action.params.ref && (
+                    <span className="text-text-secondary font-mono text-[11px]">
+                      {action.params.ref}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -59,7 +60,9 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <CaptureScreenshotBlock
+        <UploadFileBlock
+          ref={action.params.ref}
+          filePath={action.params.filePath}
           output={outputData?.output}
           isError={isError}
         />
@@ -79,12 +82,27 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function CaptureScreenshotBlock({
+function UploadFileBlock({
+  ref,
+  filePath,
   output,
   isError,
-}: CaptureScreenshotBlockProps) {
+}: UploadFileBlockProps) {
   return (
     <div className="text-xs space-y-2">
+      {ref && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">Ref:</span>
+          <span className="text-text-primary font-mono">{ref}</span>
+        </div>
+      )}
+      {filePath && (
+        <div className="flex items-start gap-2">
+          <span className="text-text-secondary shrink-0">File:</span>
+          <span className="text-text-primary font-mono">{filePath}</span>
+        </div>
+      )}
+
       {output && (
         <div
           className="p-3 rounded font-mono whitespace-pre-wrap"
@@ -98,7 +116,7 @@ function CaptureScreenshotBlock({
       )}
 
       {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Capturing screenshot...</div>
+        <div className="text-text-secondary opacity-60">Uploading file...</div>
       )}
     </div>
   );

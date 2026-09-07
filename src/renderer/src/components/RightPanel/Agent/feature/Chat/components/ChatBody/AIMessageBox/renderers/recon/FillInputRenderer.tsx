@@ -11,8 +11,6 @@ import ActionBar from '../../ActionBar';
 interface FillInputBlockProps {
   ref?: string;
   value?: string;
-  tabId?: string;
-  targetId?: string;
   output?: string;
   isError?: boolean;
 }
@@ -65,8 +63,6 @@ export const FillInputRenderer: React.FC<BaseRendererProps> = ({
         <FillInputBlock
           ref={action.params.ref}
           value={action.params.value}
-          tabId={action.params.tabId}
-          targetId={action.params.targetId}
           output={outputData?.output}
           isError={isError}
         />
@@ -89,8 +85,6 @@ export const FillInputRenderer: React.FC<BaseRendererProps> = ({
 function FillInputBlock({
   ref,
   value,
-  tabId,
-  targetId,
   output,
   isError,
 }: FillInputBlockProps) {
@@ -106,18 +100,6 @@ function FillInputBlock({
         <div className="flex items-start gap-2">
           <span className="text-text-secondary shrink-0">Value:</span>
           <span className="text-text-primary font-mono">{value}</span>
-        </div>
-      )}
-      {tabId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Tab ID:</span>
-          <span className="text-text-primary font-mono">{tabId}</span>
-        </div>
-      )}
-      {targetId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Target:</span>
-          <span className="text-text-primary font-mono">{targetId}</span>
         </div>
       )}
 

@@ -18,42 +18,37 @@
 // ===== BackParser =====
 
 export interface BackParams {
-  tabId?: string;
-  targetId?: string;
+  // No params — acts on active tab
 }
 
-export function parseBack(xmlString: string): BackParams | null {
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
-
-  return {
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
-  };
+export function parseBack(_xmlString: string): BackParams | null {
+  return {};
 }
 
 // ===== ClickElementParser =====
 
 export interface ClickElementParams {
   ref: string;
-  tabId?: string;
-  targetId?: string;
+  clickType?: 'single' | 'double' | 'right';
+  frameId?: string;
 }
 
 export function parseClickElement(xmlString: string): ClickElementParams | null {
   const refMatch = new RegExp('<ref>(.*?)</ref>', 's').exec(xmlString);
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
+  const clickTypeMatch = new RegExp('<clickType>(.*?)</clickType>', 's').exec(xmlString);
+  const frameIdMatch = new RegExp('<frameId>(.*?)</frameId>', 's').exec(xmlString);
 
   const ref = refMatch?.[1]?.trim();
   if (!ref) {
     return null;
   }
 
+  const clickTypeStr = clickTypeMatch?.[1]?.trim();
+
   return {
     ref,
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
+    clickType: clickTypeStr as ClickElementParams['clickType'],
+    frameId: frameIdMatch?.[1]?.trim(),
   };
 }
 
@@ -61,12 +56,10 @@ export function parseClickElement(xmlString: string): ClickElementParams | null 
 
 export interface CloseTabParams {
   tabId: string;
-  targetId?: string;
 }
 
 export function parseCloseTab(xmlString: string): CloseTabParams | null {
   const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
 
   const tabId = tabIdMatch?.[1]?.trim();
   if (!tabId) {
@@ -75,7 +68,6 @@ export function parseCloseTab(xmlString: string): CloseTabParams | null {
 
   return {
     tabId,
-    targetId: targetIdMatch?.[1]?.trim(),
   };
 }
 
@@ -83,16 +75,13 @@ export function parseCloseTab(xmlString: string): CloseTabParams | null {
 
 export interface CreateTabParams {
   url?: string;
-  targetId?: string;
 }
 
 export function parseCreateTab(xmlString: string): CreateTabParams | null {
   const urlMatch = new RegExp('<url>(.*?)</url>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
 
   return {
     url: urlMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
   };
 }
 
@@ -101,15 +90,11 @@ export function parseCreateTab(xmlString: string): CreateTabParams | null {
 export interface FillInputParams {
   ref: string;
   value: string;
-  tabId?: string;
-  targetId?: string;
 }
 
 export function parseFillInput(xmlString: string): FillInputParams | null {
   const refMatch = new RegExp('<ref>(.*?)</ref>', 's').exec(xmlString);
   const valueMatch = new RegExp('<value>(.*?)</value>', 's').exec(xmlString);
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
 
   const ref = refMatch?.[1]?.trim();
   const value = valueMatch?.[1]?.trim();
@@ -121,101 +106,98 @@ export function parseFillInput(xmlString: string): FillInputParams | null {
   return {
     ref,
     value,
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
   };
 }
 
 // ===== ForwardParser =====
 
 export interface ForwardParams {
-  tabId?: string;
-  targetId?: string;
+  // No params — acts on active tab
 }
 
-export function parseForward(xmlString: string): ForwardParams | null {
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
-
-  return {
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
-  };
+export function parseForward(_xmlString: string): ForwardParams | null {
+  return {};
 }
 
 // ===== GetPageContentParser =====
 
 export interface GetPageContentParams {
-  tabId?: string;
-  targetId?: string;
+  maxChars?: number;
 }
 
 export function parseGetPageContent(xmlString: string): GetPageContentParams | null {
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
+  const maxCharsMatch = new RegExp('<maxChars>(.*?)</maxChars>', 's').exec(xmlString);
+  const maxCharsStr = maxCharsMatch?.[1]?.trim();
 
   return {
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
+    maxChars: maxCharsStr ? parseInt(maxCharsStr, 10) : undefined,
   };
 }
 
 // ===== ListElementsParser =====
 
 export interface ListElementsParams {
-  elementType?: string; // input, button, link, select, textarea
-  tabId?: string;
-  targetId?: string;
+  elementType?: string; // input, button, link, select, textarea, checkbox, radio
+  labelContains?: string;
+  visibleOnly?: boolean;
+  limit?: number;
+  offset?: number;
 }
 
 export function parseListElements(xmlString: string): ListElementsParams | null {
   const elementTypeMatch = new RegExp('<elementType>(.*?)</elementType>', 's').exec(xmlString);
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
+  const labelContainsMatch = new RegExp('<labelContains>(.*?)</labelContains>', 's').exec(xmlString);
+  const visibleOnlyMatch = new RegExp('<visibleOnly>(.*?)</visibleOnly>', 's').exec(xmlString);
+  const limitMatch = new RegExp('<limit>(.*?)</limit>', 's').exec(xmlString);
+  const offsetMatch = new RegExp('<offset>(.*?)</offset>', 's').exec(xmlString);
+
+  const limitStr = limitMatch?.[1]?.trim();
+  const offsetStr = offsetMatch?.[1]?.trim();
 
   return {
     elementType: elementTypeMatch?.[1]?.trim(),
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
+    labelContains: labelContainsMatch?.[1]?.trim(),
+    visibleOnly: visibleOnlyMatch?.[1]?.trim() === 'true',
+    limit: limitStr ? parseInt(limitStr, 10) : undefined,
+    offset: offsetStr ? parseInt(offsetStr, 10) : undefined,
   };
 }
 
 // ===== ListTabsParser =====
 
 export interface ListTabsParams {
-  targetId?: string;
+  // No params — targetId is auto-resolved by executor
 }
 
-export function parseListTabs(xmlString: string): ListTabsParams | null {
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
-
-  return {
-    targetId: targetIdMatch?.[1]?.trim(),
-  };
+export function parseListTabs(_xmlString: string): ListTabsParams | null {
+  return {};
 }
 
 // ===== NavigateParser =====
 
 export interface NavigateParams {
   url: string;
-  tabId?: string;
-  targetId?: string;
+  waitUntil?: 'domcontentloaded' | 'load' | 'networkidle';
+  timeoutMs?: number;
 }
 
 export function parseNavigate(xmlString: string): NavigateParams | null {
   const urlMatch = new RegExp('<url>(.*?)</url>', 's').exec(xmlString);
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
+  const waitUntilMatch = new RegExp('<waitUntil>(.*?)</waitUntil>', 's').exec(xmlString);
+  const timeoutMsMatch = new RegExp('<timeoutMs>(.*?)</timeoutMs>', 's').exec(xmlString);
 
   const url = urlMatch?.[1]?.trim();
   if (!url) {
     return null;
   }
 
+  const waitUntilStr = waitUntilMatch?.[1]?.trim();
+  const timeoutMsStr = timeoutMsMatch?.[1]?.trim();
+
   return {
     url,
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
+    waitUntil: waitUntilStr as NavigateParams['waitUntil'],
+    timeoutMs: timeoutMsStr ? parseInt(timeoutMsStr, 10) : undefined,
   };
 }
 
@@ -223,14 +205,10 @@ export function parseNavigate(xmlString: string): NavigateParams | null {
 
 export interface PressKeyParams {
   key: string;
-  tabId?: string;
-  targetId?: string;
 }
 
 export function parsePressKey(xmlString: string): PressKeyParams | null {
   const keyMatch = new RegExp('<key>(.*?)</key>', 's').exec(xmlString);
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
 
   const key = keyMatch?.[1]?.trim();
   if (!key) {
@@ -239,26 +217,17 @@ export function parsePressKey(xmlString: string): PressKeyParams | null {
 
   return {
     key,
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
   };
 }
 
 // ===== ReloadParser =====
 
 export interface ReloadParams {
-  tabId?: string;
-  targetId?: string;
+  // No params — acts on active tab
 }
 
-export function parseReload(xmlString: string): ReloadParams | null {
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
-
-  return {
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
-  };
+export function parseReload(_xmlString: string): ReloadParams | null {
+  return {};
 }
 
 // ===== ScrollParser =====
@@ -266,15 +235,11 @@ export function parseReload(xmlString: string): ReloadParams | null {
 export interface ScrollParams {
   direction: 'up' | 'down' | 'top' | 'bottom';
   amount?: number;
-  tabId?: string;
-  targetId?: string;
 }
 
 export function parseScroll(xmlString: string): ScrollParams | null {
   const directionMatch = new RegExp('<direction>(.*?)</direction>', 's').exec(xmlString);
   const amountMatch = new RegExp('<amount>(.*?)</amount>', 's').exec(xmlString);
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
 
   const direction = directionMatch?.[1]?.trim() as ScrollParams['direction'];
   if (!direction || !['up', 'down', 'top', 'bottom'].includes(direction)) {
@@ -286,8 +251,6 @@ export function parseScroll(xmlString: string): ScrollParams | null {
   return {
     direction,
     amount: amount ? parseInt(amount, 10) : undefined,
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
   };
 }
 
@@ -295,12 +258,10 @@ export function parseScroll(xmlString: string): ScrollParams | null {
 
 export interface SwitchTabParams {
   tabId: string;
-  targetId?: string;
 }
 
 export function parseSwitchTab(xmlString: string): SwitchTabParams | null {
   const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
 
   const tabId = tabIdMatch?.[1]?.trim();
   if (!tabId) {
@@ -309,23 +270,195 @@ export function parseSwitchTab(xmlString: string): SwitchTabParams | null {
 
   return {
     tabId,
-    targetId: targetIdMatch?.[1]?.trim(),
   };
 }
 
 // ===== CaptureScreenshotParser =====
 
 export interface CaptureScreenshotParams {
-  tabId?: string;
-  targetId?: string;
+  fullPage?: boolean;
+  frameId?: string;
 }
 
 export function parseCaptureScreenshot(xmlString: string): CaptureScreenshotParams | null {
-  const tabIdMatch = new RegExp('<tabId>(.*?)</tabId>', 's').exec(xmlString);
-  const targetIdMatch = new RegExp('<targetId>(.*?)</targetId>', 's').exec(xmlString);
+  const fullPageMatch = new RegExp('<fullPage>(.*?)</fullPage>', 's').exec(xmlString);
+  const frameIdMatch = new RegExp('<frameId>(.*?)</frameId>', 's').exec(xmlString);
 
   return {
-    tabId: tabIdMatch?.[1]?.trim(),
-    targetId: targetIdMatch?.[1]?.trim(),
+    fullPage: fullPageMatch?.[1]?.trim() === 'true',
+    frameId: frameIdMatch?.[1]?.trim(),
+  };
+}
+
+// ===== SelectOptionParser =====
+
+export interface SelectOptionParams {
+  ref: string;
+  value?: string;
+  label?: string;
+  frameId?: string;
+}
+
+export function parseSelectOption(xmlString: string): SelectOptionParams | null {
+  const refMatch = new RegExp('<ref>(.*?)</ref>', 's').exec(xmlString);
+  const valueMatch = new RegExp('<value>(.*?)</value>', 's').exec(xmlString);
+  const labelMatch = new RegExp('<label>(.*?)</label>', 's').exec(xmlString);
+  const frameIdMatch = new RegExp('<frameId>(.*?)</frameId>', 's').exec(xmlString);
+
+  const ref = refMatch?.[1]?.trim();
+  const value = valueMatch?.[1]?.trim();
+  const label = labelMatch?.[1]?.trim();
+
+  if (!ref || (value === undefined && label === undefined)) {
+    return null;
+  }
+
+  return {
+    ref,
+    value,
+    label,
+    frameId: frameIdMatch?.[1]?.trim(),
+  };
+}
+
+// ===== EvaluateJsParser =====
+
+export interface EvaluateJsParams {
+  script: string;
+}
+
+export function parseEvaluateJs(xmlString: string): EvaluateJsParams | null {
+  const scriptMatch = new RegExp('<script>(.*?)</script>', 's').exec(xmlString);
+
+  const script = scriptMatch?.[1]?.trim();
+  if (!script) {
+    return null;
+  }
+
+  return {
+    script,
+  };
+}
+
+// ===== UploadFileParser =====
+
+export interface UploadFileParams {
+  ref: string;
+  filePath: string;
+}
+
+export function parseUploadFile(xmlString: string): UploadFileParams | null {
+  const refMatch = new RegExp('<ref>(.*?)</ref>', 's').exec(xmlString);
+  const filePathMatch = new RegExp('<filePath>(.*?)</filePath>', 's').exec(xmlString);
+
+  const ref = refMatch?.[1]?.trim();
+  const filePath = filePathMatch?.[1]?.trim();
+
+  if (!ref || !filePath) {
+    return null;
+  }
+
+  return {
+    ref,
+    filePath,
+  };
+}
+
+// ===== ClearInputParser =====
+
+export interface ClearInputParams {
+  ref: string;
+}
+
+export function parseClearInput(xmlString: string): ClearInputParams | null {
+  const refMatch = new RegExp('<ref>(.*?)</ref>', 's').exec(xmlString);
+
+  const ref = refMatch?.[1]?.trim();
+  if (!ref) {
+    return null;
+  }
+
+  return {
+    ref,
+  };
+}
+
+// ===== HoverParser =====
+
+export interface HoverParams {
+  ref: string;
+}
+
+export function parseHover(xmlString: string): HoverParams | null {
+  const refMatch = new RegExp('<ref>(.*?)</ref>', 's').exec(xmlString);
+
+  const ref = refMatch?.[1]?.trim();
+  if (!ref) {
+    return null;
+  }
+
+  return {
+    ref,
+  };
+}
+
+// ===== ListFramesParser =====
+
+export interface ListFramesParams {
+  // No params — lists frames on active tab
+}
+
+export function parseListFrames(_xmlString: string): ListFramesParams | null {
+  return {};
+}
+
+// ===== ScrollToElementParser =====
+
+export interface ScrollToElementParams {
+  ref: string;
+}
+
+export function parseScrollToElement(xmlString: string): ScrollToElementParams | null {
+  const refMatch = new RegExp('<ref>(.*?)</ref>', 's').exec(xmlString);
+
+  const ref = refMatch?.[1]?.trim();
+  if (!ref) {
+    return null;
+  }
+
+  return {
+    ref,
+  };
+}
+
+// ===== WaitForParser =====
+
+export type WaitCondition = 'element_visible' | 'element_hidden' | 'text_present' | 'network_idle';
+
+export interface WaitForParams {
+  condition: WaitCondition;
+  ref?: string;
+  text?: string;
+  timeoutMs?: number;
+}
+
+export function parseWaitFor(xmlString: string): WaitForParams | null {
+  const conditionMatch = new RegExp('<condition>(.*?)</condition>', 's').exec(xmlString);
+  const refMatch = new RegExp('<ref>(.*?)</ref>', 's').exec(xmlString);
+  const textMatch = new RegExp('<text>(.*?)</text>', 's').exec(xmlString);
+  const timeoutMsMatch = new RegExp('<timeoutMs>(.*?)</timeoutMs>', 's').exec(xmlString);
+
+  const condition = conditionMatch?.[1]?.trim() as WaitCondition;
+  if (!condition) {
+    return null;
+  }
+
+  const timeoutMsStr = timeoutMsMatch?.[1]?.trim();
+
+  return {
+    condition,
+    ref: refMatch?.[1]?.trim(),
+    text: textMatch?.[1]?.trim(),
+    timeoutMs: timeoutMsStr ? parseInt(timeoutMsStr, 10) : undefined,
   };
 }

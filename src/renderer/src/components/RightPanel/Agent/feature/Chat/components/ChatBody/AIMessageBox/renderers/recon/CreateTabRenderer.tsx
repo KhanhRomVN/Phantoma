@@ -10,7 +10,6 @@ import ActionBar from '../../ActionBar';
 
 interface CreateTabBlockProps {
   url?: string;
-  targetId?: string;
   output?: string;
   isError?: boolean;
 }
@@ -62,7 +61,7 @@ export const CreateTabRenderer: React.FC<BaseRendererProps> = ({
       <div className="pl-6">
         <CreateTabBlock
           url={action.params.url}
-          targetId={action.params.targetId}
+
           output={outputData?.output}
           isError={isError}
         />
@@ -82,19 +81,13 @@ export const CreateTabRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function CreateTabBlock({ url, targetId, output, isError }: CreateTabBlockProps) {
+function CreateTabBlock({ url, output, isError }: CreateTabBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {url && (
         <div className="flex items-start gap-2">
           <span className="text-text-secondary shrink-0">URL:</span>
           <span className="text-text-primary font-mono">{url}</span>
-        </div>
-      )}
-      {targetId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Target:</span>
-          <span className="text-text-primary font-mono">{targetId}</span>
         </div>
       )}
 

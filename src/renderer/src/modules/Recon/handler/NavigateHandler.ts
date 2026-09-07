@@ -4,12 +4,20 @@
  */
 
 export class NavigateHandler {
-  public async handle(targetId: string, url: string, tabId?: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  public async handle(
+    targetId: string,
+    url: string,
+    tabId?: string,
+    waitUntil?: 'domcontentloaded' | 'load' | 'networkidle',
+    timeoutMs?: number,
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       const result = await (window as any).electron.ipcRenderer.invoke('browser:navigate', {
         targetId,
         url,
         tabId,
+        waitUntil,
+        timeoutMs,
       });
 
       if (!result.success) {

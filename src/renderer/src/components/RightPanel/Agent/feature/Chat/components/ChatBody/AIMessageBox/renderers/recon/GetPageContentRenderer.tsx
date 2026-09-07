@@ -9,8 +9,6 @@ import { cn } from '@renderer/shared/utils/cn';
 import ActionBar from '../../ActionBar';
 
 interface GetPageContentBlockProps {
-  tabId?: string;
-  targetId?: string;
   output?: string;
   isError?: boolean;
 }
@@ -48,11 +46,6 @@ export const GetPageContentRenderer: React.FC<BaseRendererProps> = ({
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-semibold text-text-primary opacity-80">GET PAGE CONTENT</span>
-                  {action.params.tabId && (
-                    <span className="text-text-secondary font-mono text-[11px]">
-                      {action.params.tabId}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -61,8 +54,6 @@ export const GetPageContentRenderer: React.FC<BaseRendererProps> = ({
       </div>
       <div className="pl-6">
         <GetPageContentBlock
-          tabId={action.params.tabId}
-          targetId={action.params.targetId}
           output={outputData?.output}
           isError={isError}
         />
@@ -83,26 +74,11 @@ export const GetPageContentRenderer: React.FC<BaseRendererProps> = ({
 };
 
 function GetPageContentBlock({
-  tabId,
-  targetId,
   output,
   isError,
 }: GetPageContentBlockProps) {
   return (
     <div className="text-xs space-y-2">
-      {tabId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Tab ID:</span>
-          <span className="text-text-primary font-mono">{tabId}</span>
-        </div>
-      )}
-      {targetId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Target:</span>
-          <span className="text-text-primary font-mono">{targetId}</span>
-        </div>
-      )}
-
       {output && (
         <div
           className="p-3 rounded font-mono whitespace-pre-wrap max-h-96 overflow-y-auto"

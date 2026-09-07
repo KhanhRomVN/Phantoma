@@ -60,6 +60,14 @@ export { FillInputRenderer } from './recon/FillInputRenderer';
 export { PressKeyRenderer } from './recon/PressKeyRenderer';
 export { ScrollRenderer } from './recon/ScrollRenderer';
 export { CaptureScreenshotRenderer } from './recon/CaptureScreenshotRenderer';
+export { SelectOptionRenderer } from './recon/SelectOptionRenderer';
+export { WaitForRenderer } from './recon/WaitForRenderer';
+export { ScrollToElementRenderer } from './recon/ScrollToElementRenderer';
+export { ListFramesRenderer } from './recon/ListFramesRenderer';
+export { HoverRenderer } from './recon/HoverRenderer';
+export { ClearInputRenderer } from './recon/ClearInputRenderer';
+export { UploadFileRenderer } from './recon/UploadFileRenderer';
+export { EvaluateJsRenderer } from './recon/EvaluateJsRenderer';
 
 // Shared types and utilities
 export type {

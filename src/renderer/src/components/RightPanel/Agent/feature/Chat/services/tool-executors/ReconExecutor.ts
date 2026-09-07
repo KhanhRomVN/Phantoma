@@ -46,31 +46,35 @@ import type {
   ReloadParams,
   ScrollParams,
   SwitchTabParams,
+  SelectOptionParams,
+  WaitForParams,
+  ScrollToElementParams,
+  ListFramesParams,
+  HoverParams,
+  ClearInputParams,
+  UploadFileParams,
+  EvaluateJsParams,
 } from '../parsers/ReconParser';
 
 // ─── Functions ──────────────────────────────────────────────────────────
 // ===== BackExecutor =====
 
 export async function executeBack(
-  params: BackParams,
+  _params: BackParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('back', {
       targetId,
-      tabId: params.tabId,
     });
 
     if (result.success) {
@@ -98,23 +102,20 @@ export async function executeClickElement(
   params: ClickElementParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('click_element', {
       targetId,
-      tabId: params.tabId,
       ref: params.ref,
+      clickType: params.clickType,
     });
 
     if (result.success) {
@@ -142,18 +143,15 @@ export async function executeCloseTab(
   params: CloseTabParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('close_tab', {
       targetId,
@@ -185,18 +183,15 @@ export async function executeCreateTab(
   params: CreateTabParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('create_tab', {
       targetId,
@@ -228,22 +223,18 @@ export async function executeFillInput(
   params: FillInputParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('fill_input', {
       targetId,
-      tabId: params.tabId,
       ref: params.ref,
       value: params.value,
     });
@@ -270,25 +261,21 @@ export async function executeFillInput(
 // ===== ForwardExecutor =====
 
 export async function executeForward(
-  params: ForwardParams,
+  _params: ForwardParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('forward', {
       targetId,
-      tabId: params.tabId,
     });
 
     if (result.success) {
@@ -316,22 +303,19 @@ export async function executeGetPageContent(
   params: GetPageContentParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('get_page_content', {
       targetId,
-      tabId: params.tabId,
+      maxChars: params.maxChars,
     });
 
     if (result.success) {
@@ -359,23 +343,23 @@ export async function executeListElements(
   params: ListElementsParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('list_elements', {
       targetId,
-      tabId: params.tabId,
       elementType: params.elementType,
+      labelContains: params.labelContains,
+      visibleOnly: params.visibleOnly,
+      limit: params.limit,
+      offset: params.offset,
     });
 
     if (result.success) {
@@ -400,21 +384,18 @@ export async function executeListElements(
 // ===== ListTabsExecutor =====
 
 export async function executeListTabs(
-  params: ListTabsParams,
+  _params: ListTabsParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('list_tabs', { targetId });
 
@@ -443,23 +424,21 @@ export async function executeNavigate(
   params: NavigateParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('navigate', {
       targetId,
-      tabId: params.tabId,
       url: params.url,
+      waitUntil: params.waitUntil,
+      timeoutMs: params.timeoutMs,
     });
 
     if (result.success) {
@@ -487,22 +466,18 @@ export async function executePressKey(
   params: PressKeyParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('press_key', {
       targetId,
-      tabId: params.tabId,
       key: params.key,
     });
 
@@ -528,25 +503,21 @@ export async function executePressKey(
 // ===== ReloadExecutor =====
 
 export async function executeReload(
-  params: ReloadParams,
+  _params: ReloadParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('reload', {
       targetId,
-      tabId: params.tabId,
     });
 
     if (result.success) {
@@ -574,22 +545,18 @@ export async function executeScroll(
   params: ScrollParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('scroll', {
       targetId,
-      tabId: params.tabId,
       direction: params.direction,
       amount: params.amount,
     });
@@ -619,18 +586,15 @@ export async function executeSwitchTab(
   params: SwitchTabParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('switch_tab', {
       targetId,
@@ -662,22 +626,19 @@ export async function executeCaptureScreenshot(
   params: CaptureScreenshotParams,
 ): Promise<{ success: boolean; output?: string; error?: string; data?: any }> {
   try {
-    let targetId = params.targetId;
-    if (!targetId) {
-      const controller = ReconController.getInstance();
-      const activeTarget = controller.getActiveTarget();
-      if (!activeTarget) {
-        return {
-          success: false,
-          error: 'No active target selected. Please specify targetId or select a target.',
-        };
-      }
-      targetId = activeTarget.id;
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
     }
+    const targetId = activeTarget.id;
 
     const result = await ReconController.executeTool('capture_screenshot', {
       targetId,
-      tabId: params.tabId,
+      fullPage: params.fullPage,
     });
 
     if (result.success) {
@@ -764,6 +725,332 @@ export async function executeCaptureScreenshot(
     return {
       success: false,
       error: error.message || 'Unexpected error while capturing screenshot',
+    };
+  }
+}
+
+// ===== SelectOptionExecutor =====
+
+export async function executeSelectOption(
+  params: SelectOptionParams,
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  try {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
+    }
+    const targetId = activeTarget.id;
+
+    const result = await ReconController.executeTool('select_option', {
+      targetId,
+      ref: params.ref,
+      value: params.value,
+      label: params.label,
+      frameId: params.frameId,
+    });
+
+    if (result.success) {
+      return {
+        success: true,
+        output: result.data?.output || `Selected option: ${params.ref}`,
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Failed to select option',
+      };
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Unexpected error while selecting option',
+    };
+  }
+}
+
+// ===== WaitForExecutor =====
+
+export async function executeWaitFor(
+  params: WaitForParams,
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  try {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
+    }
+    const targetId = activeTarget.id;
+
+    const result = await ReconController.executeTool('wait_for', {
+      targetId,
+      condition: params.condition,
+      ref: params.ref,
+      text: params.text,
+      timeoutMs: params.timeoutMs,
+    });
+
+    if (result.success) {
+      return {
+        success: true,
+        output: result.data?.output || `Waited for: ${params.condition}`,
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Failed to wait',
+      };
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Unexpected error while waiting',
+    };
+  }
+}
+
+// ===== ScrollToElementExecutor =====
+
+export async function executeScrollToElement(
+  params: ScrollToElementParams,
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  try {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
+    }
+    const targetId = activeTarget.id;
+
+    const result = await ReconController.executeTool('scroll_to_element', {
+      targetId,
+      ref: params.ref,
+    });
+
+    if (result.success) {
+      return {
+        success: true,
+        output: result.data?.output || `Scrolled to element: ${params.ref}`,
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Failed to scroll to element',
+      };
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Unexpected error while scrolling to element',
+    };
+  }
+}
+
+// ===== ListFramesExecutor =====
+
+export async function executeListFrames(
+  _params: ListFramesParams,
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  try {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
+    }
+    const targetId = activeTarget.id;
+
+    const result = await ReconController.executeTool('list_frames', {
+      targetId,
+    });
+
+    if (result.success) {
+      return {
+        success: true,
+        output: result.data?.output || 'Frames listed successfully',
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Failed to list frames',
+      };
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Unexpected error while listing frames',
+    };
+  }
+}
+
+// ===== HoverExecutor =====
+
+export async function executeHover(
+  params: HoverParams,
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  try {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
+    }
+    const targetId = activeTarget.id;
+
+    const result = await ReconController.executeTool('hover', {
+      targetId,
+      ref: params.ref,
+    });
+
+    if (result.success) {
+      return {
+        success: true,
+        output: result.data?.output || `Hovered: ${params.ref}`,
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Failed to hover',
+      };
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Unexpected error while hovering',
+    };
+  }
+}
+
+// ===== ClearInputExecutor =====
+
+export async function executeClearInput(
+  params: ClearInputParams,
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  try {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
+    }
+    const targetId = activeTarget.id;
+
+    const result = await ReconController.executeTool('clear_input', {
+      targetId,
+      ref: params.ref,
+    });
+
+    if (result.success) {
+      return {
+        success: true,
+        output: result.data?.output || `Cleared input: ${params.ref}`,
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Failed to clear input',
+      };
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Unexpected error while clearing input',
+    };
+  }
+}
+
+// ===== UploadFileExecutor =====
+
+export async function executeUploadFile(
+  params: UploadFileParams,
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  try {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
+    }
+    const targetId = activeTarget.id;
+
+    const result = await ReconController.executeTool('upload_file', {
+      targetId,
+      ref: params.ref,
+      filePath: params.filePath,
+    });
+
+    if (result.success) {
+      return {
+        success: true,
+        output: result.data?.output || `Uploaded file: ${params.filePath}`,
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Failed to upload file',
+      };
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Unexpected error while uploading file',
+    };
+  }
+}
+
+// ===== EvaluateJsExecutor =====
+
+export async function executeEvaluateJs(
+  params: EvaluateJsParams,
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  try {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
+      return {
+        success: false,
+        error: 'No active target selected.',
+      };
+    }
+    const targetId = activeTarget.id;
+
+    const result = await ReconController.executeTool('evaluate_js', {
+      targetId,
+      script: params.script,
+    });
+
+    if (result.success) {
+      return {
+        success: true,
+        output: result.data?.output || 'JS executed',
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Failed to evaluate JS',
+      };
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Unexpected error while evaluating JS',
     };
   }
 }

@@ -9,7 +9,6 @@ import { cn } from '@renderer/shared/utils/cn';
 import ActionBar from '../../ActionBar';
 
 interface ListTabsBlockProps {
-  targetId?: string;
   output?: string;
   isError?: boolean;
 }
@@ -47,11 +46,6 @@ export const ListTabsRenderer: React.FC<BaseRendererProps> = ({
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-semibold text-text-primary opacity-80">LIST TABS</span>
-                  {action.params.targetId && (
-                    <span className="text-text-secondary font-mono text-[11px]">
-                      {action.params.targetId}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -60,7 +54,7 @@ export const ListTabsRenderer: React.FC<BaseRendererProps> = ({
       </div>
       <div className="pl-6">
         <ListTabsBlock
-          targetId={action.params.targetId}
+
           output={outputData?.output}
           isError={isError}
         />
@@ -80,16 +74,9 @@ export const ListTabsRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function ListTabsBlock({ targetId, output, isError }: ListTabsBlockProps) {
+function ListTabsBlock({ output, isError }: ListTabsBlockProps) {
   return (
     <div className="text-xs space-y-2">
-      {targetId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Target:</span>
-          <span className="text-text-primary font-mono">{targetId}</span>
-        </div>
-      )}
-
       {output && (
         <div
           className="p-3 rounded font-mono whitespace-pre-wrap"

@@ -36,6 +36,14 @@ import { ClickElementHandler } from '../modules/Recon/handler/ClickElementHandle
 import { FillInputHandler } from '../modules/Recon/handler/FillInputHandler';
 import { PressKeyHandler } from '../modules/Recon/handler/PressKeyHandler';
 import { ScrollHandler } from '../modules/Recon/handler/ScrollHandler';
+import { SelectOptionHandler } from '../modules/Recon/handler/SelectOptionHandler';
+import { WaitForHandler } from '../modules/Recon/handler/WaitForHandler';
+import { ScrollToElementHandler } from '../modules/Recon/handler/ScrollToElementHandler';
+import { ListFramesHandler } from '../modules/Recon/handler/ListFramesHandler';
+import { HoverHandler } from '../modules/Recon/handler/HoverHandler';
+import { ClearInputHandler } from '../modules/Recon/handler/ClearInputHandler';
+import { UploadFileHandler } from '../modules/Recon/handler/UploadFileHandler';
+import { EvaluateJsHandler } from '../modules/Recon/handler/EvaluateJsHandler';
 import { logger } from '@renderer/utils/logger';
 
 export class ReconController {
@@ -60,6 +68,14 @@ export class ReconController {
   private fillInputHandler!: FillInputHandler;
   private pressKeyHandler!: PressKeyHandler;
   private scrollHandler!: ScrollHandler;
+  private selectOptionHandler!: SelectOptionHandler;
+  private waitForHandler!: WaitForHandler;
+  private scrollToElementHandler!: ScrollToElementHandler;
+  private listFramesHandler!: ListFramesHandler;
+  private hoverHandler!: HoverHandler;
+  private clearInputHandler!: ClearInputHandler;
+  private uploadFileHandler!: UploadFileHandler;
+  private evaluateJsHandler!: EvaluateJsHandler;
   // Callbacks for UI updates
   private onTargetsChanged: ((targets: ReconTarget[]) => void) | null = null;
   private onActiveTargetChanged: ((targetId: string | null) => void) | null = null;
@@ -79,6 +95,14 @@ export class ReconController {
     this.fillInputHandler = new FillInputHandler();
     this.pressKeyHandler = new PressKeyHandler();
     this.scrollHandler = new ScrollHandler();
+    this.selectOptionHandler = new SelectOptionHandler();
+    this.waitForHandler = new WaitForHandler();
+    this.scrollToElementHandler = new ScrollToElementHandler();
+    this.listFramesHandler = new ListFramesHandler();
+    this.hoverHandler = new HoverHandler();
+    this.clearInputHandler = new ClearInputHandler();
+    this.uploadFileHandler = new UploadFileHandler();
+    this.evaluateJsHandler = new EvaluateJsHandler();
   }
 
   // ── Singleton ─────────────────────────────────────────────────────
@@ -124,6 +148,8 @@ export class ReconController {
             params.targetId,
             params.url,
             params.tabId,
+            params.waitUntil,
+            params.timeoutMs,
           );
           return result;
         }
@@ -142,7 +168,11 @@ export class ReconController {
 
         // Content Extraction
         case 'get_page_content': {
-          const result = await ctrl.getPageContentHandler.handle(params.targetId, params.tabId);
+          const result = await ctrl.getPageContentHandler.handle(
+            params.targetId,
+            params.tabId,
+            params.maxChars,
+          );
           return result;
         }
         case 'list_elements': {
@@ -150,6 +180,17 @@ export class ReconController {
             params.targetId,
             params.tabId,
             params.elementType,
+            params.labelContains,
+            params.visibleOnly,
+            params.limit,
+            params.offset,
+          );
+          return result;
+        }
+        case 'list_frames': {
+          const result = await ctrl.listFramesHandler.handle(
+            params.targetId,
+            params.tabId,
           );
           return result;
         }
@@ -160,6 +201,7 @@ export class ReconController {
             params.targetId,
             params.ref,
             params.tabId,
+            params.clickType,
           );
           return result;
         }
@@ -168,6 +210,16 @@ export class ReconController {
             params.targetId,
             params.ref,
             params.value,
+            params.tabId,
+          );
+          return result;
+        }
+        case 'select_option': {
+          const result = await ctrl.selectOptionHandler.handle(
+            params.targetId,
+            params.ref,
+            params.value,
+            params.label,
             params.tabId,
           );
           return result;
@@ -189,10 +241,62 @@ export class ReconController {
           );
           return result;
         }
+        case 'scroll_to_element': {
+          const result = await ctrl.scrollToElementHandler.handle(
+            params.targetId,
+            params.ref,
+            params.tabId,
+          );
+          return result;
+        }
+        case 'hover': {
+          const result = await ctrl.hoverHandler.handle(
+            params.targetId,
+            params.ref,
+            params.tabId,
+          );
+          return result;
+        }
+        case 'clear_input': {
+          const result = await ctrl.clearInputHandler.handle(
+            params.targetId,
+            params.ref,
+            params.tabId,
+          );
+          return result;
+        }
+        case 'upload_file': {
+          const result = await ctrl.uploadFileHandler.handle(
+            params.targetId,
+            params.ref,
+            params.filePath,
+            params.tabId,
+          );
+          return result;
+        }
+        case 'evaluate_js': {
+          const result = await ctrl.evaluateJsHandler.handle(
+            params.targetId,
+            params.script,
+            params.tabId,
+          );
+          return result;
+        }
+        case 'wait_for': {
+          const result = await ctrl.waitForHandler.handle(
+            params.targetId,
+            params.condition,
+            params.ref,
+            params.text,
+            params.timeoutMs,
+            params.tabId,
+          );
+          return result;
+        }
 
         // Screenshot
         case 'capture_screenshot': {
-          const result = await ctrl.captureScreenshot(params.targetId, params.tabId);
+          const result = await ctrl.captureScreenshot(params.targetId, params.tabId, params.fullPage);
           return result;
         }
 
@@ -685,6 +789,7 @@ export class ReconController {
   public async captureScreenshot(
     targetId: string,
     tabId?: string,
+    fullPage?: boolean,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     const session = this.sessions.get(targetId);
     if (!session) {
@@ -695,6 +800,7 @@ export class ReconController {
       const result = await (window as any).electron.ipcRenderer.invoke('browser:screenshot', {
         targetId,
         tabId,
+        fullPage,
       });
       return result;
     } catch (error: any) {

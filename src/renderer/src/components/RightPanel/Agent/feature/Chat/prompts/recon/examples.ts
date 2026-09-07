@@ -13,7 +13,6 @@ Pass 2 (Verify): No unverified assumptions. Execute launch then navigate.
 Self-check: None
 </thinking>
 <launch_browser>
-  <targetId>target-1</targetId>
 </launch_browser>
 \`\`\`
 

@@ -10,7 +10,6 @@ import ActionBar from '../../ActionBar';
 
 interface SwitchTabBlockProps {
   tabId?: string;
-  targetId?: string;
   output?: string;
   isError?: boolean;
 }
@@ -62,7 +61,7 @@ export const SwitchTabRenderer: React.FC<BaseRendererProps> = ({
       <div className="pl-6">
         <SwitchTabBlock
           tabId={action.params.tabId}
-          targetId={action.params.targetId}
+
           output={outputData?.output}
           isError={isError}
         />
@@ -82,19 +81,13 @@ export const SwitchTabRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function SwitchTabBlock({ tabId, targetId, output, isError }: SwitchTabBlockProps) {
+function SwitchTabBlock({ tabId, output, isError }: SwitchTabBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {tabId && (
         <div className="flex items-start gap-2">
           <span className="text-text-secondary shrink-0">Tab ID:</span>
           <span className="text-text-primary font-mono">{tabId}</span>
-        </div>
-      )}
-      {targetId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Target:</span>
-          <span className="text-text-primary font-mono">{targetId}</span>
         </div>
       )}
 

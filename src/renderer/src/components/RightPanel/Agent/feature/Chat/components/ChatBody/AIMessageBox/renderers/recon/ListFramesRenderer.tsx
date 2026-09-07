@@ -1,5 +1,5 @@
 /**
- * CaptureScreenshotRenderer — Renderer cho tool capture_screenshot
+ * ListFramesRenderer — Renderer cho tool list_frames
  */
 
 import React from 'react';
@@ -8,16 +8,12 @@ import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
 import ActionBar from '../../ActionBar';
 
-interface CaptureScreenshotBlockProps {
+interface ListFramesBlockProps {
   output?: string;
   isError?: boolean;
-  imageBase64?: string;
-  fileId?: string;
-  title?: string;
-  url?: string;
 }
 
-export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
+export const ListFramesRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
   messageId,
@@ -49,9 +45,7 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
               </div>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold text-text-primary opacity-80">
-                    CAPTURE SCREENSHOT
-                  </span>
+                  <span className="font-semibold text-text-primary opacity-80">LIST FRAMES</span>
                 </div>
               </div>
             </div>
@@ -59,7 +53,7 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <CaptureScreenshotBlock
+        <ListFramesBlock
           output={outputData?.output}
           isError={isError}
         />
@@ -79,10 +73,10 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function CaptureScreenshotBlock({
+function ListFramesBlock({
   output,
   isError,
-}: CaptureScreenshotBlockProps) {
+}: ListFramesBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {output && (
@@ -98,7 +92,7 @@ function CaptureScreenshotBlock({
       )}
 
       {!output && !isError && (
-        <div className="text-text-secondary opacity-60">Capturing screenshot...</div>
+        <div className="text-text-secondary opacity-60">Listing frames...</div>
       )}
     </div>
   );

@@ -1,10 +1,15 @@
 /**
  * GetPageContentHandler — Xử lý tool get_page_content
  * Gọi IPC browser:getPageContent và format kết quả dạng markdown cho LLM.
+ * Chuẩn hóa truncation theo spec v2: 8000 chars, 20 elements (hiện 10 dòng).
  */
 
 export class GetPageContentHandler {
-  public async handle(targetId: string, tabId?: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  public async handle(
+    targetId: string,
+    tabId?: string,
+    maxChars?: number,
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       const result = await (window as any).electron.ipcRenderer.invoke('browser:getPageContent', {
         targetId,
@@ -21,21 +26,30 @@ export class GetPageContentHandler {
       const markdown = data.markdown || '(No content extracted)';
       const elements = data.elements || [];
 
-      // Giới hạn markdown
-      const MAX_LENGTH = 10000;
+      // Giới hạn markdown — mặc định 8000, có thể ghi đè bằng maxChars
+      const MAX_LENGTH = maxChars || 8000;
       const truncated = markdown.length > MAX_LENGTH;
       const displayMarkdown = truncated
         ? markdown.substring(0, MAX_LENGTH) + '\n...(truncated)'
         : markdown;
-      void displayMarkdown; // sử dụng biến để tránh warning
 
-      // Format interactive elements summary
-      const elementSummary = elements.length > 0
-        ? `\nInteractive elements: ${elements.length} found (use list_elements to see details)\n` +
-          elements.slice(0, 5).map((el: any, i: number) =>
+      // Format interactive elements summary — chuẩn hóa theo spec v2
+      let elementSummary: string;
+      if (elements.length === 0) {
+        elementSummary = '\nNo interactive elements found.';
+      } else if (elements.length > 20) {
+        // Nếu > 20, chỉ hiện 10 dòng đầu + thông báo
+        elementSummary = `\nInteractive elements: ${elements.length} found (use list_elements to see details)\n` +
+          elements.slice(0, 10).map((el: any, i: number) =>
             `| ${el.ref || `el-${i}`} | ${el.type || 'unknown'} | ${el.label || el.text || ''} |`
-          ).join('\n')
-        : '\nNo interactive elements found.';
+          ).join('\n') +
+          `\n...(${elements.length - 10} more — use list_elements to see details)`;
+      } else {
+        elementSummary = `\nInteractive elements: ${elements.length} found (use list_elements to see details)\n` +
+          elements.map((el: any, i: number) =>
+            `| ${el.ref || `el-${i}`} | ${el.type || 'unknown'} | ${el.label || el.text || ''} |`
+          ).join('\n');
+      }
 
       const text = [
         `[get_page_content] Page content retrieved`,

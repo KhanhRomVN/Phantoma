@@ -10,7 +10,6 @@ import ActionBar from '../../ActionBar';
 
 interface CloseTabBlockProps {
   tabId?: string;
-  targetId?: string;
   output?: string;
   isError?: boolean;
 }
@@ -62,7 +61,7 @@ export const CloseTabRenderer: React.FC<BaseRendererProps> = ({
       <div className="pl-6">
         <CloseTabBlock
           tabId={action.params.tabId}
-          targetId={action.params.targetId}
+
           output={outputData?.output}
           isError={isError}
         />
@@ -82,19 +81,13 @@ export const CloseTabRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function CloseTabBlock({ tabId, targetId, output, isError }: CloseTabBlockProps) {
+function CloseTabBlock({ tabId, output, isError }: CloseTabBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {tabId && (
         <div className="flex items-start gap-2">
           <span className="text-text-secondary shrink-0">Tab ID:</span>
           <span className="text-text-primary font-mono">{tabId}</span>
-        </div>
-      )}
-      {targetId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Target:</span>
-          <span className="text-text-primary font-mono">{targetId}</span>
         </div>
       )}
 

@@ -10,8 +10,6 @@ import ActionBar from '../../ActionBar';
 
 interface NavigateBlockProps {
   url?: string;
-  tabId?: string;
-  targetId?: string;
   output?: string;
   isError?: boolean;
 }
@@ -63,8 +61,6 @@ export const NavigateRenderer: React.FC<BaseRendererProps> = ({
       <div className="pl-6">
         <NavigateBlock
           url={action.params.url}
-          tabId={action.params.tabId}
-          targetId={action.params.targetId}
           output={outputData?.output}
           isError={isError}
         />
@@ -86,8 +82,6 @@ export const NavigateRenderer: React.FC<BaseRendererProps> = ({
 
 function NavigateBlock({
   url,
-  tabId,
-  targetId,
   output,
   isError,
 }: NavigateBlockProps) {
@@ -97,18 +91,6 @@ function NavigateBlock({
         <div className="flex items-start gap-2">
           <span className="text-text-secondary shrink-0">URL:</span>
           <span className="text-text-primary font-mono">{url}</span>
-        </div>
-      )}
-      {tabId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Tab ID:</span>
-          <span className="text-text-primary font-mono">{tabId}</span>
-        </div>
-      )}
-      {targetId && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Target:</span>
-          <span className="text-text-primary font-mono">{targetId}</span>
         </div>
       )}
 

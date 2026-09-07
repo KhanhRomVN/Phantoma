@@ -25,13 +25,15 @@ export interface PageContent {
 
 export interface InteractiveElement {
   ref: string;
-  type: 'input' | 'button' | 'link' | 'select' | 'textarea';
+  type: 'input' | 'button' | 'link' | 'select' | 'textarea' | 'checkbox' | 'radio';
   selector: string;
   label?: string;
   value?: string;
   placeholder?: string;
   text?: string;
   href?: string;
+  visible?: boolean;
+  boundingBox?: { x: number; y: number; width: number; height: number };
 }
 
 export class ContentHandler {
@@ -293,7 +295,41 @@ export class ContentHandler {
     const textareas = await this.extractTextareas(page);
     elements.push(...textareas);
     
-    return elements;
+    // Populate elementRefMap so getSelectorByRef works
+    elements.forEach((el) => {
+      this.elementRefMap.set(el.ref, el.selector);
+    });
+
+    // Enrich elements with visible status and boundingBox
+    const enrichedElements = await page.evaluate((elementList) => {
+      return elementList.map((el: any) => {
+        const target = document.querySelector(el.selector);
+        if (!target) {
+          return { ...el, visible: false };
+        }
+        const rect = target.getBoundingClientRect();
+        const style = window.getComputedStyle(target);
+        const visible =
+          rect.width > 0 &&
+          rect.height > 0 &&
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0';
+
+        return {
+          ...el,
+          visible,
+          boundingBox: {
+            x: Math.round(rect.x),
+            y: Math.round(rect.y),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          },
+        };
+      });
+    }, elements);
+
+    return enrichedElements;
   }
 
   /**
@@ -352,9 +388,16 @@ export class ContentHandler {
 
         const id = input.id || input.name || `input-${idx}`;
 
+        // Phân biệt checkbox/radio
+        const inputType = input.type === 'checkbox'
+          ? 'checkbox'
+          : input.type === 'radio'
+            ? 'radio'
+            : 'input';
+
         return {
           ref: id,
-          type: 'input' as const,
+          type: inputType as 'input' | 'checkbox' | 'radio',
           selector: input.id
             ? `#${input.id}`
             : input.name
@@ -525,14 +568,49 @@ export class ContentHandler {
   /**
    * List elements by type
    */
-  public async listElements(page: Page, elementType?: string): Promise<InteractiveElement[]> {
+  public async listElements(
+    page: Page,
+    elementType?: string,
+    labelContains?: string,
+    visibleOnly?: boolean,
+    limit?: number,
+    offset?: number,
+  ): Promise<InteractiveElement[]> {
     const content = await this.getPageContent(page);
-    
-    if (!elementType) {
-      return content.elements;
+    let elements = content.elements;
+
+    if (elementType) {
+      elements = elements.filter((el) => el.type === elementType);
     }
-    
-    return content.elements.filter(el => el.type === elementType);
+
+    if (labelContains) {
+      const needle = labelContains.toLowerCase();
+      elements = elements.filter((el) => {
+        const searchable = `${el.label || ''} ${el.placeholder || ''} ${el.text || ''}`.toLowerCase();
+        return searchable.includes(needle);
+      });
+    }
+
+    if (visibleOnly) {
+      elements = elements.filter((el) => el.visible === true);
+    }
+
+    const start = offset || 0;
+    const end = limit ? start + limit : undefined;
+    return elements.slice(start, end);
+  }
+
+  /**
+   * List all frames in the current page.
+   * Returns main frame + all child iframes.
+   */
+  public async listFrames(page: Page): Promise<Array<{ frameId: string; frameUrl: string; name: string }>> {
+    const frames = page.frames();
+    return frames.map((frame, i) => ({
+      frameId: `frame-${i}`,
+      frameUrl: frame.url(),
+      name: frame.name() || '-',
+    }));
   }
 
   /**
@@ -562,6 +640,100 @@ export class ContentHandler {
       imageBase64,
       title,
       url,
+    };
+  }
+
+  /**
+   * Capture screenshot with numbered overlay on interactive elements.
+   * Returns base64 image plus a ref-map (index, ref, selector, type, label) so
+   * the AI can see the visual position and use the exact ref to interact.
+   */
+  public async captureScreenshotWithOverlay(page: Page, fullPage: boolean = false): Promise<{
+    imageBase64: string;
+    title: string;
+    url: string;
+    elementMap: Array<{ index: number; ref: string; selector: string; type: string; label: string }>;
+  }> {
+    const title = await page.title();
+    const url = page.url();
+
+    const pageContent = await this.getPageContent(page);
+    const elements = pageContent.elements;
+
+    // Inject numbered overlay into the live DOM
+    await page.evaluate((elementList) => {
+      // Remove any existing overlay first
+      document.querySelectorAll('.recon-overlay-badge').forEach((el) => el.remove());
+      document.querySelectorAll('.recon-overlay-outline').forEach((el) => el.remove());
+
+      const style = document.createElement('style');
+      style.id = 'recon-overlay-style';
+      style.textContent = `
+        .recon-overlay-outline {
+          outline: 2px solid #ff4500 !important;
+          outline-offset: 1px !important;
+          position: relative !important;
+        }
+        .recon-overlay-badge {
+          position: absolute !important;
+          top: -12px !important;
+          left: -8px !important;
+          background: #ff4500 !important;
+          color: #fff !important;
+          font: bold 12px/1.4 monospace !important;
+          padding: 1px 5px !important;
+          border-radius: 3px !important;
+          z-index: 2147483647 !important;
+          pointer-events: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+
+      elementList.forEach(({ selector, index }) => {
+        const target = document.querySelector(selector);
+        if (!target) return;
+        (target as HTMLElement).classList.add('recon-overlay-outline');
+        (target as HTMLElement).style.position = 'relative';
+
+        const badge = document.createElement('span');
+        badge.className = 'recon-overlay-badge';
+        badge.textContent = String(index);
+        target.appendChild(badge);
+      });
+    }, elements.map((el, i) => ({ selector: el.selector, index: i + 1 })));
+
+    // Wait a tick for overlay to render
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const screenshotBuffer = await page.screenshot({
+      fullPage,
+      type: 'png',
+      encoding: 'binary',
+    });
+
+    const imageBase64 = Buffer.from(screenshotBuffer as Buffer).toString('base64');
+
+    // Remove overlay immediately to restore the page for the user
+    await page.evaluate(() => {
+      document.querySelectorAll('.recon-overlay-badge').forEach((el) => el.remove());
+      document.querySelectorAll('.recon-overlay-outline').forEach((el) => el.remove());
+      const style = document.getElementById('recon-overlay-style');
+      if (style) style.remove();
+    });
+
+    const elementMap = elements.map((el, i) => ({
+      index: i + 1,
+      ref: el.ref,
+      selector: el.selector,
+      type: el.type,
+      label: el.label || el.text || '',
+    }));
+
+    return {
+      imageBase64,
+      title,
+      url,
+      elementMap,
     };
   }
 }

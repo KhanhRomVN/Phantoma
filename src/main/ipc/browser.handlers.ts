@@ -221,10 +221,12 @@ export function setupBrowserHandlers(): void {
       options: {
         targetId: string;
         url: string;
+        waitUntil?: 'domcontentloaded' | 'load' | 'networkidle';
+        timeoutMs?: number;
       },
     ) => {
       try {
-        const { targetId, url } = options;
+        const { targetId, url, waitUntil, timeoutMs } = options;
         const session = activeSessions.get(targetId);
 
         if (!session) {
@@ -234,7 +236,12 @@ export function setupBrowserHandlers(): void {
           };
         }
 
-        await session.page.goto(url);
+        await session.navigationHandler.navigate(
+          session.page,
+          url,
+          waitUntil,
+          timeoutMs,
+        );
 
         return {
           success: true,
@@ -688,10 +695,14 @@ export function setupBrowserHandlers(): void {
         targetId: string;
         tabId?: string;
         elementType?: string;
+        labelContains?: string;
+        visibleOnly?: boolean;
+        limit?: number;
+        offset?: number;
       },
     ) => {
       try {
-        const { targetId, tabId, elementType } = options;
+        const { targetId, tabId, elementType, labelContains, visibleOnly, limit, offset } = options;
         const session = activeSessions.get(targetId);
 
         if (!session) {
@@ -710,7 +721,14 @@ export function setupBrowserHandlers(): void {
           };
         }
 
-        const elements = await session.contentHandler.listElements(page, elementType);
+        const elements = await session.contentHandler.listElements(
+          page,
+          elementType,
+          labelContains,
+          visibleOnly,
+          limit,
+          offset,
+        );
 
         return {
           success: true,
@@ -737,10 +755,11 @@ export function setupBrowserHandlers(): void {
         targetId: string;
         tabId?: string;
         ref: string;
+        clickType?: 'single' | 'double' | 'right';
       },
     ) => {
       try {
-        const { targetId, tabId, ref } = options;
+        const { targetId, tabId, ref, clickType } = options;
         const session = activeSessions.get(targetId);
 
         if (!session) {
@@ -759,12 +778,20 @@ export function setupBrowserHandlers(): void {
           };
         }
 
-        await session.interactionHandler.clickByRef(page, ref);
+        const resolvedSelector = session.contentHandler.getSelectorByRef(ref);
+        const selector = resolvedSelector || `#${ref}`;
+        const wasFromMap = !!resolvedSelector;
+
+        // [DEBUG] Log selector resolution
+        console.log('[DEBUG][browser:clickElement] Resolved selector', { ref, selector, wasFromMap, clickType });
+
+        const clickResult = await session.interactionHandler.clickByRef(page, ref, selector, wasFromMap, clickType);
 
         return {
           success: true,
           data: {
             ref,
+            newTabId: clickResult.newTabId,
           },
         };
       } catch (error: any) {
@@ -811,7 +838,25 @@ export function setupBrowserHandlers(): void {
           };
         }
 
-        await session.interactionHandler.fillByRef(page, ref, value);
+        // [DEBUG] Log before fill attempt
+        console.log('[DEBUG][browser:fillInput] Received', {
+          targetId,
+          tabId,
+          ref,
+          value,
+          pageUrl: page.url(),
+        });
+
+        // Resolve selector from ContentHandler.elementRefMap, fallback to #ref
+        const resolvedSelector = session.contentHandler.getSelectorByRef(ref);
+        const selector = resolvedSelector || `#${ref}`;
+        const wasFromMap = !!resolvedSelector;
+
+        console.log('[DEBUG][browser:fillInput] Resolved selector', { ref, selector, wasFromMap });
+
+        await session.interactionHandler.fillByRef(page, ref, selector, value, wasFromMap);
+
+        console.log('[DEBUG][browser:fillInput] Completed', { ref, value });
 
         return {
           success: true,
@@ -882,6 +927,469 @@ export function setupBrowserHandlers(): void {
   );
 
   /**
+   * Select option from dropdown
+   */
+  ipcMain.handle(
+    'browser:selectOption',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        ref: string;
+        value?: string;
+        label?: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, ref, value, label } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const resolvedSelector = session.contentHandler.getSelectorByRef(ref);
+        const selector = resolvedSelector || `#${ref}`;
+        const wasFromMap = !!resolvedSelector;
+
+        console.log('[DEBUG][browser:selectOption] Resolved selector', { ref, selector, value, label, wasFromMap });
+
+        const result = await session.interactionHandler.selectOptionByRef(
+          page,
+          ref,
+          selector,
+          value,
+          label,
+          wasFromMap,
+        );
+
+        return {
+          success: true,
+          data: {
+            ref,
+            selected: result,
+          },
+        };
+      } catch (error: any) {
+        logger.error('[Browser] Select option failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to select option',
+        };
+      }
+    },
+  );
+
+  /**
+   * Wait for a condition
+   */
+  ipcMain.handle(
+    'browser:waitFor',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        condition: 'element_visible' | 'element_hidden' | 'text_present' | 'network_idle';
+        ref?: string;
+        text?: string;
+        timeoutMs?: number;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, condition, ref, text, timeoutMs } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        // Resolve selector from ref if provided
+        let selector: string | undefined;
+        if (ref) {
+          selector = session.contentHandler.getSelectorByRef(ref) || `#${ref}`;
+          console.log('[DEBUG][browser:waitFor] Resolved selector', { ref, selector });
+        }
+
+        const waitedMs = await session.interactionHandler.waitFor(
+          page,
+          condition,
+          selector,
+          text,
+          timeoutMs,
+        );
+
+        return {
+          success: true,
+          data: {
+            condition,
+            ref,
+            text,
+            waitedMs,
+          },
+        };
+      } catch (error: any) {
+        logger.error('[Browser] Wait failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to wait',
+        };
+      }
+    },
+  );
+
+  /**
+   * Scroll to a specific element
+   */
+  ipcMain.handle(
+    'browser:scrollToElement',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        ref: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, ref } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const resolvedSelector = session.contentHandler.getSelectorByRef(ref);
+        const selector = resolvedSelector || `#${ref}`;
+        const wasFromMap = !!resolvedSelector;
+
+        console.log('[DEBUG][browser:scrollToElement] Resolved selector', { ref, selector, wasFromMap });
+
+        const visible = await session.interactionHandler.scrollToElement(
+          page,
+          ref,
+          selector,
+          wasFromMap,
+        );
+
+        return {
+          success: true,
+          data: {
+            ref,
+            visible,
+          },
+        };
+      } catch (error: any) {
+        logger.error('[Browser] Scroll to element failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to scroll to element',
+        };
+      }
+    },
+  );
+
+  /**
+   * List frames
+   */
+  ipcMain.handle(
+    'browser:listFrames',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const frames = await session.contentHandler.listFrames(page);
+
+        return {
+          success: true,
+          data: { frames },
+        };
+      } catch (error: any) {
+        logger.error('[Browser] List frames failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to list frames',
+        };
+      }
+    },
+  );
+
+  /**
+   * Evaluate JavaScript
+   */
+  ipcMain.handle(
+    'browser:evaluateJs',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        script: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, script } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const result = await session.interactionHandler.evaluateJs(page, script);
+
+        return {
+          success: true,
+          data: { result },
+        };
+      } catch (error: any) {
+        logger.error('[Browser] Evaluate JS failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to evaluate JS',
+        };
+      }
+    },
+  );
+
+  /**
+   * Upload file
+   */
+  ipcMain.handle(
+    'browser:uploadFile',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        ref: string;
+        filePath: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, ref, filePath } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const resolvedSelector = session.contentHandler.getSelectorByRef(ref);
+        const selector = resolvedSelector || `#${ref}`;
+        const wasFromMap = !!resolvedSelector;
+
+        const fileName = await session.interactionHandler.uploadFileByRef(
+          page,
+          ref,
+          selector,
+          filePath,
+          wasFromMap,
+        );
+
+        return {
+          success: true,
+          data: { ref, fileName },
+        };
+      } catch (error: any) {
+        logger.error('[Browser] Upload file failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to upload file',
+        };
+      }
+    },
+  );
+
+  /**
+   * Clear input content
+   */
+  ipcMain.handle(
+    'browser:clearInput',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        ref: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, ref } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const resolvedSelector = session.contentHandler.getSelectorByRef(ref);
+        const selector = resolvedSelector || `#${ref}`;
+        const wasFromMap = !!resolvedSelector;
+
+        await session.interactionHandler.clearInputByRef(page, ref, selector, wasFromMap);
+
+        return {
+          success: true,
+          data: { ref },
+        };
+      } catch (error: any) {
+        logger.error('[Browser] Clear input failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to clear input',
+        };
+      }
+    },
+  );
+
+  /**
+   * Hover over an element
+   */
+  ipcMain.handle(
+    'browser:hover',
+    async (
+      _,
+      options: {
+        targetId: string;
+        tabId?: string;
+        ref: string;
+      },
+    ) => {
+      try {
+        const { targetId, tabId, ref } = options;
+        const session = activeSessions.get(targetId);
+
+        if (!session) {
+          return {
+            success: false,
+            error: 'No active browser session for this target',
+          };
+        }
+
+        const page = tabId ? session.tabHandler.getTab(tabId) : session.tabHandler.getActiveTab();
+
+        if (!page) {
+          return {
+            success: false,
+            error: `Tab not found`,
+          };
+        }
+
+        const resolvedSelector = session.contentHandler.getSelectorByRef(ref);
+        const selector = resolvedSelector || `#${ref}`;
+        const wasFromMap = !!resolvedSelector;
+
+        await session.interactionHandler.hoverByRef(page, ref, selector, wasFromMap);
+
+        return {
+          success: true,
+          data: { ref },
+        };
+      } catch (error: any) {
+        logger.error('[Browser] Hover failed:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to hover',
+        };
+      }
+    },
+  );
+
+  /**
    * Scroll page
    */
   ipcMain.handle(
@@ -943,10 +1451,11 @@ export function setupBrowserHandlers(): void {
       options: {
         targetId: string;
         tabId?: string;
+        fullPage?: boolean;
       },
     ) => {
       try {
-        const { targetId, tabId } = options;
+        const { targetId, tabId, fullPage } = options;
         const session = activeSessions.get(targetId);
 
         if (!session) {
@@ -965,7 +1474,7 @@ export function setupBrowserHandlers(): void {
           };
         }
 
-        const screenshot = await session.contentHandler.captureScreenshot(page);
+        const screenshot = await session.contentHandler.captureScreenshotWithOverlay(page, fullPage);
 
         return {
           success: true,

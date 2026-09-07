@@ -58,6 +58,14 @@ export {
   executePressKey,
   executeScroll,
   executeCaptureScreenshot,
+  executeSelectOption,
+  executeWaitFor,
+  executeScrollToElement,
+  executeListFrames,
+  executeHover,
+  executeClearInput,
+  executeUploadFile,
+  executeEvaluateJs,
 } from './ReconExecutor';
 
 import { logger } from '@renderer/utils/logger';
@@ -118,6 +126,14 @@ import {
   executePressKey,
   executeScroll,
   executeCaptureScreenshot,
+  executeSelectOption,
+  executeWaitFor,
+  executeScrollToElement,
+  executeListFrames,
+  executeHover,
+  executeClearInput,
+  executeUploadFile,
+  executeEvaluateJs,
 } from './ReconExecutor';
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -418,6 +434,62 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const result = await executeCaptureScreenshot(action.params || {});
+          return result.success ? result.output || null : result.error || null;
+        },
+      };
+    case 'select_option':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const result = await executeSelectOption(action.params || {});
+          return result.success ? result.output || null : result.error || null;
+        },
+      };
+    case 'wait_for':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const result = await executeWaitFor(action.params || {});
+          return result.success ? result.output || null : result.error || null;
+        },
+      };
+    case 'scroll_to_element':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const result = await executeScrollToElement(action.params || {});
+          return result.success ? result.output || null : result.error || null;
+        },
+      };
+    case 'list_frames':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const result = await executeListFrames(action.params || {});
+          return result.success ? result.output || null : result.error || null;
+        },
+      };
+    case 'hover':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const result = await executeHover(action.params || {});
+          return result.success ? result.output || null : result.error || null;
+        },
+      };
+    case 'clear_input':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const result = await executeClearInput(action.params || {});
+          return result.success ? result.output || null : result.error || null;
+        },
+      };
+    case 'upload_file':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const result = await executeUploadFile(action.params || {});
+          return result.success ? result.output || null : result.error || null;
+        },
+      };
+    case 'evaluate_js':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          const result = await executeEvaluateJs(action.params || {});
           return result.success ? result.output || null : result.error || null;
         },
       };
