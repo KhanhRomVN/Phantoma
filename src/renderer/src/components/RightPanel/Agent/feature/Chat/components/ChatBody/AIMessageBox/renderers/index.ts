@@ -54,6 +54,7 @@ export { CreateReportFileRenderer } from './emulate/CreateReportFileRenderer';
 export { ReadReportFileRenderer } from './emulate/ReadReportFileRenderer';
 export { UpdateReportFileRenderer } from './emulate/UpdateReportFileRenderer';
 export { DeleteReportFileRenderer } from './emulate/DeleteReportFileRenderer';
+export { ExecuteCommandRenderer } from './emulate/ExecuteCommandRenderer';
 export { ListTabsRenderer } from './recon/ListTabsRenderer';
 export { CreateTabRenderer } from './recon/CreateTabRenderer';
 export { CloseTabRenderer } from './recon/CloseTabRenderer';

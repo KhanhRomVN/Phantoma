@@ -31,10 +31,10 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 import { logger } from '@renderer/utils/logger';
 // ── Services ──
-import { lspClientManager } from './lsp-client.service';
+import { lspClientManager } from '@renderer/shared/lsp/services/lsp-client.service';
 
 // ── Stores ──
-import { useDiagnosticsStore } from '../stores/diagnosticsStore';
+import { useDiagnosticsStore } from '@renderer/shared/lsp/stores/diagnosticsStore';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface WatchedFile {

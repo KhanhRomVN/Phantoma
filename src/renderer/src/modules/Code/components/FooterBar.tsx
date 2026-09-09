@@ -31,7 +31,7 @@ import {
   isLSPInstalled,
   isLSPDismissed,
   type LSPServer,
-} from '../services/lsp.service';
+} from '@renderer/shared/lsp/services/lsp.service';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';

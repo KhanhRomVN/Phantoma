@@ -116,6 +116,7 @@ import {
   executeReadReportFile,
   executeUpdateReportFile,
   executeDeleteReportFile,
+  executeExecuteCommand,
 } from './EmulateExecutor';
 
 // ── Recon tool executors ────────────────────────────────────────────
@@ -391,6 +392,12 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       return {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           return executeDeleteReportFile(action.params || {});
+        },
+      };
+    case 'execute_command':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeExecuteCommand(action.params || {});
         },
       };
 

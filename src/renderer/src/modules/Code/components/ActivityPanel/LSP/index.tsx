@@ -37,10 +37,10 @@ import {
 } from 'lucide-react';
 
 // ── Services ──
-import { isLSPInstalled, markLSPInstalled, type LSPServer } from '../../../services/lsp.service';
+import { isLSPInstalled, markLSPInstalled, type LSPServer } from '@renderer/shared/lsp/services/lsp.service';
 
 // ── Constants ──
-import { AVAILABLE_LSP_SERVERS } from '../../../constants/lsp-servers';
+import { AVAILABLE_LSP_SERVERS } from '@renderer/shared/lsp/constants/lsp-servers';
 
 // ─── Component ──────────────────────────────────────────────────────────
 

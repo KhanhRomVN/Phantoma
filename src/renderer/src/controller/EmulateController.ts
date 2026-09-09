@@ -52,6 +52,7 @@ import { ReadReportFileHandler } from '../modules/Emulate/handler/ReadReportFile
 import { UpdateReportFileHandler } from '../modules/Emulate/handler/UpdateReportFileHandler';
 import { DeleteReportFileHandler } from '../modules/Emulate/handler/DeleteReportFileHandler';
 import type { CdpScriptUnpackedData } from '@renderer/shared/types/network';
+import { ExecuteCommandHandler } from '../modules/Emulate/handler/ExecuteCommandHandler';
 
 export class EmulateController {
   private static instance: EmulateController;
@@ -87,6 +88,7 @@ export class EmulateController {
   private readReportFileHandler: ReadReportFileHandler;
   private updateReportFileHandler: UpdateReportFileHandler;
   private deleteReportFileHandler: DeleteReportFileHandler;
+  private executeCommandHandler: ExecuteCommandHandler;
 
   private constructor() {
     this.listHttpHandler = new ListHttpHandler();
@@ -114,6 +116,7 @@ export class EmulateController {
     this.readReportFileHandler = new ReadReportFileHandler();
     this.updateReportFileHandler = new UpdateReportFileHandler();
     this.deleteReportFileHandler = new DeleteReportFileHandler();
+    this.executeCommandHandler = new ExecuteCommandHandler();
   }
 
   // ── Singleton ─────────────────────────────────────────────────────
@@ -363,6 +366,14 @@ export class EmulateController {
             effectiveTargetId,
             params.report_id,
             params.file_name,
+          );
+          return { success: true, data: { output: result.text } };
+        }
+        case 'execute_command': {
+          if (!params.command) return { success: false, error: 'command is required' };
+          const result = await ctrl.executeCommandHandler.handle(
+            params.command,
+            params.folder_path,
           );
           return { success: true, data: { output: result.text } };
         }

@@ -42,6 +42,9 @@ import { reportFileService } from '../../../services/report-file.service';
 // ── Utils ──
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
+// ── Bottom Panel ──
+import ReportBottomPanel from './ReportBottomPanel';
+
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ReportViewPanelProps {
   report: Report | null;
@@ -253,6 +256,9 @@ export const ReportViewPanel: React.FC<ReportViewPanelProps> = ({
           <MarkdownBlock content={report.content} />
         )}
       </div>
+
+      {/* Bottom Panel — Problems + Terminal */}
+      <ReportBottomPanel />
     </div>
   );
 };

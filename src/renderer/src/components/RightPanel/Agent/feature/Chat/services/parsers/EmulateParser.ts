@@ -44,6 +44,7 @@ import {
   ReadReportFileParams,
   UpdateReportFileParams,
   DeleteReportFileParams,
+  ExecuteCommandParams,
 } from '../../types/tool-types';
 
 // ─── Functions ──────────────────────────────────────────────────────────
@@ -577,5 +578,23 @@ export function parseDeleteReportFile(innerContent: string): DeleteReportFilePar
   if (reportIdParam) params.report_id = reportIdParam.trim();
   const fileNameParam = extractParamValue(innerContent, 'file_name');
   if (fileNameParam) params.file_name = fileNameParam.trim();
+  return params;
+}
+
+// ===== ExecuteCommandParser =====
+
+/**
+ * Parse execute_command tag from AI response.
+ * Format: <execute_command><command>npm test</command><folder_path>/path/to/run</folder_path></execute_command>
+ */
+export function parseExecuteCommand(innerContent: string): ExecuteCommandParams {
+  const params: ExecuteCommandParams = { command: '' };
+
+  const commandParam = extractParamValue(innerContent, 'command');
+  if (commandParam) params.command = commandParam.trim();
+
+  const folderPathParam = extractParamValue(innerContent, 'folder_path');
+  if (folderPathParam) params.folder_path = folderPathParam.trim();
+
   return params;
 }

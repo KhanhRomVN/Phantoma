@@ -851,6 +851,33 @@ Xóa file code khỏi report.
 
 ---
 
+### 24. `execute_command`
+Chạy lệnh shell trong workspace. Có thể dùng để chạy file .js trong report.
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `command` | **Có** | Lệnh shell cần chạy |
+| `folder_path` | Không | Thư mục chạy lệnh (mặc định: workspace root) |
+
+⚠️ Nếu exit code khác 0, lệnh thất bại — phải phân tích `stderr` trước khi làm gì tiếp.
+
+⚠️ Không chạy lệnh phá hủy (`rm -rf`, `git push --force`, `git reset --hard`, ...) khi chưa có xác nhận rõ ràng.
+
+**Ví dụ:**
+
+
+<execute_command><command>node script.js</command></execute_command>
+
+
+**Kết quả mẫu:**
+
+
+[execute_command] node script.js
+Hello from report script!
+
+
+---
+
 ## Executive Summary
 Các tool này tự động được đính kèm vào mỗi request, không cần AI kích hoạt bằng lệnh.
 

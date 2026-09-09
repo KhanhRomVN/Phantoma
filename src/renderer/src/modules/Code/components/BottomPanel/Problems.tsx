@@ -45,7 +45,7 @@ import {
 
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
-import { useDiagnostics } from '../../hooks/useDiagnostics';
+import { useDiagnostics } from '@renderer/shared/lsp/hooks/useDiagnostics';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { cn } from '@renderer/shared/utils/cn';
 

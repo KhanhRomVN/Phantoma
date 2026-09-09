@@ -87,6 +87,7 @@ import {
   ReadReportFileRenderer,
   UpdateReportFileRenderer,
   DeleteReportFileRenderer,
+  ExecuteCommandRenderer,
   ListTabsRenderer,
   CreateTabRenderer,
   CloseTabRenderer,
@@ -729,6 +730,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     read_report_file: ReadReportFileRenderer,
     update_report_file: UpdateReportFileRenderer,
     delete_report_file: DeleteReportFileRenderer,
+    execute_command: ExecuteCommandRenderer,
     // Recon tools
     list_tabs: ListTabsRenderer,
     create_tab: CreateTabRenderer,

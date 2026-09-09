@@ -189,6 +189,13 @@ Use XML tags for all tool calls:
 - \`file_name\`: (required) File name.
 - Example: \`<delete_report_file><report_id>report_1</report_id><file_name>old.js</file_name></delete_report_file>\`
 
+**execute_command**: Run a shell command in the workspace. Can execute .js report files.
+- \`command\`: (required) Shell command to run.
+- \`folder_path\`: (optional) Working directory (default: workspace root).
+- Returns: Command output (stdout) or error message.
+- Example: \`<execute_command><command>node script.js</command></execute_command>\` — run script.js
+- ⚠ DESTRUCTIVE-COMMAND-CONFIRM: Do not run destructive commands (rm -rf, git push --force, git reset --hard, etc.) without clear user confirmation.
+
 ## Executive Summary
 
 Bearer xyz

@@ -64,6 +64,7 @@ import {
   parseReadReportFile,
   parseUpdateReportFile,
   parseDeleteReportFile,
+  parseExecuteCommand,
 } from './parsers/EmulateParser';
 import {
   parseListTabs,
@@ -709,6 +710,11 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'delete_report_file': {
               const params = parseDeleteReportFile(innerContent || '');
               action = { type: 'delete_report_file' as const, params, rawXml };
+              break;
+            }
+            case 'execute_command': {
+              const params = parseExecuteCommand(innerContent || '');
+              action = { type: 'execute_command' as const, params, rawXml };
               break;
             }
             // ── Recon tools ──────────────────────────────────────

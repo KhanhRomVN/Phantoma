@@ -34,6 +34,7 @@ import type {
   ReadReportFileParams,
   UpdateReportFileParams,
   DeleteReportFileParams,
+  ExecuteCommandParams,
 } from '../../types/tool-types';
 
 // ─── Functions ──────────────────────────────────────────────────────────
@@ -466,6 +467,23 @@ export async function executeDeleteReportFile(
 
   if (!result.success) {
     return '[delete_report_file] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== ExecuteCommandExecutor =====
+
+/** Execute execute_command tool — gọi EmulateController.executeTool() */
+export async function executeExecuteCommand(
+  params: ExecuteCommandParams,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool('execute_command', {
+    command: params.command,
+    folder_path: params.folder_path,
+  });
+
+  if (!result.success) {
+    return '[execute_command] Result: Error - ' + (result.error || '');
   }
   return (result.data as any)?.output || null;
 }

@@ -267,4 +267,15 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
       fullAccess: "allow",
     },
   },
+
+  execute_command: {
+    id: "execute_command",
+    title: "EXECUTE COMMAND",
+    category: "tool",
+    timeout: 30000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
 };

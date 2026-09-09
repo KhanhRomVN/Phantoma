@@ -24,8 +24,8 @@ import { logger } from '@renderer/utils/logger';
 import {
   lspClientManager,
   autoStartLanguageServer,
-} from '../../modules/Code/services/lsp-client.service';
-import { lspManager } from '../../modules/Code/services/lsp-manager.service';
+} from '@renderer/shared/lsp/services/lsp-client.service';
+import { lspManager } from '@renderer/shared/lsp/services/lsp-manager.service';
 import { documentManager } from '../../modules/Code/services/document-manager.service';
 import { fileWatcherService } from '../../modules/Code/services/file-watcher.service';
 
@@ -34,6 +34,7 @@ import { useCodeStore } from '../../modules/Code/hooks/useCodeStore';
 
 // ── Theme ──
 import { useTheme } from '../../theme/ThemeProvider';
+
 // ─── Global Declarations ────────────────────────────────────────────────
 // Khai báo interface Window để hỗ trợ AMD loader cho Monaco
 declare global {

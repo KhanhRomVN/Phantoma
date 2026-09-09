@@ -20,7 +20,7 @@ import {
   isLSPInstalled,
   markLSPInstalled,
   type LSPServer,
-} from '../services/lsp.service';
+} from '@renderer/shared/lsp/services/lsp.service';
 
 // ─── Hook ───────────────────────────────────────────────────────────────
 export function useLSPNotifier() {

@@ -62,7 +62,7 @@ export class FileMiscHandler {
     }
 
     try {
-      const { useDiagnosticsStore } = await import('../../stores/diagnosticsStore');
+      const { useDiagnosticsStore } = await import('@renderer/shared/lsp/stores/diagnosticsStore');
       const fileDiagnostics = useDiagnosticsStore.getState().getDiagnosticsForFile(pathValue);
 
       return {

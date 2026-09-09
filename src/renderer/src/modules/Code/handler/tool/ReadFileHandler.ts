@@ -111,7 +111,7 @@ export class ReadFileHandler {
 
       let diagnostics: any[] = [];
       if (!message.skipDiagnostics) {
-        const { useDiagnosticsStore } = await import('../../stores/diagnosticsStore');
+        const { useDiagnosticsStore } = await import('@renderer/shared/lsp/stores/diagnosticsStore');
         const storeState = useDiagnosticsStore.getState();
         const raw = storeState.getDiagnosticsForFile(resolvedPath);
         diagnostics = raw.map((d: any) => ({
