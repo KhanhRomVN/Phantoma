@@ -17,10 +17,10 @@ func NewRepeaterFileStorage() *RepeaterFileStorage {
 }
 
 // getRepeaterDir returns the directory path for a repeater request.
-// Format: ~/.phantoma/repeaters/{targetId}/repeater_{requestId}/
+// Format: ~/.phantoma/emulate:{targetId}/repeaters/repeater_{requestId}/
 func (s *RepeaterFileStorage) getRepeaterDir(targetID, requestID string) string {
 	appDataDir := config.GetAppDataDir()
-	return filepath.Join(appDataDir, "repeaters", targetID, fmt.Sprintf("repeater_%s", requestID))
+	return filepath.Join(appDataDir, fmt.Sprintf("emulate:%s", targetID), "repeaters", fmt.Sprintf("repeater_%s", requestID))
 }
 
 // ensureDir creates directory if not exists.

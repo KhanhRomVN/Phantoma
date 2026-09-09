@@ -7,11 +7,12 @@ import (
 	emulateSvc "github.com/phantoma/server/internal/service/emulate"
 )
 
-// RegisterEmulateRoutes đăng ký các endpoints cho emulate targets CRUD + filters + repeater.
-func RegisterEmulateRoutes(mux *http.ServeMux, targetSvc *emulateSvc.TargetService, filterSvc *emulateSvc.FilterService, repeaterSvc *emulateSvc.RepeaterService) {
+// RegisterEmulateRoutes đăng ký các endpoints cho emulate targets CRUD + filters + repeater + reports.
+func RegisterEmulateRoutes(mux *http.ServeMux, targetSvc *emulateSvc.TargetService, filterSvc *emulateSvc.FilterService, repeaterSvc *emulateSvc.RepeaterService, reportSvc *emulateSvc.ReportService) {
 	targetHandler := emulateHandler.NewTargetHandler(targetSvc)
 	filterHandler := emulateHandler.NewFilterHandler(filterSvc)
 	repeaterHandler := emulateHandler.NewRepeaterHandler(repeaterSvc)
+	reportHandler := emulateHandler.NewReportHandler(reportSvc)
 
 	// Target CRUD
 	mux.HandleFunc("GET /api/v1/emulate-targets", targetHandler.List)
@@ -44,4 +45,11 @@ func RegisterEmulateRoutes(mux *http.ServeMux, targetSvc *emulateSvc.TargetServi
 	mux.HandleFunc("POST /api/v1/emulate-targets/{targetId}/repeater/requests/{requestId}/history", repeaterHandler.SaveHistory)
 	mux.HandleFunc("GET /api/v1/emulate-targets/{targetId}/repeater/history/", repeaterHandler.GetHistoryRuns)
 	mux.HandleFunc("DELETE /api/v1/emulate-targets/{targetId}/repeater/history/", repeaterHandler.DeleteHistory)
+
+	// Report — Reports
+	mux.HandleFunc("GET /api/v1/emulate-targets/{targetId}/reports", reportHandler.ListReports)
+	mux.HandleFunc("GET /api/v1/emulate-targets/{targetId}/reports/", reportHandler.GetReport)
+	mux.HandleFunc("POST /api/v1/emulate-targets/{targetId}/reports", reportHandler.CreateReport)
+	mux.HandleFunc("PUT /api/v1/emulate-targets/{targetId}/reports/", reportHandler.UpdateReport)
+	mux.HandleFunc("DELETE /api/v1/emulate-targets/{targetId}/reports/", reportHandler.DeleteReport)
 }

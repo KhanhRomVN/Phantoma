@@ -7,6 +7,7 @@ import { BaseRendererProps } from '../../../../../types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
 import ActionBar from '../../ActionBar';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 
 interface NavigateBlockProps {
   url?: string;
@@ -48,9 +49,19 @@ export const NavigateRenderer: React.FC<BaseRendererProps> = ({
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-semibold text-text-primary opacity-80">NAVIGATE</span>
                   {action.params.url && (
-                    <span className="text-text-secondary font-mono text-[11px]">
-                      {action.params.url}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <img
+                        src={getFaviconUrl(action.params.url)}
+                        alt=""
+                        className="w-3.5 h-3.5 shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <span className="text-text-secondary font-mono text-[11px] truncate">
+                        {action.params.url}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -87,26 +98,19 @@ function NavigateBlock({
 }: NavigateBlockProps) {
   return (
     <div className="text-xs space-y-2">
-      {url && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">URL:</span>
-          <span className="text-text-primary font-mono">{url}</span>
-        </div>
-      )}
-
-      {output && (
+      {output && isError ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap"
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && <div className="text-text-secondary opacity-60">Navigating...</div>}
+      ) : !output && !isError ? (
+        <div className="text-text-secondary opacity-60">Navigating...</div>
+      ) : null}
     </div>
   );
 }

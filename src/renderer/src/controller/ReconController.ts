@@ -188,10 +188,7 @@ export class ReconController {
           return result;
         }
         case 'list_frames': {
-          const result = await ctrl.listFramesHandler.handle(
-            params.targetId,
-            params.tabId,
-          );
+          const result = await ctrl.listFramesHandler.handle(params.targetId, params.tabId);
           return result;
         }
 
@@ -250,11 +247,7 @@ export class ReconController {
           return result;
         }
         case 'hover': {
-          const result = await ctrl.hoverHandler.handle(
-            params.targetId,
-            params.ref,
-            params.tabId,
-          );
+          const result = await ctrl.hoverHandler.handle(params.targetId, params.ref, params.tabId);
           return result;
         }
         case 'clear_input': {
@@ -296,7 +289,11 @@ export class ReconController {
 
         // Screenshot
         case 'capture_screenshot': {
-          const result = await ctrl.captureScreenshot(params.targetId, params.tabId, params.fullPage);
+          const result = await ctrl.captureScreenshot(
+            params.targetId,
+            params.tabId,
+            params.fullPage,
+          );
           return result;
         }
 

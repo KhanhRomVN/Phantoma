@@ -13,6 +13,8 @@ export interface DropdownProps {
   trigger?: 'click' | 'contextmenu';
   /** Manual position override for fixed strategy (e.g., for context menus at cursor position) */
   position?: { top: number; left: number };
+  /** Fixed width in px for dropdown content. If not set, width auto-fits content (for contextmenu) or follows trigger width (for click). */
+  width?: number;
   searchable?: boolean;
   closeOnSelect?: boolean;
 }

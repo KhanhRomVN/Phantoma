@@ -80,35 +80,70 @@ export const ClearInputRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
+interface ParsedClearInputResult {
+  ref: string;
+  success?: boolean;
+}
+
+function parseClearInputOutput(output: string): ParsedClearInputResult | null {
+  try {
+    const refMatch = output.match(/ref:\s*(.+)/i);
+    
+    if (refMatch) {
+      return {
+        ref: refMatch[1].trim(),
+        success: output.includes('cleared') || output.includes('Input cleared'),
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function ClearInputBlock({
   ref,
   output,
   isError,
 }: ClearInputBlockProps) {
+  const parsed = output ? parseClearInputOutput(output) : null;
+  
   return (
     <div className="text-xs space-y-2">
-      {ref && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Ref:</span>
-          <span className="text-text-primary font-mono">{ref}</span>
-        </div>
-      )}
-
-      {output && (
+      {output && !isError && parsed ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap"
+          className="p-2 rounded border"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--success') + '08',
+            borderColor: $('--success') + '40',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-text-secondary">Field:</span>
+            <span
+              className="px-1.5 py-0.5 rounded text-[11px] font-mono"
+              style={{
+                backgroundColor: $('--background-tertiary'),
+                color: $('--text-primary'),
+              }}
+            >
+              {parsed.ref}
+            </span>
+          </div>
+        </div>
+      ) : output && isError ? (
+        <div
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs"
+          style={{
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && (
+      ) : !output && !isError ? (
         <div className="text-text-secondary opacity-60">Clearing input...</div>
-      )}
+      ) : null}
     </div>
   );
 }

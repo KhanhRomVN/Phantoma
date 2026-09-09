@@ -26,6 +26,14 @@ import type {
   GetRepeaterDetailParams,
   SendToRepeaterParams,
   UpdateRepeaterContentParams,
+  CreateReportParams,
+  ReadReportParams,
+  UpdateReportParams,
+  ListReportFilesParams,
+  CreateReportFileParams,
+  ReadReportFileParams,
+  UpdateReportFileParams,
+  DeleteReportFileParams,
 } from '../../types/tool-types';
 
 // ─── Functions ──────────────────────────────────────────────────────────
@@ -88,8 +96,12 @@ export interface GetSourceDetailParams {
 }
 
 /** Execute get_source_detail tool — gọi EmulateController.executeTool() */
-export async function executeGetSourceDetail(params: GetSourceDetailParams): Promise<string | null> {
-  const result = await EmulateController.executeTool('get_source_detail', { filepath: params.filepath });
+export async function executeGetSourceDetail(
+  params: GetSourceDetailParams,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool('get_source_detail', {
+    filepath: params.filepath,
+  });
 
   if (!result.success) {
     return '[get_source_detail] Result: Error - ' + (result.error || '');
@@ -118,18 +130,15 @@ export interface ListHttpsParams {
 
 /** Execute list_https tool — gọi EmulateController.executeTool() */
 export async function executeListHttps(params: ListHttpsParams): Promise<string | null> {
-  console.log('[DEBUG] executeListHttps - input params', params);
   const result = await EmulateController.executeTool('list_https', {
     filter: params.filter || {},
     limit: params.limit || 50,
   });
 
   if (!result.success) {
-    console.log('[DEBUG] executeListHttps - error', result.error);
     return '[list_https] Result: Error - ' + (result.error || '');
   }
   const output = (result.data as any)?.output || null;
-  console.log('[DEBUG] executeListHttps - output', { output });
   return output;
 }
 
@@ -172,10 +181,17 @@ export async function executeListSources(params: ListSourcesParams): Promise<str
 // ===== SendToRepeaterExecutor =====
 
 /** Execute send_to_repeater tool — gọi EmulateController.executeTool() */
-export async function executeSendToRepeater(params: SendToRepeaterParams, contextTargetId?: string | null): Promise<string | null> {
-  const result = await EmulateController.executeTool('send_to_repeater', {
-    index: params.index,
-  }, contextTargetId);
+export async function executeSendToRepeater(
+  params: SendToRepeaterParams,
+  contextTargetId?: string | null,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool(
+    'send_to_repeater',
+    {
+      index: params.index,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[send_to_repeater] Result: Error - ' + (result.error || '');
@@ -186,7 +202,9 @@ export async function executeSendToRepeater(params: SendToRepeaterParams, contex
 // ===== ListRepeatersExecutor =====
 
 /** Execute list_repeaters tool — gọi EmulateController.executeTool() */
-export async function executeListRepeaters(contextTargetId?: string | null): Promise<string | null> {
+export async function executeListRepeaters(
+  contextTargetId?: string | null,
+): Promise<string | null> {
   const result = await EmulateController.executeTool('list_repeaters', {}, contextTargetId);
 
   if (!result.success) {
@@ -198,10 +216,17 @@ export async function executeListRepeaters(contextTargetId?: string | null): Pro
 // ===== DeleteRepeaterExecutor =====
 
 /** Execute delete_repeater tool — gọi EmulateController.executeTool() */
-export async function executeDeleteRepeater(params: DeleteRepeaterParams, contextTargetId?: string | null): Promise<string | null> {
-  const result = await EmulateController.executeTool('delete_repeater', {
-    repeater_id: params.repeater_id,
-  }, contextTargetId);
+export async function executeDeleteRepeater(
+  params: DeleteRepeaterParams,
+  contextTargetId?: string | null,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool(
+    'delete_repeater',
+    {
+      repeater_id: params.repeater_id,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[delete_repeater] Result: Error - ' + (result.error || '');
@@ -212,10 +237,17 @@ export async function executeDeleteRepeater(params: DeleteRepeaterParams, contex
 // ===== GetRepeaterDetailExecutor =====
 
 /** Execute get_repeater_detail tool — gọi EmulateController.executeTool() */
-export async function executeGetRepeaterDetail(params: GetRepeaterDetailParams, contextTargetId?: string | null): Promise<string | null> {
-  const result = await EmulateController.executeTool('get_repeater_detail', {
-    repeater_id: params.repeater_id,
-  }, contextTargetId);
+export async function executeGetRepeaterDetail(
+  params: GetRepeaterDetailParams,
+  contextTargetId?: string | null,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool(
+    'get_repeater_detail',
+    {
+      repeater_id: params.repeater_id,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[get_repeater_detail] Result: Error - ' + (result.error || '');
@@ -226,13 +258,20 @@ export async function executeGetRepeaterDetail(params: GetRepeaterDetailParams, 
 // ===== UpdateRepeaterContentExecutor =====
 
 /** Execute update_repeater_content tool — gọi EmulateController.executeTool() */
-export async function executeUpdateRepeaterContent(params: UpdateRepeaterContentParams, contextTargetId?: string | null): Promise<string | null> {
-  const result = await EmulateController.executeTool('update_repeater_content', {
-    repeater_id: params.repeater_id,
-    target: params.target,
-    old_content: params.old_content,
-    new_content: params.new_content,
-  }, contextTargetId);
+export async function executeUpdateRepeaterContent(
+  params: UpdateRepeaterContentParams,
+  contextTargetId?: string | null,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool(
+    'update_repeater_content',
+    {
+      repeater_id: params.repeater_id,
+      target: params.target,
+      old_content: params.old_content,
+      new_content: params.new_content,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[update_repeater_content] Result: Error - ' + (result.error || '');
@@ -248,13 +287,185 @@ export interface RunRepeaterParams {
 }
 
 /** Execute run_repeater tool — gọi EmulateController.executeTool() */
-export async function executeRunRepeater(params: RunRepeaterParams, contextTargetId?: string | null): Promise<string | null> {
-  const result = await EmulateController.executeTool('run_repeater', {
-    repeater_id: params.repeater_id,
-  }, contextTargetId);
+export async function executeRunRepeater(
+  params: RunRepeaterParams,
+  contextTargetId?: string | null,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool(
+    'run_repeater',
+    {
+      repeater_id: params.repeater_id,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[run_repeater] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== ListReportsExecutor =====
+
+/** Execute list_reports tool — gọi EmulateController.executeTool() */
+export async function executeListReports(contextTargetId?: string | null): Promise<string | null> {
+  const result = await EmulateController.executeTool('list_reports', {}, contextTargetId);
+
+  if (!result.success) {
+    return '[list_reports] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== CreateReportExecutor =====
+
+/** Execute create_report tool — gọi EmulateController.executeTool() */
+export async function executeCreateReport(
+  params: CreateReportParams,
+  contextTargetId?: string | null,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool(
+    'create_report',
+    {
+      content: params.content,
+    },
+    contextTargetId,
+  );
+
+  if (!result.success) {
+    return '[create_report] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== ReadReportExecutor =====
+
+/** Execute read_report tool — gọi EmulateController.executeTool() */
+export async function executeReadReport(
+  params: ReadReportParams,
+  contextTargetId?: string | null,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool(
+    'read_report',
+    {
+      report_id: params.report_id,
+      start_line: params.start_line,
+      end_line: params.end_line,
+    },
+    contextTargetId,
+  );
+
+  if (!result.success) {
+    return '[read_report] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== UpdateReportExecutor =====
+
+/** Execute update_report tool — gọi EmulateController.executeTool() */
+export async function executeUpdateReport(
+  params: UpdateReportParams,
+  contextTargetId?: string | null,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool(
+    'update_report',
+    {
+      report_ref: params.report_ref,
+      old_content: params.old_content,
+      new_content: params.new_content,
+    },
+    contextTargetId,
+  );
+
+  if (!result.success) {
+    return '[update_report] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== ListReportFilesExecutor =====
+
+/** Execute list_report_files tool */
+export async function executeListReportFiles(
+  params: ListReportFilesParams,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool('list_report_files', {
+    report_id: params.report_id,
+  });
+
+  if (!result.success) {
+    return '[list_report_files] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== CreateReportFileExecutor =====
+
+/** Execute create_report_file tool */
+export async function executeCreateReportFile(
+  params: CreateReportFileParams,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool('create_report_file', {
+    report_id: params.report_id,
+    file_name: params.file_name,
+    content: params.content,
+  });
+
+  if (!result.success) {
+    return '[create_report_file] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== ReadReportFileExecutor =====
+
+/** Execute read_report_file tool */
+export async function executeReadReportFile(
+  params: ReadReportFileParams,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool('read_report_file', {
+    report_id: params.report_id,
+    file_name: params.file_name,
+  });
+
+  if (!result.success) {
+    return '[read_report_file] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== UpdateReportFileExecutor =====
+
+/** Execute update_report_file tool */
+export async function executeUpdateReportFile(
+  params: UpdateReportFileParams,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool('update_report_file', {
+    report_id: params.report_id,
+    file_name: params.file_name,
+    content: params.content,
+  });
+
+  if (!result.success) {
+    return '[update_report_file] Result: Error - ' + (result.error || '');
+  }
+  return (result.data as any)?.output || null;
+}
+
+// ===== DeleteReportFileExecutor =====
+
+/** Execute delete_report_file tool */
+export async function executeDeleteReportFile(
+  params: DeleteReportFileParams,
+): Promise<string | null> {
+  const result = await EmulateController.executeTool('delete_report_file', {
+    report_id: params.report_id,
+    file_name: params.file_name,
+  });
+
+  if (!result.success) {
+    return '[delete_report_file] Result: Error - ' + (result.error || '');
   }
   return (result.data as any)?.output || null;
 }

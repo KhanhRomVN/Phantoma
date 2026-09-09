@@ -13,7 +13,7 @@ OS: ${info.os}, IDE: ${info.ide}, Shell: ${info.shell}, Home: ${info.homeDir}, C
 
 ## Data Scope
 - All analysis is performed on pre-captured HTTPS traffic data.
-- Available tools: \`list_https\` (list/filter requests), \`get_https_detail\` (view request/response details), \`list_hosts\` (list unique hosts), \`list_sources\` (list source files as tree), \`get_source_detail\` (view source code).
+- Available tools: \`list_https\` (list/filter requests), \`get_https_detail\` (view request/response details), \`list_hosts\` (list unique hosts), \`list_sources\` (list source files as tree), \`get_source_detail\` (view source code), \`list_reports\` (list markdown reports), \`create_report\` (create markdown report), \`update_report\` (update markdown report).
 
 ## Data Reference Rules
 - Every reference to a specific request MUST use the \`stt\` (sequential index) from the most recent \`list_https\` result.

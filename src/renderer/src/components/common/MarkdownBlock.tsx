@@ -124,13 +124,53 @@ const isFilePath = (text: string): boolean => {
   return (text.includes('/') || text.includes('\\')) && /\.[a-zA-Z0-9]{1,10}$/.test(text);
 };
 
+const escapeRegExp = (text: string): string => {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 const domNodeToReact = (
   node: Node,
   key: string | number,
   knownFilePaths: Map<string, string>,
+  highlightText?: string,
+  highlightMode?: 'plain' | 'regex' | 'case',
 ): ReactChild => {
   if (node.nodeType === Node.TEXT_NODE) {
-    return node.textContent || '';
+    const text = node.textContent || '';
+    if (highlightText && highlightText.trim()) {
+      const pattern =
+        highlightMode === 'regex'
+          ? `(${highlightText})`
+          : `(${escapeRegExp(highlightText)})`;
+      const flags = highlightMode === 'case' ? 'g' : 'gi';
+
+      let regex: RegExp;
+      try {
+        regex = new RegExp(pattern, flags);
+      } catch {
+        return text;
+      }
+
+      const parts = text.split(regex);
+      const isMatch = (part: string): boolean => {
+        try {
+          return new RegExp(pattern, flags.replace('g', '')).test(part);
+        } catch {
+          return false;
+        }
+      };
+
+      return parts.map((part, i) =>
+        part && isMatch(part) ? (
+          <mark key={`${key}-hl-${i}`} className="markdown-highlight">
+            {part}
+          </mark>
+        ) : (
+          part
+        ),
+      );
+    }
+    return text;
   }
 
   if (node.nodeType !== Node.ELEMENT_NODE) {
@@ -240,7 +280,7 @@ const domNodeToReact = (
   // This fallback handles cases where <code> is inside <pre> but CodeBlock wasn't rendered
   if (tag === 'code' && el.closest('pre')) {
     const children: ReactChild[] = Array.from(el.childNodes).map((child, i) =>
-      domNodeToReact(child, `${key}-${i}`, knownFilePaths),
+      domNodeToReact(child, `${key}-${i}`, knownFilePaths, highlightText, highlightMode),
     );
     return (
       <code key={key} className="bg-transparent p-0">
@@ -251,7 +291,7 @@ const domNodeToReact = (
 
   // Recursively convert children
   const children: ReactChild[] = Array.from(el.childNodes).map((child, i) =>
-    domNodeToReact(child, `${key}-${i}`, knownFilePaths),
+    domNodeToReact(child, `${key}-${i}`, knownFilePaths, highlightText, highlightMode),
   );
 
   // Build props, copying relevant HTML attributes
@@ -275,10 +315,14 @@ export interface MarkdownBlockProps {
   className?: string;
   style?: React.CSSProperties;
   knownFilePaths?: Map<string, string>;
+  /** Text to highlight inside the markdown content. */
+  highlightText?: string;
+  /** Search mode: plain text (default), regex, or case-sensitive. */
+  highlightMode?: 'plain' | 'regex' | 'case';
 }
 
 const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
-  ({ content, className, style, knownFilePaths }) => {
+  ({ content, className, style, knownFilePaths, highlightText, highlightMode }) => {
     const resolvedMap = knownFilePaths || new Map<string, string>();
 
     const reactNodes = React.useMemo(() => {
@@ -307,9 +351,9 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
 
       // 3. Walk DOM → React tree with path substitution
       return Array.from(wrapper.childNodes).map((child, i) =>
-        domNodeToReact(child, i, resolvedMap),
+        domNodeToReact(child, i, resolvedMap, highlightText, highlightMode),
       );
-    }, [content, resolvedMap.size]);
+    }, [content, resolvedMap.size, highlightText, highlightMode]);
 
     return (
       <>
@@ -407,6 +451,12 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
           .markdown-content-inline a:hover {
             text-decoration: underline;
           }
+          .markdown-highlight {
+            background-color: ${$('--primary', 0.2)};
+            color: inherit;
+            border-radius: 2px;
+            padding: 1px 2px;
+          }
           .markdown-content-inline blockquote {
             border-left: 4px solid ${$('--border')};
             padding-left: 12px;
@@ -422,6 +472,8 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
     return (
       prev.content === next.content &&
       prev.className === next.className &&
+      prev.highlightText === next.highlightText &&
+      prev.highlightMode === next.highlightMode &&
       (prev.knownFilePaths?.size ?? 0) === (next.knownFilePaths?.size ?? 0)
     );
   },

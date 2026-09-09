@@ -73,27 +73,66 @@ export const EvaluateJsRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
+interface ParsedJsResult {
+  result?: string;
+  success?: boolean;
+}
+
+function parseEvaluateJsOutput(output: string): ParsedJsResult | null {
+  try {
+    // Check if it's a result output
+    const resultMatch = output.match(/result:\s*(.+)/is);
+    
+    return {
+      result: resultMatch ? resultMatch[1].trim() : output.trim(),
+      success: !output.toLowerCase().includes('error'),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function EvaluateJsBlock({
   output,
   isError,
 }: EvaluateJsBlockProps) {
+  const parsed = output ? parseEvaluateJsOutput(output) : null;
+  
   return (
     <div className="text-xs space-y-2">
-      {output && (
+      {output && !isError && parsed ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap max-h-96 overflow-y-auto"
+          className="p-2 rounded border"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--success') + '08',
+            borderColor: $('--success') + '40',
+          }}
+        >
+          {parsed.result && (
+            <div
+              className="p-2 rounded font-mono text-[11px] whitespace-pre-wrap max-h-60 overflow-y-auto"
+              style={{
+                backgroundColor: $('--background-secondary'),
+                color: $('--text-primary'),
+              }}
+            >
+              {parsed.result}
+            </div>
+          )}
+        </div>
+      ) : output && isError ? (
+        <div
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs max-h-96 overflow-y-auto"
+          style={{
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && (
+      ) : !output && !isError ? (
         <div className="text-text-secondary opacity-60">Evaluating JS...</div>
-      )}
+      ) : null}
     </div>
   );
 }

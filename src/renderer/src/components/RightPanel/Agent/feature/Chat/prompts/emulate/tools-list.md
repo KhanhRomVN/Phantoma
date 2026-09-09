@@ -12,7 +12,7 @@ Các tool này cần được AI gọi bằng lệnh XML tương ứng.
 
 ---
 
-### 1. `list_https`
+### 1. `list_https` 
 Liệt kê các request HTTPS đã được bắt giữ.
 
 | Tham số | Bắt buộc | Mô tả |
@@ -653,7 +653,205 @@ Dùng chính `update_repeater_content` để xóa — thay `${tên_biến}` bằ
 
 ---
 
-## Phần 2: Tool Bị Động
+### 15. `list_reports`
+Liệt kê danh sách report markdown đã tạo.
+
+Không có tham số.
+
+Trả về danh sách phẳng, mỗi dòng là `- report_<number> | <title> | <updatedAt>`. Trong đó `report_<number>` là indexing mapping dùng cho `update_report`.
+
+**Ví dụ:**
+
+<list_reports />
+
+
+**Kết quả:**
+
+[list_reports] Total: 2
+- report_1 | Security Review | 14:30
+- report_2 | API Analysis | 15:45
+
+
+### 16. `create_report`
+Tạo một report markdown mới.
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `content` | **Có** | Nội dung markdown đầy đủ của report |
+
+Trả về thông báo xác nhận kèm title và ID của report vừa tạo.
+
+**Ví dụ:**
+
+<create_report>
+  <content>
+# Security Review
+
+Nội dung báo cáo...
+  </content>
+</create_report>
+
+
+**Kết quả:**
+
+[create_report] Created "Security Review" (ID: 42)
+
+---
+
+### 17. `read_report`
+Đọc nội dung một report, có thể đọc toàn bộ hoặc một đoạn bằng `start_line`/`end_line`.
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `report_id` | **Có** | Index từ kết quả `list_reports` — format `report_<number>` (vd `report_1`) |
+| `start_line` | Không | Dòng bắt đầu (1-indexed) |
+| `end_line` | Không | Dòng kết thúc (1-indexed) |
+
+⚠️ Luôn gọi `list_reports` trước khi gọi `read_report`.
+
+**Ví dụ:**
+
+<read_report><report_id>report_1</report_id></read_report>
+
+<read_report><report_id>report_1</report_id><start_line>1</start_line><end_line>50</end_line></read_report>
+
+**Kết quả:**
+
+[read_report] report_1 — Security Review
+1: # Security Review
+2:
+3: Nội dung báo cáo...
+...
+
+---
+
+### 18. `update_report`
+Cập nhật nội dung của một report.
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `report_id` | **Có** | Index từ kết quả `list_reports` — format `report_<number>` |
+| `content` | Không | Nội dung markdown mới (title được parse lại từ dòng heading đầu tiên) |
+| `title` | Không | Title tường minh (override) |
+
+⚠️ Luôn gọi `list_reports` trước khi gọi `update_report`.
+
+**Ví dụ:**
+
+<update_report>
+  <report_id>report_1</report_id>
+  <content>
+# Updated Title
+
+Nội dung mới...
+  </content>
+</update_report>
+
+**Kết quả:**
+
+[update_report] Updated "Updated Title" (ID: 1)
+
+---
+
+### 19. `list_report_files`
+Liệt kê toàn bộ file code (.html, .css, .js) trong một report chỉ định.
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `report_id` | **Có** | ID report từ kết quả `list_reports` |
+
+**Ví dụ:**
+
+<list_report_files><report_id>report_1</report_id></list_report_files>
+
+
+**Kết quả:**
+
+[list_report_files] report_1 (3 files)
+- index.html
+- style.css
+- script.js
+
+
+---
+
+### 20. `create_report_file`
+Tạo file code mới hoàn toàn trong report.
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `report_id` | **Có** | ID report |
+| `file_name` | **Có** | Tên file (đuôi .html, .css, .js) |
+| `content` | Không | Nội dung ban đầu |
+
+**Ví dụ:**
+
+<create_report_file>
+  <report_id>report_1</report_id>
+  <file_name>index.html</file_name>
+  <content>...</content>
+</create_report_file>
+
+
+---
+
+### 21. `read_report_file`
+Xem nội dung một file code trong report.
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `report_id` | **Có** | ID report |
+| `file_name` | **Có** | Tên file |
+
+**Ví dụ:**
+
+<read_report_file>
+  <report_id>report_1</report_id>
+  <file_name>script.js</file_name>
+</read_report_file>
+
+
+---
+
+### 22. `update_report_file`
+Cập nhật nội dung file code (ghi đè toàn bộ nội dung).
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `report_id` | **Có** | ID report |
+| `file_name` | **Có** | Tên file |
+| `content` | **Có** | Nội dung mới |
+
+**Ví dụ:**
+
+<update_report_file>
+  <report_id>report_1</report_id>
+  <file_name>style.css</file_name>
+  <content>...</content>
+</update_report_file>
+
+
+---
+
+### 23. `delete_report_file`
+Xóa file code khỏi report.
+
+| Tham số | Bắt buộc | Mô tả |
+|-----------|----------|-------------|
+| `report_id` | **Có** | ID report |
+| `file_name` | **Có** | Tên file |
+
+**Ví dụ:**
+
+<delete_report_file>
+  <report_id>report_1</report_id>
+  <file_name>old.js</file_name>
+</delete_report_file>
+
+
+---
+
+## Executive Summary
 Các tool này tự động được đính kèm vào mỗi request, không cần AI kích hoạt bằng lệnh.
 
 ---
@@ -713,4 +911,5 @@ Types: fetch, xhr, image, css(hide)
 4. **Kiểm tra `<filter_context>` trước khi gọi `apply_filter`**
 5. **Luôn gọi `list_repeaters` trước khi gọi `get_repeater_detail`, `delete_repeater`, `run_repeater`, hoặc `update_repeater_content`**
 6. **Sau khi `update_repeater_content`, luôn gọi lại `get_repeater_detail` để xác minh thay đổi — đừng tin message "Updated"**
-7. **Tool bị động không cần gọi — chúng luôn có sẵn trong context**
+7. **Luôn gọi `list_reports` trước khi gọi `read_report` hoặc `update_report` — `report_id` phải đến từ kết quả `list_reports`**
+8. **Tool bị động không cần gọi — chúng luôn có sẵn trong context**

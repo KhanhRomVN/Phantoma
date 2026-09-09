@@ -151,25 +151,6 @@ export const useMessageHandlers = ({
       if (currentMessage.trim() || currentFiles.length > 0 || currentItems.length > 0) {
         // Filter out images with errors before sending
         const validFiles = currentFiles.filter((file: any) => !file.error);
-        const errorFiles = currentFiles.filter((file: any) => file.error);
-
-        // [DEBUG] Log toàn bộ files trước khi gửi
-        console.log('[DEBUG][useMessageHandlers] handleSend - currentFiles:', currentFiles.map((f: any) => ({
-          id: f.id,
-          name: f.name,
-          type: f.type,
-          hasFileId: !!f.file_id,
-          file_id: f.file_id,
-          isUploading: f.isUploading,
-          error: f.error,
-        })));
-        console.log('[DEBUG][useMessageHandlers] handleSend - validFiles count:', validFiles.length, 'errorFiles count:', errorFiles.length);
-        console.log('[DEBUG][useMessageHandlers] handleSend - currentItems:', currentItems.map((item: any) => ({ id: item.id, type: item.type, name: item.name })));
-
-        // Log filtered files
-        if (errorFiles.length > 0) {
-        }
-
         // Use refs (not state) to get the latest model/account values.
         // This prevents stale closure: if the user changed model right before
         // pressing Send, the state update may not have propagated into this

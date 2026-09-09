@@ -309,11 +309,6 @@ export default React.memo(function Emulate({
   useEffect(() => {
     const sync = () => {
       const requests = useNetworkStore.getState().requests;
-      console.log('[DEBUG] Sync requests to EmulateController', {
-        activeTargetId,
-        storeRequests: requests.length,
-        httpsCount: requests.filter((r) => r.protocol === 'https' || r.url.startsWith('https://')).length,
-      });
       EmulateController.getInstance().setRequests(requests);
     };
 

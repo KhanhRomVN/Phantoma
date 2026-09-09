@@ -82,42 +82,85 @@ export const FillInputRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
+interface ParsedFillInputResult {
+  ref: string;
+  value: string;
+  success?: boolean;
+}
+
+function parseFillInputOutput(output: string): ParsedFillInputResult | null {
+  try {
+    // Parse markdown format:
+    // [fill_input] Input filled
+    // ref: search_query
+    // value: vừng lá me bay
+    
+    const refMatch = output.match(/ref:\s*(.+)/i);
+    const valueMatch = output.match(/value:\s*(.+)/i);
+    
+    if (refMatch && valueMatch) {
+      return {
+        ref: refMatch[1].trim(),
+        value: valueMatch[1].trim(),
+        success: output.includes('Input filled'),
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function FillInputBlock({
   ref,
   value,
   output,
   isError,
 }: FillInputBlockProps) {
+  const parsed = output ? parseFillInputOutput(output) : null;
+  
   return (
     <div className="text-xs space-y-2">
-      {ref && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Ref:</span>
-          <span className="text-text-primary font-mono">{ref}</span>
-        </div>
-      )}
-      {value && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Value:</span>
-          <span className="text-text-primary font-mono">{value}</span>
-        </div>
-      )}
-
-      {output && (
+      {output && !isError && parsed ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap"
+          className="p-2.5 rounded border"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--success') + '08',
+            borderColor: $('--success') + '40',
+          }}
+        >
+          <div className="space-y-1.5">
+            <div className="flex items-start gap-2">
+              <span className="text-text-secondary shrink-0 w-12">Field:</span>
+              <span
+                className="px-1.5 py-0.5 rounded text-[11px] font-mono"
+                style={{
+                  backgroundColor: $('--background-tertiary'),
+                  color: $('--text-primary'),
+                }}
+              >
+                {parsed.ref}
+              </span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-text-secondary shrink-0 w-12">Value:</span>
+              <span className="text-text-primary font-medium">{parsed.value}</span>
+            </div>
+          </div>
+        </div>
+      ) : output && isError ? (
+        <div
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs"
+          style={{
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && (
+      ) : !output && !isError ? (
         <div className="text-text-secondary opacity-60">Filling input...</div>
-      )}
+      ) : null}
     </div>
   );
 }

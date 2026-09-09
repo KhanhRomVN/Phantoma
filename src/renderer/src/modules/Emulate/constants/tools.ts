@@ -14,7 +14,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── UI ──
-import { LayoutPanelLeft, Package, Code, Code2, ScrollText, FolderOpen, Smartphone } from 'lucide-react';
+import { LayoutPanelLeft, Package, Code, ScrollText, FolderOpen, Smartphone, FileText } from 'lucide-react';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 export const TOOLS = {
@@ -24,13 +24,6 @@ export const TOOLS = {
     color: 'blue',
     accentIndex: 0,
     description: 'Request inspector and interceptor',
-  },
-  intruder: {
-    icon: LayoutPanelLeft,
-    label: 'Intruder',
-    color: 'purple',
-    accentIndex: 1,
-    description: 'Automated attack and fuzzing',
   },
   repeater: {
     icon: Package,
@@ -53,12 +46,12 @@ export const TOOLS = {
     accentIndex: 4,
     description: 'Source code viewer',
   },
-  code: {
-    icon: Code2,
-    label: 'Code',
-    color: 'cyan',
-    accentIndex: 7,
-    description: 'Code viewer and file explorer',
+  report: {
+    icon: FileText,
+    label: 'Report',
+    color: 'indigo',
+    accentIndex: 8,
+    description: 'Markdown report viewer',
   },
   log: {
     icon: ScrollText,

@@ -647,8 +647,8 @@ export async function executeCaptureScreenshot(
       const url = result.data?.url || '';
 
       // Upload image to server
-      const apiUrl = (window as any).localStorage?.getItem('zen-backend-api-url')
-        || 'http://localhost:8888';
+      const apiUrl =
+        (window as any).localStorage?.getItem('zen-backend-api-url') || 'http://localhost:8888';
       const accountStr = (window as any).localStorage?.getItem('zen_last_account');
       let accountId = '';
       if (accountStr) {
@@ -692,7 +692,6 @@ export async function executeCaptureScreenshot(
           if (uploadData.success && uploadData.data?.file_id) {
             // [DEBUG] Lưu file_id để dùng cho message tiếp theo
             lastScreenshotFileId = uploadData.data.file_id;
-            console.log('[DEBUG][executeCaptureScreenshot] Lưu lastScreenshotFileId:', lastScreenshotFileId);
 
             return {
               success: true,

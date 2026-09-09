@@ -289,6 +289,8 @@ export const NewBlock: React.FC<NewBlockProps> = ({ content, maxHeight }) => {
 
 **Mục đích:** Render tool execution trong chat UI
 
+> **Renderer is required; Block is optional** — Renderer luôn cần để hiển thị output trong chat. Block chỉ cần khi muốn UI đặc biệt; nếu không, dùng default renderer hiển thị text thô.
+
 **Cấu trúc:**
 - `code/` - Code tool renderers (ReadFileRenderer, GrepRenderer, etc.)
 - `emulate/` - Emulate tool renderers

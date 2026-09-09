@@ -82,42 +82,82 @@ export const ScrollRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
+interface ParsedScrollResult {
+  direction: string;
+  amount?: number;
+  success?: boolean;
+}
+
+function parseScrollOutput(output: string): ParsedScrollResult | null {
+  try {
+    const dirMatch = output.match(/direction:\s*(.+)/i);
+    const amountMatch = output.match(/amount:\s*(\d+)/i);
+    
+    if (dirMatch) {
+      return {
+        direction: dirMatch[1].trim(),
+        amount: amountMatch ? parseInt(amountMatch[1]) : undefined,
+        success: output.includes('Scroll') || output.includes('scrolled'),
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function ScrollBlock({
   direction,
   amount,
   output,
   isError,
 }: ScrollBlockProps) {
+  const parsed = output ? parseScrollOutput(output) : null;
+  
   return (
     <div className="text-xs space-y-2">
-      {direction && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Direction:</span>
-          <span className="text-text-primary font-mono">{direction}</span>
-        </div>
-      )}
-      {amount !== undefined && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Amount:</span>
-          <span className="text-text-primary font-mono">{amount}</span>
-        </div>
-      )}
-
-      {output && (
+      {output && !isError && parsed ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap"
+          className="p-2 rounded border"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--success') + '08',
+            borderColor: $('--success') + '40',
+          }}
+        >
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-text-secondary">Direction:</span>
+              <span
+                className="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase"
+                style={{
+                  backgroundColor: $('--background-tertiary'),
+                  color: $('--text-primary'),
+                }}
+              >
+                {parsed.direction}
+              </span>
+            </div>
+            {parsed.amount !== undefined && (
+              <div className="flex items-center gap-2">
+                <span className="text-text-secondary">Amount:</span>
+                <span className="text-text-primary font-mono">{parsed.amount}px</span>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : output && isError ? (
+        <div
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs"
+          style={{
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && (
+      ) : !output && !isError ? (
         <div className="text-text-secondary opacity-60">Scrolling page...</div>
-      )}
+      ) : null}
     </div>
   );
 }

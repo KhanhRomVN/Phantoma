@@ -18,11 +18,13 @@ func NewRouter(cfg *config.Config) http.Handler {
 	emulateTargetRepo := repoemulate.NewTargetRepository()
 	emulateFilterRepo := repoemulate.NewFilterRepository()
 	emulateRepeaterRepo := repoemulate.NewRepeaterRepository()
+	emulateReportRepo := repoemulate.NewReportRepository()
 
 	// Initialize services
 	emulateTargetSvc := svcemulate.NewTargetService(emulateTargetRepo)
 	emulateFilterSvc := svcemulate.NewFilterService(emulateFilterRepo)
 	emulateRepeaterSvc := svcemulate.NewRepeaterService(emulateRepeaterRepo)
+	emulateReportSvc := svcemulate.NewReportService(emulateReportRepo)
 	nmapSvc := tools.NewNmapService(cfg.NmapContainer)
 	niktoSvc := tools.NewNiktoService(cfg.NiktoContainer)
 	searchsploitSvc := tools.NewSearchsploitService(cfg.SearchsploitContainer)
@@ -40,7 +42,7 @@ func NewRouter(cfg *config.Config) http.Handler {
 	// Register all route groups
 	RegisterHealthRoutes(mux)
 	RegisterDatabaseRoutes(mux, cfg)
-	RegisterEmulateRoutes(mux, emulateTargetSvc, emulateFilterSvc, emulateRepeaterSvc)
+	RegisterEmulateRoutes(mux, emulateTargetSvc, emulateFilterSvc, emulateRepeaterSvc, emulateReportSvc)
 	RegisterNmapRoutes(mux, nmapSvc)
 	RegisterNiktoRoutes(mux, niktoSvc)
 	RegisterExploitRoutes(mux, searchsploitSvc, metasploitSvc)

@@ -283,7 +283,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
         {!effectiveCollapsed && (
           <>
             {/* Search + Add */}
-            <div className="px-3 py-2 flex items-center gap-2">
+            <div className="fade-in px-3 py-2 flex items-center gap-2">
               <input
                 type="text"
                 placeholder="Search targets..."
@@ -301,7 +301,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
             </div>
 
             {/* Filter badges */}
-            <div className="px-3 pt-1 pb-2 flex items-center gap-2 overflow-x-auto border-b border-border shrink-0">
+            <div className="fade-in px-3 pt-1 pb-2 flex items-center gap-2 overflow-x-auto border-b border-border shrink-0">
               {(['all', ...(Object.keys(PLATFORMS) as AppPlatform[])] as const).map((pid) => {
                 const label = pid === 'all' ? 'All' : PLATFORMS[pid].label;
                 const isActive = filterPlatform === pid;
@@ -471,6 +471,15 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
         onStopTarget={onStopTarget}
         onRefreshDevices={loadDevices}
       />
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .fade-in {
+          animation: fade-in 0.2s ease-out;
+        }
+      `}</style>
     </>
   );
 };

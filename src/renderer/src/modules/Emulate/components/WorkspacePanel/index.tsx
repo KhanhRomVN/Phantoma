@@ -14,18 +14,26 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
-import { useMemo, memo, createElement, FC } from 'react';
+import { useMemo, memo, createElement, FC, useState, useEffect } from 'react';
 
 // ── UI ──
 import { RequestTable, RequestDetails } from './Home/Home';
 import { ResourcesPanel } from './Resources';
 import { PayloadPanel } from './Repeater';
 import { SourcesPanel } from './Source';
+import { ReportPanel } from './Report';
 import { LogViewer } from './Log';
 import { DevicePanel } from './Device';
 
 // ── Constants ──
 import { ToolType, TOOLS } from '../../constants/tools';
+import { detectResourceType } from '../../constants/resource';
+
+// ── Stores ──
+import { useNetworkStore } from '../../stores/networkStore';
+
+// ── Services ──
+import emulateApi from '../../services/emulate-api.service';
 
 // ── Hooks ──
 import { CdpScriptUnpackedData } from '../../hooks/useNetworkEvents';
@@ -97,6 +105,66 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
   isTargetActive,
 }) => {
   const emptySet = useMemo(() => new Set<string>(), []);
+  const requests = useNetworkStore((s) => s.requests);
+  const [dbCounts, setDbCounts] = useState({ repeater: 0, report: 0 });
+
+  useEffect(() => {
+    if (!activeTargetId || activeTargetId === 'default') {
+      setDbCounts({ repeater: 0, report: 0 });
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [reqRes, repRes] = await Promise.all([
+        emulateApi.listRequests(activeTargetId),
+        emulateApi.listReports(activeTargetId),
+      ]);
+      if (!cancelled) {
+        setDbCounts({
+          repeater: reqRes.success && reqRes.data ? reqRes.data.length : 0,
+          report: repRes.success && repRes.data ? repRes.data.length : 0,
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTargetId]);
+
+  const sourceCount = useMemo(() => {
+    const urls = new Set<string>();
+    let count = unpackedScripts.size;
+    for (const [, script] of unpackedScripts) {
+      urls.add(script.url);
+    }
+    requests.forEach((req) => {
+      const isSource =
+        req.type?.toUpperCase() === 'JS' ||
+        req.type?.toUpperCase() === 'CSS' ||
+        req.type?.toUpperCase() === 'HTML';
+      if (isSource && req.responseBody && !urls.has(req.url)) {
+        urls.add(req.url);
+        count++;
+      }
+    });
+    return count;
+  }, [requests, unpackedScripts]);
+
+  const resourceCount = useMemo(() => {
+    const seen = new Set<string>();
+    let count = 0;
+    requests.forEach((req) => {
+      const type = detectResourceType(
+        req.responseHeaders?.['content-type'] || req.responseHeaders?.['Content-Type'] || '',
+        req.path,
+      );
+      if (type !== 'other' && !seen.has(req.url)) {
+        seen.add(req.url);
+        count++;
+      }
+    });
+    return count;
+  }, [requests]);
 
   const TabBar = (
     <div className="flex h-10 border-b border-border shrink-0 overflow-x-auto gap-0.5 px-2">
@@ -122,6 +190,20 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
               {createElement(tool.icon, { size: 14, strokeWidth: 1.5 })}
             </span>
             <span>{tool.label}</span>
+            {(id === 'repeater' ||
+              id === 'source' ||
+              id === 'resource' ||
+              id === 'report') && (
+              <span className="ml-1 text-xs text-text-secondary">
+                {id === 'repeater'
+                  ? dbCounts.repeater
+                  : id === 'source'
+                    ? sourceCount
+                    : id === 'resource'
+                      ? resourceCount
+                      : dbCounts.report}
+              </span>
+            )}
           </button>
         );
       })}
@@ -195,11 +277,6 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
               </div>
             </>
           )}
-          {selectedTool === 'intruder' && (
-            <div className="flex-1 flex items-center justify-center text-text-secondary">
-              Intruder Content - Under Development
-            </div>
-          )}
           {selectedTool === 'repeater' && (
             <div className="flex-1 overflow-hidden">
               <PayloadPanel
@@ -217,6 +294,11 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
           {selectedTool === 'source' && (
             <div className="flex-1 overflow-hidden">
               <SourcesPanel unpackedScripts={unpackedScripts} />
+            </div>
+          )}
+          {selectedTool === 'report' && (
+            <div className="flex-1 overflow-hidden">
+              <ReportPanel targetId={activeTargetId} />
             </div>
           )}
           {selectedTool === 'log' && (

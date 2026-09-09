@@ -63,7 +63,7 @@ func NewRepeaterRepository() RepeaterRepository {
 // GetRequestsByTargetID returns all requests for a target, sorted by updated_at DESC.
 func (r *SQLiteRepeaterRepository) GetRequestsByTargetID(targetID string) ([]domainemulate.RepeaterRequest, error) {
 	rows, err := database.DB.Query(
-		`SELECT id, emulate_target_id, method, url, body, params, headers, created_at, updated_at
+		`SELECT id, emulate_target_id, method, url, created_at, updated_at
 		 FROM emulate_repeater_requests
 		 WHERE emulate_target_id = ?
 		 ORDER BY updated_at DESC`, targetID,
@@ -77,7 +77,7 @@ func (r *SQLiteRepeaterRepository) GetRequestsByTargetID(targetID string) ([]dom
 	for rows.Next() {
 		var req domainemulate.RepeaterRequest
 		if err := rows.Scan(&req.ID, &req.EmulateTargetID, &req.Method, &req.URL,
-			&req.Body, &req.Params, &req.Headers, &req.CreatedAt, &req.UpdatedAt); err != nil {
+			&req.CreatedAt, &req.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan repeater request: %w", err)
 		}
 
@@ -102,10 +102,10 @@ func (r *SQLiteRepeaterRepository) GetRequestsByTargetID(targetID string) ([]dom
 func (r *SQLiteRepeaterRepository) GetRequestByID(id string) (*domainemulate.RepeaterRequest, error) {
 	var req domainemulate.RepeaterRequest
 	err := database.DB.QueryRow(
-		`SELECT id, emulate_target_id, method, url, body, params, headers, created_at, updated_at
+		`SELECT id, emulate_target_id, method, url, created_at, updated_at
 		 FROM emulate_repeater_requests WHERE id = ?`, id,
 	).Scan(&req.ID, &req.EmulateTargetID, &req.Method, &req.URL,
-		&req.Body, &req.Params, &req.Headers, &req.CreatedAt, &req.UpdatedAt)
+		&req.CreatedAt, &req.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -142,9 +142,9 @@ func (r *SQLiteRepeaterRepository) CreateRequest(input domainemulate.CreateRepea
 
 	// Save metadata to database (without params, headers, body content)
 	_, err := database.DB.Exec(
-		`INSERT INTO emulate_repeater_requests (id, emulate_target_id, method, url, body, params, headers, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, input.EmulateTargetID, input.Method, input.URL, "", "", "", now, now,
+		`INSERT INTO emulate_repeater_requests (id, emulate_target_id, method, url, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		id, input.EmulateTargetID, input.Method, input.URL, now, now,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert repeater request: %w", err)

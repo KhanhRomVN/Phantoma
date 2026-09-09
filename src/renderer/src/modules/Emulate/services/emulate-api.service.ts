@@ -85,6 +85,30 @@ import type {
   SaveHistoryInput,
 } from '../dto/emulate.dto';
 
+// Report types
+export interface ReportDTO {
+  id: string;
+  emulate_target_id: string;
+  title: string;
+  file_path: string;
+  content: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CreateReportDTO {
+  emulate_target_id: string;
+  title?: string;
+  file_path?: string;
+  content: string;
+}
+
+export interface UpdateReportDTO {
+  title?: string;
+  file_path?: string;
+  content?: string;
+}
+
 // Re-export cho các consumer bên ngoài
 export type {
   TargetDTO,
@@ -406,6 +430,63 @@ class EmulateApiService {
       apiService.request<{ deleted: boolean }>(`${this.basePath(targetId)}/history/${historyId}`, {
         method: 'DELETE',
       }),
+    );
+  }
+
+  // ===================================================================
+  // Reports
+  // ===================================================================
+
+  /** Lấy danh sách report của target. */
+  async listReports(targetId: string): Promise<ApiResponse<ReportDTO[]>> {
+    return this.wrap(() =>
+      apiService.request<ReportDTO[]>(`/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports`),
+    );
+  }
+
+  /** Lấy một report theo id. */
+  async getReport(targetId: string, reportId: string): Promise<ApiResponse<ReportDTO>> {
+    return this.wrap(() =>
+      apiService.request<ReportDTO>(
+        `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports/${reportId}`,
+      ),
+    );
+  }
+
+  /** Tạo report mới cho target. */
+  async createReport(targetId: string, input: CreateReportDTO): Promise<ApiResponse<ReportDTO>> {
+    return this.wrap(() =>
+      apiService.request<ReportDTO>(
+        `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports`,
+        { method: 'POST', body: JSON.stringify(input) },
+      ),
+    );
+  }
+
+  /** Cập nhật report. */
+  async updateReport(
+    targetId: string,
+    reportId: string,
+    input: UpdateReportDTO,
+  ): Promise<ApiResponse<ReportDTO>> {
+    return this.wrap(() =>
+      apiService.request<ReportDTO>(
+        `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports/${reportId}`,
+        { method: 'PUT', body: JSON.stringify(input) },
+      ),
+    );
+  }
+
+  /** Xóa report. */
+  async deleteReport(
+    targetId: string,
+    reportId: string,
+  ): Promise<ApiResponse<{ deleted: boolean }>> {
+    return this.wrap(() =>
+      apiService.request<{ deleted: boolean }>(
+        `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports/${reportId}`,
+        { method: 'DELETE' },
+      ),
     );
   }
 }

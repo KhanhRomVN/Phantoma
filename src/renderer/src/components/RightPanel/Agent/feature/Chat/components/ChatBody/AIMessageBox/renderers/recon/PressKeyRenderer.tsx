@@ -80,33 +80,75 @@ export const PressKeyRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
+interface ParsedPressKeyResult {
+  key: string;
+  success?: boolean;
+}
+
+function parsePressKeyOutput(output: string): ParsedPressKeyResult | null {
+  try {
+    // Parse markdown format:
+    // [press_key] Key pressed
+    // key: Enter
+    
+    const keyMatch = output.match(/key:\s*(.+)/i);
+    
+    if (keyMatch) {
+      return {
+        key: keyMatch[1].trim(),
+        success: output.includes('Key pressed'),
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function PressKeyBlock({
   key,
   output,
   isError,
 }: PressKeyBlockProps) {
+  const parsed = output ? parsePressKeyOutput(output) : null;
+  
   return (
     <div className="text-xs space-y-2">
-      {key && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Key:</span>
-          <span className="text-text-primary font-mono">{key}</span>
-        </div>
-      )}
-
-      {output && (
+      {output && !isError && parsed ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap"
+          className="p-2 rounded border"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--success') + '08',
+            borderColor: $('--success') + '40',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-text-secondary">Key:</span>
+            <kbd
+              className="px-2 py-1 rounded font-mono font-medium text-[11px] border"
+              style={{
+                backgroundColor: $('--background-secondary'),
+                borderColor: $('--border'),
+                color: $('--text-primary'),
+              }}
+            >
+              {parsed.key}
+            </kbd>
+          </div>
+        </div>
+      ) : output && isError ? (
+        <div
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs"
+          style={{
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && <div className="text-text-secondary opacity-60">Pressing key...</div>}
+      ) : !output && !isError ? (
+        <div className="text-text-secondary opacity-60">Pressing key...</div>
+      ) : null}
     </div>
   );
 }

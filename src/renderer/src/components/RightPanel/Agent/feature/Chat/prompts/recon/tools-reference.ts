@@ -388,7 +388,7 @@ Wait until a condition is met before continuing — important for SPA async load
 ### 23. evaluate_js
 Execute arbitrary JavaScript in the current page context. Use as escape hatch when other tools are insufficient.
 
-⚠ **Safety:** broadest scope in the toolset — use sparingly and only when necessary.
+⚠ **Safety:** broadest scope in the toolset — use sparingly and only when necessary. Calling this tool triggers IMPACT-CONFIRM (see CONSTRAINTS): you MUST ask the user to confirm before executing.
 
 **Parameters:**
 - script (required): JS code to run. Final return value returned (must be serializable)
@@ -430,13 +430,29 @@ All action tools (click_element, fill_input, select_option, hover, upload_file, 
 
 ---
 
-## IMPORTANT RULES
+## PRIORITIZE-AND-CONFIRM
 
-1. **Always call list_tabs before assuming tab state**
-2. **Always call get_page_content or list_elements before interacting with page elements**
-3. **Use element refs from get_page_content/list_elements results, not guessed selectors**
-4. **Wait for navigation to complete before getting page content**
-5. **If you get stale_ref error, re-fetch elements — do NOT retry blindly**
-6. **After navigate with waitUntil=networkidle, page is ready for SPA content**
-7. **Screenshot default is viewport only — use fullPage=true only when necessary to avoid token overload**
+When multiple valid options exist for a <question>, you MUST analyze and rank them. Present your recommendation clearly by marking the best option with \`(recommended — ...)\` inside the option text itself. Do NOT hide the recommendation in prose outside the <q> block.
+
+Example:
+
+\`\`\`xml
+<question>
+  <q id="1" type="single" label="Which button should I click?">
+    <option>Header "Sign In" button (btn-header-signin)</option>
+    <option>Form "Login" button (btn-form-login) (recommended — this is the main form submit button)</option>
+  </q>
+</question>
+\`\`\`
+
+This section is the authoritative reference for PRIORITIZE-AND-CONFIRM, as cited in CONSTRAINTS (ASSUMPTION-BAN, CONTRADICTION-CLARIFY).
+
+---
+
+## TOOL-SPECIFIC RULES
+
+1. **After navigate with waitUntil=networkidle, page is ready for SPA content.**
+2. **Screenshot default is viewport only — use fullPage=true only when necessary to avoid token overload.**
+3. **If an expected element is not found via list_elements in the main frame, call list_frames to check for iframes before concluding the element doesn't exist.**
+4. **If you get stale_ref error, re-fetch elements via list_elements or get_page_content — do NOT retry blindly.**
 `;

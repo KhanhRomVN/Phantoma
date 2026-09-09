@@ -25,7 +25,7 @@ func AutoMigrate(db *sql.DB) error {
 	logger.Info("[Migration] Current version", logger.F("version", version))
 
 	// If already at latest version, skip
-	if version >= 1 {
+	if version >= 5 {
 		logger.Info("[Migration] Schema already up to date")
 		return nil
 	}
@@ -43,12 +43,12 @@ func AutoMigrate(db *sql.DB) error {
 		}
 	}
 
-	// Set version to 1
-	if _, err := db.Exec("PRAGMA user_version = 1"); err != nil {
+	// Set version to 5
+	if _, err := db.Exec("PRAGMA user_version = 5"); err != nil {
 		logger.Error("[Migration] Failed to set version", logger.F("error", err))
 		return fmt.Errorf("failed to set version: %w", err)
 	}
 
-	logger.Info("[Migration] Auto-migration completed successfully", logger.F("version", 1))
+	logger.Info("[Migration] Auto-migration completed successfully", logger.F("version", 5))
 	return nil
 }

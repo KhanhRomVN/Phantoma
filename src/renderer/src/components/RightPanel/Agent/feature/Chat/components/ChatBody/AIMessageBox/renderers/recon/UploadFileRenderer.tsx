@@ -82,42 +82,93 @@ export const UploadFileRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
+interface ParsedUploadFileResult {
+  ref: string;
+  filePath?: string;
+  fileName?: string;
+  success?: boolean;
+}
+
+function parseUploadFileOutput(output: string): ParsedUploadFileResult | null {
+  try {
+    const refMatch = output.match(/ref:\s*(.+)/i);
+    const filePathMatch = output.match(/file(?:Path)?:\s*(.+)/i);
+    
+    if (refMatch) {
+      const filePath = filePathMatch ? filePathMatch[1].trim() : undefined;
+      const fileName = filePath ? filePath.split(/[\\/]/).pop() : undefined;
+      
+      return {
+        ref: refMatch[1].trim(),
+        filePath,
+        fileName,
+        success: output.includes('File uploaded') || output.includes('uploaded'),
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function UploadFileBlock({
   ref,
   filePath,
   output,
   isError,
 }: UploadFileBlockProps) {
+  const parsed = output ? parseUploadFileOutput(output) : null;
+  
   return (
     <div className="text-xs space-y-2">
-      {ref && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Ref:</span>
-          <span className="text-text-primary font-mono">{ref}</span>
-        </div>
-      )}
-      {filePath && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">File:</span>
-          <span className="text-text-primary font-mono">{filePath}</span>
-        </div>
-      )}
-
-      {output && (
+      {output && !isError && parsed ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap"
+          className="p-2 rounded border"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--success') + '08',
+            borderColor: $('--success') + '40',
+          }}
+        >
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-text-secondary">Element:</span>
+              <span
+                className="px-1.5 py-0.5 rounded text-[11px] font-mono"
+                style={{
+                  backgroundColor: $('--background-tertiary'),
+                  color: $('--text-primary'),
+                }}
+              >
+                {parsed.ref}
+              </span>
+            </div>
+            {parsed.fileName && (
+              <div className="flex items-start gap-2">
+                <span className="text-text-secondary shrink-0">File:</span>
+                <span className="text-text-primary font-medium">{parsed.fileName}</span>
+              </div>
+            )}
+            {parsed.filePath && (
+              <div className="flex items-start gap-2">
+                <span className="text-text-secondary shrink-0">Path:</span>
+                <span className="text-text-primary font-mono text-[11px] break-all opacity-70">{parsed.filePath}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : output && isError ? (
+        <div
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs"
+          style={{
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && (
+      ) : !output && !isError ? (
         <div className="text-text-secondary opacity-60">Uploading file...</div>
-      )}
+      ) : null}
     </div>
   );
 }

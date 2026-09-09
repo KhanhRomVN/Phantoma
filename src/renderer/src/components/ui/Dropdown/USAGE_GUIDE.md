@@ -107,43 +107,35 @@ createPortal(
 
 ### Issue 3: Context Menu Implementation
 
-**Pattern for Right-Click Menus:**
+**Pattern for Right-Click Menus (cursor-positioned, width auto-fit):**
 
-```tsx
-// ✅ CORRECT: Controlled dropdown with context menu
-const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-<Dropdown
-  open={openMenuId === item.id}
-  onOpenChange={(open) => setOpenMenuId(open ? item.id : null)}
-  className="w-full"
->
+// ✅ CORRECT: trigger="contextmenu" positions content at cursor, independent of trigger size
+<Dropdown trigger="contextmenu">
   <DropdownTrigger asChild>
-    <button
-      onClick={() => handleSelect(item.id)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setOpenMenuId(item.id);
-      }}
-    >
-      {item.name}
-    </button>
+    <button onClick={() => handleSelect(item.id)}>{item.name}</button>
   </DropdownTrigger>
   <DropdownContent>
     <DropdownItem onClick={() => handleAction(item.id)}>Action</DropdownItem>
   </DropdownContent>
-</Dropdown>;
-```
+</Dropdown>
+
+
+**Fixed-width context menu:**
+
+
+<Dropdown trigger="contextmenu" width={240}>
+  {/* ...same structure as above... */}
+</Dropdown>
+
 
 **Key Points:**
 
-- Use controlled `open` state, not internal state
-- Handle `onContextMenu` on the button/trigger element
-- Call `e.preventDefault()` to suppress native browser context menu
-- Use `asChild` to avoid wrapper div
-- No need for `trigger="contextmenu"` prop or manual position tracking
-
+- `trigger="contextmenu"` automatically captures `clientX/clientY` and positions content at the cursor
+- Width defaults to auto (fits DropdownItem content, min 200px). Pass `width` (px) to use a fixed width
+- Clamps to viewport so the menu never overflows the screen edge
+- `side`/`align` are ignored for context menus — position is determined by the cursor
+- For `trigger="click"` (default), behavior is unchanged: position from `side`/`align`, width from trigger
 ---
 
 ## API Reference Quick Guide
@@ -160,6 +152,7 @@ const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 | `sideOffset`   | `number`                                 | `8`        | Distance from trigger (px)               |
 | `className`    | `string`                                 | undefined  | Additional CSS classes                   |
 | `position`     | `{ top: number; left: number }`          | undefined  | Manual position override (use sparingly) |
+| `width`        | `number`                                 | undefined  | Fixed content width in px; when unset, `contextmenu` auto-fits content, `click` follows trigger |
 
 ### DropdownTrigger Props
 

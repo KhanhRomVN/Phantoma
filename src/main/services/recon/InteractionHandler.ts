@@ -36,13 +36,10 @@ export class InteractionHandler {
     wasFromMap?: boolean,
     clickType: 'single' | 'double' | 'right' = 'single',
   ): Promise<{ newTabId: string | null }> {
-    // [DEBUG] Log before click attempt
-    console.log('[DEBUG][clickByRef] Start', { ref, selector, wasFromMap, clickType });
-
     // Snapshot pages before click to detect new tab
     const pagesBefore = await page.browser().pages();
     const pageUrlsBefore = new Set(pagesBefore.map((p) => p.url()));
-    
+
     try {
       if (clickType === 'double') {
         await page.click(selector);
@@ -70,7 +67,6 @@ export class InteractionHandler {
         }
       }
 
-      console.log('[DEBUG][clickByRef] Success', { ref, selector, newTabId });
       return { newTabId };
     } catch (e: any) {
       const reason = classifyError(e, wasFromMap);
@@ -94,19 +90,19 @@ export class InteractionHandler {
    * Fill input by ref
    * @param selector - CSS selector resolved from ContentHandler.elementRefMap
    */
-  public async fillByRef(page: Page, ref: string, selector: string, value: string, wasFromMap?: boolean): Promise<void> {
-    // [DEBUG] Log before fill attempt
-    console.log('[DEBUG][fillByRef] Start', { ref, selector, value, wasFromMap });
-    
+  public async fillByRef(
+    page: Page,
+    ref: string,
+    selector: string,
+    value: string,
+    wasFromMap?: boolean,
+  ): Promise<void> {
     try {
       await page.click(selector);
       await page.keyboard.press('Backspace');
       await page.type(selector, value, { delay: 10 });
-      // [DEBUG] Log success
-      console.log('[DEBUG][fillByRef] Success', { ref, selector, value });
     } catch (e: any) {
       const reason = classifyError(e, wasFromMap);
-      // [DEBUG] Log failure
       console.error('[DEBUG][fillByRef] Failed', {
         ref,
         selector,
@@ -130,15 +126,12 @@ export class InteractionHandler {
    * Returns the serializable return value of the script.
    */
   public async evaluateJs(page: Page, script: string): Promise<any> {
-    console.log('[DEBUG][evaluateJs] Start', { scriptLength: script.length });
-
     try {
       const result = await page.evaluate((code: string) => {
         const fn = new Function(code);
         return fn();
       }, script);
 
-      console.log('[DEBUG][evaluateJs] Success', { resultType: typeof result });
       return result;
     } catch (e: any) {
       console.error('[DEBUG][evaluateJs] Failed', {
@@ -159,8 +152,6 @@ export class InteractionHandler {
     filePath: string,
     wasFromMap?: boolean,
   ): Promise<string> {
-    console.log('[DEBUG][uploadFileByRef] Start', { ref, selector, filePath, wasFromMap });
-
     try {
       const [fileChooser] = await Promise.all([
         page.waitForFileChooser({ timeout: 5000 }),
@@ -168,7 +159,6 @@ export class InteractionHandler {
       ]);
       await fileChooser.accept([filePath]);
       const fileName = filePath.split('/').pop() || filePath;
-      console.log('[DEBUG][uploadFileByRef] Success', { ref, fileName });
       return fileName;
     } catch (e: any) {
       const reason = classifyError(e, wasFromMap);
@@ -192,15 +182,12 @@ export class InteractionHandler {
     selector: string,
     wasFromMap?: boolean,
   ): Promise<void> {
-    console.log('[DEBUG][clearInputByRef] Start', { ref, selector, wasFromMap });
-
     try {
       await page.click(selector);
       await page.keyboard.down('Control');
       await page.keyboard.press('KeyA');
       await page.keyboard.up('Control');
       await page.keyboard.press('Backspace');
-      console.log('[DEBUG][clearInputByRef] Success', { ref, selector });
     } catch (e: any) {
       const reason = classifyError(e, wasFromMap);
       console.error('[DEBUG][clearInputByRef] Failed', {
@@ -226,25 +213,28 @@ export class InteractionHandler {
   public async scroll(
     page: Page,
     direction: 'up' | 'down' | 'top' | 'bottom',
-    amount: number = 500
+    amount: number = 500,
   ): Promise<void> {
-    await page.evaluate(({ direction, amount }) => {
-      switch (direction) {
-        case 'top':
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          break;
-        case 'bottom':
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-          break;
-        case 'up':
-          window.scrollBy({ top: -amount, behavior: 'smooth' });
-          break;
-        case 'down':
-          window.scrollBy({ top: amount, behavior: 'smooth' });
-          break;
-      }
-    }, { direction, amount });
-    
+    await page.evaluate(
+      ({ direction, amount }) => {
+        switch (direction) {
+          case 'top':
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            break;
+          case 'bottom':
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            break;
+          case 'up':
+            window.scrollBy({ top: -amount, behavior: 'smooth' });
+            break;
+          case 'down':
+            window.scrollBy({ top: amount, behavior: 'smooth' });
+            break;
+        }
+      },
+      { direction, amount },
+    );
+
     // Wait for scroll to complete
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
@@ -259,8 +249,6 @@ export class InteractionHandler {
     selector: string,
     wasFromMap?: boolean,
   ): Promise<boolean> {
-    console.log('[DEBUG][scrollToElement] Start', { ref, selector, wasFromMap });
-
     try {
       const visible = await page.evaluate((sel: string) => {
         const el = document.querySelector(sel);
@@ -275,8 +263,6 @@ export class InteractionHandler {
 
       // Wait for smooth scroll
       await new Promise((resolve) => setTimeout(resolve, 300));
-
-      console.log('[DEBUG][scrollToElement] Success', { ref, selector, visible });
       return visible;
     } catch (e: any) {
       const reason = classifyError(e, wasFromMap);
@@ -286,7 +272,12 @@ export class InteractionHandler {
         reason,
         error: e?.message || String(e),
       });
-      throw createToolError('scroll_to_element', reason, e?.message || 'Scroll to element failed', ref);
+      throw createToolError(
+        'scroll_to_element',
+        reason,
+        e?.message || 'Scroll to element failed',
+        ref,
+      );
     }
   }
 
@@ -306,11 +297,8 @@ export class InteractionHandler {
     selector: string,
     wasFromMap?: boolean,
   ): Promise<void> {
-    console.log('[DEBUG][hoverByRef] Start', { ref, selector, wasFromMap });
-
     try {
       await page.hover(selector);
-      console.log('[DEBUG][hoverByRef] Success', { ref, selector });
     } catch (e: any) {
       const reason = classifyError(e, wasFromMap);
       console.error('[DEBUG][hoverByRef] Failed', {
@@ -342,8 +330,6 @@ export class InteractionHandler {
     label?: string,
     wasFromMap?: boolean,
   ): Promise<{ value: string; label: string }> {
-    console.log('[DEBUG][selectOptionByRef] Start', { ref, selector, value, label });
-
     try {
       if (value !== undefined) {
         await page.select(selector, value);
@@ -357,7 +343,6 @@ export class InteractionHandler {
           },
           value,
         );
-        console.log('[DEBUG][selectOptionByRef] Success by value', { ref, value, selectedLabel });
         return { value, label: selectedLabel };
       } else if (label !== undefined) {
         // Find option by label text
@@ -380,7 +365,6 @@ export class InteractionHandler {
           selector,
           label,
         );
-        console.log('[DEBUG][selectOptionByRef] Success by label', { ref, result });
         return result;
       }
 
@@ -438,8 +422,6 @@ export class InteractionHandler {
     timeoutMs: number = 10000,
   ): Promise<number> {
     const start = Date.now();
-    console.log('[DEBUG][waitFor] Start', { condition, selector, text, timeoutMs });
-
     try {
       switch (condition) {
         case 'element_visible': {
@@ -470,7 +452,6 @@ export class InteractionHandler {
       }
 
       const waitedMs = Date.now() - start;
-      console.log('[DEBUG][waitFor] Success', { condition, selector, text, waitedMs });
       return waitedMs;
     } catch (e: any) {
       const reason = classifyError(e);
@@ -491,8 +472,8 @@ export class InteractionHandler {
   public async getElementText(page: Page, selector: string): Promise<string | null> {
     const element = await page.$(selector);
     if (!element) return null;
-    
-    return await page.evaluate(el => el.textContent, element);
+
+    return await page.evaluate((el) => el.textContent, element);
   }
 
   /**
@@ -501,11 +482,11 @@ export class InteractionHandler {
   public async getElementAttribute(
     page: Page,
     selector: string,
-    attribute: string
+    attribute: string,
   ): Promise<string | null> {
     const element = await page.$(selector);
     if (!element) return null;
-    
+
     return await page.evaluate((el, attr) => el.getAttribute(attr), element, attribute);
   }
 }

@@ -1,25 +1,26 @@
 export const EXAMPLES = `# REFERENCE EXAMPLES
 
-## Ex 1: Clear Request — Launch browser and navigate ✅
+> **Note:** Code fences (\`\`\`) below are for documentation readability only — do NOT wrap your actual output in code fences. Your response must start directly with the \`<thinking>\` tag.
 
-**User**: "Launch browser for target-1 and navigate to gmail.com"
+## Ex 1: Clear Request — List tabs and navigate ✅
 
-**Turn 1** — Launch and navigate:
+**User**: "Navigate to gmail.com"
+
+**Turn 1** — Check state, then navigate:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Launch browser for target-1, then navigate to gmail.com.
+Pass 1 (Plan): Need to know current tab state, then navigate to gmail.com.
 Assumptions: None — straightforward request.
-Pass 2 (Verify): No unverified assumptions. Execute launch then navigate.
+Pass 2 (Verify): Per LIST-BEFORE-ACTION, check tabs first. Safe to proceed.
 Self-check: None
 </thinking>
-<launch_browser>
-</launch_browser>
+<list_tabs />
 \`\`\`
 
-**Turn 2** — After browser launches successfully:
+**Turn 2** — After tab list returns:
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): Browser launched. Now navigate to gmail.com.
+Pass 1 (Plan): Active tab identified. Navigate to gmail.com.
 Pass 2 (Verify): Browser is ready. Safe to navigate.
 Self-check: None
 </thinking>
@@ -35,7 +36,7 @@ Pass 1 (Plan): Navigation complete. Report status.
 Pass 2 (Verify): No more actions needed.
 </thinking>
 <markdown>
-✅ Browser launched for target-1 and navigated to https://gmail.com
+✅ Navigated to https://gmail.com
 </markdown>
 \`\`\`
 
@@ -278,13 +279,13 @@ Self-check: None
 
 ---
 
-## Ex 8: RE-CLARIFY — 6 consecutive tool calls ✅
+## Ex 8: RE-CLARIFY — 6 consecutive state-changing tool calls ✅
 
-*(After 6 consecutive tool-call turns with no new user message)*
+*(After 6 consecutive state-changing tool-call turns with no new user message)*
 
 \`\`\`xml
 <thinking>
-Pass 1 (Plan): 6 actions completed. Per RE-CLARIFY, pause and re-confirm direction.
+Pass 1 (Plan): 6 state-changing actions completed. Per RE-CLARIFY, pause and re-confirm direction.
 Pass 2 (Verify): No user message since last turn. Must ask before continuing.
 </thinking>
 <markdown>
@@ -386,6 +387,174 @@ Found **5 buttons** on https://example.com:
 3. "Sign Up" (btn-nav-signup) — in navigation
 4. "Contact Us" (btn-footer-contact) — in footer
 5. "Subscribe" (btn-newsletter) — newsletter signup
+</markdown>
+\`\`\`
+
+---
+
+## Ex 11: SPA Navigation with wait_for ✅ (NEW)
+
+**User**: "Go to example.com/spa and wait for the results list to appear"
+
+**Turn 1** — Navigate:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Navigate to the SPA page. It loads content asynchronously, so waitUntil=networkidle may not be enough.
+Pass 2 (Verify): Clear URL. Safe to navigate.
+Self-check: None
+</thinking>
+<navigate>
+  <url>https://example.com/spa</url>
+  <waitUntil>networkidle</waitUntil>
+</navigate>
+\`\`\`
+
+**Turn 2** — Wait for async element:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Navigation returned. SPA content may still be loading. Wait for the results list element to become visible.
+Pass 2 (Verify): Element "result-list" is expected but not yet confirmed. wait_for is the correct tool.
+Self-check: None
+</thinking>
+<wait_for>
+  <condition>element_visible</condition>
+  <ref>result-list</ref>
+  <timeoutMs>5000</timeoutMs>
+</wait_for>
+\`\`\`
+
+**Turn 3** — REPORT:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Results list is now visible. Report status.
+Pass 2 (Verify): No more actions needed.
+</thinking>
+<markdown>
+✅ Results list appeared after async loading completed.
+</markdown>
+\`\`\`
+
+---
+
+## Ex 12: Handling stale_ref error ✅ (NEW)
+
+**User**: "Click the submit button on the checkout page"
+
+**Turn 1** — Get page content:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Get page content to find the submit button.
+Pass 2 (Verify): Must verify button exists first.
+Self-check: None
+</thinking>
+<get_page_content />
+\`\`\`
+
+**Turn 2** — Found button, try click:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Found submit button with ref "btn-submit". Click it.
+Pass 2 (Verify): Element ref from page content. Safe to click.
+Self-check: None
+</thinking>
+<click_element>
+  <ref>btn-submit</ref>
+</click_element>
+\`\`\`
+
+**Turn 3** — Got stale_ref error → re-fetch:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Got stale_ref error. The DOM changed since last fetch. Per MAX-2-RETRY, re-fetch elements to get fresh refs — this recovery does NOT count toward the retry limit.
+Pass 2 (Verify): Re-fetching via list_elements is the correct recovery action.
+Self-check: None
+</thinking>
+<list_elements>
+  <elementType>button</elementType>
+</list_elements>
+\`\`\`
+
+**Turn 4** — Retry with fresh ref:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Got fresh refs. The submit button is now "btn-checkout-submit". Retry click ONCE.
+Pass 2 (Verify): Fresh ref confirmed. Safe to retry.
+Self-check: None
+</thinking>
+<click_element>
+  <ref>btn-checkout-submit</ref>
+</click_element>
+\`\`\`
+
+---
+
+## Ex 13: Using capture_screenshot + SoM to locate element ✅ (NEW)
+
+**User**: "I can't describe the button well — find the blue button on the page and click it"
+
+**Turn 1** — Capture screenshot with Set-of-Marks:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): User description is vague ("blue button"). Capture screenshot with numbered overlay to see all interactive elements visually.
+Pass 2 (Verify): Screenshot is a read-only operation. Safe to execute.
+Self-check: None
+</thinking>
+<capture_screenshot />
+\`\`\`
+
+**Turn 2** — Screenshot returns ref-map → identify and click:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): From ref-map, badge #4 corresponds to a blue button with ref "btn-cta-blue" and label "Get Started". This matches user description.
+Pass 2 (Verify): Element ref confirmed from screenshot ref-map. Safe to click.
+Self-check: None
+</thinking>
+<click_element>
+  <ref>btn-cta-blue</ref>
+</click_element>
+\`\`\`
+
+---
+
+## Ex 14: select_option and upload_file combo ✅ (NEW)
+
+**User**: "Fill the profile form: select country Vietnam, upload avatar from /tmp/avatar.png"
+
+**Turn 1** — Get page content:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Get page content to find the country select and avatar file input.
+Pass 2 (Verify): Must verify elements exist first.
+Self-check: None
+</thinking>
+<get_page_content />
+\`\`\`
+
+**Turn 2** — Found both elements → ACT (batch independent calls):
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Found select-country and input-avatar. Both actions are independent — batch them in one message.
+Pass 2 (Verify): Element refs confirmed. Safe to execute both.
+Self-check: None
+</thinking>
+<select_option>
+  <ref>select-country</ref>
+  <label>Vietnam</label>
+</select_option>
+<upload_file>
+  <ref>input-avatar</ref>
+  <filePath>/tmp/avatar.png</filePath>
+</upload_file>
+\`\`\`
+
+**Turn 3** — REPORT:
+\`\`\`xml
+<thinking>
+Pass 1 (Plan): Both actions completed successfully. Report status.
+Pass 2 (Verify): No more actions needed.
+</thinking>
+<markdown>
+✅ Country set to Vietnam, avatar uploaded from /tmp/avatar.png
 </markdown>
 \`\`\`
 `;

@@ -274,8 +274,8 @@ export function useRepeaterPersistence({
   }, [targetId, currentRequestId, method, url, body, params, headers, payloads]);
 
   const saveHistory = useCallback(
-    async (entry: HistoryEntry, runs: RunResult[]) => {
-      if (!targetId) return;
+    async (entry: HistoryEntry, runs: RunResult[]): Promise<HistoryEntry | null> => {
+      if (!targetId) return null;
       let requestId = currentRequestId;
       if (!requestId) {
         const res = await emulateApi.createRequest(targetId, {
@@ -288,11 +288,11 @@ export function useRepeaterPersistence({
         if (res.success && res.data) {
           requestId = res.data.id;
           setCurrentRequestId(requestId);
-        } else return;
+        } else return null;
       }
 
       // Save new history
-      await emulateApi.saveHistory(targetId, requestId, {
+      const saveRes = await emulateApi.saveHistory(targetId, requestId, {
         history: {
           method: entry.method,
           url: entry.url,
@@ -331,6 +331,29 @@ export function useRepeaterPersistence({
           await emulateApi.deleteHistory(targetId, oldHistory.id);
         }
       }
+
+      if (saveRes.success && saveRes.data) {
+        const h = saveRes.data;
+        // Trả về entry với ID từ backend để frontend dùng đúng
+        return {
+          id: h.id,
+          method: h.method,
+          url: h.url,
+          status: h.status || 0,
+          statuses: entry.statuses,
+          timestamp: h.timestamp * 1000,
+          endTime: h.end_time ? h.end_time * 1000 : undefined,
+          duration: h.duration || 0,
+          payload: h.payload_summary || '',
+          payloadCount: h.payload_count,
+          requestHeaders: entry.requestHeaders,
+          requestBody: entry.requestBody,
+          responseHeaders: entry.responseHeaders,
+          responseBody: entry.responseBody,
+        };
+      }
+
+      return null;
     },
     [targetId, currentRequestId, method, url, body, params, headers],
   );

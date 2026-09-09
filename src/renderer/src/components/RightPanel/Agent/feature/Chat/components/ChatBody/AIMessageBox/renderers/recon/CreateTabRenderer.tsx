@@ -81,29 +81,76 @@ export const CreateTabRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
+interface ParsedCreateTabResult {
+  tabId?: string;
+  url?: string;
+  success?: boolean;
+}
+
+function parseCreateTabOutput(output: string): ParsedCreateTabResult | null {
+  try {
+    const tabIdMatch = output.match(/tabId:\s*(.+)/i);
+    const urlMatch = output.match(/url:\s*(.+)/i);
+    
+    return {
+      tabId: tabIdMatch ? tabIdMatch[1].trim() : undefined,
+      url: urlMatch ? urlMatch[1].trim() : undefined,
+      success: output.includes('Tab created') || output.includes('created'),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function CreateTabBlock({ url, output, isError }: CreateTabBlockProps) {
+  const parsed = output ? parseCreateTabOutput(output) : null;
+  
   return (
     <div className="text-xs space-y-2">
-      {url && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">URL:</span>
-          <span className="text-text-primary font-mono">{url}</span>
-        </div>
-      )}
-
-      {output && (
+      {output && !isError && parsed ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap"
+          className="p-2 rounded border"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--success') + '08',
+            borderColor: $('--success') + '40',
+          }}
+        >
+          <div className="space-y-1.5">
+            {parsed.tabId && (
+              <div className="flex items-center gap-2">
+                <span className="text-text-secondary">Tab ID:</span>
+                <span
+                  className="px-1.5 py-0.5 rounded text-[11px] font-mono"
+                  style={{
+                    backgroundColor: $('--background-tertiary'),
+                    color: $('--text-primary'),
+                  }}
+                >
+                  {parsed.tabId}
+                </span>
+              </div>
+            )}
+            {parsed.url && (
+              <div className="flex items-start gap-2">
+                <span className="text-text-secondary shrink-0">URL:</span>
+                <span className="text-text-primary font-mono text-[11px] break-all">{parsed.url}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : output && isError ? (
+        <div
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs"
+          style={{
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && <div className="text-text-secondary opacity-60">Creating tab...</div>}
+      ) : !output && !isError ? (
+        <div className="text-text-secondary opacity-60">Creating tab...</div>
+      ) : null}
     </div>
   );
 }

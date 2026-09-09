@@ -29,7 +29,7 @@ export type RepeaterTarget = 'params' | 'headers' | 'body';
 export class UpdateRepeaterContentHandler {
   /**
    * Lấy đường dẫn file tương ứng với target
-   * Format: ~/.phantoma/repeaters/{targetId}/repeater_{requestId}/{target}.json
+   * Format: ~/.phantoma/emulate:{targetId}/repeaters/repeater_{requestId}/{target}.json
    */
   private async getFilePath(
     targetId: string,
@@ -38,7 +38,7 @@ export class UpdateRepeaterContentHandler {
     api: any,
   ): Promise<string> {
     const homedir = await api.invoke('fs:get-homedir');
-    return `${homedir}/.phantoma/repeaters/${targetId}/repeater_${requestId}/${target}.json`;
+    return `${homedir}/.phantoma/emulate:${targetId}/repeaters/repeater_${requestId}/${target}.json`;
   }
 
   public async handle(

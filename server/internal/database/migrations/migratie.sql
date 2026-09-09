@@ -1,9 +1,4 @@
 -- ============================================
--- Phantoma Database Schema
--- Source: database-schema.md
--- ============================================
-
--- ============================================
 -- Table: emulate_targets
 -- ============================================
 CREATE TABLE IF NOT EXISTS emulate_targets (
@@ -12,7 +7,6 @@ CREATE TABLE IF NOT EXISTS emulate_targets (
     url TEXT,
     icon TEXT,
     platform TEXT,
-    status TEXT DEFAULT 'stored',
     last_used_at INTEGER,
     executable_path TEXT,
     startup_args TEXT,
@@ -21,25 +15,12 @@ CREATE TABLE IF NOT EXISTS emulate_targets (
     updated_at INTEGER DEFAULT (strftime('%s', 'now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_emulate_targets_status ON emulate_targets(status);
-CREATE INDEX IF NOT EXISTS idx_emulate_targets_platform ON emulate_targets(platform);
-CREATE INDEX IF NOT EXISTS idx_emulate_targets_updated_at ON emulate_targets(updated_at);
-CREATE INDEX IF NOT EXISTS idx_emulate_targets_last_used ON emulate_targets(last_used_at);
+CREATE INDEX IF NOT EXISTS idx_emulate_targets_updated ON emulate_targets(updated_at);
 
 -- ============================================
--- Table: emulate_target_filters
+-- Drop legacy emulate_reports table (reports are file-based now)
 -- ============================================
-CREATE TABLE IF NOT EXISTS emulate_target_filters (
-    id TEXT PRIMARY KEY,
-    emulate_target_id TEXT NOT NULL,
-    method TEXT,
-    host TEXT,
-    status TEXT,
-    type TEXT,
-    FOREIGN KEY (emulate_target_id) REFERENCES emulate_targets(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_emulate_target_filters_target_id ON emulate_target_filters(emulate_target_id);
+DROP TABLE IF EXISTS emulate_reports;
 
 -- ============================================
 -- Table: emulate_repeater_requests
@@ -49,9 +30,6 @@ CREATE TABLE IF NOT EXISTS emulate_repeater_requests (
     emulate_target_id TEXT NOT NULL REFERENCES emulate_targets(id),
     method TEXT NOT NULL DEFAULT 'GET',
     url TEXT NOT NULL,
-    body TEXT DEFAULT '',
-    params TEXT DEFAULT '[]',
-    headers TEXT DEFAULT '[]',
     created_at INTEGER DEFAULT (strftime('%s', 'now')),
     updated_at INTEGER DEFAULT (strftime('%s', 'now'))
 );
@@ -95,7 +73,7 @@ CREATE TABLE IF NOT EXISTS emulate_repeater_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_emulate_repeater_history_request ON emulate_repeater_history(emulate_repeater_request_id);
-CREATE INDEX IF NOT EXISTS idx_emulate_repeater_history_timestamp ON emulate_repeater_history(timestamp);
+CREATE INDEX IF NOT EXISTS idx_emulate_repeater_history_timestamp ON emulate_repeater_history(timestamp DESC);
 
 -- ============================================
 -- Table: emulate_repeater_history_runs

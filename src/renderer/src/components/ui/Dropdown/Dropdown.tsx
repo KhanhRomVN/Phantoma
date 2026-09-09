@@ -37,6 +37,7 @@ export const Dropdown = React.memo(function Dropdown({
   position: manualPosition,
   searchable = false,
   closeOnSelect = true,
+  width,
 }: DropdownProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -54,6 +55,9 @@ export const Dropdown = React.memo(function Dropdown({
   const contentRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<Position>({ top: 0, left: 0, width: undefined });
   const [isPositioned, setIsPositioned] = useState(false);
+  const [contextMenuPos, setContextMenuPos] = useState<{ top: number; left: number } | null>(
+    null,
+  );
 
   // Calculate position for fixed strategy
   const calculateFixedPosition = (): Position | null => {
@@ -162,8 +166,41 @@ export const Dropdown = React.memo(function Dropdown({
     return { top: finalTop, left: finalLeft, width: triggerRect.width };
   };
 
+  // Calculate position for context menu at cursor, clamped to viewport.
+  // Width is independent of trigger: uses the `width` prop if set, otherwise auto (undefined).
+  const calculateContextMenuPosition = (mousePos: {
+    top: number;
+    left: number;
+  }): Position => {
+    if (!contentRef.current) return { top: mousePos.top, left: mousePos.left, width };
+
+    const contentRect = contentRef.current.getBoundingClientRect();
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const margin = 8;
+
+    let top = mousePos.top;
+    let left = mousePos.left;
+
+    if (left + contentRect.width > viewport.width - margin) {
+      left = viewport.width - contentRect.width - margin;
+    }
+    if (top + contentRect.height > viewport.height - margin) {
+      top = viewport.height - contentRect.height - margin;
+    }
+    if (left < margin) left = margin;
+    if (top < margin) top = margin;
+
+    return { top, left, width };
+  };
+
   const updatePosition = () => {
     if (strategy === 'fixed') {
+      // Context menu: position at cursor, width independent of trigger
+      if (trigger === 'contextmenu' && contextMenuPos) {
+        setPosition(calculateContextMenuPosition(contextMenuPos));
+        setIsPositioned(true);
+        return;
+      }
       // Use manual position if provided (e.g., for context menus)
       if (manualPosition) {
         setPosition(manualPosition);
@@ -212,7 +249,7 @@ export const Dropdown = React.memo(function Dropdown({
     } else {
       setIsPositioned(false);
     }
-  }, [open, side, align, sideOffset, strategy, manualPosition]);
+  }, [open, side, align, sideOffset, strategy, manualPosition, trigger, contextMenuPos, width]);
 
   // Watch for content size changes and recalculate position
   useEffect(() => {
@@ -353,6 +390,7 @@ export const Dropdown = React.memo(function Dropdown({
             trigger === 'contextmenu'
               ? (e) => {
                   e.preventDefault();
+                  setContextMenuPos({ top: e.clientY, left: e.clientX });
                   setOpen(!open);
                 }
               : undefined

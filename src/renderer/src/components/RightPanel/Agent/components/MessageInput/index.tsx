@@ -1511,24 +1511,12 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 }
               }}
               onPaste={(e) => {
-                console.log('[DEBUG][MessageInput] onPaste triggered');
-                console.log(
-                  `[DEBUG][MessageInput] clipboardData.files.length: ${e.clipboardData.files.length}`,
-                );
-                console.log(
-                  `[DEBUG][MessageInput] clipboardData.items.length: ${e.clipboardData.items.length}`,
-                );
-                console.log(`[DEBUG][MessageInput] supportsUpload: ${supportsUpload}`);
-
                 if (!supportsUpload && e.clipboardData.files.length > 0) {
                   logger.warn('[MessageInput] onPaste: Upload is not supported, preventing paste.');
                   e.preventDefault();
                   return;
                 }
-
-                console.log('[DEBUG][MessageInput] Calling handlePaste...');
                 handlePaste(e);
-                console.log('[DEBUG][MessageInput] handlePaste completed');
               }}
               onDragOver={handleDragOver}
               onDrop={(e) => {
@@ -1959,8 +1947,7 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
   const responseRangesSame = prevProps.responseRanges?.length === nextProps.responseRanges?.length;
   const conversationFileStatsSame =
     prevProps.conversationFileStats === nextProps.conversationFileStats;
-  const attachedItemsSame =
-    prevProps.attachedItems?.length === nextProps.attachedItems?.length;
+  const attachedItemsSame = prevProps.attachedItems?.length === nextProps.attachedItems?.length;
 
   const shouldSkip =
     messageSame &&

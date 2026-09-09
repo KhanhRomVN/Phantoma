@@ -168,4 +168,103 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
       fullAccess: "allow",
     },
   },
+
+  list_reports: {
+    id: "list_reports",
+    title: "LIST REPORTS",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  create_report: {
+    id: "create_report",
+    title: "CREATE REPORT",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  read_report: {
+    id: "read_report",
+    title: "READ REPORT",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  update_report: {
+    id: "update_report",
+    title: "UPDATE REPORT",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  list_report_files: {
+    id: "list_report_files",
+    title: "LIST REPORT FILES",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  create_report_file: {
+    id: "create_report_file",
+    title: "CREATE REPORT FILE",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  read_report_file: {
+    id: "read_report_file",
+    title: "READ REPORT FILE",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  update_report_file: {
+    id: "update_report_file",
+    title: "UPDATE REPORT FILE",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
+
+  delete_report_file: {
+    id: "delete_report_file",
+    title: "DELETE REPORT FILE",
+    category: "tool",
+    timeout: 5000,
+    permissions: {
+      approval: "allow",
+      fullAccess: "allow",
+    },
+  },
 };

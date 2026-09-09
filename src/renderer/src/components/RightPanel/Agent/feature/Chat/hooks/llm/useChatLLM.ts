@@ -204,7 +204,7 @@ export const useChatLLM = ({
     // Clear sessionStorage
     try {
       const keys = Object.keys(sessionStorage);
-      keys.forEach(key => {
+      keys.forEach((key) => {
         if (key.startsWith('zen-backend-conv:') || key.startsWith('zen-revert-parent:')) {
           sessionStorage.removeItem(key);
         }
@@ -494,39 +494,17 @@ export const useChatLLM = ({
             )
           : [];
 
-        // [DEBUG] Log files nhận được từ handleSend
-        console.log('[DEBUG][useChatLLM] sendMessage - files đầu vào:', files?.map((f: any) => ({
-          id: f.id,
-          name: f.name,
-          type: f.type,
-          hasFileId: !!f.file_id,
-          file_id: f.file_id,
-          isUploading: f.isUploading,
-          error: f.error,
-        })));
-        console.log('[DEBUG][useChatLLM] sendMessage - localFiles sau filter:', localFiles.map((f: any) => ({
-          id: f.id,
-          name: f.name,
-          type: f.type,
-          hasFileId: !!f.file_id,
-          file_id: f.file_id,
-        })));
-        console.log('[DEBUG][useChatLLM] sendMessage - finalAccount:', finalAccount?.id || 'KHÔNG CÓ');
-
         if (localFiles.length > 0) {
           if (!finalAccount?.id) {
             throw new Error('No active account selected for file upload');
           }
           const uploadedIds = await uploadFiles(localFiles, finalAccount.id);
-          console.log('[DEBUG][useChatLLM] sendMessage - uploadedIds:', uploadedIds);
           ref_file_ids.push(...uploadedIds);
-          console.log('[DEBUG][useChatLLM] sendMessage - ref_file_ids sau upload:', ref_file_ids);
         }
 
         // [DEBUG] Thêm file_id từ screenshot nếu có
         const screenshotFileId = getLastScreenshotFileId();
         if (screenshotFileId && !ref_file_ids.includes(screenshotFileId)) {
-          console.log('[DEBUG][useChatLLM] sendMessage - Thêm screenshotFileId vào ref_file_ids:', screenshotFileId);
           ref_file_ids.push(screenshotFileId);
           clearLastScreenshotFileId();
         }

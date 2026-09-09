@@ -134,6 +134,63 @@ Use XML tags for all tool calls:
 ]
 \`\`\`
 
+**list_reports**: List all markdown reports created in the Report workspace.
+- No parameters.
+- Returns: A numbered list of reports with \`report_<number>\`, title, and last update time.
+- Example: \`<list_reports />\` — list all reports
+
+**create_report**: Create a new markdown report.
+- \`content\`: (required) Full markdown content of the report. Title is auto-parsed from the first heading line.
+- Returns: Confirmation message with report title and ID.
+- Example: \`<create_report><content># Security Review\n\nReport content...</content></create_report>\`
+
+**read_report**: Read the content of a specific report, optionally a line range.
+- \`report_id\`: The report index from a previous \`list_reports\` result (required). Format: \`report_<number>\`.
+- \`start_line\`: (optional) Starting line number (1-indexed, inclusive).
+- \`end_line\`: (optional) Ending line number (1-indexed, inclusive).
+- Returns: Report title and content (full or line range).
+- Examples:
+  - \`<read_report><report_id>report_1</report_id></read_report>\` — read full report
+  - \`<read_report><report_id>report_1</report_id><start_line>1</start_line><end_line>50</end_line></read_report>\` — read lines 1-50
+- ⚠ LIST-BEFORE-READ: Always call \`list_reports\` before \`read_report\`. The report_id must come from a \`list_reports\` result.
+
+**update_report**: Update the content of an existing report.
+- \`report_id\`: The report index from a previous \`list_reports\` result (required). Format: \`report_<number>\`.
+- \`content\`: (optional) New markdown content. Title is re-parsed from the first heading line.
+- \`title\`: (optional) Explicit title override.
+- Returns: Confirmation message with updated title and ID.
+- Example: \`<update_report><report_id>report_1</report_id><content># Updated Title\n\nUpdated content...</content></update_report>\`
+- ⚠ LIST-BEFORE-UPDATE: Always call \`list_reports\` before \`update_report\`. The report_id must come from a \`list_reports\` result.
+
+**list_report_files**: List all code files (.html, .css, .js) inside a specific report.
+- \`report_id\`: (required) Report ID from \`list_reports\`.
+- Returns: Numbered list of file names.
+- Example: \`<list_report_files><report_id>report_1</report_id></list_report_files>\`
+
+**create_report_file**: Create a new code file inside a report.
+- \`report_id\`: (required) Report ID from \`list_reports\`.
+- \`file_name\`: (required) File name with extension .html, .css, or .js.
+- \`content\`: (optional) Initial content.
+- Example: \`<create_report_file><report_id>report_1</report_id><file_name>index.html</file_name><content>...</content></create_report_file>\`
+
+**read_report_file**: Read content of a code file inside a report.
+- \`report_id\`: (required) Report ID.
+- \`file_name\`: (required) File name.
+- Example: \`<read_report_file><report_id>report_1</report_id><file_name>index.html</file_name></read_report_file>\`
+
+**update_report_file**: Update content of a code file inside a report (overwrites entire content).
+- \`report_id\`: (required) Report ID.
+- \`file_name\`: (required) File name.
+- \`content\`: (required) New content.
+- Example: \`<update_report_file><report_id>report_1</report_id><file_name>style.css</file_name><content>...</content></update_report_file>\`
+
+**delete_report_file**: Delete a code file from a report.
+- \`report_id\`: (required) Report ID.
+- \`file_name\`: (required) File name.
+- Example: \`<delete_report_file><report_id>report_1</report_id><file_name>old.js</file_name></delete_report_file>\`
+
+## Executive Summary
+
 Bearer xyz
 
 # RESPONSE TAGS

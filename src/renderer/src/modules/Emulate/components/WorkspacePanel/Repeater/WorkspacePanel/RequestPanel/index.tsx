@@ -672,8 +672,10 @@ export function RequestPanel({
       responseBody: first.responseBody,
     };
     // Save to backend via persistence hook, then update local state
-    await persistence.saveHistory(entry, payloadResultData);
-    setHistory((prev) => [entry, ...prev]);
+    const savedEntry = await persistence.saveHistory(entry, payloadResultData);
+    if (savedEntry) {
+      setHistory((prev) => [savedEntry, ...prev]);
+    }
     setPayloadResultData(null);
   };
 

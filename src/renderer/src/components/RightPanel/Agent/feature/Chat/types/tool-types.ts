@@ -166,3 +166,51 @@ export interface UpdateRepeaterContentParams {
 export interface RunRepeaterParams {
   repeater_id: string;
 }
+
+// ===== REPORT TOOLS =====
+export interface ListReportsParams {
+  // Không có params
+}
+
+export interface CreateReportParams {
+  content: string;
+}
+
+export interface ReadReportParams {
+  report_id: string;
+  start_line?: number;
+  end_line?: number;
+}
+
+export interface UpdateReportParams {
+  report_ref: string;
+  old_content: string;
+  new_content: string;
+}
+
+// ===== REPORT FILE TOOLS =====
+export interface ListReportFilesParams {
+  report_id: string;
+}
+
+export interface CreateReportFileParams {
+  report_id: string;
+  file_name: string;
+  content?: string;
+}
+
+export interface ReadReportFileParams {
+  report_id: string;
+  file_name: string;
+}
+
+export interface UpdateReportFileParams {
+  report_id: string;
+  file_name: string;
+  content: string;
+}
+
+export interface DeleteReportFileParams {
+  report_id: string;
+  file_name: string;
+}

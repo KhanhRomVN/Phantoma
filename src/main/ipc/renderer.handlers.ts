@@ -199,7 +199,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
     case 'getHistory': {
       try {
         const storage = new ConversationStorage();
-        const conversationsDir = path.join(os.homedir(), '.phantoma', 'conversations');
+        const baseDir = path.join(os.homedir(), '.phantoma');
 
         let allConversations: any[] = [];
 
@@ -207,7 +207,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           // List all module directories
           let moduleDirs: string[] = [];
           try {
-            moduleDirs = await fs.promises.readdir(conversationsDir);
+            moduleDirs = await fs.promises.readdir(baseDir);
           } catch {
             logger.warn('[RendererHandler] Conversations directory does not exist yet');
             sendToRenderer('historyResult', { requestId, history: [] });
@@ -215,7 +215,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
           }
 
           for (const moduleId of moduleDirs) {
-            const modulePath = path.join(conversationsDir, moduleId);
+            const modulePath = path.join(baseDir, moduleId, 'conversations');
             try {
               const stat = await fs.promises.stat(modulePath);
               if (!stat.isDirectory()) continue;
@@ -686,6 +686,50 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
       return { success: true };
     }
 
+    case 'openConversationFolder': {
+      const { conversationId } = payload;
+      (async () => {
+        try {
+          const conversationsDir = path.join(os.homedir(), '.phantoma', 'conversations');
+          const moduleDirs = await fs.promises.readdir(conversationsDir);
+          for (const moduleId of moduleDirs) {
+            const modulePath = path.join(conversationsDir, moduleId);
+            const convPath = path.join(modulePath, `${conversationId}.json`);
+            if (fs.existsSync(convPath)) {
+              const { shell } = await import('electron');
+              await shell.openPath(modulePath);
+              sendToRenderer('messageResponse', {
+                requestId,
+                command: 'openConversationFolder',
+                success: true,
+                folderPath: modulePath,
+              });
+              return;
+            }
+          }
+          sendToRenderer('messageResponse', {
+            requestId,
+            command: 'openConversationFolder',
+            success: false,
+            error: 'Conversation folder not found',
+          });
+        } catch (e: any) {
+          logger.error('[Main][openConversationFolder] Exception occurred:', {
+            error: e.message,
+            stack: e.stack,
+          });
+          sendToRenderer('messageResponse', {
+            requestId,
+            command: 'openConversationFolder',
+            success: false,
+            error: 'Failed to open conversation folder',
+          });
+        }
+      })();
+
+      return { success: true };
+    }
+
     case 'restoreSingleLineReviewActions': {
       sendToRenderer('messageResponse', {
         requestId,
@@ -971,7 +1015,12 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
         // Determine moduleId from sessionId (for Code module) or metadata
         // Code module: sessionId represents the project/target
         // Emulate module: sessionId represents the emulate target
-        const moduleId = metadata?.sessionId?.toString() || 'unknown';
+        const sessionId = metadata?.sessionId?.toString();
+        if (!sessionId) {
+          logger.warn('[Main][saveConversationState] Missing sessionId — skip save to avoid "unknown" folder');
+          return { success: false, error: 'missing sessionId' };
+        }
+        const moduleId = sessionId;
 
         const conversationData = {
           conversationId,
@@ -1042,6 +1091,7 @@ export function setupRendererHandlers() {
     'loadProjectContext',
     // Conversation
     'getConversation',
+    'openConversationFolder',
     'saveConversationState',
     'restoreSingleLineReviewActions',
     'revertConversation',

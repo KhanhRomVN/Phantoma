@@ -55,6 +55,15 @@ import {
   parseGetRepeaterDetail,
   parseUpdateRepeaterContent,
   parseRunRepeater,
+  parseListReports,
+  parseCreateReport,
+  parseReadReport,
+  parseUpdateReport,
+  parseListReportFiles,
+  parseCreateReportFile,
+  parseReadReportFile,
+  parseUpdateReportFile,
+  parseDeleteReportFile,
 } from './parsers/EmulateParser';
 import {
   parseListTabs,
@@ -655,6 +664,51 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'run_repeater': {
               const params = parseRunRepeater(innerContent || '');
               action = { type: 'run_repeater' as const, params, rawXml };
+              break;
+            }
+            case 'list_reports': {
+              const params = parseListReports(innerContent || '');
+              action = { type: 'list_reports' as const, params, rawXml };
+              break;
+            }
+            case 'create_report': {
+              const params = parseCreateReport(innerContent || '');
+              action = { type: 'create_report' as const, params, rawXml };
+              break;
+            }
+            case 'read_report': {
+              const params = parseReadReport(innerContent || '');
+              action = { type: 'read_report' as const, params, rawXml };
+              break;
+            }
+            case 'update_report': {
+              const params = parseUpdateReport(innerContent || '');
+              action = { type: 'update_report' as const, params, rawXml };
+              break;
+            }
+            case 'list_report_files': {
+              const params = parseListReportFiles(innerContent || '');
+              action = { type: 'list_report_files' as const, params, rawXml };
+              break;
+            }
+            case 'create_report_file': {
+              const params = parseCreateReportFile(innerContent || '');
+              action = { type: 'create_report_file' as const, params, rawXml };
+              break;
+            }
+            case 'read_report_file': {
+              const params = parseReadReportFile(innerContent || '');
+              action = { type: 'read_report_file' as const, params, rawXml };
+              break;
+            }
+            case 'update_report_file': {
+              const params = parseUpdateReportFile(innerContent || '');
+              action = { type: 'update_report_file' as const, params, rawXml };
+              break;
+            }
+            case 'delete_report_file': {
+              const params = parseDeleteReportFile(innerContent || '');
+              action = { type: 'delete_report_file' as const, params, rawXml };
               break;
             }
             // ── Recon tools ──────────────────────────────────────

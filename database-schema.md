@@ -51,6 +51,24 @@ Bảng lưu filter settings cho từng emulate target (dùng cho Filter.tsx).
 
 ---
 
+## Table: `emulate_reports`
+
+Bảng lưu thông tin report cho từng emulate target. Nội dung report (markdown + title) được lưu trong file `.md` ở folder tương ứng, xác định qua `id`.
+
+### Columns
+
+- **`id`** (TEXT, PRIMARY KEY) — Mã định danh duy nhất của report
+- **`emulate_target_id`** (TEXT, NOT NULL) — FK đến `emulate_targets.id`
+- **`created_at`** (INTEGER, DEFAULT (strftime('%s','now'))) — Thời gian tạo
+- **`updated_at`** (INTEGER, DEFAULT (strftime('%s','now'))) — Thời gian cập nhật cuối
+
+### Indexes
+
+- **`idx_emulate_reports_target_id`** — `emulate_target_id`
+- **`idx_emulate_reports_updated_at`** — `updated_at`
+
+---
+
 ## Repeater Tables (Preview — chưa code)
 
 Các bảng dưới đây lưu dữ liệu Repeater.  
@@ -80,9 +98,6 @@ Lưu cấu hình request (method, url, body, params, headers) cho từng target.
 | 2 | `emulate_target_id` | TEXT | NOT NULL, FK → `emulate_targets.id` | Thuộc target nào |
 | 3 | `method` | TEXT | NOT NULL, DEFAULT 'GET' | GET, POST, PUT, DELETE... |
 | 4 | `url` | TEXT | NOT NULL | URL gốc (chưa có query string) |
-| 5 | `body` | TEXT | DEFAULT '' | **[DEPRECATED]** Request body - giờ lưu trong file system |
-| 6 | `params` | TEXT (JSON) | DEFAULT '[]' | **[DEPRECATED]** Params array - giờ lưu trong file system |
-| 7 | `headers` | TEXT (JSON) | DEFAULT '[]' | **[DEPRECATED]** Headers array - giờ lưu trong file system |
 | 8 | `created_at` | INTEGER | DEFAULT (strftime('%s','now')) | Thời gian tạo |
 | 9 | `updated_at` | INTEGER | DEFAULT (strftime('%s','now')) | Thời gian cập nhật cuối |
 

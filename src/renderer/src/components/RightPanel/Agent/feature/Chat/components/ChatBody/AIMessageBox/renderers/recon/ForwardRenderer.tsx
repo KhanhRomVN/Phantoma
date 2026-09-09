@@ -76,21 +76,19 @@ export const ForwardRenderer: React.FC<BaseRendererProps> = ({
 function ForwardBlock({ output, isError }: ForwardBlockProps) {
   return (
     <div className="text-xs space-y-2">
-      {output && (
+      {output && isError ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap"
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && (
+      ) : !output && !isError ? (
         <div className="text-text-secondary opacity-60">Going forward...</div>
-      )}
+      ) : null}
     </div>
   );
 }

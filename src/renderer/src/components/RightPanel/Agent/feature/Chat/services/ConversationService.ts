@@ -183,16 +183,8 @@ export const saveConversation = async (
       conversationFileStats: conversationFileStats,
     });
 
-    // Sync to backend (keep for compatibility)
-    extensionService.postMessage({
-      command: 'saveConversationState',
-      conversationId: convId,
-      messages: convertedMessages,
-      backendConversationId: newData.backendConversationId,
-      toolOutputs: mergedToolOutputs,
-      singleLineReviewActions: mergedSingleLineReviewActions,
-      conversationFileStats: conversationFileStats,
-    });
+    // Lưu vào hệ thống mới đã đủ — không cần sync thêm qua postMessage
+    // (gây duplicate folder "unknown" do thiếu moduleId trong payload)
 
     return convId;
   } catch (error: any) {

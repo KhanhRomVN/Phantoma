@@ -30,15 +30,11 @@ export class NavigationHandler {
     timeoutMs: number = 30000,
   ): Promise<void> {
     const start = Date.now();
-    console.log('[DEBUG][navigate] Start', { url, waitUntil, timeoutMs });
-
-    // Map spec value 'networkidle' → Puppeteer 'networkidle0'
     const puppeteerWaitUntil = waitUntil === 'networkidle' ? 'networkidle0' : waitUntil;
 
     try {
       await page.goto(url, { waitUntil: puppeteerWaitUntil, timeout: timeoutMs });
       const loadTimeMs = Date.now() - start;
-      console.log('[DEBUG][navigate] Success', { url, loadTimeMs });
     } catch (e: any) {
       console.error('[DEBUG][navigate] Failed', {
         url,

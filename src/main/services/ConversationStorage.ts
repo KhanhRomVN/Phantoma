@@ -5,6 +5,9 @@
  * Lưu trữ bền vững cho các hội thoại trong thư mục home của người dùng.
  * Xử lý CRUD file JSON cho dữ liệu hội thoại theo từng module.
  *
+ * Cấu trúc lưu trữ:
+ *   ~/.phantoma/{moduleId}/conversations/{conversationId}.json
+ *
  * Hàm chính:
  * - saveConversation()      : Ghi một hội thoại xuống đĩa
  * - getConversation()       : Đọc một hội thoại theo ID
@@ -60,14 +63,14 @@ export class ConversationStorage {
   private readonly baseDir: string;
 
   constructor() {
-    this.baseDir = path.join(os.homedir(), '.phantoma', 'conversations');
+    this.baseDir = path.join(os.homedir(), '.phantoma');
   }
 
   /**
    * Get the full path for a conversation file
    */
   private getConversationPath(moduleId: string, conversationId: string): string {
-    return path.join(this.baseDir, moduleId, `${conversationId}.json`);
+    return path.join(this.baseDir, moduleId, 'conversations', `${conversationId}.json`);
   }
 
   /**
@@ -124,7 +127,7 @@ export class ConversationStorage {
    * List all conversation IDs for a module
    */
   async listConversations(moduleId: string): Promise<string[]> {
-    const dirPath = path.join(this.baseDir, moduleId);
+    const dirPath = path.join(this.baseDir, moduleId, 'conversations');
     try {
       const entries = await fs.promises.readdir(dirPath);
       return entries
@@ -153,7 +156,7 @@ export class ConversationStorage {
    * Delete all conversations for a module
    */
   async deleteAllConversations(moduleId: string): Promise<void> {
-    const dirPath = path.join(this.baseDir, moduleId);
+    const dirPath = path.join(this.baseDir, moduleId, 'conversations');
     try {
       await fs.promises.rm(dirPath, { recursive: true, force: true });
     } catch (error) {

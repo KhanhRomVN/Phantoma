@@ -35,6 +35,15 @@ import {
   ListResourcesParams,
   ListSourcesParams,
   SendToRepeaterParams,
+  ListReportsParams,
+  CreateReportParams,
+  ReadReportParams,
+  UpdateReportParams,
+  ListReportFilesParams,
+  CreateReportFileParams,
+  ReadReportFileParams,
+  UpdateReportFileParams,
+  DeleteReportFileParams,
 } from '../../types/tool-types';
 
 // ─── Functions ──────────────────────────────────────────────────────────
@@ -421,5 +430,152 @@ export function parseRunRepeater(innerContent: string): RunRepeaterParams {
   const idParam = extractParamValue(innerContent, 'repeater_id');
   if (idParam) params.repeater_id = idParam.trim();
 
+  return params;
+}
+
+// ===== ListReportsParser =====
+
+/**
+ * Parse list_reports tag from AI response.
+ * Format: <list_reports /> (no params)
+ */
+export function parseListReports(_innerContent: string): ListReportsParams {
+  return {};
+}
+
+// ===== CreateReportParser =====
+
+/**
+ * Parse create_report tag from AI response.
+ * Format: <create_report><content>...</content></create_report>
+ */
+export function parseCreateReport(innerContent: string): CreateReportParams {
+  const params: CreateReportParams = { content: '' };
+
+  const contentParam = extractParamValue(innerContent, 'content');
+  if (contentParam) params.content = contentParam;
+
+  return params;
+}
+
+// ===== ReadReportParser =====
+
+/**
+ * Parse read_report tag from AI response.
+ * Format: <read_report><report_id>report_1</report_id><start_line>1</start_line><end_line>50</end_line></read_report>
+ */
+export function parseReadReport(innerContent: string): ReadReportParams {
+  const params: ReadReportParams = { report_id: '' };
+
+  const reportIdParam = extractParamValue(innerContent, 'report_id');
+  if (reportIdParam) params.report_id = reportIdParam.trim();
+
+  const startLineParam = extractParamValue(innerContent, 'start_line');
+  if (startLineParam) {
+    const parsed = parseInt(startLineParam, 10);
+    if (!isNaN(parsed)) params.start_line = parsed;
+  }
+
+  const endLineParam = extractParamValue(innerContent, 'end_line');
+  if (endLineParam) {
+    const parsed = parseInt(endLineParam, 10);
+    if (!isNaN(parsed)) params.end_line = parsed;
+  }
+
+  return params;
+}
+
+// ===== UpdateReportParser =====
+
+/**
+ * Parse update_report tag from AI response.
+ * Format: <update_report><report_ref>report_1</report_ref>...</update_report>
+ */
+export function parseUpdateReport(innerContent: string): UpdateReportParams {
+  const params: UpdateReportParams = {
+    report_ref: '',
+    old_content: '',
+    new_content: '',
+  };
+
+  const reportRefParam = extractParamValue(innerContent, 'report_ref');
+  if (reportRefParam) params.report_ref = reportRefParam.trim();
+
+  const oldParam = extractParamValue(innerContent, 'old_content');
+  if (oldParam) params.old_content = oldParam;
+
+  const newParam = extractParamValue(innerContent, 'new_content');
+  if (newParam) params.new_content = newParam;
+
+  return params;
+}
+
+// ===== ListReportFilesParser =====
+
+/** Parse list_report_files tag: <list_report_files><report_id>...</report_id></list_report_files> */
+export function parseListReportFiles(innerContent: string): ListReportFilesParams {
+  const params: ListReportFilesParams = { report_id: '' };
+  const reportIdParam = extractParamValue(innerContent, 'report_id');
+  if (reportIdParam) params.report_id = reportIdParam.trim();
+  return params;
+}
+
+// ===== CreateReportFileParser =====
+
+/** Parse create_report_file tag. */
+export function parseCreateReportFile(innerContent: string): CreateReportFileParams {
+  const params: CreateReportFileParams = {
+    report_id: '',
+    file_name: '',
+    content: '',
+  };
+  const reportIdParam = extractParamValue(innerContent, 'report_id');
+  if (reportIdParam) params.report_id = reportIdParam.trim();
+  const fileNameParam = extractParamValue(innerContent, 'file_name');
+  if (fileNameParam) params.file_name = fileNameParam.trim();
+  const contentParam = extractParamValue(innerContent, 'content');
+  if (contentParam) params.content = contentParam;
+  return params;
+}
+
+// ===== ReadReportFileParser =====
+
+/** Parse read_report_file tag. */
+export function parseReadReportFile(innerContent: string): ReadReportFileParams {
+  const params: ReadReportFileParams = { report_id: '', file_name: '' };
+  const reportIdParam = extractParamValue(innerContent, 'report_id');
+  if (reportIdParam) params.report_id = reportIdParam.trim();
+  const fileNameParam = extractParamValue(innerContent, 'file_name');
+  if (fileNameParam) params.file_name = fileNameParam.trim();
+  return params;
+}
+
+// ===== UpdateReportFileParser =====
+
+/** Parse update_report_file tag. */
+export function parseUpdateReportFile(innerContent: string): UpdateReportFileParams {
+  const params: UpdateReportFileParams = {
+    report_id: '',
+    file_name: '',
+    content: '',
+  };
+  const reportIdParam = extractParamValue(innerContent, 'report_id');
+  if (reportIdParam) params.report_id = reportIdParam.trim();
+  const fileNameParam = extractParamValue(innerContent, 'file_name');
+  if (fileNameParam) params.file_name = fileNameParam.trim();
+  const contentParam = extractParamValue(innerContent, 'content');
+  if (contentParam) params.content = contentParam;
+  return params;
+}
+
+// ===== DeleteReportFileParser =====
+
+/** Parse delete_report_file tag. */
+export function parseDeleteReportFile(innerContent: string): DeleteReportFileParams {
+  const params: DeleteReportFileParams = { report_id: '', file_name: '' };
+  const reportIdParam = extractParamValue(innerContent, 'report_id');
+  if (reportIdParam) params.report_id = reportIdParam.trim();
+  const fileNameParam = extractParamValue(innerContent, 'file_name');
+  if (fileNameParam) params.file_name = fileNameParam.trim();
   return params;
 }

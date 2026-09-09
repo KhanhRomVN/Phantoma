@@ -236,12 +236,7 @@ export function setupBrowserHandlers(): void {
           };
         }
 
-        await session.navigationHandler.navigate(
-          session.page,
-          url,
-          waitUntil,
-          timeoutMs,
-        );
+        await session.navigationHandler.navigate(session.page, url, waitUntil, timeoutMs);
 
         return {
           success: true,
@@ -782,10 +777,13 @@ export function setupBrowserHandlers(): void {
         const selector = resolvedSelector || `#${ref}`;
         const wasFromMap = !!resolvedSelector;
 
-        // [DEBUG] Log selector resolution
-        console.log('[DEBUG][browser:clickElement] Resolved selector', { ref, selector, wasFromMap, clickType });
-
-        const clickResult = await session.interactionHandler.clickByRef(page, ref, selector, wasFromMap, clickType);
+        const clickResult = await session.interactionHandler.clickByRef(
+          page,
+          ref,
+          selector,
+          wasFromMap,
+          clickType,
+        );
 
         return {
           success: true,
@@ -838,25 +836,11 @@ export function setupBrowserHandlers(): void {
           };
         }
 
-        // [DEBUG] Log before fill attempt
-        console.log('[DEBUG][browser:fillInput] Received', {
-          targetId,
-          tabId,
-          ref,
-          value,
-          pageUrl: page.url(),
-        });
-
         // Resolve selector from ContentHandler.elementRefMap, fallback to #ref
         const resolvedSelector = session.contentHandler.getSelectorByRef(ref);
         const selector = resolvedSelector || `#${ref}`;
         const wasFromMap = !!resolvedSelector;
-
-        console.log('[DEBUG][browser:fillInput] Resolved selector', { ref, selector, wasFromMap });
-
         await session.interactionHandler.fillByRef(page, ref, selector, value, wasFromMap);
-
-        console.log('[DEBUG][browser:fillInput] Completed', { ref, value });
 
         return {
           success: true,
@@ -965,8 +949,6 @@ export function setupBrowserHandlers(): void {
         const selector = resolvedSelector || `#${ref}`;
         const wasFromMap = !!resolvedSelector;
 
-        console.log('[DEBUG][browser:selectOption] Resolved selector', { ref, selector, value, label, wasFromMap });
-
         const result = await session.interactionHandler.selectOptionByRef(
           page,
           ref,
@@ -1033,7 +1015,6 @@ export function setupBrowserHandlers(): void {
         let selector: string | undefined;
         if (ref) {
           selector = session.contentHandler.getSelectorByRef(ref) || `#${ref}`;
-          console.log('[DEBUG][browser:waitFor] Resolved selector', { ref, selector });
         }
 
         const waitedMs = await session.interactionHandler.waitFor(
@@ -1099,8 +1080,6 @@ export function setupBrowserHandlers(): void {
         const resolvedSelector = session.contentHandler.getSelectorByRef(ref);
         const selector = resolvedSelector || `#${ref}`;
         const wasFromMap = !!resolvedSelector;
-
-        console.log('[DEBUG][browser:scrollToElement] Resolved selector', { ref, selector, wasFromMap });
 
         const visible = await session.interactionHandler.scrollToElement(
           page,
@@ -1474,7 +1453,10 @@ export function setupBrowserHandlers(): void {
           };
         }
 
-        const screenshot = await session.contentHandler.captureScreenshotWithOverlay(page, fullPage);
+        const screenshot = await session.contentHandler.captureScreenshotWithOverlay(
+          page,
+          fullPage,
+        );
 
         return {
           success: true,

@@ -8,43 +8,26 @@ Cấu trúc lưu trữ dữ liệu của Phantoma.
 
 **Thư mục gốc:** `~/.phantoma/`
 
-Phantoma sử dụng:
-- **SQLite Database** — Metadata và quan hệ
-- **File System** — Nội dung repeater requests
+- `~/.phantoma/`
+  ├── `phantoma.sql`
+  ├── `phantoma.sql-shm` — SQLite shared memory
+  ├── `phantoma.sql-wal` — SQLite write-ahead log
+  ├── [`conversations/`](#conversations)
+  ├── [`extensions/`](#extensions)
+  ├── [`repeaters/`](#repeaters)
+  └── [`reports/`](#reports)
 
 ---
 
-## 🗄️ SQLite Database
+### phantoma.sql
 
-**Path:** `~/.phantoma/phantoma.sql`
-
-### Nội dung
-
-- Metadata của entities (targets, requests, history, payloads, filters)
-- Quan hệ giữa entities (foreign keys)
-- Timestamps và trạng thái
-
-### Bảng chính
-
-Xem chi tiết tại [`database-schema.md`](./database-schema.md)
-
-**Emulate Module:**
-- `emulate_targets`
-- `emulate_target_filters`
-- `emulate_repeater_requests` — Metadata only (params/headers/body deprecated)
-- `emulate_repeater_payloads`
-- `emulate_repeater_history`
-- `emulate_repeater_history_runs`
+Database chính của Phantoma, lưu trữ toàn bộ dữ liệu quan hệ. Xem chi tiết tại [`database-schema.md`](./database-schema.md)
 
 ---
 
-## 📁 File System
+### Repeater
 
-### Repeater Content
-
-**Path:** `~/.phantoma/repeaters/{targetId}/repeater_{requestId}/`
-
-Mỗi repeater có 3 files JSON:
+Lưu trữ các request đã lặp lại, phân nhóm theo `targetId` và `requestId`.
 
 ```
 ~/.phantoma/repeaters/
@@ -62,77 +45,59 @@ Mỗi repeater có 3 files JSON:
     └── ...
 ```
 
-### File Format
+### Report
 
-**`params.json` và `headers.json`:**
-```json
-[
-  {
-    "id": "1",
-    "key": "test1",
-    "value": "1",
-    "enabled": true
-  },
-  {
-    "id": "2",
-    "key": "x-api-key",
-    "value": "abc123",
-    "enabled": true
-  }
-]
-```
-
-**`body.json`:**
-```json
-{
-  "target_path": "/api/v0/chat/completion",
-  "model": "gpt-4"
-}
-```
-
-Hoặc raw text (khi không phải JSON):
-```json
-{
-  "content": "username=test&password=123",
-  "contentType": "application/x-www-form-urlencoded"
-}
-```
----
-
-## 📊 Certificates & Proxy
-
-**Path:** `.http-mitm-proxy/`
-
-Generated tự động bởi http-mitm-proxy package:
+Lưu trữ các báo cáo đã tạo, mỗi report có thư mục `code` chứa HTML/CSS/JS.
 
 ```
-.http-mitm-proxy/
-├── certs/      # SSL certificates
-└── keys/       # Private keys
+~/.phantoma/reports/
+├── {reportId_1}/
+│   └── code/
+│       ├── index.html
+│       ├── style.css
+│       └── script.js
+└── {reportId_2}/
+    └── code/
+        └── page.html
 ```
-
-**Location:** Project workspace (không phải `~/.phantoma/`)
 
 ---
 
-## � Security
+### Conversations
 
-### File Permissions
+Lưu trữ các cuộc hội thoại, phân loại theo loại phiên: `unknown`, `emulate:{targetId}`, `recon:{targetId}`, hoặc `{timestamp}`.
 
-```bash
-chmod 700 ~/.phantoma
-chmod 600 ~/.phantoma/*.sql
-chmod 600 ~/.phantoma/repeaters/**/*.json
+```
+~/.phantoma/conversations/
+├── unknown/
+│   └── {conversationId}.json
+├── emulate:{targetId}/
+│   └── {conversationId}.json
+├── recon:{targetId}/
+│   └── {conversationId}.json
+└── {timestamp}/
+    └── {conversationId}.json
 ```
 
-### Backup
+---
 
-```bash
-# Backup
-tar -czf phantoma-backup-$(date +%Y%m%d).tar.gz ~/.phantoma/
+### Extensions
 
-# Restore
-tar -xzf phantoma-backup-20240101.tar.gz -C ~/
+Lưu trữ các extension đã tải về, mỗi extension có manifest, metadata và mã nguồn.
+
+```
+~/.phantoma/extensions/
+└── Gydunhn.typescript-essentials/
+    ├── extension.vsixmanifest
+    ├── metadata.json
+    ├── [Content_Types].xml
+    └── extension/
+        ├── package.json
+        ├── README.md
+        ├── CHANGELOG.md
+        ├── LICENSE.txt
+        └── img/
+            └── essentials.png
 ```
 
 ---

@@ -42,6 +42,15 @@ import { DeleteRepeaterHandler } from '../modules/Emulate/handler/DeleteRepeater
 import { GetRepeaterDetailHandler } from '../modules/Emulate/handler/GetRepeaterDetailHandler';
 import { UpdateRepeaterContentHandler } from '../modules/Emulate/handler/UpdateRepeaterContentHandler';
 import { RunRepeaterHandler } from '../modules/Emulate/handler/RunRepeaterHandler';
+import { ListReportsHandler } from '../modules/Emulate/handler/ListReportsHandler';
+import { CreateReportHandler } from '../modules/Emulate/handler/CreateReportHandler';
+import { ReadReportHandler } from '../modules/Emulate/handler/ReadReportHandler';
+import { UpdateReportHandler } from '../modules/Emulate/handler/UpdateReportHandler';
+import { ListReportFilesHandler } from '../modules/Emulate/handler/ListReportFilesHandler';
+import { CreateReportFileHandler } from '../modules/Emulate/handler/CreateReportFileHandler';
+import { ReadReportFileHandler } from '../modules/Emulate/handler/ReadReportFileHandler';
+import { UpdateReportFileHandler } from '../modules/Emulate/handler/UpdateReportFileHandler';
+import { DeleteReportFileHandler } from '../modules/Emulate/handler/DeleteReportFileHandler';
 import type { CdpScriptUnpackedData } from '@renderer/shared/types/network';
 
 export class EmulateController {
@@ -69,6 +78,15 @@ export class EmulateController {
   private getRepeaterDetailHandler: GetRepeaterDetailHandler;
   private updateRepeaterContentHandler: UpdateRepeaterContentHandler;
   private runRepeaterHandler: RunRepeaterHandler;
+  private listReportsHandler: ListReportsHandler;
+  private createReportHandler: CreateReportHandler;
+  private readReportHandler: ReadReportHandler;
+  private updateReportHandler: UpdateReportHandler;
+  private listReportFilesHandler: ListReportFilesHandler;
+  private createReportFileHandler: CreateReportFileHandler;
+  private readReportFileHandler: ReadReportFileHandler;
+  private updateReportFileHandler: UpdateReportFileHandler;
+  private deleteReportFileHandler: DeleteReportFileHandler;
 
   private constructor() {
     this.listHttpHandler = new ListHttpHandler();
@@ -87,6 +105,15 @@ export class EmulateController {
     this.getRepeaterDetailHandler = new GetRepeaterDetailHandler();
     this.updateRepeaterContentHandler = new UpdateRepeaterContentHandler();
     this.runRepeaterHandler = new RunRepeaterHandler();
+    this.listReportsHandler = new ListReportsHandler();
+    this.createReportHandler = new CreateReportHandler();
+    this.readReportHandler = new ReadReportHandler();
+    this.updateReportHandler = new UpdateReportHandler();
+    this.listReportFilesHandler = new ListReportFilesHandler();
+    this.createReportFileHandler = new CreateReportFileHandler();
+    this.readReportFileHandler = new ReadReportFileHandler();
+    this.updateReportFileHandler = new UpdateReportFileHandler();
+    this.deleteReportFileHandler = new DeleteReportFileHandler();
   }
 
   // ── Singleton ─────────────────────────────────────────────────────
@@ -247,6 +274,98 @@ export class EmulateController {
           );
           return { success: true, data: { output: runResult.text } };
         }
+        case 'list_reports': {
+          const listResult = await ctrl.listReportsHandler.handle(effectiveTargetId);
+          return { success: true, data: { output: listResult.text } };
+        }
+        case 'create_report': {
+          console.log('[DEBUG create_report] params:', params);
+          if (!params.content) return { success: false, error: 'content is required' };
+          const createResult = await ctrl.createReportHandler.handle(
+            params.content,
+            effectiveTargetId,
+            params.title,
+          );
+          return { success: true, data: { output: createResult.text } };
+        }
+        case 'read_report': {
+          if (!params.report_id) return { success: false, error: 'report_id is required' };
+          const readResult = await ctrl.readReportHandler.handle(
+            params.report_id,
+            params.start_line,
+            params.end_line,
+            effectiveTargetId,
+          );
+          return { success: true, data: { output: readResult.text } };
+        }
+        case 'update_report': {
+          if (!params.report_ref) return { success: false, error: 'report_ref is required' };
+          if (!params.old_content) return { success: false, error: 'old_content is required' };
+          const updateResult = await ctrl.updateReportHandler.handle(
+            params.report_ref,
+            params.old_content,
+            params.new_content || '',
+            effectiveTargetId,
+          );
+          return { success: true, data: { output: updateResult.text } };
+        }
+        case 'list_report_files': {
+          if (!effectiveTargetId) return { success: false, error: 'target_id is required' };
+          if (!params.report_id) return { success: false, error: 'report_id is required' };
+          const result = await ctrl.listReportFilesHandler.handle(
+            effectiveTargetId,
+            params.report_id,
+          );
+          return { success: true, data: { output: result.text } };
+        }
+        case 'create_report_file': {
+          if (!effectiveTargetId) return { success: false, error: 'target_id is required' };
+          if (!params.report_id) return { success: false, error: 'report_id is required' };
+          if (!params.file_name) return { success: false, error: 'file_name is required' };
+          const result = await ctrl.createReportFileHandler.handle(
+            effectiveTargetId,
+            params.report_id,
+            params.file_name,
+            params.content || '',
+          );
+          return { success: true, data: { output: result.text } };
+        }
+        case 'read_report_file': {
+          if (!effectiveTargetId) return { success: false, error: 'target_id is required' };
+          if (!params.report_id) return { success: false, error: 'report_id is required' };
+          if (!params.file_name) return { success: false, error: 'file_name is required' };
+          const result = await ctrl.readReportFileHandler.handle(
+            effectiveTargetId,
+            params.report_id,
+            params.file_name,
+          );
+          return { success: true, data: { output: result.text } };
+        }
+        case 'update_report_file': {
+          if (!effectiveTargetId) return { success: false, error: 'target_id is required' };
+          if (!params.report_id) return { success: false, error: 'report_id is required' };
+          if (!params.file_name) return { success: false, error: 'file_name is required' };
+          if (params.content === undefined)
+            return { success: false, error: 'content is required' };
+          const result = await ctrl.updateReportFileHandler.handle(
+            effectiveTargetId,
+            params.report_id,
+            params.file_name,
+            params.content,
+          );
+          return { success: true, data: { output: result.text } };
+        }
+        case 'delete_report_file': {
+          if (!effectiveTargetId) return { success: false, error: 'target_id is required' };
+          if (!params.report_id) return { success: false, error: 'report_id is required' };
+          if (!params.file_name) return { success: false, error: 'file_name is required' };
+          const result = await ctrl.deleteReportFileHandler.handle(
+            effectiveTargetId,
+            params.report_id,
+            params.file_name,
+          );
+          return { success: true, data: { output: result.text } };
+        }
         default:
           return { success: false, error: 'Unknown emulate tool: ' + toolName };
       }
@@ -258,15 +377,13 @@ export class EmulateController {
   // ── Instance methods ──────────────────────────────────────────────
 
   public setRequests(requests: NetworkRequest[]): void {
-    console.log('[DEBUG] EmulateController.setRequests called', {
-      count: requests.length,
-      httpsCount: requests.filter((r) => r.protocol === 'https' || r.url.startsWith('https://')).length,
-    });
     this.requests = requests;
   }
+
   public setUnpackedScripts(scripts: Map<string, CdpScriptUnpackedData> | undefined): void {
     this.unpackedScripts = scripts;
   }
+
   public setTargetId(targetId: string | null): void {
     this.targetId = targetId;
   }
@@ -275,7 +392,8 @@ export class EmulateController {
     const allRequests = this.requests;
     console.log('[DEBUG] listHttps called', {
       allRequests: allRequests.length,
-      httpsCount: allRequests.filter((r) => r.protocol === 'https' || r.url.startsWith('https://')).length,
+      httpsCount: allRequests.filter((r) => r.protocol === 'https' || r.url.startsWith('https://'))
+        .length,
       currentFilter: this.filter,
       passedFilter: filter,
       limit,

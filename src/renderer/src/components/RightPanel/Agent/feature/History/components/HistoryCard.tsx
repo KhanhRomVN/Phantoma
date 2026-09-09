@@ -208,13 +208,12 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
       requestId,
     });
 
-    const handler = (event: MessageEvent) => {
-      const data = event.data;
+    const handler = (data: any) => {
       if (
-        data.command === 'conversationResult' &&
+        data.command === 'getConversation' &&
         data.requestId === requestId
       ) {
-        window.removeEventListener('message', handler);
+        unsubscribe();
         if (data.data?.messages) {
           setMessages(data.data.messages);
           // Update cache if available
@@ -231,16 +230,16 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
       }
     };
 
-    window.addEventListener('message', handler);
+    const unsubscribe = extensionService.onMessage('messageResponse', handler);
     const timeout = setTimeout(() => {
-      window.removeEventListener('message', handler);
+      unsubscribe();
       setIsLoadingMessages(false);
     }, 5000);
     loadTimeoutRef.current = timeout;
 
     return () => {
       if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-      window.removeEventListener('message', handler);
+      unsubscribe();
     };
   }, [shouldLoad, item.id]);
 
@@ -257,13 +256,12 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
       conversationId: item.id,
       requestId,
     });
-    const handler = (event: MessageEvent) => {
-      const data = event.data;
+    const handler = (data: any) => {
       if (
-        data.command === 'conversationResult' &&
+        data.command === 'getConversation' &&
         data.requestId === requestId
       ) {
-        window.removeEventListener('message', handler);
+        unsubscribe();
         if (data.data?.messages) {
           const text = data.data.messages
             .map((msg: any) => {
@@ -277,8 +275,8 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
         }
       }
     };
-    window.addEventListener('message', handler);
-    setTimeout(() => window.removeEventListener('message', handler), 5000);
+    const unsubscribe = extensionService.onMessage('messageResponse', handler);
+    setTimeout(() => unsubscribe(), 5000);
   };
 
   const handleOpenCoversationFolder = () => {

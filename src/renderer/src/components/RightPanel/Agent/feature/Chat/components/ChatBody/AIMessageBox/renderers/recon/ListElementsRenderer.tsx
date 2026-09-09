@@ -80,35 +80,114 @@ export const ListElementsRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
+interface ParsedElement {
+  ref: string;
+  type: string;
+  text: string;
+}
+
+function parseListElementsOutput(output: string): ParsedElement[] | null {
+  try {
+    // Parse markdown table format
+    const lines = output.trim().split('\n');
+    const elements: ParsedElement[] = [];
+    
+    for (const line of lines) {
+      if (line.trim().startsWith('|') && !line.includes('---')) {
+        const parts = line.split('|').map(p => p.trim()).filter(p => p);
+        
+        // Skip header row
+        if (parts.length >= 3 && parts[0] !== 'ref' && parts[1] !== 'type') {
+          elements.push({
+            ref: parts[0],
+            type: parts[1],
+            text: parts[2],
+          });
+        }
+      }
+    }
+    
+    return elements.length > 0 ? elements : null;
+  } catch {
+    return null;
+  }
+}
+
 function ListElementsBlock({
   elementType,
   output,
   isError,
 }: ListElementsBlockProps) {
+  const parsed = output ? parseListElementsOutput(output) : null;
+  
   return (
     <div className="text-xs space-y-2">
-      {elementType && (
-        <div className="flex items-start gap-2">
-          <span className="text-text-secondary shrink-0">Type:</span>
-          <span className="text-text-primary font-mono">{elementType}</span>
+      {output && !isError && parsed ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-text-secondary">
+              {parsed.length} element{parsed.length !== 1 ? 's' : ''}
+            </span>
+            {elementType && (
+              <span
+                className="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase"
+                style={{
+                  backgroundColor: $('--background-tertiary'),
+                  color: $('--text-secondary'),
+                }}
+              >
+                {elementType}
+              </span>
+            )}
+          </div>
+          
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {parsed.map((elem, idx) => (
+              <div
+                key={idx}
+                className="p-2 rounded border transition-colors hover:border-opacity-60"
+                style={{
+                  backgroundColor: $('--background-secondary'),
+                  borderColor: $('--border'),
+                }}
+              >
+                <div className="flex items-start gap-2">
+                  <span
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono shrink-0"
+                    style={{
+                      backgroundColor: $('--background-tertiary'),
+                      color: $('--text-secondary'),
+                    }}
+                  >
+                    {elem.ref}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="text-[10px] uppercase font-medium mb-0.5"
+                      style={{ color: $('--text-secondary') }}
+                    >
+                      {elem.type}
+                    </div>
+                    <div className="text-text-primary break-words">{elem.text}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
-
-      {output && (
+      ) : output && isError ? (
         <div
-          className="p-3 rounded font-mono whitespace-pre-wrap max-h-96 overflow-y-auto"
+          className="p-3 rounded font-mono whitespace-pre-wrap text-xs max-h-96 overflow-y-auto"
           style={{
-            backgroundColor: isError ? $('--error') + '10' : $('--success') + '10',
-            color: isError ? $('--error') : $('--success'),
+            backgroundColor: $('--error') + '10',
+            color: $('--error'),
           }}
         >
           {output}
         </div>
-      )}
-
-      {!output && !isError && (
+      ) : !output && !isError ? (
         <div className="text-text-secondary opacity-60">Listing elements...</div>
-      )}
+      ) : null}
     </div>
   );
 }

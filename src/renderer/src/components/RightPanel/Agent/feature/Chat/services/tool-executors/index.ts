@@ -107,6 +107,15 @@ import {
   executeGetRepeaterDetail,
   executeUpdateRepeaterContent,
   executeRunRepeater,
+  executeListReports,
+  executeCreateReport,
+  executeReadReport,
+  executeUpdateReport,
+  executeListReportFiles,
+  executeCreateReportFile,
+  executeReadReportFile,
+  executeUpdateReportFile,
+  executeDeleteReportFile,
 } from './EmulateExecutor';
 
 // ── Recon tool executors ────────────────────────────────────────────
@@ -328,6 +337,60 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       return {
         execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
           return executeRunRepeater(action.params || {}, ctx.activeTargetId);
+        },
+      };
+    case 'list_reports':
+      return {
+        execute: async (_action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeListReports(ctx.activeTargetId);
+        },
+      };
+    case 'create_report':
+      return {
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeCreateReport(action.params || {}, ctx.activeTargetId);
+        },
+      };
+    case 'read_report':
+      return {
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeReadReport(action.params || {}, ctx.activeTargetId);
+        },
+      };
+    case 'update_report':
+      return {
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeUpdateReport(action.params || {}, ctx.activeTargetId);
+        },
+      };
+    case 'list_report_files':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeListReportFiles(action.params || {});
+        },
+      };
+    case 'create_report_file':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeCreateReportFile(action.params || {});
+        },
+      };
+    case 'read_report_file':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeReadReportFile(action.params || {});
+        },
+      };
+    case 'update_report_file':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeUpdateReportFile(action.params || {});
+        },
+      };
+    case 'delete_report_file':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeDeleteReportFile(action.params || {});
         },
       };
 
