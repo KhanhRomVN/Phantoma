@@ -14,6 +14,10 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
+import { emulateApi } from './emulate-api.service';
+
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface ReportFileEntry {
   name: string;
@@ -22,7 +26,7 @@ export interface ReportFileEntry {
   size?: number;
 }
 
-const ALLOWED_EXTENSIONS = ['.html', '.css', '.js'];
+const ALLOWED_EXTENSIONS = ['.html', '.css', '.js', '.json'];
 
 /** Kiểm tra tên file hợp lệ: phẳng, đúng đuôi, không chứa ký tự nguy hiểm. */
 function validateFileName(fileName: string): boolean {
@@ -30,7 +34,8 @@ function validateFileName(fileName: string): boolean {
     return false;
   }
   const lower = fileName.toLowerCase();
-  return ALLOWED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+  const isValid = ALLOWED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+  return isValid;
 }
 
 function getApi(): any {
@@ -45,10 +50,37 @@ async function getHomedir(): Promise<string> {
   return await getApi().invoke('fs:get-homedir');
 }
 
-/** Trả về đường dẫn tuyệt đối tới thư mục code của report. */
+/**
+ * Resolve `report_<n>` (index hiển thị từ list_reports) sang ID thật của report trong DB.
+ * Nếu `reportRef` không khớp dạng index mapping, trả về nguyên giá trị
+ * (giả định caller đã truyền ID thật). Ném lỗi nếu index out-of-range
+ * để tránh âm thầm ghi nhầm vào folder rác.
+ */
+async function resolveReportId(targetId: string, reportRef: string): Promise<string> {
+  const match = /^report_(\d+)$/i.exec(reportRef.trim());
+  if (!match) {
+    return reportRef;
+  }
+
+  const idx = parseInt(match[1], 10) - 1;
+  const res = await emulateApi.listReports(targetId);
+  if (!res.success) {
+    throw new Error(`Cannot resolve ${reportRef}: ${res.error || 'failed to list reports'}`);
+  }
+  const reports = res.data || [];
+  if (idx < 0 || idx >= reports.length) {
+    throw new Error(`Cannot resolve ${reportRef}: index out of range (total ${reports.length})`);
+  }
+  const resolvedId = reports[idx].id;
+  return resolvedId;
+}
+
+/** Trả về đường dẫn tuyệt đối tới thư mục code của report (đã resolve index mapping). */
 export async function getReportCodeDir(targetId: string, reportId: string): Promise<string> {
   const home = await getHomedir();
-  return `${home}/.phantoma/emulate:${targetId}/reports/report:${reportId}/code`;
+  const actualId = await resolveReportId(targetId, reportId);
+  const dir = `${home}/.phantoma/emulate:${targetId}/reports/report:${actualId}/code`;
+  return dir;
 }
 
 export const reportFileService = {
@@ -58,9 +90,7 @@ export const reportFileService = {
     try {
       const entries = await getApi().invoke('fs:read-dir', dir);
       if (!Array.isArray(entries)) return [];
-      return entries.filter(
-        (e: any) => e.type === 'file' && validateFileName(e.name),
-      );
+      return entries.filter((e: any) => e.type === 'file' && validateFileName(e.name));
     } catch {
       return []; // Thư mục chưa tồn tại
     }

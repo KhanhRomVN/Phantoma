@@ -218,5 +218,5 @@ export interface DeleteReportFileParams {
 // ===== COMMAND TOOLS =====
 export interface ExecuteCommandParams {
   command: string;
-  folder_path?: string;
+  report_id: string;
 }

@@ -17,6 +17,10 @@ import { ReportTerminal } from './ReportTerminal';
 interface ReportBottomPanelProps {
   /** URI của report files đang mở — dùng để lọc diagnostics */
   reportFileUris?: string[];
+  /** ID target hiện tại */
+  targetId?: string | null;
+  /** ID report đang chọn */
+  reportId?: string | null;
 }
 
 const MIN_HEIGHT = 120;
@@ -30,7 +34,11 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'terminal', label: 'Terminal', icon: <TerminalIcon className="w-3.5 h-3.5" strokeWidth={1.5} /> },
 ];
 
-export const ReportBottomPanel: React.FC<ReportBottomPanelProps> = ({ reportFileUris }) => {
+export const ReportBottomPanel: React.FC<ReportBottomPanelProps> = ({
+  reportFileUris,
+  targetId,
+  reportId,
+}) => {
   const [activeTab, setActiveTab] = useState<TabId>('problems');
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [isOpen, setIsOpen] = useState(true);
@@ -115,7 +123,7 @@ export const ReportBottomPanel: React.FC<ReportBottomPanelProps> = ({ reportFile
         {activeTab === 'problems' ? (
           <ReportProblems reportFileUris={reportFileUris} />
         ) : (
-          <ReportTerminal />
+          <ReportTerminal targetId={targetId} reportId={reportId} />
         )}
       </div>
     </div>

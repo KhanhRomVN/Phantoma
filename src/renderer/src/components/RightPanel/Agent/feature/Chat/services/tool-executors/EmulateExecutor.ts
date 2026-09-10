@@ -390,10 +390,15 @@ export async function executeUpdateReport(
 /** Execute list_report_files tool */
 export async function executeListReportFiles(
   params: ListReportFilesParams,
+  contextTargetId?: string | null,
 ): Promise<string | null> {
-  const result = await EmulateController.executeTool('list_report_files', {
-    report_id: params.report_id,
-  });
+  const result = await EmulateController.executeTool(
+    'list_report_files',
+    {
+      report_id: params.report_id,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[list_report_files] Result: Error - ' + (result.error || '');
@@ -406,12 +411,17 @@ export async function executeListReportFiles(
 /** Execute create_report_file tool */
 export async function executeCreateReportFile(
   params: CreateReportFileParams,
+  contextTargetId?: string | null,
 ): Promise<string | null> {
-  const result = await EmulateController.executeTool('create_report_file', {
-    report_id: params.report_id,
-    file_name: params.file_name,
-    content: params.content,
-  });
+  const result = await EmulateController.executeTool(
+    'create_report_file',
+    {
+      report_id: params.report_id,
+      file_name: params.file_name,
+      content: params.content,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[create_report_file] Result: Error - ' + (result.error || '');
@@ -424,11 +434,16 @@ export async function executeCreateReportFile(
 /** Execute read_report_file tool */
 export async function executeReadReportFile(
   params: ReadReportFileParams,
+  contextTargetId?: string | null,
 ): Promise<string | null> {
-  const result = await EmulateController.executeTool('read_report_file', {
-    report_id: params.report_id,
-    file_name: params.file_name,
-  });
+  const result = await EmulateController.executeTool(
+    'read_report_file',
+    {
+      report_id: params.report_id,
+      file_name: params.file_name,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[read_report_file] Result: Error - ' + (result.error || '');
@@ -441,12 +456,17 @@ export async function executeReadReportFile(
 /** Execute update_report_file tool */
 export async function executeUpdateReportFile(
   params: UpdateReportFileParams,
+  contextTargetId?: string | null,
 ): Promise<string | null> {
-  const result = await EmulateController.executeTool('update_report_file', {
-    report_id: params.report_id,
-    file_name: params.file_name,
-    content: params.content,
-  });
+  const result = await EmulateController.executeTool(
+    'update_report_file',
+    {
+      report_id: params.report_id,
+      file_name: params.file_name,
+      content: params.content,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[update_report_file] Result: Error - ' + (result.error || '');
@@ -459,11 +479,16 @@ export async function executeUpdateReportFile(
 /** Execute delete_report_file tool */
 export async function executeDeleteReportFile(
   params: DeleteReportFileParams,
+  contextTargetId?: string | null,
 ): Promise<string | null> {
-  const result = await EmulateController.executeTool('delete_report_file', {
-    report_id: params.report_id,
-    file_name: params.file_name,
-  });
+  const result = await EmulateController.executeTool(
+    'delete_report_file',
+    {
+      report_id: params.report_id,
+      file_name: params.file_name,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[delete_report_file] Result: Error - ' + (result.error || '');
@@ -476,11 +501,20 @@ export async function executeDeleteReportFile(
 /** Execute execute_command tool — gọi EmulateController.executeTool() */
 export async function executeExecuteCommand(
   params: ExecuteCommandParams,
+  contextTargetId?: string | null,
 ): Promise<string | null> {
-  const result = await EmulateController.executeTool('execute_command', {
-    command: params.command,
-    folder_path: params.folder_path,
-  });
+  if (!params.report_id) {
+    return '[execute_command] Error: report_id is required';
+  }
+
+  const result = await EmulateController.executeTool(
+    'execute_command',
+    {
+      command: params.command,
+      report_id: params.report_id,
+    },
+    contextTargetId,
+  );
 
   if (!result.success) {
     return '[execute_command] Result: Error - ' + (result.error || '');

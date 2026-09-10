@@ -3,13 +3,15 @@
  * ExecuteCommandHandler
  * ------------------------------------------------------------------
  * Handler cho tool execute_command trong Emulate module.
- * Chạy lệnh shell thông qua IPC 'run_command' sẵn có từ main process.
- * Tool này dùng để chạy lệnh bất kỳ (vd: chạy file .js report).
+ * Chạy lệnh shell trong thư mục code của report thông qua IPC 'run_command'.
+ * Tool này dùng để chạy lệnh bất kỳ trong context của report (vd: node script.js).
  *
  * Main functions:
- * - handle() : Validate command và thực thi qua IPC
+ * - handle() : Validate command, resolve report folder path, và thực thi qua IPC
  * ------------------------------------------------------------------
  */
+
+import { getReportCodeDir } from '../services/report-file.service';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface ExecuteCommandResult {
@@ -19,19 +21,42 @@ export interface ExecuteCommandResult {
 // ─── Class ──────────────────────────────────────────────────────────────
 export class ExecuteCommandHandler {
   /**
-   * Thực thi lệnh shell qua IPC.
+   * Thực thi lệnh shell trong thư mục code của report qua IPC.
+   * @param targetId ID của target hiện tại
+   * @param reportId ID của report (format: report_X)
    * @param command Lệnh cần chạy
-   * @param folderPath Thư mục chạy lệnh (mặc định: workspace root)
    */
-  public async handle(command: string, folderPath?: string): Promise<ExecuteCommandResult> {
+  public async handle(
+    targetId: string,
+    reportId: string,
+    command: string,
+  ): Promise<ExecuteCommandResult> {
     if (!command || !command.trim()) {
       return { text: '[execute_command] Error: command is required' };
     }
 
+    if (!reportId || !reportId.trim()) {
+      return { text: '[execute_command] Error: report_id is required' };
+    }
+
     try {
+      console.log('[DEBUG][execute_command] request:', { targetId, reportId, command });
+      // Resolve thư mục code của report
+      const folderPath = await getReportCodeDir(targetId, reportId);
+      console.log('[DEBUG][execute_command] Resolved folder:', folderPath);
+
       const result = await window.api.invoke('run_command', {
         command: command.trim(),
-        cwd: folderPath || undefined,
+        cwd: folderPath,
+      });
+      console.log('[DEBUG][execute_command] raw IPC result:', result);
+      console.log('[DEBUG][execute_command] fields:', {
+        success: result?.success,
+        stdout: result?.stdout,
+        stderr: result?.stderr,
+        output: result?.output,
+        data: result?.data,
+        error: result?.error,
       });
 
       if (result?.error) {
@@ -40,6 +65,10 @@ export class ExecuteCommandHandler {
 
       const output = result?.stdout || result?.output || result?.data || '';
       const stderr = result?.stderr || '';
+      console.log('[DEBUG][execute_command] parsed:', {
+        outputLength: output.length,
+        stderrLength: stderr.length,
+      });
 
       if (stderr && !output) {
         return { text: `[execute_command] ${command}\n${stderr}` };

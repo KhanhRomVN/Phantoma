@@ -76,12 +76,6 @@ class ApiService {
       throw new Error(`Invalid JSON response: ${cleanedText.substring(0, 100)}...`);
     }
 
-    if (path.includes('/reports')) {
-      console.log('[DEBUG api.request] path:', path, 'status:', res.status);
-      console.log('[DEBUG api.request] raw response:', cleanedText);
-      console.log('[DEBUG api.request] parsed json:', json);
-    }
-
     let data: T;
     if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
       if (!json.success) {

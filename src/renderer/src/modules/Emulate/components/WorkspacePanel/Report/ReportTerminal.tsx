@@ -2,21 +2,30 @@ import React, { useRef, useEffect } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
+import { getReportCodeDir } from '../../../services/report-file.service';
 
 /**
  * ------------------------------------------------------------------
  * ReportTerminal
  * ------------------------------------------------------------------
  * Tab terminal đơn giản cho Report bottom panel.
- * Dùng xterm.js với 1 instance, spawn shell qua IPC 'terminal:spawn'.
+ * Dùng xterm.js với 1 instance, spawn shell qua IPC 'terminal:spawn'
+ * với cwd trỏ tới thư mục code/ của report hiện tại.
  * ------------------------------------------------------------------
  */
 
-export const ReportTerminal: React.FC = () => {
+interface ReportTerminalProps {
+  targetId?: string | null;
+  reportId?: string | null;
+}
+
+export const ReportTerminal: React.FC<ReportTerminalProps> = ({ targetId, reportId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const terminalIdRef = useRef<string>(`report-terminal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const terminalIdRef = useRef<string>(
+    `report-terminal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -62,14 +71,20 @@ export const ReportTerminal: React.FC = () => {
       window.api.send('terminal:write', { terminalId: terminalIdRef.current, data });
     });
 
-    // Spawn shell
-    window.api.invoke('terminal:spawn', terminalIdRef.current)
-      .then((info: any) => {
-        console.log('[ReportTerminal] Shell spawned:', info.shell);
-      })
-      .catch((err: any) => {
+    // Spawn shell with report code dir as cwd
+    (async () => {
+      try {
+        const cwd = targetId && reportId ? await getReportCodeDir(targetId, reportId) : undefined;
+
+        const info: any = await window.api.invoke('terminal:spawn', {
+          terminalId: terminalIdRef.current,
+          cwd,
+        });
+        console.log('[ReportTerminal] Shell spawned:', info.shell, 'cwd:', cwd);
+      } catch (err: any) {
         term.writeln(`\x1b[1;31m✖\x1b[0m Failed to spawn shell: ${err?.message || err}`);
-      });
+      }
+    })();
 
     const handleResize = () => {
       try {
@@ -88,7 +103,7 @@ export const ReportTerminal: React.FC = () => {
       term.dispose();
       xtermRef.current = null;
     };
-  }, []);
+  }, [targetId, reportId]);
 
   return (
     <div className="flex-1 relative overflow-hidden" style={{ padding: '4px 8px' }}>

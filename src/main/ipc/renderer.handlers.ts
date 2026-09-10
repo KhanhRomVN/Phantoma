@@ -515,20 +515,24 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
         const command = payload?.command || '';
         if (!command) throw new Error('No command provided');
         const cwd = payload?.cwd || process.cwd();
+        console.log('[DEBUG][main][run_command] input:', { command, cwd });
         const result = await execCommand(command, cwd);
+        console.log('[DEBUG][main][run_command] execResult:', result);
         sendToRenderer('messageResponse', {
           requestId,
           command: 'run_command',
           ...result,
         });
+        return result;
       } catch (e: any) {
+        console.log('[DEBUG][main][run_command] error:', e?.message || String(e));
         sendToRenderer('messageResponse', {
           requestId,
           command: 'run_command',
           error: e.message,
         });
+        return { success: false, error: e.message };
       }
-      return { success: true };
     }
 
     case 'move_file': {

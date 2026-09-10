@@ -20,7 +20,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // ── UI ──
 import { FileText, Eye, Pencil } from 'lucide-react';
@@ -92,16 +92,62 @@ export const ReportViewPanel: React.FC<ReportViewPanelProps> = ({
   const [reportMode, setReportMode] = useState<'view' | 'edit'>('view');
   const [fileMode, setFileMode] = useState<'view' | 'edit'>('view');
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('pc');
-  const [previewScale, setPreviewScale] = useState(1);
   const updateReport = useReportStore((s) => s.updateReport);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const iframeWrapperRef = useRef<HTMLDivElement>(null);
+  const [iframeSize, setIframeSize] = useState({ width: 0, height: 0 });
+  const [zoomLevel, setZoomLevel] = useState(1);
+
+  const isHtmlView = fileContent !== null && isHtmlFile(fileName || '') && fileMode === 'view';
 
   useEffect(() => {
     if (fileName && isHtmlFile(fileName)) {
       setFileMode('view');
       setPreviewDevice('pc');
-      setPreviewScale(1);
+      setZoomLevel(1);
     }
   }, [fileName]);
+
+  useEffect(() => {
+    if (isHtmlView && previewDevice === 'pc') {
+      const calculateSize = () => {
+        if (containerRef.current) {
+          const container = containerRef.current.getBoundingClientRect();
+          const aspectRatio = 16 / 9;
+
+          // Calculate display size based on container, maintaining 16:9 aspect ratio
+          let displayWidth = container.width;
+          let displayHeight = displayWidth / aspectRatio;
+
+          // If height exceeds container, fit by height instead
+          if (displayHeight > container.height) {
+            displayHeight = container.height;
+            displayWidth = displayHeight * aspectRatio;
+          }
+
+          setIframeSize({
+            width: displayWidth,
+            height: displayHeight,
+          });
+        }
+      };
+
+      calculateSize();
+      const resizeObserver = new ResizeObserver(calculateSize);
+      if (containerRef.current) {
+        resizeObserver.observe(containerRef.current);
+      }
+
+      return () => resizeObserver.disconnect();
+    }
+  }, [isHtmlView, previewDevice]);
+
+  const handleWheelZoom = (e: React.WheelEvent) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setZoomLevel((prev) => Math.min(3, Math.max(0.25, prev + delta)));
+  };
 
   if (!report) {
     return (
@@ -114,25 +160,12 @@ export const ReportViewPanel: React.FC<ReportViewPanelProps> = ({
     );
   }
 
-  const handleWheelZoom = (e: React.WheelEvent) => {
-    if (!e.ctrlKey) return;
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    setPreviewScale((prev) => Math.min(2, Math.max(0.5, prev + delta)));
-  };
-
-  const isHtmlView = fileContent !== null && isHtmlFile(fileName || '') && fileMode === 'view';
-
   return (
     <div className="h-full overflow-hidden flex flex-col">
       {/* Header bar */}
       <div className="h-10 px-3 border-b border-divider flex items-center justify-between shrink-0 bg-muted/10">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <img
-            src={getFileIconPath(fileName || 'report.md')}
-            alt=""
-            className="w-4 h-4 shrink-0"
-          />
+          <img src={getFileIconPath(fileName || 'report.md')} alt="" className="w-4 h-4 shrink-0" />
           <span className="text-xs font-medium text-text-primary truncate">
             {fileName || report.title}
           </span>
@@ -185,27 +218,54 @@ export const ReportViewPanel: React.FC<ReportViewPanelProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={containerRef} className="flex-1 overflow-hidden">
         {fileContent !== null ? (
           isHtmlView ? (
-            <div className="w-full h-full overflow-auto" onWheel={handleWheelZoom}>
-              <div
-                className="mx-auto transition-[width] duration-300"
-                style={{
-                  width: getPreviewWidth(previewDevice),
-                  height: '100%',
-                  transform: `scale(${previewScale})`,
-                  transformOrigin: 'top center',
-                }}
-              >
-                <iframe
-                  title={fileName || 'html-preview'}
-                  srcDoc={fileContent}
-                  className="w-full h-full bg-white"
-                  style={{ pointerEvents: 'none' }}
-                  sandbox="allow-scripts"
-                />
-              </div>
+            <div
+              className="w-full h-full flex items-center justify-center bg-black/5"
+              onWheel={handleWheelZoom}
+            >
+              {previewDevice === 'pc' ? (
+                <div
+                  ref={iframeWrapperRef}
+                  className="relative overflow-hidden"
+                  style={{
+                    width: `${iframeSize.width * zoomLevel}px`,
+                    height: `${iframeSize.height * zoomLevel}px`,
+                    transition: 'width 0.1s, height 0.1s',
+                  }}
+                >
+                  <iframe
+                    title={fileName || 'html-preview'}
+                    srcDoc={fileContent}
+                    className="bg-white origin-top-left"
+                    style={{
+                      width: '1920px',
+                      height: '1080px',
+                      transform: `scale(${(iframeSize.width / 1920) * zoomLevel})`,
+                      border: 'none',
+                    }}
+                    sandbox="allow-scripts"
+                  />
+                </div>
+              ) : (
+                <div
+                  className="relative transition-[width] duration-300"
+                  style={{
+                    width: getPreviewWidth(previewDevice),
+                    height: '100%',
+                    maxHeight: '100%',
+                  }}
+                >
+                  <iframe
+                    title={fileName || 'html-preview'}
+                    srcDoc={fileContent}
+                    className="w-full h-full bg-white"
+                    style={{ pointerEvents: 'none' }}
+                    sandbox="allow-scripts"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <CodeBlock
@@ -213,19 +273,10 @@ export const ReportViewPanel: React.FC<ReportViewPanelProps> = ({
               language={getLanguageFromFileName(fileName || '')}
               showLineNumbers={true}
               onChange={(value) => {
-                console.log('[DEBUG][ReportViewPanel] onChange file code:', {
-                  targetId,
-                  reportId: report.id,
-                  fileName,
-                  valueLength: value.length,
-                  value,
-                });
                 if (targetId && fileName) {
                   reportFileService
                     .writeFile(targetId, report.id, fileName, value)
-                    .then(() => {
-                      console.log('[DEBUG][ReportViewPanel] writeFile success:', fileName);
-                    })
+                    .then(() => {})
                     .catch((err) => {
                       console.error('[DEBUG][ReportViewPanel] writeFile failed:', err);
                     });
@@ -258,7 +309,7 @@ export const ReportViewPanel: React.FC<ReportViewPanelProps> = ({
       </div>
 
       {/* Bottom Panel — Problems + Terminal */}
-      <ReportBottomPanel />
+      <ReportBottomPanel targetId={targetId} reportId={report.id} />
     </div>
   );
 };

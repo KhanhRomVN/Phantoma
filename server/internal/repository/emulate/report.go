@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"os"
 
 	domainemulate "github.com/phantoma/server/internal/domain/emulate"
 )
@@ -61,10 +62,10 @@ func (r *FileReportRepository) GetReportsByTargetID(targetID string) ([]domainem
 func (r *FileReportRepository) GetReportByID(targetID, reportID string) (*domainemulate.Report, error) {
 	content, err := r.fileStorage.ReadReport(targetID, reportID)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("read report: %w", err)
-	}
-	if content == "" {
-		return nil, nil
 	}
 
 	return &domainemulate.Report{

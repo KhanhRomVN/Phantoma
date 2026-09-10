@@ -585,16 +585,16 @@ export function parseDeleteReportFile(innerContent: string): DeleteReportFilePar
 
 /**
  * Parse execute_command tag from AI response.
- * Format: <execute_command><command>npm test</command><folder_path>/path/to/run</folder_path></execute_command>
+ * Format: <execute_command><command>npm test</command><report_id>report_1</report_id></execute_command>
  */
 export function parseExecuteCommand(innerContent: string): ExecuteCommandParams {
-  const params: ExecuteCommandParams = { command: '' };
+  const params: ExecuteCommandParams = { command: '', report_id: '' };
 
   const commandParam = extractParamValue(innerContent, 'command');
   if (commandParam) params.command = commandParam.trim();
 
-  const folderPathParam = extractParamValue(innerContent, 'folder_path');
-  if (folderPathParam) params.folder_path = folderPathParam.trim();
+  const reportIdParam = extractParamValue(innerContent, 'report_id');
+  if (reportIdParam) params.report_id = reportIdParam.trim();
 
   return params;
 }

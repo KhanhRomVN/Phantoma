@@ -33,21 +33,12 @@ export class CreateReportHandler {
       return { text: '[create_report] Error: targetId is required' };
     }
 
-    console.log('[DEBUG create_report] payload:', {
-      emulate_target_id: targetId,
-      title: title || '',
-      file_path: '',
-      content,
-    });
-
     const res = await emulateApi.createReport(targetId, {
       emulate_target_id: targetId,
       title: title || '',
       file_path: '',
       content,
     });
-
-    console.log('[DEBUG create_report] res:', res);
 
     if (!res.success) {
       return { text: '[create_report] Error: ' + (res.error || 'Failed to create report') };
@@ -58,6 +49,8 @@ export class CreateReportHandler {
       window.dispatchEvent(new CustomEvent('report-updated'));
     }
 
-    return { text: `[create_report] Created "${res.data?.title || 'report'}" (ID: ${res.data?.id})` };
+    return {
+      text: `[create_report] Created "${res.data?.title || 'report'}" (ID: ${res.data?.id})`,
+    };
   }
 }

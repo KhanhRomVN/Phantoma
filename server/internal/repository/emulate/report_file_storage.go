@@ -57,7 +57,7 @@ func (s *ReportFileStorage) ReadReport(targetID, reportID string) (string, error
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", nil
+			return "", os.ErrNotExist
 		}
 		return "", fmt.Errorf("read report file: %w", err)
 	}
@@ -98,6 +98,11 @@ func (s *ReportFileStorage) ListReports(targetID string) ([]domainemulate.Report
 		reportID := strings.TrimPrefix(folderName, "report:")
 		content, err := s.ReadReport(targetID, reportID)
 		if err != nil {
+			// Folder không có file .md tương ứng (ví dụ folder rỗng hoặc tàn dư)
+			// → bỏ qua thay vì làm hỏng toàn bộ danh sách.
+			if os.IsNotExist(err) {
+				continue
+			}
 			return nil, fmt.Errorf("read report %s: %w", reportID, err)
 		}
 

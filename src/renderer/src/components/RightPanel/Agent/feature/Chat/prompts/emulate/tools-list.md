@@ -6,6 +6,45 @@ To update AI tool instructions, edit: tools-reference.ts
 
 # Công Cụ Emulate
 
+## Quy Tắc Làm Việc Với Report
+
+### Context Awareness
+- Khi user đang xem một report cụ thể (đã `read_report` hoặc `list_report_files`), đó là **report hiện tại**.
+- Khi user yêu cầu tạo/sửa file mà KHÔNG chỉ định report_id rõ ràng, hỏi user: "Bạn muốn tạo file này trong report nào? Report hiện tại (report_X) hay report khác?"
+- **KHÔNG BAO GIỜ** tự động tạo report mới hoặc chọn report khác khi đang làm việc với một report cụ thể.
+
+### Report Workflow
+1. **Xem danh sách report**: `list_reports`
+2. **Đọc một report**: `read_report` với `report_id` từ danh sách
+3. **Làm việc với file trong report**:
+   - List files: `list_report_files` với `report_id`
+   - Create file: `create_report_file` với `report_id` (phải hỏi nếu không rõ)
+   - Read file: `read_report_file` với `report_id`
+   - Update file: `update_report_file` với `report_id`
+   - Execute command: `execute_command` với `report_id` (chạy trong thư mục code của report)
+
+### Ví dụ Flow Đúng
+```
+User: "Đọc report Security Review"
+AI: <list_reports /> → Tìm thấy report_3
+AI: <read_report><report_id>report_3</report_id></read_report>
+
+User: "Tạo file analysis.js"
+AI: Bạn muốn tạo file analysis.js trong report Security Review (report_3) hay report khác?
+User: "Đúng, trong report này"
+AI: <create_report_file><report_id>report_3</report_id><file_name>analysis.js</file_name>...
+```
+
+### Ví dụ Flow Sai
+```
+User: "Đọc report Security Review"
+AI: <read_report><report_id>report_3</report_id></read_report>
+
+User: "Tạo file analysis.js"
+AI: <create_report><title>New Report</title></create_report>  ❌ SAI!
+AI: <create_report_file><report_id>report_4</report_id>... ❌ SAI! Tạo trong report mới
+```
+
 ## Phần 1: Tool Chủ Động
 
 Các tool này cần được AI gọi bằng lệnh XML tương ứng.
@@ -852,12 +891,14 @@ Xóa file code khỏi report.
 ---
 
 ### 24. `execute_command`
-Chạy lệnh shell trong workspace. Có thể dùng để chạy file .js trong report.
+Chạy lệnh shell trong thư mục code của report. Thường dùng để chạy file .js trong report.
 
 | Tham số | Bắt buộc | Mô tả |
 |-----------|----------|-------------|
 | `command` | **Có** | Lệnh shell cần chạy |
-| `folder_path` | Không | Thư mục chạy lệnh (mặc định: workspace root) |
+| `report_id` | **Có** | ID của report (lấy từ `list_reports` hoặc context) |
+
+⚠️ Lệnh sẽ được chạy trong thư mục code của report: `~/.phantoma/emulate:{targetId}/reports/report:{reportId}/code/`
 
 ⚠️ Nếu exit code khác 0, lệnh thất bại — phải phân tích `stderr` trước khi làm gì tiếp.
 
@@ -865,15 +906,16 @@ Chạy lệnh shell trong workspace. Có thể dùng để chạy file .js trong
 
 **Ví dụ:**
 
-
-<execute_command><command>node script.js</command></execute_command>
-
+```xml
+<execute_command><command>node script.js</command><report_id>report_1</report_id></execute_command>
+```
 
 **Kết quả mẫu:**
 
-
+```
 [execute_command] node script.js
 Hello from report script!
+```
 
 
 ---

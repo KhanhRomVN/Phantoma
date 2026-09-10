@@ -151,7 +151,6 @@ export const useReportStore = create<ReportStore>((set, get) => ({
 
     set((state) => ({
       reports: [report, ...state.reports],
-      selectedReportId: report.id,
     }));
 
     return report;

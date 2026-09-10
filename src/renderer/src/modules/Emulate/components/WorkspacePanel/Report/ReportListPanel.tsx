@@ -21,7 +21,7 @@
 
 // ── Imports ────────────────────────────────────────────────────────────
 // ── React ──
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
 // ── UI ──
 import {
@@ -42,7 +42,7 @@ import { Kbd } from '@renderer/components/ui/Kbd';
 import { ReportCard } from './ReportCard';
 
 // ── Stores ──
-import { useReportStore, generateUniqueTitle } from '../../../stores/reportStore';
+import { useReportStore } from '../../../stores/reportStore';
 
 // ── Services ──
 import { emulateApi } from '../../../services/emulate-api.service';
@@ -78,10 +78,6 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
   const createReport = useReportStore((s) => s.createReport);
   const deleteReport = useReportStore((s) => s.deleteReport);
   const setSelectedReportId = useReportStore((s) => s.setSelectedReportId);
-
-  const [isCreatingFile, setIsCreatingFile] = useState(false);
-  const [newFileName, setNewFileName] = useState('');
-  const submittingRef = useRef(false);
 
   const [activeFiles, setActiveFiles] = useState<string[]>([]);
   const [isCreatingCodeFile, setIsCreatingCodeFile] = useState(false);
@@ -145,48 +141,27 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
 
   const closeFileItemMenu = () => setFileItemMenu(null);
 
-  const startCreateFile = () => {
-    setIsCreatingFile(true);
-    setNewFileName('');
+  /** Tạo title "Untitled <n>" với n nhỏ nhất chưa tồn tại trong danh sách. */
+  const generateUntitledTitle = (existingTitles: string[]): string => {
+    const existing = new Set(existingTitles);
+    let n = 1;
+    while (existing.has(`Untitled ${n}`)) n++;
+    return `Untitled ${n}`;
   };
 
-  const cancelCreateFile = () => {
-    setIsCreatingFile(false);
-    setNewFileName('');
-  };
-
-  const handleCreateReport = async (titleOverride?: string) => {
+  const handleCreateReport = async () => {
     if (!targetId) {
       logger.warn('[ReportListPanel] Cannot create report — targetId is null');
       return;
     }
 
-    const title = titleOverride?.trim() || generateUniqueTitle(reports.map((r) => r.title));
+    const title = generateUntitledTitle(reports.map((r) => r.title));
     const content = `# ${title}\n\n## Summary\n\n`;
     try {
       await createReport(targetId, content, title);
     } catch (error) {
       logger.error('[ReportListPanel] Failed to create report:', error);
       alert('Failed to create report: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    }
-  };
-
-  const submitNewFile = async () => {
-    if (submittingRef.current) return;
-    const name = newFileName.trim();
-    if (!name) {
-      cancelCreateFile();
-      return;
-    }
-
-    submittingRef.current = true;
-    const title = name.replace(/\.md$/i, '');
-    setIsCreatingFile(false);
-    setNewFileName('');
-    try {
-      await handleCreateReport(title);
-    } finally {
-      submittingRef.current = false;
     }
   };
 
@@ -217,7 +192,12 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
 
   const handleDeleteReport = async (id: string) => {
     if (targetId) {
-      await emulateApi.deleteReport(targetId, id);
+      const res = await emulateApi.deleteReport(targetId, id);
+      if (!res.success || !res.data?.deleted) {
+        logger.error('[ReportListPanel] Failed to delete report:', res.error);
+        alert('Failed to delete report: ' + (res.error || 'Unknown error'));
+        return;
+      }
     }
     deleteReport(id);
     if (typeof window !== 'undefined') {
@@ -367,45 +347,25 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
         ) : (
           /* View 1: list-report + New Report */
           <div className="grid grid-cols-1 gap-3 p-3">
-            {!isCreatingFile && (
-              <button
-                onClick={startCreateFile}
-                className={cn(
-                  'group relative bg-card-background border border-dashed p-3 transition-all duration-300 cursor-pointer flex items-center gap-3',
-                  'border-primary/30 hover:border-primary/60',
-                )}
-              >
-                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
-                  <Plus className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col min-w-0 text-left">
-                  <span className="text-sm font-bold text-foreground/90 leading-tight">
-                    New Report
-                  </span>
-                  <span className="text-[10px] text-text-secondary truncate">
-                    Create a new markdown report
-                  </span>
-                </div>
-              </button>
-            )}
-
-            {isCreatingFile && (
-              <div className="flex items-center gap-2 bg-card-background border border-dashed border-primary/30 rounded-md px-3 py-2">
-                <FileText className="w-4 h-4 shrink-0 text-text-secondary" strokeWidth={1.5} />
-                <input
-                  autoFocus
-                  value={newFileName}
-                  onChange={(e) => setNewFileName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') submitNewFile();
-                    if (e.key === 'Escape') cancelCreateFile();
-                  }}
-                  onBlur={submitNewFile}
-                  placeholder="Tên file..."
-                  className="flex-1 bg-input-background text-[13px] text-text-primary outline-none border border-primary/50 rounded px-1.5 py-0.5"
-                />
+            <button
+              onClick={() => handleCreateReport()}
+              className={cn(
+                'group relative bg-card-background border border-dashed p-3 transition-all duration-300 cursor-pointer flex items-center gap-3',
+                'border-primary/30 hover:border-primary/60',
+              )}
+            >
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                <Plus className="w-4 h-4" />
               </div>
-            )}
+              <div className="flex flex-col min-w-0 text-left">
+                <span className="text-sm font-bold text-foreground/90 leading-tight">
+                  New Report
+                </span>
+                <span className="text-[10px] text-text-secondary truncate">
+                  Create a new markdown report
+                </span>
+              </div>
+            </button>
 
             {visibleReports.map((report) => (
               <ReportCard

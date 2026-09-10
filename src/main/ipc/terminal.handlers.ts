@@ -62,7 +62,8 @@ function getShellArgs(shell: string): string[] {
 export function setupTerminalHandlers(): void {
   // Spawn a new PTY and pipe I/O
   // Now accepts terminalId parameter for multiple terminals
-  ipcMain.handle('terminal:spawn', (event, terminalId: string) => {
+  ipcMain.handle('terminal:spawn', (event, payload: { terminalId: string; cwd?: string }) => {
+    const terminalId = payload.terminalId;
     const shell = getDefaultShell();
     const shellArgs = getShellArgs(shell);
 
@@ -77,7 +78,7 @@ export function setupTerminalHandlers(): void {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
-      cwd: process.cwd(),
+      cwd: payload.cwd || process.cwd(),
       env: {
         ...process.env,
         TERM: 'xterm-256color',

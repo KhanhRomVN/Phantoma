@@ -366,38 +366,38 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       };
     case 'list_report_files':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeListReportFiles(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeListReportFiles(action.params || {}, ctx.activeTargetId);
         },
       };
     case 'create_report_file':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeCreateReportFile(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeCreateReportFile(action.params || {}, ctx.activeTargetId);
         },
       };
     case 'read_report_file':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeReadReportFile(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeReadReportFile(action.params || {}, ctx.activeTargetId);
         },
       };
     case 'update_report_file':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeUpdateReportFile(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeUpdateReportFile(action.params || {}, ctx.activeTargetId);
         },
       };
     case 'delete_report_file':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeDeleteReportFile(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeDeleteReportFile(action.params || {}, ctx.activeTargetId);
         },
       };
     case 'execute_command':
       return {
-        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
-          return executeExecuteCommand(action.params || {});
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeExecuteCommand(action.params || {}, ctx.activeTargetId);
         },
       };
 
