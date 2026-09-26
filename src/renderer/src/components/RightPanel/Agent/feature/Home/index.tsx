@@ -375,7 +375,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        backgroundColor: 'var(--primary-bg)',
+        backgroundColor: 'rgb(var(--background))',
         position: 'relative',
       }}
     >
@@ -384,7 +384,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
         style={{
           flex: 1,
           overflow: 'auto',
-          backgroundColor: 'var(--secondary-bg)',
+          backgroundColor: 'rgb(var(--card-background))',
           display: 'flex',
           flexDirection: 'column',
         }}

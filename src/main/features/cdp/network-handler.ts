@@ -42,6 +42,25 @@ export function handleNetworkEvent(this: CdpManager, method: string, params: any
     case 'Network.loadingFailed':
       this.handleLoadingFailed(params);
       break;
+    // ── WebSocket events ──
+    case 'Network.webSocketCreated':
+      this.handleWebSocketCreated(params);
+      break;
+    case 'Network.webSocketHandshakeResponseReceived':
+      this.handleWebSocketHandshakeResponse(params);
+      break;
+    case 'Network.webSocketFrameSent':
+      this.handleWebSocketFrame(params, 'client');
+      break;
+    case 'Network.webSocketFrameReceived':
+      this.handleWebSocketFrame(params, 'server');
+      break;
+    case 'Network.webSocketFrameError':
+      this.handleWebSocketFrameError(params);
+      break;
+    case 'Network.webSocketClosed':
+      this.handleWebSocketClosed(params);
+      break;
     default:
       break;
   }
@@ -285,5 +304,111 @@ export function handleLoadingFailed(this: CdpManager, params: any) {
     mimeType: '',
     timestamp: Date.now(),
     responseTimestamp: Date.now(),
+  });
+}
+
+// ─── WebSocket handlers (CDP Network domain) ────────────────────────────
+// Map event CDP sang cùng channel `ws:*` mà ProxyServer dùng, để renderer
+// (`useNetworkEvents`) xử lý thống nhất cả hai nguồn.
+//  - Network.webSocketCreated                   → ws:connect
+//  - Network.webSocketHandshakeResponseReceived → ws:update (status='connected')
+//  - Network.webSocketFrameSent                 → ws:message (direction='client')
+//  - Network.webSocketFrameReceived             → ws:message (direction='server')
+//  - Network.webSocketFrameError                → ws:update (status='error')
+//  - Network.webSocketClosed                    → ws:close
+
+function makeWsId(requestId: string): string {
+  return `ws-${requestId}`;
+}
+
+export function handleWebSocketCreated(this: CdpManager, params: any) {
+  const { requestId, url } = params;
+  if (!this.mainWindow) return;
+
+  let host = '';
+  let path = '/';
+  let protocol = 'ws';
+  try {
+    const parsed = new URL(url);
+    host = parsed.host;
+    path = parsed.pathname + parsed.search;
+    protocol = parsed.protocol === 'wss:' ? 'wss' : 'ws';
+  } catch {
+    // Bỏ qua lỗi parse URL — vẫn giữ giá trị mặc định
+  }
+
+  logger.info('[CDP WS] webSocketCreated', { requestId, url });
+  this.sendToRenderer('ws:connect', {
+    id: makeWsId(requestId),
+    url,
+    host,
+    path,
+    protocol,
+    status: 'connecting',
+    startTime: Date.now(),
+    requestHeaders: {},
+    responseHeaders: {},
+  });
+}
+
+export function handleWebSocketHandshakeResponse(this: CdpManager, params: any) {
+  const { requestId, response } = params;
+  if (!this.mainWindow) return;
+
+  logger.info('[CDP WS] handshakeResponse', { requestId, status: response?.status });
+  this.sendToRenderer('ws:update', {
+    id: makeWsId(requestId),
+    status: 'connected',
+    responseHeaders: response?.headers || {},
+  });
+}
+
+export function handleWebSocketFrame(
+  this: CdpManager,
+  params: any,
+  direction: 'client' | 'server',
+) {
+  const { requestId, response } = params;
+  if (!this.mainWindow) return;
+
+  const opcode = response?.opcode ?? 1;
+  const payloadData: string = response?.payloadData ?? '';
+  const dataType = opcode === 2 ? 'binary' : 'text';
+  const sizeBytes =
+    dataType === 'binary'
+      ? Math.floor((payloadData.length * 3) / 4)
+      : Buffer.byteLength(payloadData, 'utf8');
+
+  this.sendToRenderer('ws:message', {
+    id: `ws-msg-${requestId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    connectionId: makeWsId(requestId),
+    direction,
+    data: payloadData,
+    dataType,
+    size: sizeBytes,
+    timestamp: Date.now(),
+  });
+}
+
+export function handleWebSocketFrameError(this: CdpManager, params: any) {
+  const { requestId, errorMessage } = params;
+  if (!this.mainWindow) return;
+
+  logger.warn('[CDP WS] frameError', { requestId, errorMessage });
+  this.sendToRenderer('ws:update', {
+    id: makeWsId(requestId),
+    status: 'error',
+  });
+}
+
+export function handleWebSocketClosed(this: CdpManager, params: any) {
+  const { requestId } = params;
+  if (!this.mainWindow) return;
+
+  logger.info('[CDP WS] webSocketClosed', { requestId });
+  this.sendToRenderer('ws:close', {
+    id: makeWsId(requestId),
+    endTime: Date.now(),
+    status: 'closed',
   });
 }

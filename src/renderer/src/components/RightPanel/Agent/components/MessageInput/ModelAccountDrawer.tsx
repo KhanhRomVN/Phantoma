@@ -365,27 +365,27 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
     <>
       <div
         style={{
-          position: 'fixed',
+          position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
           height: '50vh',
           maxHeight: '50vh',
-          backgroundColor: 'var(--tertiary-bg)',
-          borderTop: '1px solid var(--border-color)',
+          backgroundColor: 'rgb(var(--card-background))',
+          borderTop: '1px solid rgb(var(--border))',
           boxShadow: '0 -8px 24px rgba(0, 0, 0, 0.2)',
           zIndex: 1000,
           display: 'flex',
           flexDirection: 'column',
           animation: 'slideUpDrawer 0.25s ease-out',
-          color: 'var(--primary-text)',
+          color: 'rgb(var(--text-primary))',
           overflow: 'hidden',
         }}
       >
         <div
           style={{
             padding: '12px 16px 12px',
-            borderBottom: '1px solid var(--border-color)',
+            borderBottom: '1px solid rgb(var(--border))',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -405,7 +405,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                   cursor: 'pointer',
                   padding: '6px',
                   borderRadius: '6px',
-                  color: 'var(--secondary-text)',
+                  color: 'rgb(var(--text-secondary))',
                   display: 'flex',
                   alignItems: 'center',
                 }}
@@ -418,7 +418,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                 style={{
                   fontSize: '17px',
                   fontWeight: 700,
-                  color: 'var(--primary-text)',
+                  color: 'rgb(var(--text-primary))',
                   letterSpacing: '0.01em',
                 }}
               >
@@ -427,7 +427,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
               <span
                 style={{
                   fontSize: '11px',
-                  color: 'var(--secondary-text)',
+                  color: 'rgb(var(--text-secondary))',
                   opacity: 0.7,
                 }}
               >
@@ -449,7 +449,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                 cursor: 'pointer',
                 padding: '6px',
                 borderRadius: '6px',
-                color: 'var(--secondary-text)',
+                color: 'rgb(var(--text-secondary))',
                 display: 'flex',
                 alignItems: 'center',
               }}
@@ -485,10 +485,10 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                   width: '100%',
                   padding: '8px 12px 8px 32px',
                   fontSize: '13px',
-                  backgroundColor: 'var(--input-bg)',
+                  backgroundColor: 'rgb(var(--input-background))',
                   border: 'none',
                   borderRadius: '8px',
-                  color: 'var(--primary-text)',
+                  color: 'rgb(var(--text-primary))',
                   outline: 'none',
                   boxSizing: 'border-box',
                   height: '34px',
@@ -513,7 +513,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                       style={{
                         fontSize: '14px',
                         fontWeight: 700,
-                        color: 'var(--primary-text)',
+                        color: 'rgb(var(--text-primary))',
                         paddingBottom: '5px',
                         marginBottom: '8px',
                         display: 'flex',
@@ -624,7 +624,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                                 onMouseEnter={(e) => {
                                   if (!isDisabled)
                                     e.currentTarget.style.backgroundColor =
-                                      'var(--hover-bg)';
+                                      'rgb(var(--dropdown-item-hover))';
                                   handleModelMouseEnter(model, e);
                                 }}
                                 onMouseLeave={(e) => {
@@ -654,7 +654,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                                     style={{
                                       fontSize: '13px',
                                       fontWeight: 600,
-                                      color: 'var(--primary-text)',
+                                      color: 'rgb(var(--text-primary))',
                                     }}
                                   >
                                     {model.name}
@@ -680,14 +680,14 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                                   {model.is_search && (
                                     <Search
                                       size={12}
-                                      style={{ color: 'var(--secondary-text)' }}
+                                      style={{ color: 'rgb(var(--text-secondary))' }}
                                     />
                                   )}
                                   {model.max_context_length != null && (
                                     <span
                                       style={{
                                         fontSize: '10.5px',
-                                        color: 'var(--secondary-text)',
+                                        color: 'rgb(var(--text-secondary))',
                                         opacity: 0.7,
                                       }}
                                     >
@@ -697,13 +697,13 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                                   {model.is_video_upload && (
                                     <Video
                                       size={12}
-                                      style={{ color: 'var(--secondary-text)' }}
+                                      style={{ color: 'rgb(var(--text-secondary))' }}
                                     />
                                   )}
                                   {model.is_image_upload && (
                                     <Image
                                       size={12}
-                                      style={{ color: 'var(--secondary-text)' }}
+                                      style={{ color: 'rgb(var(--text-secondary))' }}
                                     />
                                   )}
                                   {model.success_rate != null && (
@@ -732,7 +732,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                                   <div
                                     style={{
                                       fontSize: '11px',
-                                      color: 'var(--secondary-text)',
+                                      color: 'rgb(var(--text-secondary))',
                                       opacity: 0.7,
                                       lineHeight: 1.4,
                                       display: '-webkit-box',
@@ -757,13 +757,13 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
               {filteredProviders.length === 0 && (
                 <div
                   style={{
-                    textAlign: 'center',
-                    color: 'var(--secondary-text)',
-                    padding: '20px',
-                    fontSize: '12px',
-                  }}
-                >
-                  No models found
+                  textAlign: 'center',
+                  color: 'rgb(var(--text-secondary))',
+                  padding: '20px',
+                  fontSize: '12px',
+                }}
+              >
+                No models found
                 </div>
               )}
             </div>
@@ -794,10 +794,10 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                   width: '100%',
                   padding: '8px 12px 8px 32px',
                   fontSize: '13px',
-                  backgroundColor: 'var(--input-bg)',
+                  backgroundColor: 'rgb(var(--input-background))',
                   border: 'none',
                   borderRadius: '8px',
-                  color: 'var(--primary-text)',
+                  color: 'rgb(var(--text-primary))',
                   outline: 'none',
                   boxSizing: 'border-box',
                   height: '34px',
@@ -813,7 +813,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                 <div
                   style={{
                     textAlign: 'center',
-                    color: 'var(--secondary-text)',
+                    color: 'rgb(var(--text-secondary))',
                     padding: '20px',
                     fontSize: '12px',
                   }}
@@ -832,7 +832,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                       <div
                         style={{
                           textAlign: 'center',
-                          color: 'var(--secondary-text)',
+                          color: 'rgb(var(--text-secondary))',
                           padding: '20px',
                           fontSize: '12px',
                         }}
@@ -864,7 +864,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                       }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor =
-                          'var(--hover-bg)')
+                          'rgb(var(--dropdown-item-hover))')
                       }
                       onMouseLeave={(e) =>
                         (e.currentTarget.style.backgroundColor = 'transparent')
@@ -876,7 +876,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                           height: '28px',
                           borderRadius: '7px',
                           backgroundColor: 'rgba(128,128,128,0.1)',
-                          color: 'var(--secondary-text)',
+                          color: 'rgb(var(--text-secondary))',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -892,7 +892,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                           style={{
                             fontSize: '13px',
                             fontWeight: 500,
-                            color: 'var(--primary-text)',
+                            color: 'rgb(var(--text-primary))',
                             display: 'block',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -915,7 +915,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                               alignItems: 'center',
                               gap: '4px',
                               fontSize: '10px',
-                              color: 'var(--secondary-text)',
+                              color: 'rgb(var(--text-secondary))',
                             }}
                           >
                             <Activity size={11} style={{ color: '#22c55e' }} />
@@ -927,7 +927,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                               alignItems: 'center',
                               gap: '4px',
                               fontSize: '10px',
-                              color: 'var(--secondary-text)',
+                              color: 'rgb(var(--text-secondary))',
                             }}
                           >
                             <Coins size={11} style={{ color: '#f97316' }} />
@@ -973,7 +973,7 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
                 <div
                   style={{
                     textAlign: 'center',
-                    color: 'var(--secondary-text)',
+                    color: 'rgb(var(--text-secondary))',
                     padding: '20px',
                     fontSize: '12px',
                   }}

@@ -6,4 +6,5 @@ export type PhantomModule =
   | 'emulate'
   | 'wireless'
   | 'code'
-  | 'settings';
+  | 'settings'
+  | 'test';

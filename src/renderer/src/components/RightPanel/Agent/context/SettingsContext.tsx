@@ -19,6 +19,7 @@ import { extensionService } from '../services/ExtensionService';
 
 export type PermissionMode = 'fullAccess' | 'approval';
 export type SystemPromptMode = 'fast' | 'balanced' | 'thorough' | 'autopilot';
+export type PromptLengthMode = 'none' | 'short' | 'medium' | 'long';
 
 interface SettingsContextType {
   apiUrl: string;
@@ -37,6 +38,12 @@ interface SettingsContextType {
   setAiLanguage: (value: string) => void;
   systemPromptMode: SystemPromptMode;
   setSystemPromptMode: (mode: SystemPromptMode) => void;
+  promptLengthMode: PromptLengthMode;
+  setPromptLengthMode: (mode: PromptLengthMode) => void;
+  activeDatabaseManagerId: string | null;
+  setActiveDatabaseManagerId: (id: string | null) => void;
+  chromiumProfileDir: string;
+  setChromiumProfileDir: (dir: string) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -50,6 +57,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguageState] = useState<string>('');
   const [aiLanguage, setAiLanguageState] = useState<string>('');
   const [systemPromptMode, setSystemPromptModeState] = useState<SystemPromptMode>('balanced');
+  const [promptLengthMode, setPromptLengthModeState] = useState<PromptLengthMode>('long');
+  const [activeDatabaseManagerId, setActiveDatabaseManagerIdState] = useState<string | null>(null);
+  const [chromiumProfileDir, setChromiumProfileDirState] = useState<string>('');
 
   useEffect(() => {
     try {
@@ -77,6 +87,19 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         savedSystemPromptMode === 'autopilot'
       ) {
         setSystemPromptModeState(savedSystemPromptMode);
+      }
+      const savedPromptLengthMode = localStorage.getItem('zen-prompt-length-mode');
+      if (
+        savedPromptLengthMode === 'none' ||
+        savedPromptLengthMode === 'short' ||
+        savedPromptLengthMode === 'medium' ||
+        savedPromptLengthMode === 'long'
+      ) {
+        setPromptLengthModeState(savedPromptLengthMode);
+      }
+      const savedChromiumProfileDir = localStorage.getItem('zen-chromium-profile-dir');
+      if (savedChromiumProfileDir) {
+        setChromiumProfileDirState(savedChromiumProfileDir);
       }
     } catch (e) {
       logger.warn('[SettingsContext] Failed to load settings from localStorage:', e);
@@ -173,6 +196,28 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const setActiveDatabaseManagerId = (id: string | null) => {
+    setActiveDatabaseManagerIdState(id);
+  };
+
+  const setChromiumProfileDir = (dir: string) => {
+    setChromiumProfileDirState(dir);
+    try {
+      localStorage.setItem('zen-chromium-profile-dir', dir);
+    } catch (e) {
+      logger.warn('[SettingsContext] Failed to save chromium profile dir:', e);
+    }
+  };
+
+  const setPromptLengthMode = (mode: PromptLengthMode) => {
+    setPromptLengthModeState(mode);
+    try {
+      localStorage.setItem('zen-prompt-length-mode', mode);
+    } catch (e) {
+      logger.warn('[SettingsContext] Failed to save prompt length mode:', e);
+    }
+  };
+
   return (
     <SettingsContext.Provider
       value={{
@@ -192,6 +237,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setAiLanguage,
         systemPromptMode,
         setSystemPromptMode,
+        promptLengthMode,
+        setPromptLengthMode,
+        activeDatabaseManagerId,
+        setActiveDatabaseManagerId,
+        chromiumProfileDir,
+        setChromiumProfileDir,
       }}
     >
       {children}

@@ -26,7 +26,6 @@ import {
   GitBranch,
   Code2,
   Palette,
-  CheckSquare,
   Users,
 } from 'lucide-react';
 
@@ -40,7 +39,6 @@ import { Search } from './Search';
 import { SourceControl } from './SourceControl';
 import { LSPPanel } from './LSP';
 import { DesignPanel } from './Design';
-import { TodoPanel } from './Todo';
 import { WorkSessionPanel } from './WorkSession';
 
 // ── Utils ──
@@ -54,11 +52,6 @@ const TABS = [
     id: 'source',
     icon: <GitBranch className="w-4 h-4" />,
     label: 'Source Control',
-  },
-  {
-    id: 'todo',
-    icon: <CheckSquare className="w-4 h-4" />,
-    label: 'Tasks',
   },
   {
     id: 'agents',
@@ -129,8 +122,6 @@ export function ActivityPanel() {
         return <Search />;
       case 'source':
         return <SourceControl />;
-      case 'todo':
-        return <TodoPanel />;
       case 'agents':
         return <WorkSessionPanel />;
       case 'design':

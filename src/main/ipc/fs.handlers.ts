@@ -40,6 +40,31 @@ function matchPattern(name: string, pattern: string): boolean {
   }
 }
 
+/** Convert glob pattern (supports `*`, `?`, comma-separated) to RegExp for path filtering. */
+function globToRegex(pattern: string): RegExp | null {
+  const parts = pattern
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return null;
+  const sources = parts.map((p) =>
+    p.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.'),
+  );
+  return new RegExp(`(?:${sources.join('|')})`, 'i');
+}
+
+/** Build a search RegExp from query and VS Code-like search options. */
+function buildSearchRegex(
+  query: string,
+  options: { caseSensitive?: boolean; wholeWord?: boolean; isRegex?: boolean },
+): RegExp {
+  const { caseSensitive, wholeWord, isRegex } = options;
+  let source = isRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (wholeWord) source = `\\b(?:${source})\\b`;
+  const flags = caseSensitive ? 'g' : 'gi';
+  return new RegExp(source, flags);
+}
+
 // ─── Watcher Manager ─────────────────────────────────────────────────────────
 
 const watchers = new Map<string, FSWatcher>();
@@ -338,6 +363,145 @@ export function setupFSHandlers() {
     const totalMatches = Object.values(results).reduce((sum, r) => sum + r.matches.length, 0);
     return { results, totalFilesSearched: Object.keys(results).length, totalMatches };
   });
+
+  // Search content across files with VS Code-like options (case/word/regex + include/exclude)
+  ipcMain.handle(
+    'fs:search',
+    async (
+      _,
+      targetPath: string,
+      query: string,
+      options: {
+        caseSensitive?: boolean;
+        wholeWord?: boolean;
+        isRegex?: boolean;
+        includePattern?: string;
+        excludePattern?: string;
+        maxResults?: number;
+      } = {},
+    ) => {
+      const { includePattern, excludePattern, maxResults = 500 } = options;
+      if (!query) return { results: [], totalMatches: 0, totalFilesSearched: 0 };
+
+      let regex: RegExp;
+      try {
+        regex = buildSearchRegex(query, options);
+      } catch {
+        throw new Error('Invalid search pattern');
+      }
+
+      const includeRe = includePattern ? globToRegex(includePattern) : null;
+      const excludeRe = excludePattern ? globToRegex(excludePattern) : null;
+
+      const results: Array<{
+        file: string;
+        matches: Array<{ lineNumber: number; lineContent: string; column: number }>;
+      }> = [];
+      let totalMatches = 0;
+      const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
+      const searchInFile = (filePath: string) => {
+        if (totalMatches >= maxResults) return;
+        if (includeRe && !includeRe.test(filePath)) return;
+        if (excludeRe && excludeRe.test(filePath)) return;
+        try {
+          const stat = fs.statSync(filePath);
+          if (stat.size > MAX_FILE_SIZE) return;
+          const content = fs.readFileSync(filePath, 'utf-8');
+          if (content.includes('\u0000')) return;
+          const lines = content.split(/\r?\n/);
+          const matches: Array<{ lineNumber: number; lineContent: string; column: number }> = [];
+          for (let i = 0; i < lines.length; i++) {
+            if (totalMatches + matches.length >= maxResults) break;
+            regex.lastIndex = 0;
+            const m = regex.exec(lines[i]);
+            if (m) {
+              matches.push({
+                lineNumber: i + 1,
+                lineContent: lines[i].substring(0, 500),
+                column: m.index + 1,
+              });
+            }
+          }
+          if (matches.length > 0) {
+            results.push({ file: filePath, matches });
+            totalMatches += matches.length;
+          }
+        } catch {
+          logger.warn(`[fs:search] Skipping unreadable file: ${filePath}`);
+        }
+      };
+
+      const stat = fs.statSync(targetPath);
+      if (stat.isFile()) {
+        searchInFile(targetPath);
+      } else if (stat.isDirectory()) {
+        const walk = (dir: string, depth: number) => {
+          if (depth > 20 || totalMatches >= maxResults) return;
+          try {
+            for (const entry of fs.readdirSync(dir)) {
+              if (entry.startsWith('.') || entry === 'node_modules') continue;
+              const fullPath = path.join(dir, entry);
+              try {
+                const s = fs.statSync(fullPath);
+                if (s.isDirectory()) walk(fullPath, depth + 1);
+                else if (s.isFile()) searchInFile(fullPath);
+              } catch {
+                logger.warn(`[fs:search] Skipping inaccessible path: ${fullPath}`);
+              }
+            }
+          } catch {
+            logger.warn(`[fs:search] Skipping inaccessible directory: ${dir}`);
+          }
+        };
+        walk(targetPath, 0);
+      }
+
+      return { results, totalMatches, totalFilesSearched: results.length };
+    },
+  );
+
+  // Replace all matches in the given files (used by the Search panel)
+  ipcMain.handle(
+    'fs:replace-all',
+    async (
+      _,
+      files: string[],
+      query: string,
+      replacement: string,
+      options: { caseSensitive?: boolean; wholeWord?: boolean; isRegex?: boolean } = {},
+    ) => {
+      if (!query || files.length === 0) {
+        return { replacedFiles: 0, replacedMatches: 0 };
+      }
+      let regex: RegExp;
+      try {
+        regex = buildSearchRegex(query, options);
+      } catch {
+        throw new Error('Invalid search pattern');
+      }
+      let replacedFiles = 0;
+      let replacedMatches = 0;
+      for (const filePath of files) {
+        try {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          let count = 0;
+          const newContent = content.replace(regex, () => {
+            count++;
+            return replacement;
+          });
+          if (count > 0) {
+            fs.writeFileSync(filePath, newContent, 'utf-8');
+            replacedFiles++;
+            replacedMatches += count;
+          }
+        } catch (e: any) {
+          logger.warn(`[fs:replace-all] Failed on ${filePath}: ${e?.message ?? e}`);
+        }
+      }
+      return { replacedFiles, replacedMatches };
+    },
+  );
 
   // Shell: open path in OS file manager
   ipcMain.handle('shell:open-path', async (_, targetPath: string) => {

@@ -7,7 +7,6 @@ import (
 	"github.com/phantoma/server/internal/middleware"
 	repoemulate "github.com/phantoma/server/internal/repository/emulate"
 	svcemulate "github.com/phantoma/server/internal/service/emulate"
-	"github.com/phantoma/server/internal/service/tools"
 )
 
 // NewRouter wires up all routes and returns the root http.Handler.
@@ -25,41 +24,11 @@ func NewRouter(cfg *config.Config) http.Handler {
 	emulateFilterSvc := svcemulate.NewFilterService(emulateFilterRepo)
 	emulateRepeaterSvc := svcemulate.NewRepeaterService(emulateRepeaterRepo)
 	emulateReportSvc := svcemulate.NewReportService(emulateReportRepo)
-	nmapSvc := tools.NewNmapService(cfg.NmapContainer)
-	niktoSvc := tools.NewNiktoService(cfg.NiktoContainer)
-	searchsploitSvc := tools.NewSearchsploitService(cfg.SearchsploitContainer)
-	metasploitSvc := tools.NewMetasploitService(cfg.MetasploitContainer)
-	dorkSvc := tools.NewGoDorkService(cfg.GoDorkContainer)
-	gauSvc := tools.NewGauService(cfg.GauContainer)
-	alienvaultSvc := tools.NewAlienvaultService()
-	amassSvc := tools.NewAmassService(cfg.AmassContainer)
-	airodumpSvc := tools.NewAirodumpService()
-	aireplaySvc := tools.NewAireplayService()
-	hcxdumptoolSvc := tools.NewHcxdumptoolService()
-	hashcatSvc := tools.NewHashcatService()
-	reaverSvc := tools.NewReaverService()
 
 	// Register all route groups
 	RegisterHealthRoutes(mux)
 	RegisterDatabaseRoutes(mux, cfg)
 	RegisterEmulateRoutes(mux, emulateTargetSvc, emulateFilterSvc, emulateRepeaterSvc, emulateReportSvc)
-	RegisterNmapRoutes(mux, nmapSvc)
-	RegisterNiktoRoutes(mux, niktoSvc)
-	RegisterExploitRoutes(mux, searchsploitSvc, metasploitSvc)
-	RegisterDorkRoutes(mux, dorkSvc)
-	RegisterGauRoutes(mux, gauSvc)
-	RegisterAlienvaultRoutes(mux, alienvaultSvc)
-	RegisterAmassRoutes(mux, amassSvc)
-	RegisterAssetfinderRoutes(mux, cfg.AssetfinderContainer)
-	RegisterCertshRoutes(mux)
-	RegisterSubfinderRoutes(mux, cfg.SubfinderContainer)
-	RegisterRustscanRoutes(mux, cfg.RustScanContainer)
-	RegisterNucleiRoutes(mux, cfg.NucleiContainer)
-	RegisterAirodumpRoutes(mux, airodumpSvc)
-	RegisterAireplayRoutes(mux, aireplaySvc)
-	RegisterHcxdumptoolRoutes(mux, hcxdumptoolSvc)
-	RegisterHashcatRoutes(mux, hashcatSvc)
-	RegisterReaverRoutes(mux, reaverSvc)
 
 	// Apply middleware stack: CORS → RequestLogger → mux
 	return cors(middleware.RequestLogger(mux))

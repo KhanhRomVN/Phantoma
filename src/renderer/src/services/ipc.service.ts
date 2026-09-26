@@ -95,8 +95,18 @@ class IpcService {
     mode?: string,
     useEnvInject?: boolean,
     targetId?: string,
+    useSandbox?: boolean,
   ) {
-    return this.invoke('app:launch', appId, proxyUrl, customUrl, mode, useEnvInject, targetId);
+    return this.invoke(
+      'app:launch',
+      appId,
+      proxyUrl,
+      customUrl,
+      mode,
+      useEnvInject,
+      targetId,
+      useSandbox,
+    );
   }
   async terminateApp() {
     return this.invoke('app:terminate');

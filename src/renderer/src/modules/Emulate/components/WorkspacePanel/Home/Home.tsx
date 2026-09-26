@@ -151,6 +151,7 @@ function TextSelectionMenu({
 }
 
 export { RequestTable, initialFilterState };
+export { WebSocketUI } from './WebSocketUI';
 export const RequestDetails = React.memo(function RequestDetails({
   request: propsRequest,
   selectedId,

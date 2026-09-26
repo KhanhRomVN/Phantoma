@@ -29,10 +29,11 @@ import {
 } from '../utils/network-event-parser.util';
 
 // ── Hooks ──
-import { usePaginatedRequests } from './usePaginatedRequests';
+import { useNetworkWorker } from './useNetworkWorker';
 
 // ── Stores ──
 import { useNetworkStore } from '../stores/networkStore';
+import { useWebSocketStore } from '../stores/websocketStore';
 
 // ── Types ──
 import { NetworkRequest } from '../types/inspector';
@@ -121,12 +122,10 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     onRequestsChange,
   } = options;
 
-  // Use paginated requests hook (store-backed, no React state)
+  // Use network worker hook (background thread, no Main Thread blocking)
   const { addRequest, updateRequest, clearRequests, loadMore, hasMore, loading, totalCount } =
-    usePaginatedRequests({
+    useNetworkWorker({
       targetId,
-      limit: 100,
-      maxMemory: 500,
       onRequestsChange,
     });
 
@@ -321,6 +320,55 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     [addRequest, onRequest, onError, updateRequest],
   );
 
+  // Handle SSL Bypass connections (TCP tunnels without decryption)
+  const handleSslBypass = useCallback(
+    (data: any) => {
+      try {
+        const { id, host, port, timestamp, note } = data;
+        
+        logger.info('[handleSslBypass] Creating bypass request for:', host);
+        
+        // Create a special request object for SSL bypass
+        const bypassRequest: NetworkRequest = {
+          id: id || `ssl-bypass-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          url: `https://${host}${port === 443 ? '' : `:${port}`}`,
+          protocol: 'https',
+          host: host,
+          path: '/',
+          method: 'TUNNEL', // Changed from CONNECT to be more user-friendly
+          status: 200, // Tunnel established
+          requestHeaders: {
+            'X-SSL-Bypass': 'true',
+            'X-Bypass-Note': note || 'TCP tunnel without decryption',
+          },
+          responseHeaders: {
+            'X-Connection-Type': 'SSL Bypass',
+            'X-Decryption': 'Disabled',
+          },
+          requestBody: '',
+          responseBody: '',
+          type: 'other',
+          size: '0 B',
+          time: '0ms',
+          timestamp: timestamp || Date.now(),
+        };
+
+        logger.info('[handleSslBypass] Request object created:', bypassRequest);
+        
+        requestMapRef.current.set(bypassRequest.id, bypassRequest);
+        addRequest(bypassRequest);
+        
+        logger.info('[handleSslBypass] Request added to store');
+        
+        onRequest?.(bypassRequest);
+      } catch (error) {
+        logger.error('[handleSslBypass] Error:', error);
+        onError?.(error);
+      }
+    },
+    [addRequest, onRequest, onError],
+  );
+
   const handleProxyResponse = useCallback(
     (data: any) => {
       try {
@@ -423,6 +471,267 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     [updateRequest, onError],
   );
 
+  // ── WebSocket event handlers (từ ProxyServer qua IPC) ──
+  const handleWsConnect = useCallback(
+    (_event: any, data: any) => {
+      try {
+        logger.info('[DEBUG|NetworkEvents] ws:connect', {
+          id: data?.id,
+          url: data?.url,
+          host: data?.host,
+        });
+        if (!data?.id || !data?.url) return;
+        const protocol = typeof data.url === 'string' && data.url.startsWith('wss') ? 'wss' : 'ws';
+        useWebSocketStore.getState().addConnection({
+          id: data.id,
+          url: data.url,
+          host: data.host || '',
+          path: data.path || '',
+          protocol,
+          status: 'connecting',
+          openedAt: data.startTime || Date.now(),
+          requestHeaders: data.requestHeaders,
+          responseHeaders: data.responseHeaders,
+          frames: [],
+        });
+      } catch (error) {
+        logger.error('[DEBUG|NetworkEvents] ws:connect handler failed', error);
+        onError?.(error);
+      }
+    },
+    [onError],
+  );
+
+  const handleWsMessage = useCallback(
+    (_event: any, data: any) => {
+      try {
+        logger.info('[DEBUG|NetworkEvents] ws:message', {
+          id: data?.id,
+          connectionId: data?.connectionId,
+          direction: data?.direction,
+          size: data?.size,
+        });
+        if (!data?.connectionId || !data?.id) return;
+        const direction = data.direction === 'client' ? 'send' : 'receive';
+        const opcode = data.dataType === 'binary' ? 'binary' : 'text';
+        useWebSocketStore.getState().addFrame(data.connectionId, {
+          id: data.id,
+          connectionId: data.connectionId,
+          direction,
+          opcode,
+          payload: data.data || '',
+          size: data.size || 0,
+          timestamp: data.timestamp || Date.now(),
+        });
+      } catch (error) {
+        logger.error('[DEBUG|NetworkEvents] ws:message handler failed', error);
+        onError?.(error);
+      }
+    },
+    [onError],
+  );
+
+  const handleWsUpdate = useCallback(
+    (_event: any, data: any) => {
+      try {
+        logger.info('[DEBUG|NetworkEvents] ws:update', { id: data?.id, status: data?.status });
+        if (!data?.id) return;
+        const updates: Partial<{
+          status: 'connecting' | 'open' | 'closed' | 'error';
+          responseHeaders: Record<string, string>;
+        }> = {};
+        if (data.status === 'connected') updates.status = 'open';
+        else if (data.status === 'connecting') updates.status = 'connecting';
+        else if (data.status === 'closed') updates.status = 'closed';
+        else if (data.status === 'error') updates.status = 'error';
+        if (data.responseHeaders) updates.responseHeaders = data.responseHeaders;
+        if (Object.keys(updates).length > 0) {
+          useWebSocketStore.getState().updateConnection(data.id, updates);
+        }
+      } catch (error) {
+        logger.error('[DEBUG|NetworkEvents] ws:update handler failed', error);
+        onError?.(error);
+      }
+    },
+    [onError],
+  );
+
+  const handleWsClose = useCallback(
+    (_event: any, data: any) => {
+      try {
+        logger.info('[DEBUG|NetworkEvents] ws:close', { id: data?.id });
+        if (!data?.id) return;
+        useWebSocketStore.getState().updateConnection(data.id, {
+          status: 'closed',
+          closedAt: data.endTime || Date.now(),
+        });
+      } catch (error) {
+        logger.error('[DEBUG|NetworkEvents] ws:close handler failed', error);
+        onError?.(error);
+      }
+    },
+    [onError],
+  );
+
+  // ── CLI Capture method handlers (eBPF, Packet Capture, App Debug) ──
+  const handleEbpfHttpsEvent = useCallback(
+    (_event: any, data: any) => {
+      try {
+        logger.info('[DEBUG|NetworkEvents] ebpf:https-event', {
+          type: data?.type,
+          method: data?.method,
+          url: data?.url,
+        });
+        if (!data?.id) return;
+
+        // Convert eBPF event to NetworkRequest format
+        if (data.type === 'request') {
+          const request: NetworkRequest = {
+            id: data.id,
+            url: data.url || '',
+            protocol: 'https',
+            host: data.headers?.['Host'] || '',
+            path: data.url || '',
+            method: data.method || 'GET',
+            status: 0,
+            requestHeaders: data.headers || {},
+            responseHeaders: {},
+            requestBody: data.body || '',
+            responseBody: '',
+            type: 'xhr',
+            size: '0 B',
+            time: '0ms',
+            timestamp: data.timestamp || Date.now(),
+          };
+
+          // Add special header to indicate eBPF capture
+          request.requestHeaders['X-Capture-Method'] = 'eBPF';
+
+          timestampMapRef.current.set(data.id, data.timestamp || Date.now());
+          requestMapRef.current.set(data.id, request);
+          addRequest(request);
+          onRequest?.(request);
+        } else if (data.type === 'response') {
+          // Update existing request with response
+          const existing = requestMapRef.current.get(data.id);
+          if (existing) {
+            const requestTimestamp = timestampMapRef.current.get(data.id);
+            let timeStr = '0ms';
+            if (requestTimestamp) {
+              const elapsed = Date.now() - requestTimestamp;
+              timeStr = `${elapsed}ms`;
+              timestampMapRef.current.delete(data.id);
+            }
+
+            const updates: Partial<NetworkRequest> = {
+              status: data.statusCode || 200,
+              responseHeaders: data.headers || {},
+              responseBody: data.body || '',
+              time: timeStr,
+            };
+
+            updateRequest(data.id, updates);
+            onResponse?.(data.id, data.statusCode || 200, data.headers || {});
+            onResponseBody?.(data.id, data.body || '', data.body?.length || 0);
+          }
+        }
+      } catch (error) {
+        logger.error('[DEBUG|NetworkEvents] ebpf:https-event handler failed', error);
+        onError?.(error);
+      }
+    },
+    [addRequest, updateRequest, onRequest, onResponse, onResponseBody, onError],
+  );
+
+  const handlePacketCaptured = useCallback(
+    (_event: any, data: any) => {
+      try {
+        logger.info('[DEBUG|NetworkEvents] packet:captured', {
+          protocol: data?.protocol,
+          destination: data?.destination,
+          size: data?.size,
+        });
+        if (!data?.id) return;
+
+        // Convert packet to NetworkRequest format (metadata only)
+        const request: NetworkRequest = {
+          id: data.id,
+          url: `${data.protocol.toLowerCase()}://${data.destination.host}:${data.destination.port}`,
+          protocol: data.protocol.toLowerCase(),
+          host: data.destination.host,
+          path: '/',
+          method: 'PACKET', // Special method for packet capture
+          status: data.encrypted ? 0 : 200,
+          requestHeaders: {
+            'X-Capture-Method': 'Packet Capture',
+            'X-Encrypted': data.encrypted ? 'true' : 'false',
+            'X-Source': `${data.source.host}:${data.source.port}`,
+            'X-Flags': data.flags || '',
+          },
+          responseHeaders: {},
+          requestBody: data.encrypted ? '[Encrypted - No plaintext available]' : '',
+          responseBody: '',
+          type: 'other',
+          size: `${data.size} B`,
+          time: '0ms',
+          timestamp: data.timestamp || Date.now(),
+        };
+
+        requestMapRef.current.set(data.id, request);
+        addRequest(request);
+        onRequest?.(request);
+      } catch (error) {
+        logger.error('[DEBUG|NetworkEvents] packet:captured handler failed', error);
+        onError?.(error);
+      }
+    },
+    [addRequest, onRequest, onError],
+  );
+
+  const handleAppDebugLog = useCallback(
+    (_event: any, data: any) => {
+      try {
+        logger.info('[DEBUG|NetworkEvents] app-debug:log', {
+          level: data?.level,
+          module: data?.module,
+          message: data?.message?.substring(0, 100),
+        });
+        if (!data?.id) return;
+
+        // Convert debug log to NetworkRequest format (for display purposes)
+        const request: NetworkRequest = {
+          id: data.id,
+          url: `app-debug://${data.module || 'app'}`,
+          protocol: 'app-debug',
+          host: data.module || 'app',
+          path: `/${data.level}`,
+          method: 'LOG',
+          status: data.level === 'error' ? 500 : 200,
+          requestHeaders: {
+            'X-Capture-Method': 'App Debug',
+            'X-Log-Level': data.level,
+            'X-Module': data.module || 'unknown',
+          },
+          responseHeaders: {},
+          requestBody: '',
+          responseBody: data.message || '',
+          type: 'other',
+          size: `${data.message?.length || 0} B`,
+          time: '0ms',
+          timestamp: data.timestamp || Date.now(),
+        };
+
+        requestMapRef.current.set(data.id, request);
+        addRequest(request);
+        onRequest?.(request);
+      } catch (error) {
+        logger.error('[DEBUG|NetworkEvents] app-debug:log handler failed', error);
+        onError?.(error);
+      }
+    },
+    [addRequest, onRequest, onError],
+  );
+
   // Setup IPC listeners
   useEffect(() => {
     if (!targetId) {
@@ -504,6 +813,16 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       }
     };
 
+    const handleSslBypassWrapped = (_event: any, data: any) => {
+      try {
+        logger.info('[useNetworkEvents] Received SSL bypass event:', data);
+        handleSslBypass(data);
+      } catch (error) {
+        logger.error('[useNetworkEvents] SSL bypass handler error:', error);
+        onError?.(error);
+      }
+    };
+
     const handleProxyResponseWrapped = (_event: any, data: any) => {
       try {
         handleProxyResponse(data);
@@ -538,6 +857,17 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     window.api.on('proxy:response', handleProxyResponseWrapped);
     window.api.on('proxy:response-body', handleProxyResponseBodyWrapped);
     window.api.on('proxy:request-body', handleProxyRequestBodyWrapped);
+    window.api.on('proxy:ssl-bypass', handleSslBypassWrapped);
+    window.api.on('ws:connect', handleWsConnect);
+    window.api.on('ws:message', handleWsMessage);
+    window.api.on('ws:update', handleWsUpdate);
+    window.api.on('ws:close', handleWsClose);
+    // CLI Capture method events
+    window.api.on('ebpf:https-event', handleEbpfHttpsEvent);
+    window.api.on('packet:captured', handlePacketCaptured);
+    window.api.on('app-debug:log', handleAppDebugLog);
+    window.api.on('cdp:request', handleCdpRequest);
+    window.api.on('cdp:response', handleCdpResponse);
 
     return () => {
       if (window.api?.off) {
@@ -551,6 +881,17 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         window.api.off('proxy:response', handleProxyResponseWrapped);
         window.api.off('proxy:response-body', handleProxyResponseBodyWrapped);
         window.api.off('proxy:request-body', handleProxyRequestBodyWrapped);
+        window.api.off('proxy:ssl-bypass', handleSslBypassWrapped);
+        window.api.off('ws:connect', handleWsConnect);
+        window.api.off('ws:message', handleWsMessage);
+        window.api.off('ws:update', handleWsUpdate);
+        window.api.off('ws:close', handleWsClose);
+        // CLI Capture method events
+        window.api.off('ebpf:https-event', handleEbpfHttpsEvent);
+        window.api.off('packet:captured', handlePacketCaptured);
+        window.api.off('app-debug:log', handleAppDebugLog);
+        window.api.off('cdp:request', handleCdpRequest);
+        window.api.off('cdp:response', handleCdpResponse);
       }
 
       // Clear all pending timeouts on unmount
@@ -571,9 +912,17 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     handleScriptSource,
     onError,
     handleProxyRequest,
+    handleSslBypass,
     handleProxyResponse,
     handleProxyResponseBody,
     handleProxyRequestBody,
+    handleWsConnect,
+    handleWsMessage,
+    handleWsUpdate,
+    handleWsClose,
+    handleEbpfHttpsEvent,
+    handlePacketCaptured,
+    handleAppDebugLog,
     targetId,
     updateRequest,
   ]);

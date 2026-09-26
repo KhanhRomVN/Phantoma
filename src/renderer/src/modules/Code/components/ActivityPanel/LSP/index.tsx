@@ -31,8 +31,6 @@ import {
   RefreshCw,
   Loader2,
   AlertCircle,
-  ExternalLink,
-  Trash2,
   CheckCircle,
 } from 'lucide-react';
 
@@ -95,28 +93,6 @@ export function LSPPanel() {
     }
   };
 
-  const handleUninstall = async (serverId: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Simulate uninstallation
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Remove from localStorage
-      const installed = JSON.parse(localStorage.getItem('lsp-installed-servers') || '[]');
-      const filtered = installed.filter((id: string) => id !== serverId);
-      localStorage.setItem('lsp-installed-servers', JSON.stringify(filtered));
-
-      loadServers();
-    } catch (err) {
-      logger.error('[LSP] Failed to uninstall', serverId, ':', err);
-      setError(`Failed to uninstall server`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // ── Derived ──
   const filteredServers = searchQuery.trim()
     ? servers.filter(
@@ -134,29 +110,29 @@ export function LSPPanel() {
   // ── Render ──
   return (
     <div className="flex flex-col h-full bg-sidebar">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <span className="text-sm font-medium text-text-primary">Language Server Protocol</span>
-        <div className="flex items-center gap-1">
+      {/* HeaderBar — đồng bộ với FileExplore */}
+      <div className="flex items-center justify-between h-9 px-2 border-b border-divider flex-shrink-0 bg-sidebar-background">
+        <span className="text-[13px] text-text-secondary truncate max-w-[60%]">Language Server Protocol</span>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           <button
             onClick={() => setShowInstalledOnly(!showInstalledOnly)}
             className={
               'p-1 rounded transition-colors ' +
               (showInstalledOnly
                 ? 'text-accent bg-accent/10'
-                : 'text-text-secondary hover:bg-sidebar-item-hover')
+                : 'text-text-secondary hover:text-text-primary hover:bg-card-hover')
             }
             title={showInstalledOnly ? 'Show all servers' : 'Show installed only'}
           >
-            <Archive className="w-4 h-4" />
+            <Archive className="w-3.5 h-3.5" strokeWidth={1.5} />
           </button>
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="p-1 hover:bg-sidebar-item-hover rounded disabled:opacity-50 text-text-secondary"
+            className="p-1 rounded disabled:opacity-50 text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
             title="Refresh"
           >
-            <RefreshCw className={'w-4 h-4 ' + (loading ? 'animate-spin' : '')} />
+            <RefreshCw className={'w-3.5 h-3.5 ' + (loading ? 'animate-spin' : '')} strokeWidth={1.5} />
           </button>
         </div>
       </div>
@@ -208,7 +184,6 @@ export function LSPPanel() {
                 key={server.id}
                 server={server}
                 onInstall={() => handleInstall(server)}
-                onUninstall={() => handleUninstall(server.id)}
                 loading={loading}
               />
             ))}
@@ -224,18 +199,10 @@ export function LSPPanel() {
 interface LSPServerItemProps {
   server: LSPServer & { installed?: boolean };
   onInstall: () => void;
-  onUninstall: () => void;
   loading: boolean;
 }
 
-function LSPServerItem({ server, onInstall, onUninstall, loading }: LSPServerItemProps) {
-  const handleOpenHomepage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (server.homepage) {
-      window.open(server.homepage, '_blank');
-    }
-  };
-
+function LSPServerItem({ server, onInstall, loading }: LSPServerItemProps) {
   const languageIcon = server.icon;
 
   return (
@@ -265,10 +232,7 @@ function LSPServerItem({ server, onInstall, onUninstall, loading }: LSPServerIte
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-xs font-medium text-text-primary truncate flex-1">{server.name}</h3>
             {server.installed && (
-              <span className="flex items-center gap-1 text-[10px] text-emerald-400 shrink-0">
-                <CheckCircle className="w-3 h-3" />
-                Installed
-              </span>
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             )}
           </div>
 
@@ -279,55 +243,25 @@ function LSPServerItem({ server, onInstall, onUninstall, loading }: LSPServerIte
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] text-accent truncate">{server.language}</span>
 
-            <div className="flex items-center gap-1 shrink-0">
-              {server.homepage && (
-                <button
-                  onClick={handleOpenHomepage}
-                  className="p-1 hover:bg-sidebar-item-hover rounded text-text-secondary hover:text-primary transition-colors"
-                  title="Open homepage"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-              )}
-
-              {server.installed ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onUninstall();
-                  }}
-                  disabled={loading}
-                  className="px-2 py-1 text-[11px] rounded border border-border text-text-secondary hover:text-red-500 hover:border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                >
-                  {loading ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <>
-                      <Trash2 className="w-3 h-3" />
-                      Uninstall
-                    </>
-                  )}
-                </button>
-              ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onInstall();
-                  }}
-                  disabled={loading}
-                  className="px-2 py-1 text-[11px] rounded border border-border text-text-secondary hover:text-primary hover:border-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                >
-                  {loading ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <>
-                      <Download className="w-3 h-3" />
-                      Install
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
+            {!server.installed && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInstall();
+                }}
+                disabled={loading}
+                className="px-2 py-1 text-[11px] rounded border border-border text-text-secondary hover:text-primary hover:border-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shrink-0"
+              >
+                {loading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <>
+                    <Download className="w-3 h-3" />
+                    Install
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -268,7 +268,7 @@ export default React.memo(function Emulate({
     [targetStates],
   );
 
-  const { clearRequests, unpackedScripts } = useNetworkEvents({
+  const { clearRequests, unpackedScripts, loadMore, totalCount } = useNetworkEvents({
     targetId: activeTargetId || undefined,
   });
 
@@ -484,6 +484,8 @@ export default React.memo(function Emulate({
       customUrl?: string,
       mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
       useEnvInject?: boolean,
+      _deviceSerial?: string,
+      useSandbox?: boolean,
     ) => {
       if (!window.api || typeof window.api.invoke !== 'function') {
         logger.warn('[Emulate] window.api is not available.');
@@ -503,6 +505,7 @@ export default React.memo(function Emulate({
           mode,
           useEnvInject,
           appId, // Pass targetId (appId) to track process per target
+          useSandbox,
         );
         if (result.success && result.data) {
           const newTab: TargetTab = {
@@ -529,6 +532,99 @@ export default React.memo(function Emulate({
       }
     },
     [targetTabs, addTargetTab, setActiveTarget],
+  );
+
+  // CLI Capture method handlers
+  const handleStartEbpf = useCallback(
+    async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
+      try {
+        const result = await window.api.invoke(
+          'target:start-cli-ebpf',
+          targetId,
+          executablePath,
+          useSandbox,
+        );
+        if (result.success) {
+          startTarget(targetId, 'mitm'); // Track as active
+          logger.info('[Emulate] eBPF capture started:', result);
+        } else {
+          alert(`Failed to start eBPF capture: ${result.error}`);
+        }
+      } catch (error) {
+        logger.error('[Emulate] eBPF start error:', error);
+        alert(`Failed to start eBPF capture: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    },
+    [startTarget],
+  );
+
+  const handleStartCdp = useCallback(
+    async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
+      try {
+        const result = await window.api.invoke(
+          'target:start-cli-cdp',
+          targetId,
+          executablePath,
+          useSandbox,
+        );
+        if (result.success) {
+          startTarget(targetId, 'cdp'); // Track as active with CDP mode
+          logger.info('[Emulate] CDP proxy started:', result);
+        } else {
+          alert(`Failed to start CDP proxy: ${result.error}`);
+        }
+      } catch (error) {
+        logger.error('[Emulate] CDP start error:', error);
+        alert(`Failed to start CDP proxy: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    },
+    [startTarget],
+  );
+
+  const handleStartPcap = useCallback(
+    async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
+      try {
+        const result = await window.api.invoke(
+          'target:start-cli-pcap',
+          targetId,
+          executablePath,
+          useSandbox,
+        );
+        if (result.success) {
+          startTarget(targetId, 'mitm'); // Track as active
+          logger.info('[Emulate] Packet capture started:', result);
+        } else {
+          alert(`Failed to start packet capture: ${result.error}`);
+        }
+      } catch (error) {
+        logger.error('[Emulate] Packet capture start error:', error);
+        alert(`Failed to start packet capture: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    },
+    [startTarget],
+  );
+
+  const handleStartAppDebug = useCallback(
+    async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
+      try {
+        const result = await window.api.invoke(
+          'target:start-cli-debug',
+          targetId,
+          executablePath,
+          useSandbox,
+        );
+        if (result.success) {
+          startTarget(targetId, 'mitm'); // Track as active
+          logger.info('[Emulate] App debug mode started:', result);
+        } else {
+          alert(`Failed to start app debug mode: ${result.error}`);
+        }
+      } catch (error) {
+        logger.error('[Emulate] App debug start error:', error);
+        alert(`Failed to start app debug mode: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    },
+    [startTarget],
   );
 
   const handleSendToRepeater = useCallback(
@@ -593,6 +689,10 @@ export default React.memo(function Emulate({
           onStartTarget={handleStartTarget}
           onStopTarget={handleStopTarget}
           onLaunchTarget={handleLaunchTarget}
+          onStartEbpf={handleStartEbpf}
+          onStartCdp={handleStartCdp}
+          onStartPcap={handleStartPcap}
+          onStartAppDebug={handleStartAppDebug}
           onStopSession={handleStopSession}
           onOpenAddModal={handleOpenAddModal}
           onEditTarget={handleEditTarget}
@@ -623,6 +723,8 @@ export default React.memo(function Emulate({
           onStopTarget={handleStopTarget}
           onStartTarget={handleStartTarget}
           isTargetActive={isTargetActive}
+          loadMore={loadMore}
+          workerTotalCount={totalCount}
         />
       </div>
 

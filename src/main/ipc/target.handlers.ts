@@ -133,6 +133,137 @@ export function setupTargetHandlers(): void {
   logger.info('[IPC] Target handlers registered');
 }
 
+// ─── CLI Capture Methods IPC Handlers ───────────────────────────────────
+
+import {
+  launchCliWithEbpf,
+  launchCliWithPacketCapture,
+  launchCliWithDebugMode,
+  launchCliWithCdp,
+  stopCliCapture,
+} from '../app-launcher';
+
+export function setupCliCaptureHandlers(): void {
+  /**
+   * Launch CLI with eBPF capture
+   */
+  ipcMain.handle(
+    'target:start-cli-ebpf',
+    async (event, targetId: string, executablePath: string, useSandbox?: boolean) => {
+      try {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        if (!window) {
+          return { success: false, error: 'No window found' };
+        }
+
+        const result = await launchCliWithEbpf(executablePath, targetId, window, useSandbox);
+        return { success: result };
+      } catch (error) {
+        logger.error('[IPC] target:start-cli-ebpf error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    },
+  );
+
+  /**
+   * Launch CLI with packet capture
+   */
+  ipcMain.handle(
+    'target:start-cli-pcap',
+    async (event, targetId: string, executablePath: string, useSandbox?: boolean) => {
+      try {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        if (!window) {
+          return { success: false, error: 'No window found' };
+        }
+
+        const result = await launchCliWithPacketCapture(
+          executablePath,
+          targetId,
+          window,
+          useSandbox,
+        );
+        return { success: result };
+      } catch (error) {
+        logger.error('[IPC] target:start-cli-pcap error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    },
+  );
+
+  /**
+   * Launch CLI with debug mode
+   */
+  ipcMain.handle(
+    'target:start-cli-debug',
+    async (event, targetId: string, executablePath: string, useSandbox?: boolean) => {
+      try {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        if (!window) {
+          return { success: false, error: 'No window found' };
+        }
+
+        const result = await launchCliWithDebugMode(executablePath, targetId, window, useSandbox);
+        return { success: result };
+      } catch (error) {
+        logger.error('[IPC] target:start-cli-debug error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    },
+  );
+
+  /**
+   * Launch CLI with CDP proxy
+   */
+  ipcMain.handle(
+    'target:start-cli-cdp',
+    async (event, targetId: string, executablePath: string, useSandbox?: boolean) => {
+      try {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        if (!window) {
+          return { success: false, error: 'No window found' };
+        }
+
+        const result = await launchCliWithCdp(executablePath, targetId, window, useSandbox);
+        return { success: result };
+      } catch (error) {
+        logger.error('[IPC] target:start-cli-cdp error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    },
+  );
+
+  /**
+   * Stop CLI capture
+   */
+  ipcMain.handle('target:stop-cli-capture', async (_, targetId: string) => {
+    try {
+      stopCliCapture(targetId);
+      return { success: true };
+    } catch (error) {
+      logger.error('[IPC] target:stop-cli-capture error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
+  logger.info('[IPC] CLI capture handlers registered');
+}
+
 /**
  * Helper function để emit target status changed từ main process
  */

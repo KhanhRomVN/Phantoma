@@ -430,7 +430,8 @@ export class ProxyServer extends EventEmitter {
       }
 
       // Danh sách các domain bỏ qua giải mã SSL (bypassed domains)
-      // Removed all domains to enable SSL decryption for capturing HTTPS traffic
+      // These domains use TCP tunnel passthrough - traffic is logged but NOT decrypted
+      // This allows authentication to work while still capturing connection metadata
       const bypassList: string[] = [
         // Cloudflare challenges - hard to intercept
         'challenges.cloudflare.com',
@@ -441,7 +442,16 @@ export class ProxyServer extends EventEmitter {
         // Special cases - non-standard ports or protocols (CDP doesn't capture these)
         'mtalk.google.com', // GCM on port 5228
         'safebrowsingohttpgateway.googleapis.com', // Safe browsing
+        // WorkOS authentication domains - bypass to prevent signature validation errors
+        'workos.com',
+        'api.workos.com',
         // Keep only essential bypasses
+      ];
+
+      // Cline-specific bypass rules: Only bypass authentication flows
+      // This allows us to capture API traffic (chat messages) while preserving auth
+      const clineAuthBypassList: string[] = [
+        'authkit.cline.bot', // Always bypass auth subdomain
       ];
 
       const shouldBypass = bypassList.some((domain) => {
@@ -453,7 +463,28 @@ export class ProxyServer extends EventEmitter {
         return false;
       });
 
-      if (shouldBypass) {
+      // Check Cline auth bypass (for auth subdomain only)
+      const shouldBypassClineAuth = clineAuthBypassList.some((domain) => {
+        if (host === domain) return true;
+        if (host.endsWith('.' + domain)) return true;
+        return false;
+      });
+
+      if (shouldBypass || shouldBypassClineAuth) {
+        // Log bypassed SSL connection (metadata only - content not decrypted)
+        logger.info(`[ProxyServer] SSL Bypass (TCP tunnel): ${hostUrl}`);
+        
+        // Send connection metadata to renderer for logging
+        this.sendToRenderer('proxy:ssl-bypass', {
+          id: `ssl-bypass-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          host: host,
+          port: port,
+          url: hostUrl,
+          timestamp: Date.now(),
+          type: 'SSL_BYPASS',
+          note: 'Connection tunneled without decryption to preserve authentication',
+        });
+        
         const conn = net.connect(
           {
             port,
@@ -1145,6 +1176,14 @@ export class ProxyServer extends EventEmitter {
     const windowExists = this.window && !this.window.isDestroyed();
     if (windowExists) {
       this.window?.webContents.send(channel, data);
+      // Debug: log SSL bypass events
+      if (channel === 'proxy:ssl-bypass') {
+        logger.debug(`[ProxyServer] Sent SSL bypass event to renderer:`, data.host);
+      }
+    } else {
+      if (channel === 'proxy:ssl-bypass') {
+        logger.warn(`[ProxyServer] Cannot send SSL bypass - no window available`);
+      }
     }
   }
 

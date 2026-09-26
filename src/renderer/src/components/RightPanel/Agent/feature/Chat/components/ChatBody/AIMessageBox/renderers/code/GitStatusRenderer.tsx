@@ -197,8 +197,8 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
             }
             style={{
               background: `color-mix(in srgb, ${buttonColor} 15%, transparent)`,
-              color: stagedItems.length === 0 ? $('--secondary-text') || '#8c8c8c' : buttonColor,
-              borderColor: `color-mix(in srgb, ${stagedItems.length === 0 ? $('--secondary-text') || '#8c8c8c' : buttonColor} 30%, transparent)`,
+              color: stagedItems.length === 0 ? $('--text-secondary') || '#8c8c8c' : buttonColor,
+              borderColor: `color-mix(in srgb, ${stagedItems.length === 0 ? $('--text-secondary') || '#8c8c8c' : buttonColor} 30%, transparent)`,
             }}
             onMouseEnter={(e) => {
               if (stagedItems.length > 0) {

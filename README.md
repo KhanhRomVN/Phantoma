@@ -74,3 +74,6 @@ RULE:
 2/ không tự ý tạo các file .md mà ko cho phép
 3/ giao tiếp bằng tiếng việt
 4/ code trực tiếp, không cần lập kế hoạch hay design task
+5/ dùng tiếng việt để giao tiếp
+
+tiến hành so sánh temp/Zen/src/webview-ui/src/features/chat với src/renderer/src/components/RightPanel/Agent/feature/Chat xem có gì khác nhau ko như thiếu gì, thừa gì, khác  gì về cấu trúc, hàm, biến... tất tần tật. với temp/Zen/src/webview-ui/src/features/chat làm gốc. lấy src/renderer/src/components/RightPanel/Agent/feature/Chat làm target. src/renderer/src/components/RightPanel/Agent/feature/Chat cần chỉnh UI, UX, logic cho giống với bản gốc. khác UI ở đây là khác về cách người dùng nhìn vào. ko phải khác về style code vì 1 bên là tailwind, 1 bên là css (ko framework)

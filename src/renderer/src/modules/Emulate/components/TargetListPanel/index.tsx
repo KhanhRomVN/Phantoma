@@ -93,7 +93,12 @@ interface TargetListPanelProps {
     mode?: 'browser' | 'electron' | 'native' | 'cdp' | 'frida',
     useEnvInject?: boolean,
     deviceSerial?: string,
+    useSandbox?: boolean,
   ) => Promise<void>;
+  onStartEbpf: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
+  onStartCdp: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
+  onStartPcap: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
+  onStartAppDebug: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
   onOpenAddModal: (platform: AppPlatform) => void;
   onEditTarget?: (id: string) => void;
   onStopSession?: (e: React.MouseEvent, appId: string) => void;
@@ -109,6 +114,10 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   onStartTarget,
   onStopTarget,
   onLaunchTarget,
+  onStartEbpf,
+  onStartCdp,
+  onStartPcap,
+  onStartAppDebug,
   onOpenAddModal,
   onEditTarget,
   onStopSession,
@@ -194,8 +203,9 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
     (
       targetId: string,
       targetUrl?: string,
-      useEnvInject: boolean = false,
+      useEnvInject?: boolean,
       deviceSerial?: string,
+      useSandbox?: boolean,
     ) => {
       onSelectTarget(targetId);
       onStartTarget(targetId, 'mitm');
@@ -210,6 +220,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
               'browser',
               useEnvInject,
               deviceSerial,
+              useSandbox,
             );
           }
         })
@@ -221,14 +232,22 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   );
 
   const handleStartFrida = useCallback(
-    (targetId: string, targetUrl?: string) => {
+    (targetId: string, targetUrl?: string, useSandbox?: boolean) => {
       onSelectTarget(targetId);
       onStartTarget(targetId, 'frida');
       ipcService
         .createProxySession('default')
         .then(async () => {
           if (onLaunchTarget) {
-            await onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'frida');
+            await onLaunchTarget(
+              targetId,
+              'http://127.0.0.1:8081',
+              targetUrl,
+              'frida',
+              undefined,
+              undefined,
+              useSandbox,
+            );
           }
         })
         .catch((err: unknown) => {
@@ -468,6 +487,10 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
         onStartCDP={handleStartCDP}
         onStartMITM={handleStartMITM}
         onStartFrida={handleStartFrida}
+        onStartEbpf={onStartEbpf}
+        onStartCdp={onStartCdp}
+        onStartPcap={onStartPcap}
+        onStartAppDebug={onStartAppDebug}
         onStopTarget={onStopTarget}
         onRefreshDevices={loadDevices}
       />

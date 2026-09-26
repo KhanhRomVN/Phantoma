@@ -1,6 +1,8 @@
-# Data Storage Architecture
+# Data Storage Architecture — PREVIEW
 
-Cấu trúc lưu trữ dữ liệu của Phantoma.
+> ⚠️ Bản nháp xem trước — chưa áp dụng vào `data-storage.md`.
+
+Cấu trúc lưu trữ dữ liệu của Phantoma (đề xuất mới).
 
 ---
 
@@ -12,75 +14,95 @@ Cấu trúc lưu trữ dữ liệu của Phantoma.
   ├── `phantoma.sql`
   ├── `phantoma.sql-shm` — SQLite shared memory
   ├── `phantoma.sql-wal` — SQLite write-ahead log
-  ├── [`conversations/`](#conversations)
-  ├── [`extensions/`](#extensions)
-  ├── [`repeaters/`](#repeaters)
-  └── [`reports/`](#reports)
+  ├── [`emulate:{targetId}/`](#emulate-targetid)
+  │   ├── `conversations/`
+  │   ├── [`repeaters/`](#repeaters)
+  │   └── [`reports/`](#reports)
+  ├── [`recon:{targetId}/`](#recon-targetid)
+  │   └── `conversations/`
+  ├── [`code:{system_path}/`](#code-system-path)
+  │   └── `conversations/`
+  └── [`extensions/`](#extensions)
 
 ---
 
-### phantoma.sql
+<a name="emulate-targetid"></a>
+### Emulate:{targetId}
 
-Database chính của Phantoma, lưu trữ toàn bộ dữ liệu quan hệ. Xem chi tiết tại [`database-schema.md`](./database-schema.md)
+Lưu trữ dữ liệu phiên emulate: hội thoại, request lặp lại và báo cáo.
+
+```
+~/.phantoma/emulate:{targetId}/
+├── conversations/
+├── repeaters/
+└── reports/
+```
 
 ---
 
-### Repeater
+<a name="repeaters"></a>
+### Repeaters
 
-Lưu trữ các request đã lặp lại, phân nhóm theo `targetId` và `requestId`.
-
-```
-~/.phantoma/repeaters/
-├── {targetId}/
-│   ├── repeater_{requestId_1}/
-│   │   ├── params.json
-│   │   ├── headers.json
-│   │   └── body.json
-│   ├── repeater_{requestId_2}/
-│   │   ├── params.json
-│   │   ├── headers.json
-│   │   └── body.json
-│   └── ...
-└── {targetId_2}/
-    └── ...
-```
-
-### Report
-
-Lưu trữ các báo cáo đã tạo, mỗi report có thư mục `code` chứa HTML/CSS/JS.
+Lưu trữ request lặp lại, phân nhóm theo `repeater_{requestId}`.
 
 ```
-~/.phantoma/reports/
-├── {reportId_1}/
-│   └── code/
-│       ├── index.html
-│       ├── style.css
-│       └── script.js
-└── {reportId_2}/
+~/.phantoma/emulate:{targetId}/repeaters/
+├── repeater_{requestId_1}/
+│   ├── params.json
+│   ├── headers.json
+│   └── body.json
+└── repeater_{requestId_2}/
+    ├── params.json
+    ├── headers.json
+    └── body.json
+```
+
+---
+
+<a name="reports"></a>
+### Reports
+
+Lưu trữ báo cáo. Mỗi report gồm file `reportId.md` (báo cáo dạng markdown) và thư mục `code/` chứa các file code khác.
+
+```
+~/.phantoma/emulate:{targetId}/reports/
+└── report:{reportId}/
+    ├── reportId.md
     └── code/
-        └── page.html
+        ├── index.html
+        ├── style.css
+        └── script.js
 ```
 
 ---
 
-### Conversations
+<a name="recon-targetid"></a>
+### Recon:{targetId}
 
-Lưu trữ các cuộc hội thoại, phân loại theo loại phiên: `unknown`, `emulate:{targetId}`, `recon:{targetId}`, hoặc `{timestamp}`.
+Lưu trữ hội thoại của phiên recon.
 
 ```
-~/.phantoma/conversations/
-├── unknown/
-│   └── {conversationId}.json
-├── emulate:{targetId}/
-│   └── {conversationId}.json
-├── recon:{targetId}/
-│   └── {conversationId}.json
-└── {timestamp}/
+~/.phantoma/recon:{targetId}/
+└── conversations/
     └── {conversationId}.json
 ```
 
 ---
 
+<a name="code-system-path"></a>
+### Code:{system_path}
+
+Lưu trữ hội thoại của phiên code.
+
+```
+~/.phantoma/code:{system_path}/
+└── conversations/
+    └── {conversationId}.json
+```
+
+---
+
+<a name="extensions"></a>
 ### Extensions
 
 Lưu trữ các extension đã tải về, mỗi extension có manifest, metadata và mã nguồn.
@@ -102,8 +124,8 @@ Lưu trữ các extension đã tải về, mỗi extension có manifest, metadat
 
 ---
 
-## 📖 Related
+## 📖 Ghi chú cần xác nhận
 
-- [`database-schema.md`](./database-schema.md) — Database schema
-- [`tool-development-guide.md`](./tool-development-guide.md) — Tool development
-- [`README.md`](./README.md) — Project overview
+- `phantoma.sql`, `phantoma.sql-shm`, `phantoma.sql-wal` vẫn giữ ở gốc `~/.phantoma/`?
+- `conversations/` trong `recon:{targetId}` và `code:{system_path}` dùng số nhiều `conversations/` đúng không?
+- File `reportId.md` nằm cùng cấp với `code/` trong `report:{reportId}/`?

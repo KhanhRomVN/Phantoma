@@ -23,6 +23,7 @@ export interface MessageInputProps {
   handlePaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
   handleDragOver: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
+  setShowAtMenu?: (show: boolean) => void;
   handleFileSelect: () => void;
   fileInputRef?: React.RefObject<HTMLInputElement>;
   onOpenProjectStructure: () => void;
@@ -47,8 +48,6 @@ export interface MessageInputProps {
   onGitPullRequest?: () => void;
   isGitLoading?: boolean;
   isGitStatusVisible?: boolean;
-  showCompressButton?: boolean;
-  onCompress?: () => void;
   gitStatus?: { items?: any[]; branch?: string } | null;
   onOpenGitStatus?: () => void;
   conversationFileStats?: {
@@ -90,6 +89,7 @@ export interface MessageInputProps {
   ) => void;
   autoScrollPaused?: boolean;
   scrollToBottom?: () => void;
+  enableViewOnlyMode?: boolean;
 }
 
 export interface ToggleButtonProps {

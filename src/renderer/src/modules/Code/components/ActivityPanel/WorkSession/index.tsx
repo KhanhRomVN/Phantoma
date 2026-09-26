@@ -353,15 +353,15 @@ export function WorkSessionPanel() {
 
   return (
     <div className="flex-1 flex flex-col bg-sidebar-background">
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-border">
-        <h3 className="text-sm font-medium text-text-primary">Agent Groups</h3>
+      {/* HeaderBar — đồng bộ với FileExplore */}
+      <div className="flex items-center justify-between h-9 px-2 border-b border-divider flex-shrink-0 bg-sidebar-background">
+        <span className="text-[13px] text-text-secondary truncate">Agent Groups</span>
         <button
           onClick={handleCreate}
-          className="p-1.5 rounded hover:bg-sidebar-item-hover text-text-secondary hover:text-primary transition-colors"
+          className="p-1 rounded hover:bg-card-hover text-text-secondary hover:text-text-primary transition-colors"
           title="Tạo agent group"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
         </button>
       </div>
 

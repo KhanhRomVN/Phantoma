@@ -47,15 +47,23 @@ export function FooterBar({
 }: FooterBarProps) {
   const sessionTimer = useTimerStore((s) => s.timerDisplay[activeTargetId || ''] || undefined);
   const requests = useNetworkStore((s) => s.requests);
+  const totalWorkerCount = useNetworkStore((s) => s.totalWorkerCount);
 
   // ── Derived Stats ──
   const stats = useMemo(() => {
-    const totalRequests = requests.length;
-    const httpsRequests = requests.filter(
+    // totalRequests: dùng totalWorkerCount (tổng thực từ Worker)
+    // nếu = 0 fallback về requests.length (chưa dùng Worker)
+    const totalRequests = totalWorkerCount > 0 ? totalWorkerCount : requests.length;
+
+    // Đếm https chỉ trên window hiện tại để tính tỉ lệ ước tính
+    // (không thể đếm chính xác 100% vì Worker giữ toàn bộ)
+    const httpsInWindow = requests.filter(
       (r) => r.protocol === 'https' || r.url.startsWith('https://'),
     ).length;
+    const windowSize = requests.length;
+    // Tỉ lệ https ước tính dựa trên window (nếu window > 0)
     const httpsPercentage =
-      totalRequests > 0 ? Math.round((httpsRequests / totalRequests) * 100) : 0;
+      windowSize > 0 ? Math.round((httpsInWindow / windowSize) * 100) : 0;
 
     // Calculate total data usage
     const totalBytes = requests.reduce((sum, r) => {
@@ -83,11 +91,10 @@ export function FooterBar({
 
     return {
       totalRequests,
-      httpsRequests,
       httpsPercentage,
       dataUsed,
     };
-  }, [requests]);
+  }, [requests, totalWorkerCount]);
 
   // ── Mode Display ──
   const modeConfig = useMemo(() => {
@@ -186,8 +193,8 @@ export function FooterBar({
                 <span className="font-medium text-emerald-400">{stats.totalRequests}</span> requests
               </span>
               <span className="text-text-secondary/50">|</span>
-              <span>
-                <span className="font-medium text-blue-400">{stats.httpsPercentage}%</span> HTTPS
+              <span title="Tỉ lệ HTTPS ước tính dựa trên window hiện tại">
+                <span className="font-medium text-blue-400">~{stats.httpsPercentage}%</span> HTTPS
               </span>
             </div>
 

@@ -119,7 +119,7 @@ const CopyButton: React.FC<{ getText: () => string; title?: string }> = ({ getTe
         background: copied
           ? 'color-mix(in srgb, ' + ($('--success') || '') + ' 15%, transparent)'
           : hovered
-            ? 'color-mix(in srgb, ' + ($('--primary-text') || '') + ' 22%, transparent)'
+            ? 'color-mix(in srgb, ' + ($('--text-primary') || '') + ' 22%, transparent)'
             : 'transparent',
         color: copied ? $('--success') : $('--text-primary'),
       }}

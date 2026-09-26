@@ -12,11 +12,12 @@ import Setting from '../modules/Setting';
 import { Recon } from '../modules/Recon';
 import Code from '../modules/Code/Code';
 import Emulate from '@renderer/modules/Emulate/Emulate';
+import Test from '../modules/Test';
 
 // -- Hooks --
 import { useActiveModule } from '@renderer/hooks/useActiveModule';
 
-export type ModuleId = 'recon' | 'emulate' | 'code' | 'settings';
+export type ModuleId = 'recon' | 'emulate' | 'code' | 'settings' | 'test';
 
 interface ModuleConfig {
   id: ModuleId;
@@ -28,7 +29,7 @@ export const ViewContainer = () => {
   const { activeModule } = useActiveModule('recon');
 
   // Khởi tạo tất cả modules một lần duy nhất
-  const [modules] = useState<Map<ModuleId, ModuleConfig>>(() => {
+  const [modules, setModules] = useState<Map<ModuleId, ModuleConfig>>(() => {
     const map = new Map<ModuleId, ModuleConfig>();
 
     // Khởi tạo module mặc định (recon)
@@ -41,15 +42,20 @@ export const ViewContainer = () => {
     return map;
   });
 
-  // Lazy initialize modules when first accessed
+  // Lazy initialize modules when first accessed.
+  // Dùng setModules với Map mới (immutable) thay vì mutate trực tiếp — mutate Map
+  // không trigger re-render nên module mới sẽ không xuất hiện trong DOM.
   useEffect(() => {
     if (!modules.has(activeModule as ModuleId)) {
-      const newModule: ModuleConfig = {
-        id: activeModule as ModuleId,
-        component: getModuleComponent(activeModule as ModuleId),
-        initialized: true,
-      };
-      modules.set(activeModule as ModuleId, newModule);
+      setModules((prev) => {
+        const next = new Map(prev);
+        next.set(activeModule as ModuleId, {
+          id: activeModule as ModuleId,
+          component: getModuleComponent(activeModule as ModuleId),
+          initialized: true,
+        });
+        return next;
+      });
     }
   }, [activeModule, modules]);
 
@@ -82,6 +88,8 @@ function getModuleComponent(moduleId: ModuleId): ReactNode {
       return <Code />;
     case 'settings':
       return <Setting />;
+    case 'test':
+      return <Test />;
     default:
       return <Recon />;
   }

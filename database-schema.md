@@ -69,23 +69,6 @@ Bảng lưu thông tin report cho từng emulate target. Nội dung report (mark
 
 ---
 
-## Repeater Tables (Preview — chưa code)
-
-Các bảng dưới đây lưu dữ liệu Repeater.  
-Thiết kế dùng **JSON columns** cho params, headers, values để tránh tách quá nhiều bảng con (SQLite hỗ trợ `json_extract`, `json_array_length`).
-
-### ER Diagram (khái niệm)
-
-```
-emulate_targets (1)──< (N) emulate_repeater_requests
-                              │
-                              ├──< (N) emulate_repeater_payloads
-                              │
-                              └──< (N) emulate_repeater_history──< (N) emulate_repeater_history_runs
-```
-
-> **Lưu ý:** Chỉ `emulate_repeater_requests` mới có FK `emulate_target_id`. Các bảng còn lại truy ngược target qua `emulate_repeater_request_id → emulate_repeater_requests.emulate_target_id`.
-
 ---
 
 ### Table: `emulate_repeater_requests`

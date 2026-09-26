@@ -1,17 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * AccountCard
- * ------------------------------------------------------------------
- * Card hiển thị thông tin tài khoản trong danh sách.
- * Hỗ trợ chọn, mở context menu (copy JSON, switch, delete), và mở rộng chi tiết.
- *
- * Main features:
- * - Hiển thị thông tin provider, email, thống kê daily requests/tokens
- * - Context menu khi click chuột phải (Copy as JSON, Switch, Delete)
- * - Expand/collapse chi tiết tài khoản (ID, credential, usage...)
- * ------------------------------------------------------------------
- */
-
 import React, { useState, useEffect } from 'react';
 import {
   Trash2,
@@ -25,10 +11,11 @@ import {
   Clock,
   FolderOpen,
   Copy,
+  Key,
+  Pencil,
 } from 'lucide-react';
 import { FlatAccount } from '../types';
-import { CopyableText } from '../utils';
-import { getFaviconUrl } from '../utils';
+import { CopyableText, getFaviconUrl } from '../utils';
 import {
   Dropdown,
   DropdownTrigger,
@@ -36,6 +23,7 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import { extensionService } from '../../../services/ExtensionService';
+import { extractAccessToken, formatJwtExpiry, isJwtExpired } from '@renderer/utils/jwt';
 
 interface AccountCardProps {
   account: FlatAccount;
@@ -44,6 +32,8 @@ interface AccountCardProps {
   onToggleSelect: () => void;
   onDelete: () => void;
   onSwitch: () => void;
+  onRefreshToken?: () => void;
+  onEdit?: () => void;
   providerConfig?: any;
 }
 
@@ -80,9 +70,12 @@ const AccountCard: React.FC<AccountCardProps> = ({
   onToggleSelect,
   onDelete,
   onSwitch,
+  onRefreshToken,
+  onEdit,
   providerConfig,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (anySelected) setExpanded(false);
@@ -92,13 +85,24 @@ const AccountCard: React.FC<AccountCardProps> = ({
     ? getFaviconUrl(providerConfig.website)
     : null;
 
-  const formatDate = (ts: number) =>
-    new Date(ts).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const formatIsoDate = (iso: string) => {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  };
+
+  const isBrowserConnection = providerConfig?.connection_type === 'browser';
+
+  // Extract JWT token and check expiry
+  const accessToken = extractAccessToken(account.credential || '');
+  const expiryToken = accessToken;
+  const tokenExpiry = expiryToken ? formatJwtExpiry(expiryToken) : null;
+  const isTokenExpired = expiryToken ? isJwtExpired(expiryToken) : false;
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -118,16 +122,26 @@ const AccountCard: React.FC<AccountCardProps> = ({
       email: account.email,
       credential: account.credential,
       usage: account.usage ?? null,
-      reset_period: account.reset_period ?? null,
-      last_refreshed_at: account.last_refreshed_at ?? null,
+      reset_usage_at: account.reset_usage_at ?? null,
       is_active_cli: account.is_active_cli ?? false,
       total_requests: account.total_requests ?? null,
       successful_requests: account.successful_requests ?? null,
       total_tokens: account.total_tokens ?? null,
-      period_requests: account.daily_requests ?? null,
-      period_tokens: account.daily_tokens ?? null,
+      period_requests: account.period_requests ?? null,
+      period_tokens: account.period_tokens ?? null,
     };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+  };
+
+  const handleRefreshToken = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!onRefreshToken || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefreshToken();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -156,9 +170,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   width: '14px',
                   height: '14px',
                   borderRadius: '4px',
-                  border: isSelected
-                    ? '1px solid var(--primary)'
-                    : '1px solid var(--border)',
+                  border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
                   backgroundColor: isSelected
                     ? 'rgba(99,102,241,0.2)'
                     : 'rgba(128,128,128,0.08)',
@@ -178,7 +190,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                     height="12"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="var(--primary-text)"
+                    stroke="var(--text-primary)"
                     strokeWidth="3"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -226,9 +238,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         const fallback = document.createElement('div');
                         fallback.style.cssText =
                           'width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;';
-                        fallback.textContent = account.provider_id
-                          .slice(0, 2)
-                          .toUpperCase();
+                        fallback.textContent = account.provider_id.slice(0, 2).toUpperCase();
                         (e.target as HTMLImageElement).replaceWith(fallback);
                       }
                     }}
@@ -260,13 +270,15 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   </span>
                 </p>
 
-                {/* Daily stats */}
+                {/* Period stats */}
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
                     marginTop: '2px',
+                    overflow: 'hidden',
+                    minWidth: 0,
                   }}
                 >
                   <span
@@ -276,10 +288,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
                       gap: '4px',
                       fontSize: '10px',
                       color: 'var(--text-secondary)',
+                      flexShrink: 0,
                     }}
                   >
                     <Activity size={11} style={{ color: 'var(--success, #22c55e)' }} />
-                    {(account.daily_requests ?? 0).toLocaleString()} req
+                    {(account.period_requests ?? 0).toLocaleString()} req
                   </span>
                   <span
                     style={{
@@ -288,16 +301,87 @@ const AccountCard: React.FC<AccountCardProps> = ({
                       gap: '4px',
                       fontSize: '10px',
                       color: 'var(--text-secondary)',
+                      flexShrink: 0,
                     }}
                   >
                     <Coins size={11} style={{ color: 'var(--warn, #f97316)' }} />
-                    {account.daily_tokens !== undefined && account.daily_tokens >= 1000000
-                      ? (account.daily_tokens / 1000000).toFixed(1) + 'M'
-                      : account.daily_tokens !== undefined && account.daily_tokens >= 1000
-                        ? (account.daily_tokens / 1000).toFixed(1) + 'k'
-                        : account.daily_tokens ?? 0}{' '}
+                    {account.period_tokens !== undefined && account.period_tokens >= 1000000
+                      ? (account.period_tokens / 1000000).toFixed(1) + 'M'
+                      : account.period_tokens !== undefined && account.period_tokens >= 1000
+                        ? (account.period_tokens / 1000).toFixed(1) + 'k'
+                        : (account.period_tokens ?? 0)}{' '}
                     tokens
                   </span>
+                  {account.usage != null && (
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '10px',
+                        color:
+                          Number(account.usage) >= 90
+                            ? 'var(--vscode-editorError-foreground, #ef4444)'
+                            : Number(account.usage) >= 70
+                              ? 'var(--vscode-editorWarning-foreground, #f97316)'
+                              : 'var(--text-secondary)',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '60px',
+                      }}
+                    >
+                      <BarChart3
+                        size={11}
+                        style={{
+                          flexShrink: 0,
+                          color:
+                            Number(account.usage) >= 90
+                              ? 'var(--vscode-editorError-foreground, #ef4444)'
+                              : Number(account.usage) >= 70
+                                ? 'var(--vscode-editorWarning-foreground, #f97316)'
+                                : '#a855f7',
+                        }}
+                      />
+                      <span
+                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {Number(account.usage).toFixed(1)}%
+                      </span>
+                    </span>
+                  )}
+                  {tokenExpiry && (
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '10px',
+                        color: isTokenExpired
+                          ? 'var(--vscode-editorError-foreground, #ef4444)'
+                          : 'var(--text-secondary)',
+                        flexShrink: 1,
+                        overflow: 'hidden',
+                        minWidth: 0,
+                      }}
+                    >
+                      <Clock
+                        size={11}
+                        style={{
+                          flexShrink: 0,
+                          color: isTokenExpired
+                            ? 'var(--vscode-editorError-foreground, #ef4444)'
+                            : '#3b82f6',
+                        }}
+                      />
+                      <span
+                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {isTokenExpired ? 'Expired' : `Exp: ${tokenExpiry}`}
+                      </span>
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -334,7 +418,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   style={{
                     padding: '4px 8px',
                     borderRadius: '6px',
-                    backgroundColor: 'var(--success, rgba(34,197,94,0.1))',
+                    backgroundColor: 'rgba(34,197,94,0.1)',
                     border: '1px solid rgba(34,197,94,0.3)',
                     color: 'var(--success, #22c55e)',
                     fontSize: '10px',
@@ -388,59 +472,66 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   <CopyableText value={account.id} monospace />
                 </div>
 
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '10px',
-                      color: 'var(--text-secondary)',
-                      marginBottom: '2px',
-                    }}
-                  >
-                    <KeyRound size={10} />
-                    Credential
-                  </div>
-                  <CopyableText value={account.credential || ''} monospace />
-                </div>
+                {!isBrowserConnection &&
+                  account.credential &&
+                  (() => {
+                    let parsed: Record<string, any> | null = null;
+                    try {
+                      const raw = account.credential.trim();
+                      if (raw.startsWith('{')) {
+                        parsed = JSON.parse(raw);
+                      }
+                    } catch {
+                      /* ignore */
+                    }
 
-                {(account.usage != null || account.reset_period != null) && (
-                  <div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '10px',
-                        color: 'var(--text-secondary)',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      <BarChart3 size={10} />
-                      Usage
-                    </div>
-                    <div
-                      style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-primary)' }}
-                    >
-                      {account.usage ?? '—'}
-                      {account.reset_period != null && (
-                        <span
+                    if (parsed) {
+                      return (
+                        <>
+                          {Object.entries(parsed).map(([key, val]) => (
+                            <div key={key} style={{ minWidth: 0 }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '10px',
+                                  color: 'var(--text-secondary)',
+                                  marginBottom: '2px',
+                                }}
+                              >
+                                <KeyRound size={10} />
+                                {key}
+                              </div>
+                              <CopyableText value={String(val ?? '')} monospace />
+                            </div>
+                          ))}
+                        </>
+                      );
+                    }
+
+                    return (
+                      <div style={{ minWidth: 0 }}>
+                        <div
                           style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
                             fontSize: '10px',
                             color: 'var(--text-secondary)',
-                            marginLeft: '4px',
+                            marginBottom: '2px',
                           }}
                         >
-                          / {account.reset_period}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
+                          <KeyRound size={10} />
+                          Credential
+                        </div>
+                        <CopyableText value={account.credential} monospace />
+                      </div>
+                    );
+                  })()}
 
-                {account.last_refreshed_at != null && (
-                  <div>
+                {account.reset_usage_at != null && (
+                  <div style={{ minWidth: 0 }}>
                     <div
                       style={{
                         display: 'flex',
@@ -452,12 +543,10 @@ const AccountCard: React.FC<AccountCardProps> = ({
                       }}
                     >
                       <Clock size={10} />
-                      Last Refreshed
+                      Reset At
                     </div>
-                    <div
-                      style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-primary)' }}
-                    >
-                      {formatDate(account.last_refreshed_at)}
+                    <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                      {formatIsoDate(account.reset_usage_at)}
                     </div>
                   </div>
                 )}
@@ -478,9 +567,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   cursor: 'pointer',
                   transition: 'background-color 0.15s ease',
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--hover-bg)')
-                }
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--hover-bg)')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 Click again to collapse
@@ -507,6 +594,20 @@ const AccountCard: React.FC<AccountCardProps> = ({
         <DropdownItem icon={<Copy size={14} />} onClick={handleCopyAccount}>
           Copy as JSON
         </DropdownItem>
+        {onEdit && (
+          <DropdownItem icon={<Pencil size={14} />} onClick={onEdit}>
+            Edit Account
+          </DropdownItem>
+        )}
+        {onRefreshToken && (
+          <DropdownItem
+            icon={<Key size={14} />}
+            onClick={() => handleRefreshToken()}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? 'Refreshing Token...' : 'Refresh Token'}
+          </DropdownItem>
+        )}
         {account.is_active_cli === false && (
           <DropdownItem icon={<RefreshCw size={14} />} onClick={onSwitch}>
             Switch to CLI

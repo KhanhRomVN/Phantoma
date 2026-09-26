@@ -102,6 +102,12 @@ interface RequestTableProps {
   onToggleIntercept: () => void;
   onStopTarget: () => void;
   onStartTarget: (targetId: string, mode: 'mitm' | 'cdp') => void;
+  /** Ẩn row searchbar nội bộ — dùng khi parent đã render searchbar riêng. */
+  hideSearchBar?: boolean;
+  /** Callback load thêm items (infinite scroll) — cung cấp bởi useNetworkWorker */
+  loadMore?: (offset: number, limit?: number) => void;
+  /** Tổng số requests thực sự trong Worker (không phải chỉ window) */
+  totalCount?: number;
 }
 
 export const RequestTable = React.memo(function RequestTable({
@@ -122,6 +128,9 @@ export const RequestTable = React.memo(function RequestTable({
   isTargetActive: propsIsTargetActive,
   activeTargetMode: propsActiveTargetMode,
   onStopTarget,
+  hideSearchBar = false,
+  loadMore,
+  totalCount,
 }: RequestTableProps) {
   // [DEBUG] Remove after fixing scroll re-render issue
   const storeRequests = useNetworkStore((s) => s.requests);
@@ -171,40 +180,67 @@ export const RequestTable = React.memo(function RequestTable({
     });
   }, []);
 
+  /**
+   * Lấy body từ `analysis.body[side]` (ưu tiên, đồng bộ với Body.tsx) hoặc fallback
+   * về field `requestBody` / `responseBody` trên NetworkRequest.
+   */
+  const extractBodyFromRequest = (req: NetworkRequest, side: 'request' | 'response'): string => {
+    const sideData = (req.analysis?.body as any)?.[side];
+    if (sideData?.formatted) {
+      try {
+        return JSON.stringify(sideData.formatted, null, 2);
+      } catch {
+        // JSON.stringify lỗi (circular/unsupported) -> fallback về raw
+      }
+    }
+    if (sideData?.raw) return String(sideData.raw);
+    const fallback = side === 'request' ? req.requestBody : req.responseBody;
+    if (!fallback) return '';
+    return typeof fallback === 'string' ? fallback : JSON.stringify(fallback);
+  };
+
+  /** Render body thành markdown code block (tự pretty-print nếu là JSON hợp lệ). */
+  const formatBodyAsCodeBlock = (bodyStr: string): string => {
+    if (!bodyStr) return '*(No body)*';
+    const trimmed = bodyStr.trim();
+    const looksJson =
+      (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+      (trimmed.startsWith('[') && trimmed.endsWith(']'));
+    if (looksJson) {
+      try {
+        return '```json\n' + JSON.stringify(JSON.parse(trimmed), null, 2) + '\n```';
+      } catch {
+        // Không parse được JSON -> render raw
+      }
+    }
+    return '```\n' + bodyStr + '\n```';
+  };
+
+  /** Render headers thành nội dung cho block ```http```. */
+  const formatHeadersAsCodeBlock = (headers?: Record<string, string>): string => {
+    if (!headers || Object.keys(headers).length === 0) return '(No headers)';
+    return Object.entries(headers)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n');
+  };
+
   const formatRequestToMarkdown = (req: NetworkRequest): string => {
     let output = `### \`${req.method}\` ${req.url}\n\n`;
 
-    output += '**Headers:**\n';
-    output += '```http\n';
-    if (req.requestHeaders && Object.keys(req.requestHeaders).length > 0) {
-      output += Object.entries(req.requestHeaders)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join('\n');
-    } else {
-      output += '(No headers)';
-    }
+    output += '**Request Headers:**\n```http\n';
+    output += formatHeadersAsCodeBlock(req.requestHeaders);
     output += '\n```\n\n';
 
-    output += '**Body:**\n';
-    if (req.requestBody) {
-      const bodyStr = typeof req.requestBody === 'string' ? req.requestBody : '';
-      const trimmed = bodyStr.trim();
-      if (
-        (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-        (trimmed.startsWith('[') && trimmed.endsWith(']'))
-      ) {
-        try {
-          const parsed = JSON.parse(trimmed);
-          output += '```json\n' + JSON.stringify(parsed, null, 2) + '\n```';
-        } catch {
-          output += '```\n' + bodyStr + '\n```';
-        }
-      } else {
-        output += '```\n' + bodyStr + '\n```';
-      }
-    } else {
-      output += '*(No body)*';
-    }
+    output += '**Response Headers:**\n```http\n';
+    output += formatHeadersAsCodeBlock(req.responseHeaders);
+    output += '\n```\n\n';
+
+    output += '**Request Body:**\n';
+    output += formatBodyAsCodeBlock(extractBodyFromRequest(req, 'request'));
+    output += '\n\n';
+
+    output += '**Response Body:**\n';
+    output += formatBodyAsCodeBlock(extractBodyFromRequest(req, 'response'));
 
     return output;
   };
@@ -218,13 +254,11 @@ export const RequestTable = React.memo(function RequestTable({
       url: req.url,
       status: req.status,
       type: req.type,
+      requestHeaders: req.requestHeaders,
+      responseHeaders: req.responseHeaders,
+      requestBody: extractBodyFromRequest(req, 'request') || '',
+      responseBody: extractBodyFromRequest(req, 'response') || '',
     };
-    if (req.requestHeaders && Object.keys(req.requestHeaders).length > 0) {
-      entry.requestHeaders = req.requestHeaders;
-    }
-    if (req.requestBody) {
-      entry.requestBody = req.requestBody;
-    }
     return JSON.stringify(entry, null, 2);
   };
 
@@ -270,8 +304,8 @@ export const RequestTable = React.memo(function RequestTable({
           entry.responseHeaders = req.responseHeaders;
         }
         if (copySections.body) {
-          entry.requestBody = req.requestBody || '';
-          entry.responseBody = req.responseBody || '';
+          entry.requestBody = extractBodyFromRequest(req, 'request') || '';
+          entry.responseBody = extractBodyFromRequest(req, 'response') || '';
         }
         return entry;
       });
@@ -305,29 +339,12 @@ export const RequestTable = React.memo(function RequestTable({
           md += '\n```\n\n';
         }
         if (copySections.body) {
-          md += '**Request Body:**\n```\n';
-          md += req.requestBody || '(No body)';
-          md += '\n```\n\n';
-          md += '**Response Body:**\n```\n';
-          if (req.responseBody) {
-            const bodyStr = typeof req.responseBody === 'string' ? req.responseBody : '';
-            const trimmed = bodyStr.trim();
-            if (
-              (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-              (trimmed.startsWith('[') && trimmed.endsWith(']'))
-            ) {
-              try {
-                md += JSON.stringify(JSON.parse(trimmed), null, 2);
-              } catch {
-                md += bodyStr;
-              }
-            } else {
-              md += bodyStr;
-            }
-          } else {
-            md += '(No body)';
-          }
-          md += '\n```\n\n';
+          md += '**Request Body:**\n';
+          md += formatBodyAsCodeBlock(extractBodyFromRequest(req, 'request'));
+          md += '\n\n';
+          md += '**Response Body:**\n';
+          md += formatBodyAsCodeBlock(extractBodyFromRequest(req, 'response'));
+          md += '\n\n';
         }
         return md;
       })
@@ -782,7 +799,20 @@ export const RequestTable = React.memo(function RequestTable({
 
   const handleScroll = useCallback(() => {
     const container = tableContainerRef.current;
-    if (!container || !selectedId) {
+    if (!container) {
+      setShowScrollToSelected((prev) => (prev === false ? prev : false));
+      return;
+    }
+
+    // Infinite scroll: khi cuộn đến cách đáy 200px, load thêm items từ Worker
+    if (loadMore && totalCount !== undefined && requests.length < totalCount) {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop - clientHeight < 200) {
+        loadMore(requests.length, 100);
+      }
+    }
+
+    if (!selectedId) {
       setShowScrollToSelected((prev) => (prev === false ? prev : false));
       return;
     }
@@ -799,7 +829,7 @@ export const RequestTable = React.memo(function RequestTable({
 
     const isOutOfView = rowTop < scrollTop + 16 || rowTop > scrollTop + clientHeight - 48;
     setShowScrollToSelected((prev) => (prev === isOutOfView ? prev : isOutOfView));
-  }, [rows, selectedId]);
+  }, [rows, selectedId, loadMore, totalCount, requests.length]);
 
   useEffect(() => {
     handleScroll();
@@ -832,6 +862,7 @@ export const RequestTable = React.memo(function RequestTable({
 
   return (
     <div className="h-full w-full flex flex-col text-sm overflow-hidden relative">
+      {!hideSearchBar && (
       <div className="flex items-center px-1 py-1.5 border-b border-divider gap-1.5 shrink-0">
         <div className="flex-1 flex items-center gap-2 bg-input-background border border-border rounded px-2 h-9">
           <div className="relative flex-1">
@@ -910,6 +941,7 @@ export const RequestTable = React.memo(function RequestTable({
           </div>
         )}
       </div>
+      )}
       <div
         ref={tableContainerRef}
         onScroll={handleScroll}

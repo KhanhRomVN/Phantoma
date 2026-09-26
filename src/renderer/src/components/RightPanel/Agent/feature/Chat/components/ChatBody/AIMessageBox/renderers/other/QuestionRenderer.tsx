@@ -278,7 +278,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   const getStatusColor = () => {
     if (isAllAnswered) return $('--success');
     if (isCurrentAnswered()) return $('--success');
-    return $('--secondary-text');
+    return $('--text-secondary');
   };
 
   // Render single question type

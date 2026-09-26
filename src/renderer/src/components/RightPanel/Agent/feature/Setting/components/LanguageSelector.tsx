@@ -72,8 +72,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         type="button"
         className="w-full h-9 px-3 rounded text-sm flex items-center justify-between cursor-pointer"
         style={{
-          backgroundColor: $('--input-bg') || 'transparent',
-          border: `1px solid ${$('--border-color') || 'rgba(128,128,128,0.2)'}`,
+          backgroundColor: $('--input-background') || 'transparent',
+          border: `1px solid ${$('--border') || 'rgba(128,128,128,0.2)'}`,
           color: $('--text-primary'),
         }}
         onClick={() => setIsOpen(!isOpen)}
@@ -82,7 +82,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           <span className="text-base leading-none">{selectedLanguage.flag}</span>
           <span className="font-medium text-foreground">{selectedLanguage.name}</span>
         </div>
-        <div style={{ color: $('--secondary-text') || 'currentColor' }}>
+        <div style={{ color: $('--text-secondary') || 'currentColor' }}>
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </div>
       </button>
@@ -91,8 +91,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         <div
           className="absolute top-full left-0 z-[1000] w-full mt-1 rounded overflow-hidden"
           style={{
-            backgroundColor: $('--input-bg') || 'transparent',
-            border: `1px solid ${$('--border-color') || 'rgba(128,128,128,0.2)'}`,
+            backgroundColor: $('--input-background') || 'transparent',
+            border: `1px solid ${$('--border') || 'rgba(128,128,128,0.2)'}`,
             boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
           }}
         >
@@ -105,7 +105,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                   color: $('--text-primary'),
                   backgroundColor:
                     value === lang.code
-                      ? $('--hover-bg') || 'rgba(128,128,128,0.1)'
+                      ? $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)'
                       : 'transparent',
                 }}
                 onClick={() => {
@@ -115,7 +115,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 onMouseEnter={(e) => {
                   if (value !== lang.code) {
                     e.currentTarget.style.backgroundColor =
-                      $('--hover-bg') || 'rgba(128,128,128,0.1)';
+                      $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)';
                   }
                 }}
                 onMouseLeave={(e) => {

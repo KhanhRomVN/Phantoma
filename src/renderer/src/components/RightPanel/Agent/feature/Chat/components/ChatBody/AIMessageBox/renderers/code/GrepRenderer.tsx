@@ -299,7 +299,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
                     fallback.className = 'codicon codicon-file';
                     fallback.style.cssText =
                       'font-size: 12px; color: ' +
-                      $('--secondary-text') +
+                      $('--text-secondary') +
                       '; opacity: 0.7; flex-shrink: 0;';
                     parent.insertBefore(fallback, e.currentTarget);
                   }

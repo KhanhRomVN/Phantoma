@@ -249,15 +249,15 @@ export function DesignPanel() {
         onConfirm={handleModalConfirm}
       />
 
-      {/* Header - Same height as FileExplore */}
-      <div className="flex items-center justify-between px-3 py-[11px] border-b border-border">
-        <h3 className="text-sm font-medium text-text-primary">Designs</h3>
+      {/* HeaderBar — đồng bộ với FileExplore */}
+      <div className="flex items-center justify-between h-9 px-2 border-b border-divider flex-shrink-0 bg-sidebar-background">
+        <span className="text-[13px] text-text-secondary truncate">Designs</span>
         <button
           onClick={handleCreateClick}
-          className="p-1.5 rounded hover:bg-sidebar-item-hover text-text-secondary hover:text-primary transition-colors"
+          className="p-1 rounded hover:bg-card-hover text-text-secondary hover:text-text-primary transition-colors"
           title="Create new design"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
         </button>
       </div>
 

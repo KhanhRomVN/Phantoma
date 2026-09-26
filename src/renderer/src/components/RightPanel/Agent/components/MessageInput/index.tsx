@@ -1,33 +1,38 @@
 import React from 'react';
-import { Plus, X, GitPullRequestArrow, Zap, Scale, ShieldCheck, Plane } from 'lucide-react';
+import { Plus, X, Zap, ShieldCheck } from 'lucide-react';
 import { logger } from '@renderer/utils/logger';
 import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
 import { useSettings } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
-import ModelAccountDrawer from './ModelAccountDrawer';
-import StyleCodeDropdown from './StyleCodeDropdown';
-import DiffSummaryBar from './DiffSummaryBar';
 import { LANGUAGES } from '../../feature/Setting/components/LanguageSelector';
-import type { UploadedFile } from './types';
+import { combinePromptsForMode } from '../../feature/Chat/prompts/code';
+import type { SystemInfo } from '../../feature/Chat/prompts/code';
+import ModelAccountDrawer from './ModelAccountDrawer';
+import StyleCodeDropdown, {
+  StyleCodeTriggerIcon,
+  STYLE_CODE_MODE_META,
+} from './StyleCodeDropdown';
+import PromptLengthDropdown, {
+  PromptLengthTriggerIcon,
+  PROMPT_LENGTH_MODE_META,
+} from './PromptLengthDropdown';
+import ActionDropdown from './ActionDropdown';
+import { getFaviconUrl } from '@renderer/utils/favicon';
+import { getClientId } from '@renderer/utils/clientId';
 import { countTokens } from '@renderer/utils/tokenizer';
+import { buildAcceptString } from '../../feature/Chat/utils/fileUtils';
+import type { MessageInputProps, UploadedFile, ToggleButtonProps } from './types';
+
 export type { UploadedFile };
 
-const formatTokenCount = (count: number): string => {
-  if (count < 1000) {
-    return count.toString();
-  } else if (count < 1000000) {
-    const k = count / 1000;
-    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
-  } else {
-    const m = count / 1000000;
-    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
-  }
-};
+// ============================================================================
+// ICONS
+// ============================================================================
 
 const BrainCogIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="11"
-    height="11"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -57,8 +62,8 @@ const BrainCogIcon = () => (
 const GlobeIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="11"
-    height="11"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -76,8 +81,8 @@ const GlobeIcon = () => (
 const MemoryIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="11"
-    height="11"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -92,177 +97,287 @@ const MemoryIcon = () => (
   </svg>
 );
 
-const SummaryIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="11"
-    height="11"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="lucide lucide-summary-icon lucide-summary"
-  >
-    <path d="M15 4H7" />
-    <path d="m18 16 3 3-3 3" />
-    <path d="M3 4v13a2 2 0 0 0 2 2h16" />
-    <path d="M7 14h7" />
-    <path d="M7 9h12" />
-  </svg>
-);
+const formatTokenCount = (count: number): string => {
+  if (count < 1000) {
+    return count.toString();
+  } else if (count < 1000000) {
+    const k = count / 1000;
+    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
+  } else {
+    const m = count / 1000000;
+    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
+  }
+};
 
-interface ToggleButtonProps {
-  isOn: boolean;
-  onClick: () => void;
-  title: string;
-}
+// ============================================================================
+// CUSTOM HOOKS
+// ============================================================================
 
-const ThinkingButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => {
+const useToggleState = (key: string, defaultValue: boolean = false) => {
+  const [state, setState] = React.useState(() => {
+    try {
+      return localStorage.getItem(key) === 'true';
+    } catch {
+      return defaultValue;
+    }
+  });
+
+  const toggle = React.useCallback(() => {
+    setState((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(key, String(next));
+      } catch {}
+      return next;
+    });
+  }, [key]);
+
+  return [state, toggle, setState] as const;
+};
+
+const useModelCapabilities = (
+  currentModel: any,
+  currentModelConfig: any,
+  currentProviderConfig: any,
+) => {
+  const showThinkingButton = React.useMemo(() => {
+    return currentModel?.is_thinking !== undefined
+      ? !!currentModel.is_thinking
+      : !!currentModelConfig?.is_thinking;
+  }, [currentModel, currentModelConfig]);
+
+  const showSearchButton = React.useMemo(() => {
+    let result: boolean;
+    if (currentModel?.is_search !== undefined) {
+      result = !!currentModel.is_search;
+    } else if (currentModelConfig?.is_search !== undefined) {
+      result = !!currentModelConfig.is_search;
+    } else {
+      result = !!currentProviderConfig?.is_search;
+    }
+    return result;
+  }, [currentModel, currentModelConfig, currentProviderConfig]);
+
+  const showMemoryButton = React.useMemo(() => {
+    return currentModel?.is_memory === true;
+  }, [currentModel]);
+
+  const supportsUpload = React.useMemo(() => {
+    if (currentModel?.is_image_upload !== undefined) {
+      return !!currentModel.is_image_upload;
+    } else if (currentModelConfig?.is_image_upload !== undefined) {
+      return !!currentModelConfig.is_image_upload;
+    }
+    return false;
+  }, [currentModel, currentProviderConfig, currentModelConfig]);
+
+  const supportsImageGenerator = React.useMemo(() => {
+    return currentModel?.is_image_generator === true;
+  }, [currentModel]);
+
+  const supportsVideoGenerator = React.useMemo(() => {
+    return currentModel?.is_video_generator === true;
+  }, [currentModel]);
+
+  const supportsDeepResearch = React.useMemo(() => {
+    return currentModel?.is_deep_research === true;
+  }, [currentModel]);
+
+  return {
+    showThinkingButton,
+    showSearchButton,
+    showMemoryButton,
+    supportsUpload,
+    supportsImageGenerator,
+    supportsVideoGenerator,
+    supportsDeepResearch,
+  };
+};
+
+const useProvidersConfig = (currentModel: any, providers: any[]) => {
+  const currentProviderConfig = React.useMemo(() => {
+    if (!currentModel?.providerId) {
+      return null;
+    }
+    const found = providers.find(
+      (p) => p.provider_id?.toLowerCase() === currentModel.providerId?.toLowerCase(),
+    );
+    return found ?? null;
+  }, [currentModel, providers]);
+
+  const currentModelConfig = React.useMemo(() => {
+    if (!currentProviderConfig || !currentModel?.id) {
+      return null;
+    }
+    const found = currentProviderConfig.models?.find(
+      (m: any) => m.id?.toLowerCase() === currentModel.id?.toLowerCase(),
+    );
+    return found ?? null;
+  }, [currentProviderConfig, currentModel]);
+
+  return { currentProviderConfig, currentModelConfig };
+};
+
+const useTextareaAutoResize = (
+  textareaRef: React.RefObject<HTMLTextAreaElement>,
+  message: string,
+) => {
+  const rafIdRef = React.useRef<number | null>(null);
+  const lastResizeTime = React.useRef(performance.now());
+
+  React.useEffect(() => {
+    const msgLength = message?.length || 0;
+    const now = performance.now();
+    lastResizeTime.current = now;
+
+    // Cancel any pending resize
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+
+    // Skip auto-resize for very large text (>50k chars) — use fixed max height.
+    const isVeryLargeText = msgLength > 50000;
+
+    if (isVeryLargeText) {
+      const el = textareaRef.current;
+      if (el) {
+        el.style.height = '240px';
+        el.style.overflowY = 'auto';
+      }
+      return;
+    }
+
+    rafIdRef.current = requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+
+      el.style.height = 'auto';
+      const maxHeight = 240;
+      el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+      el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+
+      rafIdRef.current = null;
+    });
+
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [message, textareaRef]);
+};
+
+const useModelSelection = (
+  folderPath: string | null | undefined,
+  setCurrentModel: (model: any) => void,
+  setCurrentAccount: (account: any) => void,
+  currentModel: any,
+  currentAccount: any,
+) => {
+  const [isLoadingCache, setIsLoadingCache] = React.useState(true);
+  const pendingAccountIdRef = React.useRef<string | null>(null);
+  const currentModelRef = React.useRef<any>(null);
+  const currentAccountRef = React.useRef<any>(null);
+
+  currentModelRef.current = currentModel;
+  currentAccountRef.current = currentAccount;
+
+  // Load saved selection
+  React.useEffect(() => {
+    let cancelled = false;
+    setIsLoadingCache(true);
+    const key = `zen-model-selection:${folderPath || 'global'}`;
+
+    const applyCache = (saved: any) => {
+      if (cancelled) return;
+      if (saved.model && !currentModelRef.current) setCurrentModel(saved.model);
+      if (saved.accountId && !currentAccountRef.current) {
+        pendingAccountIdRef.current = saved.accountId;
+        if (saved.email) {
+          setCurrentAccount({ id: saved.accountId, email: saved.email });
+        }
+      }
+    };
+
+    try {
+      const savedStr = localStorage.getItem(key);
+      if (savedStr) {
+        const saved = JSON.parse(savedStr);
+        applyCache(saved);
+        setIsLoadingCache(false);
+      } else {
+        const storage = (window as any).storage;
+        if (storage) {
+          storage
+            .get(key)
+            .then((res: any) => {
+              if (cancelled) return;
+              if (res?.value) {
+                const saved = JSON.parse(res.value);
+                applyCache(saved);
+                try {
+                  localStorage.setItem(key, res.value);
+                } catch {}
+              }
+              setIsLoadingCache(false);
+            })
+            .catch(() => {
+              if (!cancelled) setIsLoadingCache(false);
+            });
+        } else {
+          setIsLoadingCache(false);
+        }
+      }
+    } catch (e) {
+      setIsLoadingCache(false);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [folderPath, setCurrentModel, setCurrentAccount]);
+
+  // Save selection
+  React.useEffect(() => {
+    if (currentModel) {
+      const key = `zen-model-selection:${folderPath || 'global'}`;
+      const data = {
+        model: currentModel,
+        accountId: currentAccount?.id,
+        email: currentAccount?.email,
+      };
+      const dataStr = JSON.stringify(data);
+      try {
+        localStorage.setItem(key, dataStr);
+      } catch (e) {
+        logger.warn('[MessageInput] Failed to save model selection:', e);
+      }
+
+      const storage = (window as any).storage;
+      if (storage) {
+        storage.set(key, dataStr);
+      }
+    }
+  }, [currentModel, currentAccount, folderPath]);
+
+  return { isLoadingCache, pendingAccountIdRef };
+};
+
+// ============================================================================
+// TOGGLE BUTTONS
+// ============================================================================
+
+/**
+ * Icon-only toggle button dùng chung cho Thinking / Search / Memory.
+ * `accentColor` xác định màu khi ON.
+ */
+const IconToggleButton: React.FC<
+  ToggleButtonProps & { accentColor: string; children: React.ReactNode }
+> = ({ isOn, onClick, title, accentColor, children }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
   return (
     <button
-      onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '0 8px',
-        height: '22px',
-        boxSizing: 'border-box',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.3px',
-        transition: 'all 0.2s ease-in-out',
-        border: 'none',
-        background: isOn
-          ? isHovered
-            ? 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #a855f7) 20%, transparent)'
-            : 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground2, #a855f7) 12%, transparent)'
-          : isHovered
-            ? 'rgba(128, 128, 128, 0.2)'
-            : 'rgba(128, 128, 128, 0.12)',
-        color: isOn
-          ? 'var(--vscode-editorBracketHighlight-foreground2, #a855f7)'
-          : 'var(--vscode-foreground)',
-        opacity: isOn ? 1 : isHovered ? 0.9 : 0.7,
-        lineHeight: 1,
-        verticalAlign: 'middle',
-      }}
-      title={title}
-    >
-      <BrainCogIcon />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>Thinking</span>
-    </button>
-  );
-};
-
-const SearchButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => {
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '0 8px',
-        height: '22px',
-        boxSizing: 'border-box',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.3px',
-        transition: 'all 0.2s ease-in-out',
-        border: 'none',
-        background: isOn
-          ? isHovered
-            ? 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground1, #0ea5e9) 20%, transparent)'
-            : 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground1, #0ea5e9) 12%, transparent)'
-          : isHovered
-            ? 'rgba(128, 128, 128, 0.2)'
-            : 'rgba(128, 128, 128, 0.12)',
-        color: isOn
-          ? 'var(--vscode-editorBracketHighlight-foreground1, #0ea5e9)'
-          : 'var(--vscode-foreground)',
-        opacity: isOn ? 1 : isHovered ? 0.9 : 0.7,
-        lineHeight: 1,
-        verticalAlign: 'middle',
-      }}
-      title={title}
-    >
-      <GlobeIcon />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>Search</span>
-    </button>
-  );
-};
-
-const MemoryButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => {
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '0 8px',
-        height: '22px',
-        boxSizing: 'border-box',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.3px',
-        transition: 'all 0.2s ease-in-out',
-        border: isOn
-          ? '1px solid var(--vscode-editorBracketHighlight-foreground3, rgba(139, 92, 246, 0.4))'
-          : '1px solid rgba(128, 128, 128, 0.2)',
-        background: isOn
-          ? isHovered
-            ? 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground3, #8b5cf6) 20%, transparent)'
-            : 'color-mix(in srgb, var(--vscode-editorBracketHighlight-foreground3, #8b5cf6) 12%, transparent)'
-          : isHovered
-            ? 'rgba(128, 128, 128, 0.2)'
-            : 'rgba(128, 128, 128, 0.12)',
-        color: isOn
-          ? 'var(--vscode-editorBracketHighlight-foreground3, #8b5cf6)'
-          : 'var(--vscode-foreground)',
-        opacity: isOn ? 1 : isHovered ? 0.9 : 0.7,
-        lineHeight: 1,
-        verticalAlign: 'middle',
-      }}
-      title={title}
-    >
-      <MemoryIcon />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>Memory</span>
-    </button>
-  );
-};
-
-interface CompressButtonProps {
-  onClick: () => void;
-  title: string;
-}
-
-const CompressButton: React.FC<CompressButtonProps> = ({ onClick, title }) => {
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  return (
-    <div
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -270,22 +385,70 @@ const CompressButton: React.FC<CompressButtonProps> = ({ onClick, title }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '22px',
-        width: '22px',
+        height: '24px',
+        width: '24px',
         boxSizing: 'border-box',
-        borderRadius: '4px',
+        borderRadius: '5px',
         cursor: 'pointer',
-        transition: 'all 0.2s ease-in-out',
-        border: '1px solid rgba(128, 128, 128, 0.2)',
-        background: isHovered ? 'rgba(128, 128, 128, 0.2)' : 'rgba(128, 128, 128, 0.12)',
-        color: 'var(--vscode-foreground)',
-        opacity: isHovered ? 0.9 : 0.7,
+        transition: 'all 0.15s ease-in-out',
+        border: '1px solid transparent',
+        background: isOn
+          ? isHovered
+            ? `color-mix(in srgb, ${accentColor} 22%, transparent)`
+            : `color-mix(in srgb, ${accentColor} 14%, transparent)`
+          : isHovered
+            ? 'rgba(128, 128, 128, 0.16)'
+            : 'transparent',
+        color: isOn ? accentColor : 'rgb(var(--text-primary))',
+        opacity: isOn ? 1 : isHovered ? 1 : 0.75,
+        padding: 0,
       }}
       title={title}
     >
-      <SummaryIcon />
-    </div>
+      {children}
+    </button>
   );
+};
+
+const ThinkingButton: React.FC<ToggleButtonProps> = (props) => (
+  <IconToggleButton {...props} accentColor="#a855f7">
+    <BrainCogIcon />
+  </IconToggleButton>
+);
+
+const SearchButton: React.FC<ToggleButtonProps> = (props) => (
+  <IconToggleButton {...props} accentColor="#0ea5e9">
+    <GlobeIcon />
+  </IconToggleButton>
+);
+
+const MemoryButton: React.FC<ToggleButtonProps> = (props) => (
+  <IconToggleButton {...props} accentColor="#8b5cf6">
+    <MemoryIcon />
+  </IconToggleButton>
+);
+
+// ============================================================================
+// GLOBAL PERMISSION BUTTON
+// ============================================================================
+
+/** Metadata cho các permission mode — dùng cho trigger + panel + tooltip. */
+const PERMISSION_MODE: Record<
+  string,
+  { label: string; desc: string; icon: React.ReactNode; color: string }
+> = {
+  fullAccess: {
+    label: 'Full Access',
+    desc: 'AI has unrestricted access to all project files and tools',
+    icon: <Zap size={11} />,
+    color: '#f59e0b',
+  },
+  approval: {
+    label: 'Approval Required',
+    desc: 'AI must request explicit approval before accessing files or running commands',
+    icon: <ShieldCheck size={11} />,
+    color: '#3b82f6',
+  },
 };
 
 const GlobalPermissionButton: React.FC = () => {
@@ -316,24 +479,6 @@ const GlobalPermissionButton: React.FC = () => {
     }
   }, [open]);
 
-  const MODE_METADATA: Record<
-    string,
-    { label: string; desc: string; icon: React.ReactNode; color: string }
-  > = {
-    fullAccess: {
-      label: 'Full Access',
-      desc: 'AI has unrestricted access to all project files and tools',
-      icon: <Zap size={11} />,
-      color: '#f59e0b',
-    },
-    approval: {
-      label: 'Approval Required',
-      desc: 'AI must request explicit approval before accessing files or running commands',
-      icon: <ShieldCheck size={11} />,
-      color: '#3b82f6',
-    },
-  };
-
   const handleItemMouseEnter = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
     if (!e.currentTarget.parentElement) return;
     if (
@@ -354,7 +499,7 @@ const GlobalPermissionButton: React.FC = () => {
     setTooltip(null);
   };
 
-  const metadata = MODE_METADATA[permissionMode] || MODE_METADATA.fullAccess;
+  const metadata = PERMISSION_MODE[permissionMode] || PERMISSION_MODE.fullAccess;
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -407,7 +552,7 @@ const GlobalPermissionButton: React.FC = () => {
             minWidth: '180px',
           }}
         >
-          {Object.entries(MODE_METADATA).map(([modeId, meta]) => {
+          {Object.entries(PERMISSION_MODE).map(([modeId, meta]) => {
             const isSelected = permissionMode === modeId;
             return (
               <button
@@ -452,7 +597,7 @@ const GlobalPermissionButton: React.FC = () => {
           })}
         </div>
       )}
-      {tooltip && MODE_METADATA[tooltip.id] && (
+      {tooltip && PERMISSION_MODE[tooltip.id] && (
         <div
           style={{
             position: 'fixed',
@@ -475,12 +620,12 @@ const GlobalPermissionButton: React.FC = () => {
             style={{
               fontWeight: 600,
               marginBottom: '3px',
-              color: MODE_METADATA[tooltip.id].color,
+              color: PERMISSION_MODE[tooltip.id].color,
             }}
           >
-            {MODE_METADATA[tooltip.id].label}
+            {PERMISSION_MODE[tooltip.id].label}
           </div>
-          {MODE_METADATA[tooltip.id].desc}
+          {PERMISSION_MODE[tooltip.id].desc}
         </div>
       )}
     </div>
@@ -514,89 +659,6 @@ const savePromptToHistory = (prompt: string) => {
   } catch {}
 };
 
-interface MessageInputProps {
-  message: string;
-  setMessage: React.Dispatch<React.SetStateAction<string>>;
-  isHistoryMode?: boolean;
-  uploadedFiles: UploadedFile[];
-  attachedItems?: any[];
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
-  handleTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  handlePaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
-  handleDragOver: (e: React.DragEvent) => void;
-  handleDrop: (e: React.DragEvent) => void;
-  setShowAtMenu: (show: boolean) => void;
-  handleFileSelect: () => void;
-  fileInputRef?: React.RefObject<HTMLInputElement>;
-  onOpenProjectStructure: () => void;
-  showChangesDropdown: boolean;
-  setShowChangesDropdown: (show: boolean) => void;
-  messages: any[];
-  handleSend: (model: any, account: any) => void;
-  hasProjectContext: boolean;
-  onOpenProjectContext: () => void;
-  folderPath?: string | null;
-  isConversationStarted?: boolean;
-  currentModel: any;
-  setCurrentModel: (model: any) => void;
-  currentAccount: any;
-  setCurrentAccount: (account: any) => void;
-  isProcessing?: boolean;
-  isStreaming?: boolean;
-  onStopGeneration?: () => void;
-  showBrowserWarning?: boolean;
-  isLaunchingBrowser?: boolean;
-  onLaunchBrowserSession?: () => void;
-  onGitPullRequest?: () => void;
-  isGitLoading?: boolean;
-  isGitStatusVisible?: boolean;
-  showCompressButton?: boolean;
-  onCompress?: () => void;
-  gitStatus?: { items?: any[]; branch?: string } | null;
-  onOpenGitStatus?: () => void;
-  conversationFileStats?: {
-    totalFiles: number;
-    totalAdditions: number;
-    totalDeletions: number;
-    responseNumber?: number;
-  };
-  onReviewClick?: () => void;
-  responseRange?: { start: number; end: number } | null;
-  responseRanges?: Array<{
-    start: number;
-    end: number;
-    isCurrent: boolean;
-    fileChanges: Map<
-      string,
-      {
-        additions: number;
-        deletions: number;
-        toolType?: 'write_to_file' | 'replace_in_file' | 'revert_file';
-        content?: string;
-        oldContent?: string;
-        newContent?: string;
-      }
-    >;
-  }>;
-  onOpenModelDrawer?: () => void;
-  onModelSwitch?: (
-    newModel: any,
-    newAccount: any,
-    contextData: {
-      fileChanges: Array<{
-        path: string;
-        additions: number;
-        deletions: number;
-      }>;
-      userMessages: Array<{ content: string; responseNumber: number }>;
-    },
-  ) => void;
-  autoScrollPaused?: boolean;
-  scrollToBottom?: () => void;
-  onRevertConversation?: (messageId: string, timestamp: number) => void;
-}
-
 const MessageInput: React.FC<MessageInputProps> = React.memo(
   ({
     message,
@@ -612,8 +674,13 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     handleDrop,
     handleFileSelect,
     fileInputRef,
+    onOpenProjectStructure,
+    showChangesDropdown,
+    setShowChangesDropdown,
     messages,
     handleSend,
+    hasProjectContext,
+    onOpenProjectContext,
     folderPath,
     isConversationStarted,
     currentModel,
@@ -629,8 +696,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     onGitPullRequest,
     isGitLoading = false,
     isGitStatusVisible = false,
-    showCompressButton = false,
-    onCompress,
+    gitStatus,
     onOpenGitStatus,
     conversationFileStats,
     onReviewClick,
@@ -638,8 +704,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     responseRanges = [],
     onOpenModelDrawer,
     onModelSwitch,
-    onRevertConversation,
+    enableViewOnlyMode = false,
   }) => {
+    // Prompt History Navigation State (ArrowUp / ArrowDown)
     const historyIndexRef = React.useRef<number>(-1);
     const tempDraftRef = React.useRef<string>('');
 
@@ -743,16 +810,20 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       handleSend(currentModel, currentAccount);
     };
 
-    const { isValid: isConnected, error: isElaraMismatch } = useServerHealth();
+    const { isValid: isConnected } = useServerHealth();
     const {
       apiUrl,
       aiLanguage: preferredLanguage,
       systemPromptMode,
       setSystemPromptMode,
+      promptLengthMode,
+      setPromptLengthMode,
     } = useSettings();
+
     const [providers, setProviders] = React.useState<any[]>([]);
     const [showModelDrawer, setShowModelDrawer] = React.useState(false);
     const [isSystemPromptHovered, setIsSystemPromptHovered] = React.useState(false);
+    const [isPromptLengthHovered, setIsPromptLengthHovered] = React.useState(false);
 
     const [pendingModelSwitch, setPendingModelSwitch] = React.useState<{
       model: any;
@@ -760,202 +831,204 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     } | null>(null);
     const [isModelSwitchMode, setIsModelSwitchMode] = React.useState(false);
     const [isPlusHovered, setIsPlusHovered] = React.useState(false);
-    const [isGitHovered, setIsGitHovered] = React.useState(false);
 
-    const [isThinking, setIsThinking] = React.useState(() => {
-      try {
-        return localStorage.getItem('zen-thinking-enabled') === 'true';
-      } catch {
-        return false;
-      }
-    });
+    // Use custom hooks
+    const [isThinking, toggleThinking, setIsThinking] = useToggleState('zen-thinking-enabled');
+    const [isSearch, toggleSearch, setIsSearch] = useToggleState('zen-search-enabled');
+    const [isMemory, , setIsMemory] = useToggleState('zen-memory-enabled');
 
-    const [isSearch, setIsSearch] = React.useState(() => {
-      try {
-        return localStorage.getItem('zen-search-enabled') === 'true';
-      } catch {
-        return false;
-      }
-    });
+    const { isLoadingCache, pendingAccountIdRef } = useModelSelection(
+      folderPath,
+      setCurrentModel,
+      setCurrentAccount,
+      currentModel,
+      currentAccount,
+    );
 
-    const [isMemory, setIsMemory] = React.useState(() => {
-      try {
-        return localStorage.getItem('zen-memory-enabled') === 'true';
-      } catch {
-        return false;
-      }
-    });
-
-    const [isLoadingCache, setIsLoadingCache] = React.useState(true);
-    const pendingAccountIdRef = React.useRef<string | null>(null);
-    const currentModelRef = React.useRef<any>(null);
-    const currentAccountRef = React.useRef<any>(null);
-    currentModelRef.current = currentModel;
-    currentAccountRef.current = currentAccount;
-
+    // ─── Presence heartbeat ──────────────────────────────────────────
+    // Báo cho backend biết cửa sổ này đang active account nào, để các
+    // cửa sổ khác thấy badge "In use". Gửi ngay khi account đổi và lặp
+    // lại mỗi 20s; release account cũ khi đổi/đóng.
     React.useEffect(() => {
+      const accountId = currentAccount?.id;
+      if (!accountId) return;
+      const clientId = getClientId();
       let cancelled = false;
-      setIsLoadingCache(true);
-      const key = `zen-model-selection:${folderPath || 'global'}`;
-
-      const applyCache = (saved: any) => {
+      const beat = () => {
         if (cancelled) return;
-        if (saved.model && !currentModelRef.current) setCurrentModel(saved.model);
-        if (saved.accountId && !currentAccountRef.current) {
-          pendingAccountIdRef.current = saved.accountId;
-          if (saved.email) {
-            setCurrentAccount({ id: saved.accountId, email: saved.email });
-          }
-        }
+        fetch(`${apiUrl}/v1/accounts/${accountId}/presence`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId }),
+        }).catch(() => {});
       };
-
-      try {
-        const savedStr = localStorage.getItem(key);
-        if (savedStr) {
-          const saved = JSON.parse(savedStr);
-          applyCache(saved);
-          setIsLoadingCache(false);
-        } else {
-          const storage = (window as any).storage;
-          if (storage) {
-            storage
-              .get(key)
-              .then((res: any) => {
-                if (cancelled) return;
-                if (res?.value) {
-                  const saved = JSON.parse(res.value);
-                  applyCache(saved);
-                  try {
-                    localStorage.setItem(key, res.value);
-                  } catch {
-                    logger.warn('[MessageInput] Failed to cache model selection');
-                  }
-                }
-                setIsLoadingCache(false);
-              })
-              .catch(() => {
-                if (!cancelled) setIsLoadingCache(false);
-              });
-          } else {
-            setIsLoadingCache(false);
-          }
-        }
-      } catch (e) {
-        setIsLoadingCache(false);
-      }
-
+      beat();
+      const intervalId = setInterval(beat, 20000);
       return () => {
         cancelled = true;
+        clearInterval(intervalId);
+        fetch(
+          `${apiUrl}/v1/accounts/${accountId}/presence?clientId=${encodeURIComponent(clientId)}`,
+          { method: 'DELETE' },
+        ).catch(() => {});
       };
-    }, [folderPath, setCurrentModel, setCurrentAccount]);
+    }, [currentAccount?.id, apiUrl]);
 
-    React.useEffect(() => {
-      if (currentModel) {
-        const key = `zen-model-selection:${folderPath || 'global'}`;
-        const data = {
-          model: currentModel,
-          accountId: currentAccount?.id,
-          email: currentAccount?.email,
-        };
-        const dataStr = JSON.stringify(data);
-        try {
-          localStorage.setItem(key, dataStr);
-        } catch (e) {
-          logger.warn('[MessageInput] Failed to save model selection:', e);
-        }
+    const { currentProviderConfig, currentModelConfig } = useProvidersConfig(
+      currentModel,
+      providers,
+    );
 
-        const storage = (window as any).storage;
-        if (storage) {
-          storage.set(key, dataStr);
-        }
-      }
-    }, [currentModel, currentAccount, folderPath]);
+    // ─── View-only mode detection ────────────────────────────────────
+    // Provider không cần auth (auth_method rỗng) CHỈ disable input
+    // khi conversation được load từ History (có conversationFileStats).
+    // Conversation mới tạo → không disable
+    const isViewOnlyProvider = React.useMemo(() => {
+      if (!enableViewOnlyMode) return false;
+      if (!currentProviderConfig) return false;
 
-    React.useEffect(() => {
-      const el = textareaRef.current;
-      if (!el) return;
-      el.style.height = 'auto';
-      const maxHeight = 240;
-      el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
-      el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
-    }, [message, textareaRef]);
+      const isLoadedFromHistory = conversationFileStats != null;
+      if (!isLoadedFromHistory) return false;
 
-    const currentProviderConfig = React.useMemo(() => {
-      if (!currentModel?.providerId) return null;
-      const found = providers.find(
-        (p) => p.provider_id?.toLowerCase() === currentModel.providerId?.toLowerCase(),
-      );
-      return found ?? null;
-    }, [currentModel, providers]);
+      const authMethod = currentProviderConfig.auth_method;
+      return Array.isArray(authMethod) && authMethod.length === 0;
+    }, [enableViewOnlyMode, currentProviderConfig, conversationFileStats]);
 
-    const currentModelConfig = React.useMemo(() => {
-      if (!currentProviderConfig || !currentModel?.id) return null;
-      const found = currentProviderConfig.models?.find(
-        (m: any) => m.id?.toLowerCase() === currentModel.id?.toLowerCase(),
-      );
-      return found ?? null;
-    }, [currentProviderConfig, currentModel]);
+    const {
+      showThinkingButton,
+      showSearchButton,
+      showMemoryButton,
+      supportsUpload,
+      supportsImageGenerator,
+      supportsVideoGenerator,
+      supportsDeepResearch,
+    } = useModelCapabilities(currentModel, currentModelConfig, currentProviderConfig);
 
-    const showThinkingButton = React.useMemo(() => {
-      const result =
-        currentModel?.is_thinking !== undefined
-          ? !!currentModel.is_thinking
-          : !!currentModelConfig?.is_thinking;
-      return result;
-    }, [currentModel, currentModelConfig]);
+    useTextareaAutoResize(textareaRef, message);
 
-    const showSearchButton = React.useMemo(() => {
-      let result: boolean;
-      if (currentModel?.is_search !== undefined) {
-        result = !!currentModel.is_search;
-      } else if (currentModelConfig?.is_search !== undefined) {
-        result = !!currentModelConfig.is_search;
-      } else {
-        result = !!currentProviderConfig?.is_search;
-      }
-      return result;
-    }, [currentModel, currentModelConfig, currentProviderConfig]);
-
-    const showMemoryButton = React.useMemo(() => {
-      const result = currentModel?.is_memory === true;
-      return result;
+    const displayModel = React.useMemo(() => {
+      return currentModel || null;
     }, [currentModel]);
 
-    const supportsUpload = React.useMemo(() => {
-      let result: boolean;
-      if (currentModel?.is_upload !== undefined) {
-        result = !!currentModel.is_upload;
-      } else if (currentModelConfig?.is_upload !== undefined) {
-        result = !!currentModelConfig.is_upload;
-      } else {
-        result = !!currentProviderConfig?.is_upload;
+    const displayAccount = React.useMemo(() => {
+      return currentAccount || null;
+    }, [currentAccount]);
+
+    // Dynamic placeholder text
+    const placeholderText = React.useMemo(() => {
+      if (isHistoryMode) {
+        return 'History mode - enter a search query';
       }
-      return result;
-    }, [currentModel, currentProviderConfig, currentModelConfig]);
+      if (!isConnected) {
+        return 'Connecting to backend...';
+      }
+      if (isLoadingCache) {
+        return 'Loading cache...';
+      }
+      if (isProcessing) {
+        return 'Processing...';
+      }
+      if (isViewOnlyProvider) {
+        return 'This provider does not require authentication';
+      }
+      if (!currentModel) {
+        return 'Select a model to start';
+      }
+      if (!currentAccount) {
+        return 'Select an account to start';
+      }
 
-    const toggleThinking = () => {
-      setIsThinking((prev) => {
-        const next = !prev;
-        try {
-          localStorage.setItem('zen-thinking-enabled', String(next));
-        } catch {
-          logger.warn('[MessageInput] Failed to save thinking toggle');
-        }
-        return next;
-      });
-    };
+      const hints: string[] = [];
+      hints.push('@agent');
+      if (supportsUpload) {
+        hints.push('attach files');
+      }
+      if (showThinkingButton) {
+        hints.push('🧠 thinking');
+      }
+      if (showSearchButton) {
+        hints.push('🔍 search');
+      }
+      if (showMemoryButton) {
+        hints.push('💾 memory');
+      }
 
-    const toggleSearch = () => {
-      setIsSearch((prev) => {
-        const next = !prev;
+      return hints.length > 1
+        ? `Message ${hints[0]} (Alt+@) · ${hints.slice(1).join(' · ')}`
+        : `Message ${hints[0]} (Alt+@)`;
+    }, [
+      isHistoryMode,
+      isConnected,
+      isLoadingCache,
+      isProcessing,
+      isViewOnlyProvider,
+      currentModel,
+      currentAccount,
+      supportsUpload,
+      showThinkingButton,
+      showSearchButton,
+      showMemoryButton,
+    ]);
+
+    // Calculate token count for message input (including system prompt + text snippets)
+    const messageTokenCount = React.useMemo(() => {
+      let totalTokens = countTokens(message);
+
+      if (attachedItems && attachedItems.length > 0) {
+        attachedItems.forEach((item: any) => {
+          if (item.type === 'text-snippet' && item.content) {
+            totalTokens += countTokens(item.content);
+          }
+        });
+      }
+
+      // Add system prompt tokens (only for first message in conversation)
+      if (!isConversationStarted) {
         try {
-          localStorage.setItem('zen-search-enabled', String(next));
-        } catch {
-          logger.warn('[MessageInput] Failed to save search toggle');
+          const systemPrompt = combinePromptsForMode(
+            {
+              language: preferredLanguage,
+              systemInfo: {
+                os: 'Unknown OS',
+                ide: 'Zen IDE',
+                shell: 'unknown',
+                homeDir: '~',
+                cwd: folderPath || '.',
+                language: preferredLanguage,
+              } as SystemInfo,
+            },
+            systemPromptMode,
+          );
+          totalTokens += countTokens(systemPrompt);
+        } catch (e) {
+          logger.warn('[MessageInput] Failed to calculate system prompt tokens:', e);
         }
-        return next;
-      });
-    };
+      }
+
+      return totalTokens;
+    }, [
+      message,
+      isConversationStarted,
+      preferredLanguage,
+      systemPromptMode,
+      folderPath,
+      JSON.stringify(
+        attachedItems?.map((item: any) => ({
+          id: item.id,
+          type: item.type,
+          contentLength: item.content?.length || 0,
+        })),
+      ),
+    ]);
+
+    // Get max input tokens from model config
+    const maxInputTokens = React.useMemo(() => {
+      return currentModelConfig?.max_input_tokens || null;
+    }, [currentModelConfig]);
+
+    const isTokenLimitExceeded = React.useMemo(() => {
+      return maxInputTokens !== null && messageTokenCount > maxInputTokens;
+    }, [messageTokenCount, maxInputTokens]);
 
     const toggleMemory = async () => {
       if (!currentAccount?.id) {
@@ -998,12 +1071,100 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       }
     }, [apiUrl]);
 
+    // Initial fetch
     React.useEffect(() => {
       fetchProviders();
     }, [fetchProviders]);
 
+    // Re-fetch providers every time the model drawer opens so stale data
+    // (e.g. "No accounts" after user just added an account) is never shown.
     React.useEffect(() => {
-      if (providers.length === 0 || !currentModel) return;
+      if (showModelDrawer) {
+        fetchProviders();
+      }
+    }, [showModelDrawer, fetchProviders]);
+
+    // Close model drawer when user navigates to another panel so the drawer
+    // doesn't linger behind when they come back.
+    React.useEffect(() => {
+      const handler = () => setShowModelDrawer(false);
+      window.addEventListener('zen:panel-change', handler);
+      return () => window.removeEventListener('zen:panel-change', handler);
+    }, []);
+
+    // Validation: check if currentModel and currentAccount still exist after providers loaded
+    React.useEffect(() => {
+      if (providers.length === 0 || isLoadingCache) return;
+
+      let needsReset = false;
+
+      if (currentModel?.id && currentModel?.providerId) {
+        const provider = providers.find(
+          (p: any) => p.provider_id?.toLowerCase() === currentModel.providerId?.toLowerCase(),
+        );
+
+        if (!provider) {
+          needsReset = true;
+        } else {
+          const modelExists = provider.models?.some(
+            (m: any) => m.id?.toLowerCase() === currentModel.id?.toLowerCase(),
+          );
+          if (!modelExists) {
+            needsReset = true;
+          }
+        }
+      }
+
+      if (currentAccount?.id && currentModel?.providerId && !needsReset) {
+        const validateAccount = async () => {
+          try {
+            const response = await fetch(
+              `${apiUrl}/v1/accounts?page=1&limit=50&provider_id=${currentModel.providerId}`,
+            );
+            const result = await response.json();
+
+            if (result.success && result.data?.accounts) {
+              const matchedAccount = result.data.accounts.find(
+                (a: any) => a.id === currentAccount.id,
+              );
+
+              if (!matchedAccount) {
+                setCurrentModel(null);
+                setCurrentAccount(null);
+              } else if (matchedAccount.email && matchedAccount.email !== currentAccount.email) {
+                setCurrentAccount({
+                  ...currentAccount,
+                  email: matchedAccount.email,
+                });
+              }
+            }
+          } catch (error) {
+            logger.warn('[MessageInput] Failed to validate account:', error);
+          }
+        };
+
+        validateAccount();
+      }
+
+      if (needsReset) {
+        setCurrentModel(null);
+        setCurrentAccount(null);
+      }
+    }, [
+      providers,
+      currentModel,
+      currentAccount,
+      isLoadingCache,
+      apiUrl,
+      setCurrentModel,
+      setCurrentAccount,
+    ]);
+
+    // Sync thinking and search toggles when model changes
+    React.useEffect(() => {
+      if (providers.length === 0 || !currentModel) {
+        return;
+      }
       const hasThinking =
         currentModel?.is_thinking !== undefined
           ? !!currentModel.is_thinking
@@ -1017,20 +1178,26 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
         setIsThinking(false);
         try {
           localStorage.setItem('zen-thinking-enabled', 'false');
-        } catch {
-          logger.warn('[MessageInput] Failed to reset thinking toggle');
-        }
+        } catch {}
       }
       if (!hasSearch && isSearch) {
         setIsSearch(false);
         try {
           localStorage.setItem('zen-search-enabled', 'false');
-        } catch {
-          logger.warn('[MessageInput] Failed to reset search toggle');
-        }
+        } catch {}
       }
-    }, [currentModel, currentModelConfig, currentProviderConfig, providers, isThinking, isSearch]);
+    }, [
+      currentModel,
+      currentModelConfig,
+      currentProviderConfig,
+      providers,
+      isThinking,
+      isSearch,
+      setIsThinking,
+      setIsSearch,
+    ]);
 
+    // Handle auto-selection of account from cache once providers are loaded
     React.useEffect(() => {
       if (
         pendingAccountIdRef.current &&
@@ -1061,34 +1228,11 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       }
     }, [providers, currentModel, currentAccount, apiUrl, setCurrentAccount]);
 
-    const displayModel = React.useMemo(() => currentModel || null, [currentModel]);
-    const displayAccount = React.useMemo(() => currentAccount || null, [currentAccount]);
-
-    const messageTokenCount = React.useMemo(() => {
-      let totalTokens = countTokens(message);
-      if (attachedItems && attachedItems.length > 0) {
-        attachedItems.forEach((item: any) => {
-          if (item.type === 'text-snippet' && item.content) {
-            totalTokens += countTokens(item.content);
-          }
-        });
-      }
-      return totalTokens;
-    }, [message, attachedItems]);
-
-    const maxInputTokens = React.useMemo(() => {
-      return currentModelConfig?.max_input_tokens || null;
-    }, [currentModelConfig]);
-
-    const isTokenLimitExceeded = React.useMemo(() => {
-      return maxInputTokens !== null && messageTokenCount > maxInputTokens;
-    }, [messageTokenCount, maxInputTokens]);
-
     return (
       <div
         style={{
           padding: 'var(--spacing-md) var(--spacing-lg)',
-          backgroundColor: 'var(--secondary-bg)',
+          backgroundColor: 'rgb(var(--card-background))',
           position: 'relative',
         }}
       >
@@ -1099,17 +1243,18 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             position: 'relative',
             borderRadius: 'var(--border-radius)',
             border: !isConnected
-              ? '1px solid var(--vscode-errorForeground, #f44336)'
+              ? '1px dashed var(--vscode-errorForeground, #f44336)'
               : isTokenLimitExceeded
                 ? '2px dashed var(--vscode-errorForeground, #f44336)'
-                : '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+                : isViewOnlyProvider
+                  ? '1px dashed #f44336'
+                  : '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
             transition: 'border 0.3s ease',
             marginTop:
-              !isConversationStarted || (isConnected && isElaraMismatch) || isConversationStarted
-                ? '24px'
-                : '0px',
+              !isConversationStarted || isConversationStarted ? '24px' : '0px',
           }}
         >
+          {/* HOME PANEL BADGE (Stuck to Border) - Only when !isConversationStarted */}
           {!isConversationStarted && (
             <div
               onClick={() => {
@@ -1124,8 +1269,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 position: 'absolute',
                 bottom: !isConnected ? 'calc(100% + 2px)' : '100%',
                 left: '8px',
-                backgroundColor: 'var(--input-bg)',
-                color: 'var(--primary-text)',
+                backgroundColor: 'rgb(var(--input-background))',
+                color: 'rgb(var(--text-primary))',
                 padding: '5px 10px',
                 fontSize: '11px',
                 fontWeight: 600,
@@ -1142,37 +1287,42 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--input-bg)';
+                e.currentTarget.style.backgroundColor = 'rgb(var(--input-background))';
               }}
               title="Click to select Model and Account"
             >
               {displayModel ? (
                 <>
-                  {displayModel.favicon ? (
-                    <img
-                      src={displayModel.favicon}
-                      alt="favicon"
-                      style={{
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '2px',
-                      }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <span className="codicon codicon-server-process" style={{ fontSize: '12px' }} />
-                  )}
+                  {(() => {
+                    const prov = providers.find(
+                      (p: any) => p.provider_id === displayModel.providerId,
+                    );
+                    if (!prov?.website) {
+                      return (
+                        <span className="codicon codicon-server-process" style={{ fontSize: '12px' }} />
+                      );
+                    }
+                    const faviconUrl = getFaviconUrl(prov.website);
+                    return (
+                      <img
+                        key={faviconUrl}
+                        src={faviconUrl}
+                        alt=""
+                        style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '2px',
+                          objectFit: 'contain',
+                        }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    );
+                  })()}
                   {displayModel.providerId}/{displayModel.id}
                   {displayAccount?.email && (
-                    <span
-                      style={{
-                        opacity: 0.8,
-                        fontStyle: 'italic',
-                        marginLeft: '2px',
-                      }}
-                    >
+                    <span style={{ opacity: 0.8, fontStyle: 'italic', marginLeft: '2px' }}>
                       {displayAccount.email}
                     </span>
                   )}
@@ -1197,9 +1347,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
                 let faviconUrl = '';
                 if (prov?.website) {
-                  try {
-                    faviconUrl = `${new URL(prov.website).origin}/favicon.ico`;
-                  } catch {}
+                  faviconUrl = getFaviconUrl(prov.website);
                 }
 
                 const newModel = {
@@ -1209,7 +1357,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   favicon: faviconUrl,
                   is_thinking: modelObj?.is_thinking ?? false,
                   is_search: modelObj?.is_search ?? false,
-                  is_upload: modelObj?.is_upload ?? false,
+                  is_image_upload: modelObj?.is_image_upload ?? false,
+                  is_video_upload: modelObj?.is_video_upload ?? false,
+                  is_audio_upload: modelObj?.is_audio_upload ?? false,
+                  is_file_upload: modelObj?.is_file_upload ?? false,
                   is_memory: modelObj?.is_memory ?? prov?.is_memory ?? false,
                 };
 
@@ -1219,10 +1370,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 };
 
                 if (isModelSwitchMode) {
-                  setPendingModelSwitch({
-                    model: newModel,
-                    account: newAccount,
-                  });
+                  setPendingModelSwitch({ model: newModel, account: newAccount });
                   setShowModelDrawer(false);
                   setIsModelSwitchMode(false);
                 } else {
@@ -1253,6 +1401,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             />
           )}
 
+          {/* Model Switch Confirmation Dialog */}
           {pendingModelSwitch && (
             <div
               style={{
@@ -1319,13 +1468,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     )}
                   </div>
                 </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '8px',
-                    justifyContent: 'flex-end',
-                  }}
-                >
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => setPendingModelSwitch(null)}
                     style={{
@@ -1421,6 +1564,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             </div>
           )}
 
+          {/* Browser session warning - bottom right inside MessageInput */}
           {showBrowserWarning && currentModel?.providerId === 'zai-browser' && (
             <div
               onClick={isLaunchingBrowser ? undefined : onLaunchBrowserSession}
@@ -1471,18 +1615,31 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             }}
           >
             <style>{`
+              .custom-scrollbar {
+                scrollbar-width: thin;
+                scrollbar-color: var(--scrollbar-thumb, rgba(255,255,255,0.2)) transparent;
+              }
               .custom-scrollbar::-webkit-scrollbar {
-                width: 6px;
+                width: 8px;
+                height: 8px;
               }
               .custom-scrollbar::-webkit-scrollbar-track {
                 background: transparent;
+                border-radius: 10px;
+                margin: 4px 0;
               }
               .custom-scrollbar::-webkit-scrollbar-thumb {
-                background-color: var(--scrollbar-thumb);
+                background-color: var(--scrollbar-thumb, rgba(255,255,255,0.2));
                 border-radius: 10px;
+                border: 2px solid transparent;
+                background-clip: padding-box;
+                min-height: 40px;
               }
               .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                background-color: var(--scrollbar-thumb-hover);
+                background-color: var(--scrollbar-thumb-hover, rgba(255,255,255,0.35));
+              }
+              .custom-scrollbar::-webkit-scrollbar-corner {
+                background: transparent;
               }
             `}</style>
 
@@ -1530,18 +1687,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 e.target.style.border = 'none';
                 e.target.style.boxShadow = 'none';
               }}
-              placeholder={
-                isHistoryMode
-                  ? 'History mode - enter a search query'
-                  : !isConnected
-                    ? 'Connecting to backend...'
-                    : isLoadingCache
-                      ? 'Loading cache...'
-                      : isProcessing
-                        ? 'Processing...'
-                        : 'Message @agent (Alt+@)'
-              }
-              disabled={false}
+              placeholder={placeholderText}
+              disabled={isViewOnlyProvider}
               rows={1}
               style={{
                 width: '100%',
@@ -1553,7 +1700,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 fontFamily: 'inherit',
                 fontSize: 'var(--font-size-sm)',
                 backgroundColor: 'transparent',
-                color: 'var(--primary-text)',
+                color: 'rgb(var(--text-primary))',
                 overflow: 'hidden',
                 whiteSpace: 'pre-wrap',
                 wordWrap: 'break-word',
@@ -1564,6 +1711,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             />
           </div>
 
+          {/* Bottom Part: Toolbar */}
           <div
             style={{
               backgroundColor: 'var(--input-bg)',
@@ -1575,96 +1723,58 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               alignItems: 'center',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                gap: 'var(--spacing-xs)',
-                alignItems: 'center',
-              }}
-            >
-              <div
-                onClick={() => {
+            {/* Left Icons */}
+            <div style={{ display: 'flex', gap: 'var(--spacing-xs)', alignItems: 'center' }}>
+              <ActionDropdown
+                onSelectAttach={() => {
                   if (fileInputRef?.current) {
+                    fileInputRef.current.accept = buildAcceptString(
+                      currentModelConfig ?? currentModel,
+                    );
                     (fileInputRef.current as any).dataset.textOnly = String(!supportsUpload);
                     fileInputRef.current.click();
                   } else {
                     handleFileSelect();
                   }
                 }}
-                onMouseEnter={() => setIsPlusHovered(true)}
-                onMouseLeave={() => setIsPlusHovered(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '22px',
-                  width: '22px',
-                  boxSizing: 'border-box',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  border: '1px solid rgba(128, 128, 128, 0.2)',
-                  background: isPlusHovered
-                    ? 'rgba(128, 128, 128, 0.2)'
-                    : 'rgba(128, 128, 128, 0.12)',
-                  color: 'var(--vscode-foreground)',
-                  opacity: isPlusHovered ? 0.9 : 0.7,
-                }}
-                title={supportsUpload ? 'Attach files' : 'Attach text files only'}
-              >
-                <Plus size={14} />
-              </div>
-
-              {onGitPullRequest && (
-                <div
-                  onClick={() => {
-                    if (!isGitLoading && !isProcessing && !isGitStatusVisible) {
-                      onGitPullRequest();
-                    }
-                  }}
-                  onMouseEnter={() => setIsGitHovered(true)}
-                  onMouseLeave={() => setIsGitHovered(false)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '22px',
-                    width: '22px',
-                    boxSizing: 'border-box',
-                    borderRadius: '4px',
-                    cursor:
-                      isGitLoading || isProcessing || isGitStatusVisible ? 'default' : 'pointer',
-                    transition: 'all 0.2s ease-in-out',
-                    border: '1px solid rgba(128, 128, 128, 0.2)',
-                    background:
-                      isGitHovered && !isGitLoading && !isProcessing && !isGitStatusVisible
+                onSelectImageGenerator={() => {}}
+                onSelectVideoGenerator={() => {}}
+                onSelectDeepResearch={() => {}}
+                onSelectPullRequest={onGitPullRequest}
+                onToggleMemory={showMemoryButton ? toggleMemory : undefined}
+                isMemoryOn={isMemory}
+                showImageGenerator={supportsImageGenerator}
+                showVideoGenerator={supportsVideoGenerator}
+                showDeepResearch={supportsDeepResearch}
+                currentModel={currentModel}
+                currentModelConfig={currentModelConfig}
+                triggerButton={
+                  <div
+                    onMouseEnter={() => setIsPlusHovered(true)}
+                    onMouseLeave={() => setIsPlusHovered(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '22px',
+                      width: '22px',
+                      boxSizing: 'border-box',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease-in-out',
+                      border: '1px solid rgba(128, 128, 128, 0.2)',
+                      background: isPlusHovered
                         ? 'rgba(128, 128, 128, 0.2)'
                         : 'rgba(128, 128, 128, 0.12)',
-                    color:
-                      isGitLoading || isProcessing || isGitStatusVisible
-                        ? 'var(--vscode-descriptionForeground, #8c8c8c)'
-                        : 'var(--vscode-foreground)',
-                    opacity:
-                      isGitHovered && !isGitLoading && !isProcessing && !isGitStatusVisible
-                        ? 0.9
-                        : isGitLoading || isProcessing || isGitStatusVisible
-                          ? 0.5
-                          : 0.7,
-                  }}
-                  title="Git Pull Request"
-                >
-                  <GitPullRequestArrow size={12} strokeWidth={2.5} />
-                </div>
-              )}
-
-              {showCompressButton && (
-                <CompressButton
-                  onClick={onCompress || (() => {})}
-                  title="Context Compression - Compress conversation history"
-                />
-              )}
-
-              <GlobalPermissionButton />
+                      color: 'var(--vscode-foreground)',
+                      opacity: isPlusHovered ? 0.9 : 0.7,
+                    }}
+                    title={supportsUpload ? 'Attach files' : 'Attach text files only'}
+                  >
+                    <Plus size={14} />
+                  </div>
+                }
+              />
 
               {showThinkingButton && (
                 <ThinkingButton
@@ -1682,45 +1792,27 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 />
               )}
 
-              {showMemoryButton && (
-                <MemoryButton
-                  isOn={isMemory}
-                  onClick={toggleMemory}
-                  title="Toggle Memory Reference (Saved memories & chat history)"
-                />
-              )}
+              <div
+                style={{
+                  width: '1px',
+                  height: '16px',
+                  background: 'var(--border-color)',
+                  margin: '0 2px',
+                  flexShrink: 0,
+                }}
+              />
 
+              <GlobalPermissionButton />
+
+              {/* System Prompt Mode Selector - Home only */}
               {!isConversationStarted && (
                 <StyleCodeDropdown
                   currentMode={systemPromptMode}
                   onSelect={setSystemPromptMode}
                   triggerButton={(() => {
-                    const modeMeta: Record<
-                      string,
-                      { label: string; icon: React.ReactNode; color: string }
-                    > = {
-                      fast: {
-                        label: 'Fast',
-                        icon: <Zap size={11} />,
-                        color: '#22c55e',
-                      },
-                      balanced: {
-                        label: 'Balanced',
-                        icon: <Scale size={11} />,
-                        color: '#3b82f6',
-                      },
-                      thorough: {
-                        label: 'Thorough',
-                        icon: <ShieldCheck size={11} />,
-                        color: '#a78bfa',
-                      },
-                      autopilot: {
-                        label: 'Autopilot',
-                        icon: <Plane size={11} />,
-                        color: '#f97316',
-                      },
-                    };
-                    const meta = modeMeta[systemPromptMode] || modeMeta.balanced;
+                    const meta =
+                      STYLE_CODE_MODE_META.find((m) => m.key === systemPromptMode) ??
+                      STYLE_CODE_MODE_META[1];
                     return (
                       <button
                         onMouseEnter={() => setIsSystemPromptHovered(true)}
@@ -1728,38 +1820,64 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          padding: '0 8px',
-                          height: '22px',
+                          justifyContent: 'center',
+                          height: '24px',
+                          width: '24px',
                           boxSizing: 'border-box',
-                          borderRadius: '4px',
+                          borderRadius: '5px',
                           cursor: 'pointer',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          letterSpacing: '0.3px',
-                          transition: 'all 0.2s ease-in-out',
-                          border: 'none',
+                          transition: 'all 0.15s ease-in-out',
+                          border: '1px solid transparent',
                           background: isSystemPromptHovered
-                            ? `color-mix(in srgb, ${meta.color} 20%, transparent)`
-                            : `color-mix(in srgb, ${meta.color} 12%, transparent)`,
+                            ? 'rgba(128, 128, 128, 0.16)'
+                            : 'transparent',
                           color: meta.color,
                           opacity: 1,
-                          lineHeight: 1,
-                          verticalAlign: 'middle',
-                          userSelect: 'none',
+                          padding: 0,
                         }}
-                        title="Style Code"
+                        title={`Style Code — ${meta.label}`}
                       >
-                        {meta.icon}
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            letterSpacing: '0.3px',
-                          }}
-                        >
-                          {meta.label}
-                        </span>
+                        <StyleCodeTriggerIcon mode={systemPromptMode} />
+                      </button>
+                    );
+                  })()}
+                />
+              )}
+
+              {/* Prompt Length Selector - Home only */}
+              {!isConversationStarted && (
+                <PromptLengthDropdown
+                  currentMode={promptLengthMode}
+                  onSelect={setPromptLengthMode}
+                  triggerButton={(() => {
+                    const meta =
+                      PROMPT_LENGTH_MODE_META.find((m) => m.key === promptLengthMode) ??
+                      PROMPT_LENGTH_MODE_META[3];
+                    return (
+                      <button
+                        onMouseEnter={() => setIsPromptLengthHovered(true)}
+                        onMouseLeave={() => setIsPromptLengthHovered(false)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          height: '24px',
+                          width: '24px',
+                          boxSizing: 'border-box',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease-in-out',
+                          border: '1px solid transparent',
+                          background: isPromptLengthHovered
+                            ? 'rgba(128, 128, 128, 0.16)'
+                            : 'transparent',
+                          color: meta.color,
+                          opacity: 1,
+                          padding: 0,
+                        }}
+                        title={`Prompt Length — ${meta.label}`}
+                      >
+                        <PromptLengthTriggerIcon mode={promptLengthMode} />
                       </button>
                     );
                   })()}
@@ -1767,6 +1885,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               )}
             </div>
 
+            {/* Right Icons */}
             <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
               {isConnected && (
                 <div
@@ -1776,12 +1895,15 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         ? 'not-allowed'
                         : isStreaming || isProcessing
                           ? 'pointer'
-                          : message.trim() || uploadedFiles.length > 0
-                            ? 'pointer'
-                            : 'default',
-                    padding: 'var(--spacing-xs)',
+                          : isTokenLimitExceeded
+                            ? 'not-allowed'
+                            : message.trim() || uploadedFiles.length > 0
+                              ? 'pointer'
+                              : 'default',
+                    padding:
+                      isStreaming || isProcessing ? 'var(--spacing-xs)' : '4px 8px',
                     borderRadius: 'var(--border-radius)',
-                    transition: 'background-color 0.2s',
+                    transition: 'all 0.2s',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1790,11 +1912,25 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         ? 'var(--secondary-text)'
                         : isStreaming || isProcessing
                           ? 'var(--vscode-errorForeground, #f44336)'
-                          : message.trim() || uploadedFiles.length > 0
-                            ? 'var(--accent-text)'
-                            : 'var(--secondary-text)',
+                          : isTokenLimitExceeded
+                            ? 'var(--vscode-errorForeground, #f44336)'
+                            : 'var(--vscode-descriptionForeground, #888)',
                     pointerEvents:
-                      isHistoryMode || isLoadingCache || isTokenLimitExceeded ? 'none' : 'auto',
+                      isHistoryMode ||
+                      isLoadingCache ||
+                      (isTokenLimitExceeded && !isStreaming && !isProcessing)
+                        ? 'none'
+                        : 'auto',
+                    backgroundColor:
+                      isStreaming || isProcessing
+                        ? 'transparent'
+                        : isTokenLimitExceeded
+                          ? 'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 12%, transparent)'
+                          : 'color-mix(in srgb, var(--vscode-descriptionForeground, #888) 8%, transparent)',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.3px',
+                    whiteSpace: 'nowrap',
                   }}
                   onClick={() => {
                     if ((isStreaming || isProcessing) && onStopGeneration) {
@@ -1813,28 +1949,45 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     onSendMessage();
                   }}
                   onMouseEnter={(e) => {
-                    if (isStreaming || isProcessing || message.trim() || uploadedFiles.length > 0) {
+                    if (isStreaming || isProcessing) {
+                      e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                    } else if (isTokenLimitExceeded) {
+                      e.currentTarget.style.backgroundColor =
+                        'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 18%, transparent)';
+                    } else if (message.trim() || uploadedFiles.length > 0) {
                       e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
+                    if (isStreaming || isProcessing) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    } else if (isTokenLimitExceeded) {
+                      e.currentTarget.style.backgroundColor =
+                        'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 12%, transparent)';
+                    } else {
+                      e.currentTarget.style.backgroundColor =
+                        'color-mix(in srgb, var(--vscode-descriptionForeground, #888) 8%, transparent)';
+                    }
                   }}
                   title={
                     isStreaming || isProcessing
                       ? 'Stop Generation'
-                      : maxInputTokens
-                        ? `${messageTokenCount}/${maxInputTokens} tokens`
-                        : `${messageTokenCount} tokens`
+                      : isTokenLimitExceeded
+                        ? `Token limit exceeded (${messageTokenCount.toLocaleString()}/${maxInputTokens?.toLocaleString()})`
+                        : maxInputTokens
+                          ? `${messageTokenCount.toLocaleString()}/${maxInputTokens.toLocaleString()} tokens`
+                          : `${messageTokenCount.toLocaleString()} tokens`
                   }
                 >
                   {isStreaming || isProcessing ? (
                     <X size={16} strokeWidth={2.5} />
                   ) : (
-                    <span style={{ fontSize: '11px', fontWeight: 600 }}>
+                    <span style={{ lineHeight: 1 }}>
                       {maxInputTokens
                         ? `${formatTokenCount(messageTokenCount)}/${formatTokenCount(maxInputTokens)}`
-                        : formatTokenCount(messageTokenCount)}
+                        : messageTokenCount > 0
+                          ? `${formatTokenCount(messageTokenCount)}`
+                          : '0'}
                     </span>
                   )}
                 </div>
@@ -1842,32 +1995,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             </div>
           </div>
 
-          {isConversationStarted && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '98%',
-                zIndex: 20,
-              }}
-            >
-              <DiffSummaryBar
-                totalChanges={conversationFileStats?.totalFiles || 0}
-                addedLines={conversationFileStats?.totalAdditions || 0}
-                removedLines={conversationFileStats?.totalDeletions || 0}
-                onClick={onOpenGitStatus}
-                onReviewClick={onReviewClick}
-                responseRange={responseRange}
-                responseRanges={responseRanges}
-              />
-            </div>
-          )}
-
+          {/* Language Badge - HomePanel only */}
           {!isConversationStarted &&
             isConnected &&
-            !isElaraMismatch &&
             LANGUAGES.some((l: { code: string }) => l.code === preferredLanguage) && (
               <div
                 style={{
@@ -1894,43 +2024,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 </span>
               </div>
             )}
-
-          {isConnected && isElaraMismatch && (
-            <div
-              onClick={() => {
-                const vscodeApi = (window as any).vscodeApi;
-                if (vscodeApi) {
-                  vscodeApi.postMessage({
-                    command: 'openExternal',
-                    url: 'https://github.com/KhanhRomVN/Elara',
-                  });
-                }
-              }}
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                right: '8px',
-                zIndex: 20,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 12px',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                backgroundColor: 'rgba(255,152,0,0.1)',
-                color: 'var(--vscode-errorForeground, #ff9800)',
-                border: '1px solid rgba(255,152,0,0.2)',
-                borderBottom: 'none',
-                borderTopLeftRadius: 'var(--border-radius)',
-                borderTopRightRadius: 'var(--border-radius)',
-                boxShadow: '0 -2px 4px rgba(0,0,0,0.1)',
-                marginBottom: '-1px',
-              }}
-            >
-              Elara Version Mismatch
-            </div>
-          )}
         </div>
       </div>
     );
@@ -1938,6 +2031,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
 );
 
 export default React.memo(MessageInput, (prevProps, nextProps) => {
+  // Only re-render when essential props change.
   const messageSame = prevProps.message === nextProps.message;
   const isProcessingSame = prevProps.isProcessing === nextProps.isProcessing;
   const isStreamingSame = prevProps.isStreaming === nextProps.isStreaming;
@@ -1949,7 +2043,7 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     prevProps.conversationFileStats === nextProps.conversationFileStats;
   const attachedItemsSame = prevProps.attachedItems?.length === nextProps.attachedItems?.length;
 
-  const shouldSkip =
+  return (
     messageSame &&
     isProcessingSame &&
     isStreamingSame &&
@@ -1958,7 +2052,6 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     messagesLengthSame &&
     responseRangesSame &&
     conversationFileStatsSame &&
-    attachedItemsSame;
-
-  return shouldSkip;
+    attachedItemsSame
+  );
 });

@@ -29,6 +29,7 @@ import {
   Wifi,
   Code2,
   Settings,
+  FlaskConical,
 } from 'lucide-react';
 
 // ── Hooks ──
@@ -199,6 +200,16 @@ const MainLayoutContent = () => {
       color: 'text-gray-400',
       action: () => {
         setActiveModule('settings' as PhantomModule);
+      },
+    },
+    {
+      id: 'test',
+      title: 'Test',
+      description: 'Sandbox for testing UI components',
+      icon: <FlaskConical className="w-4 h-4" strokeWidth="1.3" />,
+      color: 'text-pink-400',
+      action: () => {
+        setActiveModule('test' as PhantomModule);
       },
     },
   ];

@@ -496,8 +496,8 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
           style={{
             top: menuPosition.y,
             left: menuPosition.x,
-            backgroundColor: $('--tertiary-bg') || 'transparent',
-            border: `1px solid ${$('--border-color') || 'rgba(128,128,128,0.2)'}`,
+            backgroundColor: $('--card-background') || 'transparent',
+            border: `1px solid ${$('--border') || 'rgba(128,128,128,0.2)'}`,
             boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
           }}
         >
@@ -505,7 +505,7 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
             {
               icon: <Trash2 size={13} />,
               label: 'Xóa',
-              color: $('--error-color') || '#ef4444',
+              color: $('--error') || '#ef4444',
               hoverBg: 'rgba(244,67,54,0.1)',
               action: (e: React.MouseEvent) => {
                 setMenuVisible(false);
@@ -515,8 +515,8 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
             {
               icon: <Copy size={13} />,
               label: 'Copy nội dung',
-              color: $('--primary-text') || 'currentColor',
-              hoverBg: $('--hover-bg') || 'rgba(128,128,128,0.1)',
+              color: $('--text-primary') || 'currentColor',
+              hoverBg: $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)',
               action: () => {
                 setMenuVisible(false);
                 handleCopyContent();
@@ -525,8 +525,8 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
             {
               icon: <FolderOpen size={13} />,
               label: 'Mở thư mục conv',
-              color: $('--primary-text') || 'currentColor',
-              hoverBg: $('--hover-bg') || 'rgba(128,128,128,0.1)',
+              color: $('--text-primary') || 'currentColor',
+              hoverBg: $('--dropdown-item-hover') || 'rgba(128,128,128,0.1)',
               action: () => {
                 setMenuVisible(false);
                 handleOpenCoversationFolder();

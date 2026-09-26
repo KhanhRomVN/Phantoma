@@ -334,7 +334,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
           .markdown-content-inline {
             line-height: 1.6;
             font-size: ${$('--font-size-sm') || '13px'};
-            color: ${$('--primary-text')};
+            color: ${$('--text-primary')};
           }
           .markdown-content-inline h1,
           .markdown-content-inline h2,
@@ -342,7 +342,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
             margin-top: 12px;
             margin-bottom: 8px;
             font-weight: 600;
-            color: ${$('--primary-text')};
+            color: ${$('--text-primary')};
           }
           .markdown-content-inline h1 { font-size: 1.25em; }
           .markdown-content-inline h2 { font-size: 1.1em; }
@@ -424,7 +424,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
           .markdown-content-inline blockquote {
             border-left: 4px solid ${$('--border')};
             padding-left: 12px;
-            color: ${$('--secondary-text')};
+            color: ${$('--text-secondary')};
             margin: 12px 0;
           }
         `}</style>

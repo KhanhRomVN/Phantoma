@@ -36,6 +36,11 @@ import {
   handleResponseReceived,
   handleLoadingFinished,
   handleLoadingFailed,
+  handleWebSocketCreated,
+  handleWebSocketHandshakeResponse,
+  handleWebSocketFrame,
+  handleWebSocketFrameError,
+  handleWebSocketClosed,
 } from './network-handler';
 import { handleScriptParsed } from './script-handler';
 import { logger } from '../../utils/logger';
@@ -72,6 +77,11 @@ export class CdpManager extends EventEmitter {
     this.handleResponseReceived = handleResponseReceived.bind(this);
     this.handleLoadingFinished = handleLoadingFinished.bind(this);
     this.handleLoadingFailed = handleLoadingFailed.bind(this);
+    this.handleWebSocketCreated = handleWebSocketCreated.bind(this);
+    this.handleWebSocketHandshakeResponse = handleWebSocketHandshakeResponse.bind(this);
+    this.handleWebSocketFrame = handleWebSocketFrame.bind(this);
+    this.handleWebSocketFrameError = handleWebSocketFrameError.bind(this);
+    this.handleWebSocketClosed = handleWebSocketClosed.bind(this);
     this.handleScriptParsed = handleScriptParsed.bind(this);
   }
 
@@ -209,6 +219,11 @@ export class CdpManager extends EventEmitter {
   public handleResponseReceived: (params: any) => Promise<void>;
   public handleLoadingFinished: (params: any) => Promise<void>;
   public handleLoadingFailed: (params: any) => void;
+  public handleWebSocketCreated: (params: any) => void;
+  public handleWebSocketHandshakeResponse: (params: any) => void;
+  public handleWebSocketFrame: (params: any, direction: 'client' | 'server') => void;
+  public handleWebSocketFrameError: (params: any) => void;
+  public handleWebSocketClosed: (params: any) => void;
   public handleScriptParsed: (params: any) => void;
 
   public async navigate(url: string): Promise<boolean> {

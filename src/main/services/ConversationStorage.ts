@@ -129,6 +129,9 @@ export class ConversationStorage {
   async listConversations(moduleId: string): Promise<string[]> {
     const dirPath = path.join(this.baseDir, moduleId, 'conversations');
     try {
+      // Ensure directory exists before reading
+      this.ensureDir(dirPath);
+      
       const entries = await fs.promises.readdir(dirPath);
       return entries
         .filter((entry) => entry.endsWith('.json'))

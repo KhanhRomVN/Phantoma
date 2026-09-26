@@ -70,8 +70,8 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
             padding: readOnly
               ? 'var(--spacing-sm) 0'
               : 'var(--spacing-sm) var(--spacing-lg)',
-            borderTop: readOnly ? 'none' : '1px solid var(--border-color)',
-            backgroundColor: 'var(--secondary-bg)',
+            borderTop: readOnly ? 'none' : '1px solid rgb(var(--border))',
+            backgroundColor: 'rgb(var(--card-background))',
           }}
         >
           {uploadedFiles.filter((file) => file.type.startsWith('image/')).length > 0 && (
@@ -195,8 +195,8 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                               width: '14px',
                               height: '14px',
                               borderRadius: '50%',
-                              backgroundColor: 'var(--secondary-bg)',
-                              border: '1px solid var(--border-color)',
+                              backgroundColor: 'rgb(var(--card-background))',
+                              border: '1px solid rgb(var(--border))',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -261,7 +261,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                         fontSize: 'var(--font-size-xs)',
                         color: file.error
                           ? 'var(--vscode-errorForeground, #f44336)'
-                          : 'var(--primary-text)',
+                          : 'rgb(var(--text-primary))',
                         opacity: file.isUploading ? 0.6 : 1,
                       }}
                     >
@@ -337,9 +337,9 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
             borderTop: readOnly
               ? 'none'
               : uploadedFiles.length === 0
-                ? '1px solid var(--border-color)'
+                ? '1px solid rgb(var(--border))'
                 : 'none',
-            backgroundColor: 'var(--secondary-bg)',
+            backgroundColor: 'rgb(var(--card-background))',
           }}
         >
           {attachedItems.filter((item) => item.type === 'file').length > 0 && (
@@ -717,7 +717,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                           '1px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.3))',
                         borderRadius: 'var(--border-radius)',
                         fontSize: 'var(--font-size-xs)',
-                        color: 'var(--primary-text)',
+                        color: 'rgb(var(--text-primary))',
                         cursor: 'pointer',
                       }}
                       onClick={() => handleTextSnippetClick(item, index)}

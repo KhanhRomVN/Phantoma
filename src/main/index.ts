@@ -61,6 +61,7 @@ import {
   setupLoggerHandlers,
   setupBrowserHandlers,
   setupTargetHandlers,
+  setupCliCaptureHandlers,
   closeAllBrowserSessions,
 } from './ipc';
 
@@ -128,6 +129,7 @@ app.whenReady().then(async () => {
   setupGitHandlers();
   setupBrowserHandlers();
   setupTargetHandlers();
+  setupCliCaptureHandlers();
 
   // Auto-install certificate when proxy session is created
   const originalCreateSession = proxyManager.createSession.bind(proxyManager);

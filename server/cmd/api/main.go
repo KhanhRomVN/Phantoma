@@ -11,7 +11,6 @@ import (
 	"github.com/phantoma/server/internal/config"
 	"github.com/phantoma/server/internal/database"
 	"github.com/phantoma/server/internal/routes"
-	"github.com/phantoma/server/internal/startup"
 	"github.com/phantoma/server/pkg/logger"
 )
 
@@ -56,9 +55,6 @@ func main() {
 		os.Exit(1)
 	}
 	logger.Info("database ping successful")
-
-	// ── Pre-flight: check Docker containers ──────────────────────────────────
-	startup.CheckDependencies(cfg)
 
 	// ── HTTP server ───────────────────────────────────────────────────────────
 	srv := &http.Server{
