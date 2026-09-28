@@ -36,6 +36,7 @@ import {
   Palette,
   Table,
   Puzzle,
+  GitBranch,
 } from 'lucide-react';
 
 // ── Hooks ──
@@ -43,12 +44,6 @@ import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 
 // ── Services ──
 import { fileWatcherService } from '../../services/file-watcher.service';
-
-// ── Components ──
-import { FileTabBar } from '../FileTabBar';
-import CodeBlock from '@renderer/components/common/CodeBlock';
-import { DesignTool } from './Design';
-import { WorkSessionViewer } from './WorkSessionViewer';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -248,7 +243,62 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
 const EMPTY_ARRAY: string[] = [];
 const EMPTY_SET = new Set<string>();
 
-export const ContentPanel = memo(function ContentPanel() {
+/** Height matches the global HeaderBar (h-10 = 40px) */
+const CONTENT_HEADER_HEIGHT = 40;
+
+// ─── Content Header Bar ─────────────────────────────────────────────────────
+function ContentHeaderBar() {
+  const projectName = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.name ?? '';
+  });
+  const projectPath = useCodeStore((s) => {
+    const p = s.projects.find((p) => p.id === s.currentProjectId);
+    return p?.path ?? '';
+  });
+
+  const [branch, setBranch] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!projectPath) {
+      setBranch(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const gitHead = projectPath.replace(/\/$/, '') + '/.git/HEAD';
+        const content: string = await window.api.invoke('fs:read-file', gitHead);
+        const match = content?.match(/^ref: refs\/heads\/(.+)$/m);
+        if (!cancelled) setBranch(match ? match[1].trim() : null);
+      } catch {
+        if (!cancelled) setBranch(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [projectPath]);
+
+  return (
+    <div
+      className="w-full shrink-0 border-b border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center gap-3"
+      style={{ height: CONTENT_HEADER_HEIGHT }}
+    >
+      {projectName && (
+        <span className="text-xs font-semibold text-text-primary truncate">{projectName}</span>
+      )}
+      {branch && (
+        <span className="flex items-center gap-1.5 text-[11px] text-accent font-mono">
+          <GitBranch className="w-3 h-3" strokeWidth={1.5} />
+          {branch}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ─── ContentPanel ───────────────────────────────────────────────────────────
+
+const ContentPanelInner = memo(function ContentPanelInner() {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
 
   const currentServiceId = useCodeStore((s) => {
@@ -465,22 +515,6 @@ export const ContentPanel = memo(function ContentPanel() {
     const service = getService(currentServiceId);
     if (!service) return null;
 
-    // Check if it's an agent group service
-    if (service.type === 'extension' && service.tabId && service.meta === 'Agent Group') {
-      const state = useCodeStore.getState();
-      const project = state.projects.find((p) => p.id === currentProjectId);
-      const agentGroup = project?.agentGroups.find((g) => g.id === service.tabId);
-
-      if (agentGroup) {
-        return (
-          <div className="flex-1 flex flex-col min-h-0 bg-background">
-            {openFiles.length > 0 && <FileTabBar />}
-            <WorkSessionViewer agentGroup={agentGroup} />
-          </div>
-        );
-      }
-    }
-
     // Check if it's a design service
     if (service.type === 'design' && service.tabId) {
       const state = useCodeStore.getState();
@@ -502,42 +536,18 @@ export const ContentPanel = memo(function ContentPanel() {
           };
         }
 
-        return (
-          <div className="flex-1 flex flex-col min-h-0 bg-background">
-            {openFiles.length > 0 && <FileTabBar />}
-            <div className="flex-1 min-h-0">
-              <DesignTool
-                project={designProject}
-                onSave={(updated) => {
-                  // Save updated project back to design
-                  const updateDesign = useCodeStore.getState().updateDesign;
-                  if (currentProjectId) {
-                    updateDesign(currentProjectId, design.id, {
-                      ...design,
-                      html: JSON.stringify(updated, null, 2),
-                    });
-                  }
-                }}
-              />
-            </div>
-          </div>
-        );
+        return <div className="flex-1 flex flex-col min-h-0 bg-background"></div>;
       }
     }
 
     // Check if it's an extension service
     if (service.type === 'extension') {
-      return (
-        <div className="flex-1 flex flex-col min-h-0 bg-background">
-          {openFiles.length > 0 && <FileTabBar />}
-        </div>
-      );
+      return <div className="flex-1 flex flex-col min-h-0 bg-background"></div>;
     }
 
     // Regular service (non-extension, non-design, non-agent-group)
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-background">
-        {openFiles.length > 0 && <FileTabBar />}
         <div className="flex-1 flex items-center justify-center text-text-secondary/60">
           <div className="text-center">
             <div className="text-4xl mb-3">{TYPE_ICONS[service.type] || '📄'}</div>
@@ -556,7 +566,6 @@ export const ContentPanel = memo(function ContentPanel() {
   if (showFile && openFiles.length > 0) {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-background">
-        <FileTabBar />
         <div className="flex-1 overflow-hidden">
           {openFiles.map((fileId) => {
             const fileNode = getFileNode(fileId);
@@ -585,16 +594,9 @@ export const ContentPanel = memo(function ContentPanel() {
                 ) : (
                   <>
                     {category === 'text' && (
-                      <CodeBlock
-                        code={content || ''}
-                        language={fileNode ? getLanguage(fileNode.name) : 'plaintext'}
-                        filePath={fileNode?.path || undefined}
-                        fileId={fileId || undefined}
-                        projectRoot={projectPath || undefined}
-                        showLineNumbers={true}
-                        wordWrap="off"
-                        enableLSP={true}
-                      />
+                      <div className="flex-1 flex items-center justify-center h-full text-text-secondary/40 text-sm">
+                        Code editor disabled
+                      </div>
                     )}
                     {category === 'image' && <ImagePreview path={filePath} name={displayName} />}
                     {category === 'pdf' && <PDFPreview path={filePath} />}
@@ -619,6 +621,18 @@ export const ContentPanel = memo(function ContentPanel() {
         <div className="text-sm">Select a service or open a file</div>
         <div className="text-xs text-text-secondary/30 mt-1">Browse files in Activity Panel</div>
       </div>
+    </div>
+  );
+});
+
+ContentPanelInner.displayName = 'ContentPanelInner';
+
+// ─── ContentPanel Wrapper ────────────────────────────────────────────────────
+export const ContentPanel = memo(function ContentPanel() {
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      <ContentHeaderBar />
+      <ContentPanelInner />
     </div>
   );
 });

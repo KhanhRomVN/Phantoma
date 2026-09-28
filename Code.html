@@ -1,0 +1,3835 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phantoma — Agent Workspace (Fake UI)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ══════════════════════════════════════════════════════════════════
+         RESET & BASE
+      ══════════════════════════════════════════════════════════════════ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        font-family:
+          'Inter',
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-size: 13px;
+        color: #e8e9ed;
+        background: #0a0a0c;
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #26282f;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #3a3d47;
+      }
+      button {
+        font: inherit;
+      }
+      input {
+        font: inherit;
+      }
+
+      /* ══════════════════════════════════════════════════════════════════
+         EMBERVOID THEME TOKENS (hardcoded)
+      ══════════════════════════════════════════════════════════════════ */
+      :root {
+        --ember: #ff6a1f;
+        --ember-dim: #b8481a;
+        --blue: #4fa8e0;
+        --blue-dim: #2f6d94;
+        --violet: #a078ff;
+        --violet-dim: #6d4fc4;
+        --green: #3ddc84;
+        --red: #ff4757;
+        --amber: #ffb020;
+        --pink: #ff78aa;
+        --teal: #32c8be;
+        --neutral: #4a4d57;
+
+        --bg: #0a0a0c;
+        --bg-sidebar: #0a0a0c;
+        --bg-elevated: rgba(19, 20, 23, 0.92);
+        --bg-card: #131417;
+        --bg-card-hover: #1b1d22;
+        --bg-soft: #1b1d22;
+        --bg-input: #131417;
+        --bg-dropdown: #131417;
+        --bg-dropdown-hover: #202329;
+        --bg-tooltip: #202329;
+
+        --border: #26282f;
+        --divider: #1d1f25;
+
+        --text-primary: #e8e9ed;
+        --text-secondary: #8b8d96;
+        --text-dim: rgba(139, 141, 150, 0.45);
+        --text-white: #ffffff;
+
+        --font-display: 'Space Grotesk', 'Inter', sans-serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+        --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+      }
+
+      /* ══════════════════════════════════════════════════════════════════
+         APP SHELL
+      ══════════════════════════════════════════════════════════════════ */
+      #app {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+        background: var(--bg);
+      }
+
+      /* ── Top Bar ─────────────────────────────────────────────────── */
+      .topbar {
+        display: flex;
+        align-items: center;
+        height: 48px;
+        flex-shrink: 0;
+        background: var(--bg-elevated);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        padding: 0 14px;
+        gap: 14px;
+        position: relative;
+        -webkit-app-region: drag;
+      }
+      .topbar button,
+      .topbar input {
+        -webkit-app-region: no-drag;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .brand-mark {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, var(--ember), var(--ember-dim));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 12px;
+        color: #fff;
+      }
+      .brand-name {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 0.3px;
+        color: var(--text-primary);
+      }
+      .brand-tag {
+        font-family: var(--font-mono);
+        font-size: 9px;
+        color: var(--ember);
+        background: rgba(255, 106, 31, 0.08);
+        border: 1px solid rgba(255, 106, 31, 0.25);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+
+      .topbar-center {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .cmdk {
+        position: relative;
+      }
+      .cmdk svg {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-dim);
+      }
+      .cmdk input {
+        width: 380px;
+        height: 30px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0 46px 0 32px;
+        font-size: 12px;
+        color: var(--text-primary);
+        outline: none;
+        cursor: pointer;
+        transition: border-color 0.15s;
+      }
+      .cmdk input::placeholder {
+        color: var(--text-dim);
+      }
+      .cmdk input:focus {
+        border-color: rgba(255, 106, 31, 0.5);
+      }
+      .cmdk kbd {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 2px 6px;
+        font-size: 9px;
+        font-family: var(--font-mono);
+        color: var(--text-dim);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 3px;
+        border: 1px solid var(--border);
+        pointer-events: none;
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+      .fleet-pulse {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: var(--bg-soft);
+        border: 1px solid var(--border);
+        cursor: pointer;
+      }
+      .fleet-pulse:hover {
+        background: var(--bg-card-hover);
+      }
+      .fleet-pulse .fp-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+      .fleet-pulse .fp-item b {
+        font-family: var(--font-mono);
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .fleet-pulse .fp-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      .icon-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-sm);
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+        position: relative;
+      }
+      .icon-btn:hover {
+        background: var(--bg-soft);
+        color: var(--text-primary);
+      }
+      .icon-btn.on {
+        color: var(--ember);
+        background: rgba(255, 106, 31, 0.1);
+      }
+      .icon-btn .badge {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--ember);
+        border: 2px solid var(--bg);
+      }
+      .avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: var(--radius-sm);
+        background: rgba(160, 120, 255, 0.15);
+        border: 1px solid rgba(160, 120, 255, 0.3);
+        color: var(--violet);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .winctl {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        margin-left: 4px;
+        padding-left: 10px;
+        border-left: 1px solid var(--divider);
+      }
+      .winctl .icon-btn.close:hover {
+        background: var(--red);
+        color: #fff;
+      }
+
+      /* ── Project Tab Bar (mới) ───────────────────────────────────── */
+      .project-tab-bar {
+        display: flex;
+        align-items: center;
+        height: 38px;
+        flex-shrink: 0;
+        background: var(--bg-elevated);
+        border-bottom: 1px solid var(--border);
+        padding: 0 8px;
+        gap: 4px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .project-tab-bar::-webkit-scrollbar {
+        display: none;
+      }
+      /* Compact: chỉ cần biết project nào có ít nhất 1 tiến trình đang chạy —
+         quản lý chi tiết branch/session đã chuyển sang panel "Branches" riêng. */
+      .project-tab {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 7px;
+        min-width: auto;
+        padding: 5px 11px;
+        border: none;
+        background: transparent;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        text-align: left;
+        flex-shrink: 0;
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      }
+      .project-tab:hover:not(.active) {
+        background: var(--bg-soft);
+      }
+      .project-tab.active {
+        background: var(--bg);
+        border-bottom-color: var(--ember);
+      }
+      .project-tab-top {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .project-tab-top .p-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+      .project-tab-top .p-name {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+      }
+      .project-tab-stats {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        color: var(--text-dim);
+      }
+      .project-tab-stats .pstat {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .pstat.running {
+        color: var(--ember);
+      }
+      .pstat.review {
+        color: var(--blue);
+      }
+      .pstat.blocked {
+        color: var(--red);
+      }
+      .project-tab-add {
+        width: 26px;
+        align-self: center;
+        height: 26px;
+        border-radius: var(--radius-sm);
+        border: 1px dashed var(--border);
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .project-tab-add:hover {
+        color: var(--text-secondary);
+        border-color: var(--text-secondary);
+      }
+
+      /* ── Status Strip ────────────────────────────────────────────── */
+      .statusstrip {
+        display: flex;
+        align-items: center;
+        height: 32px;
+        flex-shrink: 0;
+        gap: 8px;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--divider);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .statusstrip::-webkit-scrollbar {
+        display: none;
+      }
+      .chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--bg-soft);
+        border: 1px solid var(--border);
+        white-space: nowrap;
+        flex-shrink: 0;
+        cursor: default;
+      }
+      .chip .cdot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .chip.clickable {
+        cursor: pointer;
+      }
+      .chip.clickable:hover {
+        background: var(--bg-card-hover);
+        color: var(--text-primary);
+      }
+      .chip.active {
+        background: rgba(255, 106, 31, 0.1);
+        color: var(--ember);
+        border-color: rgba(255, 106, 31, 0.3);
+      }
+      .chip b {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+
+      /* ── Workspace (main body) ───────────────────────────────────── */
+      .workspace {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        position: relative;
+      }
+
+      /* ── Icon Rail ───────────────────────────────────────────────── */
+      .rail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 52px;
+        flex-shrink: 0;
+        padding: 10px 0;
+        gap: 3px;
+        border-right: 1px solid var(--divider);
+        background: var(--bg-sidebar);
+        z-index: 5;
+      }
+      .rail-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-sm);
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        transition: all 0.15s;
+      }
+      .rail-btn:hover {
+        background: var(--bg-soft);
+        color: var(--text-primary);
+      }
+      .rail-btn.active {
+        color: var(--text-primary);
+        background: rgba(255, 106, 31, 0.08);
+      }
+      .rail-btn.active::before {
+        content: '';
+        position: absolute;
+        left: -10px;
+        top: 7px;
+        bottom: 7px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--ember);
+      }
+
+      /* ── Side Panel ──────────────────────────────────────────────── */
+      .side-panel {
+        width: 300px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--bg-sidebar);
+        border-right: 1px solid var(--border);
+      }
+      .side-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 44px;
+        flex-shrink: 0;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--divider);
+      }
+      .side-panel-title {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-primary);
+      }
+      .side-panel-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .seg {
+        display: flex;
+        background: var(--bg-soft);
+        border-radius: var(--radius-sm);
+        padding: 2px;
+        gap: 2px;
+        border: 1px solid var(--border);
+      }
+      .seg button {
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .seg button.active {
+        background: var(--bg-card);
+        color: var(--text-primary);
+      }
+      .side-panel-body {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+      }
+      .side-panel-search {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--divider);
+        flex-shrink: 0;
+      }
+      .side-panel-search .box {
+        position: relative;
+      }
+      .side-panel-search input {
+        width: 100%;
+        height: 30px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0 10px 0 30px;
+        font-size: 12px;
+        color: var(--text-primary);
+        outline: none;
+      }
+      .side-panel-search input:focus {
+        border-color: rgba(255, 106, 31, 0.4);
+      }
+      .side-panel-search svg {
+        position: absolute;
+        left: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-dim);
+      }
+
+      /* ── Projects Tree ───────────────────────────────────────────── */
+      .proj-group-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .proj-group-head:hover {
+        background: var(--bg-soft);
+      }
+      .proj-group-head .chev {
+        color: var(--text-dim);
+        transition: transform 0.15s;
+        flex-shrink: 0;
+      }
+      .proj-group-head .chev.open {
+        transform: rotate(90deg);
+      }
+      .proj-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .proj-group-head .pname {
+        font-weight: 600;
+        font-size: 12.5px;
+        color: var(--text-primary);
+        flex: 1;
+      }
+      .proj-group-head .pcount {
+        font-size: 10px;
+        color: var(--text-dim);
+        font-family: var(--font-mono);
+      }
+
+      .task-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px 7px 34px;
+        cursor: pointer;
+        border-left: 2px solid transparent;
+        position: relative;
+      }
+      .task-row:hover {
+        background: var(--bg-soft);
+      }
+      .task-row.selected {
+        background: rgba(255, 106, 31, 0.07);
+        border-left-color: var(--ember);
+      }
+      .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .status-dot.running {
+        background: var(--ember);
+        animation: pulse 1.4s infinite;
+      }
+      .status-dot.queued {
+        background: var(--neutral);
+      }
+      .status-dot.idle {
+        background: var(--text-dim);
+      }
+      .status-dot.review {
+        background: var(--blue);
+      }
+      .status-dot.done {
+        background: var(--green);
+      }
+      .status-dot.blocked {
+        background: var(--red);
+      }
+      .status-dot.error {
+        background: var(--red);
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      .task-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .task-title-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .task-title {
+        font-size: 12px;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .primary-tag {
+        font-size: 9px;
+        padding: 1px 5px;
+        border-radius: 3px;
+        background: var(--bg-soft);
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .task-branch {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-dim);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .avatar-stack {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .avatar-stack .mini-av {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        font-weight: 700;
+        color: #fff;
+        border: 1.5px solid var(--bg-sidebar);
+        margin-left: -5px;
+        font-family: var(--font-display);
+      }
+      .avatar-stack .mini-av:first-child {
+        margin-left: 0;
+      }
+      .task-time {
+        font-size: 10px;
+        color: var(--text-dim);
+        flex-shrink: 0;
+        margin-left: 4px;
+      }
+
+      .side-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--text-dim);
+      }
+      .side-empty .t {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .side-empty .s {
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+
+      /* ── File Explorer Panel (mới) ───────────────────────────────── */
+      .fx-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: none;
+      }
+      .fx-item:hover {
+        background: var(--bg-soft);
+        color: var(--text-primary);
+      }
+      .fx-item .fx-chev {
+        color: var(--text-dim);
+        flex-shrink: 0;
+        transition: transform 0.15s;
+      }
+      .fx-item .fx-chev.open {
+        transform: rotate(90deg);
+      }
+      .fx-item .fx-ic {
+        flex-shrink: 0;
+        display: flex;
+      }
+      .fx-note {
+        padding: 10px 12px;
+        font-size: 10.5px;
+        color: var(--text-dim);
+        border-top: 1px solid var(--divider);
+      }
+
+      /* ── Git Panel ───────────────────────────────────────────────── */
+      .git-toolbar {
+        display: flex;
+        gap: 6px;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--divider);
+      }
+      .btn {
+        font-size: 11.5px;
+        font-weight: 500;
+        padding: 6px 11px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--bg-soft);
+        color: var(--text-primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s;
+      }
+      .btn:hover {
+        background: var(--bg-card-hover);
+      }
+      .btn.primary {
+        background: var(--ember);
+        border-color: var(--ember);
+        color: #fff;
+      }
+      .btn.primary:hover {
+        background: #ff7d3d;
+      }
+      .btn.ghost {
+        background: transparent;
+        border-color: transparent;
+        color: var(--text-secondary);
+      }
+      .btn.ghost:hover {
+        background: var(--bg-soft);
+        color: var(--text-primary);
+      }
+      .btn.sm {
+        padding: 4px 9px;
+        font-size: 11px;
+      }
+      .btn.danger {
+        color: var(--red);
+      }
+
+      .git-group-label {
+        padding: 10px 10px 4px;
+        font-size: 10.5px;
+        color: var(--text-dim);
+        font-weight: 600;
+      }
+      .git-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        cursor: pointer;
+      }
+      .git-row:hover {
+        background: var(--bg-soft);
+      }
+      .git-row .gtitle {
+        flex: 1;
+        min-width: 0;
+      }
+      .git-row .gtitle .t1 {
+        font-size: 12px;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .git-row .gtitle .t2 {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-dim);
+      }
+      .diffstat {
+        display: flex;
+        gap: 6px;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        flex-shrink: 0;
+      }
+      .diffstat .add {
+        color: var(--green);
+      }
+      .diffstat .rem {
+        color: var(--red);
+      }
+      .git-row-actions {
+        display: none;
+        gap: 2px;
+        flex-shrink: 0;
+      }
+      .git-row:hover .git-row-actions {
+        display: flex;
+      }
+
+      /* ── Agents Panel ────────────────────────────────────────────── */
+      .agent-summary {
+        display: flex;
+        gap: 8px;
+        padding: 10px;
+        border-bottom: 1px solid var(--divider);
+      }
+      .agent-summary .asum {
+        flex: 1;
+        text-align: center;
+        padding: 8px 4px;
+        border-radius: var(--radius-sm);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+      }
+      .agent-summary .asum b {
+        display: block;
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .agent-summary .asum span {
+        font-size: 9.5px;
+        color: var(--text-dim);
+      }
+
+      .agent-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 10px;
+        cursor: pointer;
+      }
+      .agent-row:hover {
+        background: var(--bg-soft);
+      }
+      .agent-av {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 11px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .agent-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .agent-info .an {
+        font-size: 12px;
+        color: var(--text-primary);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .agent-info .am {
+        font-size: 10.5px;
+        color: var(--text-dim);
+        font-family: var(--font-mono);
+      }
+      .agent-info .at {
+        font-size: 10.5px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 1px;
+      }
+      .status-pill {
+        font-size: 9.5px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .status-pill.working {
+        background: rgba(255, 106, 31, 0.12);
+        color: var(--ember);
+      }
+      .status-pill.idle {
+        background: rgba(139, 141, 150, 0.12);
+        color: var(--text-secondary);
+      }
+      .status-pill.blocked {
+        background: rgba(255, 71, 87, 0.12);
+        color: var(--red);
+      }
+      .status-pill.done {
+        background: rgba(61, 220, 132, 0.12);
+        color: var(--green);
+      }
+      .status-pill.queued {
+        background: rgba(79, 168, 224, 0.12);
+        color: var(--blue);
+      }
+      .agent-row-actions {
+        display: none;
+        gap: 2px;
+        flex-shrink: 0;
+      }
+      .agent-row:hover .agent-row-actions {
+        display: flex;
+      }
+      .agent-panel-footer {
+        padding: 10px;
+        border-top: 1px solid var(--divider);
+      }
+
+      /* ── Design Panel ────────────────────────────────────────────── */
+      .design-block {
+        padding: 12px 12px 4px;
+      }
+      .design-label {
+        font-size: 10.5px;
+        color: var(--text-dim);
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .swatch-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+        margin-bottom: 4px;
+      }
+      .swatch {
+        aspect-ratio: 1;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+      }
+      .design-thumb {
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        overflow: hidden;
+        margin-bottom: 8px;
+        cursor: pointer;
+      }
+      .design-thumb .th-bar {
+        height: 20px;
+        background: var(--bg-card);
+        display: flex;
+        align-items: center;
+        padding: 0 8px;
+        font-size: 9.5px;
+        color: var(--text-dim);
+        gap: 5px;
+      }
+      .design-thumb .th-body {
+        height: 74px;
+        background: linear-gradient(135deg, #f4f1ea, #e5e1d8);
+        position: relative;
+      }
+
+      /* ── Center: Grid Area ───────────────────────────────────────── */
+      .grid-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+        position: relative;
+      }
+      .grid-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 42px;
+        flex-shrink: 0;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--divider);
+        background: var(--bg);
+      }
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        min-width: 0;
+      }
+      .breadcrumb b {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .breadcrumb .sep {
+        color: var(--text-dim);
+      }
+      .breadcrumb .bstatus {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-left: 6px;
+        font-size: 11px;
+        color: var(--ember);
+      }
+      .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .layout-switch {
+        display: flex;
+        gap: 2px;
+        background: var(--bg-soft);
+        border-radius: var(--radius-sm);
+        padding: 2px;
+        border: 1px solid var(--border);
+      }
+      .layout-switch button {
+        width: 26px;
+        height: 24px;
+        border: none;
+        background: transparent;
+        border-radius: 4px;
+        color: var(--text-dim);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .layout-switch button.active {
+        background: var(--bg-card);
+        color: var(--text-primary);
+      }
+
+      .section-grid {
+        flex: 1;
+        display: grid;
+        gap: 1px;
+        background: var(--divider);
+        min-height: 0;
+        overflow: hidden;
+      }
+      .section-grid.layout-1 {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+      }
+      .section-grid.layout-2 {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr;
+      }
+      .section-grid.layout-3 {
+        grid-template-columns: 1.3fr 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+      .section-grid.layout-3 .agent-section:nth-child(1) {
+        grid-row: 1 / 3;
+      }
+      .section-grid.layout-4 {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+      .section-grid .agent-section.hidden-section {
+        display: none;
+      }
+
+      .agent-section {
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+      }
+      .section-tabbar {
+        display: flex;
+        align-items: center;
+        height: 32px;
+        flex-shrink: 0;
+        background: var(--bg-sidebar);
+        border-bottom: 1px solid var(--divider);
+        padding: 0 4px;
+        gap: 2px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .section-tabbar::-webkit-scrollbar {
+        display: none;
+      }
+      .section-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 10px;
+        height: 100%;
+        font-size: 11.5px;
+        white-space: nowrap;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-top: 2px solid transparent;
+        transition: all 0.15s;
+        flex-shrink: 0;
+      }
+      .section-tab.active {
+        color: var(--text-primary);
+        border-top-color: var(--ember);
+        background: var(--bg);
+      }
+      .section-tab:hover:not(.active) {
+        background: var(--bg-soft);
+      }
+      .section-tab .close-btn {
+        opacity: 0;
+        padding: 1px;
+        border-radius: 3px;
+        margin-left: 2px;
+        display: flex;
+      }
+      .section-tab:hover .close-btn {
+        opacity: 1;
+      }
+      .section-tab .close-btn:hover {
+        color: var(--red);
+      }
+      .section-add {
+        width: 26px;
+        height: 100%;
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .section-add:hover {
+        color: var(--text-primary);
+      }
+
+      .section-status-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border-bottom: 1px solid var(--divider);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .section-status-line .sl-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+      }
+      .section-status-line .sl-label.c-running {
+        color: var(--ember);
+      }
+      .section-status-line .sl-label.c-review {
+        color: var(--blue);
+      }
+      .section-status-line .sl-label.c-blocked {
+        color: var(--red);
+      }
+      .section-status-line .sl-label.c-done {
+        color: var(--green);
+      }
+      .section-status-line .sl-label.c-idle {
+        color: var(--text-dim);
+      }
+      .section-status-line .sl-sep {
+        color: var(--text-dim);
+      }
+      .section-status-line .sl-path {
+        color: var(--text-dim);
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .section-feed {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 0;
+      }
+      .feed-block {
+        font-size: 12px;
+        line-height: 1.65;
+        color: var(--text-secondary);
+      }
+      .feed-block b {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .feed-cmd {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 8px 10px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+      .feed-cmd .prompt {
+        color: var(--green);
+      }
+      .feed-cmd .cmdtext {
+        color: var(--text-primary);
+      }
+      .feed-diff {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
+      .feed-diff .dfile {
+        padding: 6px 10px;
+        font-size: 10.5px;
+        color: var(--text-dim);
+        border-bottom: 1px solid var(--divider);
+        display: flex;
+        justify-content: space-between;
+      }
+      .feed-diff .dline {
+        padding: 1px 10px;
+        white-space: pre-wrap;
+      }
+      .feed-diff .dline.add {
+        color: var(--green);
+        background: rgba(61, 220, 132, 0.07);
+      }
+      .feed-diff .dline.rem {
+        color: var(--red);
+        background: rgba(255, 71, 87, 0.07);
+      }
+      .feed-list {
+        font-size: 12px;
+        color: var(--text-secondary);
+        padding-left: 2px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .feed-list .fl-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .feed-list ol {
+        padding-left: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .feed-note {
+        font-size: 11.5px;
+        color: var(--text-dim);
+        font-style: italic;
+      }
+
+      .section-input-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 10px;
+        border-top: 1px solid var(--divider);
+        background: var(--bg-sidebar);
+        flex-shrink: 0;
+      }
+      .section-input-bar input {
+        flex: 1;
+        height: 30px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0 10px;
+        font-size: 12px;
+        color: var(--text-primary);
+        outline: none;
+      }
+      .section-input-bar input:focus {
+        border-color: rgba(255, 106, 31, 0.4);
+      }
+      .section-input-bar .send {
+        background: var(--ember);
+        color: #fff;
+        border-radius: var(--radius-sm);
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .section-input-bar .send:hover {
+        background: #ff7d3d;
+      }
+
+      .section-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: var(--text-dim);
+        padding: 20px;
+      }
+      .section-empty .t {
+        font-size: 12.5px;
+        color: var(--text-secondary);
+      }
+      .section-empty .s {
+        font-size: 11px;
+        color: var(--text-dim);
+        max-width: 220px;
+        text-align: center;
+      }
+
+      /* ── Right Panels (Preview & Sessions — 2 panel riêng biệt) ──── */
+      .right-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--bg-sidebar);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        z-index: 25;
+        transform: translateX(100%);
+        transition: transform 0.2s ease;
+        box-shadow: -20px 0 40px rgba(0, 0, 0, 0.5);
+      }
+      .right-panel.open {
+        transform: translateX(0);
+      }
+      #previewPanel {
+        width: 420px;
+      }
+      #sessionsPanel {
+        width: 460px;
+      }
+
+      .preview-head {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--divider);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .preview-head-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .preview-title {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .urlbar {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 6px 9px;
+      }
+      .urlbar svg {
+        color: var(--green);
+        flex-shrink: 0;
+      }
+      .urlbar span {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-secondary);
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .device-toggle {
+        display: flex;
+        gap: 2px;
+        background: var(--bg-soft);
+        border-radius: var(--radius-sm);
+        padding: 2px;
+        border: 1px solid var(--border);
+      }
+      .device-toggle button {
+        flex: 1;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 11px;
+        padding: 5px 0;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+      .device-toggle button.active {
+        background: var(--bg-card);
+        color: var(--text-primary);
+      }
+      .preview-frame-wrap {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 20px 14px;
+        background: repeating-linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.015) 0 10px,
+          transparent 10px 20px
+        );
+      }
+      .preview-frame {
+        background: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        transition: width 0.2s ease;
+        width: 100%;
+      }
+      .preview-frame.tablet {
+        width: 400px;
+      }
+      .preview-frame.mobile {
+        width: 260px;
+        border-radius: 22px;
+        padding: 10px 8px;
+      }
+      .preview-frame.mobile .mock-checkout {
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .mock-checkout {
+        font-family: var(--font-body);
+        color: #1a1a1a;
+        padding: 22px 20px;
+      }
+      .mock-checkout .mc-eyebrow {
+        font-size: 10px;
+        letter-spacing: 1px;
+        color: #999;
+        margin-bottom: 4px;
+      }
+      .mock-checkout h2 {
+        font-family: var(--font-display);
+        font-size: 17px;
+        margin-bottom: 4px;
+      }
+      .mock-checkout .mc-sub {
+        font-size: 11px;
+        color: #888;
+        margin-bottom: 14px;
+      }
+      .mock-checkout label {
+        display: block;
+        font-size: 10px;
+        color: #777;
+        margin-bottom: 3px;
+        margin-top: 10px;
+      }
+      .mock-checkout .mc-field {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 7px 9px;
+        font-size: 11px;
+        color: #333;
+      }
+      .mock-checkout .mc-row {
+        display: flex;
+        gap: 8px;
+      }
+      .mock-checkout .mc-row > div {
+        flex: 1;
+      }
+      .mock-checkout .mc-btn {
+        margin-top: 16px;
+        background: #111;
+        color: #fff;
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .preview-foot {
+        padding: 10px 12px;
+        border-top: 1px solid var(--divider);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .preview-foot .pf-label {
+        font-size: 10.5px;
+        color: var(--text-dim);
+      }
+      .preview-foot .pf-actions {
+        display: flex;
+        gap: 6px;
+      }
+
+      /* ── Sessions Panel content ──────────────────────────────────── */
+      .session-filter-row {
+        display: flex;
+        gap: 6px;
+        padding: 8px 10px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--divider);
+      }
+      .session-list {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+      }
+      .session-row {
+        display: flex;
+        gap: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--divider);
+        cursor: pointer;
+      }
+      .session-row:hover {
+        background: var(--bg-soft);
+      }
+      .session-row .sr-av {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 11px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .session-row .sr-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .session-row .sr-title-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .session-row .sr-title {
+        font-size: 12.5px;
+        color: var(--text-primary);
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .session-row .sr-meta {
+        font-size: 10.5px;
+        color: var(--text-dim);
+        font-family: var(--font-mono);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .session-row .sr-msg {
+        font-size: 11.5px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .session-row .sr-side {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .session-row .sr-time {
+        font-size: 10px;
+        color: var(--text-dim);
+      }
+      .session-board {
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        overflow-x: auto;
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* ── Kanban / Board columns (dùng chung cho Session Board) ───── */
+      .kanban-col {
+        flex: 0 0 220px;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        min-height: 0;
+      }
+      .kanban-col-head {
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--divider);
+        flex-shrink: 0;
+      }
+      .kanban-col-head .kc-title {
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .kanban-col-head .kc-count {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        color: var(--text-dim);
+        background: var(--bg-soft);
+        padding: 1px 6px;
+        border-radius: 999px;
+      }
+      .kanban-col-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .kanban-card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .kanban-card:hover {
+        border-color: rgba(255, 106, 31, 0.3);
+      }
+      .proj-tag {
+        font-size: 9.5px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        align-self: flex-start;
+        font-weight: 600;
+      }
+      .kc-title-text {
+        font-size: 12px;
+        color: var(--text-primary);
+        line-height: 1.4;
+      }
+      .kc-branch {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-dim);
+      }
+      .kc-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 2px;
+      }
+
+      .task-table {
+        flex: 1;
+        overflow: auto;
+        padding: 0 14px 14px;
+        min-height: 0;
+      }
+      .task-table table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .task-table thead th {
+        text-align: left;
+        font-size: 10.5px;
+        color: var(--text-dim);
+        font-weight: 600;
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--divider);
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        z-index: 1;
+      }
+      .task-table tbody td {
+        padding: 10px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--divider);
+      }
+      .task-table tbody tr:hover {
+        background: var(--bg-soft);
+      }
+      .task-table .tt-title {
+        color: var(--text-primary);
+      }
+      .task-table .tt-branch {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+
+      /* ── Bottom Status Bar ───────────────────────────────────────── */
+      .statusbar {
+        display: flex;
+        align-items: center;
+        height: 28px;
+        flex-shrink: 0;
+        border-top: 1px solid var(--border);
+        background: var(--bg-elevated);
+        padding: 0 14px;
+        font-size: 10.5px;
+        color: var(--text-secondary);
+        gap: 14px;
+      }
+      .sb-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .sb-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+      }
+      .sb-sep {
+        color: var(--text-dim);
+      }
+      .sb-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .sb-chip {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(61, 220, 132, 0.08);
+        color: var(--green);
+        font-weight: 600;
+      }
+
+      /* ── File Viewer Modal (phụ) ─────────────────────────────────── */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 60;
+      }
+      .modal-overlay.open {
+        display: flex;
+      }
+      .file-modal {
+        width: 820px;
+        max-width: 92vw;
+        height: 68vh;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+      }
+      .fm-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--divider);
+      }
+      .fm-head-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .fm-head .note {
+        font-size: 10.5px;
+        color: var(--text-dim);
+        background: var(--bg-soft);
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+      }
+      .fm-body {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+      .fm-tree {
+        width: 200px;
+        border-right: 1px solid var(--divider);
+        overflow-y: auto;
+        padding: 6px 0;
+        flex-shrink: 0;
+      }
+      .fm-tree .fmt-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        cursor: pointer;
+      }
+      .fm-tree .fmt-item:hover {
+        background: var(--bg-soft);
+      }
+      .fm-tree .fmt-item.active {
+        background: rgba(255, 106, 31, 0.08);
+        color: var(--text-primary);
+      }
+      .fm-code {
+        flex: 1;
+        overflow: auto;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        line-height: 20px;
+        padding: 14px 16px;
+        color: var(--text-secondary);
+        white-space: pre;
+      }
+      .fm-code .kw {
+        color: #c678dd;
+      }
+      .fm-code .str {
+        color: #98c379;
+      }
+      .fm-code .fn {
+        color: #61afef;
+      }
+      .fm-code .cmt {
+        color: #5c6370;
+        font-style: italic;
+      }
+      .fm-code .tag {
+        color: #e06c75;
+      }
+      .fm-code .attr {
+        color: #d19a66;
+      }
+
+      /* ── Rail: divider giữa panel trái & nút mở panel phải (mới) ──── */
+      .rail-divider {
+        width: 26px;
+        height: 1px;
+        background: var(--divider);
+        margin: 6px 0;
+        flex-shrink: 0;
+      }
+
+      /* ── Branches panel (right-panel mới): Project > Branch > Session ─ */
+      #branchesPanel {
+        width: 340px;
+      }
+      .branches-note {
+        padding: 9px 12px;
+        font-size: 10.5px;
+        color: var(--text-dim);
+        border-bottom: 1px solid var(--divider);
+        line-height: 1.5;
+      }
+      .branch-block {
+        border-bottom: 1px solid var(--divider);
+      }
+      .branch-sub {
+        padding: 0 10px 10px 34px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .branch-running {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--ember);
+        font-weight: 500;
+      }
+      .branch-history-toggle {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10.5px;
+        color: var(--text-dim);
+        cursor: pointer;
+        user-select: none;
+      }
+      .branch-history-toggle:hover {
+        color: var(--text-secondary);
+      }
+      .branch-history {
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--divider);
+        margin-left: 3px;
+      }
+      .branch-history .task-row {
+        padding-top: 5px;
+        padding-bottom: 5px;
+      }
+
+      /* ── Detailed session cards (rail "Sessions", panel trái, mới) ──── */
+      .session-card-lg {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--divider);
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        cursor: pointer;
+      }
+      .session-card-lg:hover {
+        background: var(--bg-soft);
+      }
+      .scl-head {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .scl-title {
+        flex: 1;
+        min-width: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .scl-branch {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-dim);
+      }
+      .scl-agents {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .agent-chip {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 2px 8px 2px 2px;
+        font-size: 10px;
+        color: var(--text-secondary);
+      }
+      .agent-chip .ac-av {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 7.5px;
+        font-weight: 700;
+        color: #fff;
+        font-family: var(--font-display);
+        flex-shrink: 0;
+      }
+      .scl-msg {
+        font-size: 11px;
+        color: var(--text-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .scl-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* ── Misc ────────────────────────────────────────────────────── */
+      .icon {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex-shrink: 0;
+      }
+      .icon-sm {
+        width: 14px;
+        height: 14px;
+      }
+      .icon-xs {
+        width: 12px;
+        height: 12px;
+      }
+      .hidden {
+        display: none !important;
+      }
+
+      /* ── Right sidebar (mới): panel Projects/Branches luôn hiển thị ── */
+      .side-panel-right {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--bg-sidebar);
+        border-left: 1px solid var(--border);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- ══════════ TOP BAR ══════════ -->
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-mark">P</div>
+          <div class="brand-name">Phantoma</div>
+          <div class="brand-tag">AGENT OS</div>
+        </div>
+        <div class="topbar-center">
+          <div class="cmdk">
+            <svg class="icon icon-sm" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" placeholder="Tìm task, session, agent, branch, file..." readonly />
+            <kbd>⌘K</kbd>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="fleet-pulse" title="Fleet status" id="fleetPulse"></div>
+          <button class="icon-btn" id="btnSessionsToggle" title="Quản lý session">${'' }</button>
+          <button class="icon-btn" id="btnPreviewToggle" title="Xem preview kết quả">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+          <button class="icon-btn" title="Thông báo">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span class="badge"></span>
+          </button>
+          <button class="icon-btn" title="Cài đặt">
+            <svg class="icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+              />
+            </svg>
+          </button>
+          <div class="avatar">TV</div>
+          <div class="winctl">
+            <button class="icon-btn" title="Minimize">
+              <svg class="icon icon-sm" viewBox="0 0 24 24">
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            <button class="icon-btn" title="Maximize">
+              <svg class="icon icon-sm" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              </svg>
+            </button>
+            <button class="icon-btn close" title="Close">
+              <svg class="icon icon-sm" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ WORKSPACE ══════════ -->
+      <div class="workspace" id="workspace">
+        <div class="rail" id="rail"></div>
+        <div class="side-panel" id="sidePanel"></div>
+
+        <div class="grid-area">
+          <div class="grid-toolbar">
+            <div class="breadcrumb" id="breadcrumb"></div>
+            <div class="toolbar-right">
+              <div class="layout-switch" id="layoutSwitch"></div>
+              <button class="icon-btn" id="btnFileModal" title="Xem file (phụ)">
+                <svg class="icon icon-sm" viewBox="0 0 24 24">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="section-grid layout-4" id="sectionGrid"></div>
+          <div class="session-board" id="taskBoardArea" style="display: none"></div>
+        </div>
+
+        <!-- Preview slide-over (panel riêng #1) -->
+        <div class="right-panel" id="previewPanel">
+          <div class="preview-head">
+            <div class="preview-head-top">
+              <div class="preview-title">Preview</div>
+              <button class="icon-btn" id="btnClosePreview">
+                <svg class="icon icon-sm" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div class="urlbar">
+              <svg class="icon icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
+              <span>localhost:3000/checkout</span>
+              <svg class="icon icon-xs" viewBox="0 0 24 24" style="color: var(--text-dim)">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+            </div>
+            <div class="device-toggle" id="deviceToggle">
+              <button data-device="desktop" class="active">
+                <svg class="icon icon-xs" viewBox="0 0 24 24">
+                  <rect x="2" y="4" width="20" height="14" rx="2" />
+                  <line x1="8" y1="21" x2="16" y2="21" />
+                  <line x1="12" y1="18" x2="12" y2="21" /></svg
+                >Desktop
+              </button>
+              <button data-device="tablet">
+                <svg class="icon icon-xs" viewBox="0 0 24 24">
+                  <rect x="4" y="2" width="16" height="20" rx="2" />
+                  <line x1="12" y1="18" x2="12.01" y2="18" /></svg
+                >Tablet
+              </button>
+              <button data-device="mobile">
+                <svg class="icon icon-xs" viewBox="0 0 24 24">
+                  <rect x="5" y="2" width="14" height="20" rx="2" />
+                  <line x1="12" y1="18" x2="12.01" y2="18" /></svg
+                >Mobile
+              </button>
+            </div>
+          </div>
+          <div class="preview-frame-wrap">
+            <div class="preview-frame" id="previewFrame">
+              <div class="mock-checkout">
+                <div class="mc-eyebrow">ACME CHECKOUT</div>
+                <h2>Shipping address</h2>
+                <div class="mc-sub">Nhập thông tin giao hàng để tiếp tục.</div>
+                <label>Full name</label>
+                <div class="mc-field">Jordan Lee</div>
+                <label>Street address</label>
+                <div class="mc-field">428 Market St</div>
+                <div class="mc-row">
+                  <div>
+                    <label>City</label>
+                    <div class="mc-field">San Francisco</div>
+                  </div>
+                  <div>
+                    <label>ZIP / Postal</label>
+                    <div class="mc-field">94105</div>
+                  </div>
+                </div>
+                <label>Country</label>
+                <div class="mc-field">United States</div>
+                <div class="mc-btn">Continue to payment</div>
+              </div>
+            </div>
+          </div>
+          <div class="preview-foot">
+            <span class="pf-label">Đang review · checkout-flow-v2</span>
+            <div class="pf-actions">
+              <button class="btn sm ghost">Yêu cầu sửa</button>
+              <button class="btn sm primary">Duyệt</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sessions panel (panel riêng #2 — hoàn toàn tách biệt) -->
+        <div class="right-panel" id="sessionsPanel">
+          <div class="side-panel-head">
+            <div class="side-panel-title">Sessions</div>
+            <div class="side-panel-actions">
+              <div class="seg" id="sessionViewSeg">
+                <button data-view="list" class="active">${''}List</button>
+                <button data-view="board">${''}Board</button>
+              </div>
+              <button class="icon-btn" id="btnCloseSessions">
+                <svg class="icon icon-sm" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="session-filter-row" id="sessionFilterRow"></div>
+          <div
+            id="sessionsBody"
+            style="flex: 1; display: flex; flex-direction: column; min-height: 0"
+          ></div>
+        </div>
+
+        <!-- Projects & Branches panel (mới — luôn hiển thị, không đóng được) -->
+        <div class="side-panel side-panel-right" id="branchesPanel">
+          <div class="side-panel-head">
+            <div class="side-panel-title">Projects</div>
+          </div>
+          <div class="branches-note">
+            Mỗi branch chỉ chạy <b style="color: var(--text-primary)">1 session</b> cùng lúc, nhưng
+            nhiều branch (kể cả khác project) chạy song song không xung đột — vì Git đã tách biệt
+            source code theo branch. Click 1 branch để xem danh sách session của branch đó ở panel
+            Sessions bên trái.
+          </div>
+          <div class="side-panel-body" id="branchesBody"></div>
+        </div>
+      </div>
+
+      <!-- ══════════ STATUS BAR ══════════ -->
+      <div class="statusbar" id="statusBar"></div>
+    </div>
+
+    <!-- ══════════ FILE VIEWER MODAL (phụ) ══════════ -->
+    <div class="modal-overlay" id="fileModalOverlay">
+      <div class="file-modal">
+        <div class="fm-head">
+          <div class="fm-head-left">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" style="color: var(--text-dim)">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+            </svg>
+            <b style="font-size: 13px">Xem file — chỉ đọc</b>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span class="note">Không phải luồng chính · UI phụ</span>
+            <button class="icon-btn" id="btnCloseFileModal">
+              <svg class="icon icon-sm" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="fm-body">
+          <div class="fm-tree" id="fmTree"></div>
+          <div class="fm-code" id="fmCode"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ════════════════════════════════════════════════════════════════
+         MOCK DATA
+      ════════════════════════════════════════════════════════════════ */
+      const AGENT_COLORS = {
+        H1: '#ff6a1f',
+        H2: '#4fa8e0',
+        H3: '#3ddc84',
+        H4: '#a078ff',
+        CX: '#ff6a1f',
+        OR: '#a078ff',
+        AU: '#4fa8e0',
+        CI: '#3ddc84',
+        OB: '#ff78aa',
+      };
+      const PROJECT_COLOR = { 'acme-web': '#4fa8e0', 'acme-internal': '#ffb020' };
+
+      const PROJECTS = [
+        {
+          id: 'acme-web',
+          name: 'acme-web',
+          icon: 'globe',
+          color: '#4fa8e0',
+          open: true,
+          running: 1,
+          review: 0,
+          blocked: 1,
+          tasks: [
+            {
+              id: 't1',
+              title: 'checkout-flow-v2',
+              branch: 'feature/checkout-flow-v2',
+              primary: true,
+              status: 'running',
+              agents: ['CX', 'OR'],
+              updated: '12ph',
+            },
+            {
+              id: 't2',
+              title: 'checkout-baseline',
+              branch: 'feature/checkout-baseline',
+              status: 'blocked',
+              agents: [],
+              updated: '20ph',
+            },
+            {
+              id: 't3',
+              title: 'auth-session-refresh',
+              branch: 'feature/auth-session-refresh',
+              status: 'queued',
+              agents: ['AU'],
+              updated: '5g',
+            },
+            {
+              id: 't4',
+              title: 'cart-recovery-email',
+              branch: 'feature/cart-recovery-email',
+              status: 'idle',
+              agents: [],
+              updated: '2n',
+            },
+          ],
+        },
+        {
+          id: 'acme-internal',
+          name: 'acme-internal',
+          icon: 'folder',
+          color: '#ffb020',
+          open: true,
+          running: 2,
+          review: 1,
+          blocked: 0,
+          tasks: [
+            {
+              id: 't5',
+              title: 'Improve agent handoff summary',
+              branch: 'feature/agent-handoff-summary',
+              primary: true,
+              status: 'running',
+              agents: ['H1', 'H2', 'H3', 'H4'],
+              updated: '12ph',
+            },
+            {
+              id: 't6',
+              title: 'Fix CI checks detail link',
+              branch: 'fix/checks-detail-link',
+              status: 'review',
+              agents: ['CI'],
+              updated: '2g',
+            },
+            {
+              id: 't7',
+              title: 'Webhook retry backoff',
+              branch: 'fix/webhook-retry-backoff',
+              status: 'idle',
+              agents: [],
+              updated: '1n',
+            },
+            {
+              id: 't8',
+              title: 'Observability dashboard tiles',
+              branch: 'feature/observ-metrics-dash',
+              status: 'queued',
+              agents: ['OB'],
+              updated: '5g',
+            },
+          ],
+        },
+      ];
+
+      const AGENTS = [
+        {
+          id: 'a1',
+          name: 'Orca-1',
+          initials: 'O1',
+          color: '#ff6a1f',
+          model: 'Claude Code · Sonnet 4.6',
+          status: 'working',
+          task: 'drafting handoff copy',
+          updated: '12ph',
+        },
+        {
+          id: 'a2',
+          name: 'Orca-2',
+          initials: 'O2',
+          color: '#4fa8e0',
+          model: 'Claude Code · Sonnet 4.6',
+          status: 'working',
+          task: 'summarizing session context',
+          updated: '1g',
+        },
+        {
+          id: 'a3',
+          name: 'Codex-1',
+          initials: 'C1',
+          color: '#3ddc84',
+          model: 'Codex CLI · GPT-5.5',
+          status: 'done',
+          task: 'updating docs/handoff.md',
+          updated: '2g',
+        },
+        {
+          id: 'a4',
+          name: 'Codex-2',
+          initials: 'C2',
+          color: '#a078ff',
+          model: 'Codex CLI · GPT-5.5',
+          status: 'done',
+          task: 'polishing handoff template',
+          updated: '3g',
+        },
+        {
+          id: 'a5',
+          name: 'Orca-3',
+          initials: 'O3',
+          color: '#4fa8e0',
+          model: 'Claude Code · Sonnet 4.6',
+          status: 'queued',
+          task: 'auth-session-refresh — chờ tới lượt',
+          updated: '5g',
+        },
+        {
+          id: 'a6',
+          name: 'Claude-4',
+          initials: 'C4',
+          color: '#ff4757',
+          model: 'Claude Code · Opus 5.5',
+          status: 'blocked',
+          task: 'checkout-baseline — chờ API key thanh toán',
+          updated: '20ph',
+        },
+        {
+          id: 'a7',
+          name: 'Codex-3',
+          initials: 'C3',
+          color: '#8b8d96',
+          model: 'Codex CLI · GPT-5.5',
+          status: 'idle',
+          task: 'chưa nhận task',
+          updated: '—',
+        },
+      ];
+
+      // Toàn bộ session (agent-conversation) trong fleet — panel Sessions quản lý danh sách này
+      const SESSIONS = [
+        {
+          id: 's1',
+          title: 'drafting handoff copy',
+          project: 'acme-internal',
+          task: 'Improve agent handoff summary',
+          branch: 'feature/agent-handoff-summary',
+          agent: { name: 'Orca-1', initials: 'O1', color: '#ff6a1f' },
+          model: 'Sonnet 4.6 · medium',
+          status: 'running',
+          lastMessage: 'Đang viết lại phần tóm tắt, giữ nguyên checklist release.',
+          time: '12ph',
+          mapped: { sec: 'sec-a', tab: 'a-1' },
+        },
+        {
+          id: 's2',
+          title: 'summarizing session context',
+          project: 'acme-internal',
+          task: 'Improve agent handoff summary',
+          branch: 'feature/agent-handoff-summary',
+          agent: { name: 'Orca-2', initials: 'O2', color: '#4fa8e0' },
+          model: 'Sonnet 4.6 · medium',
+          status: 'running',
+          lastMessage: 'Tổng hợp 6 phiên gần nhất thành 1 bản context ngắn.',
+          time: '1g',
+          mapped: { sec: 'sec-a', tab: 'a-2' },
+        },
+        {
+          id: 's3',
+          title: 'checkout-flow-v2 · shipping form',
+          project: 'acme-web',
+          task: 'checkout-flow-v2',
+          branch: 'feature/checkout-flow-v2',
+          agent: { name: 'Codex-2', initials: 'C2', color: '#a078ff' },
+          model: 'Sonnet 4.6 · high',
+          status: 'running',
+          lastMessage: 'Dựng lại form Shipping address theo thiết kế mới.',
+          time: '8ph',
+          mapped: { sec: 'sec-b', tab: 'b-1' },
+        },
+        {
+          id: 's4',
+          title: 'CI checks · investigate',
+          project: 'acme-internal',
+          task: 'Fix CI checks detail link',
+          branch: 'fix/checks-detail-link',
+          agent: { name: 'Codex-3', initials: 'C3', color: '#3ddc84' },
+          model: 'GPT-5.5 · medium',
+          status: 'review',
+          lastMessage: 'Đã mở PR chờ review, 4/4 test pass.',
+          time: '2g',
+          mapped: { sec: 'sec-c', tab: 'c-1' },
+        },
+        {
+          id: 's5',
+          title: 'updating docs/handoff.md',
+          project: 'acme-internal',
+          task: 'Improve agent handoff summary',
+          branch: 'feature/agent-handoff-summary',
+          agent: { name: 'Codex-1', initials: 'C1', color: '#3ddc84' },
+          model: 'GPT-5.5 · medium',
+          status: 'done',
+          lastMessage: 'Đã cập nhật xong tài liệu, không còn thay đổi chờ.',
+          time: '2g',
+          feed: [
+            {
+              type: 'block',
+              html: 'Đã cập nhật xong <b>docs/handoff.md</b>, đang chờ review trước khi merge.',
+            },
+            { type: 'note', text: 'Không còn thay đổi nào đang chờ.' },
+          ],
+        },
+        {
+          id: 's6',
+          title: 'polishing handoff template',
+          project: 'acme-internal',
+          task: 'Improve agent handoff summary',
+          branch: 'feature/agent-handoff-summary',
+          agent: { name: 'Codex-2', initials: 'C2', color: '#a078ff' },
+          model: 'GPT-5.5 · medium',
+          status: 'done',
+          lastMessage: 'Hoàn tất chỉnh sửa template, đồng bộ giọng văn.',
+          time: '3g',
+          feed: [
+            {
+              type: 'block',
+              html: 'Đã tinh chỉnh xong template handoff, đồng bộ giọng văn với phần tóm tắt.',
+            },
+          ],
+        },
+        {
+          id: 's7',
+          title: 'auth-session-refresh audit',
+          project: 'acme-web',
+          task: 'auth-session-refresh',
+          branch: 'feature/auth-session-refresh',
+          agent: { name: 'Orca-3', initials: 'O3', color: '#4fa8e0' },
+          model: 'Sonnet 4.6 · medium',
+          status: 'queued',
+          lastMessage: 'Đang chờ tới lượt chạy trong fleet.',
+          time: '5g',
+          feed: [
+            {
+              type: 'block',
+              html: 'Đang xếp hàng chờ tài nguyên fleet để bắt đầu audit phiên đăng nhập.',
+            },
+            { type: 'note', text: 'Dự kiến bắt đầu sau khi Orca-1 rảnh.' },
+          ],
+        },
+        {
+          id: 's8',
+          title: 'checkout-baseline — chờ API key',
+          project: 'acme-web',
+          task: 'checkout-baseline',
+          branch: 'feature/checkout-baseline',
+          agent: { name: 'Claude-4', initials: 'C4', color: '#ff4757' },
+          model: 'Opus 5.5 · medium',
+          status: 'blocked',
+          lastMessage: 'Chờ cấp API key sandbox để tiếp tục.',
+          time: '20ph',
+          feed: [
+            {
+              type: 'block',
+              html: 'Đang chặn ở bước tích hợp thanh toán do thiếu <b>API key sandbox</b>.',
+            },
+            { type: 'note', text: 'Cần chủ dự án cấp key để tiếp tục.' },
+          ],
+        },
+      ];
+      const SESSION_STATUS_LABEL = {
+        running: 'Đang chạy',
+        review: 'Review',
+        blocked: 'Bị kẹt',
+        queued: 'Chờ',
+        done: 'Hoàn tất',
+      };
+      const SESSION_STATUS_ORDER = ['running', 'review', 'blocked', 'queued', 'done'];
+
+      // File tree cho panel File Explorer (mới)
+      const FILE_TREE = [
+        {
+          name: 'src',
+          type: 'folder',
+          open: true,
+          children: [
+            {
+              name: 'checkout',
+              type: 'folder',
+              open: true,
+              children: [
+                { name: 'ShippingForm.tsx', type: 'file', path: 'src/checkout/ShippingForm.tsx' },
+                {
+                  name: 'CheckoutSummary.tsx',
+                  type: 'file',
+                  path: 'src/checkout/CheckoutSummary.tsx',
+                },
+              ],
+            },
+            {
+              name: 'ci',
+              type: 'folder',
+              open: false,
+              children: [
+                { name: 'ci-link-resolver.ts', type: 'file', path: 'src/ci/ci-link-resolver.ts' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'docs',
+          type: 'folder',
+          open: true,
+          children: [{ name: 'handoff.md', type: 'file', path: 'docs/handoff.md' }],
+        },
+        { name: 'package.json', type: 'file', path: 'package.json' },
+        { name: 'pnpm-lock.yaml', type: 'file', path: 'pnpm-lock.yaml' },
+      ];
+      const FILE_TREE_MOCK = [
+        { name: 'ShippingForm.tsx', path: 'src/checkout/ShippingForm.tsx' },
+        { name: 'handoff.md', path: 'docs/handoff.md' },
+        { name: 'ci-link-resolver.ts', path: 'src/ci/ci-link-resolver.ts' },
+      ];
+      const FILE_CONTENT_MOCK = {
+        'src/checkout/ShippingForm.tsx': `<span class="cmt">// Shipping address form — checkout-flow-v2</span>
+<span class="kw">import</span> { useForm } <span class="kw">from</span> <span class="str">'react-hook-form'</span>;
+
+<span class="kw">export function</span> <span class="fn">ShippingForm</span>() {
+  <span class="kw">const</span> { register, formState } = <span class="fn">useForm</span>();
+  <span class="kw">return</span> (
+    <span class="tag"><form></span>
+      <span class="tag"><Field</span> <span class="attr">label</span>=<span class="str">"Full name"</span> <span class="tag">/></span>
+      <span class="tag"><Field</span> <span class="attr">label</span>=<span class="str">"Street address"</span> <span class="tag">/></span>
+    <span class="tag"></form></span>
+  );
+}`,
+        'src/checkout/CheckoutSummary.tsx': `<span class="cmt">// Order summary sidebar — checkout-flow-v2</span>
+<span class="kw">export function</span> <span class="fn">CheckoutSummary</span>({ items }) {
+  <span class="kw">return</span> <span class="tag"><aside></span>{items.<span class="fn">map</span>(i <span class="attr">=></span> i.name)}<span class="tag"></aside></span>;
+}`,
+        'docs/handoff.md': `<span class="cmt"># Agent handoff summary</span>
+
+<span class="cmt">## What changed</span>
+- Tightened checkout validation coverage
+- Updated workspace naming rules for linked issues
+
+<span class="cmt">## Next steps</span>
+1. Review the handoff copy in this doc
+2. Merge feature/agent-handoff-summary`,
+        'src/ci/ci-link-resolver.ts': `<span class="cmt">// Resolves "View details" link to the correct run ID</span>
+<span class="kw">export function</span> <span class="fn">resolveRunLink</span>(jobs<span class="op">:</span> Job[]) {
+  <span class="kw">return</span> jobs.<span class="fn">find</span>(j <span class="op">=></span> j.status === <span class="str">'failed'</span>)<span class="op">?.</span>runId;
+}`,
+        'package.json': `{
+  <span class="str">"name"</span>: <span class="str">"acme-web"</span>,
+  <span class="str">"private"</span>: <span class="kw">true</span>,
+  <span class="str">"version"</span>: <span class="str">"1.2.34"</span>
+}`,
+        'pnpm-lock.yaml': `<span class="cmt"># pnpm lockfile — không hiển thị chi tiết trong bản xem trước</span>`,
+      };
+
+      const ICONS = {
+        folder:
+          '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+        globe:
+          '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+        chevron: '<polyline points="9 18 15 12 9 6"/>',
+        x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+        plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+        search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+        git: '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+        users:
+          '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+        palette:
+          '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
+        kanban:
+          '<rect x="3" y="3" width="6" height="18" rx="1"/><rect x="10.5" y="3" width="6" height="11" rx="1"/><rect x="18" y="3" width="3" height="7" rx="1"/>',
+        pause:
+          '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
+        play: '<polygon points="5 3 19 12 5 21 5 3"/>',
+        stop: '<rect x="4" y="4" width="16" height="16" rx="2"/>',
+        msg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+        diff: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/>',
+        eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+        file: '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/>',
+        layers:
+          '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+        layout1: '<rect x="3" y="4" width="18" height="16" rx="1"/>',
+        layout2:
+          '<rect x="3" y="4" width="8" height="16" rx="1"/><rect x="13" y="4" width="8" height="16" rx="1"/>',
+        layout3:
+          '<rect x="3" y="4" width="10" height="16" rx="1"/><rect x="15" y="4" width="6" height="7" rx="1"/><rect x="15" y="13" width="6" height="7" rx="1"/>',
+        layout4:
+          '<rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="7" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/><rect x="13" y="13" width="8" height="7" rx="1"/>',
+        table:
+          '<rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="10" x2="9" y2="20"/>',
+        inbox:
+          '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+      };
+      function svg(name, cls) {
+        return `<svg class="icon ${cls || ''}" viewBox="0 0 24 24">${ICONS[name] || ICONS.file}</svg>`;
+      }
+
+      /* ════════════════════════════════════════════════════════════════
+         STATE
+      ════════════════════════════════════════════════════════════════ */
+      const state = {
+        activePanel: 'sessions',
+        currentProject: 'acme-web',
+        selectedTask: 't1',
+        layout: 4,
+        centerView: 'workspace', // 'workspace' | 'tasks' — Tasks giờ thay nội dung workspace, không phải drawer
+        branchFilter: null, // branch string đang được lọc (từ panel Projects/Branches bên phải)
+        sectionActiveTab: { 'sec-a': 'a-1', 'sec-b': 'b-1', 'sec-c': 'c-1', 'sec-d': null },
+        agentStatus: {},
+        sessionsView: 'list',
+        sessionFilter: 'all',
+        openRightPanel: null, // 'preview' | 'sessions' | null — loại trừ nhau (Projects/Branches luôn mở, tách riêng)
+        branchHistoryOpen: {}, // key = branch string → bool (mở/đóng lịch sử session của branch đó)
+      };
+      AGENTS.forEach((a) => (state.agentStatus[a.id] = a.status));
+
+      // 4 khu vực đa-agent — mỗi khu vực có tab bar phiên riêng
+      const SECTIONS = [
+        {
+          id: 'sec-a',
+          tabs: [
+            {
+              id: 'a-1',
+              title: 'drafting handoff copy',
+              status: 'running',
+              model: 'Sonnet 4.6 · medium',
+              path: '~/work/acme/handoff-summary',
+              feed: [
+                {
+                  type: 'block',
+                  html: '<b>Explored</b><br/>Search "handoff|summary|next steps" trong docs, src',
+                },
+                { type: 'cmd', prompt: '$', text: 'rg -n "handoff|summary|next steps" docs src' },
+                {
+                  type: 'block',
+                  html: 'Đang đọc <b>docs/handoff.md</b> và transcript phiên gần nhất để viết lại bản tóm tắt rõ hơn.',
+                },
+                {
+                  type: 'list',
+                  title: 'Việc tiếp theo',
+                  items: [
+                    'Rút gọn phần tóm tắt',
+                    'Thêm bước kế tiếp rõ ràng',
+                    'Giữ nguyên checklist release',
+                  ],
+                },
+              ],
+            },
+            {
+              id: 'a-2',
+              title: 'summarizing session context',
+              status: 'running',
+              model: 'Sonnet 4.6 · medium',
+              path: '~/work/acme/handoff-summary',
+              feed: [
+                {
+                  type: 'block',
+                  html: 'Tổng hợp <b>6 phiên làm việc</b> gần nhất của nhóm agent thành 1 bản context ngắn.',
+                },
+                { type: 'note', text: 'Đang chờ Orca-1 hoàn tất phần copy để đồng bộ thuật ngữ.' },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'sec-b',
+          tabs: [
+            {
+              id: 'b-1',
+              title: 'checkout-flow-v2 · shipping form',
+              status: 'running',
+              model: 'Sonnet 4.6 · high',
+              path: '~/work/acme-web/checkout-flow-v2',
+              feed: [
+                {
+                  type: 'block',
+                  html: 'Dựng lại form <b>Shipping address</b> theo thiết kế mới, validate field bắt buộc.',
+                },
+                {
+                  type: 'diff',
+                  file: 'src/checkout/ShippingForm.tsx',
+                  lines: [
+                    { t: 'add', text: 'const { register, formState } = useForm<ShippingInput>();' },
+                    { t: 'add', text: '<Field error={formState.errors.zip}>ZIP / Postal</Field>' },
+                    { t: 'rem', text: '<input name="zip" />' },
+                  ],
+                },
+                { type: 'note', text: 'Đã bật preview ở panel bên phải để review UI.' },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'sec-c',
+          tabs: [
+            {
+              id: 'c-1',
+              title: 'CI checks · investigate',
+              status: 'review',
+              model: 'GPT-5.5 · medium',
+              path: '~/work/acme-internal/checks-detail-link',
+              feed: [
+                {
+                  type: 'block',
+                  html: 'Đã xác định nguyên nhân: link "View details" trỏ sai run ID khi có nhiều job song song.',
+                },
+                { type: 'cmd', prompt: '$', text: 'pnpm test ci-link-resolver' },
+                { type: 'block', html: '<b>PASS</b> — 4/4 test, đã mở PR chờ review.' },
+              ],
+            },
+          ],
+        },
+        { id: 'sec-d', tabs: [] },
+      ];
+
+      /* ════════════════════════════════════════════════════════════════
+         RENDER: TOP-LEVEL CHROME
+      ════════════════════════════════════════════════════════════════ */
+      function renderFleetPulse() {
+        document.getElementById('fleetPulse').innerHTML = `
+          <div class="fp-item"><span class="fp-dot" style="background:var(--ember)"></span>Đang chạy <b>3</b></div>
+          <div class="fp-item"><span class="fp-dot" style="background:var(--blue)"></span>Chờ review <b>1</b></div>
+          <div class="fp-item"><span class="fp-dot" style="background:var(--red)"></span>Kẹt <b>1</b></div>
+        `;
+      }
+      function renderSessionsToggleBtn() {
+        const hasBlocked = SESSIONS.some((s) => s.status === 'blocked');
+        document.getElementById('btnSessionsToggle').innerHTML =
+          `${svg('msg')}${hasBlocked ? '<span class="badge" style="background:var(--red)"></span>' : ''}`;
+      }
+      function openSessions(filter) {
+        state.sessionFilter = filter || 'all';
+        openRightPanel('sessions');
+      }
+
+      function renderStatusBar() {
+        document.getElementById('statusBar').innerHTML = `
+          <div class="sb-item"><span class="sb-dot"></span>Tất cả nhánh đã đồng bộ</div>
+          <span class="sb-sep">·</span>
+          <div class="sb-item">7 agent trong fleet</div>
+          <span class="sb-sep">·</span>
+          <div class="sb-item">2 project đang mở</div>
+          <div class="sb-right">
+            <div class="sb-item">Đồng bộ 2 phút trước</div>
+            <div class="sb-chip"><span class="sb-dot" style="background:var(--green)"></span>SSH Connected</div>
+          </div>
+        `;
+      }
+
+      /* ════════════════════════════════════════════════════════════════
+         RENDER: ICON RAIL
+      ════════════════════════════════════════════════════════════════ */
+      // Panel bên trái (side-panel) — "Sessions" lọc theo branch đang chọn ở panel phải.
+      const RAIL_ITEMS = [
+        { id: 'sessions', icon: 'msg', label: 'Sessions' },
+        { id: 'files', icon: 'layers', label: 'File Explorer' },
+        { id: 'git', icon: 'diff', label: 'Source Control' },
+        { id: 'search', icon: 'search', label: 'Search' },
+      ];
+      // Nút đặc biệt — Tasks giờ thay nội dung khu vực làm việc (workspace) ở giữa,
+      // không còn mở 1 right-panel riêng nữa.
+      const RAIL_SPECIAL_ITEMS = [{ id: 'tasks', icon: 'kanban', label: 'Tasks (Kanban)' }];
+      function renderRail() {
+        const el = document.getElementById('rail');
+        el.innerHTML =
+          RAIL_ITEMS.map(
+            (item) => `
+          <button class="rail-btn ${state.activePanel === item.id ? 'active' : ''}" data-panel="${item.id}" title="${item.label}">
+            ${svg(item.icon)}
+          </button>
+        `,
+          ).join('') +
+          '<div class="rail-divider"></div>' +
+          RAIL_SPECIAL_ITEMS.map(
+            (item) => `
+          <button class="rail-btn ${state.centerView === 'tasks' ? 'active' : ''}" data-special="${item.id}" title="${item.label}">
+            ${svg(item.icon)}
+          </button>
+        `,
+          ).join('');
+        el.querySelectorAll('[data-panel]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            state.activePanel = btn.dataset.panel;
+            renderRail();
+            renderSidePanel();
+          });
+        });
+        el.querySelectorAll('[data-special]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (btn.dataset.special === 'tasks') toggleTasksView();
+          });
+        });
+      }
+
+      /* ════════════════════════════════════════════════════════════════
+         RENDER: SIDE PANEL (swaps by active rail icon)
+      ════════════════════════════════════════════════════════════════ */
+      function renderSidePanel() {
+        const el = document.getElementById('sidePanel');
+        if (state.activePanel === 'sessions') return renderSessionsDetailedPanel(el);
+        if (state.activePanel === 'files') return renderFileExplorerPanel(el);
+        if (state.activePanel === 'git') return renderGitPanel(el);
+        if (state.activePanel === 'search') return renderSearchPanel(el);
+      }
+
+      function taskRowHtml(t, projId) {
+        const avatars = (t.agents || [])
+          .slice(0, 3)
+          .map(
+            (code) =>
+              `<span class="mini-av" style="background:${AGENT_COLORS[code] || '#8b8d96'}">${code[0]}</span>`,
+          )
+          .join('');
+        return `
+          <div class="task-row ${state.selectedTask === t.id ? 'selected' : ''}" data-task="${t.id}" data-proj="${projId}">
+            <span class="status-dot ${t.status}"></span>
+            <div class="task-main">
+              <div class="task-title-row"><span class="task-title">${t.title}</span>${t.primary ? '<span class="primary-tag">primary</span>' : ''}</div>
+              <span class="task-branch">${t.branch}</span>
+            </div>
+            <div class="avatar-stack">${avatars}</div>
+            <span class="task-time">${t.updated}</span>
+          </div>
+        `;
+      }
+
+      // ── Projects & Branches panel (right-panel mới — luôn hiển thị): Project → Branch → lịch sử Session ──
+      // Click 1 branch → panel "Sessions" bên trái sẽ lọc chỉ hiển thị session của branch đó.
+      function renderBranchesPanel() {
+        const body = document.getElementById('branchesBody');
+        body.innerHTML = PROJECTS.map(
+          (p) => `
+          <div>
+            <div class="proj-group-head" data-proj="${p.id}">
+              <svg class="icon icon-xs chev ${p.open ? 'open' : ''}" viewBox="0 0 24 24">${ICONS.chevron}</svg>
+              <span class="proj-icon" style="background:${p.color}22;color:${p.color}">${svg(p.icon, 'icon-sm')}</span>
+              <span class="pname">${p.name}</span>
+              <span class="pcount">${p.tasks.length} branch</span>
+            </div>
+            <div style="${p.open ? '' : 'display:none'}">
+              ${p.tasks.map((t) => branchRowHtml(t, p.id)).join('')}
+            </div>
+          </div>
+        `,
+        ).join('');
+        wireBranchesPanel(body);
+      }
+      function branchRowHtml(t, projId) {
+        const running = SESSIONS.find((s) => s.branch === t.branch && s.mapped);
+        const history = SESSIONS.filter((s) => s.branch === t.branch);
+        const historyOpen = !!state.branchHistoryOpen[t.branch];
+        return `
+          <div class="branch-block">
+            ${taskRowHtml(t, projId)}
+            <div class="branch-sub">
+              ${
+                running
+                  ? `<div class="branch-running">${svg('play', 'icon-xs')}Đang chạy: ${running.title}</div>`
+                  : `<button class="btn sm ghost" data-start-branch="${t.branch}">${svg('plus', 'icon-xs')}Bắt đầu phiên mới</button>`
+              }
+              <div class="branch-history-toggle" data-toggle-history="${t.branch}">
+                <svg class="icon icon-xs chev ${historyOpen ? 'open' : ''}" viewBox="0 0 24 24">${ICONS.chevron}</svg>
+                Lịch sử (${history.length})
+              </div>
+              <div class="branch-history" style="${historyOpen ? '' : 'display:none'}">
+                ${
+                  history
+                    .map(
+                      (s) => `
+                  <div class="task-row" style="padding-left: 10px" data-open-session="${s.id}">
+                    <span class="status-dot ${s.status}"></span>
+                    <div class="task-main"><span class="task-title">${s.title}</span><span class="task-branch">${s.agent.name} · ${s.time}</span></div>
+                  </div>
+                `,
+                    )
+                    .join('') ||
+                  `<div class="feed-note" style="padding: 6px 0 6px 10px">Chưa có lịch sử</div>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      function wireBranchesPanel(body) {
+        body.querySelectorAll('.proj-group-head').forEach((h) => {
+          h.addEventListener('click', () => {
+            const proj = PROJECTS.find((p) => p.id === h.dataset.proj);
+            proj.open = !proj.open;
+            renderBranchesPanel();
+          });
+        });
+        body.querySelectorAll('.task-row[data-task]').forEach((r) => {
+          r.addEventListener('click', (e) => {
+            e.stopPropagation();
+            state.selectedTask = r.dataset.task;
+            state.currentProject = r.dataset.proj;
+            const proj = PROJECTS.find((p) => p.id === r.dataset.proj);
+            const task = proj?.tasks.find((t) => t.id === r.dataset.task);
+            state.branchFilter = task ? task.branch : null;
+            state.activePanel = 'sessions';
+            renderBreadcrumb();
+            renderRail();
+            renderSidePanel();
+            renderBranchesPanel();
+          });
+        });
+        body.querySelectorAll('[data-toggle-history]').forEach((el) => {
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const b = el.dataset.toggleHistory;
+            state.branchHistoryOpen[b] = !state.branchHistoryOpen[b];
+            renderBranchesPanel();
+          });
+        });
+        body.querySelectorAll('[data-open-session]').forEach((el) => {
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openSessionInWorkspace(el.dataset.openSession);
+          });
+        });
+        body.querySelectorAll('[data-start-branch]').forEach((el) => {
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openSessions('all');
+          });
+        });
+      }
+
+      // ── Sessions panel chi tiết (side-panel trái) ──
+      // Nếu state.branchFilter đang set (từ việc click 1 branch ở panel phải), chỉ hiển thị
+      // session thuộc branch đó. Ngược lại hiển thị toàn bộ session trong fleet.
+      function renderSessionsDetailedPanel(el) {
+        const filtered = state.branchFilter
+          ? SESSIONS.filter((s) => s.branch === state.branchFilter)
+          : SESSIONS;
+        el.innerHTML = `
+          <div class="side-panel-head">
+            <div class="side-panel-title">Sessions</div>
+            <div class="side-panel-actions">
+              ${state.branchFilter ? `<button class="icon-btn" id="btnClearBranchFilter" title="Bỏ lọc branch">${svg('x', 'icon-sm')}</button>` : ''}
+              <button class="icon-btn" id="btnExpandSessions" title="Mở dạng List/Board đầy đủ">${svg('kanban', 'icon-sm')}</button>
+            </div>
+          </div>
+          ${
+            state.branchFilter
+              ? `<div class="branches-note">Đang lọc theo branch: <b style="color:var(--text-primary)">${state.branchFilter}</b></div>`
+              : ''
+          }
+          <div class="side-panel-body" id="sessionsDetailedBody"></div>
+        `;
+        document
+          .getElementById('btnExpandSessions')
+          .addEventListener('click', () => openRightPanel('sessions'));
+        if (state.branchFilter) {
+          document.getElementById('btnClearBranchFilter').addEventListener('click', () => {
+            state.branchFilter = null;
+            renderSidePanel();
+          });
+        }
+        const body = document.getElementById('sessionsDetailedBody');
+        body.innerHTML =
+          filtered.map((s) => sessionCardLgHtml(s)).join('') ||
+          `<div class="side-empty"><div class="t">Không có session nào cho branch này</div></div>`;
+        body.querySelectorAll('[data-open-session]').forEach((card) => {
+          card.addEventListener('click', () => openSessionInWorkspace(card.dataset.openSession));
+        });
+      }
+      function sessionCardLgHtml(s) {
+        // Các session khác đang chạy trên cùng branch = "đồng đội" của session này
+        const teammates = SESSIONS.filter((x) => x.branch === s.branch && x.id !== s.id);
+        return `
+          <div class="session-card-lg" data-open-session="${s.id}">
+            <div class="scl-head">
+              <span class="status-dot ${s.status}"></span>
+              <span class="scl-title">${s.title}</span>
+              <span class="proj-tag" style="background:${PROJECT_COLOR[s.project]}22;color:${PROJECT_COLOR[s.project]}">${s.project}</span>
+            </div>
+            <div class="scl-branch">${s.branch}</div>
+            <div class="scl-agents">
+              <span class="agent-chip"><span class="ac-av" style="background:${s.agent.color}">${s.agent.initials}</span>${s.agent.name}</span>
+              ${teammates
+                .map(
+                  (tm) =>
+                    `<span class="agent-chip"><span class="ac-av" style="background:${tm.agent.color}">${tm.agent.initials}</span>${tm.agent.name}</span>`,
+                )
+                .join('')}
+            </div>
+            <div class="scl-msg">${s.lastMessage}</div>
+            <div class="scl-foot">
+              <span class="sr-time">${s.time}</span>
+              <button class="btn sm ${s.mapped ? 'ghost' : 'primary'}">${s.mapped ? 'Mở' : 'Gán'}</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // ── File Explorer panel (mới) ──
+      function renderFileExplorerPanel(el) {
+        el.innerHTML = `
+          <div class="side-panel-head">
+            <div class="side-panel-title">File Explorer — ${state.currentProject}</div>
+          </div>
+          <div class="side-panel-body" id="fxTreeBody"></div>
+          <div class="fx-note">Chỉ để tham khảo — luồng chính của Phantoma nằm ở Sessions &amp; Preview, không phải đọc code.</div>
+        `;
+        const body = document.getElementById('fxTreeBody');
+        renderFxNodes(FILE_TREE, body, 0);
+      }
+      function renderFxNodes(nodes, container, depth) {
+        nodes.forEach((node) => {
+          const row = document.createElement('div');
+          row.className = 'fx-item';
+          row.style.paddingLeft = depth * 14 + 10 + 'px';
+          if (node.type === 'folder') {
+            row.innerHTML = `<span class="fx-ic fx-chev ${node.open ? 'open' : ''}">${svg('chevron', 'icon-xs')}</span><span class="fx-ic" style="color:var(--amber)">${svg('folder', 'icon-sm')}</span><span>${node.name}</span>`;
+            row.addEventListener('click', () => {
+              node.open = !node.open;
+              renderFileExplorerPanel(document.getElementById('sidePanel'));
+            });
+            container.appendChild(row);
+            if (node.open) {
+              const childWrap = document.createElement('div');
+              container.appendChild(childWrap);
+              renderFxNodes(node.children, childWrap, depth + 1);
+            }
+          } else {
+            const ext = node.name.split('.').pop();
+            const fcolor =
+              { tsx: '#4fa8e0', ts: '#4fa8e0', json: '#3ddc84', md: '#a078ff', yaml: '#ff78aa' }[
+                ext
+              ] || '#8b8d96';
+            row.innerHTML = `<span class="fx-ic" style="width:12px"></span><span class="fx-ic" style="color:${fcolor}">${svg('file', 'icon-sm')}</span><span>${node.name}</span>`;
+            row.addEventListener('click', () => openFileModal(node.path));
+            container.appendChild(row);
+          }
+        });
+      }
+
+      // ── Git panel ──
+      function renderGitPanel(el) {
+        const GIT_BRANCHES = [
+          {
+            project: 'acme-web',
+            task: 'checkout-flow-v2',
+            branch: 'feature/checkout-flow-v2',
+            add: 42,
+            rem: 8,
+            ahead: 3,
+          },
+          {
+            project: 'acme-web',
+            task: 'auth-session-refresh',
+            branch: 'feature/auth-session-refresh',
+            add: 11,
+            rem: 2,
+            ahead: 1,
+          },
+          {
+            project: 'acme-internal',
+            task: 'Improve agent handoff summary',
+            branch: 'feature/agent-handoff-summary',
+            add: 96,
+            rem: 14,
+            ahead: 6,
+          },
+          {
+            project: 'acme-internal',
+            task: 'Fix CI checks detail link',
+            branch: 'fix/checks-detail-link',
+            add: 6,
+            rem: 1,
+            ahead: 1,
+          },
+        ];
+        el.innerHTML = `
+          <div class="side-panel-head"><div class="side-panel-title">Source Control</div></div>
+          <div class="git-toolbar">
+            <button class="btn sm primary">${svg('git', 'icon-xs')}Stage tất cả</button>
+            <button class="btn sm ghost">Chỉ nhánh của tôi</button>
+          </div>
+          <div class="side-panel-body" id="gitBody"></div>
+        `;
+        const body = document.getElementById('gitBody');
+        const byProject = {};
+        GIT_BRANCHES.forEach((b) => {
+          (byProject[b.project] = byProject[b.project] || []).push(b);
+        });
+        body.innerHTML = Object.keys(byProject)
+          .map(
+            (proj) => `
+          <div class="git-group-label">${proj}</div>
+          ${byProject[proj]
+            .map(
+              (b) => `
+            <div class="git-row">
+              <svg class="icon icon-sm" viewBox="0 0 24 24" style="color:${PROJECT_COLOR[proj]}">${ICONS.git}</svg>
+              <div class="gtitle"><div class="t1">${b.task}</div><div class="t2">${b.branch} · trước main ${b.ahead}</div></div>
+              <div class="diffstat"><span class="add">+${b.add}</span><span class="rem">-${b.rem}</span></div>
+              <div class="git-row-actions">
+                <button class="icon-btn" title="Xem diff">${svg('diff', 'icon-xs')}</button>
+                <button class="icon-btn" title="Commit">${svg('play', 'icon-xs')}</button>
+              </div>
+            </div>
+          `,
+            )
+            .join('')}
+        `,
+          )
+          .join('');
+      }
+
+      // ── Search panel ──
+      function renderSearchPanel(el) {
+        el.innerHTML = `
+          <div class="side-panel-head"><div class="side-panel-title">Search</div></div>
+          <div class="side-panel-search"><div class="box">${svg('search', 'icon-sm')}<input type="text" id="globalSearchInput" placeholder="Tìm task, session, agent, commit, file..." /></div></div>
+          <div style="display:flex;gap:6px;padding:8px 10px;flex-wrap:wrap">${['Tất cả', 'Tasks', 'Sessions', 'Agents', 'Files'].map((f, i) => `<span class="chip clickable ${i === 0 ? 'active' : ''}">${f}</span>`).join('')}</div>
+          <div class="side-panel-body" id="searchResults"></div>
+        `;
+        const results = [
+          ...PROJECTS.flatMap((p) =>
+            p.tasks.map((t) => ({ label: t.title, sub: t.branch, kind: 'Task' })),
+          ),
+          ...SESSIONS.map((s) => ({ label: s.title, sub: s.task, kind: 'Session' })),
+          ...AGENTS.map((a) => ({ label: a.name, sub: a.task, kind: 'Agent' })),
+        ];
+        const resultsEl = document.getElementById('searchResults');
+        function draw(list) {
+          resultsEl.innerHTML =
+            list
+              .map(
+                (r) => `
+            <div class="task-row" style="padding-left:12px">
+              <span class="chip" style="padding:1px 6px;font-size:9px">${r.kind}</span>
+              <div class="task-main"><span class="task-title">${r.label}</span><span class="task-branch">${r.sub}</span></div>
+            </div>
+          `,
+              )
+              .join('') || `<div class="side-empty"><div class="t">Không có kết quả</div></div>`;
+        }
+        draw(results);
+        document.getElementById('globalSearchInput').addEventListener('input', (e) => {
+          const q = e.target.value.toLowerCase();
+          draw(
+            results.filter(
+              (r) => r.label.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q),
+            ),
+          );
+        });
+      }
+
+      /* ════════════════════════════════════════════════════════════════
+         RENDER: BREADCRUMB + LAYOUT SWITCH
+      ════════════════════════════════════════════════════════════════ */
+      function renderBreadcrumb() {
+        const proj = PROJECTS.find((p) => p.id === state.currentProject);
+        const task = proj?.tasks.find((t) => t.id === state.selectedTask) || proj?.tasks[0];
+        document.getElementById('breadcrumb').innerHTML = `
+          <span>${state.currentProject}</span><span class="sep">/</span><b>${task ? task.title : '—'}</b>
+          ${task ? `<span class="bstatus"><span class="status-dot ${task.status}"></span>${task.status}</span>` : ''}
+        `;
+      }
+      function renderBreadcrumbTasks() {
+        document.getElementById('breadcrumb').innerHTML = `
+          <b>Tasks</b><span class="bstatus"><span class="status-dot running"></span>Kanban board — toàn bộ session</span>
+        `;
+      }
+      function renderLayoutSwitch() {
+        const el = document.getElementById('layoutSwitch');
+        el.innerHTML = [1, 2, 3, 4]
+          .map(
+            (n) =>
+              `<button data-n="${n}" class="${state.layout === n ? 'active' : ''}" title="${n} khu vực">${svg('layout' + n, 'icon-xs')}</button>`,
+          )
+          .join('');
+        el.querySelectorAll('button').forEach((b) => {
+          b.addEventListener('click', () => {
+            state.layout = parseInt(b.dataset.n, 10);
+            renderLayoutSwitch();
+            if (state.centerView !== 'tasks') renderSectionGrid();
+          });
+        });
+      }
+
+      /* ════════════════════════════════════════════════════════════════
+         RENDER: GRID AREA (workspace đa-agent HOẶC Tasks Kanban board)
+      ════════════════════════════════════════════════════════════════ */
+      function renderGridArea() {
+        const sectionGridEl = document.getElementById('sectionGrid');
+        const taskBoardEl = document.getElementById('taskBoardArea');
+        const layoutSwitchEl = document.getElementById('layoutSwitch');
+        if (state.centerView === 'tasks') {
+          sectionGridEl.style.display = 'none';
+          taskBoardEl.style.display = 'flex';
+          layoutSwitchEl.style.display = 'none';
+          renderBreadcrumbTasks();
+          renderTaskBoardArea();
+        } else {
+          sectionGridEl.style.display = '';
+          taskBoardEl.style.display = 'none';
+          layoutSwitchEl.style.display = '';
+          renderBreadcrumb();
+          renderSectionGrid();
+        }
+      }
+      function toggleTasksView() {
+        state.centerView = state.centerView === 'tasks' ? 'workspace' : 'tasks';
+        renderRail();
+        renderGridArea();
+      }
+      function renderTaskBoardArea() {
+        const body = document.getElementById('taskBoardArea');
+        body.innerHTML = SESSION_STATUS_ORDER.map((st) => {
+          const items = SESSIONS.filter((s) => s.status === st);
+          return `
+            <div class="kanban-col">
+              <div class="kanban-col-head"><div class="kc-title"><span class="status-dot ${st}"></span>${SESSION_STATUS_LABEL[st]}</div><div class="kc-count">${items.length}</div></div>
+              <div class="kanban-col-body">
+                ${
+                  items
+                    .map(
+                      (s) => `
+                  <div class="kanban-card" data-session="${s.id}">
+                    <span class="proj-tag" style="background:${PROJECT_COLOR[s.project]}22;color:${PROJECT_COLOR[s.project]}">${s.project}</span>
+                    <div class="kc-title-text">${s.title}</div>
+                    <div class="kc-branch">${s.branch}</div>
+                    <div class="feed-note" style="font-style:normal">${s.lastMessage}</div>
+                    <div class="kc-footer"><div class="avatar-stack"><span class="mini-av" style="background:${s.agent.color}">${s.agent.initials[0]}</span></div><span style="font-size:10px;color:var(--text-dim)">${s.time}</span></div>
+                  </div>
+                `,
+                    )
+                    .join('') ||
+                  `<div style="padding:14px;text-align:center;color:var(--text-dim);font-size:11px">Trống</div>`
+                }
+              </div>
+            </div>
+          `;
+        }).join('');
+        body
+          .querySelectorAll('[data-session]')
+          .forEach((card) =>
+            card.addEventListener('click', () => openSessionInWorkspace(card.dataset.session)),
+          );
+      }
+
+      const statusMeta = {
+        running: { cls: 'c-running', label: 'Đang chạy' },
+        review: { cls: 'c-review', label: 'Chờ review' },
+        blocked: { cls: 'c-blocked', label: 'Bị chặn' },
+        done: { cls: 'c-done', label: 'Hoàn tất' },
+        idle: { cls: 'c-idle', label: 'Rảnh' },
+      };
+      function feedEntryHtml(entry) {
+        if (entry.type === 'block') return `<div class="feed-block">${entry.html}</div>`;
+        if (entry.type === 'note') return `<div class="feed-note">${entry.text}</div>`;
+        if (entry.type === 'cmd')
+          return `<div class="feed-cmd"><span class="prompt">${entry.prompt}</span> <span class="cmdtext">${entry.text}</span></div>`;
+        if (entry.type === 'list')
+          return `<div class="feed-list"><div class="fl-title">${entry.title}</div><ol>${entry.items.map((i) => `<li>${i}</li>`).join('')}</ol></div>`;
+        if (entry.type === 'diff')
+          return `<div class="feed-diff"><div class="dfile">${entry.file}</div>${entry.lines.map((l) => `<div class="dline ${l.t}">${l.t === 'add' ? '+' : '-'} ${l.text}</div>`).join('')}</div>`;
+        return '';
+      }
+      function renderSectionGrid() {
+        const visibleCount = state.layout;
+        const grid = document.getElementById('sectionGrid');
+        grid.className = `section-grid layout-${visibleCount}`;
+        grid.innerHTML = SECTIONS.map(
+          (sec, i) =>
+            `<div class="agent-section ${i < visibleCount ? '' : 'hidden-section'}" data-section="${sec.id}">${sectionInnerHtml(sec)}</div>`,
+        ).join('');
+        wireSectionEvents();
+      }
+      function sectionInnerHtml(sec) {
+        if (sec.tabs.length === 0) {
+          return `
+            <div class="section-tabbar"><button class="section-add" title="Gán session cho khu vực này">${svg('plus', 'icon-sm')}</button></div>
+            <div class="section-empty">
+              ${svg('inbox', 'icon')}
+              <div class="t">Khu vực trống</div>
+              <div class="s">Gán 1 session hoặc kéo 1 agent vào đây để bắt đầu 1 phiên làm việc mới.</div>
+              <button class="btn sm primary" data-assign-empty="${sec.id}">${svg('plus', 'icon-xs')}Gán session</button>
+            </div>
+          `;
+        }
+        const activeTabId = state.sectionActiveTab[sec.id] || sec.tabs[0].id;
+        const activeTab = sec.tabs.find((t) => t.id === activeTabId) || sec.tabs[0];
+        const meta = statusMeta[activeTab.status] || statusMeta.idle;
+        return `
+          <div class="section-tabbar">
+            ${sec.tabs
+              .map(
+                (t) => `
+              <button class="section-tab ${t.id === activeTab.id ? 'active' : ''}" data-sec="${sec.id}" data-tab="${t.id}">
+                <span class="status-dot ${t.status}" style="width:6px;height:6px"></span><span>${t.title}</span><span class="close-btn">${svg('x', 'icon-xs')}</span>
+              </button>
+            `,
+              )
+              .join('')}
+            <button class="section-add" title="Thêm phiên agent">${svg('plus', 'icon-sm')}</button>
+          </div>
+          <div class="section-status-line">
+            <span class="sl-label ${meta.cls}"><span class="status-dot ${activeTab.status}"></span>${meta.label}</span>
+            <span class="sl-sep">·</span><span>${activeTab.model}</span>
+            <span class="sl-sep">·</span><span class="sl-path">${activeTab.path}</span>
+          </div>
+          <div class="section-feed">${activeTab.feed.map(feedEntryHtml).join('')}</div>
+          <div class="section-input-bar">
+            <button class="icon-btn" title="Xem diff">${svg('diff', 'icon-xs')}</button>
+            <button class="icon-btn" title="Mở preview" data-open-preview>${svg('eye', 'icon-xs')}</button>
+            <input type="text" placeholder="Nhắn cho agent này..." />
+            <button class="send" title="Gửi"><svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+          </div>
+        `;
+      }
+      function wireSectionEvents() {
+        document.querySelectorAll('.section-tab').forEach((tab) => {
+          tab.addEventListener('click', () => {
+            state.sectionActiveTab[tab.dataset.sec] = tab.dataset.tab;
+            renderSectionGrid();
+          });
+        });
+        document
+          .querySelectorAll('[data-open-preview]')
+          .forEach((btn) => btn.addEventListener('click', () => openRightPanel('preview')));
+        document
+          .querySelectorAll('[data-assign-empty]')
+          .forEach((btn) => btn.addEventListener('click', () => openSessions('all')));
+      }
+
+      /* ════════════════════════════════════════════════════════════════
+         RIGHT PANELS: PREVIEW / SESSIONS (2 panel riêng, loại trừ nhau — Projects/Branches luôn mở, tách riêng)
+      ════════════════════════════════════════════════════════════════ */
+      function closeRightPanel() {
+        document.querySelectorAll('.right-panel').forEach((p) => p.classList.remove('open'));
+        state.openRightPanel = null;
+        renderRail();
+      }
+      function openRightPanel(name) {
+        const panels = {
+          preview: document.getElementById('previewPanel'),
+          sessions: document.getElementById('sessionsPanel'),
+        };
+        // Preview là icon "xem nhanh" nên bấm lại thì đóng (toggle). Sessions luôn mở hẳn ra
+        // (ví dụ bấm 1 chip trạng thái phải đổi filter, không được đóng panel).
+        const isPreviewToggleClose =
+          name === 'preview' &&
+          state.openRightPanel === 'preview' &&
+          panels.preview.classList.contains('open');
+        Object.values(panels).forEach((p) => p.classList.remove('open'));
+        if (isPreviewToggleClose) {
+          state.openRightPanel = null;
+        } else {
+          panels[name].classList.add('open');
+          state.openRightPanel = name;
+          if (name === 'sessions') renderSessionsPanel();
+        }
+        renderRail();
+      }
+      function wirePreview() {
+        document
+          .getElementById('btnPreviewToggle')
+          .addEventListener('click', () => openRightPanel('preview'));
+        document
+          .getElementById('btnClosePreview')
+          .addEventListener('click', () => closeRightPanel());
+        document
+          .getElementById('deviceToggle')
+          .querySelectorAll('button')
+          .forEach((b) => {
+            b.addEventListener('click', () => {
+              document
+                .getElementById('deviceToggle')
+                .querySelectorAll('button')
+                .forEach((x) => x.classList.remove('active'));
+              b.classList.add('active');
+              const frame = document.getElementById('previewFrame');
+              frame.classList.remove('tablet', 'mobile');
+              if (b.dataset.device !== 'desktop') frame.classList.add(b.dataset.device);
+            });
+          });
+      }
+      document.addEventListener('DOMContentLoaded', () => {});
+      document.getElementById('btnSessionsToggle');
+
+      /* ════════════════════════════════════════════════════════════════
+         SESSIONS PANEL (panel riêng hoàn toàn — quản lý toàn bộ session)
+      ════════════════════════════════════════════════════════════════ */
+      function renderSessionsPanel() {
+        document.getElementById('btnCloseSessions').onclick = () => closeRightPanel();
+        const seg = document.getElementById('sessionViewSeg');
+        seg.querySelectorAll('button').forEach((b) => {
+          b.classList.toggle('active', b.dataset.view === state.sessionsView);
+          b.onclick = () => {
+            state.sessionsView = b.dataset.view;
+            renderSessionsPanel();
+          };
+        });
+        const filterRow = document.getElementById('sessionFilterRow');
+        if (state.sessionsView === 'list') {
+          filterRow.style.display = 'flex';
+          const filters = ['all', ...SESSION_STATUS_ORDER];
+          const labels = {
+            all: 'Tất cả',
+            running: 'Đang chạy',
+            review: 'Review',
+            blocked: 'Bị kẹt',
+            queued: 'Chờ',
+            done: 'Hoàn tất',
+          };
+          filterRow.innerHTML = filters
+            .map(
+              (f) =>
+                `<span class="chip clickable ${state.sessionFilter === f ? 'active' : ''}" data-filter="${f}">${labels[f]}</span>`,
+            )
+            .join('');
+          filterRow.querySelectorAll('[data-filter]').forEach((chip) =>
+            chip.addEventListener('click', () => {
+              state.sessionFilter = chip.dataset.filter;
+              renderSessionsPanel();
+            }),
+          );
+        } else {
+          filterRow.style.display = 'none';
+        }
+        const body = document.getElementById('sessionsBody');
+        state.sessionsView === 'list' ? renderSessionList(body) : renderSessionBoard(body);
+      }
+      function renderSessionList(body) {
+        const list =
+          state.sessionFilter === 'all'
+            ? SESSIONS
+            : SESSIONS.filter((s) => s.status === state.sessionFilter);
+        body.className = 'session-list';
+        body.innerHTML =
+          list
+            .map(
+              (s) => `
+          <div class="session-row" data-session="${s.id}">
+            <div class="sr-av" style="background:${s.agent.color}">${s.agent.initials}</div>
+            <div class="sr-main">
+              <div class="sr-title-line"><span class="status-dot ${s.status}"></span><span class="sr-title">${s.title}</span></div>
+              <div class="sr-meta">${s.project} · ${s.branch}</div>
+              <div class="sr-msg">${s.lastMessage}</div>
+            </div>
+            <div class="sr-side">
+              <span class="sr-time">${s.time}</span>
+              <button class="btn sm ${s.mapped ? 'ghost' : 'primary'}" data-open-session="${s.id}">${s.mapped ? 'Mở' : 'Gán'}</button>
+            </div>
+          </div>
+        `,
+            )
+            .join('') ||
+          `<div class="side-empty"><div class="t">Không có session nào ở trạng thái này</div></div>`;
+        body.querySelectorAll('[data-open-session]').forEach((btn) =>
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openSessionInWorkspace(btn.dataset.openSession);
+          }),
+        );
+      }
+      function renderSessionBoard(body) {
+        body.innerHTML = `<div class="session-board">${SESSION_STATUS_ORDER.map((st) => {
+          const items = SESSIONS.filter((s) => s.status === st);
+          return `
+            <div class="kanban-col">
+              <div class="kanban-col-head"><div class="kc-title"><span class="status-dot ${st}"></span>${SESSION_STATUS_LABEL[st]}</div><div class="kc-count">${items.length}</div></div>
+              <div class="kanban-col-body">
+                ${
+                  items
+                    .map(
+                      (s) => `
+                  <div class="kanban-card" data-session="${s.id}">
+                    <span class="proj-tag" style="background:${PROJECT_COLOR[s.project]}22;color:${PROJECT_COLOR[s.project]}">${s.project}</span>
+                    <div class="kc-title-text">${s.title}</div>
+                    <div class="kc-branch">${s.branch}</div>
+                    <div class="feed-note" style="font-style:normal">${s.lastMessage}</div>
+                    <div class="kc-footer"><div class="avatar-stack"><span class="mini-av" style="background:${s.agent.color}">${s.agent.initials[0]}</span></div><span style="font-size:10px;color:var(--text-dim)">${s.time}</span></div>
+                  </div>
+                `,
+                    )
+                    .join('') ||
+                  `<div style="padding:14px;text-align:center;color:var(--text-dim);font-size:11px">Trống</div>`
+                }
+              </div>
+            </div>
+          `;
+        }).join('')}</div>`;
+        body
+          .querySelectorAll('[data-session]')
+          .forEach((card) =>
+            card.addEventListener('click', () => openSessionInWorkspace(card.dataset.session)),
+          );
+      }
+      function openSessionInWorkspace(sessionId) {
+        const session = SESSIONS.find((s) => s.id === sessionId);
+        if (!session) return;
+        if (session.mapped) {
+          state.sectionActiveTab[session.mapped.sec] = session.mapped.tab;
+        } else {
+          const secD = SECTIONS.find((s) => s.id === 'sec-d');
+          secD.tabs = [
+            {
+              id: 'assigned-' + session.id,
+              title: session.title,
+              status: session.status,
+              model: session.model,
+              path: '~/work/' + session.project + '/' + session.branch,
+              feed: session.feed || [{ type: 'note', text: 'Chưa có hoạt động mới.' }],
+            },
+          ];
+          state.sectionActiveTab['sec-d'] = secD.tabs[0].id;
+        }
+        state.centerView = 'workspace';
+        if (state.layout < 4) {
+          state.layout = 4;
+          renderLayoutSwitch();
+        }
+        renderRail();
+        renderGridArea();
+        closeRightPanel();
+      }
+
+      /* ════════════════════════════════════════════════════════════════
+         FILE VIEWER MODAL (phụ)
+      ════════════════════════════════════════════════════════════════ */
+      function openFileModal(path) {
+        document.getElementById('fileModalOverlay').classList.add('open');
+        drawFileModal(path);
+      }
+      function drawFileModal(active) {
+        const tree = document.getElementById('fmTree');
+        const code = document.getElementById('fmCode');
+        tree.innerHTML = FILE_TREE_MOCK.map(
+          (f) =>
+            `<div class="fmt-item ${f.path === active ? 'active' : ''}" data-path="${f.path}">${svg('file', 'icon-sm')}${f.name}</div>`,
+        ).join('');
+        code.innerHTML = FILE_CONTENT_MOCK[active] || '';
+        tree
+          .querySelectorAll('.fmt-item')
+          .forEach((item) =>
+            item.addEventListener('click', () => drawFileModal(item.dataset.path)),
+          );
+      }
+      function wireFileModal() {
+        const overlay = document.getElementById('fileModalOverlay');
+        document
+          .getElementById('btnFileModal')
+          .addEventListener('click', () => openFileModal(FILE_TREE_MOCK[0].path));
+        document
+          .getElementById('btnCloseFileModal')
+          .addEventListener('click', () => overlay.classList.remove('open'));
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) overlay.classList.remove('open');
+        });
+      }
+
+      /* ════════════════════════════════════════════════════════════════
+         INIT
+      ════════════════════════════════════════════════════════════════ */
+      renderFleetPulse();
+      renderSessionsToggleBtn();
+      renderStatusBar();
+      renderRail();
+      renderSidePanel();
+      renderLayoutSwitch();
+      renderGridArea();
+      renderBranchesPanel();
+      wirePreview();
+      wireFileModal();
+      document
+        .getElementById('btnSessionsToggle')
+        .addEventListener('click', () => openSessions('all'));
+    </script>
+  </body>
+</html>

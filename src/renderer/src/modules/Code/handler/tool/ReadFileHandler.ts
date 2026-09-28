@@ -109,20 +109,8 @@ export class ReadFileHandler {
         content = lines.slice(startLine || 0, end).join('\n');
       }
 
-      let diagnostics: any[] = [];
-      if (!message.skipDiagnostics) {
-        const { useDiagnosticsStore } = await import('@renderer/shared/lsp/stores/diagnosticsStore');
-        const storeState = useDiagnosticsStore.getState();
-        const raw = storeState.getDiagnosticsForFile(resolvedPath);
-        diagnostics = raw.map((d: any) => ({
-          severity: d.severity === 1 ? 'Error' : d.severity === 2 ? 'Warning' : 'Info',
-          message: d.message,
-          line: d.range?.start?.line ?? d.line ?? 0,
-          column: d.range?.start?.character ?? d.column ?? 0,
-          source: d.source || 'lsp',
-          code: d.code,
-        }));
-      }
+      // LSP removed — diagnostics always empty
+      const diagnostics: any[] = [];
 
       return {
         command: 'fileContent',

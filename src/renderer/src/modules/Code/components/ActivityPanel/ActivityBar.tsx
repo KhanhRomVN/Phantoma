@@ -1,17 +1,18 @@
 /**
  * ------------------------------------------------------------------
- * Activity Bar
+ * Activity Bar (Topbar)
  * ------------------------------------------------------------------
- * Vertical icon sidebar for switching between Activity panel views
- * (File Explorer, Search, Source Control, LSP). Each tab icon is
+ * Horizontal top bar for switching between Activity panel views
+ * (File Explorer, Search, Source Control). Each tab icon is
  * color-coded using a hash of its ID mapped to the current accent
  * color palette.
  *
  * Main features:
- * - Vertical tab bar with icon buttons
- * - Active tab gets a colored left border + background tint
+ * - Horizontal tab bar with icon buttons
+ * - Active tab gets a colored bottom border + background tint
  * - Color derived deterministically from tab ID via hash
  * - Uses global accent color palette from useAccentColors
+ * - Height matches parent panel width for square aspect ratio
  * ------------------------------------------------------------------
  */
 
@@ -32,6 +33,9 @@ interface TabItem {
   icon: ReactNode;
   label: string;
 }
+
+/** Height matches the global HeaderBar (h-10 = 40px) */
+const TOPBAR_HEIGHT = 40;
 
 interface ActivityBarProps {
   activeTab: string;
@@ -87,8 +91,11 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
 
   // ── Render ──
   return (
-    <div className="relative h-full w-12 shrink-0 bg-sidebar-background border-r border-border flex flex-col z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
-      <div className="flex flex-col gap-1 w-full py-2 items-center">
+    <div
+      className="relative w-full shrink-0 bg-sidebar-background border-b border-border flex flex-row z-10 overflow-x-auto [&::-webkit-scrollbar]:h-0"
+      style={{ height: TOPBAR_HEIGHT }}
+    >
+      <div className="flex flex-row gap-1 h-full px-2 items-center">
         {tabs.map((tab) => {
           const tabColor = getTabColor(tab.id);
           const isActive = activeTab === tab.id;
@@ -98,11 +105,11 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                'relative w-9 h-9 px-0 rounded-md flex items-center justify-center mx-auto transition-all duration-200',
+                'relative p-1.5 rounded-md flex items-center justify-center transition-all duration-200',
                 !isActive &&
                   'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
                 isActive && 'text-[--tab-color] bg-[--tab-color-bg]',
-                'border-l-2 border-solid border-transparent',
+                'border-b-2 border-solid border-transparent',
               )}
               style={
                 isActive
@@ -114,7 +121,9 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
               }
               title={tab.label}
             >
-              <div className="flex items-center justify-center shrink-0 w-4 h-4">{tab.icon}</div>
+              <div className="flex items-center justify-center shrink-0 w-3.5 h-3.5">
+                {tab.icon}
+              </div>
             </button>
           );
         })}

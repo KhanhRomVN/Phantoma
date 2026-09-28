@@ -234,7 +234,7 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
               3
             </span>
             <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary/50">
-              Tên &amp; vị trí
+              Tên & vị trí
             </span>
           </div>
           <div className="space-y-2.5">

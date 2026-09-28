@@ -42,3 +42,191 @@
   animation: rainbowWave 3s linear infinite;
   font-weight: 600;
 }
+
+/* ═══ ProjectPanel v6 Animations ═══ */
+
+@keyframes pp-core {
+  50% { transform: scale(0.8); }
+}
+
+@keyframes pp-ring {
+  0% { transform: scale(1); opacity: var(--pp-ring-o, 0.6); }
+  100% { transform: scale(2.7); opacity: 0; }
+}
+
+@keyframes pp-beat {
+  0% { transform: scale(1); opacity: 0.7; }
+  16% { transform: scale(2.6); opacity: 0; }
+  28% { transform: scale(1); opacity: 0.7; }
+  44% { transform: scale(2.6); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes pp-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pp-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pp-enter {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pp-aa-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pp-aa-ring {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+@keyframes pp-aa-beat {
+  0% { transform: scale(1); opacity: 0.7; }
+  16% { transform: scale(1.7); opacity: 0; }
+  28% { transform: scale(1); opacity: 0.7; }
+  44% { transform: scale(1.7); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes pp-bob {
+  50% { transform: translateY(-1.5px); }
+}
+
+@keyframes pp-hb {
+  0%, 35%, 100% { transform: scale(1); }
+  15% { transform: scale(1.2); }
+}
+
+/* Status dot animations */
+.pp-dot-running {
+  animation: pp-core 1.6s ease-in-out infinite;
+}
+
+.pp-dot-running::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: pp-ring 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+.pp-dot-review::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: pp-ring 2.8s ease-out infinite;
+  --pp-ring-o: 0.45;
+  pointer-events: none;
+}
+
+.pp-dot-blocked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: pp-beat 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+.pp-dot-queued::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px dashed currentColor;
+  animation: pp-spin 3s linear infinite;
+  pointer-events: none;
+}
+
+.pp-pop {
+  animation: pp-pop 0.45s ease-out;
+}
+
+.pp-enter {
+  animation: pp-enter 0.18s ease-out;
+}
+
+/* Agent avatar state rings */
+.pp-aa-run::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: #3ddc84;
+  border-right-color: rgba(61, 220, 132, 0.35);
+  animation: pp-aa-spin 0.9s linear infinite;
+  pointer-events: none;
+}
+
+.pp-aa-err::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid #ff4757;
+  animation: pp-aa-beat 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+.pp-aa-wait::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid #ffb020;
+  animation: pp-aa-ring 2.8s ease-out infinite;
+  pointer-events: none;
+}
+
+.pp-aa-sm.pp-aa-run::after {
+  inset: -1.5px;
+  border-width: 1.5px;
+}
+
+.pp-aa-sm.pp-aa-err::after,
+.pp-aa-sm.pp-aa-wait::after {
+  inset: -1.5px;
+}
+
+/* Project status icon animations */
+.pp-pi-running svg {
+  animation: pp-spin 0.9s linear infinite;
+}
+
+.pp-pi-blocked svg {
+  animation: pp-hb 1.8s ease-in-out infinite;
+}
+
+.pp-pi-review svg {
+  animation: pp-bob 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-dot-running,
+  .pp-dot-running::after,
+  .pp-dot-review::after,
+  .pp-dot-blocked::after,
+  .pp-dot-queued::after,
+  .pp-pop,
+  .pp-enter,
+  .pp-aa-run::after,
+  .pp-aa-err::after,
+  .pp-aa-wait::after,
+  .pp-pi-running svg,
+  .pp-pi-blocked svg,
+  .pp-pi-review svg {
+    animation: none !important;
+  }
+}

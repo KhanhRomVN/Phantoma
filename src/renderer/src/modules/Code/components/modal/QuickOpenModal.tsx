@@ -35,7 +35,7 @@ let _scanDirLoading = false;
 function _preloadScanner(): void {
   if (_scanDirFn || _scanDirLoading) return;
   _scanDirLoading = true;
-  import('../ProjectTabBar/OpenProjectModal').then(function (m) {
+  import('./OpenProjectModal').then(function (m) {
     _scanDirFn = m.scanDirectory;
   });
 }
@@ -302,7 +302,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
       doScan(_scanDirFn);
     } else {
       // Module still loading – wait for it
-      import('../ProjectTabBar/OpenProjectModal').then((m) => {
+      import('./OpenProjectModal').then((m) => {
         _scanDirFn = m.scanDirectory;
         doScan(_scanDirFn);
       });

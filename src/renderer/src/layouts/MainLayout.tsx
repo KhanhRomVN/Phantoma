@@ -121,6 +121,9 @@ const MainLayoutContent = () => {
   }, [activeModule, setActiveModule]);
 
   // ── Derived ──
+  // Ẩn hoàn toàn RightPanel khi ở module Code
+  const shouldShowRightPanel = isRightPanelOpen && activeModule !== 'code';
+
   const quickNavItems = [
     {
       id: 'dashboard',
@@ -231,7 +234,7 @@ const MainLayoutContent = () => {
           </div>
           <div className="shrink-0 h-full min-h-0">
             <AnimatePresence mode="wait">
-              {isRightPanelOpen && (
+              {shouldShowRightPanel && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}

@@ -30,11 +30,6 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 import { logger } from '@renderer/utils/logger';
-// ── Services ──
-import { lspClientManager } from '@renderer/shared/lsp/services/lsp-client.service';
-
-// ── Stores ──
-import { useDiagnosticsStore } from '@renderer/shared/lsp/stores/diagnosticsStore';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface WatchedFile {
@@ -96,10 +91,10 @@ class FileWatcherService {
 
   /**
    * Check if file has diagnostics (errors/warnings)
+   * LSP removed — always returns false
    */
-  private hasImportantDiagnostics(filePath: string): boolean {
-    const stats = useDiagnosticsStore.getState().getStatsForFile(filePath);
-    return stats.errors > 0 || stats.warnings > 0;
+  private hasImportantDiagnostics(_filePath: string): boolean {
+    return false;
   }
 
   /**
@@ -178,11 +173,6 @@ class FileWatcherService {
           // Update stored content
           watched.lastContent = newContent;
 
-          // Notify LSP server about external change
-          const uri = `file://${filePath}`;
-
-          lspClientManager.notifyDocumentChanged(language, uri, newContent, Date.now());
-
           // Notify UI listeners (for updating editor content)
           this.notifyListeners({
             filePath,
@@ -244,13 +234,6 @@ class FileWatcherService {
       logger.error('[FileWatcherService] ❌ Error unwatching:', err);
     }
 
-    // Send didClose to LSP server to free memory
-    const uri = `file://${filePath}`;
-    try {
-      await lspClientManager.notifyDocumentClosed(watched.language, uri);
-    } catch (err) {
-      logger.error('[FileWatcherService] ❌ Error sending didClose:', err);
-    }
     this.watchedFiles.delete(filePath);
   }
 

@@ -25,23 +25,17 @@ import { useEffect, useRef, useState } from 'react';
 
 // ── Hooks ──
 import { useCodeStore } from './hooks/useCodeStore';
-import { useLSPNotifier } from './hooks/useLSPNotifier';
 
 // ── Components ──
-import { ProjectTabBar } from './components/ProjectTabBar';
-import { OpenProjectModal, scanDirectory } from './components/ProjectTabBar/OpenProjectModal';
-import { NewProjectModal } from './components/ProjectTabBar/NewProjectModal';
-import { ServiceTabBar } from './components/ServiceTabBar';
+import { OpenProjectModal, scanDirectory } from './components/modal/OpenProjectModal';
+import { NewProjectModal } from './components/modal/NewProjectModal';
 import { ContentPanel } from './components/ContentPanel';
 import { ActivityPanel } from './components/ActivityPanel';
-import { BottomPanel } from './components/BottomPanel';
 import { ToastContainer } from './components/common/ToastContainer';
 import { FooterBar } from './components/FooterBar';
 import { SaveConfirmModal } from './components/modal/SaveConfirmModal';
 import { QuickOpenModal } from './components/modal/QuickOpenModal';
-
-// ── Context ──
-import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
+import { ProjectPanel } from './components/ProjectPanel';
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function Code() {
@@ -56,25 +50,13 @@ export function Code() {
     hydrateProjectFiles,
     hasUnsavedChanges,
   } = useCodeStore();
-  const { setCodeState } = useAgentFeature();
-
   // ── State ──
   const [isQuickOpenOpen, setQuickOpenOpen] = useState(false);
 
   // ── Refs ──
   const hydratedRef = useRef(false);
 
-  // ── LSP ──
-  useLSPNotifier();
-
   // ── Effects ──
-  // Update Agent context with Code state
-  useEffect(() => {
-    setCodeState({
-      currentProjectId,
-    });
-  }, [currentProjectId, setCodeState]);
-
   // Prevent closing app with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -199,25 +181,7 @@ export function Code() {
         return;
       }
 
-      // Ctrl+Backquote: Toggle bottom panel
-      if (e.ctrlKey && !e.shiftKey && e.code === 'Backquote') {
-        e.preventDefault();
-        useCodeStore.getState().toggleBottomPanel();
-        return;
-      }
-
-      // Ctrl+Shift+Backquote: Add terminal + open bottom panel
-      if (e.ctrlKey && e.shiftKey && e.code === 'Backquote') {
-        e.preventDefault();
-        const store = useCodeStore.getState();
-        const proj = store.projects.find((p) => p.id === store.currentProjectId);
-        if (proj && !proj.isBottomPanelOpen) {
-          store.toggleBottomPanel();
-        }
-        store.setBottomPanelTab('terminal');
-        window.dispatchEvent(new CustomEvent('add-bottom-tab', { detail: 'terminal' }));
-        return;
-      }
+      // BottomPanel removed — keyboard shortcuts for toggle/terminal no longer needed
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -227,15 +191,13 @@ export function Code() {
   // ── Render ──
   return (
     <div className="flex flex-col h-full w-full bg-background relative">
-      <ProjectTabBar onOpenManager={() => setProjectManagerOpen(true)} />
-      <ServiceTabBar />
       <div className="flex flex-1 min-h-0">
-        <ActivityPanel />
+        <ProjectPanel />
         <div className="flex-1 flex flex-col min-w-0 relative">
           <ContentPanel />
-          <BottomPanel />
           <ToastContainer />
         </div>
+        <ActivityPanel />
       </div>
       <FooterBar />
       <OpenProjectModal

@@ -1,16 +1,17 @@
 /**
  * ------------------------------------------------------------------
- * Activity Panel
+ * Activity Panel (Right Side)
  * ------------------------------------------------------------------
- * Left sidebar panel container with tabbed views for File Explorer,
- * Search, Source Control, and LSP server management. Includes a
- * resizable width handle (200px–600px) and delegates content
- * rendering to the active tab component.
+ * Right sidebar panel container with horizontal topbar for tab
+ * switching (File Explorer, Search, Source Control). Includes a
+ * resizable width handle on the LEFT edge (200px–600px) and
+ * delegates content rendering to the active tab component.
  *
  * Main features:
- * - Tab bar (ActivityBar) + content area layout
- * - 4 tabs: File Explorer, Search, Source Control, LSP
- * - Resizable width via drag handle
+ * - Horizontal topbar (ActivityBar) + content area below
+ * - Topbar height matches panel width for square aspect ratio
+ * - 3 tabs: File Explorer, Search, Source Control
+ * - Resizable width via LEFT drag handle
  * - Reads/writes panel width and active tab from Code store
  * ------------------------------------------------------------------
  */
@@ -24,9 +25,6 @@ import {
   Folder,
   Search as SearchIcon,
   GitBranch,
-  Code2,
-  Palette,
-  Users,
 } from 'lucide-react';
 
 // ── Hooks ──
@@ -37,9 +35,6 @@ import { ActivityBar } from './ActivityBar';
 import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { SourceControl } from './SourceControl';
-import { LSPPanel } from './LSP';
-import { DesignPanel } from './Design';
-import { WorkSessionPanel } from './WorkSession';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -52,21 +47,6 @@ const TABS = [
     id: 'source',
     icon: <GitBranch className="w-4 h-4" />,
     label: 'Source Control',
-  },
-  {
-    id: 'agents',
-    icon: <Users className="w-4 h-4" />,
-    label: 'Agent Groups',
-  },
-  {
-    id: 'design',
-    icon: <Palette className="w-4 h-4" />,
-    label: 'Design',
-  },
-  {
-    id: 'lsp',
-    icon: <Code2 className="w-4 h-4" />,
-    label: 'Language Servers',
   },
 ];
 
@@ -92,6 +72,7 @@ export function ActivityPanel() {
   const startWidthRef = useRef(0);
 
   // ── Handlers ──
+  // Resize from LEFT edge: dragging left increases width, dragging right decreases
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -99,7 +80,8 @@ export function ActivityPanel() {
     startWidthRef.current = activityPanelWidth;
 
     const handleMouseMove = (ev: MouseEvent) => {
-      const delta = ev.clientX - startXRef.current;
+      // Inverted delta because we resize from the left edge
+      const delta = startXRef.current - ev.clientX;
       const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidthRef.current + delta));
       setActivityPanelWidth(newWidth);
     };
@@ -122,38 +104,36 @@ export function ActivityPanel() {
         return <Search />;
       case 'source':
         return <SourceControl />;
-      case 'agents':
-        return <WorkSessionPanel />;
-      case 'design':
-        return <DesignPanel />;
-      case 'lsp':
-        return <LSPPanel />;
       default:
-        return null;
+        return <FileExplore />;
     }
   };
 
   // ── Render ──
   return (
     <div
-      className="flex h-full bg-sidebar-background border-r border-border relative flex-shrink-0"
+      className="flex flex-col h-full bg-sidebar-background border-l border-border relative flex-shrink-0"
       style={{ width: activityPanelWidth }}
     >
-      <ActivityBar
-        activeTab={activityPanelTab}
-        onTabChange={(tab: string) => setActivityPanelTab(tab as any)}
-        tabs={TABS}
-      />
-      <div className="flex-1 overflow-hidden flex flex-col min-w-0">{renderContent()}</div>
-
+      {/* Resize handle on LEFT edge */}
       <div
         className={cn(
-          'absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-primary/30',
+          'absolute left-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-primary/30',
           isResizing && 'bg-primary/50',
         )}
         onMouseDown={handleMouseDown}
         style={{ zIndex: 10 }}
       />
+
+      {/* Topbar: height matches panel width */}
+      <ActivityBar
+        activeTab={activityPanelTab}
+        onTabChange={(tab: string) => setActivityPanelTab(tab as any)}
+        tabs={TABS}
+      />
+
+      {/* Content area below topbar */}
+      <div className="flex-1 overflow-hidden flex flex-col min-w-0">{renderContent()}</div>
     </div>
   );
 }

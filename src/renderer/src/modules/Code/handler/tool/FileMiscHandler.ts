@@ -61,26 +61,13 @@ export class FileMiscHandler {
       };
     }
 
-    try {
-      const { useDiagnosticsStore } = await import('@renderer/shared/lsp/stores/diagnosticsStore');
-      const fileDiagnostics = useDiagnosticsStore.getState().getDiagnosticsForFile(pathValue);
-
-      return {
-        command: 'getDiagnosticsResult',
-        requestId: message.requestId,
-        path: pathValue,
-        diagnostics: fileDiagnostics.length > 0 ? fileDiagnostics : [],
-      };
-    } catch (e: any) {
-      logger.warn('[DEBUG-Diagnostics] error:', e);
-      return {
-        command: 'getDiagnosticsResult',
-        requestId: message.requestId,
-        path: pathValue,
-        error: e.message || String(e),
-        diagnostics: [],
-      };
-    }
+    // LSP removed — always return empty diagnostics
+    return {
+      command: 'getDiagnosticsResult',
+      requestId: message.requestId,
+      path: pathValue,
+      diagnostics: [],
+    };
   }
 
   /** Lấy nội dung file (alias cho readFile) */

@@ -101,7 +101,7 @@ const fetchDirChildren = async (dirPath: string): Promise<FileNode[]> => {
 
 async function refreshProjectTree(projectId: string, projectPath: string) {
   const { scanDirectory } =
-    await import('@renderer/modules/Code/components/ProjectTabBar/OpenProjectModal');
+    await import('@renderer/modules/Code/components/modal/OpenProjectModal');
   const { setProjectFiles } = useCodeStore.getState();
   const files = await scanDirectory(projectPath);
   setProjectFiles(projectId, files);
@@ -347,11 +347,10 @@ const TreeNode = memo(function TreeNode({
     (e: React.MouseEvent) => {
       onNodeClick(node.id, e.ctrlKey || e.metaKey, e.shiftKey);
 
-      // Chỉ mở file/folder khi không có multi-select modifier
+      // Chỉ xử lý folder expand/collapse — file click disabled
       if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
         if (!isFolder) {
-          openFile(projectId, node.id, node.name, node);
-          setActiveFileTab(node.id);
+          // File click intentionally disabled
           return;
         }
 

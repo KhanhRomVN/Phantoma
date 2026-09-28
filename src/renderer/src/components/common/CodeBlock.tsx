@@ -21,11 +21,6 @@ import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react
 
 // ── Services ──
 import { logger } from '@renderer/utils/logger';
-import {
-  lspClientManager,
-  autoStartLanguageServer,
-} from '@renderer/shared/lsp/services/lsp-client.service';
-import { lspManager } from '@renderer/shared/lsp/services/lsp-manager.service';
 import { documentManager } from '../../modules/Code/services/document-manager.service';
 import { fileWatcherService } from '../../modules/Code/services/file-watcher.service';
 
@@ -451,125 +446,13 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
               ? 'javascript'
               : languageId;
 
-        // Determine if we need LSP integration
-        const needsLSP = enableLSP && filePath && window.monaco.Uri;
-
-        if (needsLSP) {
-          const uri = window.monaco.Uri.file(filePath);
-          // Check for existing model
-          const existingModel = window.monaco.editor.getModel(uri);
-          if (existingModel) {
-            const existingValue = existingModel.getValue();
-            const existingLanguage = existingModel.getLanguageId();
-
-            // Update language if different
-            if (existingLanguage !== monacoLanguageId) {
-              window.monaco.editor.setModelLanguage(existingModel, monacoLanguageId);
-            }
-
-            // Update content if different and not empty
-            if (existingValue !== code && code.length > 0) {
-              existingModel.setValue(code);
-            }
-
-            modelRef.current = existingModel;
-            if (!isModelOwnerRef.current) {
-              isModelOwnerRef.current = false;
-            }
-          } else {
-            modelRef.current = window.monaco.editor.createModel(code, monacoLanguageId, uri);
-            isModelOwnerRef.current = true;
-          }
-
-          // Auto-start language server for this file
-          // Extract project root from filePath if not provided
-          const getProjectRoot = (): string => {
-            if (projectRoot) return projectRoot;
-
-            // Try to extract from filePath (assume project is the parent of src/ or root)
-            if (filePath) {
-              // Find /Documents/Coding/ProjectName/ pattern
-              const match = filePath.match(/^(\/[^/]+\/[^/]+\/[^/]+\/[^/]+)/);
-              if (match) return match[1];
-
-              // Fallback: use directory containing the file
-              const lastSlash = filePath.lastIndexOf('/');
-              if (lastSlash > 0) return filePath.substring(0, lastSlash);
-            }
-
-            // Ultimate fallback
-            return '/home/khanhromvn/Documents/Coding/Phantoma_code';
-          };
-
-          const workspaceRoot = getProjectRoot();
-
-          // Initialize LSP client
-          lspClientManager.initialize(window.monaco);
-
-          autoStartLanguageServer(languageId, workspaceRoot)
-            .then(async () => {
-              // Subscribe to diagnostics via LSP Manager
-              if (filePath) {
-                const uri = window.monaco.Uri.file(filePath).toString();
-                // Cleanup previous subscription if any (prevents listener leak on re-render)
-                if (unsubscribeRef.current) {
-                  unsubscribeRef.current();
-                }
-                unsubscribeRef.current = lspManager.subscribeToDiagnostics(uri, () => {});
-              }
-
-              // ✅ Document Manager: Register reference to this document
-              if (modelRef.current && filePath) {
-                const uri = window.monaco.Uri.file(filePath).toString();
-                const text = modelRef.current.getValue();
-
-                // Check if we should send didOpen (first reference)
-                const shouldSendDidOpen = documentManager.addReference(
-                  uri,
-                  languageId,
-                  modelRef.current,
-                  text,
-                );
-
-                didAddReferenceRef.current = true;
-
-                if (shouldSendDidOpen) {
-                  try {
-                    // Clean old document state in LSP server before re-opening.
-                    // After Ctrl+R refresh, the LSP server still holds documents
-                    // from the previous session — a duplicate didOpen won't trigger
-                    // new diagnostics. didClose + didOpen forces re-analysis.
-                    await lspClientManager.notifyDocumentClosed(languageId, uri);
-                    await lspClientManager.notifyDocumentOpened(languageId, uri, languageId, text);
-                  } catch (err) {
-                    logger.error('[CodeBlock] ❌ LSP document sync failed:', err);
-                  }
-                }
-
-                // 🔍 Start file watcher to track external changes
-                // This keeps running even when tab is closed
-                if (filePath) {
-                  fileWatcherService
-                    .watchFile(filePath, languageId, text)
-                    .then(() => {})
-                    .catch((err) => {
-                      logger.error('[CodeBlock] ❌ File watcher failed:', err);
-                    });
-                }
-              }
-            })
-            .catch((err) => {
-              logger.error('[CodeBlock] ❌ LSP server start failed:', err);
-            });
+        // LSP removed — always use non-LSP model creation
+        if (!modelRef.current) {
+          modelRef.current = window.monaco.editor.createModel(code, monacoLanguageId);
+          isModelOwnerRef.current = true;
         } else {
-          // No LSP integration
-          if (!modelRef.current) {
-            modelRef.current = window.monaco.editor.createModel(code, monacoLanguageId);
-            isModelOwnerRef.current = true;
-          } else {
-            if (modelRef.current.getValue() !== code) {
-              modelRef.current.setValue(code);
-            }
+          if (modelRef.current.getValue() !== code) {
+            modelRef.current.setValue(code);
           }
         }
 
@@ -595,13 +478,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         editorInstance.current.addCommand(
           window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS,
           () => {
-            // Notify LSP server
-            if (enableLSP && filePath && modelRef.current) {
-              const uri = window.monaco.Uri.file(filePath).toString();
-              const text = modelRef.current.getValue();
-              lspClientManager.notifyDocumentSaved(languageId, uri, text);
-            }
-
             // Save file to disk
             if (fileId && filePath) {
               const content = editorInstance.current.getValue();
@@ -617,8 +493,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           },
         );
 
-        // Handle content changes with LSP notification
-        let changeVersion = 2; // Start from 2 (version 1 was didOpen)
+        // Handle content changes
         editorInstance.current.onDidChangeModelContent(() => {
           // Skip if this is an external update (from file watcher)
           if (isExternalUpdateRef.current) {
@@ -640,15 +515,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           // Update file watcher's last known content
           if (filePath) {
             fileWatcherService.updateContent(filePath, newContent);
-            // Also touch file to reset cleanup timer on user edit
-          }
-
-          // Notify LSP server about content changes (debounced automatically)
-          if (enableLSP && filePath && modelRef.current) {
-            const uri = window.monaco.Uri.file(filePath).toString();
-            const text = modelRef.current.getValue();
-            changeVersion++;
-            lspClientManager.notifyDocumentChanged(languageId, uri, text, changeVersion);
           }
         });
 
@@ -728,19 +594,13 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     return () => {
       mounted = false;
 
-      // ✅ Cleanup LSP subscriptions (prevents listener leak)
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-        unsubscribeRef.current = null;
-      }
-
       // Always dispose editor instance (but keep the model alive)
       if (editorInstance.current) {
         editorInstance.current.dispose();
         editorInstance.current = null;
       }
     };
-  }, [filePath, enableLSP]);
+  }, [filePath]);
 
   // Set original content when code first loads
   useEffect(() => {
@@ -759,15 +619,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         // Set flag to prevent onDidChangeModelContent from treating this as user edit
         isExternalUpdateRef.current = true;
         modelRef.current.setValue(code);
-      }
-
-      // ALWAYS notify LSP server about external content changes (even if model value is same)
-      // This handles the case where user edited in app, then saved externally
-      if (enableLSP && filePath) {
-        const uri = window.monaco.Uri.file(filePath).toString();
-        const languageId = language || 'plaintext';
-        // Use notifyDocumentChanged to update LSP with new content
-        lspClientManager.notifyDocumentChanged(languageId, uri, code, Date.now());
       }
 
       // Mark file as saved since this is coming from disk
