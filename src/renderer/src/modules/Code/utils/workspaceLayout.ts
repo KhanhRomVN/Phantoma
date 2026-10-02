@@ -11,7 +11,7 @@
  *      └──────┴──────┘
  *
  * Each pane owns an ordered list of tabs. A pane only exists on screen
- * while it has at least one tab; the visible layout is *derived* from
+ * while it has at least one tab; the visible layout is *derived* from  
  * which panes are occupied (see `computeRects`):
  *   - only `tl`              → 1 pane, full area
  *   - `tl` + `tr`            → 2 panes side by side

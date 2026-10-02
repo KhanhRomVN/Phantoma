@@ -126,21 +126,15 @@ const mkSum = (
 
 /** Fetches real git branches for a project via IPC and maps them to BranchInfo[] */
 async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
-  console.log(`[FETCH_BRANCHES_START] Path: ${projectPath}`); // Force print to console
-  
   try {
     const res = await (window as any).api.invoke('git:list-branches', projectPath);
-    
-    console.log(`[FETCH_BRANCHES_RAW_RESULT]`, res); // Print entire response object
-    
+
     if (res?.error) {
       console.warn('[ProjectPanel] Failed to list branches', res.error);
       return [];
     }
 
     const rawBranches: string[] = res.branches || [];
-    
-    console.log(`[FETCH_BRANCHES_LIST] Count: ${rawBranches.length}`, rawBranches);
 
     // Common remote names that might appear as standalone entries due to parsing quirks
     const COMMON_REMOTES = ['origin', 'upstream'];
@@ -163,9 +157,9 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
       // Heuristic: If it starts with a known remote name followed by a slash, it's remote.
       // Also, generally, any branch containing "/" is suspicious for being remote in this specific simplified view,
       // BUT we must be careful not to kill valid local branches like "feature/x".
-      // Given the user explicitly said "only main is correct" and saw "origin/main", 
+      // Given the user explicitly said "only main is correct" and saw "origin/main",
       // we assume the primary goal is removing noise from default remotes.
-      
+
       // Check if it matches pattern "<remote>/<branch>" where <remote> is a common one
       const parts = name.split('/');
       if (parts.length > 1 && COMMON_REMOTES.includes(parts[0])) {
@@ -177,8 +171,6 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
 
     // Deduplicate just in case
     const uniqueBranches = Array.from(new Set(localBranches));
-    
-    console.log(`[FINAL_BRANCHES]`, uniqueBranches);
 
     return uniqueBranches.map((name) => ({
       name,
@@ -296,7 +288,7 @@ function GroupHeader({
   );
 }
 
-  // ── Main Component ─────────────────────────────────────────────────────
+// ── Main Component ─────────────────────────────────────────────────────
 
 export const ProjectPanel = memo(function ProjectPanel() {
   const rawProjects = useCodeStore((s) => s.projects);
@@ -310,7 +302,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
   // Reset selection on mount to ensure EmptyState is shown initially
   useEffect(() => {
-    setCurrentProject(null);
+    setCurrentProject(undefined as unknown as string);
     setContentViewMode('files'); // Default view mode when no project selected
     setActiveWorkspaceSessionId(null);
   }, [setCurrentProject, setContentViewMode, setActiveWorkspaceSessionId]);
@@ -404,9 +396,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
           if (realBranches.length > 0) {
             // MERGE LOGIC: Preserve existing sessions for branches that still exist in Git
             patchProject(proj.id, (p) => {
-              const existingBranchMap = new Map(p.branches.map(b => [b.name, b]));
-              
-              const mergedBranches = realBranches.map(gitBranch => {
+              const existingBranchMap = new Map(p.branches.map((b) => [b.name, b]));
+
+              const mergedBranches = realBranches.map((gitBranch) => {
                 const existing = existingBranchMap.get(gitBranch.name);
                 if (existing) {
                   // Keep existing sessions and visibility settings
@@ -501,27 +493,21 @@ export const ProjectPanel = memo(function ProjectPanel() {
     });
   }, [shownProjects, anyOpen]);
 
-  const handleToggleProject = useCallback(
-    (projectId: string) => {
-      // Chỉ toggle trạng thái mở rộng local, KHÔNG set currentProjectId trong store
-      // Vì theo yêu cầu, việc chọn project chỉ xảy ra khi chọn SessionCard
-      setExpandedIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(projectId)) next.delete(projectId);
-        else next.add(projectId);
-        return next;
-      });
-    },
-    [],
-  );
+  const handleToggleProject = useCallback((projectId: string) => {
+    // Chỉ toggle trạng thái mở rộng local, KHÔNG set currentProjectId trong store
+    // Vì theo yêu cầu, việc chọn project chỉ xảy ra khi chọn SessionCard
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(projectId)) next.delete(projectId);
+      else next.add(projectId);
+      return next;
+    });
+  }, []);
 
-  const handleOpenProject = useCallback(
-    (projectId: string) => {
-      // Tương tự, chỉ mở rộng UI, không kích hoạt selection logic của toàn app
-      setExpandedIds((prev) => (prev.has(projectId) ? prev : new Set(prev).add(projectId)));
-    },
-    [],
-  );
+  const handleOpenProject = useCallback((projectId: string) => {
+    // Tương tự, chỉ mở rộng UI, không kích hoạt selection logic của toàn app
+    setExpandedIds((prev) => (prev.has(projectId) ? prev : new Set(prev).add(projectId)));
+  }, []);
 
   const handleSelectSession = useCallback(
     (sessionId: string) => {
@@ -533,8 +519,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
       }
 
       // Tìm project chứa session này từ local state
-      const parentProject = projects.find(p => 
-        p.branches.some(b => b.sessions.some(s => s.id === sessionId))
+      const parentProject = projects.find((p) =>
+        p.branches.some((b) => b.sessions.some((s) => s.id === sessionId)),
       );
 
       if (!parentProject) {
@@ -544,7 +530,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       // Highlight the card in ProjectPanel
       setSelectedSessionId(sessionId);
-      
+
       // Set current project in store ONLY when a session is selected
       setCurrentProject(parentProject.id);
 
@@ -552,27 +538,33 @@ export const ProjectPanel = memo(function ProjectPanel() {
       if (activeTaskManagerProjectId) {
         setActiveTaskManagerProjectId(null);
       }
-      
+
       // Switch ContentPanel to Workspace view for this session
       setActiveWorkspaceSessionId(sessionId);
       setContentViewMode('workspace');
     },
-    [projects, setCurrentProject, setActiveWorkspaceSessionId, setContentViewMode, activeTaskManagerProjectId],
+    [
+      projects,
+      setCurrentProject,
+      setActiveWorkspaceSessionId,
+      setContentViewMode,
+      activeTaskManagerProjectId,
+    ],
   );
 
   /** Toggle Task Manager for a specific project. Clicking again closes it. */
   const handleToggleTaskManager = useCallback(
     (projectId: string) => {
       setSelectedSessionId(null); // Clear any inline session selection
-      
+
       if (activeTaskManagerProjectId === projectId) {
         // Already open -> close it, revert to files/workspace default or just empty state?
-        // Requirement says "click lần nữa quay về trạng thái trước đó". 
+        // Requirement says "click lần nữa quay về trạng thái trước đó".
         // Safest bet is switching contentViewMode away from 'tasks'.
         // Since we don't track previous mode explicitly here easily without more state,
         // setting to 'files' acts as a safe fallback to the editor area if no service/session is picked.
         setActiveTaskManagerProjectId(null);
-        setContentViewMode('files'); 
+        setContentViewMode('files');
       } else {
         // Open for this project
         setActiveTaskManagerProjectId(projectId);
@@ -682,19 +674,19 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
   const handleNewSession = useCallback(
     (projectId: string, branchName: string) => {
-      console.log('[DEBUG_SESSION_CREATE_START]', { projectId, branchName });
-      
       // 1. Tìm project hiện tại trong local state để lấy dữ liệu gốc chính xác nhất
-      const currentLocalProject = projects.find(p => p.id === projectId);
+      const currentLocalProject = projects.find((p) => p.id === projectId);
       if (!currentLocalProject) {
-        console.error('[DEBUG_SESSION_CREATE_FAIL] Project not found in local state', { projectId });
+        console.error('[DEBUG_SESSION_CREATE_FAIL] Project not found in local state', {
+          projectId,
+        });
         return;
       }
 
       // 2. Tạo cấu trúc branches mới với session vừa thêm
       const newBranches = currentLocalProject.branches.map((b) => {
         if (b.name !== branchName) return b;
-        
+
         const prevNewest = b.sessions[0];
         const procs: ProcessInfo[] = prevNewest?.procs ?? [];
         const fresh: SessionInfo = {
@@ -711,17 +703,13 @@ export const ProjectPanel = memo(function ProjectPanel() {
         return { ...b, sessions: [fresh, ...older] };
       });
 
-      console.log('[DEBUG_SESSION_NEW_BRANCHES_CREATED]', { count: newBranches.length });
-
       // 3. Cập nhật Local State để UI phản hồi ngay lập tức
       setProjects((prev) => {
         const updated = prev.map((p) => (p.id === projectId ? { ...p, branches: newBranches } : p));
-        console.log('[DEBUG_SESSION_LOCAL_STATE_UPDATED]', { projectId, totalProjects: updated.length });
         return updated;
       });
 
       // 4. Đồng bộ ngược lên Store (Zustand) để kích hoạt persist mechanism
-      console.log('[DEBUG_SESSION_CALLING_UPDATE_PROJECT]', { projectId });
       updateProject(projectId, { branches: newBranches });
     },
     [projects, updateProject],
@@ -735,24 +723,24 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
           const newBranches = p.branches.map((b) => {
             if (b.name !== branchName) return b;
-            // Remove all sessions from this branch, or just the newest? 
+            // Remove all sessions from this branch, or just the newest?
             // Based on UI context "Remove Session" usually implies clearing the current view's session list for that branch.
             // However, looking at the menu structure, it seems to target the whole branch's session stack in this stub implementation.
             // Let's assume it removes ALL sessions for that branch as per typical "clear history" behavior in simple mocks,
-            // OR we need to identify WHICH session to remove. 
-            // The DropdownTarget for 'branch' doesn't carry sessionId. 
+            // OR we need to identify WHICH session to remove.
+            // The DropdownTarget for 'branch' doesn't carry sessionId.
             // But wait, the user said "Remove Session". Usually this means deleting a specific one.
             // In the provided code, `handleRemoveSession` is called from Branch Context Menu.
             // If there are multiple sessions, which one gets removed?
             // Looking at `SessionCard`, there isn't a direct delete button per card in the main view, only context menu on branch level?
             // Actually, let's look at `DropdownTarget`. Kind 'session' exists.
-            // The user complained about "Remove Session" not working. 
+            // The user complained about "Remove Session" not working.
             // Currently `handleRemoveSession(projectId, branchName)` is called from Branch menu.
             // It likely intends to clear sessions for that branch.
-            
+
             // To be safe and align with "remove THE session", if we can't distinguish, we might clear all.
             // BUT, standard UX suggests removing the active/latest one or providing a selector.
-            // Given the constraint of the existing function signature `(projectId, branchName)`, 
+            // Given the constraint of the existing function signature `(projectId, branchName)`,
             // I will implement it to clear ALL sessions for that branch, effectively resetting it.
             return { ...b, sessions: [] };
           });
@@ -1341,10 +1329,12 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   icon={<Pencil className="w-3 h-3" />}
                   onClick={() => {
                     const sessionId = dropdownTarget.sessionId;
-                    // Find current title to pre-fill if we had an inline edit state, 
+                    // Find current title to pre-fill if we had an inline edit state,
                     // but for now just dispatch event or set a global rename target.
                     // Assuming there's a mechanism to trigger rename via event or store update.
-                    window.dispatchEvent(new CustomEvent('phantoma:request-rename-session', { detail: sessionId }));
+                    window.dispatchEvent(
+                      new CustomEvent('phantoma:request-rename-session', { detail: sessionId }),
+                    );
                     closeDropdown();
                   }}
                 >
@@ -1413,12 +1403,12 @@ export const ProjectPanel = memo(function ProjectPanel() {
                       });
                       return updatedProjects;
                     });
-                    
+
                     // Clear selection if the deleted session was selected
                     if (selectedSessionId === sessionId) {
                       setSelectedSessionId(null);
                     }
-                    
+
                     closeDropdown();
                   }}
                 >

@@ -24,6 +24,7 @@ import net from 'net';
 import { getConfig } from './config/server.config';
 import { init, close } from './database/connection';
 import { createApp } from './app';
+import { ensureRuntimeDirs } from './runtime/paths';
 import { createLogger, F } from './utils/logger';
 
 // ─── Constants ──────────────────────────────────────────────────────────
@@ -55,6 +56,9 @@ async function main(options?: { dbPath?: string }): Promise<void> {
     logger.error('Failed to initialize database', F('error', String(err)));
     process.exit(1);
   }
+
+  // Tạo thư mục runtime (profiles, sandboxes, tmp, certs, ...).
+  ensureRuntimeDirs();
 
   const app = createApp();
   const server = http.createServer(app);

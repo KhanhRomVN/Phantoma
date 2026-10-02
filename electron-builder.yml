@@ -12,11 +12,21 @@ files:
   - '!{.github,docs,tests,scripts}'
 asarUnpack:
   - resources/**
+  - '**/*.node'
 extraResources:
   - from: resources
     to: resources
     filter:
       - '**/*.wasm'
+  # express-server (runtime backend) — chạy như process riêng
+  - from: express-server/dist
+    to: express-server/dist
+  - from: express-server/package.json
+    to: express-server/package.json
+  - from: express-server/node_modules
+    to: express-server/node_modules
+    filter:
+      - '**/*'
 
 # Windows Configuration
 win:

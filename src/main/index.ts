@@ -39,6 +39,9 @@ import { cdpManager } from './features/cdp';
 // Import lifecycle
 import { setupLifecycleHandlers, cleanup } from './lifecycle';
 
+// Import server manager (khởi động express-server chung)
+import { startServer } from './server-manager';
+
 // Import protocol handlers
 import { registerMediaScheme, registerMediaProtocol } from './protocol-handlers';
 
@@ -83,6 +86,9 @@ try {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(async () => {
+  // Khởi động express-server (runtime backend) trước khi mở cửa sổ.
+  await startServer();
+
   // Initialize WS Server
   await wsManager.initialize();
 
@@ -117,22 +123,22 @@ app.whenReady().then(async () => {
 
   // Setup all IPC handlers
   setupLoggerHandlers();
-  setupProxyHandlers();
-  setupCDPHandlers();
-  setupAppHandlers();
+  setupProxyHandlers(); // chỉ còn phantoma:fetch — proxy:* đã chuyển sang express-server
+  setupCDPHandlers(); // chỉ còn inspector:fetch-wasm — cdp:* đã chuyển
+  setupAppHandlers(); // chỉ còn apps:scan-pc — app:launch/terminate đã chuyển
   setupSessionHandlers();
   setupFSHandlers();
   setupTLSHandlers();
-  setupRendererHandlers();
-  setupMobileHandlers();
+  setupRendererHandlers(); // run_command đã chuyển (xem ghi chú trong file)
+  // setupMobileHandlers();     // ĐÃ CHUYỂN sang express-server (/api/v1/runtime/mobile/*)
   setupConversationHandlers();
   setupWindowHandlers();
-  setupTerminalHandlers();
+  setupTerminalHandlers(); // Re-enabled for IPC support
   setupGitHandlers();
   setupTaskHandlers();
   setupBrowserHandlers();
-  setupTargetHandlers();
-  setupCliCaptureHandlers();
+  // setupTargetHandlers();     // ĐÃ CHUYỂN sang express-server (/api/v1/runtime/targets/*)
+  // setupCliCaptureHandlers(); // ĐÃ CHUYỂN sang express-server (/api/v1/runtime/cli/*)
   registerWorkspaceHandlers();
 
   // Auto-install certificate when proxy session is created

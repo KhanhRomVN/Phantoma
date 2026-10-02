@@ -25,6 +25,7 @@ import type { BaseModalProps } from './index';
 // ── Utils ──
 import { logger } from '@renderer/utils/logger';
 import { cn } from '@renderer/shared/utils/cn';
+import { runtimeApi } from '../../../services/runtime-api.service';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 type AndroidBodyProps = Pick<
@@ -57,10 +58,12 @@ export const Android = forwardRef<AndroidRef, AndroidBodyProps>(function Android
   const loadDevices = async () => {
     setLoading(true);
     try {
-      const [vms, connected] = await Promise.all([
-        window.api.invoke('mobile:list-genymotion-vms'),
-        window.api.invoke('mobile:detect-emulators'),
+      const [vmsRes, connectedRes] = await Promise.all([
+        runtimeApi.mobileListGenymotionVms(),
+        runtimeApi.mobileDetectEmulators(),
       ]);
+      const vms = (vmsRes.data as string[]) || [];
+      const connected = (connectedRes.data as any[]) || [];
 
       const list: Device[] = [];
       connected.forEach((dev: any) => {

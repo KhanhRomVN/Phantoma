@@ -187,7 +187,9 @@ interface CodeState {
   setActiveFileTab: (fileId: string) => void;
   setBottomPanelTab: (tab: 'output' | 'terminal' | 'port' | 'performance' | 'problems') => void;
   toggleBottomPanel: () => void;
-  setActivityPanelTab: (tab: 'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp') => void;
+  setActivityPanelTab: (
+    tab: 'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp',
+  ) => void;
   setProjectManagerOpen: (open: boolean) => void;
   setNewProjectOpen: (open: boolean) => void;
   setProjectFiles: (projectId: string, files: FileNode[]) => void;
@@ -218,7 +220,12 @@ interface CodeState {
   updateAgentGroup: (projectId: string, groupId: string, updates: Partial<AgentGroup>) => void;
   removeAgentGroup: (projectId: string, groupId: string) => void;
   openAgentGroup: (projectId: string, groupId: string) => void;
-  updateTerminalInGroup: (projectId: string, groupId: string, terminalId: string, updates: Partial<AgentTerminal>) => void;
+  updateTerminalInGroup: (
+    projectId: string,
+    groupId: string,
+    terminalId: string,
+    updates: Partial<AgentTerminal>,
+  ) => void;
   // MCP actions
   addMCP: (projectId: string, mcp: MCPInput) => void;
   updateMCP: (projectId: string, mcpId: string, updates: Partial<MCP>) => void;
@@ -418,24 +425,8 @@ export const useCodeStore = create<CodeState>()(
         },
 
         updateProject: (id, data) => {
-          console.log('[DEBUG_STORE_UPDATE_PROJECT_CALLED]', { id, hasBranches: !!data.branches });
-          if (data.branches) {
-             const branchWithSessions = data.branches.find(b => b.sessions && b.sessions.length > 0);
-             console.log('[DEBUG_STORE_UPDATE_BRANCHES_DETAIL]', { 
-               totalBranches: data.branches.length, 
-               sampleSessionId: branchWithSessions?.sessions[0]?.id 
-             });
-          }
-          
           set((state) => {
             const newProjects = state.projects.map((p) => (p.id === id ? { ...p, ...data } : p));
-            // Log ngay sau khi set để xác nhận state đã thay đổi
-            const updatedProj = newProjects.find(p => p.id === id);
-            console.log('[DEBUG_STORE_STATE_AFTER_SET]', { 
-              projectId: id, 
-              branchesCount: updatedProj?.branches?.length,
-              firstBranchSessions: updatedProj?.branches?.[0]?.sessions?.length 
-            });
             return { projects: newProjects };
           });
         },
@@ -1051,8 +1042,8 @@ export const useCodeStore = create<CodeState>()(
             ...b,
             sessions: (b.sessions || []).map((s) => ({
               ...s,
-              agents: [],           // ← temp only, re-detected on mount
-              procs: [],            // ← dead processes shouldn't persist
+              agents: [], // ← temp only, re-detected on mount
+              procs: [], // ← dead processes shouldn't persist
               status: s.status === 'running' ? 'idle' : s.status,
             })),
           })),

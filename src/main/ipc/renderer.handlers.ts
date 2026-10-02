@@ -515,9 +515,7 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
         const command = payload?.command || '';
         if (!command) throw new Error('No command provided');
         const cwd = payload?.cwd || process.cwd();
-        console.log('[DEBUG][main][run_command] input:', { command, cwd });
         const result = await execCommand(command, cwd);
-        console.log('[DEBUG][main][run_command] execResult:', result);
         sendToRenderer('messageResponse', {
           requestId,
           command: 'run_command',
@@ -525,7 +523,6 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
         });
         return result;
       } catch (e: any) {
-        console.log('[DEBUG][main][run_command] error:', e?.message || String(e));
         sendToRenderer('messageResponse', {
           requestId,
           command: 'run_command',
@@ -1021,7 +1018,9 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
         // Emulate module: sessionId represents the emulate target
         const sessionId = metadata?.sessionId?.toString();
         if (!sessionId) {
-          logger.warn('[Main][saveConversationState] Missing sessionId — skip save to avoid "unknown" folder');
+          logger.warn(
+            '[Main][saveConversationState] Missing sessionId — skip save to avoid "unknown" folder',
+          );
           return { success: false, error: 'missing sessionId' };
         }
         const moduleId = sessionId;

@@ -80,6 +80,28 @@ interface Field {
 // F creates a structured field. Usage: logger.info('msg', F('id', userId))
 export const F = (key: string, val: FieldValue): Field => ({ key, val });
 
+/** Plain object map — chấp nhận cả { key: value } như overload tiện lợi. */
+type FieldMap = Record<string, unknown>;
+type FieldArg = Field | FieldMap | unknown;
+
+/** Chuẩn hóa FieldArg[] → Field[]. Hỗ trợ Field, plain object, hoặc giá trị bất kỳ. */
+function normalizeFields(args: unknown[]): Field[] {
+  return args
+    .map((a) => {
+      if (a && typeof a === 'object' && 'key' in a && 'val' in a) {
+        return a as Field;
+      }
+      if (a && typeof a === 'object' && !(a instanceof Error) && !Array.isArray(a)) {
+        return Object.entries(a as FieldMap).map(([key, val]) => ({
+          key,
+          val: val as FieldValue,
+        }));
+      }
+      return { key: 'value', val: a as FieldValue };
+    })
+    .flat();
+}
+
 // Since returns a duration-in-ms field measured from t.
 export const Since = (t: number): Field => ({
   key: 'duration',
@@ -126,10 +148,10 @@ export class Logger {
     process.stdout.write(out + '\n');
   }
 
-  debug(msg: string, ...fields: Field[]) { this.log('DEBUG', msg, fields); }
-  info(msg: string, ...fields: Field[]) { this.log('INFO', msg, fields); }
-  warn(msg: string, ...fields: Field[]) { this.log('WARN', msg, fields); }
-  error(msg: string, ...fields: Field[]) { this.log('ERROR', msg, fields); }
+  debug(msg: string, ...fields: unknown[]) { this.log('DEBUG', msg, normalizeFields(fields)); }
+  info(msg: string, ...fields: unknown[]) { this.log('INFO', msg, normalizeFields(fields)); }
+  warn(msg: string, ...fields: unknown[]) { this.log('WARN', msg, normalizeFields(fields)); }
+  error(msg: string, ...fields: unknown[]) { this.log('ERROR', msg, normalizeFields(fields)); }
 }
 
 function padLevel(level: Level): string {

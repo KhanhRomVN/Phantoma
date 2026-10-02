@@ -19,113 +19,14 @@ import { ipcMain } from 'electron';
 import * as zlib from 'zlib';
 
 // ── Internal ──
-import { cdpManager } from '../features/cdp';
-import { handleInspectorRequest } from '../features/inspector';
-import { launchCdpPort } from '../app-launcher';
 import { logger } from '../utils/logger';
-
-// ─── Constants ──────────────────────────────────────────────────────────
-// CDP state
-let cdpConnected = false;
-let cdpPort = 0;
 
 // ─── Functions ──────────────────────────────────────────────────────────
 export function setupCDPHandlers() {
-  ipcMain.handle('cdp:get-launch-port', async () => {
-    return { port: launchCdpPort };
-  });
-
-  ipcMain.handle('cdp:connect', async (_, port: number) => {
-    try {
-      const success = await cdpManager.connect(port);
-      if (success) {
-        cdpConnected = true;
-        cdpPort = port;
-        return { success: true, port };
-      }
-      return { success: false, error: 'Connection failed' };
-    } catch (e: any) {
-      logger.error('[CDP] Connection error:', e);
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('cdp:disconnect', async () => {
-    try {
-      // Close WebSocket if exists
-      if (cdpManager['ws']) {
-        cdpManager['ws'].close();
-        cdpManager['ws'] = null;
-        cdpManager['isConnected'] = false;
-      }
-      cdpConnected = false;
-      cdpPort = 0;
-      return { success: true };
-    } catch (e: any) {
-      logger.error('[CDP] Disconnect error:', e);
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('cdp:status', async () => {
-    return {
-      connected: cdpConnected,
-      port: cdpPort,
-    };
-  });
-
-  ipcMain.handle('cdp:get-state', async () => {
-    return {
-      connected: cdpConnected,
-      port: cdpPort,
-      wsConnected: cdpManager.isConnected || false,
-    };
-  });
-
-  ipcMain.handle('cdp:navigate', async (_, url: string) => {
-    try {
-      const result = await cdpManager.navigate(url);
-      return { success: result };
-    } catch (e: any) {
-      logger.error('[IPC] cdp:navigate error:', e);
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('cdp:reload', async () => {
-    try {
-      const result = await cdpManager.reload();
-      return { success: result };
-    } catch (e: any) {
-      logger.error('[IPC] cdp:reload error:', e);
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('cdp:inject-border', async () => {
-    try {
-      const result = await cdpManager.injectMonitoringBorder();
-      return { success: result };
-    } catch (e: any) {
-      logger.error('[IPC] cdp:inject-border error:', e);
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('cdp:remove-border', async () => {
-    try {
-      const result = await cdpManager.removeMonitoringBorder();
-      return { success: result };
-    } catch (e: any) {
-      logger.error('[IPC] cdp:remove-border error:', e);
-      return { success: false, error: e.message };
-    }
-  });
-
-  // Inspector Request Handler
-  ipcMain.handle('inspector:send-request', async (_, payload) => {
-    return await handleInspectorRequest(payload);
-  });
+  // ── ĐÃ CHUYỂN sang express-server (/api/v1/runtime/cdp/* + /inspector/send-request) ──
+  // cdp:connect/disconnect/status/get-state/navigate/reload/inject-border/
+  // remove-border và inspector:send-request giờ do runtime.controller xử lý.
+  // Giữ inspector:fetch-wasm (không thuộc runtime target).
 
   ipcMain.handle('inspector:fetch-wasm', async (_, url: string) => {
     try {

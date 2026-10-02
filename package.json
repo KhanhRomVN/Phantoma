@@ -38,7 +38,8 @@
   },
   "scripts": {
     "dev": "electron-vite dev --noSandbox --remoteDebuggingPort=9222",
-    "build": "npm run typecheck && electron-vite build && electron-builder --win --linux",
+    "build:server": "npm --prefix express-server run build",
+    "build": "npm run typecheck && npm run build:server && electron-vite build && electron-builder --win --linux",
     "build:all": "npm run build",
     "preview": "electron-vite preview",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",

@@ -52,14 +52,7 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
 
   // Ref to hold the latest onProviderChange callback to avoid stale closures and unnecessary effect triggers
   const onProviderChangeRef = useRef(onProviderChange);
-  
-  console.log('[CodeTerminal] RENDER', {
-    terminalId: terminalIdRef.current,
-    cwd,
-    isInitialized,
-    hasSpawned: hasSpawnedRef.current,
-  });
-  
+
   // Update ref whenever prop changes (without triggering effects that depend on it)
   useEffect(() => {
     onProviderChangeRef.current = onProviderChange;
@@ -79,13 +72,7 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
     let fitAddon: FitAddon | null = null;
     let isOpened = false;
 
-    console.log('[CodeTerminal] EFFECT START', {
-      terminalId: terminalIdRef.current,
-      cwd,
-    });
-
     const createTerminalInstance = () => {
-      console.log('[CodeTerminal] Creating terminal instance', terminalIdRef.current);
       const sidebarBg = resolveCssRgbVarToHex('--sidebar-background', '#1a1b1e');
       term = new XTerm({
         cursorBlink: true,
@@ -146,17 +133,11 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
             // 1. Detect via OSC Titles in the stream
             const titles = extractOscTitles(payload.data);
             if (titles.length > 0) {
-              console.log('[DEBUG][AI-Detect] Extracted OSC Titles:', titles);
               for (const title of titles) {
                 const agentFromTitle = detectAgentFromTitle(title);
                 if (agentFromTitle) {
-                  console.log(
-                    `[DEBUG][AI-Detect] Detected Agent from Title "${title}": ${agentFromTitle}`,
-                  );
                   setDetectedAgent(agentFromTitle);
                   break; // Found one, stop processing this chunk's titles
-                } else {
-                  console.log(`[DEBUG][AI-Detect] No match for Title: "${title}"`);
                 }
               }
             }
@@ -201,10 +182,8 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
           // User pressed Enter - try to detect agent from the buffered command
           const cmd = inputBuffer.trim();
           if (cmd.length > 0) {
-            console.log(`[DEBUG][AI-Detect] Command submitted: "${cmd}"`);
             const detected = detectAgentFromCommandLine(cmd);
             if (detected) {
-              console.log(`[DEBUG][AI-Detect] Detected Agent from INPUT: ${detected}`);
               setDetectedAgent(detected);
             } else {
               // If it's a shell command that isn't an agent, maybe reset?
@@ -231,10 +210,8 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
           payload: { terminalId: string; processName: string },
         ) => {
           if (payload.terminalId === terminalIdRef.current) {
-            console.log(`[DEBUG][AI-Detect] Foreground Process Update: "${payload.processName}"`);
             const detected = detectAgentFromCommandLine(payload.processName);
             if (detected) {
-              console.log(`[DEBUG][AI-Detect] Detected Agent from PROCESS NAME: ${detected}`);
               setDetectedAgent(detected);
             } else {
               // Optional: If process name is known shell (bash/zsh), reset agent state?
@@ -264,8 +241,6 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
           });
 
           if (info && !info.error) {
-            console.log('[CodeTerminal] Shell spawned successfully.', 'cwd:', effectiveCwd);
-
             // Initial fit after a short delay to let shell print first prompt
             setTimeout(() => {
               if (isMounted && isOpened) {
@@ -330,12 +305,6 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
     openTerminalWhenReady();
 
     return () => {
-      console.log('[CodeTerminal] CLEANUP START', {
-        terminalId: terminalIdRef.current,
-        isMounted,
-        isOpened,
-      });
-      
       isMounted = false;
       isOpened = false;
 
@@ -343,12 +312,10 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
       cleanupFunctions = [];
 
       if (window.api?.invoke) {
-        console.log('[CodeTerminal] Killing terminal', terminalIdRef.current);
         window.api.invoke('terminal:kill', terminalIdRef.current).catch(() => {});
       }
 
       if (term) {
-        console.log('[CodeTerminal] Disposing XTerm', terminalIdRef.current);
         term.dispose();
         term = null;
         xtermRef.current = null;
@@ -356,8 +323,6 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
       fitAddon = null;
       fitAddonRef.current = null;
       resizeObserver = null;
-      
-      console.log('[CodeTerminal] CLEANUP DONE', terminalIdRef.current);
     };
   }, [cwd]);
 
@@ -424,26 +389,14 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
 
   const handleQuickCommands = () => {
     // Placeholder for quick commands logic
-    console.log('[CodeTerminal] Quick Commands triggered');
     setContextMenuOpen(false);
   };
 
   return (
     <div className="relative w-full h-full">
-      {/* AI Agent Badge Indicator */}
-      {detectedAgent && (
-        <div className="absolute top-2 right-2 z-50 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/80 border border-white/20 backdrop-blur-sm shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
-          <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-          <span className="text-xs font-mono text-white uppercase tracking-wider">
-            {detectedAgent}
-          </span>
-        </div>
-      )}
-
       <div
         ref={termRef}
-        className={`w-full h-full transition-all duration-300 ${detectedAgent ? 'ring-1 ring-yellow-500/50' : ''}`}
-        style={{ backgroundColor: detectedAgent ? '#1a1b1e' : undefined }}
+        className="w-full h-full"
         onContextMenu={handleContextMenu}
       />
 

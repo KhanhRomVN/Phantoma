@@ -27,6 +27,7 @@ import { ReportService } from '../services/emulate/report.service';
 // ── Route groups ─
 import { registerEmulateRoutes } from './emulate.routes';
 import { registerDatabaseRoutes } from './database.routes';
+import { registerRuntimeRoutes } from './runtime.routes';
 import { handler as healthHandler } from '../controllers/health.controller';
 
 // ─── Factory ────────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ export function createApiRouter(): Router {
   // Versioned API surface
   const v1 = Router();
   v1.use(registerEmulateRoutes(targetSvc, filterSvc, repeaterSvc, reportSvc));
+  v1.use(registerRuntimeRoutes());
   v1.use(registerDatabaseRoutes());
   router.use('/api/v1', v1);
 

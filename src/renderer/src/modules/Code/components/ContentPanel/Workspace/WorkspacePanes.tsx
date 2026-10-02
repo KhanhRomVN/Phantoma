@@ -1,23 +1,34 @@
 /**
- * Renders the 2x2 pane grid.
+ * Renders the 2x2 pane grid with tabs.
  *
  * Panel bodies live in ONE flat list (keyed by panel id) and are positioned
  * absolutely, so moving a tab between panes never unmounts it
- * (terminals keep their session).
+ * (terminals keep their sessions).
+ *
+ * Tabs are dragged with plain mouse events (see useWorkspaceInteractions),
+ * NOT the HTML5 drag & drop API, so tabs must NOT be `draggable`.
  */
 
-import { memo, useCallback, type CSSProperties, type DragEvent } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
+  type CSSProperties,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
+import { Plus, Terminal as TerminalIcon, Globe, FileText, MonitorPlay } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 import { CodeTerminal } from './CodeTerminal';
 import { CodeBrowser } from './CodeBrowser';
 import { CodeMarkdown } from './CodeMarkdown';
-import { TabBar } from './WorkspaceTabs';
+import { getAgentFavicon } from '../../../constants/workspaceAgents';
 import {
-  PANE_IDS,
   TABBAR_HEIGHT,
   findPaneOfPanel,
   type PaneActive,
-  type PaneId,
   type PaneRect,
   type PaneRects,
   type PaneTabs,
@@ -25,6 +36,191 @@ import {
   type ResizeHandle,
   type WorkspacePanel,
 } from '../../../utils/workspaceLayout';
+
+// ─── Panel metadata ───────────────────────────────────────────────────
+
+export function getPanelMeta(
+  type: PanelType,
+  iconClass = 'w-3.5 h-3.5',
+): { icon: ReactNode; label: string } {
+  switch (type) {
+    case 'terminal':
+      return { icon: <TerminalIcon className={iconClass} />, label: 'Terminal' };
+    case 'website':
+      return { icon: <Globe className={iconClass} />, label: 'Browser' };
+    case 'note':
+      return { icon: <FileText className={iconClass} />, label: 'Markdown' };
+    case 'emulator':
+      return { icon: <MonitorPlay className={iconClass} />, label: 'Emulator' };
+    default:
+      return { icon: null, label: 'Unknown' };
+  }
+}
+
+/** Panel types offered by the "+" dropdown. */
+const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'note'];
+
+// ─── Tab ──────────────────────────────────────────────────────────────
+
+interface WorkspaceTabProps {
+  panel: WorkspacePanel;
+  isActive: boolean;
+  onClick: () => void;
+  onClose: () => void;
+  /** Called on mousedown; the interactions hook decides when it becomes a drag. */
+  onDragStart: (e: MouseEvent, id: string) => void;
+}
+
+function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: WorkspaceTabProps) {
+  const meta = getPanelMeta(panel.type);
+  
+  // Determine if we should show Agent info instead of generic panel icon/title
+  // This assumes panel.content or a specific field holds the providerId when detected.
+  // Looking at CodeTerminal, it calls onProviderChange. We need to ensure WorkspacePanel receives/stores this.
+  // For now, let's assume panel.providerId exists based on previous context or fallback to standard behavior.
+  // If the structure doesn't have providerId directly on panel, we might need to check how state flows.
+  // However, typically in these apps, the panel object is updated with metadata.
+  // Let's stick to the visual requirement: if it's a terminal AND has an agent, show favicon + name.
+  
+  const agentId = (panel as any).providerId; // Accessing potentially dynamic field
+  const faviconUrl = agentId ? getAgentFavicon(agentId) : undefined;
+  
+  const displayTitle = panel.title || meta.label;
+  const showAgentBadge = !!agentId && panel.type === 'terminal';
+
+  return (
+    <div
+      data-tab-id={panel.id}
+      // NO `draggable` here: native HTML5 drag would steal mousemove/mouseup from the window listeners.
+      onMouseDown={(e) => onDragStart(e, panel.id)}
+      // The hook swallows the click that follows a drag, so this only fires on a real click.
+      onClick={onClick}
+      className={cn(
+        'group/tab h-9 px-3 flex items-center gap-2 shrink-0 transition-colors text-[13px] relative',
+        'border-r border-divider',
+        isActive
+          ? 'bg-card-background text-text-primary border-b-2 border-b-primary/80' // Added bottom border
+          : 'bg-sidebar-background text-text-secondary hover:bg-white/[0.03]',
+      )}
+      style={{ cursor: 'grab', userSelect: 'none' }}
+    >
+      {showAgentBadge && faviconUrl ? (
+        <img 
+          src={faviconUrl} 
+          alt="" 
+          className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain" 
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        />
+      ) : (
+        <span className="shrink-0 opacity-70" style={{ pointerEvents: 'none' }}>
+          {meta.icon}
+        </span>
+      )}
+      
+      <span style={{ pointerEvents: 'none' }}>
+        {showAgentBadge ? agentId : displayTitle}
+      </span>
+
+      <button
+        draggable={false}
+        // Pressing × must not start a tab drag
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className="opacity-0 group-hover/tab:opacity-100 transition-opacity ml-auto w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-[14px] leading-none"
+        style={{ cursor: 'pointer' }}
+        aria-label={`Close ${displayTitle}`}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+// ─── TabBar ───────────────────────────────────────────────────────────
+
+export interface TabBarProps {
+  /** Panels of this pane, already in tab order. */
+  panels: WorkspacePanel[];
+  activeId: string | null;
+  onSelectTab: (id: string) => void;
+  onCloseTab: (id: string) => void;
+  onDragStart: (e: MouseEvent, id: string) => void;
+  onAddPanel: (type: PanelType) => void;
+}
+
+export function TabBar({
+  panels,
+  activeId,
+  onSelectTab,
+  onCloseTab,
+  onDragStart,
+  onAddPanel,
+}: TabBarProps) {
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const tabBarRef = useRef<HTMLDivElement>(null);
+
+  const openMenu = (e: MouseEvent<HTMLButtonElement>) => {
+    if (menuPos) return setMenuPos(null);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuPos({ top: rect.bottom + 4, left: rect.left });
+  };
+
+  return (
+    <div
+      ref={tabBarRef}
+      className="h-9 w-full shrink-0 flex items-end bg-sidebar-background overflow-x-auto custom-scrollbar border-b border-divider"
+    >
+      {panels.map((panel) => (
+        <WorkspaceTab
+          key={panel.id}
+          panel={panel}
+          isActive={activeId === panel.id}
+          onClick={() => onSelectTab(panel.id)}
+          onClose={() => onCloseTab(panel.id)}
+          onDragStart={onDragStart}
+        />
+      ))}
+
+      <button
+        onClick={openMenu}
+        className="h-9 w-9 flex items-center justify-center hover:bg-white/[0.05] text-text-secondary hover:text-text-primary transition-colors shrink-0"
+        aria-label="Add panel"
+      >
+        <Plus className="w-4 h-4" />
+      </button>
+
+      {menuPos && (
+        <div className="fixed inset-0 z-[200]" onClick={() => setMenuPos(null)}>
+          <div
+            className="absolute bg-card-background border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
+            style={menuPos}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {ADD_MENU_TYPES.map((type) => {
+              const meta = getPanelMeta(type, 'w-4 h-4');
+              return (
+                <button
+                  key={type}
+                  onClick={() => {
+                    onAddPanel(type);
+                    setMenuPos(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-white/[0.05] transition-colors"
+                >
+                  {meta.icon}
+                  <span>{meta.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Panel body ───────────────────────────────────────────────────────
 
@@ -72,13 +268,6 @@ const PanelBody = memo(function PanelBody({
 
 const pct = (n: number) => `${n}%`;
 
-const tabBarStyle = (r: PaneRect): CSSProperties => ({
-  left: pct(r.left),
-  top: pct(r.top),
-  width: pct(r.width),
-  height: TABBAR_HEIGHT,
-});
-
 const contentStyle = (r: PaneRect): CSSProperties => ({
   left: pct(r.left),
   top: `calc(${r.top}% + ${TABBAR_HEIGHT}px)`,
@@ -119,7 +308,9 @@ function Divider({
       <div
         className={cn(
           'absolute bg-divider group-hover:bg-primary transition-colors',
-          isVertical ? 'inset-y-0 left-1/2 w-[2px] -translate-x-1/2' : 'inset-x-0 top-1/2 h-[2px] -translate-y-1/2',
+          isVertical
+            ? 'inset-y-0 left-1/2 w-[2px] -translate-x-1/2'
+            : 'inset-x-0 top-1/2 h-[2px] -translate-y-1/2',
           active && 'bg-primary',
         )}
       />
@@ -141,11 +332,6 @@ export interface WorkspacePanesProps {
   resizing: ResizeHandle | null;
   isDragging: boolean;
 
-  onSelectTab: (pane: PaneId, id: string) => void;
-  onCloseTab: (id: string) => void;
-  onAddPanel: (type: PanelType, pane: PaneId) => void;
-  onDragStart: (e: DragEvent, id: string) => void;
-  onDragEnd: () => void;
   onResizeStart: (handle: ResizeHandle) => void;
   onProviderChange: (panelId: string, providerId: string | null) => void;
   onContentChange: (panelId: string, content: string) => void;
@@ -160,18 +346,10 @@ export const WorkspacePanes = memo(function WorkspacePanes({
   dropPreview,
   resizing,
   isDragging,
-  onSelectTab,
-  onCloseTab,
-  onAddPanel,
-  onDragStart,
-  onDragEnd,
   onResizeStart,
   onProviderChange,
   onContentChange,
 }: WorkspacePanesProps) {
-  const panelById = new Map(panels.map((p) => [p.id, p]));
-  const occupied = PANE_IDS.filter((pane) => rects[pane]);
-
   // Divider positions, derived from which panes exist
   const leftRect = rects.tl ?? rects.bl;
   const rightRect = rects.tr ?? rects.br;
@@ -190,7 +368,7 @@ export const WorkspacePanes = memo(function WorkspacePanes({
             <div
               key={panel.id}
               className={cn(
-                'absolute overflow-hidden',
+                'absolute',
                 isVisible ? 'pointer-events-auto' : 'invisible pointer-events-none',
               )}
               style={rect ? contentStyle(rect) : undefined}
@@ -208,28 +386,7 @@ export const WorkspacePanes = memo(function WorkspacePanes({
         })}
       </div>
 
-      {/* One tab bar per occupied pane */}
-      {occupied.map((pane) => {
-        const rect = rects[pane];
-        if (!rect) return null;
-        const panePanels = paneTabs[pane]
-          .map((id) => panelById.get(id))
-          .filter((p): p is WorkspacePanel => !!p);
-
-        return (
-          <div key={pane} className="absolute z-[110]" style={tabBarStyle(rect)}>
-            <TabBar
-              panels={panePanels}
-              activeId={paneActive[pane]}
-              onSelectTab={(id) => onSelectTab(pane, id)}
-              onCloseTab={onCloseTab}
-              onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
-              onAddPanel={(type) => onAddPanel(type, pane)}
-            />
-          </div>
-        );
-      })}
+      {/* Tab bars are rendered in index.tsx (above the panel bodies) */}
 
       {/* Dividers */}
       {hasColumnDivider && rightRect && (
@@ -245,7 +402,11 @@ export const WorkspacePanes = memo(function WorkspacePanes({
           direction="horizontal"
           active={resizing === 'rowLeft'}
           onMouseDown={() => onResizeStart('rowLeft')}
-          style={{ left: pct(rects.bl.left), width: pct(rects.bl.width), top: `calc(${rects.bl.top}% - 4px)` }}
+          style={{
+            left: pct(rects.bl.left),
+            width: pct(rects.bl.width),
+            top: `calc(${rects.bl.top}% - 4px)`,
+          }}
         />
       )}
       {rects.tr && rects.br && (
@@ -253,7 +414,11 @@ export const WorkspacePanes = memo(function WorkspacePanes({
           direction="horizontal"
           active={resizing === 'rowRight'}
           onMouseDown={() => onResizeStart('rowRight')}
-          style={{ left: pct(rects.br.left), width: pct(rects.br.width), top: `calc(${rects.br.top}% - 4px)` }}
+          style={{
+            left: pct(rects.br.left),
+            width: pct(rects.br.width),
+            top: `calc(${rects.br.top}% - 4px)`,
+          }}
         />
       )}
 

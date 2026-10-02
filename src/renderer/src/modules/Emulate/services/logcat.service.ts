@@ -25,6 +25,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import { LogEntry, LogLevel } from '../types/log.types';
+import { runtimeApi } from './runtime-api.service';
 
 // ─── Class ──────────────────────────────────────────────────────────────
 export class LogcatService {
@@ -34,17 +35,17 @@ export class LogcatService {
   async start(serial: string): Promise<void> {
     if (this.isRunning) return;
     try {
-      await window.api.invoke('mobile:start-logcat', serial);
+      await runtimeApi.mobileStartLogcat(serial);
       this.isRunning = true;
     } catch (error) {
       throw new Error(`Failed to start logcat: ${error}`);
     }
   }
 
-  async stop(serial: string): Promise<void> {
+  async stop(_serial: string): Promise<void> {
     if (!this.isRunning) return;
     try {
-      await window.api.invoke('mobile:stop-logcat', serial);
+      await runtimeApi.mobileStopLogcat();
       this.isRunning = false;
     } catch (error) {
       throw new Error(`Failed to stop logcat: ${error}`);
@@ -124,7 +125,8 @@ export class LogcatService {
 
   async listPackages(serial: string): Promise<string[]> {
     try {
-      const packages = await window.api.invoke('mobile:list-packages', serial);
+      const res = await runtimeApi.mobileListPackages(serial);
+      const packages = (res.data as string[]) || [];
       return packages.sort();
     } catch (error) {
       throw new Error(`Failed to list packages: ${error}`);
@@ -135,10 +137,12 @@ export class LogcatService {
     Array<{ name: string; serial: string; type: 'vm' | 'physical' | 'running-vm' }>
   > {
     try {
-      const [vms, connected] = await Promise.all([
-        window.api.invoke('mobile:list-genymotion-vms'),
-        window.api.invoke('mobile:detect-emulators'),
+      const [vmsRes, connectedRes] = await Promise.all([
+        runtimeApi.mobileListGenymotionVms(),
+        runtimeApi.mobileDetectEmulators(),
       ]);
+      const vms = (vmsRes.data as string[]) || [];
+      const connected = (connectedRes.data as unknown[]) || [];
 
       const list: Array<{ name: string; serial: string; type: 'vm' | 'physical' | 'running-vm' }> =
         [];
@@ -173,8 +177,8 @@ export class LogcatService {
     serial: string,
   ): Promise<{ success: boolean; ip?: string; error?: string }> {
     try {
-      const result = await window.api.invoke('mobile:enable-wireless-adb', serial);
-      return result;
+      const res = await runtimeApi.mobileEnableWirelessAdb(serial);
+      return (res.data as { success: boolean; ip?: string; error?: string }) || { success: false };
     } catch (error) {
       return {
         success: false,
@@ -185,8 +189,8 @@ export class LogcatService {
 
   async connectWireless(ip: string, port: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await window.api.invoke('mobile:connect-wireless', ip, port);
-      return result;
+      const res = await runtimeApi.mobileConnectWireless(ip, port);
+      return (res.data as { success: boolean; error?: string }) || { success: false };
     } catch (error) {
       return {
         success: false,

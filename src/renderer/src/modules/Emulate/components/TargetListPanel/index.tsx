@@ -32,7 +32,7 @@ import { RunningOptionTargetModal } from './RunningOptionTargetModal';
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
 // ── Services ──
-import { ipcService } from '../../../../services/ipc.service';
+import { runtimeApi } from '../../services/runtime-api.service';
 import { logcatService } from '../../services/logcat.service';
 
 // ── Types ──
@@ -175,18 +175,12 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
       if (onLaunchTarget) {
         onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'cdp').then(async () => {
           await new Promise((resolve) => setTimeout(resolve, 3000));
-          if (!window.api || typeof window.api.invoke !== 'function') {
-            logger.warn('[TargetListPanel] window.api is not available');
-            return;
-          }
-          const portRes = await ipcService.getCdpLaunchPort();
-          const launchPort = portRes.success ? portRes.data?.port : null;
-          const ports = launchPort ? [launchPort] : [9222];
+          const ports = [9222];
           for (const port of ports) {
             try {
-              const result = await ipcService.connectCdp(port);
+              const result = await runtimeApi.connectCdp(port);
               if (result?.success) {
-                await ipcService.reloadCdp();
+                await runtimeApi.reloadCdp();
                 break;
               }
             } catch {
@@ -209,7 +203,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
     ) => {
       onSelectTarget(targetId);
       onStartTarget(targetId, 'mitm');
-      ipcService
+      runtimeApi
         .createProxySession('default')
         .then(async () => {
           if (onLaunchTarget) {
@@ -235,7 +229,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
     (targetId: string, targetUrl?: string, useSandbox?: boolean) => {
       onSelectTarget(targetId);
       onStartTarget(targetId, 'frida');
-      ipcService
+      runtimeApi
         .createProxySession('default')
         .then(async () => {
           if (onLaunchTarget) {

@@ -14,14 +14,14 @@
  *   WorkspaceTabs.tsx           Tab / TabBar
  *   WorkspacePanes.tsx          panel bodies, dividers, drop preview
  *   WorkspaceEmptyStates.tsx    EmptyState / WorkspaceEmptyState
- *   useWorkspaceInteractions.ts drag-drop + resize
+ *   useWorkspaceInteractions.ts drag-drop (pointer events) + resize
  * ------------------------------------------------------------------
  */
 
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../hooks/useCodeStore';
 import { attachAgentToProject } from '../../../constants/workspaceAgents';
-import { getPanelMeta } from './WorkspaceTabs';
+import { getPanelMeta, TabBar } from './WorkspacePanes';
 import { WorkspacePanes } from './WorkspacePanes';
 import { WorkspaceEmptyState, type EmptyWorkspaceAction } from './WorkspaceEmptyStates';
 import { useWorkspaceInteractions } from '../../../hooks/useWorkspaceInteractions';
@@ -136,10 +136,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     (pane: PaneId, id: string) => dispatch({ type: 'select', pane, id }),
     [],
   );
-  const movePanel = useCallback(
-    (id: string, to: PaneId) => dispatch({ type: 'move', id, to }),
-    [],
-  );
+  const movePanel = useCallback((id: string, to: PaneId) => dispatch({ type: 'move', id, to }), []);
   const resizePane = useCallback(
     (handle: ResizeHandle, value: number) => dispatch({ type: 'resize', handle, value }),
     [],
@@ -169,14 +166,16 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
   const dnd = useWorkspaceInteractions({
     contentRef,
-    panelCount: panels.length,
     getPaneAt,
     onMove: movePanel,
     onResize: resizePane,
   });
 
   const dropPreview = useMemo(
-    () => (dnd.dragSourceId && dnd.dropTarget ? previewDropRect(state, dnd.dragSourceId, dnd.dropTarget) : null),
+    () =>
+      dnd.dragSourceId && dnd.dropTarget
+        ? previewDropRect(state, dnd.dragSourceId, dnd.dropTarget)
+        : null,
     [state, dnd.dragSourceId, dnd.dropTarget],
   );
 
@@ -184,35 +183,64 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-background relative">
-      <div
-        ref={contentRef}
-        {...dnd.containerDragProps}
-        className="flex-1 min-h-0 overflow-hidden relative"
-      >
-        {panels.length === 0 ? (
-          <WorkspaceEmptyState
-            onAddPanel={(action) => addPanel(EMPTY_ACTION_TO_PANEL_TYPE[action])}
-          />
-        ) : (
-          <WorkspacePanes
-            panels={panels}
-            paneTabs={paneTabs}
-            paneActive={paneActive}
-            rects={rects}
-            cwd={currentProjectPath}
-            dropPreview={dropPreview}
-            resizing={dnd.resizing}
-            isDragging={!!dnd.dragSourceId}
-            onSelectTab={selectTab}
-            onCloseTab={closePanel}
-            onAddPanel={addPanel}
-            onDragStart={dnd.handleDragStart}
-            onDragEnd={dnd.handleDragEnd}
-            onResizeStart={dnd.startResize}
-            onProviderChange={updatePanelProvider}
-            onContentChange={updatePanelContent}
-          />
-        )}
+      {/* Main workspace area */}
+      <div className="flex-1 min-h-0 relative">
+        {/* Tab bars - rendered at top level so they sit above the panel bodies */}
+        {panels.length > 0 &&
+          occupied.map((pane) => {
+            const rect = rects[pane];
+            if (!rect) return null;
+            const panePanels = paneTabs[pane]
+              .map((id) => panels.find((p) => p.id === id))
+              .filter((p): p is WorkspacePanel => !!p);
+
+            return (
+              <div
+                key={`tab-${pane}`}
+                className="absolute z-[115]"
+                style={{
+                  left: `${rect.left}%`,
+                  top: `${rect.top}%`,
+                  width: `${rect.width}%`,
+                  height: '36px',
+                }}
+              >
+                <TabBar
+                  panels={panePanels}
+                  activeId={paneActive[pane]}
+                  onSelectTab={(id) => selectTab(pane, id)}
+                  onCloseTab={closePanel}
+                  onDragStart={dnd.startTabDrag}
+                  onAddPanel={(type) => addPanel(type, pane)}
+                />
+              </div>
+            );
+          })}
+
+        {/* Content area (also used to convert mouse position → quadrant) */}
+        <div ref={contentRef} className="absolute inset-0">
+          {panels.length === 0 ? (
+            <WorkspaceEmptyState
+              onAddPanel={(action) => addPanel(EMPTY_ACTION_TO_PANEL_TYPE[action])}
+            />
+          ) : (
+            <>
+              <WorkspacePanes
+                panels={panels}
+                paneTabs={paneTabs}
+                paneActive={paneActive}
+                rects={rects}
+                cwd={currentProjectPath}
+                dropPreview={dropPreview}
+                resizing={dnd.resizing}
+                isDragging={!!dnd.dragSourceId}
+                onResizeStart={dnd.startResize}
+                onProviderChange={updatePanelProvider}
+                onContentChange={updatePanelContent}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -28,6 +28,7 @@ import { stopAllLSPServers } from './ipc/lsp-handlers';
 import { closeAllBrowserSessions } from './ipc/browser.handlers';
 import { taskStorage } from './services/TaskStorage';
 import { logger } from './utils/logger';
+import { stopServer } from './server-manager';
 // Fix EAI_AGAIN DNS errors by preferring IPv4
 try {
   if (dns.setDefaultResultOrder) {
@@ -54,6 +55,7 @@ app.on('certificate-error', (event, _webContents, _url, _error, _certificate, ca
 });
 
 export async function cleanup() {
+  stopServer(); // Dừng express-server nếu do ta spawn
   await proxyManager.stopAll();
   closeAllGenericWebWindows();
   stopAllLSPServers(); // Stop all language servers

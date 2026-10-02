@@ -29,7 +29,8 @@ import useNetworkEvents from './hooks/useNetworkEvents';
 
 // ── Services ──
 import { emulateApi } from './services/emulate-api.service';
-import { ipcService } from '../../services/ipc.service';
+import { runtimeApi } from './services/runtime-api.service';
+import { installRuntimeSseBridge } from './services/runtime-sse-bridge';
 import { EmulateController } from '../../controller/EmulateController';
 
 // ── UI ──
@@ -397,6 +398,11 @@ export default React.memo(function Emulate({
     setLoadedFromIPC(true);
   }, []);
 
+  // Cài SSE bridge một lần — thay window.api.on/off bằng EventSource.
+  useEffect(() => {
+    installRuntimeSseBridge();
+  }, []);
+
   // Handlers
   const handleSetSelectedId = useCallback(
     (id: string | null) => {
@@ -449,18 +455,18 @@ export default React.memo(function Emulate({
 
     const mode = targetStatesRef.current[targetId]?.mode;
     if (mode === 'cdp') {
-      await ipcService.disconnectCdp();
-      await ipcService.terminateApp();
+      await runtimeApi.disconnectCdp();
+      await runtimeApi.terminateApp();
     } else if (mode === 'mitm' || mode === 'frida') {
-      await ipcService.destroyProxySession('default');
-      await ipcService.terminateApp();
+      await runtimeApi.destroyProxySession('default');
+      await runtimeApi.terminateApp();
     }
 
     stopTarget(targetId);
     handleClearRequests();
 
-    // Hủy đăng ký target với main process
-    await ipcService.unregisterTarget(targetId);
+    // Hủy đăng ký target với runtime server
+    await runtimeApi.unregisterTarget(targetId);
 
     await onStopSession();
   }, [stopTarget, handleClearRequests, onStopSession]);
@@ -487,18 +493,13 @@ export default React.memo(function Emulate({
       _deviceSerial?: string,
       useSandbox?: boolean,
     ) => {
-      if (!window.api || typeof window.api.invoke !== 'function') {
-        logger.warn('[Emulate] window.api is not available.');
-        return;
-      }
-
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       try {
         const target = targetTabs.find((t) => t.id === appId);
         const launchTarget = target?.executablePath || appId;
 
-        const result = await ipcService.launchApp(
+        const result = await runtimeApi.launchApp(
           launchTarget,
           proxyUrl,
           customUrl,
@@ -518,8 +519,8 @@ export default React.memo(function Emulate({
           await addTargetTab(newTab);
           setActiveTarget(appId);
 
-          // Đăng ký target metadata với main process
-          await ipcService.registerTarget({
+          // Đăng ký target metadata với runtime server
+          await runtimeApi.registerTarget({
             targetId: appId,
             title: newTab.title,
             favicon: newTab.favicon,
@@ -538,12 +539,7 @@ export default React.memo(function Emulate({
   const handleStartEbpf = useCallback(
     async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
       try {
-        const result = await window.api.invoke(
-          'target:start-cli-ebpf',
-          targetId,
-          executablePath,
-          useSandbox,
-        );
+        const result = await runtimeApi.startCliEbpf(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
           logger.info('[Emulate] eBPF capture started:', result);
@@ -561,12 +557,7 @@ export default React.memo(function Emulate({
   const handleStartCdp = useCallback(
     async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
       try {
-        const result = await window.api.invoke(
-          'target:start-cli-cdp',
-          targetId,
-          executablePath,
-          useSandbox,
-        );
+        const result = await runtimeApi.startCliCdp(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'cdp'); // Track as active with CDP mode
           logger.info('[Emulate] CDP proxy started:', result);
@@ -584,12 +575,7 @@ export default React.memo(function Emulate({
   const handleStartPcap = useCallback(
     async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
       try {
-        const result = await window.api.invoke(
-          'target:start-cli-pcap',
-          targetId,
-          executablePath,
-          useSandbox,
-        );
+        const result = await runtimeApi.startCliPcap(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
           logger.info('[Emulate] Packet capture started:', result);
@@ -607,12 +593,7 @@ export default React.memo(function Emulate({
   const handleStartAppDebug = useCallback(
     async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
       try {
-        const result = await window.api.invoke(
-          'target:start-cli-debug',
-          targetId,
-          executablePath,
-          useSandbox,
-        );
+        const result = await runtimeApi.startCliDebug(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
           logger.info('[Emulate] App debug mode started:', result);

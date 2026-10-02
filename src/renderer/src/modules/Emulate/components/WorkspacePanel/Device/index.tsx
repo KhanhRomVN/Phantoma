@@ -35,6 +35,7 @@ import {
 
 // ── Services ──
 import { ipcService } from '../../../../../services/ipc.service';
+import { runtimeApi } from '../../../services/runtime-api.service';
 import { logcatService } from '../../../services/logcat.service';
 
 // ── Utils ──
@@ -136,14 +137,14 @@ export function DevicePanel() {
 
     try {
       if (isRunning) {
-        await ipcService.destroyProxySession('default');
+        await runtimeApi.destroyProxySession('default');
         setStatusMap((prev) => ({
           ...prev,
           [serial]: { ...prev[serial], proxy: 'stopped' },
         }));
         addLog(serial, '⏹️ Proxy stopped');
       } else {
-        await ipcService.createProxySession('default');
+        await runtimeApi.createProxySession('default');
         setStatusMap((prev) => ({
           ...prev,
           [serial]: { ...prev[serial], proxy: 'running' },

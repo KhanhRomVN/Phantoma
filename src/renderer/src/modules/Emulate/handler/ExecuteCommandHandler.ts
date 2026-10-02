@@ -3,7 +3,7 @@
  * ExecuteCommandHandler
  * ------------------------------------------------------------------
  * Handler cho tool execute_command trong Emulate module.
- * Chạy lệnh shell trong thư mục code của report thông qua IPC 'run_command'.
+ * Chạy lệnh shell trong thư mục code của report thông qua runtimeApi.exec (REST tới express-server).
  * Tool này dùng để chạy lệnh bất kỳ trong context của report (vd: node script.js).
  *
  * Main functions:
@@ -12,6 +12,7 @@
  */
 
 import { getReportCodeDir } from '../services/report-file.service';
+import { runtimeApi } from '../services/runtime-api.service';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface ExecuteCommandResult {
@@ -40,35 +41,19 @@ export class ExecuteCommandHandler {
     }
 
     try {
-      console.log('[DEBUG][execute_command] request:', { targetId, reportId, command });
       // Resolve thư mục code của report
       const folderPath = await getReportCodeDir(targetId, reportId);
-      console.log('[DEBUG][execute_command] Resolved folder:', folderPath);
 
-      const result = await window.api.invoke('run_command', {
-        command: command.trim(),
-        cwd: folderPath,
-      });
-      console.log('[DEBUG][execute_command] raw IPC result:', result);
-      console.log('[DEBUG][execute_command] fields:', {
-        success: result?.success,
-        stdout: result?.stdout,
-        stderr: result?.stderr,
-        output: result?.output,
-        data: result?.data,
-        error: result?.error,
-      });
+      const execRes = await runtimeApi.exec(command.trim(), folderPath);
+      const result = execRes.data as
+        { success: boolean; stdout?: string; stderr?: string; error?: string } | undefined;
 
       if (result?.error) {
         return { text: `[execute_command] Error: ${result.error}` };
       }
 
-      const output = result?.stdout || result?.output || result?.data || '';
+      const output = result?.stdout || '';
       const stderr = result?.stderr || '';
-      console.log('[DEBUG][execute_command] parsed:', {
-        outputLength: output.length,
-        stderrLength: stderr.length,
-      });
 
       if (stderr && !output) {
         return { text: `[execute_command] ${command}\n${stderr}` };

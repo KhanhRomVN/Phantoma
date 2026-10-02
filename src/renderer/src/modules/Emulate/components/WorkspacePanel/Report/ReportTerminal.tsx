@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
-import { getReportCodeDir } from '../../../services/report-file.service';
+import { runtimeApi } from '../../../services/runtime-api.service';
 
 /**
  * ------------------------------------------------------------------
@@ -68,29 +68,14 @@ export const ReportTerminal: React.FC<ReportTerminalProps> = ({ targetId, report
 
     // User input
     term.onData((data) => {
-      window.api.send('terminal:write', { terminalId: terminalIdRef.current, data });
+      runtimeApi.terminalWrite(terminalIdRef.current, data);
     });
-
-    // Spawn shell with report code dir as cwd
-    (async () => {
-      try {
-        const cwd = targetId && reportId ? await getReportCodeDir(targetId, reportId) : undefined;
-
-        const info: any = await window.api.invoke('terminal:spawn', {
-          terminalId: terminalIdRef.current,
-          cwd,
-        });
-        console.log('[ReportTerminal] Shell spawned:', info.shell, 'cwd:', cwd);
-      } catch (err: any) {
-        term.writeln(`\x1b[1;31m✖\x1b[0m Failed to spawn shell: ${err?.message || err}`);
-      }
-    })();
 
     const handleResize = () => {
       try {
         fitAddon.fit();
         const { cols, rows } = term;
-        window.api.send('terminal:resize', { terminalId: terminalIdRef.current, cols, rows });
+        runtimeApi.terminalResize(terminalIdRef.current, cols, rows);
       } catch {
         // ignore
       }
@@ -99,7 +84,7 @@ export const ReportTerminal: React.FC<ReportTerminalProps> = ({ targetId, report
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.api.invoke('terminal:kill', terminalIdRef.current).catch(() => {});
+      runtimeApi.terminalKill(terminalIdRef.current);
       term.dispose();
       xtermRef.current = null;
     };

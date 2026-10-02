@@ -91,7 +91,7 @@ export function attachAgentToProject(projectId: string, providerId: string): voi
   }
 
   const updatedSession = { ...session, agents, status: 'running' as const };
-  const branches = project.branches.map((branch, branchIdx) =>
+  const branches = (project.branches ?? []).map((branch, branchIdx) =>
     branchIdx !== 0
       ? branch
       : {
