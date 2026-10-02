@@ -23,6 +23,8 @@ export { setupConversationHandlers } from './conversation.handlers';
 export { setupWindowHandlers } from './window.handlers';
 export { setupTerminalHandlers } from './terminal.handlers';
 export { setupGitHandlers } from './git.handlers';
+export { setupTaskHandlers } from './task.handlers';
 export { setupLoggerHandlers } from './logger.handlers';
 export { setupBrowserHandlers, closeAllBrowserSessions } from './browser.handlers';
 export { setupTargetHandlers, setupCliCaptureHandlers } from './target.handlers';
+export { registerWorkspaceHandlers } from './workspace.handlers';

@@ -1,0 +1,194 @@
+/* ------------------------------------------------------------------
+ * ProjectPanel — animations & state styles (ported from ProjectPanel.html)
+ * Imported by SessionCard.tsx. Replaces any existing pp-* definitions.
+ * ------------------------------------------------------------------ */
+
+@keyframes pp-core {
+  50% {
+    transform: scale(0.8);
+  }
+}
+@keyframes pp-ring {
+  0% {
+    transform: scale(1);
+    opacity: var(--o, 0.6);
+  }
+  100% {
+    transform: scale(2.7);
+    opacity: 0;
+  }
+}
+@keyframes pp-beat {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  16% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+  28% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  44% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes pp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pp-aring {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+@keyframes pp-abeat {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  16% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+  28% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  44% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── Status dot ── */
+.pp-dot-running {
+  animation: pp-core 1.6s ease-in-out infinite;
+}
+.pp-dot-running::after,
+.pp-dot-review::after,
+.pp-dot-blocked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  pointer-events: none;
+}
+.pp-dot-running::after {
+  animation: pp-ring 1.6s ease-out infinite;
+}
+.pp-dot-review::after {
+  animation: pp-ring 2.8s ease-out infinite;
+  --o: 0.45;
+}
+.pp-dot-blocked::after {
+  animation: pp-beat 1.8s ease-out infinite;
+}
+.pp-dot-queued::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px dashed rgb(var(--text-secondary));
+  animation: pp-spin 3s linear infinite;
+}
+
+/* ── Agent avatar rings (.pp-aa is the base, so these out-rank utility borders) ── */
+.pp-aa.pp-aa-run {
+  border-color: rgba(61, 220, 132, 0.2);
+}
+.pp-aa.pp-aa-run::after {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: #3ddc84;
+  border-right-color: rgba(61, 220, 132, 0.35);
+  animation: pp-spin 0.9s linear infinite;
+}
+.pp-aa.pp-aa-err {
+  border-color: #ff4757;
+}
+.pp-aa.pp-aa-wait {
+  border-color: #ffb020;
+}
+.pp-aa.pp-aa-err::after,
+.pp-aa.pp-aa-wait::after {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 50%;
+  border: 1.5px solid #ff4757;
+  pointer-events: none;
+  animation: pp-abeat 1.8s ease-out infinite;
+}
+.pp-aa.pp-aa-wait::after {
+  border-color: #ffb020;
+  animation: pp-aring 2.8s ease-out infinite;
+}
+.pp-aa.pp-aa-que {
+  border: 1.5px dashed rgb(var(--text-secondary) / 0.5);
+}
+.pp-aa.pp-aa-done {
+  opacity: 0.45;
+}
+
+/* ── Process pill dot ── */
+.pp-pd-live {
+  animation: pp-core 1.6s ease-in-out infinite;
+}
+.pp-pd-crashed {
+  animation: pp-core 1s ease-in-out infinite;
+}
+.pp-pd-busy {
+  width: 7px !important;
+  height: 7px !important;
+  background: none !important;
+  border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  animation: pp-spin 0.8s linear infinite;
+}
+.pp-spin {
+  animation: pp-spin 0.9s linear infinite;
+}
+
+/* ── Drag & drop feedback ── */
+.pp-dragging {
+  opacity: 0.35;
+}
+.pp-dragover {
+  box-shadow: inset 0 2px 0 #ff6a1f;
+}
+.pp-dragover[data-branch] {
+  box-shadow: none;
+  outline: 1px solid #ff6a1f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*='pp-dot-'],
+  [class*='pp-dot-']::after,
+  .pp-aa::after,
+  .pp-pd-live,
+  .pp-pd-busy,
+  .pp-pd-crashed,
+  .pp-spin {
+    animation: none !important;
+  }
+}

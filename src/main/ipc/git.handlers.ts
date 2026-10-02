@@ -42,6 +42,35 @@ function runGit(
 }
 
 export function setupGitHandlers(): void {
+  // ── List Branches ──
+  ipcMain.handle('git:list-branches', async (_event, projectPath: string) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      
+      // Get all branches (local and remote), formatted as short names
+      // Using --format="%(refname:short)" gives clean names like "main", "feature/x"
+      // Filtering out remotes/HEAD to avoid duplicates/confusion
+      const result = await runGit(
+        ['branch', '-a', '--format=%(refname:short)'], 
+        cwd
+      );
+
+      if (result.error) {
+        return { error: result.stderr || result.error.message };
+      }
+
+      const branches = result.stdout
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0 && !line.startsWith('remotes/origin/HEAD'));
+
+      return { branches };
+    } catch (e: any) {
+      logger.error('[git:list-branches] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
   // ── Status ──
   ipcMain.handle('git:status', async (_event, projectPath?: string) => {
     try {

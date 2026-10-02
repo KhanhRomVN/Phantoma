@@ -23,35 +23,68 @@ import { logger } from '@renderer/utils/logger';
 // ── React ──
 import { useEffect, useRef, useState } from 'react';
 
-// ── Hooks ──
-import { useCodeStore } from './hooks/useCodeStore';
+// ── Hooks & Types ──
+import { useCodeStore, type FileNode } from './hooks/useCodeStore';
 
 // ── Components ──
-import { OpenProjectModal, scanDirectory } from './components/modal/OpenProjectModal';
-import { NewProjectModal } from './components/modal/NewProjectModal';
 import { ContentPanel } from './components/ContentPanel';
 import { ActivityPanel } from './components/ActivityPanel';
 import { ToastContainer } from './components/common/ToastContainer';
 import { FooterBar } from './components/FooterBar';
-import { SaveConfirmModal } from './components/modal/SaveConfirmModal';
-import { QuickOpenModal } from './components/modal/QuickOpenModal';
-import { ProjectPanel } from './components/ProjectPanel';
+import { ProjectPanel } from './components/ProjectPanel/ProjectPanel';
+
+// ─── Directory Scanner ─────────────────────────────────────────────────
+
+interface DirEntry {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  size: number;
+  mtime: number;
+}
+
+let scanIdCounter = 0;
+
+/** Recursively scans a directory via IPC and builds a FileNode tree. */
+async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
+  if (depth > 8) return []; // safety cap against runaway recursion
+  let entries: DirEntry[];
+  try {
+    entries = await window.api.invoke('fs:list-dir', dirPath);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(entries)) return [];
+
+  const nodes: FileNode[] = [];
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+    const node: FileNode = {
+      id: `scan_${++scanIdCounter}`,
+      name: entry.name,
+      type: entry.isDirectory ? 'folder' : 'file',
+      path: entry.path,
+    };
+    if (entry.isDirectory) {
+      node.children = await scanDirectory(entry.path, depth + 1);
+    }
+    nodes.push(node);
+  }
+  return nodes;
+}
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function Code() {
   // ── Store ──
   const {
-    isProjectManagerOpen,
     setProjectManagerOpen,
-    isNewProjectOpen,
     setNewProjectOpen,
     projects,
-    currentProjectId,
     hydrateProjectFiles,
     hasUnsavedChanges,
   } = useCodeStore();
   // ── State ──
-  const [isQuickOpenOpen, setQuickOpenOpen] = useState(false);
+  const [, setQuickOpenOpen] = useState(false);
 
   // ── Refs ──
   const hydratedRef = useRef(false);
@@ -78,10 +111,10 @@ export function Code() {
     projects.forEach((project) => {
       if (project.path && project.files.length === 0) {
         scanDirectory(project.path)
-          .then((files) => {
+          .then((files: FileNode[]) => {
             hydrateProjectFiles(project.id, files);
           })
-          .catch((err) => {
+          .catch((err: unknown) => {
             logger.error('[Code] Failed to scan directory:', err);
           });
       }
@@ -200,13 +233,6 @@ export function Code() {
         <ActivityPanel />
       </div>
       <FooterBar />
-      <OpenProjectModal
-        isOpen={isProjectManagerOpen}
-        onClose={() => setProjectManagerOpen(false)}
-      />
-      <NewProjectModal isOpen={isNewProjectOpen} onClose={() => setNewProjectOpen(false)} />
-      <QuickOpenModal isOpen={isQuickOpenOpen} onClose={() => setQuickOpenOpen(false)} />
-      <SaveConfirmModal />
     </div>
   );
 }

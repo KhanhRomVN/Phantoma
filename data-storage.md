@@ -92,12 +92,37 @@ Lưu trữ hội thoại của phiên recon.
 <a name="code-system-path"></a>
 ### Code:{system_path}
 
-Lưu trữ hội thoại của phiên code.
+Lưu trữ dữ liệu của module Code theo từng project. Đường dẫn `{system_path}` là base64url encode của absolute path project (vd: `/home/user/proj` → `L2hvbWUvdXNlci9wcm9q`).
 
-```
+
 ~/.phantoma/code:{system_path}/
-└── conversations/
+├── task.sqlite              ← SQLite DB chứa bảng `tasks` (kanban board)
+├── task.sqlite-wal          ← Write-ahead log
+├── task.sqlite-shm          ← Shared memory
+└── conversations/           ← Hội thoại AI assistant
     └── {conversationId}.json
+
+
+#### Schema `task.sqlite`
+
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id          TEXT PRIMARY KEY,
+  title       TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  status      TEXT CHECK(status IN ('todo','progress','review','done')) DEFAULT 'todo',
+  priority    TEXT CHECK(priority IN ('low','medium','high')) DEFAULT 'medium',
+  session_id  TEXT DEFAULT NULL,   -- FK mềm tới conversation/session id
+  branch_name TEXT DEFAULT NULL,   -- Tên git branch liên kết
+  due_date    INTEGER DEFAULT NULL,-- Unix ms timestamp
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX idx_tasks_status ON tasks(status);
+CREATE INDEX idx_tasks_session ON tasks(session_id);
+
+
+Quản lý qua IPC channels `task:list`, `task:get`, `task:create`, `task:update`, `task:delete` (xem `src/main/ipc/task.handlers.ts`).
 ```
 
 ---

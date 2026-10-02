@@ -16,18 +16,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-// ── React ──
-import { useState, useEffect, useCallback } from 'react';
-
-// ── UI ──
-import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-
-// ── Hooks ──
-import { useCodeStore } from '../hooks/useCodeStore';
-
-// ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
-
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface FooterBarProps {
   className?: string;

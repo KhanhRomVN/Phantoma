@@ -404,7 +404,7 @@ export const Dropdown = React.memo(function Dropdown({
               createPortal(
                 <div
                   ref={contentRef}
-                  className="fixed z-[9999] bg-background border border-border rounded-lg shadow-primary min-w-[200px] overflow-hidden"
+                  className="fixed z-[9999] bg-background border border-border rounded-lg min-w-[200px]"
                   style={{
                     top: position.top,
                     left: position.left,
@@ -437,7 +437,7 @@ export const Dropdown = React.memo(function Dropdown({
                 ref={contentRef}
                 className={cn(
                   getRelativePositionClasses(),
-                  'bg-background border border-border rounded-lg shadow-primary min-w-[200px] overflow-hidden',
+                  'bg-background border border-border rounded-lg min-w-[200px]',
                 )}
                 style={{
                   opacity: isPositioned ? 1 : 0,

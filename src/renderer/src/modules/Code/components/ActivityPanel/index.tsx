@@ -20,21 +20,23 @@
 // ── React ──
 import { useRef, useState } from 'react';
 
-// ── UI ──
+// ── UI ─
 import {
   Folder,
   Search as SearchIcon,
   GitBranch,
+  Bot,
 } from 'lucide-react';
 
 // ── Hooks ──
 import { useCodeStore } from '../../hooks/useCodeStore';
 
-// ── Components ──
+// ── Components ─
 import { ActivityBar } from './ActivityBar';
 import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { SourceControl } from './SourceControl';
+import { Agent } from './Agent';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -47,6 +49,11 @@ const TABS = [
     id: 'source',
     icon: <GitBranch className="w-4 h-4" />,
     label: 'Source Control',
+  },
+  {
+    id: 'agents',
+    icon: <Bot className="w-4 h-4" />,
+    label: 'Agent',
   },
 ];
 
@@ -104,6 +111,8 @@ export function ActivityPanel() {
         return <Search />;
       case 'source':
         return <SourceControl />;
+      case 'agents':
+        return <Agent />;
       default:
         return <FileExplore />;
     }

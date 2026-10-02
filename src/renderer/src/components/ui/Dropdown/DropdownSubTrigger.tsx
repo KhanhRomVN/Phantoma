@@ -23,7 +23,7 @@ export function DropdownSubTrigger({
   return (
     <div
       className={cn(
-        'w-full flex items-center justify-between gap-2 px-3 py-1.5 text-sm transition-colors cursor-pointer whitespace-nowrap text-text-primary hover:bg-dropdown-item-hover',
+        'w-full h-[30px] flex items-center justify-between gap-2 px-3 text-xs leading-none transition-colors cursor-pointer whitespace-nowrap rounded-md text-text-primary hover:bg-dropdown-item-hover',
         disabled && 'opacity-50 cursor-not-allowed hover:bg-transparent',
         open && 'bg-dropdown-item-hover',
         className,
@@ -31,10 +31,10 @@ export function DropdownSubTrigger({
       {...props}
     >
       <div className="flex items-center gap-2">
-        {icon && <span className="shrink-0">{icon}</span>}
-        <span>{children}</span>
+        {icon && <span className="shrink-0 flex items-center [&_svg]:h-3.5 [&_svg]:w-3.5">{icon}</span>}
+        <span className="leading-none">{children}</span>
       </div>
-      <ChevronRight className="shrink-0 text-text-secondary" />
+      <ChevronRight className="shrink-0 text-text-secondary h-3.5 w-3.5" />
     </div>
   );
 }

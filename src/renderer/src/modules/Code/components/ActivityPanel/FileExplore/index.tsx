@@ -55,6 +55,34 @@ import {
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../../hooks/useCodeStore';
 
+// Local helper to avoid circular dependency or missing export in AddProjectModal
+async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
+  if (depth > 8) return []; // safety cap against runaway recursion
+  let entries: Array<{ name: string; path: string; isDirectory: boolean }> = [];
+  try {
+    entries = await window.api.invoke('fs:list-dir', dirPath);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(entries)) return [];
+
+  const nodes: FileNode[] = [];
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+    const node: FileNode = {
+      id: `scan_${Math.random().toString(36).slice(2, 9)}`,
+      name: entry.name,
+      type: entry.isDirectory ? 'folder' : 'file',
+      path: entry.path,
+    };
+    if (entry.isDirectory) {
+      node.children = await scanDirectory(entry.path, depth + 1);
+    }
+    nodes.push(node);
+  }
+  return nodes;
+}
+
 // ── Utils ──
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { cn } from '@renderer/shared/utils/cn';
@@ -100,8 +128,6 @@ const fetchDirChildren = async (dirPath: string): Promise<FileNode[]> => {
 };
 
 async function refreshProjectTree(projectId: string, projectPath: string) {
-  const { scanDirectory } =
-    await import('@renderer/modules/Code/components/modal/OpenProjectModal');
   const { setProjectFiles } = useCodeStore.getState();
   const files = await scanDirectory(projectPath);
   setProjectFiles(projectId, files);

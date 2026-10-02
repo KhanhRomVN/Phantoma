@@ -1,0 +1,1849 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Phantoma — ProjectPanel (Fake UI)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --ember: #ff6a1f;
+        --blue: #4fa8e0;
+        --violet: #a078ff;
+        --green: #3ddc84;
+        --red: #ff4757;
+        --amber: #ffb020;
+        --neutral: #4a4d57;
+        --teal: #32c8be;
+        --bg: #0a0a0c;
+        --card: #131417;
+        --hover: #1b1d22;
+        --drop: #202329;
+        --border: #26282f;
+        --div: #1d1f25;
+        --t1: #e8e9ed;
+        --t2: #8b8d96;
+        --t3: rgba(139, 141, 150, 0.5);
+        --disp: 'Space Grotesk', sans-serif;
+        --mono: 'JetBrains Mono', monospace;
+      }
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--t1);
+        font:
+          13px 'Inter',
+          system-ui,
+          sans-serif;
+        overflow: hidden;
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 3px;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        cursor: pointer;
+      }
+      .stage {
+        height: 100%;
+        display: flex;
+        background: repeating-linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.012) 0 10px,
+          transparent 10px 20px
+        );
+      }
+      .stage-note {
+        margin: auto;
+        color: var(--t3);
+        font-size: 12px;
+        max-width: 280px;
+        text-align: center;
+        line-height: 1.7;
+      }
+      .icon {
+        width: 14px;
+        height: 14px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex-shrink: 0;
+      }
+      .icon.xs {
+        width: 11px;
+        height: 11px;
+      }
+      #panel {
+        width: 340px;
+        height: 100%;
+        background: var(--bg);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .head {
+        padding: 0 12px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--div);
+        flex-shrink: 0;
+      }
+      .head b {
+        font: 600 13px var(--disp);
+      }
+      .head b span {
+        font: 500 10.5px var(--mono);
+        color: var(--t3);
+        margin-left: 6px;
+      }
+      .tools {
+        display: flex;
+        gap: 2px;
+        align-items: center;
+      }
+      .ib {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--t2);
+        position: relative;
+      }
+      .ib:hover {
+        background: var(--hover);
+        color: var(--t1);
+      }
+      .ib.on {
+        color: var(--ember);
+        background: rgba(255, 106, 31, 0.1);
+      }
+      .ib i {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        font: 600 8px var(--mono);
+        font-style: normal;
+        background: var(--neutral);
+        color: #fff;
+        border-radius: 6px;
+        padding: 0 3px;
+      }
+      .ib i.pip {
+        width: 6px;
+        height: 6px;
+        padding: 0;
+        top: 3px;
+        right: 3px;
+        background: var(--ember);
+      }
+      .list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      .dot {
+        position: relative;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: var(--neutral);
+        transition: background 0.3s;
+      }
+      .dot.running {
+        background: var(--green);
+        animation: core 1.6s ease-in-out infinite;
+      }
+      .dot.review {
+        background: var(--amber);
+      }
+      .dot.done {
+        background: var(--teal);
+      }
+      .dot.blocked {
+        background: var(--red);
+      }
+      .dot.queued {
+        background: var(--neutral);
+      }
+      .dot.idle {
+        background: transparent;
+        border: 1.5px solid var(--t3);
+      }
+      .dot.running::after,
+      .dot.review::after,
+      .dot.blocked::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: inherit;
+        pointer-events: none;
+      }
+      .dot.running::after {
+        animation: ring 1.6s ease-out infinite;
+      }
+      .dot.review::after {
+        animation: ring 2.8s ease-out infinite;
+        --o: 0.45;
+      }
+      .dot.blocked::after {
+        animation: beat 1.8s ease-out infinite;
+      }
+      .dot.queued::after {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border-radius: 50%;
+        border: 1px dashed var(--t2);
+        animation: spin 3s linear infinite;
+      }
+      @keyframes core {
+        50% {
+          transform: scale(0.8);
+        }
+      }
+      @keyframes ring {
+        0% {
+          transform: scale(1);
+          opacity: var(--o, 0.6);
+        }
+        100% {
+          transform: scale(2.7);
+          opacity: 0;
+        }
+      }
+      @keyframes beat {
+        0% {
+          transform: scale(1);
+          opacity: 0.7;
+        }
+        16% {
+          transform: scale(2.6);
+          opacity: 0;
+        }
+        28% {
+          transform: scale(1);
+          opacity: 0.7;
+        }
+        44% {
+          transform: scale(2.6);
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .dot,
+        .dot::after,
+        .aa::after,
+        .pp .pd {
+          animation: none !important;
+        }
+      }
+
+      /* groups */
+      .gh {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--div);
+        cursor: pointer;
+        user-select: none;
+        font: 600 10.5px var(--mono);
+        color: var(--t2);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .gh:hover {
+        color: var(--t1);
+      }
+      .gh .gn {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .gh .cnt {
+        color: var(--t3);
+        font-weight: 500;
+      }
+      .gh .kebab {
+        opacity: 0;
+      }
+      .gh:hover .kebab {
+        opacity: 1;
+      }
+      .gh .gf {
+        color: var(--violet);
+      }
+      .gin {
+        flex: 1;
+        min-width: 0;
+        background: var(--bg);
+        border: 1px solid var(--ember);
+        border-radius: 5px;
+        color: var(--t1);
+        font: 500 11px var(--mono);
+        text-transform: none;
+        letter-spacing: 0;
+        padding: 2px 6px;
+        outline: 0;
+      }
+      .gl {
+        padding: 8px 12px 4px;
+        font: 500 10px var(--mono);
+        color: var(--t3);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* project card */
+      .pc {
+        position: relative;
+        border-bottom: 1px solid var(--div);
+      }
+      .pc.sel::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--ember);
+      }
+      .pc-top:hover {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .pc.hid {
+        opacity: 0.5;
+      }
+      .pc.dragover {
+        box-shadow: inset 0 2px 0 var(--ember);
+      }
+      .pc.dragging {
+        opacity: 0.35;
+      }
+      .pc-top {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 9px 12px 10px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .pt1 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .pt2 {
+        display: flex;
+        gap: 4px;
+        padding-left: 30px;
+      }
+      .pname {
+        font: 600 12.5px var(--disp);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--t2);
+        flex: 1;
+        transition: color 0.15s;
+      }
+      .sel .pname,
+      .pc-top:hover .pname {
+        color: var(--t1);
+      }
+      .tag {
+        font-size: 9.5px;
+        color: var(--t3);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 0 5px;
+      }
+      .chev {
+        color: var(--t3);
+      }
+      .kebab {
+        opacity: 0;
+        color: var(--t2);
+      }
+      .pc-top:hover .kebab {
+        opacity: 1;
+      }
+      .tm {
+        width: 22px;
+        height: 22px;
+      }
+      .tc {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        height: 20px;
+        font: 500 10.5px var(--mono);
+        line-height: 1;
+        color: var(--t2);
+        padding: 0 7px 0 6px;
+        border-radius: 5px;
+        background: var(--card);
+        border: 1px solid var(--div);
+      }
+      .tc.z {
+        opacity: 0.4;
+      }
+      .tc .tk-i {
+        width: 11px;
+        height: 11px;
+        border-width: 1.5px;
+      }
+      .pi {
+        width: 22px;
+        height: 22px;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: var(--c);
+        background: color-mix(in srgb, var(--c) 14%, transparent);
+      }
+      .pi .icon {
+        width: 13px;
+        height: 13px;
+      }
+      .pc-more {
+        padding: 0 8px 10px 12px;
+        gap: 1px;
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+      }
+      .pc-more .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 6px;
+        border-radius: 6px;
+        min-width: 0;
+      }
+      .pc-body {
+        padding: 2px 12px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        position: relative;
+      }
+      .pc-body.enter {
+        animation: enter 0.18s ease-out;
+      }
+      @keyframes enter {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+      }
+      .pc-body .br {
+        padding-bottom: 12px;
+      }
+      .pc-body .br:last-child {
+        padding-bottom: 0;
+      }
+      .br {
+        border-radius: 8px;
+        position: relative;
+      }
+      .br.dragover {
+        outline: 1px solid var(--ember);
+      }
+      .br.dragging {
+        opacity: 0.35;
+      }
+      .br-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 2px;
+        font: 500 11px var(--mono);
+        color: var(--t2);
+        cursor: default;
+      }
+      .br-head .bn {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .br-head .kebab {
+        opacity: 0;
+      }
+      .br-head:hover .kebab {
+        opacity: 1;
+      }
+      .hb {
+        height: 20px;
+        min-width: 20px;
+        padding: 0 4px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        color: var(--t2);
+        font: 500 10px var(--mono);
+      }
+      .hb:hover:not([disabled]) {
+        background: var(--hover);
+        color: var(--t1);
+      }
+      .hb.add {
+        color: var(--ember);
+      }
+      .hb[disabled] {
+        color: var(--t3);
+        cursor: not-allowed;
+      }
+      .sc {
+        background: var(--card);
+        border: 1px solid var(--div);
+        border-radius: 8px;
+        padding: 9px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        cursor: pointer;
+        transition: border-color 0.15s;
+      }
+      .sc:hover {
+        border-color: rgba(255, 106, 31, 0.3);
+      }
+      .sc.blocked {
+        border-color: rgba(255, 71, 87, 0.35);
+      }
+      .sc-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .sc-title .tt {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ag {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .agc {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--hover);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 1px 8px 1px 2px;
+        font-size: 10px;
+        color: var(--t2);
+      }
+      .an {
+        display: flex;
+        gap: 9px;
+        flex-wrap: wrap;
+        font: 400 10.5px var(--mono);
+        color: var(--t3);
+      }
+      .an b {
+        font-weight: 500;
+        color: var(--t2);
+      }
+      .an .a {
+        color: var(--green);
+      }
+      .an .r {
+        color: var(--red);
+      }
+      .hint {
+        font-size: 11px;
+        color: var(--red);
+        background: rgba(255, 71, 87, 0.08);
+        border-radius: 5px;
+        padding: 4px 8px;
+      }
+      .empty {
+        text-align: center;
+        color: var(--t3);
+        font-size: 11.5px;
+        padding: 24px 10px;
+      }
+
+      /* tasks */
+      .tk-i {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        border: 1.5px solid var(--c);
+        flex-shrink: 0;
+      }
+      .tk-i.todo {
+        --c: var(--t2);
+      }
+      .tk-i.progress {
+        --c: var(--blue);
+        background: conic-gradient(var(--c) 0 50%, transparent 0);
+      }
+      .tk-i.review {
+        --c: var(--amber);
+        background: radial-gradient(var(--c) 0 32%, transparent 36%);
+      }
+      .tk-i.done {
+        --c: var(--green);
+        background: var(--c);
+      }
+      .tk {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 6px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        min-width: 0;
+      }
+      .tk:hover {
+        background: var(--hover);
+      }
+      .tk .tt {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .tk.done .tt {
+        color: var(--t3);
+        text-decoration: line-through;
+      }
+      .tkp {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        font: 10px var(--mono);
+        color: var(--t2);
+        padding: 1px 5px;
+        border-radius: 5px;
+        flex-shrink: 0;
+      }
+      .tkp:hover {
+        background: var(--drop);
+        color: var(--t1);
+      }
+      .sc .tk {
+        background: var(--bg);
+        padding: 5px 7px;
+      }
+
+      /* dropdown */
+      #menu {
+        position: fixed;
+        z-index: 50;
+        min-width: 210px;
+        max-height: 80vh;
+        overflow-y: auto;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 4px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+        display: none;
+      }
+      #menu.open {
+        display: block;
+      }
+      .mi {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 9px;
+        border-radius: 6px;
+        font-size: 12px;
+        color: var(--t1);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .mi:hover {
+        background: var(--drop);
+      }
+      .mi .ck {
+        width: 14px;
+        color: var(--ember);
+        flex-shrink: 0;
+      }
+      .mi.dim {
+        color: var(--t2);
+      }
+      .mi.danger {
+        color: var(--red);
+      }
+      .mi .r {
+        margin-left: auto;
+        font: 10px var(--mono);
+        color: var(--t3);
+      }
+      .ml {
+        font-size: 10.5px;
+        color: var(--t3);
+        padding: 6px 9px 3px;
+      }
+      .msep {
+        height: 1px;
+        background: var(--div);
+        margin: 4px 2px;
+      }
+      #toast {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        background: var(--drop);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 12px;
+        font-size: 12px;
+        opacity: 0;
+        transform: translateY(6px);
+        transition: 0.2s;
+        pointer-events: none;
+        z-index: 60;
+      }
+      #toast.on {
+        opacity: 1;
+        transform: none;
+      }
+
+      /* agent avatar */
+      .aa {
+        position: relative;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--ac);
+        color: #fff;
+        font: 700 7.5px var(--disp);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid var(--border);
+        box-shadow: inset 0 0 0 1.5px var(--bg);
+        flex-shrink: 0;
+      }
+      .aa.sm {
+        width: 16px;
+        height: 16px;
+        font-size: 6.5px;
+        box-shadow: inset 0 0 0 1px var(--hover);
+      }
+      .aa.run {
+        border-color: rgba(61, 220, 132, 0.2);
+      }
+      .aa.run::after {
+        content: '';
+        position: absolute;
+        inset: -1.5px;
+        border-radius: 50%;
+        border: 1.5px solid transparent;
+        border-top-color: var(--green);
+        border-right-color: rgba(61, 220, 132, 0.35);
+        animation: spin 0.9s linear infinite;
+      }
+      .aa.err {
+        border-color: var(--red);
+      }
+      .aa.wait {
+        border-color: var(--amber);
+      }
+      .aa.err::after,
+      .aa.wait::after {
+        content: '';
+        position: absolute;
+        inset: -1.5px;
+        border-radius: 50%;
+        border: 1.5px solid var(--red);
+        pointer-events: none;
+        animation: abeat 1.8s ease-out infinite;
+      }
+      .aa.wait::after {
+        border-color: var(--amber);
+        animation: aring 2.8s ease-out infinite;
+      }
+      .aa.que {
+        border: 1.5px dashed var(--t3);
+      }
+      .aa.done {
+        opacity: 0.45;
+      }
+      @keyframes aring {
+        0% {
+          transform: scale(1);
+          opacity: 0.55;
+        }
+        100% {
+          transform: scale(1.7);
+          opacity: 0;
+        }
+      }
+      @keyframes abeat {
+        0% {
+          transform: scale(1);
+          opacity: 0.7;
+        }
+        16% {
+          transform: scale(1.7);
+          opacity: 0;
+        }
+        28% {
+          transform: scale(1);
+          opacity: 0.7;
+        }
+        44% {
+          transform: scale(1.7);
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      .al {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        padding: 3px 6px;
+        border-radius: 6px;
+      }
+      .al .abn {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font: 500 10.5px var(--mono);
+        color: var(--t1);
+      }
+      .al .ags {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .al .more {
+        font: 500 10px var(--mono);
+        color: var(--t3);
+      }
+      .al.dim .abn {
+        color: var(--t3);
+      }
+      .al .tst {
+        font: 10px var(--mono);
+        color: var(--t3);
+      }
+      .al[data-sid] {
+        cursor: pointer;
+        transition: background 0.12s;
+      }
+      .al[data-sid]:hover {
+        background: var(--hover);
+      }
+      .al.on {
+        background: rgba(255, 106, 31, 0.09) !important;
+      }
+      .tnfoot {
+        padding: 5px 6px 0 18px;
+        font-size: 10.5px;
+        color: var(--t3);
+      }
+
+      /* background processes */
+      .prs {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        background: var(--bg);
+        border-radius: 6px;
+        padding: 3px;
+      }
+      .pr {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 3px 5px;
+        border-radius: 4px;
+        font: 11px var(--mono);
+        min-width: 0;
+      }
+      .pr:hover {
+        background: var(--hover);
+      }
+      .pr .icon {
+        width: 12px;
+        height: 12px;
+      }
+      .pr.live .pri {
+        color: var(--green);
+      }
+      .pr.busy .pri {
+        color: var(--blue);
+      }
+      .pr.crashed .pri {
+        color: var(--red);
+      }
+      .pr.busy .pri .icon {
+        animation: spin 0.9s linear infinite;
+      }
+      .prc {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .pr.crashed .prc {
+        color: var(--t2);
+      }
+      .prp {
+        font-size: 10px;
+        color: var(--t2);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 0 5px;
+      }
+      .prx {
+        font-size: 10px;
+        color: var(--red);
+      }
+      .prk {
+        opacity: 0;
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        color: var(--t2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .pr:hover .prk {
+        opacity: 1;
+      }
+      .prk:hover {
+        background: var(--drop);
+        color: var(--red);
+      }
+      .prk .icon {
+        width: 10px;
+        height: 10px;
+      }
+      .pp {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font: 500 10.5px var(--mono);
+        padding: 2px 6px 2px 5px;
+        border-radius: 5px;
+        color: var(--c);
+        background: color-mix(in srgb, var(--c) 14%, transparent);
+      }
+      .pp .icon {
+        width: 11px;
+        height: 11px;
+      }
+      .pp.live {
+        --c: var(--green);
+      }
+      .pp.busy {
+        --c: var(--blue);
+      }
+      .pp.crashed {
+        --c: var(--red);
+      }
+      .pp .pd {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--c);
+      }
+      .pp.live .pd {
+        animation: core 1.6s ease-in-out infinite;
+      }
+      .pp.crashed .pd {
+        animation: core 1s ease-in-out infinite;
+      }
+      .pp.busy .pd {
+        width: 7px;
+        height: 7px;
+        background: none;
+        border: 1.5px solid color-mix(in srgb, var(--c) 30%, transparent);
+        border-top-color: var(--c);
+        animation: spin 0.8s linear infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div id="panel"></div>
+      <div class="stage-note">
+        ProjectPanel only.<br />Click a project to expand · right-click a project, branch or group
+        for the menu · drag cards to reorder (Manual sort).
+      </div>
+    </div>
+    <div id="menu"></div>
+    <div id="toast"></div>
+    <script>
+      /* ═══ MOCK DATA ═══ */
+      const AC = { O: '#ff6a1f', X: '#a078ff', C: '#4fa8e0', G: '#3ddc84', R: '#ff78aa' };
+      const ag = (n, st, subs = []) => ({
+        n,
+        c: AC[n[0]] || '#8b8d96',
+        ini: n.slice(0, 2),
+        st,
+        subs,
+      });
+      const sm = (tok, cost, add, rem, files, dur) => ({ tok, cost, add, rem, files, dur });
+      let TK = 0;
+      const tk = (title, st) => ({ id: 't' + ++TK, title, st });
+      const GROUPS = [{ id: 'g1', name: 'Client work', open: true }];
+      const PROJECTS = [
+        {
+          id: 'p1',
+          g: 'g1',
+          name: 'acme-web',
+          color: '#4fa8e0',
+          hidden: false,
+          branches: [
+            {
+              name: 'main',
+              vis: true,
+              sessions: [
+                {
+                  id: 's0',
+                  task: tk('Bump deps', 'done'),
+                  procs: [{ cmd: 'npm run dev', st: 'live', port: 5173 }],
+                  title: 'Bump deps & fix lint',
+                  st: 'done',
+                  t: '1d',
+                  agents: [ag('Codex-1', 'done')],
+                  sum: sm(12, 0.11, 18, 20, 5, '6m'),
+                },
+              ],
+            },
+            {
+              name: 'feature/checkout-flow-v2',
+              vis: true,
+              sessions: [
+                {
+                  id: 's1',
+                  task: tk('Shipping address form', 'progress'),
+                  procs: [
+                    { cmd: 'npm run dev', st: 'live', port: 3000 },
+                    { cmd: 'npm run test:watch', st: 'busy' },
+                  ],
+                  title: 'Rebuild shipping address form',
+                  st: 'running',
+                  t: '8m',
+                  agents: [
+                    ag('Orca-1', 'working', [{ n: 'ui-review', st: 'working' }]),
+                    ag('Codex-2', 'working'),
+                  ],
+                  sum: sm(48, 0.42, 96, 14, 6, '23m'),
+                },
+              ],
+            },
+            {
+              name: 'feature/checkout-baseline',
+              vis: true,
+              sessions: [
+                {
+                  id: 's2',
+                  task: tk('Get sandbox payment key', 'progress'),
+                  procs: [{ cmd: 'npm run build', st: 'crashed', code: 1 }],
+                  title: 'Waiting for sandbox payment API key',
+                  st: 'blocked',
+                  t: '20m',
+                  agents: [ag('Claude-4', 'blocked', [{ n: 'payments', st: 'blocked' }])],
+                  sum: sm(9, 0.15, 4, 0, 1, '7m'),
+                  hint: 'Project owner must provide the key to continue',
+                },
+              ],
+            },
+            {
+              name: 'feature/auth-session-refresh',
+              vis: false,
+              sessions: [
+                {
+                  id: 's3',
+                  task: tk('Audit login sessions', 'todo'),
+                  title: 'Audit login sessions',
+                  st: 'queued',
+                  t: '5h',
+                  agents: [ag('Orca-3', 'queued')],
+                  sum: sm(0, 0, 0, 0, 0, '—'),
+                },
+              ],
+            },
+            { name: 'feature/cart-recovery-email', vis: false, sessions: [] },
+            { name: 'release/1.2', vis: false, sessions: [] },
+          ],
+        },
+        {
+          id: 'p2',
+          g: 'g1',
+          name: 'acme-internal',
+          color: '#ffb020',
+          hidden: false,
+          branches: [
+            { name: 'main', vis: true, sessions: [] },
+            {
+              name: 'feature/agent-handoff-summary',
+              vis: true,
+              sessions: [
+                {
+                  id: 's5',
+                  task: tk('Rewrite handoff summary', 'progress'),
+                  procs: [{ cmd: 'pnpm docs:dev', st: 'live', port: 4000 }],
+                  title: 'Rewrite handoff summary',
+                  st: 'running',
+                  t: '12m',
+                  agents: [
+                    ag('Orca-1', 'working', [{ n: 'copy', st: 'working' }]),
+                    ag('Orca-2', 'working'),
+                    ag('Codex-1', 'done'),
+                  ],
+                  sum: sm(120, 1.08, 96, 14, 4, '1h12'),
+                },
+              ],
+            },
+            {
+              name: 'fix/checks-detail-link',
+              vis: true,
+              sessions: [
+                {
+                  id: 's6',
+                  task: tk('Use correct run ID', 'review'),
+                  title: 'Fix “View details” link using wrong run ID',
+                  st: 'review',
+                  t: '2h',
+                  agents: [ag('Codex-3', 'done')],
+                  sum: sm(34, 0.3, 6, 1, 2, '22m'),
+                },
+              ],
+            },
+            { name: 'fix/webhook-retry-backoff', vis: false, sessions: [] },
+          ],
+        },
+        {
+          id: 'p3',
+          g: null,
+          name: 'phantoma-proxy',
+          color: '#a078ff',
+          hidden: false,
+          branches: [
+            {
+              name: 'master',
+              vis: true,
+              sessions: [
+                {
+                  id: 's7',
+                  title: 'HTTPS capture: merge TLS handshakes',
+                  st: 'review',
+                  t: '3h',
+                  agents: [ag('Orca-2', 'done', [{ n: 'tls', st: 'done' }])],
+                  sum: sm(58, 0.51, 210, 48, 7, '52m'),
+                },
+              ],
+            },
+            {
+              name: 'feature/target-groups',
+              vis: true,
+              sessions: [
+                {
+                  id: 's8',
+                  task: tk('Target group UI', 'progress'),
+                  procs: [
+                    { cmd: 'cargo run --bin proxy', st: 'live', port: 8080 },
+                    { cmd: 'cargo build --release', st: 'busy' },
+                  ],
+                  title: 'Target group UI',
+                  st: 'running',
+                  t: '1m',
+                  agents: [ag('Codex-2', 'working')],
+                  sum: sm(15, 0.13, 33, 2, 3, '9m'),
+                },
+              ],
+            },
+            { name: 'hotfix/cert-store', vis: false, sessions: [] },
+          ],
+        },
+        {
+          id: 'p4',
+          g: null,
+          name: 'zen-extension',
+          color: '#3ddc84',
+          hidden: false,
+          branches: [
+            {
+              name: 'main',
+              vis: true,
+              sessions: [
+                {
+                  id: 's9',
+                  task: tk('About tab', 'done'),
+                  procs: [{ cmd: 'pnpm watch', st: 'live' }],
+                  title: 'Settings panel — About tab',
+                  st: 'done',
+                  t: '1d',
+                  agents: [ag('Orca-3', 'done')],
+                  sum: sm(40, 0.35, 120, 30, 5, '33m'),
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'p5',
+          g: null,
+          name: 'legacy-scenario-lab',
+          color: '#8b8d96',
+          hidden: true,
+          branches: [{ name: 'main', vis: true, sessions: [] }],
+        },
+      ];
+      const ORDER = ['blocked', 'running', 'review', 'queued', 'done', 'idle'];
+      const ST = {
+        working: 'running',
+        running: 'running',
+        review: 'review',
+        blocked: 'blocked',
+        queued: 'queued',
+        done: 'done',
+        idle: 'idle',
+      };
+      const LBL = {
+        running: 'Running',
+        review: 'Review',
+        blocked: 'Blocked',
+        queued: 'Queued',
+        done: 'Done',
+        idle: 'Idle',
+      };
+      const TS = [
+        ['todo', 'Todo'],
+        ['progress', 'In progress'],
+        ['review', 'In review'],
+        ['done', 'Done'],
+      ];
+      const SORTS = [
+        ['manual', 'Manual'],
+        ['name', 'Name A → Z'],
+        ['status', 'Status priority'],
+        ['tokens', 'Token usage'],
+      ];
+      const S = {
+        sess: null,
+        open: new Set(['p1', 'p3']),
+        showHidden: false,
+        sort: 'manual',
+        flt: 'all',
+        rename: null,
+      };
+      const I = {
+        chev: '<polyline points="9 18 15 12 9 6"/>',
+        chevD: '<polyline points="6 9 12 15 18 9"/>',
+        git: '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+        eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+        plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+        dots: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+        ck: '<polyline points="20 6 9 17 4 12"/>',
+        up: '<polyline points="18 15 12 9 6 15"/>',
+        down: '<polyline points="6 9 12 15 18 9"/>',
+        p_running: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+        p_blocked:
+          '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+        term: '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>',
+        sq: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+        x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+        expand: '<polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/>',
+        collapse: '<polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/>',
+        sliders:
+          '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+        folder:
+          '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+        kanban:
+          '<rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="10" rx="1"/><rect x="17" y="4" width="4" height="6" rx="1"/>',
+        trash:
+          '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>',
+        edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+      };
+      const ic = (n, c = '') => `<svg class="icon ${c}" viewBox="0 0 24 24">${I[n]}</svg>`;
+      const $ = (s) => document.querySelector(s);
+      const toast = (m) => {
+        const t = $('#toast');
+        t.textContent = m;
+        t.classList.add('on');
+        clearTimeout(toast.h);
+        toast.h = setTimeout(() => t.classList.remove('on'), 1600);
+      };
+
+      /* ═══ DERIVED ═══ */
+      const newest = (b) => b.sessions[0];
+      const bst = (b) => (newest(b) ? ST[newest(b).st] || 'idle' : 'idle');
+      const vis = (p) => p.branches.filter((b) => b.vis);
+      const pst = (p) => {
+        const s = vis(p).map(bst);
+        return ORDER.find((o) => s.includes(o)) || 'idle';
+      };
+      const tok = (p) =>
+        vis(p).reduce((a, b) => a + b.sessions.reduce((x, s) => x + s.sum.tok, 0), 0);
+      const tcount = (p) => {
+        const c = { todo: 0, progress: 0, review: 0, done: 0 };
+        p.branches.forEach((b) => b.sessions.forEach((x) => x.task && c[x.task.st]++));
+        return c;
+      };
+      const shown = () => {
+        let l = PROJECTS.filter((p) => S.showHidden || !p.hidden);
+        if (S.flt !== 'all') l = l.filter((p) => pst(p) === S.flt);
+        if (S.sort === 'name') l = [...l].sort((a, b) => a.name.localeCompare(b.name));
+        if (S.sort === 'status')
+          l = [...l].sort((a, b) => ORDER.indexOf(pst(a)) - ORDER.indexOf(pst(b)));
+        if (S.sort === 'tokens') l = [...l].sort((a, b) => tok(b) - tok(a));
+        return l;
+      };
+      const findS = (id) => {
+        for (const p of PROJECTS)
+          for (const b of p.branches) for (const x of b.sessions) if (x.id === id) return x;
+      };
+      const findB = (pid, bn) =>
+        PROJECTS.find((x) => x.id === pid).branches.find((b) => b.name === bn);
+
+      /* ═══ RENDER ═══ */
+      const AL = {
+        run: 'Running',
+        err: 'Error',
+        wait: 'Waiting for you',
+        que: 'Queued',
+        done: 'Done',
+      };
+      const AO = ['err', 'wait', 'run', 'que', 'done'];
+      function aState(a, sess) {
+        if (ST[a.st] === 'blocked') return 'err';
+        if (a.st === 'working') return 'run';
+        if (a.st === 'queued') return 'que';
+        return sess && ST[sess.st] === 'review' ? 'wait' : 'done';
+      }
+      const aa = (a, sess, s) => {
+        const k = aState(a, sess);
+        return `<span class="aa ${k}${s ? ' sm' : ''}" style="--ac:${a.c}" title="${a.n} · ${AL[k]}">${a.ini}</span>`;
+      };
+      const agHtml = (a, sess) => `<span class="agc">${aa(a, sess, 1)}${a.n}</span>`;
+      const worstP = (ps) => ['crashed', 'busy', 'live'].find((k) => ps.some((p) => p.st === k));
+      function procsHtml(s) {
+        const ps = s.procs || [];
+        if (!ps.length) return '';
+        return `<div class="prs">${ps.map((p, i) => `<div class="pr ${p.st}"><span class="pri">${ic(p.st === 'busy' ? 'p_running' : p.st === 'crashed' ? 'p_blocked' : 'term')}</span><span class="prc" title="${p.cmd}">${p.cmd}</span>${p.port ? `<span class="prp">:${p.port}</span>` : ''}${p.st === 'crashed' ? `<span class="prx">exit ${p.code || 1}</span>` : ''}<button class="prk" data-kill="${s.id}|${i}" title="${p.st === 'crashed' ? 'Dismiss' : 'Stop process'}">${ic(p.st === 'crashed' ? 'x' : 'sq')}</button></div>`).join('')}</div>`;
+      }
+      function procPill(s) {
+        const ps = s.procs || [];
+        if (!ps.length) return '';
+        return `<span class="pp ${worstP(ps)}" title="${ps.map((p) => p.cmd + (p.port ? ' :' + p.port : '')).join('&#10;')}">${ic('term')}${ps.length}<i class="pd"></i></span>`;
+      }
+      function taskRow(s) {
+        const t = s.task;
+        if (!t) return '';
+        return `<div class="tk ${t.st}"><i class="tk-i ${t.st}"></i><span class="tt" title="${t.title}">${t.title}</span><button class="tkp" data-tk="${s.id}">${TS.find((x) => x[0] === t.st)[1]}${ic('down', 'xs')}</button></div>`;
+      }
+      function sessionCard(s) {
+        const su = s.sum,
+          st = ST[s.st] || 'idle';
+        return `<div class="sc ${st}${S.sess === s.id ? ' on' : ''}" data-sid="${s.id}">
+  <div class="sc-title"><span class="dot ${st}"></span><span class="tt">${s.title}</span></div>
+  ${taskRow(s)}
+  <div class="ag">${s.agents.map((a) => agHtml(a, s)).join('')}</div>
+  ${s.hint ? `<div class="hint">${s.hint}</div>` : ''}${procsHtml(s)}
+  <div class="an"><span><b>${su.tok}k</b> tokens</span><span>$<b>${su.cost.toFixed(2)}</b></span><span><b>${su.files}</b> files <span class="a">+${su.add}</span> <span class="r">−${su.rem}</span></span><span>${su.dur}</span></div></div>`;
+      }
+      function branchBlock(p, b) {
+        const n = newest(b),
+          busy = n && ['running', 'queued', 'blocked', 'review'].includes(ST[n.st]);
+        return `<div class="br" draggable="true" data-pid="${p.id}" data-br="${b.name}">
+  <div class="br-head" data-ctx="branch"><span class="bn">${b.name}</span>
+   <button class="hb add" data-new="${p.id}|${b.name}" ${busy ? 'disabled title="This branch already has an active session"' : 'title="New session"'}>${ic('plus', 'xs')}</button>
+   <button class="ib kebab" data-kebab style="width:20px;height:20px">${ic('dots', 'xs')}</button></div>
+  ${n ? sessionCard(n) : `<div class="sc" style="cursor:default;align-items:center;color:var(--t3);font-size:11px">No sessions yet</div>`}
+ </div>`;
+      }
+      function collapsedTree(p) {
+        const vb = vis(p),
+          hiddenActive = p.branches.filter(
+            (b) => !b.vis && ['blocked', 'running', 'review', 'queued'].includes(bst(b)),
+          ).length;
+        if (!vb.length) return `<div class="tnfoot">No branches shown</div>`;
+        const rank = (b) => {
+          const n = newest(b),
+            ps = (n && n.procs) || [];
+          return ps.some((x) => x.st === 'crashed')
+            ? -1
+            : ps.length && ST[n.st] === 'done'
+              ? 3.5
+              : ORDER.indexOf(bst(b));
+        };
+        let pick = vb.map((b, i) => ({ b, i, r: rank(b) }));
+        if (pick.length > 5)
+          pick = [...pick]
+            .sort((x, y) => x.r - y.r || x.i - y.i)
+            .slice(0, 5)
+            .sort((x, y) => x.i - y.i);
+        const rest = vb.length - pick.length;
+        const rows = pick
+          .map((x) => {
+            const b = x.b,
+              n = newest(b),
+              st = bst(b),
+              live = n && !['done', 'idle'].includes(ST[n.st]);
+            const ags = live
+              ? [...n.agents].sort((u, v) => AO.indexOf(aState(u, n)) - AO.indexOf(aState(v, n)))
+              : [];
+            const pill = n ? procPill(n) : '';
+            let right =
+              ags
+                .slice(0, 4)
+                .map((u) => aa(u, n))
+                .join('') +
+              (ags.length > 4 ? `<span class="more">+${ags.length - 4}</span>` : '') +
+              pill;
+            if (!right) right = st === 'done' ? '' : `<span class="tst">idle</span>`;
+            return `<div class="row al${S.sess === (n && n.id) ? ' on' : ''}${!live && !pill ? ' dim' : ''}"${n ? ` data-sid="${n.id}"` : ''} title="${b.name}"><span class="dot ${st}"></span><span class="abn">${b.name.replace(/^(feature|fix|hotfix|release)\//, '')}</span><span class="ags">${right}</span></div>`;
+          })
+          .join('');
+        const foot = [];
+        if (rest > 0) foot.push(`+${rest} more branch${rest > 1 ? 'es' : ''}`);
+        if (hiddenActive)
+          foot.push(`${hiddenActive} hidden branch${hiddenActive > 1 ? 'es' : ''} active`);
+        return rows + (foot.length ? `<div class="tnfoot">${foot.join(' · ')}</div>` : '');
+      }
+      function projectCard(p) {
+        const sel = S.open.has(p.id),
+          c = tcount(p),
+          man = S.sort === 'manual';
+        const chips = TS.map(
+          ([k, l]) =>
+            `<span class="tc${c[k] ? '' : ' z'}" title="${l}: ${c[k]}"><i class="tk-i ${k}"></i>${c[k]}</span>`,
+        ).join('');
+        const top = `<div class="pc-top" data-pick="${p.id}" data-ctx="project"><div class="pt1"><span class="pi" style="--c:${p.color}">${ic('git')}</span><span class="pname">${p.name}</span>${p.hidden ? '<span class="tag">hidden</span>' : ''}
+  <button class="ib kebab" data-kebab style="width:20px;height:20px">${ic('dots', 'xs')}</button><button class="ib tm" data-tm="${p.id}" title="Open Task Manager">${ic('kanban')}</button><span class="chev">${ic(sel ? 'chevD' : 'chev', 'xs')}</span></div><div class="pt2">${chips}</div></div>`;
+        const vb = vis(p);
+        const inner = sel
+          ? `<div class="pc-body${S.enter === p.id ? ' enter' : ''}">${vb.map((b) => branchBlock(p, b)).join('') || '<div class="empty">No branches shown.<br>Right-click the project to add one.</div>'}</div>`
+          : `<div class="pc-more" data-pick="${p.id}">${collapsedTree(p)}</div>`;
+        return `<div class="pc ${sel ? 'sel' : ''} ${p.hidden ? 'hid' : ''}" draggable="${man}" data-pid="${p.id}">${top}${inner}</div>`;
+      }
+      function listHtml() {
+        const ps = shown();
+        let h = '';
+        GROUPS.forEach((g) => {
+          const m = ps.filter((p) => p.g === g.id);
+          if (!m.length && S.flt !== 'all') return;
+          const name =
+            S.rename === g.id
+              ? `<input class="gin" data-gid="${g.id}" value="${g.name}">`
+              : `<span class="gn">${g.name}</span>`;
+          h += `<div class="gh" data-gid="${g.id}"><span class="chev">${ic(g.open ? 'chevD' : 'chev', 'xs')}</span><span class="gf">${ic('folder', 'xs')}</span>${name}<span class="cnt">${m.length}</span><button class="ib kebab" data-gk="${g.id}" style="width:20px;height:20px">${ic('dots', 'xs')}</button></div>`;
+          if (g.open)
+            h += `<div class="gb">${m.map(projectCard).join('') || '<div class="empty">Empty group</div>'}</div>`;
+        });
+        const u = ps.filter((p) => !GROUPS.some((g) => g.id === p.g));
+        if (GROUPS.length && u.length) h += `<div class="gl">Ungrouped</div>`;
+        h += u.map(projectCard).join('');
+        return h || '<div class="empty">No projects match this filter.</div>';
+      }
+      function render() {
+        const hc = PROJECTS.filter((p) => p.hidden).length,
+          ids = shown().map((p) => p.id),
+          anyOpen = ids.some((i) => S.open.has(i)),
+          dirty = S.sort !== 'manual' || S.flt !== 'all';
+        $('#panel').innerHTML = `
+ <div class="head"><b>Projects<span>${ids.length}</span></b><div class="tools">
+  <button class="ib" data-expall title="${anyOpen ? 'Collapse all' : 'Expand all'}">${ic(anyOpen ? 'collapse' : 'expand')}</button>
+  <button class="ib ${dirty ? 'on' : ''}" data-cfg title="Filter & sort">${ic('sliders')}${dirty ? '<i class="pip"></i>' : ''}</button>
+  <button class="ib ${S.showHidden ? 'on' : ''}" data-showhidden title="Show hidden projects">${ic('eye')}${hc ? `<i>${hc}</i>` : ''}</button>
+  <button class="ib" title="Add project">${ic('plus')}</button></div></div>
+ <div class="list" id="list">${listHtml()}</div>`;
+        afterRender();
+      }
+      function afterRender() {
+        const gi = $('.gin');
+        if (gi) {
+          let d = 0;
+          const fin = (c) => {
+            if (d) return;
+            d = 1;
+            const g = GROUPS.find((x) => x.id === gi.dataset.gid);
+            if (c && gi.value.trim()) g.name = gi.value.trim();
+            S.rename = null;
+            render();
+          };
+          gi.focus();
+          gi.select();
+          gi.onkeydown = (e) => {
+            if (e.key === 'Enter') fin(1);
+            if (e.key === 'Escape') fin(0);
+          };
+          gi.onblur = () => fin(1);
+        }
+      }
+
+      /* ═══ MENUS ═══ */
+      const menu = $('#menu');
+      function showMenu(x, y, html) {
+        menu.innerHTML = html;
+        menu.classList.add('open');
+        const r = menu.getBoundingClientRect();
+        menu.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
+        menu.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+      }
+      const hideMenu = () => menu.classList.remove('open');
+      const mpos = () => [parseFloat(menu.style.left), parseFloat(menu.style.top)];
+      const mv = (arr, i, d) => {
+        const j = i + d;
+        if (j < 0 || j >= arr.length) return;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      };
+      const mi = (act, label, { ck, cls = '', ico = '', r = '' } = {}) =>
+        `<div class="mi ${cls}" data-act="${act}"><span class="ck">${ck ? ic('ck') : ''}</span>${ico}${label}${r ? `<span class="r">${r}</span>` : ''}</div>`;
+      function projectMenu(p, x, y) {
+        const i = PROJECTS.indexOf(p);
+        showMenu(
+          x,
+          y,
+          `<div class="ml">Visible branches</div>
+  ${p.branches.map((b) => mi(`tgl|${p.id}|${b.name}`, b.name, { ck: b.vis })).join('')}
+  <div class="msep"></div><div class="ml">Group</div>
+  ${GROUPS.map((g) => mi(`grp|${p.id}|${g.id}`, 'Move to ' + g.name, { ck: p.g === g.id, ico: ic('folder', 'xs') })).join('')}
+  ${p.g ? mi(`grp|${p.id}|`, 'Remove from group', { cls: 'dim', ico: ic('x', 'xs') }) : ''}
+  ${mi(`gnew|${p.id}`, 'New group from project', { ico: ic('plus', 'xs') })}
+  <div class="msep"></div>
+  ${mi('pup|' + p.id, 'Move up', { cls: 'dim', ico: ic('up'), r: `${i + 1}/${PROJECTS.length}` })}${mi('pdn|' + p.id, 'Move down', { cls: 'dim', ico: ic('down') })}
+  ${mi('phide|' + p.id, p.hidden ? 'Show project' : 'Hide project', { cls: p.hidden ? '' : 'danger', ico: ic('eye') })}`,
+        );
+      }
+      function branchMenu(p, name, x, y) {
+        showMenu(
+          x,
+          y,
+          `${mi(`bup|${p.id}|${name}`, 'Move up', { cls: 'dim', ico: ic('up') })}${mi(`bdn|${p.id}|${name}`, 'Move down', { cls: 'dim', ico: ic('down') })}${mi(`tgl|${p.id}|${name}`, 'Hide branch', { cls: 'danger', ico: ic('eye') })}`,
+        );
+      }
+      function groupMenu(g, x, y) {
+        showMenu(
+          x,
+          y,
+          `${mi('grn|' + g.id, 'Rename group', { ico: ic('edit', 'xs') })}${mi('gun|' + g.id, 'Ungroup (keep projects)', { cls: 'danger', ico: ic('trash', 'xs') })}`,
+        );
+      }
+      function cfgMenu(x, y) {
+        const dirty = S.sort !== 'manual' || S.flt !== 'all';
+        showMenu(
+          x,
+          y,
+          `<div class="ml">Sort by</div>${SORTS.map(([k, l]) => mi('sort|' + k, l, { ck: S.sort === k })).join('')}
+  <div class="msep"></div><div class="ml">Filter by status</div>
+  ${mi('flt|all', 'All projects', { ck: S.flt === 'all' })}
+  ${ORDER.map((o) => mi('flt|' + o, LBL[o], { ck: S.flt === o, ico: `<span class="dot ${o}"></span>` })).join('')}
+  ${dirty ? `<div class="msep"></div>${mi('cfgreset', 'Reset', { cls: 'dim', ico: ic('x', 'xs') })}` : ''}`,
+        );
+      }
+      function taskMenu(sid, x, y) {
+        const t = findS(sid).task;
+        showMenu(
+          x,
+          y,
+          `${TS.map(([k, l]) => mi(`tks|${sid}|${k}`, l, { ck: t.st === k, ico: `<i class="tk-i ${k}"></i>` })).join('')}<div class="msep"></div>${mi('tkdel|' + sid, 'Remove task', { cls: 'danger', ico: ic('trash', 'xs') })}`,
+        );
+      }
+      menu.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-act]');
+        if (!el) return;
+        const [a, x1, x2, x3, x4] = el.dataset.act.split('|'),
+          p = PROJECTS.find((q) => q.id === x1);
+        if (a === 'tgl') {
+          const b = p.branches.find((x) => x.name === x2);
+          b.vis = !b.vis;
+          render();
+          projectMenu(p, ...mpos());
+          return;
+        }
+        if (a === 'sort' || a === 'flt' || a === 'cfgreset') {
+          if (a === 'sort') S.sort = x1;
+          else if (a === 'flt') S.flt = x1;
+          else {
+            S.sort = 'manual';
+            S.flt = 'all';
+          }
+          render();
+          cfgMenu(...mpos());
+          return;
+        }
+        if (a === 'pup') mv(PROJECTS, PROJECTS.indexOf(p), -1);
+        if (a === 'pdn') mv(PROJECTS, PROJECTS.indexOf(p), 1);
+        if (a === 'phide') p.hidden = !p.hidden;
+        if (a === 'bup')
+          mv(
+            p.branches,
+            p.branches.findIndex((b) => b.name === x2),
+            -1,
+          );
+        if (a === 'bdn')
+          mv(
+            p.branches,
+            p.branches.findIndex((b) => b.name === x2),
+            1,
+          );
+        if (a === 'grp') p.g = x2 || null;
+        if (a === 'gnew') {
+          const id = 'g' + Date.now();
+          GROUPS.push({ id, name: 'New group', open: true });
+          p.g = id;
+          S.rename = id;
+        }
+        if (a === 'grn') S.rename = x1;
+        if (a === 'gun') {
+          PROJECTS.forEach((q) => {
+            if (q.g === x1) q.g = null;
+          });
+          GROUPS.splice(
+            GROUPS.findIndex((g) => g.id === x1),
+            1,
+          );
+        }
+        if (a === 'tks') findS(x1).task.st = x2;
+        if (a === 'tkdel') delete findS(x1).task;
+        hideMenu();
+        render();
+      });
+      document.addEventListener('click', (e) => {
+        if (!menu.contains(e.target)) hideMenu();
+      });
+
+      /* ═══ EVENTS ═══ */
+      document.addEventListener('contextmenu', (e) => {
+        const gh = e.target.closest('.gh');
+        if (gh) {
+          e.preventDefault();
+          groupMenu(
+            GROUPS.find((g) => g.id === gh.dataset.gid),
+            e.clientX,
+            e.clientY,
+          );
+          return;
+        }
+        const pc = e.target.closest('.pc');
+        if (!pc) return;
+        e.preventDefault();
+        const p = PROJECTS.find((x) => x.id === pc.dataset.pid),
+          br = e.target.closest('.br-head');
+        if (br) branchMenu(p, br.closest('.br').dataset.br, e.clientX, e.clientY);
+        else projectMenu(p, e.clientX, e.clientY);
+      });
+      $('#panel').addEventListener('click', (e) => {
+        const t = e.target;
+        let el;
+        if ((el = t.closest('[data-kebab]'))) {
+          e.stopPropagation();
+          const r = el.getBoundingClientRect(),
+            pc = el.closest('.pc'),
+            p = PROJECTS.find((x) => x.id === pc.dataset.pid),
+            b = el.closest('.br');
+          b
+            ? branchMenu(p, b.dataset.br, r.left, r.bottom + 4)
+            : projectMenu(p, r.left - 180, r.bottom + 4);
+          return;
+        }
+        if ((el = t.closest('[data-gk]'))) {
+          e.stopPropagation();
+          const r = el.getBoundingClientRect();
+          groupMenu(
+            GROUPS.find((g) => g.id === el.dataset.gk),
+            r.left - 120,
+            r.bottom + 4,
+          );
+          return;
+        }
+        if ((el = t.closest('[data-cfg]'))) {
+          e.stopPropagation();
+          const r = el.getBoundingClientRect();
+          cfgMenu(r.left - 130, r.bottom + 4);
+          return;
+        }
+        if ((el = t.closest('[data-tk]'))) {
+          e.stopPropagation();
+          const r = el.getBoundingClientRect();
+          taskMenu(el.dataset.tk, r.left - 80, r.bottom + 4);
+          return;
+        }
+        if (t.closest('[data-expall]')) {
+          const ids = shown().map((p) => p.id);
+          if (ids.some((i) => S.open.has(i))) ids.forEach((i) => S.open.delete(i));
+          else ids.forEach((i) => S.open.add(i));
+          return render();
+        }
+        if (t.closest('[data-showhidden]')) {
+          S.showHidden = !S.showHidden;
+          return render();
+        }
+        if ((el = t.closest('[data-tm]'))) {
+          e.stopPropagation();
+          return toast(
+            'Task Manager · ' +
+              PROJECTS.find((p) => p.id === el.dataset.tm).name +
+              ' (UI coming soon)',
+          );
+        }
+        if (t.closest('.gin')) return;
+        if ((el = t.closest('.gh'))) {
+          const g = GROUPS.find((x) => x.id === el.dataset.gid);
+          g.open = !g.open;
+          return render();
+        }
+        if ((el = t.closest('[data-new]')) && !el.disabled) {
+          const [pid, bn] = el.dataset.new.split('|'),
+            b = findB(pid, bn);
+          b.sessions.unshift({
+            id: 'n' + Date.now(),
+            task: tk('New task', 'todo'),
+            title: 'New session',
+            st: 'queued',
+            agents: [ag('Orca-1', 'queued')],
+            procs: newest(b) && newest(b).procs ? newest(b).procs.splice(0) : [],
+            sum: sm(0, 0, 0, 0, 0, '—'),
+          });
+          return render();
+        }
+        if ((el = t.closest('[data-kill]'))) {
+          const [id, i] = el.dataset.kill.split('|');
+          PROJECTS.forEach((p) =>
+            p.branches.forEach((b) =>
+              b.sessions.forEach((x) => {
+                if (x.id === id) x.procs.splice(+i, 1);
+              }),
+            ),
+          );
+          return render();
+        }
+        if ((el = t.closest('[data-sid]'))) {
+          S.sess = el.dataset.sid;
+          document.querySelectorAll('.on[data-sid]').forEach((x) => x.classList.remove('on'));
+          document.querySelectorAll(`[data-sid="${S.sess}"]`).forEach((x) => x.classList.add('on'));
+          return;
+        }
+        if ((el = t.closest('[data-pick]'))) {
+          const id = el.dataset.pick;
+          if (S.open.has(id)) {
+            if (el.matches('.pc-top')) S.open.delete(id);
+          } else S.open.add(id);
+          S.enter = S.open.has(id) ? id : null;
+          render();
+          S.enter = null;
+        }
+      });
+      /* drag & drop: project (Manual sort only) + branch */
+      let drag = null;
+      document.addEventListener('dragstart', (e) => {
+        const br = e.target.closest?.('.br'),
+          pc = e.target.closest?.('.pc');
+        drag = br
+          ? { k: 'b', pid: br.dataset.pid, n: br.dataset.br, el: br }
+          : pc
+            ? { k: 'p', pid: pc.dataset.pid, el: pc }
+            : null;
+        if (drag) {
+          drag.el.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.stopPropagation();
+        }
+      });
+      document.addEventListener('dragover', (e) => {
+        if (!drag) return;
+        const t = e.target.closest(drag.k === 'b' ? '.br' : '.pc');
+        if (t && t !== drag.el && (drag.k === 'p' || t.dataset.pid === drag.pid)) {
+          e.preventDefault();
+          document.querySelectorAll('.dragover').forEach((x) => x.classList.remove('dragover'));
+          t.classList.add('dragover');
+        }
+      });
+      document.addEventListener('drop', (e) => {
+        if (!drag) return;
+        const t = e.target.closest(drag.k === 'b' ? '.br' : '.pc');
+        if (!t || t === drag.el) return;
+        e.preventDefault();
+        if (drag.k === 'p') {
+          const a = PROJECTS.findIndex((p) => p.id === drag.pid),
+            b = PROJECTS.findIndex((p) => p.id === t.dataset.pid);
+          const pj = PROJECTS.splice(a, 1)[0];
+          pj.g = PROJECTS.find((p) => p.id === t.dataset.pid).g;
+          PROJECTS.splice(
+            PROJECTS.findIndex((p) => p.id === t.dataset.pid),
+            0,
+            pj,
+          );
+        } else {
+          const p = PROJECTS.find((x) => x.id === drag.pid),
+            a = p.branches.findIndex((x) => x.name === drag.n),
+            b = p.branches.findIndex((x) => x.name === t.dataset.br);
+          p.branches.splice(b, 0, p.branches.splice(a, 1)[0]);
+        }
+        drag = null;
+        render();
+      });
+      document.addEventListener('dragend', () => {
+        drag = null;
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>

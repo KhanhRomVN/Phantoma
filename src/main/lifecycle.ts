@@ -26,8 +26,8 @@ import { closeAllGenericWebWindows } from './features/generic-web';
 import { appState, clearActiveState, clearAllTargetProcesses } from './shared/state';
 import { stopAllLSPServers } from './ipc/lsp-handlers';
 import { closeAllBrowserSessions } from './ipc/browser.handlers';
+import { taskStorage } from './services/TaskStorage';
 import { logger } from './utils/logger';
-
 // Fix EAI_AGAIN DNS errors by preferring IPv4
 try {
   if (dns.setDefaultResultOrder) {
@@ -58,6 +58,7 @@ export async function cleanup() {
   closeAllGenericWebWindows();
   stopAllLSPServers(); // Stop all language servers
   await closeAllBrowserSessions(); // Close all browser sessions
+  taskStorage.closeAll(); // Close all SQLite connections
   
   // Kill all target processes
   clearAllTargetProcesses();

@@ -34,8 +34,8 @@ interface TabItem {
   label: string;
 }
 
-/** Height matches the global HeaderBar (h-10 = 40px) */
-const TOPBAR_HEIGHT = 40;
+/** Height matches ProjectPanel header (h-[44px]) */
+const TOPBAR_HEIGHT = 44;
 
 interface ActivityBarProps {
   activeTab: string;

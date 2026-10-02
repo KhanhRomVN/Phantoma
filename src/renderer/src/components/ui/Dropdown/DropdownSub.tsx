@@ -32,7 +32,7 @@ export function DropdownSub({
   open: controlledOpen,
   onOpenChange,
   side = 'right',
-  sideOffset = 4,
+  sideOffset = 12,
   align = 'start',
 }: DropdownSubProps) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -160,10 +160,12 @@ export function DropdownSub({
         {open && content && (
           <div
             ref={contentRef}
-            className="fixed z-[9999] min-w-[160px] bg-background border border-border rounded-lg shadow-lg py-1 animate-in fade-in zoom-in duration-100 transition-colors hover:border-primary"
+            className="fixed z-[9999] min-w-[160px] bg-background border border-border rounded-lg py-1 animate-in fade-in zoom-in duration-100"
             style={{
               top: position.top,
               left: position.left,
+              boxShadow:
+                '0 0 0 1px rgb(var(--primary) / 0.10), 0 2px 8px rgb(var(--primary) / 0.06), 0 8px 24px rgb(var(--primary) / 0.04)',
             }}
             onMouseEnter={handleContentMouseEnter}
             onMouseLeave={handleContentMouseLeave}

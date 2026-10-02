@@ -20,7 +20,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 import { logger } from '@renderer/utils/logger';
 // ── React ──
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 // ── UI ──
@@ -36,13 +36,17 @@ import {
   Palette,
   Table,
   Puzzle,
-  GitBranch,
 } from 'lucide-react';
 
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 
-// ── Services ──
+// ── Views 
+import { TaskManager } from './TaskManager';
+import { WorkspaceViews, EmptyState } from './Workspace';
+import { ContentHeaderBar } from './Headerbar';
+
+// ── Services ─
 import { fileWatcherService } from '../../services/file-watcher.service';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -107,67 +111,6 @@ function getFileCategory(filename: string): FileCategory {
   if (audioExts.includes(ext)) return 'audio';
   if (binaryExts.includes(ext)) return 'binary';
   return 'text';
-}
-
-function getLanguage(filename: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase() || '';
-  const langMap: Record<string, string> = {
-    ts: 'typescript',
-    tsx: 'typescript',
-    js: 'javascript',
-    jsx: 'javascript',
-    mjs: 'javascript',
-    cjs: 'javascript',
-    json: 'json',
-    html: 'html',
-    htm: 'html',
-    css: 'css',
-    scss: 'scss',
-    less: 'less',
-    md: 'markdown',
-    mdx: 'markdown',
-    py: 'python',
-    rb: 'ruby',
-    php: 'php',
-    java: 'java',
-    c: 'c',
-    cpp: 'cpp',
-    h: 'c',
-    hpp: 'cpp',
-    cs: 'csharp',
-    go: 'go',
-    rs: 'rust',
-    swift: 'swift',
-    kt: 'kotlin',
-    dart: 'dart',
-    lua: 'lua',
-    r: 'r',
-    sql: 'sql',
-    graphql: 'graphql',
-    gql: 'graphql',
-    xml: 'xml',
-    svg: 'xml',
-    yaml: 'yaml',
-    yml: 'yaml',
-    toml: 'ini',
-    ini: 'ini',
-    cfg: 'ini',
-    env: 'ini',
-    sh: 'shell',
-    bash: 'shell',
-    zsh: 'shell',
-    fish: 'shell',
-    ps1: 'powershell',
-    bat: 'bat',
-    cmd: 'bat',
-    dockerfile: 'dockerfile',
-    makefile: 'makefile',
-    vue: 'html',
-    svelte: 'html',
-    astro: 'html',
-    prisma: 'prisma',
-  };
-  return langMap[ext] || langMap[filename.toLowerCase()] || 'plaintext';
 }
 
 // ─── Preview Components ─────────────────────────────────────────────────────
@@ -243,63 +186,12 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
 const EMPTY_ARRAY: string[] = [];
 const EMPTY_SET = new Set<string>();
 
-/** Height matches the global HeaderBar (h-10 = 40px) */
-const CONTENT_HEADER_HEIGHT = 40;
-
-// ─── Content Header Bar ─────────────────────────────────────────────────────
-function ContentHeaderBar() {
-  const projectName = useCodeStore((s) => {
-    const p = s.projects.find((p) => p.id === s.currentProjectId);
-    return p?.name ?? '';
-  });
-  const projectPath = useCodeStore((s) => {
-    const p = s.projects.find((p) => p.id === s.currentProjectId);
-    return p?.path ?? '';
-  });
-
-  const [branch, setBranch] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!projectPath) {
-      setBranch(null);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const gitHead = projectPath.replace(/\/$/, '') + '/.git/HEAD';
-        const content: string = await window.api.invoke('fs:read-file', gitHead);
-        const match = content?.match(/^ref: refs\/heads\/(.+)$/m);
-        if (!cancelled) setBranch(match ? match[1].trim() : null);
-      } catch {
-        if (!cancelled) setBranch(null);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [projectPath]);
-
-  return (
-    <div
-      className="w-full shrink-0 border-b border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center gap-3"
-      style={{ height: CONTENT_HEADER_HEIGHT }}
-    >
-      {projectName && (
-        <span className="text-xs font-semibold text-text-primary truncate">{projectName}</span>
-      )}
-      {branch && (
-        <span className="flex items-center gap-1.5 text-[11px] text-accent font-mono">
-          <GitBranch className="w-3 h-3" strokeWidth={1.5} />
-          {branch}
-        </span>
-      )}
-    </div>
-  );
-}
-
-// ─── ContentPanel ───────────────────────────────────────────────────────────
-
 const ContentPanelInner = memo(function ContentPanelInner() {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
+
+  // ── View Mode State ──
+  const contentViewMode = useCodeStore((s) => s.contentViewMode);
+  const activeWorkspaceSessionId = useCodeStore((s) => s.activeWorkspaceSessionId);
 
   const currentServiceId = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === currentProjectId);
@@ -314,11 +206,6 @@ const ContentPanelInner = memo(function ContentPanelInner() {
   const openFiles = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === currentProjectId);
     return project?.openFiles ?? EMPTY_ARRAY;
-  });
-
-  const projectPath = useCodeStore((s) => {
-    const project = s.projects.find((p) => p.id === currentProjectId);
-    return project?.path;
   });
 
   const unsavedFiles = useCodeStore((s) => {
@@ -510,6 +397,36 @@ const ContentPanelInner = memo(function ContentPanelInner() {
     });
   }, [showFile, openFiles]);
 
+  // ── Validate Active Session for Workspace View ────────────────────────────
+  // Check if the currently selected session actually exists in the current project's branches.
+  // This prevents rendering stale workspace views after refresh or project switch.
+  const isValidWorkspaceSession = useMemo(() => {
+    if (!activeWorkspaceSessionId || !currentProjectId) return false;
+
+    const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+    if (!project || !project.branches) return false;
+
+    // Search through all branches and their sessions
+    for (const branch of project.branches) {
+      if (branch.sessions.some((s) => s.id === activeWorkspaceSessionId)) {
+        return true;
+      }
+    }
+    return false;
+  }, [activeWorkspaceSessionId, currentProjectId]);
+
+  // ── Special Views (Tasks / Workspace) ─────────────────────────────────────
+  if (contentViewMode === 'tasks') {
+    return <TaskManager />;
+  }
+
+  // Only render Workspace if mode is 'workspace' AND the session ID is valid/existing
+  if (contentViewMode === 'workspace' && isValidWorkspaceSession) {
+    return <WorkspaceViews />;
+  }
+
+  // If mode is workspace but session is invalid/stale, fallthrough to EmptyState or Files view below.
+
   // ── Service selected ────────────────────────────────────────────────────
   if (showService && currentServiceId) {
     const service = getService(currentServiceId);
@@ -522,20 +439,6 @@ const ContentPanelInner = memo(function ContentPanelInner() {
       const design = project?.designs.find((d) => d.id === service.tabId);
 
       if (design) {
-        // Parse design HTML as DesignProject
-        let designProject;
-        try {
-          designProject = JSON.parse(design.html);
-        } catch (e) {
-          // If not valid JSON, create a minimal project structure
-          designProject = {
-            id: design.id,
-            name: design.name,
-            domain: 'preview.local',
-            pages: [],
-          };
-        }
-
         return <div className="flex-1 flex flex-col min-h-0 bg-background"></div>;
       }
     }
@@ -614,15 +517,7 @@ const ContentPanelInner = memo(function ContentPanelInner() {
   }
 
   // ── Empty state ─────────────────────────────────────────────────────────
-  return (
-    <div className="flex-1 flex items-center justify-center bg-background text-text-secondary/40">
-      <div className="text-center">
-        <div className="text-4xl mb-3">📂</div>
-        <div className="text-sm">Select a service or open a file</div>
-        <div className="text-xs text-text-secondary/30 mt-1">Browse files in Activity Panel</div>
-      </div>
-    </div>
-  );
+  return <EmptyState />;
 });
 
 ContentPanelInner.displayName = 'ContentPanelInner';

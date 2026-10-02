@@ -30,11 +30,24 @@ import { persist } from 'zustand/middleware';
 
 // ── Types ──
 import type { Design, DesignInput } from '../types/design';
-import type { Task, TaskInput } from '../types/task';
+// Task types removed — now managed via SQLite IPC in task.service.ts
 import type { AgentGroup, AgentGroupInput, AgentTerminal } from '../types/agent-group';
 import type { MCP, MCPInput } from '../types/mcp';
 
-// ─── Interfaces ─────────────────────────────────────────────────────────
+// ─── Interfaces ────────────────────────────────────────────────────────
+import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
+
+// ─── Workspace Panel Types (Persisted) ────────────────────────────────
+export type PanelType = 'terminal' | 'website' | 'note' | 'emulator';
+
+export interface StoredWorkspacePanel {
+  id: string;
+  type: PanelType;
+  title: string;
+  content?: string;
+  providerId?: string | null;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -44,9 +57,10 @@ export interface Project {
   services: Service[];
   files: FileNode[];
   designs: Design[];
-  tasks: Task[];
+  // tasks removed — persisted in SQLite via task.service.ts
   agentGroups: AgentGroup[];
   mcps: MCP[];
+  branches?: BranchInfo[];
   // ── Per-project state ──
   expandedFolderIds: string[];
   openFiles: string[];
@@ -65,6 +79,9 @@ export interface Project {
   originalContents: Record<string, string>;
   // ── File watcher invalidation ──
   dirVersions: Record<string, number>;
+  // ── Workspace Panels Persistence ──
+  workspacePanels: StoredWorkspacePanel[];
+  activeWorkspacePanelId: string | null;
 }
 
 export type ProjectInput = Omit<
@@ -73,9 +90,9 @@ export type ProjectInput = Omit<
   | 'services'
   | 'files'
   | 'designs'
-  | 'tasks'
   | 'agentGroups'
   | 'mcps'
+  | 'branches'
   | 'expandedFolderIds'
   | 'openFiles'
   | 'fileDisplayNames'
@@ -89,6 +106,8 @@ export type ProjectInput = Omit<
   | 'unsavedFiles'
   | 'originalContents'
   | 'dirVersions'
+  | 'workspacePanels'
+  | 'activeWorkspacePanelId'
 >;
 
 export interface Service {
@@ -131,13 +150,15 @@ function createDefaultPerProject() {
     originalContents: {} as Record<string, string>,
     dirVersions: {} as Record<string, number>,
     designs: [] as Design[],
-    tasks: [] as Task[],
+    // tasks removed — persisted in SQLite via task.service.ts
     agentGroups: [] as AgentGroup[],
     mcps: [] as MCP[],
   };
 }
 
 // ─── Store Interface ────────────────────────────────────────────────────
+
+export type ContentViewMode = 'files' | 'tasks' | 'workspace';
 
 interface CodeState {
   projects: Project[];
@@ -148,6 +169,9 @@ interface CodeState {
   forceShowLSPOverlay: boolean;
   pendingAction: (() => void) | null;
   isSaveConfirmModalOpen: boolean;
+  // ── Content Panel View State ──
+  contentViewMode: ContentViewMode;
+  activeWorkspaceSessionId: string | null;
 
   // Actions
   addProject: (project: ProjectInput) => void;
@@ -188,11 +212,7 @@ interface CodeState {
   updateDesign: (projectId: string, designId: string, updates: Partial<Design>) => void;
   removeDesign: (projectId: string, designId: string) => void;
   openDesign: (projectId: string, designId: string) => void;
-  // Task actions
-  addTask: (projectId: string, task: TaskInput) => void;
-  updateTask: (projectId: string, taskId: string, updates: Partial<Task>) => void;
-  removeTask: (projectId: string, taskId: string) => void;
-  changeTaskStatus: (projectId: string, taskId: string, status: Task['status']) => void;
+  // Task actions removed — now managed via SQLite IPC in task.service.ts
   // Agent Group actions
   addAgentGroup: (projectId: string, group: AgentGroupInput) => void;
   updateAgentGroup: (projectId: string, groupId: string, updates: Partial<AgentGroup>) => void;
@@ -206,6 +226,9 @@ interface CodeState {
   installMCP: (projectId: string, mcpId: string) => void;
   uninstallMCP: (projectId: string, mcpId: string) => void;
   openMCPDetail: (projectId: string, mcpId: string) => void;
+  // Content View actions
+  setContentViewMode: (mode: ContentViewMode) => void;
+  setActiveWorkspaceSessionId: (sessionId: string | null) => void;
 }
 
 // ─── Store ──────────────────────────────────────────────────────────────
@@ -287,23 +310,7 @@ export const useCodeStore = create<CodeState>()(
         }
       };
 
-      // Migration: Add tasks array to old projects
-      const migrateTasksArray = () => {
-        const state = get();
-        const migratedProjects = state.projects.map((project) => {
-          if (project.tasks === undefined) {
-            return {
-              ...project,
-              tasks: [] as Task[],
-            };
-          }
-          return project;
-        });
-
-        if (migratedProjects.some((p, i) => p !== state.projects[i])) {
-          set({ projects: migratedProjects });
-        }
-      };
+      // Migration: Tasks removed — now persisted in SQLite via task.service.ts
 
       // Migration: Add agentGroups array to old projects
       const migrateAgentGroupsArray = () => {
@@ -341,13 +348,33 @@ export const useCodeStore = create<CodeState>()(
         }
       };
 
+      // Migration: Add workspace panels persistence fields to old projects
+      const migrateWorkspacePanels = () => {
+        const state = get();
+        const migratedProjects = state.projects.map((project) => {
+          if (project.workspacePanels === undefined) {
+            return {
+              ...project,
+              workspacePanels: [] as StoredWorkspacePanel[],
+              activeWorkspacePanelId: null as string | null,
+            };
+          }
+          return project;
+        });
+
+        if (migratedProjects.some((p, i) => p !== state.projects[i])) {
+          set({ projects: migratedProjects });
+        }
+      };
+
       setTimeout(() => {
         migrateOldExtensionServices();
         migratePerProjectPanelState();
         migrateDesignsArray();
-        migrateTasksArray();
+        // migrateTasksArray removed — tasks now in SQLite
         migrateAgentGroupsArray();
         migrateMCPsArray();
+        migrateWorkspacePanels();
       }, 100);
 
       return {
@@ -359,6 +386,9 @@ export const useCodeStore = create<CodeState>()(
         forceShowLSPOverlay: false,
         pendingAction: null,
         isSaveConfirmModalOpen: false,
+        // ── Content View State Defaults ──
+        contentViewMode: 'files' as ContentViewMode,
+        activeWorkspaceSessionId: null as string | null,
 
         // ── Project Actions ──
 
@@ -388,9 +418,26 @@ export const useCodeStore = create<CodeState>()(
         },
 
         updateProject: (id, data) => {
-          set((state) => ({
-            projects: state.projects.map((p) => (p.id === id ? { ...p, ...data } : p)),
-          }));
+          console.log('[DEBUG_STORE_UPDATE_PROJECT_CALLED]', { id, hasBranches: !!data.branches });
+          if (data.branches) {
+             const branchWithSessions = data.branches.find(b => b.sessions && b.sessions.length > 0);
+             console.log('[DEBUG_STORE_UPDATE_BRANCHES_DETAIL]', { 
+               totalBranches: data.branches.length, 
+               sampleSessionId: branchWithSessions?.sessions[0]?.id 
+             });
+          }
+          
+          set((state) => {
+            const newProjects = state.projects.map((p) => (p.id === id ? { ...p, ...data } : p));
+            // Log ngay sau khi set để xác nhận state đã thay đổi
+            const updatedProj = newProjects.find(p => p.id === id);
+            console.log('[DEBUG_STORE_STATE_AFTER_SET]', { 
+              projectId: id, 
+              branchesCount: updatedProj?.branches?.length,
+              firstBranchSessions: updatedProj?.branches?.[0]?.sessions?.length 
+            });
+            return { projects: newProjects };
+          });
         },
 
         setCurrentProject: (id) => {
@@ -764,66 +811,7 @@ export const useCodeStore = create<CodeState>()(
           get().setCurrentService(service.id);
         },
 
-        // ── Task Actions ──
-
-        addTask: (projectId: string, task: TaskInput) => {
-          const newTask: Task = {
-            ...task,
-            id: `task_${Date.now()}`,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          };
-          set((state) => ({
-            projects: state.projects.map((p) =>
-              p.id === projectId ? { ...p, tasks: [...p.tasks, newTask] } : p,
-            ),
-          }));
-        },
-
-        updateTask: (projectId: string, taskId: string, updates: Partial<Task>) => {
-          set((state) => ({
-            projects: state.projects.map((p) =>
-              p.id === projectId
-                ? {
-                    ...p,
-                    tasks: p.tasks.map((t) =>
-                      t.id === taskId ? { ...t, ...updates, updatedAt: Date.now() } : t,
-                    ),
-                  }
-                : p,
-            ),
-          }));
-        },
-
-        removeTask: (projectId: string, taskId: string) => {
-          set((state) => ({
-            projects: state.projects.map((p) =>
-              p.id === projectId ? { ...p, tasks: p.tasks.filter((t) => t.id !== taskId) } : p,
-            ),
-          }));
-        },
-
-        changeTaskStatus: (projectId: string, taskId: string, status: Task['status']) => {
-          set((state) => ({
-            projects: state.projects.map((p) =>
-              p.id === projectId
-                ? {
-                    ...p,
-                    tasks: p.tasks.map((t) =>
-                      t.id === taskId
-                        ? {
-                            ...t,
-                            status,
-                            updatedAt: Date.now(),
-                            completedAt: status === 'completed' ? Date.now() : t.completedAt,
-                          }
-                        : t,
-                    ),
-                  }
-                : p,
-            ),
-          }));
-        },
+        // ── Task Actions removed — now managed via SQLite IPC in task.service.ts ──
 
         // ── Agent Group Actions ──
 
@@ -1043,23 +1031,42 @@ export const useCodeStore = create<CodeState>()(
 
           get().setCurrentService(service.id);
         },
+
+        // ── Content View Actions ──
+        setContentViewMode: (mode) => set({ contentViewMode: mode }),
+        setActiveWorkspaceSessionId: (sessionId) => set({ activeWorkspaceSessionId: sessionId }),
       };
     },
     {
       name: 'code-store',
-      partialize: (state) => ({
-        ...state,
-        projects: state.projects.map((p) => ({
+      partialize: (state) => {
+        const partializedProjects = state.projects.map((p) => ({
           ...p,
           files: [],
           unsavedFiles: Array.from(p.unsavedFiles),
           currentFileId: null,
-        })),
-        isProjectManagerOpen: false,
-        isNewProjectOpen: false,
-        pendingAction: null,
-        isSaveConfirmModalOpen: false,
-      }),
+          // Persist branches but strip ephemeral agent/process data —
+          // these are runtime-only and must not survive a page reload.
+          branches: (p.branches || []).map((b) => ({
+            ...b,
+            sessions: (b.sessions || []).map((s) => ({
+              ...s,
+              agents: [],           // ← temp only, re-detected on mount
+              procs: [],            // ← dead processes shouldn't persist
+              status: s.status === 'running' ? 'idle' : s.status,
+            })),
+          })),
+        }));
+
+        return {
+          ...state,
+          projects: partializedProjects,
+          isProjectManagerOpen: false,
+          isNewProjectOpen: false,
+          pendingAction: null,
+          isSaveConfirmModalOpen: false,
+        };
+      },
       merge: (persistedState: any, currentState: CodeState) => {
         const merged = { ...currentState, ...persistedState };
         if (merged.projects) {
